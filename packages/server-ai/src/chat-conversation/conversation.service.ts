@@ -6,7 +6,6 @@ import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import path from 'node:path'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
@@ -195,6 +194,12 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         return client.readFile(scopePath, filePath)
     }
 
+    async getWorkspaceFileDownload(id: string, filePath: string) {
+        const conversation = await this.findOne(id)
+        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        return client.getDownloadTarget(scopePath, filePath)
+    }
+
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
         const conversation = await this.findOne(id)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
@@ -218,12 +223,25 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
+        const sandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim()
+        if (sandboxEnvironmentId) {
+            return {
+                client: new VolumeSubtreeClient(
+                    this.createEnvironmentVolumeHandle(conversation, sandboxEnvironmentId),
+                    {
+                        allowRootWorkspace: true
+                    }
+                ),
+                scopePath: ''
+            }
+        }
+
         if (conversation.projectId) {
             return {
                 client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
-                scopePath: path.posix.join('users', conversation.createdById)
+                scopePath: ''
             }
         }
 
@@ -232,11 +250,20 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 client: new VolumeSubtreeClient(this.createXpertVolumeHandle(conversation), {
                     allowRootWorkspace: true
                 }),
-                scopePath: path.posix.join('users', conversation.createdById)
+                scopePath: ''
             }
         }
 
         throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
+    }
+
+    private createEnvironmentVolumeHandle(conversation: ChatConversation, sandboxEnvironmentId: string) {
+        return this.volumeClient.resolve({
+            tenantId: conversation.tenantId,
+            catalog: 'environment',
+            environmentId: sandboxEnvironmentId,
+            userId: conversation.createdById
+        })
     }
 
     private createProjectVolumeHandle(conversation: ChatConversation) {

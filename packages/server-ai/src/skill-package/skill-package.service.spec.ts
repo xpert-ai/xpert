@@ -1295,6 +1295,29 @@ describe('SkillPackageService', () => {
         await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# Weather\n')
     })
 
+    it('returns zip download metadata for workspace skill folders', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-download-folder-'))
+        const skillRoot = join(tempRoot, 'weather')
+        await mkdir(join(skillRoot, 'docs', 'nested'), { recursive: true })
+        await writeFile(join(skillRoot, 'docs', 'nested', 'readme.md'), 'hello', 'utf8')
+        ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+        ;(service as any).findOne = jest.fn().mockResolvedValue({
+            id: 'skill-1',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            packagePath: 'weather'
+        })
+
+        const result = await service.getSkillPackageFileDownload('workspace-1', 'skill-1', 'docs')
+
+        expect(result).toEqual({
+            absolutePath: join(skillRoot, 'docs'),
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+    })
+
     it('allows editing .env files from the supported text whitelist', async () => {
         tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-env-'))
         const skillRoot = join(tempRoot, 'weather')

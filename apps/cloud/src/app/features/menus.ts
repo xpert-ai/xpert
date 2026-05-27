@@ -17,6 +17,7 @@ type MenuData = {
   translationKey?: string
   permissionKeys?: string[]
   featureKey?: MenuFeatureKey | MenuFeatureKey[]
+  inactivePathPrefixes?: string[]
   hideWhenAllChildrenHidden?: boolean
   [key: string]: unknown
 }
@@ -234,7 +235,53 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'Chat',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.CHAT_VIEW],
+        inactivePathPrefixes: ['/chat/chatbi', '/chatbi']
+      }
+    },
+    {
+      title: 'ChatBI Assistant',
+      icon: 'ri-line-chart-line',
+      link: '/chatbi',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'ChatBI Assistant',
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI],
         permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+      }
+    },
+    {
+      title: 'CodeXpert',
+      icon: 'ri-code-box-line',
+      link: 'https://code.xpertai.cn/',
+      external: true,
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'CodeXpert',
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CODEXPERT]
+      }
+    },
+    {
+      title: 'DeepResearch',
+      icon: 'ri-binoculars-line',
+      link: 'https://research.xpertai.cn/',
+      external: true,
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'DeepResearch',
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH]
+      }
+    },
+    {
+      title: 'Data & Ontology',
+      icon: 'ri-node-tree',
+      link: 'https://data.xpertai.cn/',
+      external: true,
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Data & Ontology',
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY]
       }
     },
     {
@@ -363,6 +410,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       title: 'Settings',
       icon: 'settings',
       link: '/settings',
+      pathMatch: 'prefix',
       admin: true,
       scopeContext: 'dual-scope',
       data: {

@@ -20,7 +20,6 @@ import { map } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
-import { AssistantBindingService } from '../../../assistant-binding'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
@@ -396,8 +395,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly assistantBindingService: AssistantBindingService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService
     ) {}
 
     private async resolveAssistantForRun(assistantId: string) {
@@ -407,13 +405,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             throw new ForbiddenException('API key is not allowed to access this assistant.')
         }
 
-        const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(assistantId))
-            ? await this.publishedXpertAccessService.getPublishedXpertInTenant(assistantId, {
-                  relations: ['user', 'createdBy', 'workspace']
-              })
-            : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
-                  relations: ['user', 'createdBy', 'workspace']
-              })
+        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
+            relations: ['user', 'createdBy', 'workspace']
+        })
 
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
             throw new ForbiddenException('API key is not allowed to access this workspace assistant.')

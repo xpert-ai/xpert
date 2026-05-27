@@ -1,39 +1,53 @@
 <div class="flex flex-col justify-start items-stretch">
   <!-- Tabs Navigation -->
-  <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
-    <button class="px-4 py-2 font-semibold border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400">
-      {{ 'Auth.Varify' | translate: {Default: 'Varify'} }}
+  <div class="border-b border-divider-regular mb-4">
+    <button
+      class="px-4 py-2 font-semibold border-b-2 border-primary-500 text-primary-500 dark:border-primary-400 dark:text-primary-400"
+    >
+      {{ 'Auth.Varify' | translate: { Default: 'Varify' } }}
     </button>
   </div>
 
   <!-- Errors -->
   @for (error of errors; track $index; let i = $index) {
-    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-4 mb-3 flex justify-between items-center">
-      <span class="text-yellow-800 dark:text-yellow-200">
-        {{ 'Auth.' + error | translate: {Default: error} }}
+    <div
+      class="bg-background-default-subtle border border-text-warning/30 rounded p-4 mb-3 flex justify-between items-center"
+    >
+      <span class="text-text-warning">
+        {{ 'Auth.' + error | translate: { Default: error } }}
       </span>
-      <button (click)="errors.splice(i, 1)" class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300">
-        ✕
-      </button>
+      <button (click)="errors.splice(i, 1)" class="text-text-warning hover:text-text-primary">✕</button>
     </div>
   }
 
   <!-- Messages -->
   @for (message of messages; track $index; let i = $index) {
-    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-4 mb-3 flex justify-between items-center">
-      <span class="text-green-800 dark:text-green-200">{{ message }}</span>
-      <button (click)="messages.splice(i, 1)" class="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300">
-        ✕
-      </button>
+    <div
+      class="bg-background-default-subtle border border-text-success/30 rounded p-4 mb-3 flex justify-between items-center"
+    >
+      <span class="text-text-success">{{ message }}</span>
+      <button (click)="messages.splice(i, 1)" class="text-text-success hover:text-text-primary">✕</button>
     </div>
   }
-  
+
   <!-- Divider -->
-  <div class="border-t border-gray-200 dark:border-gray-700 my-4"></div>
-  
+  <div class="border-t border-divider-regular my-4"></div>
+
   <!-- Links -->
   <div class="flex justify-between items-center">
-    <a routerLink="/auth/login" class="text-blue-600 dark:text-blue-400 hover:underline">{{ 'Auth.Signin' | translate: {Default: 'Sign-in'} }}</a>
-    <a routerLink="/auth/register" class="text-blue-600 dark:text-blue-400 hover:underline">{{ 'Auth.Signup' | translate: {Default: 'Signup'} }}</a>
+    <a
+      routerLink="/auth/login"
+      class="text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 hover:underline"
+    >
+      {{ 'Auth.Signin' | translate: { Default: 'Sign-in' } }}
+    </a>
+    @if (enablePublicSignup) {
+      <a
+        routerLink="/auth/register"
+        class="text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 hover:underline"
+      >
+        {{ 'Auth.Signup' | translate: { Default: 'Signup' } }}
+      </a>
+    }
   </div>
 </div>

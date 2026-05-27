@@ -72,7 +72,13 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     LOG_LEVEL=
 
 # Install native build tools for runtime plugin dependencies such as node-pty.
-RUN apt-get update && apt-get install -y sudo build-essential python3 python3-pip
+RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
+    apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
+      sudo \
+      build-essential \
+      python3 \
+      python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
 

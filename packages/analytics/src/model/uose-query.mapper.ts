@@ -53,12 +53,14 @@ export interface UoseMdxMetricRef {
 
 export interface UoseMdxDimensionRef {
 	dimensionId: string
-	hierarchy?: string[]
+	hierarchy?: string
 	level?: string
 }
 
 export interface UoseMdxFilter {
 	field: string
+	hierarchy?: string
+	level?: string
 	op: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'between' | 'contains'
 	value: unknown
 }
@@ -285,13 +287,15 @@ function validateCalculatedExpression(expression: string): void {
 
 function mapFilter(filter: UoseMdxFilter, schema: Schema | undefined, cubeName: string) {
 	const field = resolveFieldDimensionId(schema, cubeName, filter.field)
+	const hierarchy = filter.hierarchy ? toHierarchyName(field, filter.hierarchy) : field
 	const operator = mapFilterOperator(filter.op)
 	const members = mapFilterMembers(filter)
 
 	return {
 		dimension: {
 			dimension: field,
-			hierarchy: field
+			hierarchy,
+			...(filter.level ? { level: filter.level } : {})
 		},
 		operator,
 		members
@@ -353,10 +357,10 @@ function resolveDimensionRef(
 	const cube = findCube(schema, cubeName)
 	const usage = findDimensionUsage(cube, dimension.dimensionId)
 	const sourceDimension = findSourceDimension(schema, cube, usage, dimension.dimensionId)
-	const sourceHierarchy = findHierarchy(sourceDimension, dimension.hierarchy?.[0])
+	const sourceHierarchy = findHierarchy(sourceDimension, dimension.hierarchy)
 	const level = findLevel(sourceHierarchy, sourceDimension, dimension.level)
 	const dimensionId = usage ? toUniqueNameSegment(usage.name) : dimension.dimensionId
-	const hierarchy = dimension.hierarchy?.[0] ? toHierarchyName(dimensionId, dimension.hierarchy[0]) : dimensionId
+	const hierarchy = dimension.hierarchy ? toHierarchyName(dimensionId, dimension.hierarchy) : dimensionId
 
 	return {
 		dimensionId,
@@ -526,7 +530,11 @@ function toHierarchyName(dimensionId: string, hierarchy: string): string {
 	if (!trimmed || trimmed.startsWith('[')) {
 		return hierarchy
 	}
-	return `${dimensionId}.${toUniqueNameSegment(trimmed)}`
+	const normalizedDimension = unwrapBrackets(dimensionId)
+	if (trimmed === normalizedDimension || trimmed.startsWith(`${normalizedDimension}.`)) {
+		return wrapBrackets(trimmed)
+	}
+	return wrapBrackets(`${normalizedDimension}.${trimmed}`)
 }
 
 function toUniqueNameSegment(value: string): string {

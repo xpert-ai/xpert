@@ -1,0 +1,477 @@
+# File Understanding Architecture
+
+## Overview
+
+File Understanding is the independent layer between ChatKit uploads and Agent file usage.
+
+The new flow no longer treats `StorageFile` as the business model for chat attachments, and the Agent no longer depends on ad-hoc full-text loading through `LoadFileCommand` at runtime.
+
+Flow:
+
+1. ChatKit uploads the original file.
+2. The upload layer stores bytes and keeps the legacy `StorageFile` record.
+3. File Understanding creates a `FileAsset`, parses the file, and creates artifacts, chunks, and citation anchors.
+4. Chat messages persist the new `fileAssets` relation.
+5. Agent runtime reads files through summaries, search chunks, read tools, and workspace tools.
+
+This turns uploaded files into parsed, searchable, citable context assets.
+
+## Goals
+
+- Keep `StorageFile` as the object-storage compatibility layer only.
+- Use `FileAsset` and `AgentFile` as the new business handles.
+- Keep ChatKit responsible only for upload, status display, and file-handle submission.
+- Keep Agent runtime independent from raw storage implementation.
+- Use CQRS handlers as the application logic boundary instead of thin service delegation.
+- Keep parsers, indexing, citations, and workspace tools isolated from chat persistence.
+- Avoid putting large file bodies into the prompt.
+
+## Module Layout
+
+Backend module:
+
+```text
+packages/server-ai/src/file-understanding/
+```
+
+Structure:
+
+```text
+file-understanding/
+  domain/       # types, status, capabilities, artifact kinds
+  entities/     # TypeORM entities
+  commands/     # CQRS write model
+  queries/      # CQRS read model
+  parsers/      # parser adapters
+  middlewares/  # built-in Agent middleware
+  tools/        # Agent tools
+```
+
+The module is registered by:
+
+```text
+packages/server-ai/src/file-understanding/file-understanding.module.ts
+packages/server-ai/src/app.module.ts
+packages/server-ai/src/index.ts
+```
+
+## Data Model
+
+### `FileAsset`
+
+Table: `file_asset`
+
+The new platform-level file understanding asset.
+
+Important fields:
+
+- `storageFileId`: legacy stored-object reference.
+- `conversationId`, `threadId`, `projectId`, `xpertId`: context links.
+- `tenantId`, `organizationId`, `userId`: access boundary.
+- `sha256`: content hash.
+- `purpose`: `chat_attachment`, `workspace`, or `knowledge`.
+- `parseMode`: `auto`, `fast`, `deep`, or `none`.
+- `status`: `uploaded`, `scanning`, `parsing`, `ready`, `partial`, or `failed`.
+- `capabilities`: `preview`, `search`, `read`, `table_query`, `vision`, `ocr`, `workspace`.
+- `summary`: parsed summary.
+- `workspacePath`: projected workspace path. It is present only after the original file has been written into the runtime volume, and can be passed to `sandbox_file` or shell tools.
+
+### `FileArtifact`
+
+Table: `file_artifact`
+
+Structured parser output.
+
+Common kinds:
+
+- `summary`
+- `text`
+- `page_text`
+- `table`
+- `sheet`
+- `slide`
+- `image_metadata`
+- `ocr_text`
+- `code_tree`
+- `file_manifest`
+
+Artifacts can carry anchors such as page, sheet, slide, or path.
+
+### `FileChunk`
+
+Table: `file_chunk`
+
+Searchable chunks created from artifacts.
+
+Important fields:
+
+- `fileAssetId`
+- `artifactId`
+- `orderNo`
+- `content`
+- `tokenCount`
+- `anchor`
+
+The first implementation uses database text matching. `FileEmbedding` is reserved for vector search metadata.
+
+### `FileCitationAnchor`
+
+Table: `file_citation_anchor`
+
+Stable citation anchors for file-grounded answers.
+
+Examples:
+
+- `page:3:chunk:12`
+- `sheet:Sheet1:chunk:4`
+- `slide:2:chunk:8`
+- `path:src/index.ts:chunk:6`
+- `chunk:0`
+
+### `FileEmbedding`
+
+Table: `file_embedding`
+
+Reserved metadata for vector indexing:
+
+- `provider`
+- `model`
+- `vectorId`
+- `metadata`
+
+### `ConversationFileLink`
+
+Table: `conversation_file_link`
+
+Links a file asset to a conversation so Agents cannot read files across conversation or tenant boundaries.
+
+### `ChatMessage.fileAssets`
+
+`ChatMessage` now has a `fileAssets` relation through:
+
+```text
+chat_message_file_asset
+```
+
+New messages should persist files here. Legacy `attachments: StorageFile[]` remains only for old message compatibility.
+
+## Upload Flow
+
+### ChatKit
+
+ChatKit uses the new `AgentFile` handle:
+
+```ts
+export interface AgentFile {
+  id: string
+  fileId: string
+  storageFileId: string
+  objectKey?: string
+  url?: string
+  fileUrl?: string
+  thumbUrl?: string
+  originalName?: string
+  size?: number
+  mimeType?: string
+  status: AgentFileStatus
+  parseStatus: AgentFileStatus
+  parseMode?: 'auto' | 'fast' | 'deep' | 'none'
+  purpose?: 'chat_attachment' | 'workspace' | 'knowledge'
+  capabilities?: string[]
+  summary?: string
+  workspacePath?: string
+}
+```
+
+Upload request:
+
+```ts
+const formData = new FormData()
+formData.append('file', file, file.name || 'upload')
+formData.append('purpose', 'chat_attachment')
+formData.append('parseMode', 'auto')
+formData.append('threadId', stream.threadId)
+
+const uploaded = await stream.client.contexts.fetch<AgentFile>('/contexts/file', {
+  method: 'POST',
+  body: formData
+})
+```
+
+Raw HTTP path with the normal API prefix:
+
+```text
+POST /api/ai/contexts/file
+```
+
+### Backend Entry
+
+Entry file:
+
+```text
+packages/server-ai/src/ai/context.controller.ts
+```
+
+`POST /api/ai/contexts/file`:
+
+1. Runs `UploadFileCommand`.
+2. Persists the legacy `StorageFile` for `storage` targets.
+3. Creates a new `FileAsset`.
+4. Links the file to conversation/thread context when provided.
+5. Parses according to `parseMode`.
+6. Returns `AgentFile`.
+
+Returned ids:
+
+- `id`: `FileAsset.id`
+- `fileId`: `FileAsset.id`
+- `storageFileId`: legacy `StorageFile.id`
+
+### Message Submission
+
+ChatKit submits file handles, not parsed content:
+
+```json
+{
+  "files": [
+    {
+      "id": "file-asset-id",
+      "fileId": "file-asset-id",
+      "storageFileId": "storage-file-id",
+      "originalName": "report.pdf",
+      "mimeType": "application/pdf",
+      "parseStatus": "ready",
+      "capabilities": ["preview", "read", "search", "ocr"]
+    }
+  ]
+}
+```
+
+`xpert/commands/handlers/chat.handler.ts` persists new files into `ChatMessage.fileAssets`. Only legacy `StorageFile` payloads are written into `ChatMessage.attachments`.
+
+## Parsing Flow
+
+Core handler:
+
+```text
+packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts
+```
+
+Flow:
+
+1. Load `FileAsset`.
+2. Resolve `StorageFile`.
+3. Resolve the stored file path.
+4. Pick a parser through `FileParserRegistry`.
+5. Persist artifacts.
+6. Split indexable artifacts into chunks.
+7. Rebuild citation anchors.
+8. Update status, summary, capabilities, and metadata.
+
+Default chunking:
+
+```text
+chunk size: 3600 characters
+chunk overlap: 240 characters
+```
+
+Indexable artifact kinds:
+
+- `text`
+- `page_text`
+- `sheet`
+- `slide`
+- `table`
+- `code_tree`
+- `file_manifest`
+- `ocr_text`
+
+## Parser Support
+
+| Parser                  | File types               | Current capabilities                    | Notes                                 |
+| ----------------------- | ------------------------ | --------------------------------------- | ------------------------------------- |
+| `TextFileParser`        | txt, md, json, log, code | summary, text, search, read             | UTF-8 text                            |
+| `PdfFileParser`         | pdf                      | page text, page anchors, OCR capability | `partial` if no text is extracted     |
+| `OfficeFileParser`      | doc, docx, ppt, pptx     | text or slide artifacts                 | LangChain loaders                     |
+| `SpreadsheetFileParser` | csv, tsv, xlsx, xls      | sheet/table artifacts, table query      | xlsx includes headers and sample rows |
+| `ImageFileParser`       | common image formats     | image metadata, vision/OCR capability   | OCR/VLM integration is the next step  |
+| `ArchiveFileParser`     | zip                      | manifest, code tree, text indexing      | indexes selected text files           |
+
+Parser selection currently uses MIME type and extension. Add magic-byte sniffing in parser `supports(source)` or the registry rather than in controllers.
+
+## API
+
+Assuming the global API prefix is `/api`.
+
+```text
+POST   /api/ai/contexts/file
+DELETE /api/ai/contexts/file/:storageFileId
+
+GET    /api/ai/files/:fileId
+GET    /api/ai/files/:fileId/status
+POST   /api/ai/files/:fileId/parse/retry
+POST   /api/ai/files/:fileId/search
+GET    /api/ai/files/:fileId/preview
+POST   /api/ai/files/:fileId/read
+DELETE /api/ai/files/:fileId
+
+GET    /api/ai/conversations/:conversationId/files
+```
+
+Search request:
+
+```json
+{
+  "query": "revenue forecast",
+  "limit": 8
+}
+```
+
+Read request:
+
+```json
+{
+  "chunkId": "chunk-id"
+}
+```
+
+or:
+
+```json
+{
+  "orderNo": 0
+}
+```
+
+## Agent Runtime
+
+Message assembly:
+
+```text
+packages/server-ai/src/shared/agent/message.ts
+```
+
+Behavior:
+
+- Resolve new `FileAsset` through `fileId` / `fileAssetId` first.
+- Fall back to legacy `StorageFile` only when needed.
+- Inject compact file cards and available anchors, not raw chunk bodies.
+- Avoid injecting large full text.
+- Let Agents use `file_search` / `file_read` when exact content is needed.
+- Fall back to `LoadFileCommand` for failed parsing or legacy-only files.
+
+Agent tools and built-in middleware:
+
+```text
+packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts
+packages/server-ai/src/file-understanding/middlewares/file-understanding.middleware.ts
+```
+
+The tools are produced by `FileUnderstandingMiddleware`. At runtime the subgraph creates a hidden required middleware entry, so conversation files are available without manually connecting a middleware node on the Agent canvas. The tool names stay stable while execution goes through the standard middleware tool path.
+
+Tools:
+
+- `file_search(fileIds, query, limit)`
+- `file_read(fileId, chunkId, orderNo)`
+- `file_table_query(fileId, query, limit)`
+- `file_preview(fileId)`
+- `workspace_list()`
+- `workspace_read(fileId | path, chunkId, orderNo)`
+- `workspace_search(query, limit)`
+
+Agents should search first, then read exact chunks when more context is needed. `file_preview` returns a compact preview with business file fields, a short summary, artifact indexes, and chunk anchors; it does not return tenant, organization, audit fields, artifact full text, chunk full text, or raw parser metadata. If a file card or `workspace_list` includes `workspacePath`, Agents with `sandbox_file` or shell tools may read the original file by that path. `workspace_read` resolves by `fileId` or `workspacePath`, but reads parsed chunks rather than binary file bytes. Citations should use the returned anchors.
+
+Workspace projection:
+
+ChatKit sends the current `xpertId` during `/contexts/file` upload. When the message is submitted and the file is attached to a conversation, the backend projects the stored original file into:
+
+```text
+sessions/{conversationId}/files/{fileAssetId}/{originalName}
+```
+
+After a successful write, `FileAsset.workspacePath` and the `workspace` capability are updated. Docker sandboxes usually see `/workspace/sessions/...`; local shell sandboxes see the local runtime volume path.
+
+## Compatibility
+
+- Old `StorageFile` rows remain valid.
+- Old `ChatMessage.attachments` remain readable.
+- New messages use `ChatMessage.fileAssets`.
+- `LoadFileCommand` first tries File Understanding artifacts, then falls back to legacy loaders.
+- `DELETE /api/ai/contexts/file/:storageFileId` removes both the file asset and the storage file.
+
+## Upgrade Guide
+
+### Add a parser
+
+1. Add a parser adapter under `parsers/`.
+2. Implement `supports(source)` and `parse(source)`.
+3. Return artifacts, capabilities, summary, metadata, and optional status.
+4. Register it in `FileParserRegistry` and `FileParsers`.
+5. Add new artifact kinds to `domain/types.ts`.
+6. Add indexable kinds to `CHUNKABLE_ARTIFACT_KINDS`.
+7. Preserve anchors for citations.
+
+### Add OCR or VLM
+
+Recommended places:
+
+- `ImageFileParser` for OCR text, captions, and labels.
+- `PdfFileParser` for scanned pages.
+
+Store results as artifacts, not only as summary text. Keep page or path anchors.
+
+### Add vector search
+
+1. Create embeddings after chunks are built.
+2. Store vector ids in `file_embedding.vectorId`.
+3. Keep the `SearchFileChunksQuery` contract stable.
+4. Query vector store first, then hydrate chunks by id.
+5. Keep Agent tool schemas unchanged.
+
+### Add production migrations
+
+When TypeORM synchronize is disabled, add migrations for:
+
+- `file_asset`
+- `file_artifact`
+- `file_chunk`
+- `file_citation_anchor`
+- `file_embedding`
+- `conversation_file_link`
+- `chat_message_file_asset`
+
+Keep legacy tables and message structures.
+
+## Maintenance Rules
+
+- Do not add new file-understanding fields to `StorageFile`.
+- Do not persist parsed full text into chat messages.
+- Do not let Agent tools bypass `FileAsset` and read arbitrary storage paths.
+- Do not make ChatKit depend on parser artifact internals.
+- Do not write new `AgentFile` payloads into legacy `attachments`.
+
+## Verification
+
+Backend:
+
+```bash
+pnpm nx build server-ai
+pnpm check:typeorm-columns
+```
+
+ChatKit:
+
+```bash
+pnpm --filter @xpert-ai/chatkit-ui types
+```
+
+Functional checks:
+
+- Text files become `ready` and searchable.
+- PDF chunks include page anchors.
+- XLSX/CSV can be queried through `file_table_query`.
+- Images can be `partial` with `vision` and `ocr` capabilities.
+- ZIP files expose manifest/code tree search.
+- Large files are not injected into prompts as full text.
+- Legacy `StorageFile` attachments still work.
+- Deleted files cannot be read through the new APIs.

@@ -248,8 +248,8 @@ describe('XpertAgentInvokeHandler', () => {
                 language: 'en-US',
                 user_email: 'user@example.com',
                 thread_id: 'thread-1',
-                workspace_path: '/tmp/xpert-workspace/users/user-1',
-                workspace_url: '/xpert-workspace/users/user-1',
+                workspace_path: '/tmp/xpert-workspace',
+                workspace_url: '/xpert-workspace',
                 workspace_root: '/tmp/xpert-workspace',
                 shared_workspace_path: '/tmp/xpert-workspace/shared',
                 memory_workspace_path: '/tmp/xpert-workspace/.xpert/memory',
@@ -325,8 +325,8 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/xpert-workspace/users/user-1',
-                    workspace_url: '/xpert-workspace/users/user-1',
+                    workspace_path: '/tmp/xpert-workspace',
+                    workspace_url: '/xpert-workspace',
                     volume: '/tmp/xpert-workspace'
                 })
             }
@@ -432,22 +432,22 @@ describe('XpertAgentInvokeHandler', () => {
                     profile: '# Profile',
                     language: 'en-US',
                     thread_id: 'thread-1',
-                    workspace_path: '/tmp/xpert-workspace/users/user-1',
-                    workspace_url: '/xpert-workspace/users/user-1',
+                    workspace_path: '/tmp/xpert-workspace',
+                    workspace_url: '/xpert-workspace',
                     volume: '/tmp/xpert-workspace'
                 })
             }
         })
     })
 
-    it('uses the xpert user workspace as sandbox working directory', async () => {
+    it('uses the xpert workspace root as sandbox working directory', async () => {
         const graph = createGraph()
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) {
                 return {
                     provider: 'local-shell-sandbox',
-                    workingDirectory: '/tmp/xpert-workspace/users/user-1'
+                    workingDirectory: '/tmp/xpert-workspace'
                 }
             }
             if (command instanceof CompileGraphCommand) {
@@ -496,7 +496,7 @@ describe('XpertAgentInvokeHandler', () => {
                 params: expect.objectContaining({
                     provider: 'local-shell-sandbox',
                     tenantId: 'tenant-1',
-                    workingDirectory: '/tmp/xpert-workspace/users/user-1',
+                    workingDirectory: '/tmp/xpert-workspace',
                     workFor: {
                         type: 'user',
                         id: 'user-1'
@@ -875,9 +875,8 @@ function createTestWorkArea(input: {
     conversationId?: string | null
     environmentId?: string | null
 }) {
-    const defaultRelativePath = input.environmentId ? '' : `users/${input.userId}`
-    const workspacePath = defaultRelativePath ? `/tmp/xpert-workspace/${defaultRelativePath}` : '/tmp/xpert-workspace'
-    const workspaceUrl = defaultRelativePath ? `/xpert-workspace/${defaultRelativePath}` : '/xpert-workspace'
+    const workspacePath = '/tmp/xpert-workspace'
+    const workspaceUrl = '/xpert-workspace'
     const volumeScope = input.environmentId
         ? {
               tenantId: input.tenantId,

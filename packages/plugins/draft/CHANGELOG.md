@@ -1,5 +1,21 @@
 # @xpert-ai/plugin-draft
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [2558760]
+  - @xpert-ai/contracts@3.9.8
+  - @xpert-ai/plugin-sdk@3.9.8
+
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [9e37ff9]
+  - @xpert-ai/plugin-sdk@3.9.5
+  - @xpert-ai/contracts@3.9.5
+
 ## 0.0.6
 
 ### Patch Changes

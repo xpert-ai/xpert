@@ -231,6 +231,77 @@ AI 知识库已经实现了资源级可见性：
 - `KNOWLEDGEBASE_EDIT` 决定你能不能管理知识库这个功能
 - `KnowledgebasePermission` 决定你能看见哪些知识库条目
 
+### 5.4 Xpert Agent 与 Assistant API 的访问判断
+
+Xpert Agent 的访问判断属于资源级权限，不应只看用户是否能访问某个 Workspace。
+
+对外接口分为两类：
+
+- `GET /api/xpert/accessible/:id`: 轻量访问判断接口，用于菜单、目录、第三方系统集成等只需要判断可见性的场景。
+- `/api/ai/*`: 对外 Assistant 能力接口，对齐 LangGraph SDK 的 assistant / run 调用模型，用于获取 assistant 描述、统计、运行能力和发起运行。
+
+如果外部系统只需要判断“当前用户是否可以访问某个已发布 Xpert Agent”，应调用：
+
+```http
+GET /api/xpert/accessible/:id
+```
+
+其中 `:id` 是 Xpert Agent 的 `xpert.id`。如果外部系统中字段名仍叫 `assistantId`，但实际保存的是 Xpert 的 id，也应该传这个 id。
+
+接口位置：
+
+- `packages/server-ai/src/xpert/xpert-access.controller.ts`
+- 由 `packages/server-ai/src/xpert/xpert.module.ts` 注册到 `/api/xpert` 路由前缀下
+- 内部只调用 `PublishedXpertAccessService.getAccessiblePublishedXpert(id)`
+
+这个接口的产品语义是“当前请求主体是否有权访问这个已发布 Xpert”，而不是“这个 Xpert 是否存在”或“这个 Workspace 是否可访问”。它返回最小化结果，避免外部系统依赖 LangGraph assistant payload。
+
+返回语义：
+
+| 状态  | 含义                                              |
+| ----- | ------------------------------------------------- |
+| `200` | 当前用户或 API principal 可以访问该已发布 Xpert   |
+| `403` | Xpert 存在，但当前主体没有访问权限                |
+| `404` | 当前租户下找不到该已发布 Xpert，或该 Xpert 未发布 |
+
+当前已发布 Xpert 的访问规则由 `PublishedXpertAccessService` 统一判断，核心条件包括：
+
+1. Xpert 必须属于当前 Tenant，且已经发布。
+2. 如果 Xpert 绑定 Organization，则必须匹配当前 Organization。
+3. 当前用户满足以下任一关系即可访问：
+   - Xpert 创建者
+   - Xpert 所在 Workspace owner
+   - Xpert 所在 Workspace member
+   - Xpert 绑定的 User Group 成员
+   - 符合租户共享 Workspace 规则的租户级 Xpert
+
+`/api/ai/*` 也是对外 API，但它们必须使用同一套资源级访问边界：
+
+```http
+GET /api/ai/assistants/:id
+POST /api/ai/assistants/count
+POST /api/ai/assistants/search
+GET /api/ai/assistants/:id/runtime-capabilities
+POST /api/ai/threads/:thread_id/runs
+POST /api/ai/threads/:thread_id/runs/stream
+POST /api/ai/threads/:thread_id/runs/wait
+```
+
+这些接口面向外部 assistant 调用方，不能因为 xpert-pro 系统内部存在 `assistant_binding` 而放宽授权。也就是说，组织级或租户级的 `chat_common`、`xpert_shared`、`chatbi` 等系统助理绑定，只能用于 xpert-pro 自身的内部 Assistant Binding 能力，不能在 `/api/ai/*` 中被解释为“当前用户已被授权访问该 Xpert Agent”。
+
+因此：
+
+1. `/api/xpert/accessible/:id` 使用 `PublishedXpertAccessService.getAccessiblePublishedXpert(id)`。
+2. `/api/ai/assistants/search` 和 `/api/ai/assistants/count` 使用 `findAccessiblePublishedXperts` / `countAccessiblePublishedXperts`。
+3. `/api/ai/assistants/:id`、`/api/ai/assistants/:id/runtime-capabilities` 和 run 创建链路在解析 `assistant_id` 时，也必须使用 `getAccessiblePublishedXpert`。
+4. 内部系统助理绑定的访问和偏好设置，应走 Assistant Binding 的内部 API 或服务，不应复用 `/api/ai/*` 作为内部授权捷径。
+
+推荐实践：
+
+1. 菜单、助理目录、第三方系统集成等只做可见性判断的场景，优先使用 `GET /api/xpert/accessible/:id`。
+2. LangGraph SDK 风格的 assistant 客户端使用 `/api/ai/*`；这些接口返回成功时，表示已经通过同源的 Xpert 访问判断。
+3. 不要通过 Workspace 访问权限、User Group 列表或 `assistant_binding` 自行推断 Xpert Agent 授权。
+
 ## 6. 一次权限判断是如何发生的
 
 下面是当前系统的一次典型授权链路：

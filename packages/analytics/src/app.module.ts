@@ -37,6 +37,7 @@ import { ChatBIModelModule } from './chatbi-model'
 import { ModelQueryLogModule } from './model-query-log'
 import { AiBiModule } from './ai/aibi.module'
 import { InitializationModule } from './initialization/initialization.module'
+import { DataXMetricManagementPluginModule } from './plugins'
 
 @Module({
 	imports: [
@@ -76,7 +77,8 @@ import { InitializationModule } from './initialization/initialization.module'
 		RedisModule,
 		ChatBIModelModule,
 		AiBiModule,
-		InitializationModule
+		InitializationModule,
+		DataXMetricManagementPluginModule
 	],
 	controllers: [AppController],
 	providers: [AnalyticsService, ...EventHandlers, ...CommandHandlers]

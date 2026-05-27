@@ -15,7 +15,6 @@ import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './que
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
-
   constructor() {
     super(API_PREFIX + '/chat-conversation')
   }
@@ -50,10 +49,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
-  findLatestByProject(
-    projectId: IProjectCore['id'] | string,
-    assistantId: IProjectCore['mainAssistantId'] | string
-  ) {
+  findLatestByProject(projectId: IProjectCore['id'] | string, assistantId: IProjectCore['mainAssistantId'] | string) {
     return this.httpClient.get<IChatConversation | null>(this.apiBaseUrl + `/project/${projectId}/latest`, {
       params: createOptionalQueryParams({
         assistantId
@@ -112,6 +108,16 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  downloadFile(id: string, path: string, organizationId?: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/file/download`, {
+      params: createOptionalQueryParams({
+        path,
+        organizationId
+      }),
+      responseType: 'blob'
+    })
+  }
+
   saveFile(id: string, path: string, content: string, organizationId?: string) {
     return this.httpClient.put<TFile>(
       this.apiBaseUrl + `/${id}/file`,
@@ -142,5 +148,4 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
       })
     })
   }
-
 }

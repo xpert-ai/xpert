@@ -1,0 +1,313 @@
+---
+title: Sandbox Volume Architecture
+description: Explains how the physical host, API container, and Sandbox container see the same mounted workspace.
+---
+
+This document explains how Sandbox volumes are mapped across three layers in Pro deployment:
+
+- Physical host: the machine running Docker daemon.
+- API container: the `xpert-server` container running `packages/server-ai`.
+- Sandbox container: the container that executes code, terminals, and file operations.
+
+The core rule is simple:
+
+- The same data usually appears with three different path forms:
+  - Physical host: `${SANDBOX_VOLUME}/...`
+  - API container: `/sandbox/...`
+  - Sandbox container: `/workspace/...`
+
+## 1. Topology
+
+```text
+[Physical host / Docker host]
+  ${SANDBOX_VOLUME}/<tenant-id>/...
+    ^
+    | bind source path used by Docker daemon
+    |
+    +-------------------------------+
+                                    |
+docker-compose                      |
+  ${SANDBOX_VOLUME}:/sandbox        |
+                                    v
+[API container / xpert-server]
+  /sandbox/<tenant-id>/...
+    ^
+    | path used by Node.js fs/git/file serving
+    |
+    +-------------------------------+
+                                    |
+Docker API (/var/run/docker.sock)   |
+  HostConfig.Binds:                 |
+  <host-path>:/workspace/           |
+                                    v
+[Sandbox container]
+  /workspace/...
+    ^
+    | path used by terminal, tools, backend.execute, backend.uploadFiles
+```
+
+These are not three copies. They are three views of the same underlying data.
+
+## 2. Mapping rules
+
+### 2.1 How the API container sees the host volume
+
+In production, `docker/docker-compose-pro.yml` mounts `SANDBOX_VOLUME` into the API container at `/sandbox/`:
+
+```yaml
+${SANDBOX_VOLUME:-~/data/}:/sandbox/
+```
+
+So:
+
+- Physical host path: `${SANDBOX_VOLUME}/${tenantId}/...`
+- API container path: `/sandbox/${tenantId}/...`
+
+That is why API-container code doing `fs.stat`, `git fetch`, `git push`, or file serving should use `/sandbox/...`, not `environment.sandboxConfig.volume`.
+
+### 2.2 How the Sandbox container sees the same data
+
+When a Sandbox container is created, Docker mounts a host directory into `/workspace/`.
+
+For Sandbox Environment, the bind source now follows this shape:
+
+```text
+<host-path> = ${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}
+<container-path> = /workspace/
+```
+
+So the same directory appears as:
+
+- Physical host: `${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- API container: `/sandbox/${tenantId}/environment/${environmentId}`
+- Sandbox container: `/workspace`
+
+Project and Xpert runtime work areas follow the same container rule: the selected project or Xpert Volume root is mounted as `/workspace`, and the sandbox `cwd` should be `/workspace` unless a caller explicitly selects a child path.
+
+## 3. Main volume models
+
+### 3.1 User, project, and Xpert runtime Volumes
+
+This path family is mainly used by `SandboxLoadHandler`, `VolumeClient`, and `XpertWorkAreaResolver`:
+
+- User: `${tenantId}/user/${userId}`
+- Project: `${tenantId}/project/${projectId}`
+- Shared Xpert: `${tenantId}/xpert/${xpertId}`
+- User-isolated Xpert: `${tenantId}/xpert/${xpertId}/user/${userId}`
+
+For the current Xpert runtime product behavior, project conversations use the project root as `/workspace`, and non-project ClawXpert/Xpert conversations use the shared Xpert root as `/workspace`. The user-isolated Xpert shape remains a supported Volume shape, but it is not the default runtime cwd for shared Xperts.
+
+Relevant code:
+
+- `src/sandbox/commands/handlers/load.handler.ts`
+- `src/shared/volume/volume.ts`
+- `src/shared/volume/work-area.ts`
+- `src/sandbox/sandbox.controller.ts`
+
+### 3.2 Sandbox Environment
+
+Sandbox Environment uses a clearer dedicated path family:
+
+- Host: `${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- API container: `/sandbox/${tenantId}/environment/${environmentId}`
+- Sandbox container: `/workspace`
+
+Relevant code:
+
+- Mount calculation: `src/sandbox/utils/bind-volume.ts`
+- Container creation: `src/sandbox/plugins/docker.provider.ts`
+- Repo host-path derivation: `src/sandbox-environment/commands/common.ts`
+
+`src/sandbox-environment/commands/common.ts` now derives repo paths like this:
+
+```text
+hostWorkspaceRoot = /sandbox/<tenantId>/environment/<environmentId>
+repoHostPath      = hostWorkspaceRoot + relative(workspaceRoot, resolvedTargetDir)
+```
+
+This is the key distinction:
+
+- `workspaceRoot` / `workspaceDir` / `targetDir` are Sandbox-container paths.
+- `/sandbox/...` is the API-container path.
+- `environment.sandboxConfig.volume` is the physical-host path used by Docker bind mounts.
+
+## 4. Typical flows
+
+### 4.1 Creating an Environment container
+
+`DockerSandboxProvider.create()`:
+
+1. Computes the bind source from `tenantId + environmentId`
+2. Creates the Docker container and mounts it to `/workspace/`
+3. Chooses the working directory:
+   - `options.workingDirectory`
+   - or `environment.workspaceDir`
+   - or `environment.workspaceRoot`
+   - default `/workspace`
+
+So:
+
+- Docker bind creation uses the physical host path
+- Container execution uses `/workspace/...`
+
+### 4.2 Environment git clone
+
+`clone-repo.handler.ts` does not clone directly into the mounted workspace. It does this instead:
+
+1. `git clone` into a temp directory in the API container
+2. Pack it as `workspace.tar.gz`
+3. Upload the archive with `backend.uploadFiles()`
+4. Extract it inside the Sandbox container under `resolvedTargetDir`
+
+Because `resolvedTargetDir` is under `/workspace/...`, and `/workspace` is a bind mount, the extracted repository becomes visible in all three places:
+
+- Physical host
+- API container `/sandbox/...`
+- Sandbox container `/workspace/...`
+
+### 4.3 Environment git fetch / git push
+
+`fetch-repo.handler.ts` and `push-repo.handler.ts` run `git` from the API container, not inside the Sandbox container.
+
+That means they should use:
+
+- `repoHostPath = /sandbox/<tenantId>/environment/<environmentId>/<relativeRepoPath>`
+
+They should not run filesystem or git operations against `environment.sandboxConfig.volume/...`, because that value belongs to the Docker host namespace, not the API container namespace.
+
+### 4.4 Two common upload paths
+
+There are two common ways files are written:
+
+1. Direct write to mounted workspace
+
+- `sandbox:mounted_workspace`
+- handled by `src/shared/file-upload-targets/strategies/sandbox-mounted-workspace.strategy.ts`
+- writes directly to `workspacePath` in the API container
+- effectively writes into `/sandbox/...`
+
+2. Write through the Sandbox backend
+
+- `sandbox:backend_upload`
+- handled by `src/shared/file-upload-targets/strategies/sandbox-backend.strategy.ts`
+- uses the Sandbox HTTP API and `workspace_id`
+- effectively writes into `/workspace/...`
+
+If the mount wiring is correct, both paths end up in the same underlying data.
+
+## 5. Which path should be used
+
+Use this table as the quick rule:
+
+| Scenario                                                           | Path to use                                |
+| ------------------------------------------------------------------ | ------------------------------------------ |
+| Building Docker `HostConfig.Binds`                                 | Physical host path `${SANDBOX_VOLUME}/...` |
+| Reading `docker inspect` `Mounts[].Source`                         | Physical host path `${SANDBOX_VOLUME}/...` |
+| API container `fs.stat` / `fs.readFile` / `git fetch` / `git push` | `/sandbox/...`                             |
+| Sandbox backend `execute` / `uploadFiles` / terminal / tools       | `/workspace/...`                           |
+| `workspaceRoot` / `workspaceDir` / `targetDir`                     | Sandbox-container path semantics only      |
+
+## 6. Common sources of confusion
+
+### 6.1 `/sandbox` is not the Docker bind source
+
+Seeing `/sandbox/...` inside the API container does not mean Docker should use `/sandbox/...` as the bind source.
+
+Docker daemon reads host paths, so the bind source must be:
+
+```text
+${SANDBOX_VOLUME}/...
+```
+
+unless the physical host really does expose that same path layout.
+
+### 6.2 `workspaceRoot` is not an API-container path
+
+`workspaceRoot` defaults to `/workspace`, which is a Sandbox-container path, not an API-container path.
+
+To access the same repo from the API container, the code must translate it:
+
+```text
+relativeRepoPath = relative(workspaceRoot, resolvedTargetDir)
+repoHostPath     = /sandbox/<tenant>/<type>/<id>/<relativeRepoPath>
+```
+
+### 6.3 The codebase still contains legacy and newer path builders
+
+Both exist today:
+
+- Legacy path builders:
+  - `load.handler.ts`
+  - `sandboxVolume(projectId, userId)`
+  - path families like `/project/<id>` and `/user/<id>`
+
+- Newer environment path builders:
+  - `bind-volume.ts`
+  - `resolveSandboxRepoContext()`
+  - fixed `/environment/<id>` layout
+
+They are related, but not identical, so debugging should always start from the exact code path being executed.
+
+## 7. Recommended debugging order
+
+When volume mapping looks wrong, check in this order:
+
+1. Verify the host directory exists
+
+```bash
+ls -la ${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}
+```
+
+2. Verify the same directory is visible from the API container under `/sandbox/...`
+
+```bash
+ls -la /sandbox/${tenantId}/environment/${environmentId}
+```
+
+3. Verify the Sandbox container mount
+
+```bash
+docker inspect <sandbox-container-id> | jq '.[0].Mounts'
+```
+
+Check that:
+
+- `Source` is `${SANDBOX_VOLUME}/${tenantId}/environment/${environmentId}`
+- `Destination` is `/workspace`
+
+4. Verify the same files exist inside the Sandbox container
+
+```bash
+ls -la /workspace
+```
+
+## 8. Key code anchors
+
+- API container `/sandbox/` mount
+  - `docker/docker-compose-pro.yml`
+- Docker bind source calculation
+  - `src/sandbox/utils/bind-volume.ts`
+- Environment container creation
+  - `src/sandbox/plugins/docker.provider.ts`
+- Legacy user/project binding
+  - `src/sandbox/commands/handlers/load.handler.ts`
+- API-container volume access
+  - `src/shared/volume/volume.ts`
+  - `src/shared/volume/volume-pro.ts`
+- Environment repo path translation
+  - `src/sandbox-environment/commands/common.ts`
+- Environment git clone/fetch/push
+  - `src/sandbox-environment/commands/handlers/clone-repo.handler.ts`
+  - `src/sandbox-environment/commands/handlers/fetch-repo.handler.ts`
+  - `src/sandbox-environment/commands/handlers/push-repo.handler.ts`
+- Container reconciliation and legacy mount detection
+  - `src/sandbox/sandbox-environment-container-sync.scheduler.ts`
+  - `src/sandbox/utils/sandbox-related-container.ts`
+
+## 9. One-line summary
+
+Before choosing a path, first ask which layer the code is running in:
+
+- Docker daemon view: `${SANDBOX_VOLUME}/...`
+- API container view: `/sandbox/...`
+- Sandbox container view: `/workspace/...`

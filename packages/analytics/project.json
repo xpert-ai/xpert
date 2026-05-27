@@ -14,7 +14,7 @@
 				"main": "packages/analytics/src/index.ts",
 				"assets": [
 					{
-						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml)",
+						"glob": "**/*.(csv|json|svg|png|jpg|yaml|yml|html|css|js)",
 						"input": "packages/analytics/",
 						"output": "./"
 					},

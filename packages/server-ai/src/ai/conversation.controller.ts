@@ -158,6 +158,7 @@ export class ConversationsController {
         assertPublicXpertSessionConversationAccess(conversation)
         const result = await this.messageService.findAllInOrganizationOrTenant({
             where: { conversationId },
+            relations: ['attachments', 'fileAssets'],
             order: { createdAt: 'ASC' },
             take: limit,
             skip: offset
@@ -182,6 +183,7 @@ export class ConversationsController {
         }
         const result = await this.messageService.findAllInOrganizationOrTenant({
             where,
+            relations: ['attachments', 'fileAssets'],
             order: body.order ?? { createdAt: 'ASC' },
             take: body.limit,
             skip: body.offset
@@ -217,7 +219,8 @@ export class ConversationsController {
     ) {
         await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
-            where: { conversationId }
+            where: { conversationId },
+            relations: ['attachments', 'fileAssets']
         })
         return new ChatMessageDTO(message)
     }

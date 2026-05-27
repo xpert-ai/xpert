@@ -79,4 +79,57 @@ describe('FileTreeComponent', () => {
 
     expect(rows.map((row) => row.getAttribute('title'))).toEqual(['workspace/docs', 'workspace/README.md'])
   })
+
+  it('hides download actions for folders unless directory downloads are enabled', () => {
+    const fixture = TestBed.createComponent(FileTreeComponent)
+    fixture.componentRef.setInput('hasContext', true)
+    fixture.componentRef.setInput('canDownload', true)
+    fixture.componentRef.setInput('items', [
+      {
+        filePath: 'docs',
+        fullPath: 'workspace/docs',
+        fileType: 'directory',
+        hasChildren: true,
+        expanded: false,
+        children: null
+      }
+    ])
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector<HTMLButtonElement>('button[aria-label="PAC.Files.Download"]')).toBeNull()
+  })
+
+  it('shows download actions for folders when directory downloads are enabled', () => {
+    const fixture = TestBed.createComponent(FileTreeComponent)
+    const downloadSpy = jest.fn()
+    fixture.componentRef.setInput('hasContext', true)
+    fixture.componentRef.setInput('canDownload', true)
+    fixture.componentRef.setInput('canDownloadDirectory', true)
+    fixture.componentRef.setInput('items', [
+      {
+        filePath: 'docs',
+        fullPath: 'workspace/docs',
+        fileType: 'directory',
+        hasChildren: true,
+        expanded: false,
+        children: null
+      }
+    ])
+    fixture.componentInstance.fileDownload.subscribe(downloadSpy)
+    fixture.detectChanges()
+
+    const downloadButton = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      'button[aria-label="PAC.Files.Download"]'
+    )
+    downloadButton?.click()
+
+    expect(downloadButton).not.toBeNull()
+    expect(downloadSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filePath: 'docs',
+        fullPath: 'workspace/docs',
+        hasChildren: true
+      })
+    )
+  })
 })

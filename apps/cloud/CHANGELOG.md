@@ -1,5 +1,17 @@
 # @xpert-ai/xpert-ui
 
+## 3.9.8
+
+### Patch Changes
+
+- 2558760: updates
+
+## 3.9.7
+
+### Patch Changes
+
+- 9e37ff9: updates
+
 ## 3.9.6
 
 ### Patch Changes

@@ -160,6 +160,10 @@ export class AIV1Controller {
             }
         }
     })
+    /**
+     * @deprecated Use POST /contexts/file. The context endpoint returns an
+     * AgentFile/FileAsset handle and starts the file-understanding parse flow.
+     */
     async create(
         @UploadedFile() file: Express.Multer.File,
         @Body('target') targetValue?: string

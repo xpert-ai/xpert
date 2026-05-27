@@ -13,27 +13,25 @@ import {
 	ValidationPipe,
 	BadRequestException,
 	Session,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CommandBus } from '@nestjs/cqrs';
-import { Request } from 'express';
-import { I18nLang } from 'nestjs-i18n';
-import {
-	IUserLoginInput,
-	IAuthResponse,
-	LanguagesEnum
-} from '@xpert-ai/contracts';
-import { AuthService } from './auth.service';
-import { User as IUser, User } from '../user/user.entity';
-import { AuthRegisterCommand, AuthTrialCommand } from './commands';
-import { RequestContext } from '../core/context';
-import { AuthLoginCommand } from './commands';
-import { CurrentUser, Public } from './../shared/decorators';
-import { AuthGuard } from '@nestjs/passport';
-import { ChangePasswordRequestDTO, ResetPasswordRequestDTO } from '../password-reset/dto';
-import { RegisterUserDTO } from '../user/dto';
-import { randomUUID } from 'crypto';
-import { UseValidationPipe } from '../shared/pipes';
+	ForbiddenException
+} from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
+import { CommandBus } from '@nestjs/cqrs'
+import { Request } from 'express'
+import { I18nLang } from 'nestjs-i18n'
+import { IUserLoginInput, IAuthResponse, LanguagesEnum } from '@xpert-ai/contracts'
+import { AuthService } from './auth.service'
+import { User as IUser, User } from '../user/user.entity'
+import { AuthRegisterCommand, AuthTrialCommand } from './commands'
+import { RequestContext } from '../core/context'
+import { AuthLoginCommand } from './commands'
+import { CurrentUser, Public } from './../shared/decorators'
+import { AuthGuard } from '@nestjs/passport'
+import { ChangePasswordRequestDTO, ResetPasswordRequestDTO } from '../password-reset/dto'
+import { RegisterUserDTO } from '../user/dto'
+import { randomUUID } from 'crypto'
+import { UseValidationPipe } from '../shared/pipes'
+import { environment as env } from '@xpert-ai/server-config'
 
 @ApiTags('Auth')
 // @UseInterceptors(TransformInterceptor)
@@ -50,8 +48,8 @@ export class AuthController {
 	@Get('/authenticated')
 	@Public()
 	async authenticated(): Promise<boolean> {
-		const token = RequestContext.currentToken();
-		return await this.authService.isAuthenticated(token);
+		const token = RequestContext.currentToken()
+		return await this.authService.isAuthenticated(token)
 	}
 
 	@ApiOperation({ summary: 'Has role?' })
@@ -59,8 +57,8 @@ export class AuthController {
 	@ApiResponse({ status: HttpStatus.BAD_REQUEST })
 	@Get('/role')
 	async hasRole(@Query('roles') roles: string[]): Promise<boolean> {
-		const token = RequestContext.currentToken();
-		return await this.authService.hasRole(token, roles);
+		const token = RequestContext.currentToken()
+		return await this.authService.hasRole(token, roles)
 	}
 
 	@Post('/signup')
@@ -69,10 +67,14 @@ export class AuthController {
 	async signup(
 		@Body() entity: RegisterUserDTO,
 		@Req() request: Request,
-		@I18nLang() languageCode: LanguagesEnum,
+		@I18nLang() languageCode: LanguagesEnum
 	): Promise<void> {
+		if (env.deploymentTarget === 'customer-onprem') {
+			throw new ForbiddenException('Public signup is disabled for this deployment.')
+		}
+
 		await this.commandBus.execute(
-			new AuthTrialCommand({originalUrl: request.get('Origin'), ...entity}, languageCode)
+			new AuthTrialCommand({ originalUrl: request.get('Origin'), ...entity }, languageCode)
 		)
 		return
 	}
@@ -84,24 +86,24 @@ export class AuthController {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@Post('/register')
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async create(
 		@Body() entity: RegisterUserDTO,
 		@Req() request: Request,
-		@I18nLang() languageCode: LanguagesEnum,
+		@I18nLang() languageCode: LanguagesEnum
 	): Promise<IUser> {
-
 		return await this.commandBus.execute(
-			new AuthRegisterCommand({ 
-					originalUrl: request.get('Origin'), ...entity
-				}, 
+			new AuthRegisterCommand(
+				{
+					originalUrl: request.get('Origin'),
+					...entity
+				},
 				languageCode
 			)
-		);
+		)
 	}
 
 	@HttpCode(HttpStatus.OK)
@@ -113,14 +115,14 @@ export class AuthController {
 		@Req() req: Request
 	): Promise<IAuthResponse | null> {
 		session.name = session.name || randomUUID()
-		return await this.commandBus.execute(new AuthLoginCommand(entity));
+		return await this.commandBus.execute(new AuthLoginCommand(entity))
 	}
 
 	@Public()
 	@Get('verify')
 	@HttpCode(HttpStatus.OK)
 	async verifyMail(@Query('token') token: string): Promise<void> {
-	  await this.authService.verifyEmail(token);
+		await this.authService.verifyEmail(token)
 	}
 
 	@Public()
@@ -128,28 +130,26 @@ export class AuthController {
 	@Get('refresh')
 	@HttpCode(HttpStatus.OK)
 	async refreshToken(@Req() req: Request): Promise<any> {
-	  const userId = req.user['id']
-	  const refreshToken = req.user['refreshToken']
-	  return await this.authService.refreshTokens(userId, refreshToken)
+		const userId = req.user['id']
+		const refreshToken = req.user['refreshToken']
+		return await this.authService.refreshTokens(userId, refreshToken)
 	}
-	
+
 	@ApiOperation({ summary: 'Authentication is alive' })
 	@ApiResponse({ status: HttpStatus.OK })
 	@Get('alive')
 	@HttpCode(HttpStatus.OK)
 	async alive(@Req() req: Request) {
-		return { message: 'Token is valid', user: req.user };
+		return { message: 'Token is valid', user: req.user }
 	}
 
 	@Post('/reset-password')
 	@Public()
 	@UsePipes(new ValidationPipe({ transform: true }))
-	async resetPassword(
-		@Body() request: ChangePasswordRequestDTO
-	) {
-		return await this.authService.resetPassword(request);
+	async resetPassword(@Body() request: ChangePasswordRequestDTO) {
+		return await this.authService.resetPassword(request)
 	}
-	
+
 	/**
 	 * Request a password reset.
 	 *
@@ -166,12 +166,12 @@ export class AuthController {
 		@Headers('origin') origin: string,
 		@I18nLang() languageCode: LanguagesEnum
 	): Promise<boolean | BadRequestException> {
-		return await this.authService.requestResetPassword(body, languageCode, origin);
+		return await this.authService.requestResetPassword(body, languageCode, origin)
 	}
 
 	@Post('resend-verification')
 	@HttpCode(HttpStatus.OK)
 	async resendVerificationMail(@CurrentUser() user: User, @I18nLang() languageCode: LanguagesEnum): Promise<void> {
-	  await this.authService.resendVerificationMail(user, languageCode);
+		await this.authService.resendVerificationMail(user, languageCode)
 	}
 }

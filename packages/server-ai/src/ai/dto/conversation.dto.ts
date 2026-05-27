@@ -98,6 +98,18 @@ export class ChatMessageDTO {
     @Expose()
     references?: IChatMessage['references']
 
+    /**
+     * @deprecated Use `fileAssets` on chat messages for parsed attachments.
+     */
+    @Expose()
+    attachments?: IChatMessage['attachments']
+
+    /**
+     * Parsed file-understanding attachments exposed to ChatKit clients.
+     */
+    @Expose()
+    fileAssets?: IChatMessage['fileAssets']
+
     @Expose()
     status?: IChatMessage['status']
 

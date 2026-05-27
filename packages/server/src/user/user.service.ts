@@ -1,15 +1,42 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef, Optional } from '@nestjs/common'
+import {
+	BadRequestException,
+	ForbiddenException,
+	Injectable,
+	Logger,
+	NotFoundException,
+	Inject,
+	forwardRef,
+	Optional
+} from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull } from 'typeorm'
+import {
+	Repository,
+	InsertResult,
+	Like,
+	Brackets,
+	WhereExpressionBuilder,
+	In,
+	FindOneOptions,
+	DeleteResult,
+	IsNull
+} from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@xpert-ai/server-config'
 import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IFeatureOrganization, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
+import {
+	ID,
+	IFeatureOrganization,
+	IUser,
+	LanguagesEnum,
+	PermissionsEnum,
+	RolesEnum,
+	UserType
+} from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
@@ -164,7 +191,7 @@ export class UserService extends TenantAwareCrudService<User> {
 						organizationId: In(organizationIds)
 					},
 					relations: ['feature']
-			  })
+				})
 			: []
 
 		this.attachFeatureOrganizationsToCurrentUser(user, tenantFeatureOrganizations, organizationFeatureOrganizations)
@@ -667,6 +694,9 @@ export class UserService extends TenantAwareCrudService<User> {
 		const where: any[] = [
 			{
 				email: condition
+			},
+			{
+				username: condition
 			},
 			{
 				firstName: condition

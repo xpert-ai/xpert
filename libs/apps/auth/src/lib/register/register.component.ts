@@ -30,6 +30,7 @@ export class UserRegisterComponent implements OnDestroy {
   messages: string[] = []
   socialLinks: NbAuthSocialLink[] = []
   ssoTicket = ''
+  enablePublicSignup = true
 
   constructor(
     protected service: PacAuthService,
@@ -48,7 +49,7 @@ export class UserRegisterComponent implements OnDestroy {
           null,
           [Validators.required, Validators.minLength(6), UserRegisterComponent.checkPassword.bind(this)]
         ],
-        confirm: [null, [Validators.required, Validators.minLength(6)]],
+        confirm: [null, [Validators.required, Validators.minLength(6)]]
         // mobilePrefix: ['+86'],
         // mobile: [null, [Validators.required, Validators.pattern(/^1\d{10}$/)]],
         // captcha: [null, [Validators.required]]
@@ -63,6 +64,11 @@ export class UserRegisterComponent implements OnDestroy {
     this.strategy = this.getConfigValue('forms.register.strategy')
     this.socialLinks = this.getConfigValue('forms.login.socialLinks')
     this.ssoTicket = this.route.snapshot.queryParamMap.get('ticket')?.trim() ?? ''
+    this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
+
+    if (!this.ssoTicket && !this.enablePublicSignup) {
+      void this.router.navigate(['/auth/login'])
+    }
   }
 
   // #region fields
@@ -89,7 +95,7 @@ export class UserRegisterComponent implements OnDestroy {
   visible = false
   status = 'pool'
   progress = 0
-  passwordProgressMap: { [key: string]: {color: 'success' | 'normal' | 'accent' | 'warn', progress: number} } = {
+  passwordProgressMap: { [key: string]: { color: 'success' | 'normal' | 'accent' | 'warn'; progress: number } } = {
     [PasswordStrengthEnum.Strong]: {
       color: 'success',
       progress: 100
@@ -105,7 +111,7 @@ export class UserRegisterComponent implements OnDestroy {
     [PasswordStrengthEnum.Tooweak]: {
       color: 'warn',
       progress: 10
-    },
+    }
   }
 
   count = 0
@@ -175,7 +181,11 @@ export class UserRegisterComponent implements OnDestroy {
 
     this.service.register(this.strategy, data).subscribe((result: PacAuthResult) => {
       if (result.isSuccess()) {
-        this.messages = [this.getTranslation('Auth.SignupSuccess', {Default: '🎉 Signup success, please active the link in your email'})]
+        this.messages = [
+          this.getTranslation('Auth.SignupSuccess', {
+            Default: '🎉 Signup success, please active the link in your email'
+          })
+        ]
       } else {
         this.submitted = false
         this.errors = result.getErrors()
@@ -197,9 +207,12 @@ export class UserRegisterComponent implements OnDestroy {
 
   getTranslation(key: string, params: any) {
     let t = ''
-    this.translateService.get(key, params).pipe(take(1)).subscribe((value) => {
-      t = value
-    })
+    this.translateService
+      .get(key, params)
+      .pipe(take(1))
+      .subscribe((value) => {
+        t = value
+      })
     return t
   }
 

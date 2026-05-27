@@ -58,9 +58,24 @@ export class PacMenuGroupComponent {
     return !!menu.children?.some((item) => this.isMenuItemActive(item))
   }
 
+  isExternalLink(item: PacMenuItem) {
+    return item.external === true || /^https?:\/\//i.test(item.link ?? '')
+  }
+
   isMenuItemActive(item: PacMenuItem, exact = true) {
     const link = item.link
-    if (!link) {
+    if (!link || this.isExternalLink(item)) {
+      return false
+    }
+
+    const currentUrl = this.currentUrl().split('?')[0]
+    const inactivePathPrefixes = item.data?.inactivePathPrefixes
+    if (
+      Array.isArray(inactivePathPrefixes) &&
+      inactivePathPrefixes.some(
+        (prefix) => typeof prefix === 'string' && (currentUrl === prefix || currentUrl.startsWith(`${prefix}/`))
+      )
+    ) {
       return false
     }
 
@@ -70,6 +85,15 @@ export class PacMenuGroupComponent {
       fragment: 'ignored',
       matrixParams: 'ignored'
     })
+  }
+
+  openExternalLink(item: PacMenuItem) {
+    if (item.children?.length || !item.link || !this.isExternalLink(item)) {
+      return
+    }
+
+    window.open(item.link, '_blank', 'noopener,noreferrer')
+    this.clicked.emit()
   }
 
   isExpanded(menu: PacMenuItem) {

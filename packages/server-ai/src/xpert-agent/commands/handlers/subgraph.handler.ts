@@ -132,8 +132,10 @@ import { parseXmlString } from './types'
 import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
+const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -744,6 +746,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             tools: toolMap,
             runtime: this.agentMiddlewareRuntimeService.api
         }
+        const fileUnderstandingStrategy = this.agentMiddlewareRegistry.get(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
+        // Platform-required middleware: it is hidden from the graph UI but is
+        // still created through the normal middleware path so its tools enter
+        // toolMap, tracing, and runtime filtering consistently.
+        const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
+            { conversationId: options.conversationId },
+            {
+                ...middlewareContext,
+                node: {
+                    id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                    key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                    provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+                    required: true
+                }
+            }
+        )
+        fileUnderstandingMiddleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
+        const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = [
+            {
+                key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                middleware: fileUnderstandingMiddleware
+            }
+        ]
         const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
@@ -782,6 +808,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                       }
                   ]
                 : []),
+            ...builtinMiddlewareEntries,
             ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
                 (acc, node, index) => {
                     const middleware = visibleAgentMiddlewares[index]
@@ -795,7 +822,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...runtimeMiddlewareEntries
         ]
         // Middleware tools
-        const middlewareTools: TGraphTool[] = [...visibleAgentMiddlewares, ...runtimeAgentMiddlewares]
+        const middlewareTools: TGraphTool[] = [
+            ...builtinMiddlewareEntries.map(({ middleware }) => middleware),
+            ...visibleAgentMiddlewares,
+            ...runtimeAgentMiddlewares
+        ]
             .filter((middleware) => middleware?.tools?.length)
             .flatMap((middleware) =>
                 middleware.tools.map((tool) => {
@@ -827,37 +858,38 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...(variables ?? []).map((variable) => variable.name),
             ...stateVariables.map((variable) => variable.name)
         ])
-        const middlewareStateAnnotations = visibleAgentMiddlewares.reduce<
-            Record<string, ReturnType<typeof Annotation>>
-        >((acc, middleware) => {
-            const shape = (middleware.stateSchema as any)?.shape
-            if (!shape) {
-                return acc
-            }
-            Object.keys(shape).forEach((key) => {
-                if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
-                    return
+        const middlewareStateAnnotations = middlewareEntries.reduce<Record<string, ReturnType<typeof Annotation>>>(
+            (acc, { middleware }) => {
+                const shape = (middleware.stateSchema as any)?.shape
+                if (!shape) {
+                    return acc
                 }
-                acc[key] = Annotation({
-                    reducer: (a, b) => (b === undefined ? a : b),
-                    default: () => {
-                        try {
-                            const def = (shape as any)[key]?._def?.defaultValue
-                            if (typeof def === 'function') {
-                                return def()
-                            }
-                            if (def !== undefined) {
-                                return def
-                            }
-                        } catch (error) {
-                            // ignore default parse errors
-                        }
-                        return null
+                Object.keys(shape).forEach((key) => {
+                    if (key.startsWith('_') || existedStateVariables.has(key) || acc[key]) {
+                        return
                     }
+                    acc[key] = Annotation({
+                        reducer: (a, b) => (b === undefined ? a : b),
+                        default: () => {
+                            try {
+                                const def = (shape as any)[key]?._def?.defaultValue
+                                if (typeof def === 'function') {
+                                    return def()
+                                }
+                                if (def !== undefined) {
+                                    return def
+                                }
+                            } catch (error) {
+                                // ignore default parse errors
+                            }
+                            return null
+                        }
+                    })
                 })
-            })
-            return acc
-        }, {})
+                return acc
+            },
+            {}
+        )
 
         const {
             beforeAgentHooks,
@@ -971,6 +1003,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const historyVariable = agent.options?.historyVariable
         const errorHandling = agent.options?.errorHandling
         const hasAfterModelHooks = afterModelExecutionOrder.length > 0
+        const createScopedAbortSignal = () => {
+            const controller = new AbortController()
+            const abortHandler = () => controller.abort(abortController.signal.reason)
+
+            if (abortController.signal.aborted) {
+                controller.abort(abortController.signal.reason)
+            } else {
+                abortController.signal.addEventListener('abort', abortHandler, { once: true })
+            }
+
+            return {
+                signal: controller.signal,
+                cleanup: () => {
+                    abortController.signal.removeEventListener('abort', abortHandler)
+                    if (!controller.signal.aborted) {
+                        controller.abort()
+                    }
+                }
+            }
+        }
 
         const stateModifier = async (
             state: typeof AgentStateAnnotation.State,
@@ -1112,7 +1164,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 messages: baseMessages,
                 systemMessage,
                 tools: withTools,
-                state,
+                state: state as typeof state & AgentBuiltInState,
                 runtime: config
             }
             let systemMessageContent = systemMessage.content
@@ -1122,7 +1174,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const systemMsg = request.systemMessage ?? systemMessage
                 systemMessageContent = systemMsg.content
                 const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
-                const response = await model.invoke(finalMessages, { ...config, signal: abortController.signal })
+                const scopedSignal = createScopedAbortSignal()
+                const response = await model
+                    .invoke(finalMessages, { ...config, signal: scopedSignal.signal })
+                    .finally(() => {
+                        scopedSignal.cleanup()
+                    })
                 if (isBaseMessage(response) && isAIMessage(response)) {
                     const invalidToolCalls = response.invalid_tool_calls
                     if (invalidToolCalls?.length) {
@@ -1352,57 +1409,55 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         // Add nodes for tools
-        tools
-            ?.filter((_) => !_.graph)
-            .forEach(({ caller, tool, variables, toolset }) => {
-                const name = tool.name
-                const ends = []
-                if (endNodes?.includes(tool.name)) {
-                    // If it is end of the agent, connect the subsequent nodes of the agent
-                    if (nextNodeKey?.length) {
-                        ends.push(...nextNodeKey)
-                        subgraphBuilder.addConditionalEdges(name, (state, config) => {
-                            return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
-                        })
+        if (!hiddenAgent) {
+            tools
+                ?.filter((_) => !_.graph)
+                .forEach(({ caller, tool, variables, toolset }) => {
+                    const name = tool.name
+                    const ends = []
+                    if (endNodes?.includes(tool.name)) {
+                        // If it is end of the agent, connect the subsequent nodes of the agent
+                        if (nextNodeKey?.length) {
+                            ends.push(...nextNodeKey)
+                            subgraphBuilder.addConditionalEdges(name, (state, config) => {
+                                return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
+                            })
+                        } else {
+                            // No subsequent node, go to the end
+                            subgraphBuilder.addEdge(name, END)
+                            ends.push(END)
+                        }
                     } else {
-                        // No subsequent node, go to the end
-                        subgraphBuilder.addEdge(name, END)
-                        ends.push(END)
+                        // Not the end of the agent, return to the agent node
+                        subgraphBuilder.addEdge(name, agentLoopEntryNode)
+                        // ends.push(agentKey)
                     }
-                } else {
-                    // Not the end of the agent, return to the agent node
-                    subgraphBuilder.addEdge(name, agentLoopEntryNode)
-                    // ends.push(agentKey)
-                }
-                subgraphBuilder.addNode(
-                    name,
-                    new ToolNode([tool], {
-                        caller,
-                        variables,
-                        toolName: toolset.title,
-                        toolDisplayTitle: toolset.displayTitle,
-                        toolDisplayMessage: toolset.displayMessage,
-                        wrapToolCall
-                    }).withConfig({
-                        signal: abortController.signal
-                    }),
-                    {
-                        ends,
-                        metadata: omitBy({ toolset: toolset.provider, toolsetId: toolset.id }, isNil)
-                    }
-                )
-            })
+                    subgraphBuilder.addNode(
+                        name,
+                        new ToolNode([tool], {
+                            caller,
+                            variables,
+                            toolName: toolset.title,
+                            toolDisplayTitle: toolset.displayTitle,
+                            toolDisplayMessage: toolset.displayMessage,
+                            wrapToolCall
+                        }).withConfig({
+                            signal: abortController.signal
+                        }),
+                        {
+                            ends,
+                            metadata: omitBy({ toolset: toolset.provider, toolsetId: toolset.id }, isNil)
+                        }
+                    )
+                })
 
-        handoffTools?.forEach((tool) => {
-            const name = tool.name
-            subgraphBuilder.addNode(
-                name,
-                new ToolNode([tool], { caller: '', toolName: tool.description }).withConfig({
-                    signal: abortController.signal
-                }),
-                { metadata: { toolset: 'transfer_to' } }
-            )
-        })
+            handoffTools?.forEach((tool) => {
+                const name = tool.name
+                subgraphBuilder.addNode(name, new ToolNode([tool], { caller: '', toolName: tool.description }), {
+                    metadata: { toolset: 'transfer_to' }
+                })
+            })
+        }
 
         // Sub Agents
         if (subAgents) {
@@ -1476,14 +1531,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Has other nodes
         if (Object.keys(nodes).length) {
             Object.keys(nodes).forEach((name) =>
-                subgraphBuilder.addNode(
-                    nodes[name].name || name,
-                    nodes[name].graph.withConfig({ signal: abortController.signal }),
-                    {
-                        ends: nodes[name].ends,
-                        defer: hasMultipleInputs(graph, name)
-                    }
-                )
+                subgraphBuilder.addNode(nodes[name].name || name, nodes[name].graph, {
+                    ends: nodes[name].ends,
+                    defer: hasMultipleInputs(graph, name)
+                })
             )
             Object.entries(edges).forEach(([name, value]) => {
                 const ends: string[] = Array.isArray(value) ? value : [value]

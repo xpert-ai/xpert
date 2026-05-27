@@ -51,14 +51,6 @@ import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/ta
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
-type TAgentLink = {
-  key: string
-  defaultLabel: string
-  featureKey: AiFeatureEnum
-  iconClass: string
-  link: string
-  external?: boolean
-}
 
 @Component({
   standalone: true,
@@ -166,38 +158,6 @@ export class ChatHomeComponent {
 
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
-  readonly allAgentLinks: TAgentLink[] = [
-    {
-      key: 'chatbi',
-      defaultLabel: 'ChatBI',
-      featureKey: AiFeatureEnum.FEATURE_XPERT_CHATBI,
-      iconClass: 'ri-line-chart-line',
-      link: '/chat/chatbi'
-    },
-    {
-      key: 'codexpert',
-      defaultLabel: 'CodeXpert',
-      featureKey: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
-      iconClass: 'ri-code-box-line',
-      link: 'https://code.xpertai.cn/',
-      external: true
-    },
-    {
-      key: 'deep-research',
-      defaultLabel: 'DeepResearch',
-      featureKey: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
-      iconClass: 'ri-binoculars-line',
-      link: 'https://research.xpertai.cn/',
-      external: true
-    }
-  ]
-  readonly agentLinks = computed(() => {
-    if (!this.clawxpertEnabled() && !this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
-      return []
-    }
-
-    return this.allAgentLinks.filter(({ featureKey }) => this.#store.hasFeatureEnabled(featureKey))
-  })
 
   // Projects
   readonly projectSercice = injectProjectService()
@@ -341,7 +301,11 @@ export class ChatHomeComponent {
     this.homeService.conversation.set(null)
     this.currentPage.set({ type: 'conversation' })
 
-    const activeComponent = this.chatOutlet?.component as { newConv?: () => void } | undefined
+    const chatOutlet = this.chatOutlet
+    const activeComponent =
+      chatOutlet && (!('isActivated' in chatOutlet) || chatOutlet.isActivated)
+        ? (chatOutlet.component as { newConv?: () => void })
+        : undefined
 
     if (normalizeChatRoute(this.#router.url) === '/chat/x/common' && typeof activeComponent?.newConv === 'function') {
       activeComponent.newConv()

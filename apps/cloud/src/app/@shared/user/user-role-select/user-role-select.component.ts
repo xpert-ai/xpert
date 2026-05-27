@@ -15,6 +15,14 @@ import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchM
 import { IUser } from '../../../@core'
 import { userLabel } from '../../pipes'
 
+function userOptionLabel(user: IUser) {
+  return user.username || userLabel(user)
+}
+
+function userSearchKeywords(user: IUser) {
+  return [user.email, user.username].filter((value): value is string => !!value)
+}
+
 function isUser(value: unknown): value is IUser {
   return (
     !!value &&
@@ -92,7 +100,8 @@ export class UserRoleSelectComponent {
         .filter((user) => !this.excludedUserIds.has(user.id))
         .map((user) => ({
           id: user.id,
-          label: userLabel(user),
+          label: userOptionLabel(user),
+          keywords: userSearchKeywords(user),
           value: user,
           data: user
         }))
@@ -109,7 +118,7 @@ export class UserRoleSelectComponent {
       return ''
     }
 
-    return userLabel(value)
+    return userOptionLabel(value)
   }
 
   onSearchTermChange(value: string) {
@@ -127,14 +136,12 @@ export class UserRoleSelectComponent {
     // todo
     // // 获取粘贴的文本内容
     // const pastedText = event.clipboardData.getData('text');
-
     // const pastedLines = pastedText.split('\n');
     // pastedLines.forEach(line => {
     //   // 查找与每行粘贴内容匹配的选项（忽略大小写）
-    //   const matchingOption = this.options.find(option => 
+    //   const matchingOption = this.options.find(option =>
     //     option.toLowerCase() === line.toLowerCase().trim()
     //   );
-
     //   if (matchingOption) {
     //     // 如果找到匹配项，插入选项
     //     this.insertOption(matchingOption);
@@ -143,7 +150,6 @@ export class UserRoleSelectComponent {
     //     console.log('未找到匹配的选项:', line);
     //   }
     // });
-
     // // 阻止默认粘贴行为（可选）
     // event.preventDefault();
   }

@@ -1,7 +1,7 @@
 import 'dotenv/config'
 
 import { FileStorageProviderEnum, VectorTypeEnum } from '@xpert-ai/contracts'
-import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment'
+import { IEnvironment, IPACFeatures, LogLevel, normalizeDeploymentTarget } from './ienvironment'
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
 
@@ -12,6 +12,7 @@ export const prodEnvironment: IEnvironment = {
   clientBaseUrl: process.env.CLIENT_BASE_URL || 'http://localhost:4200',
   production: true,
   envName: 'prod',
+  deploymentTarget: normalizeDeploymentTarget(process.env.DEPLOYMENT_TARGET, 'cloud'),
 
   env: {
     ...process.env,
@@ -240,5 +241,6 @@ export const prodToggleFeatures: IPACFeatures = {
   FEATURE_COPILOT_CHAT: process.env.FEATURE_COPILOT_CHAT === 'false' ? false : true,
   FEATURE_COPILOT_KNOWLEDGEBASE: process.env.FEATURE_COPILOT_KNOWLEDGEBASE === 'false' ? false : true,
   FEATURE_COPILOT_CHATBI: process.env.FEATURE_COPILOT_CHATBI === 'false' ? false : true,
-  FEATURE_XPERT: process.env.FEATURE_XPERT === 'false' ? false : true
+  FEATURE_XPERT: process.env.FEATURE_XPERT === 'false' ? false : true,
+  FEATURE_XPERT_DATA_ONTOLOGY: process.env.FEATURE_XPERT_DATA_ONTOLOGY === 'false' ? false : true
 }

@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { RedisModule, SecretTokenModule, TenantModule, UserGroupModule, UserModule } from '@xpert-ai/server-core'
 import { XpertController } from './xpert.controller'
+import { XpertAccessController } from './xpert-access.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { CommandHandlers } from './commands/handlers/index'
@@ -31,11 +32,15 @@ import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { RuntimeCommandService } from '../ai/runtime-command.service'
 import { SseStreamModule } from '../shared/stream'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatMessage } from '../chat-message/chat-message.entity'
+import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.entity'
+import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
-        TypeOrmModule.forFeature([Xpert]),
+        TypeOrmModule.forFeature([Xpert, ChatConversation, ChatMessage, XpertFrequentQuestionCache]),
         DiscoveryModule,
         TenantModule,
         SecretTokenModule,
@@ -58,7 +63,7 @@ import { SseStreamModule } from '../shared/stream'
         HandoffQueueModule,
         SseStreamModule
     ],
-    controllers: [XpertController],
+    controllers: [XpertController, XpertAccessController],
     providers: [
         XpertService,
         XpertTriggerBootstrapRecoveryService,
@@ -70,6 +75,7 @@ import { SseStreamModule } from '../shared/stream'
         XpertAuthoringMiddleware,
         RuntimeCommandService,
         RuntimeCapabilitiesService,
+        XpertFrequentQuestionsService,
         ...CommandHandlers,
         ...QueryHandlers
     ],

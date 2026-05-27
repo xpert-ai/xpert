@@ -249,6 +249,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             en_US: 'A middleware that add skills to the agent. Requires the File toolset to be used together.',
             zh_Hans: '一个中间件，允许向智能体添加技能。需要配合 File 工具集一起使用。'
         },
+        features: ['sandbox'],
         configSchema: {
             type: 'object',
             properties: {
@@ -603,25 +604,35 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
     private async acquireFallbackSandboxBackend(
         tenantId: string,
         userId: string,
-        projectId?: string,
+        projectId?: string | null,
+        xpertId?: string | null,
         workingDirectory?: string
     ): Promise<SandboxBackendProtocol> {
+        const volumeScope = projectId
+            ? {
+                  tenantId,
+                  catalog: 'projects' as const,
+                  projectId,
+                  userId
+              }
+            : xpertId
+              ? {
+                    tenantId,
+                    catalog: 'xperts' as const,
+                    xpertId,
+                    userId,
+                    isolateByUser: false
+                }
+              : {
+                    tenantId,
+                    catalog: 'users' as const,
+                    userId
+                }
         const sandbox = await this.commandBus.execute(
             new SandboxAcquireBackendCommand({
                 tenantId,
                 workingDirectory,
-                volumeScope: projectId
-                    ? {
-                          tenantId,
-                          catalog: 'projects',
-                          projectId,
-                          userId
-                      }
-                    : {
-                          tenantId,
-                          catalog: 'users',
-                          userId
-                      },
+                volumeScope,
                 workFor: projectId ? { type: 'project', id: projectId } : { type: 'user', id: userId }
             })
         )
@@ -636,7 +647,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         options: ISkillsMiddlewareOptions,
         context: IAgentMiddlewareContext
     ): Promise<AgentMiddleware> {
-        const { tenantId, userId, workspaceId: contextWorkspaceId, projectId } = context
+        const { tenantId, userId, workspaceId: contextWorkspaceId, projectId, xpertId } = context
         const normalizedContextWorkspaceId = this.sanitizeWorkspaceId(contextWorkspaceId)
         const autoDiscoveryOptions = this.resolveAutoDiscoveryOptions(options)
         this.#logger.debug(`SkillsMiddleware using context workspace: ${normalizedContextWorkspaceId}`)
@@ -857,6 +868,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     tenantId,
                     userId,
                     projectId,
+                    xpertId,
                     this.getSandboxWorkingDirectory(sandbox) || runtimeWorkingDirectory || undefined
                 )
                 const result = await fallbackBackend.execute(`cat ${this.escapeForShell(fullPath)}`)
@@ -892,6 +904,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                         tenantId,
                         userId,
                         projectId,
+                        xpertId,
                         runtimeWorkingDirectory || undefined
                     )
                     const result = await fallbackBackend.execute(command, {

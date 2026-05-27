@@ -61,9 +61,30 @@ jest.mock('@xpert-ai/headless-ui', () => {
   })
   class ZardTabNavPanelComponent {}
 
+  @Directive({
+    standalone: true,
+    selector: '[z-menu]'
+  })
+  class ZardMenuDirective {
+    @Input() zMenuTriggerFor?: unknown
+  }
+
+  @Directive({
+    standalone: true,
+    selector: '[z-menu-content]'
+  })
+  class ZardMenuContentDirective {}
+
+  @Directive({
+    standalone: true,
+    selector: '[z-menu-item]'
+  })
+  class ZardMenuItemDirective {}
+
   return {
     ZardButtonComponent,
     ZardIconComponent,
+    ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
     ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent]
   }
 })
@@ -116,6 +137,12 @@ jest.mock('./clawxpert-conversation-preview.component', () => {
   })
   class ClawXpertConversationPreviewComponent {
     @Input() conversationId?: string | null
+    @Input() serviceId?: string | null
+    @Input() url?: string | null
+    @Input() zoom?: number
+    @Input() deviceToolbarVisible?: boolean
+    @Input() reloadKey?: number
+    @Output() browserStateChange = new EventEmitter()
     @Output() referenceRequest = new EventEmitter()
   }
 
@@ -143,25 +170,6 @@ jest.mock('../../../@shared/chat/terminal/terminal.component', () => {
   }
 })
 
-jest.mock('../../../@shared/chat/computer-timeline/computer-timeline.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    selector: 'xp-chat-computer-timeline',
-    template: ''
-  })
-  class ChatComputerTimelineComponent {
-    @Input() conversation?: unknown
-    @Input() projectId?: string | null
-    @Input() title?: string | null
-  }
-
-  return {
-    ChatComputerTimelineComponent
-  }
-})
-
 jest.mock('./clawxpert.facade', () => ({
   ClawXpertFacade: class ClawXpertFacade {}
 }))
@@ -172,7 +180,6 @@ import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation } from '../../../@core'
-import { ChatComputerTimelineComponent } from '../../../@shared/chat/computer-timeline/computer-timeline.component'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
@@ -205,6 +212,15 @@ type MockChatKitRuntimeInput = {
   onLog?: (event: MockChatKitEvent) => void
   onResponseStart?: () => void
   onResponseEnd?: () => void
+}
+
+type WorkspaceTabKindForTest = 'files' | 'terminal' | 'browser'
+type WorkspaceTabForTest = {
+  id: string
+  kind: WorkspaceTabKindForTest
+}
+type WorkspaceTabTestComponent = ClawXpertConversationDetailComponent & {
+  addWorkspaceTab(kind: WorkspaceTabKindForTest): WorkspaceTabForTest
 }
 
 async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
@@ -369,11 +385,83 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
+  it('does not pin terminal tabs before the user adds them', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-panel-button="computer"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-panel-button="terminal"]')).toBeNull()
+  })
+
+  it('allows closing the last remaining workspace tab and shows the empty workspace placeholder', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const onlyTabId = fixture.componentInstance.activeTabId()
+    expect(fixture.nativeElement.querySelector(`[data-close-tab="${onlyTabId}"]`)).not.toBeNull()
+
+    fixture.componentInstance.closeWorkspaceTab(new MouseEvent('click'), onlyTabId)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.workspaceTabs()).toHaveLength(0)
+    expect(fixture.componentInstance.activeTabId()).toBe('')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-placeholder]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card-grid]')?.className).toContain(
+      'grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]'
+    )
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="files"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="browser"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="review"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-empty-workspace-card="terminal"]')).not.toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))).toBeNull()
+  })
+
+  it('opens workspace tabs from the empty workspace placeholder', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.componentInstance.closeWorkspaceTab(new MouseEvent('click'), fixture.componentInstance.activeTabId())
+    await settle(fixture)
+    ;(fixture.nativeElement.querySelector('[data-empty-workspace-card="browser"]') as HTMLElement).click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeTab()?.kind).toBe('browser')
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))).not.toBeNull()
+  })
+
+  it('adds and closes file and terminal tabs on demand', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    const component = fixture.componentInstance as WorkspaceTabTestComponent
+    await settle(fixture)
+
+    const terminalTab = component.addWorkspaceTab('terminal')
+    await settle(fixture)
+
+    expect(component.activeTab()?.kind).toBe('terminal')
+    expect(fixture.nativeElement.querySelector('[data-panel-button="terminal"]')).not.toBeNull()
+    expect(fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))).not.toBeNull()
+
+    const fileTab = component.addWorkspaceTab('files')
+    await settle(fixture)
+
+    expect(component.activeTab()?.kind).toBe('files')
+    expect(fixture.nativeElement.querySelector(`[data-tab-id="${fileTab.id}"]`)).not.toBeNull()
+    ;(fixture.nativeElement.querySelector(`[data-close-tab="${terminalTab.id}"]`) as HTMLElement).click()
+    await settle(fixture)
+
+    expect(fixture.nativeElement.querySelector(`[data-tab-id="${terminalTab.id}"]`)).toBeNull()
+    expect(fixture.nativeElement.querySelector(`[data-tab-id="${fileTab.id}"]`)).not.toBeNull()
+  })
+
   it('renders the terminal panel with the resolved conversation and project context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="terminal"]').click()
+    fixture.componentInstance.selectPanel('terminal')
     await settle(fixture)
 
     const terminal = fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))
@@ -383,38 +471,74 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
   })
 
-  it('renders the computer panel with the resolved conversation detail', async () => {
+  it('adds a browser tab with the resolved conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="computer"]').click()
-    await settle(fixture)
-
-    const computerTimeline = fixture.debugElement.query(By.directive(ChatComputerTimelineComponent))
-    expect(computerTimeline).not.toBeNull()
-    expect((computerTimeline.componentInstance as ChatComputerTimelineComponent).conversation).toEqual(
-      expect.objectContaining({ id: 'conversation-1' })
-    )
-    expect((computerTimeline.componentInstance as ChatComputerTimelineComponent).projectId).toBe('project-1')
-  })
-
-  it('renders the preview panel with the resolved conversation context', async () => {
-    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settle(fixture)
-
-    fixture.nativeElement.querySelector('[data-panel-button="preview"]').click()
+    fixture.componentInstance.selectPanel('preview')
     await settle(fixture)
 
     const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    const activeTab = fixture.componentInstance.activeTab()
     expect(preview).not.toBeNull()
+    expect(activeTab?.kind).toBe('browser')
     expect((preview.componentInstance as ClawXpertConversationPreviewComponent).conversationId).toBe('conversation-1')
+  })
+
+  it('keeps browser tab labels and state independent across multiple browser tabs', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.componentInstance.selectPanel('preview')
+    await settle(fixture)
+    const firstBrowserId = fixture.componentInstance.activeTabId()
+    let preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    ;(preview.componentInstance as ClawXpertConversationPreviewComponent).browserStateChange.emit({
+      displayUrl: 'localhost:3000',
+      serviceId: 'service-3000',
+      zoom: 125
+    })
+    await settle(fixture)
+
+    fixture.componentInstance.addBrowserTab()
+    await settle(fixture)
+    const secondBrowserId = fixture.componentInstance.activeTabId()
+    preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    ;(preview.componentInstance as ClawXpertConversationPreviewComponent).browserStateChange.emit({
+      displayUrl: 'localhost:8080',
+      serviceId: 'service-8080',
+      zoom: 90
+    })
+    await settle(fixture)
+
+    expect(firstBrowserId).not.toBe(secondBrowserId)
+    expect(fixture.nativeElement.textContent).toContain('localhost:3000')
+    expect(fixture.nativeElement.textContent).toContain('localhost:8080')
+
+    fixture.nativeElement.querySelector(`[data-tab-id="${firstBrowserId}"]`).click()
+    await settle(fixture)
+
+    preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).serviceId).toBe('service-3000')
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).zoom).toBe(125)
   })
 
   it('transitions the layout into a main workspace with a right-side chat dialog when a panel opens', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    const component = fixture.componentInstance as WorkspaceTabTestComponent
+    component.addWorkspaceTab('terminal')
+    await settle(fixture)
+
     const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
+    const tabHeader = fixture.nativeElement.querySelector('[data-workspace-tab-header]') as HTMLElement | null
+    const tabNav = fixture.nativeElement.querySelector('nav[z-tab-nav-bar]') as HTMLElement | null
+    const addTabButton = fixture.nativeElement.querySelector('[data-add-workspace-tab]') as HTMLElement | null
+    const tabButton = fixture.nativeElement.querySelector('[data-panel-button="terminal"]') as HTMLElement | null
+    const closeButton = fixture.nativeElement.querySelector(
+      `[data-close-tab="${component.activeTabId()}"]`
+    ) as HTMLElement | null
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
@@ -426,6 +550,21 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
     expect(chatShell?.className).toContain('rounded-3xl')
+    expect(tabHeader?.className).toContain('pt-1')
+    expect(tabHeader?.className).toContain('items-center')
+    expect(tabHeader?.className).not.toContain('pt-4')
+    expect(tabHeader?.className).not.toContain('flex-col')
+    expect(tabNav).not.toBeNull()
+    expect(tabNav?.className).not.toContain('flex-1')
+    expect(tabNav?.className).toContain('min-w-0')
+    expect(tabNav?.contains(addTabButton)).toBe(false)
+    expect(tabButton?.className).toContain('data-[active=true]:rounded-xl')
+    expect(tabButton?.className).toContain('data-[active=true]:!border-transparent')
+    expect(tabButton?.className).toContain('data-[active=true]:!bg-hover-bg')
+    expect(closeButton?.className).toContain('opacity-0')
+    expect(closeButton?.className).toContain('group-hover/tab:opacity-100')
+    expect(addTabButton?.className).toContain('h-8')
+    expect(addTabButton?.className).toContain('w-8')
   })
 
   it('collapses the chat shell when ChatKit minimizes into the pet overlay', async () => {
@@ -504,7 +643,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="terminal"]').click()
+    fixture.componentInstance.selectPanel('terminal')
     await settle(fixture)
 
     const terminal = fixture.debugElement.query(By.directive(ChatSharedTerminalComponent))
@@ -714,7 +853,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    fixture.nativeElement.querySelector('[data-panel-button="preview"]').click()
+    fixture.componentInstance.selectPanel('preview')
     await settle(fixture)
 
     const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
@@ -756,37 +895,6 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(reference.text).toContain('Selector: main > h1')
     expect(reference.text).toContain('<h1 data-testid="hero-title">Hello</h1>')
     expect(focusComposer).toHaveBeenCalled()
-  })
-
-  it('polls and refreshes conversation detail for the computer tab while responses are in flight', async () => {
-    jest.useFakeTimers()
-    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
-    await settleWithFakeTimers(fixture)
-
-    fixture.nativeElement.querySelector('[data-panel-button="computer"]').click()
-    await settleWithFakeTimers(fixture)
-
-    const runtimeInput = getRuntimeInput()
-    conversationService.getById.mockClear()
-
-    runtimeInput.onResponseStart?.()
-    fixture.detectChanges()
-
-    jest.advanceTimersByTime(1000)
-    await Promise.resolve()
-    await Promise.resolve()
-    fixture.detectChanges()
-
-    expect(conversationService.getById).toHaveBeenCalledTimes(1)
-    expect(conversationService.getById).toHaveBeenLastCalledWith('conversation-1', { relations: ['messages'] })
-
-    runtimeInput.onResponseEnd?.()
-    await Promise.resolve()
-    await Promise.resolve()
-    fixture.detectChanges()
-
-    expect(conversationService.getById).toHaveBeenCalledTimes(2)
-    expect(conversationService.getById).toHaveBeenLastCalledWith('conversation-1', { relations: ['messages'] })
   })
 
   it('asks the facade to resolve the preferred conversation entry when the route has no thread id', async () => {
@@ -910,7 +1018,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
   })
 
-  it('opens the preview panel when a sandbox service start tool log arrives', async () => {
+  it('opens a browser tab when a sandbox service start tool log arrives', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -922,7 +1030,12 @@ describe('ClawXpertConversationDetailComponent', () => {
       data: {
         payload: {
           item: {
-            tool: 'sandbox_service_start'
+            tool: 'sandbox_service_start',
+            output: JSON.stringify({
+              id: 'service-1',
+              actualPort: 3000,
+              previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
+            })
           }
         }
       }
@@ -930,9 +1043,12 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
-    expect(fixture.componentInstance.activePanel()).toBe('preview')
+    expect(fixture.componentInstance.activeTab()?.kind).toBe('browser')
     expect(preview).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('localhost:3000')
     expect((preview.componentInstance as ClawXpertConversationPreviewComponent).conversationId).toBe('conversation-1')
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).serviceId).toBe('service-1')
+    expect((preview.componentInstance as ClawXpertConversationPreviewComponent).url).toBe('localhost:3000')
   })
 
   it('debounces multiple relevant log events into a single file list refresh', async () => {

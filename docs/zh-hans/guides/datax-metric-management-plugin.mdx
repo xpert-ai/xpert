@@ -1,0 +1,194 @@
+---
+title: 'Data X 指标管理插件'
+description: '介绍 analytics 内置 Data X 指标管理插件模块的工具触发 remote_component 视图、参数、数据和 CRUD action'
+---
+
+# Data X 指标管理插件
+
+Data X 指标管理插件现在内置在 analytics 包中，源码位于：
+
+```text
+packages/analytics/src/plugins/datax-metric-management
+```
+
+它基于 View Extension，用于在 Assistant Workbench 中打开 Data X 指标管理视图。它同时提供两类能力：
+
+- Tool：`indicator_management_open`，由 Assistant 在对话中按需调用。
+- ViewExtensionProvider：`datax_metric_management`，负责返回指标管理视图的 manifest、data、parameter options 和 actions。
+
+该插件模块随 `AnalyticsModule` 启动，不再作为 `packages/plugins/*` 下的外部插件包加载，也不进入 `preBootstrapPlugins`。插件视图仍不会在 Assistant 初始化时自动打开界面；只有工具调用结果携带 `xpert.extension_view` 可视化指令时，消费端才会显示该视图。
+
+## 工具触发
+
+工具名：
+
+```text
+indicator_management_open
+```
+
+工具输入：
+
+```ts
+{
+  projectId?: string
+  modelId?: string
+}
+```
+
+工具返回的 `_meta['xpertai/visualization']` 指向公开 view key：
+
+```ts
+{
+  type: 'xpert.extension_view',
+  title: '指标管理',
+  slotKey: 'tool:indicator-management',
+  parameterKey: 'metrics:<stable-key>',
+  renderMode: 'replace',
+  payload: {
+    version: 1,
+    viewKey: 'datax_metric_management__metrics',
+    parameters: {
+      projectId: '...',
+      modelId: '...'
+    },
+    initialQuery: {
+      page: 1,
+      pageSize: 20
+    }
+  },
+  metadata: {
+    source: 'mcp-tool',
+    sourceId: 'indicator_management_open'
+  }
+}
+```
+
+`slotKey` 和 `parameterKey` 是消费端 Workbench canvas 的展示去重信息；真实宿主仍由消费端后端解析为 `hostType=agent` 和当前 Assistant 的 `assistantId`。
+
+## View Provider
+
+provider key：
+
+```text
+datax_metric_management
+```
+
+manifest key：
+
+```text
+metrics
+```
+
+公开 view key：
+
+```text
+datax_metric_management__metrics
+```
+
+宿主槽位：
+
+```text
+agent.workbench.main
+```
+
+这个槽位属于 agent host 的通用 Workbench 扩展位，不携带 data-xpert 或指标业务含义。
+
+## 视图参数
+
+指标管理视图声明两个参数：
+
+| 参数        | 必填 | 说明             |
+| ----------- | ---- | ---------------- |
+| `projectId` | 是   | 指标所属项目     |
+| `modelId`   | 否   | 项目下的语义模型 |
+
+`projectId` 和 `modelId` 的 options 都由 provider 返回。`modelId` options 会依赖当前选中的 `projectId`。
+
+如果 `projectId` 为空，data 接口返回空列表并携带 `project_required` 原因，前端应引导用户先选择项目。
+
+## Remote Component 视图
+
+当前视图使用 `remote_component + react + iframe`。插件 provider 的 manifest 指向：
+
+```ts
+{
+  type: 'remote_component',
+  runtime: 'react',
+  protocolVersion: 1,
+  component: {
+    isolation: 'iframe',
+    entry: 'metric-management'
+  },
+  dataSource: {
+    mode: 'platform'
+  }
+}
+```
+
+远程页面源码位于：
+
+```text
+packages/analytics/src/plugins/datax-metric-management/remote-components/metric-management/app.js
+```
+
+provider 通过 `getRemoteComponentEntry()` 读取该脚本，并使用 plugin-sdk 的 `renderRemoteReactIframeHtml()` 生成统一 iframe HTML shell。远程页面不直接拿 token 或调用 API，所有数据、参数选项和 action 都通过 Workbench 宿主的 `postMessage` bridge 代理完成。
+
+指标列表主要展示：
+
+- 编码 `code`
+- 名称 `name`
+- 类型 `type`
+- 状态 `status`
+- 模型 `modelName`
+- 向量状态 `embeddingStatus`
+- 更新时间 `updatedAt`
+
+data 查询支持分页、搜索、排序、过滤和 parameters。
+
+## Actions
+
+插件提供以下 action：
+
+| Action      | 位置    | 说明             |
+| ----------- | ------- | ---------------- |
+| `refresh`   | toolbar | 刷新当前指标列表 |
+| `create`    | toolbar | 创建指标草稿     |
+| `edit`      | row     | 编辑指标草稿     |
+| `publish`   | row     | 发布指标         |
+| `embedding` | row     | 执行指标向量化   |
+| `delete`    | row     | 删除指标         |
+
+`create` 和 `edit` 保留 `inputSchema`，用于协议描述和后续宿主通用表单复用；当前 remote component 页面会自行渲染新建/编辑表单，并通过 `executeAction` bridge 提交。action 成功后返回 `refresh: true`，远程页面刷新当前列表。
+
+## 运行时依赖
+
+插件直接访问 analytics 模块中的项目和指标能力：
+
+- `ProjectModule`
+- `IndicatorModule`
+- `ProjectMyQuery`
+- `IndicatorService`
+
+插件模块导入 `CqrsModule`、`ProjectModule` 和 `IndicatorModule`，因此可以直接注入 `IndicatorService`，并通过 `QueryBus` 执行 `ProjectMyQuery`。这样避免了外部插件包动态加载 `@xpert-ai/analytics` 的运行时耦合。
+
+## 接入方式
+
+该插件通过 `AnalyticsModule` 引入：
+
+```ts
+imports: [DataXMetricManagementPluginModule]
+```
+
+构建时跟随 analytics 包：
+
+```bash
+pnpm nx build analytics
+```
+
+消费端需要支持 `xpert.extension_view` visualization type，并通过安全 proxy 转发到：
+
+```text
+/api/view-hosts/agent/:assistantId/views/datax_metric_management__metrics/...
+```
+
+当前版本使用 `remote_component + react + iframe`，data-xpert 只负责 Workbench 外层卡片、pin/reference/artifact 等宿主能力，以及 manifest/data/action/parameter options 的安全代理。

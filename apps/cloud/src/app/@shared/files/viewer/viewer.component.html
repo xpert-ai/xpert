@@ -52,7 +52,7 @@
       >
         {{ filePath() || ('PAC.Files.NoFileSelected' | translate: { Default: 'No file selected' }) }}
       </div>
-      <div class="mt-1 flex flex-wrap items-center gap-2">
+      <div class="xp-file-heading mt-1 flex flex-wrap items-center gap-2" data-file-content-heading="viewer">
         <div class="text-sm font-semibold text-text-primary">
           {{ 'PAC.Files.FileContent' | translate: { Default: 'File Content' } }}
         </div>
@@ -126,15 +126,33 @@
         </z-segmented>
       }
 
-      <button z-button zType="secondary" zSize="sm" type="button" [disabled]="!dirty()" (click)="discard.emit()">
-        {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
-      </button>
-      <button z-button zType="default" zSize="sm" type="button" [disabled]="!dirty() || saving()" (click)="save.emit()">
-        @if (saving()) {
-          <i class="ri-loader-4-line mr-1 animate-spin"></i>
-        }
-        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
-      </button>
+      @if (mode() === 'edit') {
+        <button
+          z-button
+          zType="secondary"
+          zSize="sm"
+          type="button"
+          data-discard-button="viewer"
+          [disabled]="!dirty()"
+          (click)="discard.emit()"
+        >
+          {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
+        </button>
+        <button
+          z-button
+          zType="default"
+          zSize="sm"
+          type="button"
+          data-save-button="viewer"
+          [disabled]="!dirty() || saving()"
+          (click)="save.emit()"
+        >
+          @if (saving()) {
+            <i class="ri-loader-4-line mr-1 animate-spin"></i>
+          }
+          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        </button>
+      }
     </div>
   </div>
 

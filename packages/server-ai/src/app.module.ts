@@ -53,6 +53,7 @@ import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscr
 import { VolumeModule } from './shared/volume'
 import { XpertEventModule } from './event-system'
 import { FileMemoryModule } from './file-memory'
+import { FileUnderstandingModule } from './file-understanding'
 
 @Module({
     imports: [
@@ -79,6 +80,7 @@ import { FileMemoryModule } from './file-memory'
         FileUploadTargetsModule,
         VolumeModule,
         FileMemoryModule,
+        FileUnderstandingModule,
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,

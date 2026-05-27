@@ -13,6 +13,11 @@ describe('uose-query.mapper', () => {
 						name: 'Order Date',
 						source: 'Date',
 						foreignKey: 'order_date_key'
+					},
+					{
+						name: 'Due Date',
+						source: 'Date',
+						foreignKey: 'due_date_key'
 					}
 				]
 			}
@@ -37,6 +42,18 @@ describe('uose-query.mapper', () => {
 								levelType: TimeLevelType.TimeMonths,
 								semantics: {
 									formatter: '[yyyy].[yyyyMM]'
+								}
+							}
+						]
+					},
+					{
+						name: 'Fiscal',
+						levels: [
+							{
+								name: 'Fiscal Year',
+								levelType: TimeLevelType.TimeYears,
+								semantics: {
+									formatter: '[yyyy]'
 								}
 							}
 						]
@@ -168,6 +185,91 @@ describe('uose-query.mapper', () => {
 				members: [{ key: '[2024].[202401]' }, { key: '[2024].[202412]' }]
 			}
 		])
+	})
+
+	it('maps explicit hierarchy names into single-bracket OCAP hierarchy unique names', () => {
+		const query = buildOcapQueryFromUose(
+			{
+				...baseRequest,
+				dimensions: [{ dimensionId: 'Due Date', hierarchy: 'Fiscal', level: 'Fiscal Year' }],
+				filters: [],
+				timeWindow: undefined
+			},
+			salesSchema
+		)
+
+		expect(query.rows).toEqual([
+			{
+				dimension: '[Due Date]',
+				hierarchy: '[Due Date.Fiscal]',
+				level: 'Fiscal Year'
+			}
+		])
+	})
+
+	it('maps slicer hierarchy names into single-bracket OCAP hierarchy unique names', () => {
+		const query = buildOcapQueryFromUose(
+			{
+				...baseRequest,
+				dimensions: [],
+				filters: [
+					{
+						field: 'Due Date',
+						hierarchy: 'Fiscal',
+						level: 'Fiscal Year',
+						op: 'eq',
+						value: '[2024]'
+					}
+				],
+				timeWindow: undefined
+			},
+			salesSchema
+		)
+
+		expect(query.filters).toEqual([
+			{
+				dimension: {
+					dimension: '[Due Date]',
+					hierarchy: '[Due Date.Fiscal]',
+					level: 'Fiscal Year'
+				},
+				operator: FilterOperator.EQ,
+				members: [{ key: '[2024]' }]
+			}
+		])
+	})
+
+	it('does not double-prefix already qualified hierarchy names', () => {
+		const query = buildOcapQueryFromUose(
+			{
+				...baseRequest,
+				dimensions: [{ dimensionId: 'Due Date', hierarchy: 'Due Date.Fiscal', level: 'Fiscal Year' }],
+				filters: [
+					{
+						field: 'Due Date',
+						hierarchy: 'Due Date.Fiscal',
+						level: 'Fiscal Year',
+						op: 'eq',
+						value: '[2024]'
+					}
+				],
+				timeWindow: undefined
+			},
+			salesSchema
+		)
+
+		expect(query.rows).toEqual([
+			{
+				dimension: '[Due Date]',
+				hierarchy: '[Due Date.Fiscal]',
+				level: 'Fiscal Year'
+			}
+		])
+		expect(query.filters?.[0]?.dimension).toEqual({
+			dimension: '[Due Date]',
+			hierarchy: '[Due Date.Fiscal]',
+			level: 'Fiscal Year'
+		})
 	})
 
 	it('passes calculated measures and uses timeDimension for time window filters', () => {

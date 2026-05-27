@@ -220,10 +220,12 @@ Xpert runtime working directories are resolved by `XpertWorkAreaResolver` in `pa
 
 The design rules are:
 
-- The default working directory is the current user's private operation area for the current context.
-- Shared directories must be used explicitly; the default cwd is not a shared area.
+- The default working directory is the current Xpert / project Volume root.
+- The Xpert / project root is the default shared workspace; when multiple users share one Xpert, shared files are expected.
+- `shared` remains as an explicit shared subdirectory for backward compatibility and tools that need a stable shared path.
 - Xpert long-term FileMemory is shared at Xpert level and is not isolated by user.
 - Agent invoke, terminal, sandbox upload, conversation workspace files, and managed sandbox services should all use the same resolver output so the Agent cwd and terminal cwd do not diverge.
+- Conversation workspace file APIs must browse the project / Xpert Volume root directly. They should not add a `users/<userId>` subtree under the root.
 
 Canonical layout:
 
@@ -231,14 +233,12 @@ Canonical layout:
 /sandbox/<tenantId>/
   project/<projectId>/
     shared/
-    users/<userId>/
     agents/<xpertId>/
     sessions/<conversationId>/
     .xpert/
 
   xpert/<xpertId>/
     shared/
-    users/<userId>/
     .xpert/memory/
 
   user/<userId>/
@@ -262,8 +262,8 @@ Relative path rules:
 
 | Purpose                                  | Relative path inside the Volume |
 | ---------------------------------------- | ------------------------------- |
-| Default cwd                              | `users/<userId>`                |
-| Project shared workspace                 | `shared`                        |
+| Default cwd                              | Volume root                     |
+| Project explicit shared subdirectory     | `shared`                        |
 | Xpert agent workspace inside the project | `agents/<xpertId>`              |
 | Single-conversation temporary area       | `sessions/<conversationId>`     |
 | Project internal state                   | `.xpert`                        |
@@ -271,13 +271,13 @@ Relative path rules:
 In a local shell sandbox, `workspace_path` is a server-visible path, for example:
 
 ```text
-/sandbox/<tenantId>/project/<projectId>/users/<userId>
+/sandbox/<tenantId>/project/<projectId>
 ```
 
 In a Docker sandbox, the same directory is mapped to:
 
 ```text
-/workspace/users/<userId>
+/workspace
 ```
 
 ### Non-project Xpert conversations
@@ -296,16 +296,16 @@ When there is no `projectId` and an `xpertId` exists, the resolver uses the shar
 
 Relative path rules:
 
-| Purpose                    | Relative path inside the Volume |
-| -------------------------- | ------------------------------- |
-| Default cwd                | `users/<userId>`                |
-| Xpert shared file area     | `shared`                        |
-| Xpert long-term FileMemory | `.xpert/memory`                 |
+| Purpose                            | Relative path inside the Volume |
+| ---------------------------------- | ------------------------------- |
+| Default cwd                        | Volume root                     |
+| Xpert explicit shared subdirectory | `shared`                        |
+| Xpert long-term FileMemory         | `.xpert/memory`                 |
 
 So when multiple users talk to the same Xpert:
 
-- File operations default to each user's own `xpert/<xpertId>/users/<userId>`.
-- Shared work must explicitly use `xpert/<xpertId>/shared`.
+- File operations default to the same `xpert/<xpertId>` workspace root.
+- Tools that need a stable shared subdirectory may still use `xpert/<xpertId>/shared`.
 - `memory_write`, Dream, and memory file APIs all read and write the same `xpert/<xpertId>/.xpert/memory`.
 
 ### Docker container example
@@ -322,23 +322,22 @@ The API service container sees this server-side Volume:
 
 ```text
 /sandbox/tenant-1/xpert/xpert-X/
-  users/user-A/
   shared/
   .xpert/memory/
 ```
 
 Directory meanings:
 
-| Directory                                       | Purpose                                                        |
-| ----------------------------------------------- | -------------------------------------------------------------- |
-| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | Default file-operation directory for user A talking to Xpert X |
-| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Shared file area for Xpert X; must be used explicitly          |
-| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Long-term FileMemory for Xpert X, shared by all users          |
+| Directory                                       | Purpose                                               |
+| ----------------------------------------------- | ----------------------------------------------------- |
+| `/sandbox/tenant-1/xpert/xpert-X`               | Default working directory for Xpert X                 |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | Explicit shared subdirectory for Xpert X              |
+| `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | Long-term FileMemory for Xpert X, shared by all users |
 
 The same Volume is mounted into the sandbox Docker container at `/workspace`, so Agent, terminal, and sandbox tools see:
 
 ```text
-/workspace/users/user-A
+/workspace
 /workspace/shared
 /workspace/.xpert/memory
 ```
@@ -347,15 +346,15 @@ Mapping:
 
 | API service container path                      | Sandbox Docker path        | Meaning                                                                                     |
 | ----------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------- |
-| `/sandbox/tenant-1/xpert/xpert-X/users/user-A`  | `/workspace/users/user-A`  | Default cwd; ordinary generated files, uploads, and terminal commands write here by default |
-| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | Explicit shared directory                                                                   |
+| `/sandbox/tenant-1/xpert/xpert-X`               | `/workspace`               | Default cwd; ordinary generated files, uploads, and terminal commands write here by default |
+| `/sandbox/tenant-1/xpert/xpert-X/shared`        | `/workspace/shared`        | Explicit shared subdirectory                                                                |
 | `/sandbox/tenant-1/xpert/xpert-X/.xpert/memory` | `/workspace/.xpert/memory` | Long-term memory directory for `memory_write`, Dream, and memory file APIs                  |
 
-If user B talks to the same Xpert X, the default file directory becomes:
+If user B talks to the same Xpert X, the default file directory remains the same Xpert workspace:
 
 ```text
-/sandbox/tenant-1/xpert/xpert-X/users/user-B
-/workspace/users/user-B
+/sandbox/tenant-1/xpert/xpert-X
+/workspace
 ```
 
 But user A and user B share the same Xpert memory directory:
@@ -368,8 +367,8 @@ But user A and user B share the same Xpert memory directory:
 If the conversation belongs to project `project-1`, the default directory switches to the project Volume:
 
 ```text
-/sandbox/tenant-1/project/project-1/users/user-A
-/workspace/users/user-A
+/sandbox/tenant-1/project/project-1
+/workspace
 ```
 
 Project shared, agent, and session directories are:
@@ -387,6 +386,35 @@ In a Docker sandbox, they map to:
 /workspace/agents/xpert-X
 /workspace/sessions/<conversationId>
 ```
+
+### Conversation workspace file APIs
+
+The ClawXpert file panel and related preview/edit flows use the conversation file endpoints:
+
+```text
+GET    /api/chat-conversation/:conversationId/files
+GET    /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file
+POST   /api/chat-conversation/:conversationId/file/upload
+DELETE /api/chat-conversation/:conversationId/file
+```
+
+These endpoints use the conversation only to resolve the current workspace root:
+
+| Conversation context             | Volume scope                                           | Subtree scope |
+| -------------------------------- | ------------------------------------------------------ | ------------- |
+| `projectId` exists               | `catalog: 'projects'`, `projectId`                     | Volume root   |
+| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | Volume root   |
+| no `projectId` and no `xpertId`  | invalid for workspace file access                      | N/A           |
+
+For a non-project ClawXpert conversation, `/api/chat-conversation/:id/files` therefore lists the shared Xpert workspace root:
+
+```text
+/sandbox/<tenantId>/xpert/<xpertId>
+/workspace
+```
+
+The `conversationId` is still used for lookup and permission context, but it is not a filesystem directory segment. Users sharing the same Xpert see the same workspace files.
 
 ### Environment sandboxes
 
@@ -601,6 +629,18 @@ Under the new model, the common runtime fields should keep these meanings:
 
 Do not pass a server path such as `/sandbox/...` directly into a Docker sandbox `workingDirectory`.
 
+## Skills middleware fallback sandbox
+
+Skills middleware normally reads the runtime sandbox from `request.runtime.configurable.sandbox`. If a tool call needs a backend and the runtime sandbox is missing, the fallback sandbox must use the same workspace ownership rules:
+
+| Context                          | Fallback Volume scope                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| `projectId` exists               | `catalog: 'projects'`, `projectId`                     |
+| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` |
+| neither exists                   | `catalog: 'users'`, `userId`                           |
+
+This prevents skill file reads or skill shell execution from silently switching a ClawXpert run back to a private `user/<userId>` Volume.
+
 ## File-upload semantics
 
 Three target modes matter most here:
@@ -634,7 +674,7 @@ Its job is not to represent a full Workspace. Instead it:
 
 It is a good fit for:
 
-- conversation file directories
+- conversation workspace file APIs, using the project / Xpert Volume root as the subtree
 - xpert memory file directories
 - controlled subdirectories inside projects or workspaces
 

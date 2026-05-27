@@ -1,0 +1,348 @@
+---
+title: Sandbox 活跃续期与安全回收
+description: 说明 SANDBOX_EXPIRED 的空闲超时语义、单次 activity touch、执行租约与 cleanup/scheduler 的回收前二次校验机制。
+---
+
+本文介绍 Pro 版 Sandbox 当前采用的一套容器保活与安全回收机制。它主要解决下面几个问题：
+
+- `SANDBOX_EXPIRED` 应该表示“空闲超时”，还是“容器最长存活时间”。
+- Agent 在容器里执行时间较长时，为什么不应该被普通过期任务直接清掉。
+- 多实例、重部署、Bull delayed job 丢失或延迟时，如何继续安全回收容器。
+- `environment`、`project`、`user` 三类 sandbox 容器，如何共享同一套生命周期保护逻辑。
+
+当前实现的结论可以先浓缩成一句话：
+
+- 容器只要仍有真实 backend 活动，就不应该被回收。
+- 一旦活动停止，才从“最后一次活动时间”开始按 `SANDBOX_EXPIRED` 计时。
+
+## 核心语义
+
+### `SANDBOX_EXPIRED` 不是 hard TTL
+
+当前系统里，`SANDBOX_EXPIRED` 表示的是：
+
+- 上次成功活动之后，容器允许继续空闲保留多久。
+
+它不表示：
+
+- 容器从启动那一刻开始，最多只能活多久。
+
+因此看到某个容器 `Up 23 hours` 并不一定是漏洞。只要这 23 小时里不断有新的 backend 活动发生，容器就会持续续期。
+
+### 活动信号分成两类
+
+这次实现把活动信号分成了两类：
+
+- 普通 backend 操作
+  - 例如 `read`、`write`、`append`、`edit`、`lsInfo`、`listDir`、`globInfo`、`grepRaw`、`uploadFiles`、`downloadFiles`
+  - 这些操作统一走一次性 `activity touch`
+- 长命令执行
+  - 例如 `execute`、`streamExecute`
+  - 这类调用开始时先发一份一次性 Redis 活动租约，结束时再补一次 `activity touch`
+
+这里刻意没有实现 heartbeat。设计取舍是：
+
+- 减少执行期周期性写 Redis / DB / queue 的复杂度
+- 用“命令 timeout 对应的租约”来保护长命令
+- 用 cleanup/scheduler 的回收前二次校验来兜底
+
+## 整体链路
+
+可以把这套机制理解成下面 4 个层次：
+
+1. `DockerSandbox` 在 backend 方法入口显式触发 activity 逻辑。
+2. `SandboxContainerRuntimeStateService` 在 Redis 中保存短期 activity lease。
+3. `SandboxEnvironment.runtimeMeta` 保存可持久化的运行态摘要，例如 `expiresAt`、`lastActivityAt`。
+4. cleanup processor 与 scheduler 在真正 stop/remove 前重新检查 Redis lease 与最新 DB 状态。
+
+对应关系如下：
+
+```text
+Backend activity
+  -> DockerSandbox
+     - touchActivity()
+     - acquireActivityLease()
+     - releaseActivityLease()
+  -> SandboxContainerRuntimeStateService
+     - Redis activity lease
+  -> SandboxEnvironment.runtimeMeta
+     - expiresAt
+     - lastActivityAt
+  -> cleanup job re-schedule
+
+Cleanup / Scheduler
+  -> reload latest environment state
+  -> check runtimeMeta.containerId
+  -> check runtimeMeta.expiresAt
+  -> check Redis activity lease
+  -> only then stop/remove container
+```
+
+## 为什么要把普通操作与命令执行分开
+
+### 普通操作只需要单次 touch
+
+文件读写和检索类操作通常很短。对这类调用来说，最重要的是：
+
+- 让容器的空闲截止时间后移
+- 让环境记录里有最近一次活动时间
+- 让 delayed cleanup job 按新的过期时间重新安排
+
+它们不需要单独占着一个长时间租约。
+
+### 长命令需要执行期保护
+
+`execute` / `streamExecute` 有个特殊风险：
+
+- 命令可能在容器里持续执行很久
+- 期间不一定有新的 acquire
+- 也不一定有新的文件读写
+- 如果只靠 acquire 时写下的一次 `expiresAt`，cleanup job 或 scheduler 可能会误删正在执行的容器
+
+因此对命令执行，当前实现采用：
+
+- 开始执行前，按 `max(commandTimeout, SANDBOX_EXPIRED) + buffer` 写入 Redis activity lease
+- 命令结束、超时或异常退出后清理这份 lease
+- 命令结束时再落一次普通 `activity touch`
+
+这样即使 `runtimeMeta.expiresAt` 已经过了，只要命令租约仍在，cleanup/scheduler 也必须跳过回收。
+
+## Redis activity lease 做什么
+
+`SandboxContainerRuntimeStateService` 新增了一类短期状态：
+
+- key: `sandbox:container:<containerId>:activity-lease`
+- value 至少包含：
+  - `leaseUntil`
+  - `tenantId`
+  - `environmentId`
+  - `reason`
+
+它的角色不是替代数据库，而是：
+
+- 作为“当前是否仍应被视为忙碌”的快速事实源
+- 为 cleanup 和 scheduler 提供一个比 delayed job 更及时的二次校验依据
+
+这类租约只存在于 Redis 中，不走公开 API，也不要求长期留存。
+
+## `runtimeMeta` 里保存什么
+
+环境侧仍然保留 `SandboxEnvironment.runtimeMeta` 作为当前运行态摘要。
+
+这次机制里，它最重要的字段包括：
+
+- `containerId`
+- `status`
+- `startedAt`
+- `lastSyncAt`
+- `expiresAt`
+- `lastActivityAt`
+
+其中：
+
+- `expiresAt`
+  - 表示“当前这份运行态在没有后续活动的情况下，最晚什么时候应该被视为空闲可回收”
+- `lastActivityAt`
+  - 表示“最近一次 backend 活动被系统确认并同步到环境记录的时间”
+
+这里要注意一个边界：
+
+- `runtimeMeta` 是持久化摘要
+- Redis lease 是短期忙碌事实
+
+两者配合使用，而不是谁完全替代谁。
+
+## 为什么还要保留 delayed cleanup job
+
+即使有 Redis lease 和 scheduler，delayed cleanup job 仍然保留，因为它有两个好处：
+
+- 常规回收路径更及时，不需要等下一轮 5 分钟巡检
+- 大部分“单次 acquire，随后空闲”的容器，可以在最自然的时间点被清理
+
+但 delayed job 不能再被视为绝对可信。因为在真实部署里，仍然可能出现：
+
+- 多次重部署
+- Bull worker 切换
+- 队列消息延迟
+- Redis 中途异常
+- 老 job 还在，但容器状态已经被后续活动更新
+
+所以现在的规则变成：
+
+- delayed job 可以触发“尝试回收”
+- 但不能直接代表“现在一定应该回收”
+
+## cleanup processor 的二次校验
+
+### legacy / 非环境 cleanup
+
+`SandboxContainerCleanupProcessor` 现在在真正 stop/remove 之前会先检查：
+
+- 当前容器是否仍有有效 Redis activity lease
+
+如果 lease 还有效：
+
+- 本次 cleanup 不执行删除
+- 按剩余 lease 时间重新安排一次 cleanup
+
+### environment cleanup
+
+`SandboxEnvironmentContainerCleanupProcessor` 会再多做两层检查：
+
+- 重新加载最新 `SandboxEnvironment`
+- 检查 `runtimeMeta.containerId` 是否仍然是当前 job 指向的容器
+- 检查 `runtimeMeta.expiresAt` 是否已经被后移
+- 再检查 Redis activity lease 是否仍有效
+
+只有全部通过，才允许继续 stop/remove。
+
+这可以防止两类典型误删：
+
+- 旧 cleanup job 试图清掉已经被新容器替换的环境
+- 容器活动已经续期，但旧 job 还停留在旧的过期时间上
+
+## scheduler 的二次校验
+
+5 分钟一次的 `SandboxEnvironmentContainerSyncScheduler` 仍然保留，但现在它不再看到过期就直接删。
+
+当它发现：
+
+- Docker 里的容器仍然活着
+- 但 `runtimeMeta.expiresAt` 已到期
+
+它会先做两步重验：
+
+1. 重新查询最新环境记录，确认 `runtimeMeta.containerId` 仍匹配
+2. 检查 Redis activity lease 是否仍有效
+
+如果 lease 还有效，或者最新 `expiresAt` 已被后移：
+
+- scheduler 只更新 alive 运行态
+- 不做 stop/remove
+
+只有在“最新状态确认已过期，且当前没有 lease”时，scheduler 才会真正清理容器。
+
+同样的规则也用于 orphan cleanup：
+
+- 带 activity lease 的 orphan candidate 不应被删
+
+## 为什么不依赖 `activeRunId`
+
+当前实现里，`activeRunId` 的角色是：
+
+- 让环境显式指向当前 container run
+- 方便 run 侧与环境侧对齐
+
+但它不是 cleanup 的唯一事实源，原因很简单：
+
+- 有些文件类操作并不一定伴随新的 run 状态变化
+- 容器是否“当前忙碌”是一个运行时问题，不是单纯的关系指针问题
+- cleanup 更需要的是“现在还能不能删”，而不是“这次 run 是谁”
+
+因此回收安全判定仍然优先依赖：
+
+- 最新 `runtimeMeta`
+- Redis activity lease
+
+而不是直接依赖 `activeRunId`。
+
+## 三类 sandbox 的统一行为
+
+这套保活与回收逻辑现在统一覆盖：
+
+- `environment`
+- `project`
+- `user`
+
+统一点在于：
+
+- 容器创建时都有明确 labels
+- activity lease 都以 `containerId` 为主键
+- cleanup 前都需要看 Redis lease
+
+差异主要在于：
+
+- `environment` 有持久化 `runtimeMeta` 与环境级 cleanup job
+- `project` / `user` 更多走通用 cleanup job 和运行时上下文兜底
+
+但无论哪种类型，长命令执行期间都不应该因为旧的过期时间被误删。
+
+## 典型时序
+
+### 场景一：普通文件操作
+
+```text
+backend.read()
+  -> touchActivity()
+  -> refresh runtimeMeta.lastActivityAt
+  -> refresh runtimeMeta.expiresAt = now + SANDBOX_EXPIRED
+  -> re-schedule cleanup job
+  -> perform actual read
+```
+
+### 场景二：长命令执行
+
+```text
+backend.execute(timeout=1800s)
+  -> acquire Redis activity lease (>= 1800s + buffer)
+  -> command runs inside container
+  -> cleanup job fires? scheduler runs?
+     -> both see active lease
+     -> skip removal
+  -> command finishes
+  -> release lease
+  -> touchActivity()
+  -> runtimeMeta.expiresAt = now + SANDBOX_EXPIRED
+```
+
+### 场景三：旧 cleanup job 迟到
+
+```text
+T0  old job scheduled with old expiresAt
+T1  new backend activity refreshes expiresAt
+T2  old cleanup job starts
+    -> reload latest environment
+    -> sees expiresAt moved forward
+    -> skip cleanup / re-schedule
+```
+
+## 当前设计刻意不做什么
+
+为了保持实现复杂度可控，这一版有几个明确不做的点：
+
+- 不实现 heartbeat
+- 不增加公开 `touch` API
+- 不把“是否忙碌”直接暴露成新的环境状态机字段
+- 不要求 terminal 建连但无实际 backend I/O 时自动续租
+
+当前的原则是：
+
+- 只有真实 backend 活动才算活动
+- 通过单次 touch 与一次性执行租约，把最需要的保护补上
+
+## 排查建议
+
+如果怀疑某个容器被误删或一直没删，可以按下面顺序看：
+
+1. 先看 `SandboxEnvironment.runtimeMeta.expiresAt` 与 `lastActivityAt`
+2. 再看 Redis 中是否还存在 `activity-lease`
+3. 看 cleanup job 触发时间是否早于最近一次 activity
+4. 看 scheduler 日志里是否出现“过期但 lease 仍有效而跳过”
+5. 如果是命令执行场景，确认命令 timeout 是否足够覆盖实际执行时间
+
+常见结论通常只有几类：
+
+- `expiresAt` 没续上
+  - 说明实际调用路径没有触发 backend activity
+- lease 还在但 cleanup 触发了
+  - 这是正常情况，processor 会跳过
+- job 很老，但环境已经续期
+  - 也是正常情况，environment cleanup 会重验并放弃旧 job
+- 容器一直不删
+  - 优先检查是否存在持续 activity，或某个长命令 timeout 设置过大
+
+## 相关文档
+
+- [Sandbox](/zh-hans/pro/sandbox/index)
+- [Sandbox 文件卷架构](/zh-hans/pro/sandbox/volume-architecture)
+- [Sandbox 异常退出监控](/zh-hans/pro/sandbox/abnormal-exit-monitoring)

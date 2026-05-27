@@ -55,11 +55,13 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
+import { VolumeClient } from '../shared/volume'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 
 describe('ChatConversationService workspace files', () => {
+    let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let service: ChatConversationService
     let repository: {
         findOne: jest.Mock
@@ -84,18 +86,21 @@ describe('ChatConversationService workspace files', () => {
             findOne: jest.fn()
         }
 
+        volumeClient = {
+            resolve: jest.fn().mockReturnValue({
+                path: jest.fn().mockReturnValue('/workspace/root'),
+                publicUrl: jest.fn().mockReturnValue('/workspace/public')
+            }),
+            resolveRoot: jest.fn()
+        }
+
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
             {} as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
             {} as Queue,
-            {
-                resolve: jest.fn().mockReturnValue({
-                    path: jest.fn().mockReturnValue('/workspace/root'),
-                    publicUrl: jest.fn().mockReturnValue('/workspace/public')
-                })
-            } as any
+            volumeClient
         )
     })
 
@@ -104,9 +109,7 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('lists files inside the current conversation workspace', async () => {
-        const findConversation = jest
-            .spyOn(service, 'findOne')
-            .mockResolvedValue(conversation as ChatConversation)
+        const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const listWorkspace = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
 
         await service.getWorkspaceFiles('conversation-1', 'docs', 2)
@@ -118,10 +121,28 @@ describe('ChatConversationService workspace files', () => {
         })
     })
 
+    it('uses the sandbox environment workspace when the conversation has a sandbox environment id', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1',
+            options: {
+                sandboxEnvironmentId: 'sandbox-env-1'
+            }
+        } as ChatConversation)
+        jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
+
+        await service.getWorkspaceFiles('conversation-1', '/4567', 1)
+
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'environment',
+            environmentId: 'sandbox-env-1',
+            userId: 'user-1'
+        })
+    })
+
     it('reads files inside the current conversation workspace', async () => {
-        const findConversation = jest
-            .spyOn(service, 'findOne')
-            .mockResolvedValue(conversation as ChatConversation)
+        const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile').mockResolvedValue({
             filePath: 'README.md'
         } as TFile)
@@ -132,10 +153,23 @@ describe('ChatConversationService workspace files', () => {
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
     })
 
+    it('returns download targets inside the current conversation workspace', async () => {
+        const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        const getDownloadTarget = jest.spyOn(VolumeSubtreeClient.prototype, 'getDownloadTarget').mockResolvedValue({
+            absolutePath: '/workspace/root/docs',
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+
+        await service.getWorkspaceFileDownload('conversation-1', 'docs')
+
+        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(getDownloadTarget).toHaveBeenCalledWith('', 'docs')
+    })
+
     it('saves files inside the current conversation workspace', async () => {
-        const findConversation = jest
-            .spyOn(service, 'findOne')
-            .mockResolvedValue(conversation as ChatConversation)
+        const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const saveWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile').mockResolvedValue({
             filePath: 'README.md',
             contents: '# Updated\n'
@@ -157,7 +191,9 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('finds the conversation by thread id inside the current scope', async () => {
-        const findOneByOptions = jest.spyOn(service, 'findOneByOptions').mockResolvedValue(conversation as ChatConversation)
+        const findOneByOptions = jest
+            .spyOn(service, 'findOneByOptions')
+            .mockResolvedValue(conversation as ChatConversation)
 
         await service.findOneByThreadId('thread-1')
 

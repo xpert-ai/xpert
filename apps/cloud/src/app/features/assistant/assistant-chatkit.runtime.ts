@@ -327,6 +327,14 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         }
       },
       history: input.history,
+      composer: {
+        attachments: {
+          enabled: true,
+          maxCount: 5,
+          maxSize: 10 * 1024 * 1024
+        },
+        tools: []
+      },
       request: buildHostedAssistantRequestOptions(projectId, requestContext),
       onReady: input.onReady,
       onEffect: input.onEffect,

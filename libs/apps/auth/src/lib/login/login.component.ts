@@ -48,6 +48,7 @@ export class UserLoginComponent implements OnDestroy {
 
   redirectDelay = 0
   strategy = ''
+  enablePublicSignup = true
 
   errors: string[] = []
   messages: string[] = []
@@ -104,13 +105,12 @@ export class UserLoginComponent implements OnDestroy {
     this.showMessages = this.getConfigValue('forms.login.showMessages')
     this.redirectDelay = this.getConfigValue('forms.login.redirectDelay')
     this.strategy = this.getConfigValue('forms.login.strategy')
+    this.enablePublicSignup = this.getConfigValue('forms.register.enablePublicSignup') !== false
 
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((params) => {
-        this.errors = this.resolveSsoErrors(params)
-        this.cdr.markForCheck()
-      })
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
+      this.errors = this.resolveSsoErrors(params)
+      this.cdr.markForCheck()
+    })
   }
 
   /**

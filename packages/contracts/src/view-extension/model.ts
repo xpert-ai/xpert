@@ -1,22 +1,15 @@
 import type { I18nObject } from '../types'
+import type { JsonSchemaObjectType } from '../ai/types'
 
 export type XpertViewHostType = 'integration' | 'knowledgebase' | 'agent' | 'project' | 'sandbox' | string
 
 export type XpertViewSlotMode = 'tabs' | 'sections' | 'widgets' | 'sidebar'
 
-export type XpertViewSchemaType = 'stats' | 'table' | 'list' | 'detail' | 'raw_json'
+export type XpertViewSchemaType = 'stats' | 'table' | 'list' | 'detail' | 'raw_json' | 'remote_component'
 
 export type XpertViewValueType = 'text' | 'number' | 'status' | 'datetime' | 'json'
 
-export type XpertViewColumnDataType =
-  | 'text'
-  | 'number'
-  | 'date'
-  | 'datetime'
-  | 'status'
-  | 'tag'
-  | 'avatar'
-  | 'link'
+export type XpertViewColumnDataType = 'text' | 'number' | 'date' | 'datetime' | 'status' | 'tag' | 'avatar' | 'link'
 
 export type XpertViewActionPlacement = 'toolbar' | 'row'
 
@@ -91,6 +84,7 @@ export interface XpertViewQuerySchema {
   supportsFilter?: boolean
   supportsCursor?: boolean
   supportsSelection?: boolean
+  supportsParameters?: boolean
   defaultPageSize?: number
 }
 
@@ -116,6 +110,7 @@ export interface XpertViewQuery {
   sortDirection?: XpertViewSortDirection
   filters?: XpertViewFilter[]
   selectionId?: string
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
 }
 
 export interface XpertStatsViewSchema {
@@ -178,12 +173,66 @@ export interface XpertRawJsonViewSchema {
   type: 'raw_json'
 }
 
+export interface XpertRemoteComponentViewSchema {
+  type: 'remote_component'
+  runtime: 'react'
+  protocolVersion: 1
+  component: {
+    isolation: 'iframe' | 'module_federation'
+    entry: string
+    module?: string
+    exportName?: string
+    integrity?: string
+    propsSchema?: JsonSchemaObjectType
+  }
+  dataSource: {
+    mode: 'platform'
+  }
+  actions?: XpertViewActionDefinition[]
+}
+
+export interface XpertRemoteComponentEntry {
+  html: string
+  contentType?: 'text/html; charset=utf-8'
+}
+
 export type XpertViewSchema =
   | XpertStatsViewSchema
   | XpertTableViewSchema
   | XpertListViewSchema
   | XpertDetailViewSchema
   | XpertRawJsonViewSchema
+  | XpertRemoteComponentViewSchema
+
+export interface XpertViewParameterDefinition {
+  key: string
+  label: I18nObject
+  description?: I18nObject
+  required?: boolean
+  type?: 'string' | 'number' | 'boolean'
+  optionSource?: {
+    mode: 'provider'
+    searchable?: boolean
+    preload?: boolean
+    dependsOn?: string[]
+  }
+}
+
+export interface XpertViewParameterOption {
+  value: XpertViewScalar
+  label: string
+  description?: string | null
+  disabled?: boolean
+}
+
+export interface XpertViewParameterOptionsQuery {
+  search?: string
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
+}
+
+export interface XpertViewParameterOptionsResult {
+  items: XpertViewParameterOption[]
+}
 
 export interface XpertViewActionDefinition {
   key: string
@@ -191,6 +240,8 @@ export interface XpertViewActionDefinition {
   icon?: string
   placement?: XpertViewActionPlacement
   actionType: XpertViewActionType
+  inputSchema?: JsonSchemaObjectType
+  inputDefaults?: 'target' | Record<string, unknown>
   confirm?: {
     title?: I18nObject
     message?: I18nObject
@@ -214,11 +265,14 @@ export interface XpertExtensionViewManifest {
   polling?: XpertViewPolling
   view: XpertViewSchema
   dataSource: XpertViewDataSource
+  parameters?: XpertViewParameterDefinition[]
   actions?: XpertViewActionDefinition[]
 }
 
 export interface XpertViewActionRequest {
   targetId?: string
+  input?: Record<string, unknown> | null
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
 }
 
 export interface XpertViewDataResult<TItem = unknown, TSummary = unknown> {

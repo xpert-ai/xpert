@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/adapter",
-  "version": "3.9.4",
+  "version": "3.9.6",
   "private": true,
   "license": "AGPL-3.0",
   "dependencies": {
@@ -11,6 +11,7 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.3.1",
     "pg": "^8.7.1",
+    "pg-copy-streams": "^6.0.5",
     "presto-client": "^0.12.2",
     "@aws-sdk/client-redshift-data": "^3.335.0"
   },

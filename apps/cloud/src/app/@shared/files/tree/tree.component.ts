@@ -29,6 +29,7 @@ export class FileTreeComponent {
   readonly loading = input(false)
   readonly loadingPaths = input<Set<string>>(new Set())
   readonly canDownload = input(false)
+  readonly canDownloadDirectory = input(false)
   readonly canDelete = input(false)
   readonly canUpload = input(false)
   readonly uploadDisabled = input(false)
@@ -60,15 +61,11 @@ export class FileTreeComponent {
       this.sizePreset().controlSize
     )
   )
-  readonly togglePlaceholderClasses = computed(() =>
-    mergeClasses('block shrink-0', this.sizePreset().controlSize)
-  )
+  readonly togglePlaceholderClasses = computed(() => mergeClasses('block shrink-0', this.sizePreset().controlSize))
   readonly itemContentClasses = computed(() =>
     mergeClasses('flex min-w-0 flex-1 items-center text-left', this.sizePreset().contentGap)
   )
-  readonly itemIconClasses = computed(() =>
-    mergeClasses('shrink-0 text-text-tertiary', this.sizePreset().itemText)
-  )
+  readonly itemIconClasses = computed(() => mergeClasses('shrink-0 text-text-tertiary', this.sizePreset().itemText))
   readonly itemActionClasses = computed(() =>
     mergeClasses(
       'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
@@ -125,8 +122,12 @@ export class FileTreeComponent {
     return !!filePath && this.deletingPaths().has(filePath)
   }
 
+  canDownloadItem(item: FileTreeNode) {
+    return this.canDownload() && (!item.hasChildren || this.canDownloadDirectory())
+  }
+
   showActions(item: FileTreeNode) {
-    return this.canDelete() || (!item.hasChildren && this.canDownload())
+    return this.canDownloadItem(item) || this.canDelete()
   }
 
   onItemClick(item: FileTreeNode) {

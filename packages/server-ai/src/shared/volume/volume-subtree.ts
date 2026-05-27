@@ -29,6 +29,13 @@ type TVolumeSubtreeOptions = {
     allowRootWorkspace?: boolean
 }
 
+export type TVolumeSubtreeDownloadTarget = {
+    absolutePath: string
+    fileName: string
+    mimeType: string
+    type: 'file' | 'directory'
+}
+
 export class VolumeSubtreeClient {
     constructor(
         private readonly volume: VolumeHandle,
@@ -75,6 +82,40 @@ export class VolumeSubtreeClient {
             updatedAt: stat.mtime,
             fileUrl: this.volume.publicUrl(publicPath),
             url: this.volume.publicUrl(publicPath)
+        }
+    }
+
+    async getDownloadTarget(scopePath: string, filePath: string): Promise<TVolumeSubtreeDownloadTarget> {
+        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
+        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
+        if (!relativePath) {
+            throw new BadRequestException('File path is required')
+        }
+
+        const absolutePath = resolve(subtreeRoot, relativePath)
+        const stat = await fsPromises.stat(absolutePath).catch(() => null)
+        if (!stat) {
+            throw new BadRequestException('Conversation file not found')
+        }
+
+        if (stat.isDirectory()) {
+            return {
+                absolutePath,
+                fileName: `${basename(relativePath)}.zip`,
+                mimeType: 'application/zip',
+                type: 'directory'
+            }
+        }
+
+        if (!stat.isFile()) {
+            throw new BadRequestException('Conversation file not found')
+        }
+
+        return {
+            absolutePath,
+            fileName: basename(relativePath),
+            mimeType: getMediaTypeWithCharset(relativePath),
+            type: 'file'
         }
     }
 
@@ -183,10 +224,7 @@ export class VolumeSubtreeClient {
 }
 
 function normalizeSubtreePath(filePath?: string | null) {
-    return (filePath ?? '')
-        .replace(/\\/g, '/')
-        .replace(/^\/+/, '')
-        .replace(/^\.\//, '')
+    return (filePath ?? '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
 }
 
 function isEditableSubtreeFile(filePath: string) {
@@ -211,5 +249,5 @@ function getSubtreeFileExtension(filePath: string) {
     }
 
     const parts = fileName.split('.')
-    return parts.length > 1 ? parts.pop() ?? '' : ''
+    return parts.length > 1 ? (parts.pop() ?? '') : ''
 }

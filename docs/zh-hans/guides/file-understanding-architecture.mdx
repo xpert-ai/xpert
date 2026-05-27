@@ -1,0 +1,725 @@
+# 文件理解架构
+
+## 概览
+
+文件理解是 ChatKit 附件上传之后、Agent 使用文件之前的独立能力层。
+
+它不再把上传后的 `StorageFile` 当作聊天附件的业务模型，也不再在 Agent 运行时临时调用 `LoadFileCommand` 把文件全文塞进 prompt。新的链路是：
+
+1. ChatKit 上传原始文件。
+2. Upload 层把字节写入对象存储，保留 `StorageFile` 兼容记录。
+3. File Understanding 层创建 `FileAsset`，解析文件，生成 artifacts、chunks、citation anchors。
+4. Chat message 持久化新关系 `fileAssets`。
+5. Agent 运行时只通过摘要、检索片段、读取工具和 workspace 工具使用文件。
+
+这让文件能力从“上传对象”升级为“可解析、可检索、可引用、可迁移的上下文资源”。
+
+## 设计目标
+
+- `StorageFile` 只作为对象存储兼容层，不承载新的 Agent 文件理解语义。
+- 新上传文件以 `FileAsset` / `AgentFile` 作为业务 handle。
+- ChatKit 只负责上传、状态展示和提交 file handle。
+- Agent Runtime 不直接读对象存储，不直接依赖旧 `StorageFile` 结构。
+- CQRS handler 作为应用逻辑边界，直接编排 repository、parser、query、command，不再做无意义的 service 转发。
+- Parser、index、citation、workspace 能力和聊天业务入口隔离，后续可复用于知识库。
+- 大文件不进入 prompt 全文，Agent 通过工具按需检索和读取。
+
+## 模块位置
+
+后端模块位于：
+
+```text
+packages/server-ai/src/file-understanding/
+```
+
+主要目录：
+
+```text
+file-understanding/
+  domain/       # 类型、状态、capability、artifact kind
+  entities/     # TypeORM entities
+  commands/     # CQRS 写模型
+  queries/      # CQRS 读模型
+  parsers/      # 文件类型 parser adapter
+  middlewares/  # Agent 内置文件理解 middleware
+  tools/        # Agent 可调用工具
+```
+
+模块通过 `FileUnderstandingModule` 注册，并挂载在 AI API 路由下：
+
+```text
+packages/server-ai/src/file-understanding/file-understanding.module.ts
+```
+
+根模块入口：
+
+```text
+packages/server-ai/src/app.module.ts
+packages/server-ai/src/index.ts
+```
+
+## 数据模型
+
+### `FileAsset`
+
+表名：`file_asset`
+
+平台级文件理解资产，是新的业务主模型。
+
+关键字段：
+
+- `storageFileId`：关联旧对象存储记录。
+- `conversationId` / `threadId` / `projectId` / `xpertId`：上下文绑定。
+- `tenantId` / `organizationId` / `userId`：权限边界。
+- `sha256`：内容哈希。
+- `purpose`：`chat_attachment`、`workspace`、`knowledge`。
+- `parseMode`：`auto`、`fast`、`deep`、`none`。
+- `status`：`uploaded`、`scanning`、`parsing`、`ready`、`partial`、`failed`。
+- `capabilities`：`preview`、`search`、`read`、`table_query`、`vision`、`ocr`、`workspace`。
+- `summary`：文件摘要。
+- `workspacePath`：投影到会话 workspace 后的可读路径。该路径只在文件确实写入 runtime volume 后出现，可交给 `sandbox_file` 或 shell 工具读取原文件。
+
+### `FileArtifact`
+
+表名：`file_artifact`
+
+Parser 输出的结构化产物。
+
+常见 `kind`：
+
+- `summary`
+- `text`
+- `page_text`
+- `table`
+- `sheet`
+- `slide`
+- `image_metadata`
+- `ocr_text`
+- `code_tree`
+- `file_manifest`
+
+每个 artifact 可以带 `anchor`，例如页码、sheet 名、slide 序号或代码路径。
+
+### `FileChunk`
+
+表名：`file_chunk`
+
+可检索片段，由 artifact 切分生成。
+
+关键字段：
+
+- `fileAssetId`
+- `artifactId`
+- `orderNo`
+- `content`
+- `tokenCount`
+- `anchor`
+
+当前实现使用数据库文本匹配查询 chunk；`FileEmbedding` 已预留向量索引元数据，后续可接入现有 vector store。
+
+### `FileCitationAnchor`
+
+表名：`file_citation_anchor`
+
+稳定引用锚点，用于回答时输出来源。
+
+锚点格式由 `ParseFileAssetHandler` 根据 chunk anchor 生成：
+
+- `page:3:chunk:12`
+- `sheet:Sheet1:chunk:4`
+- `slide:2:chunk:8`
+- `path:src/index.ts:chunk:6`
+- `chunk:0`
+
+### `FileEmbedding`
+
+表名：`file_embedding`
+
+预留 chunk 向量索引元数据：
+
+- `provider`
+- `model`
+- `vectorId`
+- `metadata`
+
+第一版不会强制创建真实 embedding。升级为语义检索时，应在这里记录外部向量库 id。
+
+### `ConversationFileLink`
+
+表名：`conversation_file_link`
+
+会话和文件资产的授权绑定，避免 Agent 跨会话或跨租户读取文件。
+
+### `ChatMessage.fileAssets`
+
+`ChatMessage` 新增 `fileAssets` 关系，join table：
+
+```text
+chat_message_file_asset
+```
+
+新文件消息应写入 `fileAssets`，不再写入旧 `attachments`。
+
+旧 `attachments: StorageFile[]` 只保留为历史消息读取兼容。运行时会把旧附件转成兼容输入，并在缺少 `FileAsset` 时 fallback 到旧加载能力。
+
+## 上传链路
+
+### ChatKit
+
+ChatKit UI 使用新的 `AgentFile` handle：
+
+```ts
+export interface AgentFile {
+  id: string
+  fileId: string
+  storageFileId: string
+  objectKey?: string
+  url?: string
+  fileUrl?: string
+  thumbUrl?: string
+  originalName?: string
+  size?: number
+  mimeType?: string
+  status: AgentFileStatus
+  parseStatus: AgentFileStatus
+  parseMode?: 'auto' | 'fast' | 'deep' | 'none'
+  purpose?: 'chat_attachment' | 'workspace' | 'knowledge'
+  capabilities?: string[]
+  summary?: string
+  workspacePath?: string
+}
+```
+
+上传时发送 multipart form：
+
+```ts
+const formData = new FormData()
+formData.append('file', file, file.name || 'upload')
+formData.append('purpose', 'chat_attachment')
+formData.append('parseMode', 'auto')
+formData.append('threadId', stream.threadId)
+
+const uploaded = await stream.client.contexts.fetch<AgentFile>('/contexts/file', {
+  method: 'POST',
+  body: formData
+})
+```
+
+`stream.client.contexts.fetch('/contexts/file')` 内部基于 AI client base path。原始 HTTP 通常是：
+
+```text
+POST /api/ai/contexts/file
+```
+
+### 后端上传入口
+
+入口文件：
+
+```text
+packages/server-ai/src/ai/context.controller.ts
+```
+
+`POST /api/ai/contexts/file` 的处理流程：
+
+1. 执行统一上传 `UploadFileCommand`。
+2. 对 `storage` target 写入旧 `StorageFile`。
+3. 创建新的 `FileAsset`。
+4. 若请求包含 `conversationId` 或 `threadId`，绑定会话文件关系。
+5. 根据 `parseMode` 解析文件：
+   - `none`：不解析。
+   - `fast`：同步解析。
+   - `deep`：异步入口预留，当前命令仍进入 parse command。
+   - `auto`：小于等于 2MB 同步解析，大文件走异步入口。
+6. 返回 `AgentFile`。
+
+返回体中的重要 id：
+
+- `id`：`FileAsset.id`
+- `fileId`：`FileAsset.id`
+- `storageFileId`：旧 `StorageFile.id`
+
+### 发送消息
+
+ChatKit 提交消息时发送 file handle，不发送解析内容：
+
+```json
+{
+  "files": [
+    {
+      "id": "file-asset-id",
+      "fileId": "file-asset-id",
+      "storageFileId": "storage-file-id",
+      "originalName": "report.pdf",
+      "mimeType": "application/pdf",
+      "parseStatus": "ready",
+      "capabilities": ["preview", "read", "search", "ocr"]
+    }
+  ]
+}
+```
+
+后端在 `xpert/commands/handlers/chat.handler.ts` 中：
+
+- 新 `AgentFile` 写入 `ChatMessage.fileAssets`。
+- 旧 `StorageFile` payload 才写入 legacy `ChatMessage.attachments`。
+- 重试或继续会话时，`getMessageFiles` 会合并新 `fileAssets` 和旧 `attachments`。
+
+## 文件解析链路
+
+### CQRS commands
+
+写模型命令：
+
+- `CreateFileAssetCommand`
+- `AttachFileToConversationCommand`
+- `EnqueueFileParseCommand`
+- `ParseFileAssetCommand`
+- `CreateFileArtifactsCommand`
+- `IndexFileChunksCommand`
+- `DeleteFileAssetCommand`
+- `RetryFileParseCommand`
+
+长期维护原则：
+
+- Handler 是应用逻辑入口，可以直接写 repository 读写和编排逻辑。
+- 当逻辑被多个 handler 或模块复用时，再提取共享 service。
+- Parser adapter 保持纯解析职责，不关心聊天消息、权限、上传方式。
+- Query handler 只读，Command handler 只写或编排写流程。
+
+### 解析流程
+
+核心实现：
+
+```text
+packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts
+```
+
+流程：
+
+1. 加载 `FileAsset`。
+2. 通过 `storageFileId` 找到 `StorageFile`。
+3. 解析对象存储本地路径。
+4. `FileParserRegistry` 选择 parser。
+5. Parser 输出 artifacts、summary、capabilities、metadata。
+6. 删除旧 artifacts、chunks、anchors、embeddings。
+7. 保存新 artifacts。
+8. 将可索引 artifact 切分为 chunks。
+9. 为 chunks 重建 citation anchors。
+10. 更新 `FileAsset.status`、`summary`、`capabilities`、`metadata`。
+
+默认 chunk 参数：
+
+```text
+chunk size: 3600 characters
+chunk overlap: 240 characters
+```
+
+可切分 artifact：
+
+- `text`
+- `page_text`
+- `sheet`
+- `slide`
+- `table`
+- `code_tree`
+- `file_manifest`
+- `ocr_text`
+
+### Parser router
+
+入口：
+
+```text
+packages/server-ai/src/file-understanding/parsers/file-parser.registry.ts
+```
+
+当前选择顺序：
+
+1. PDF
+2. Spreadsheet
+3. Office
+4. Image
+5. Archive
+6. Text fallback
+
+当前 parser 主要根据 MIME type 和扩展名判断。后续如果要增强内容 sniffing，应优先在 parser `supports(source)` 或 registry 中补充 magic-byte / 文件头判断，不要把判断写进 Controller。
+
+### 已支持 parser
+
+| Parser                  | 文件类型                            | 当前能力                               | 备注                                         |
+| ----------------------- | ----------------------------------- | -------------------------------------- | -------------------------------------------- |
+| `TextFileParser`        | txt、md、json、log、code            | summary、text、search、read            | UTF-8 文本读取                               |
+| `PdfFileParser`         | pdf                                 | page text、page anchor、ocr capability | 无文本时 `partial`，标记需要 OCR             |
+| `OfficeFileParser`      | doc、docx、ppt、pptx                | text 或 slide artifact                 | 基于 LangChain loader                        |
+| `SpreadsheetFileParser` | csv、tsv、xlsx、xls                 | sheet/table artifact、table_query      | xlsx 输出 sheet、headers、sample rows        |
+| `ImageFileParser`       | png、jpg、webp、gif、bmp、tiff、svg | image metadata、vision/ocr capability  | 第一版只读 metadata，OCR/VLM 待接入          |
+| `ArchiveFileParser`     | zip                                 | manifest、code tree、文本文件索引      | 最多索引前 80 个文本文件，manifest 前 500 项 |
+
+## API
+
+所有接口都在 AI API 前缀下。若服务全局前缀是 `/api`，完整路径如下。
+
+### 上传上下文文件
+
+```text
+POST /api/ai/contexts/file
+```
+
+Form fields：
+
+- `file`：必填。
+- `target`：可选 JSON，默认上传到 `storage` target。
+- `purpose`：可选，默认 `chat_attachment`。
+- `parseMode`：可选，默认 `auto`。
+- `conversationId`：可选。
+- `threadId`：可选。
+- `projectId`：可选。
+- `xpertId`：可选。
+- `workspacePath`：可选。
+
+返回：
+
+```json
+{
+  "id": "file-asset-id",
+  "fileId": "file-asset-id",
+  "storageFileId": "storage-file-id",
+  "objectKey": "contexts/files-xxx.pdf",
+  "originalName": "report.pdf",
+  "mimeType": "application/pdf",
+  "status": "ready",
+  "parseStatus": "ready",
+  "purpose": "chat_attachment",
+  "parseMode": "auto",
+  "capabilities": ["preview", "read", "search", "ocr"],
+  "summary": "..."
+}
+```
+
+### 删除兼容上下文文件
+
+```text
+DELETE /api/ai/contexts/file/:storageFileId
+```
+
+用于 ChatKit 上传入口的兼容删除。它会先删除关联 `FileAsset`，再删除旧 `StorageFile`。
+
+### 读取文件资产
+
+```text
+GET /api/ai/files/:fileId
+```
+
+### 读取解析状态
+
+```text
+GET /api/ai/files/:fileId/status
+```
+
+### 重试解析
+
+```text
+POST /api/ai/files/:fileId/parse/retry
+```
+
+### 列出会话文件
+
+```text
+GET /api/ai/conversations/:conversationId/files
+```
+
+### 搜索文件片段
+
+```text
+POST /api/ai/files/:fileId/search
+```
+
+请求：
+
+```json
+{
+  "query": "revenue forecast",
+  "limit": 8
+}
+```
+
+### 预览文件
+
+```text
+GET /api/ai/files/:fileId/preview
+```
+
+### 读取文件片段
+
+```text
+POST /api/ai/files/:fileId/read
+```
+
+请求：
+
+```json
+{
+  "chunkId": "chunk-id"
+}
+```
+
+或：
+
+```json
+{
+  "orderNo": 0
+}
+```
+
+### 删除文件资产
+
+```text
+DELETE /api/ai/files/:fileId
+```
+
+用于文件理解层删除。会清理 asset、artifacts、chunks、anchors、embeddings、conversation links。
+
+## Agent Runtime 集成
+
+### Message assembly
+
+入口：
+
+```text
+packages/server-ai/src/shared/agent/message.ts
+```
+
+行为：
+
+- 优先解析 `fileId` / `fileAssetId` 指向的新 `FileAsset`。
+- 没有新资产时，才根据 `storageFileId` / legacy `id` 查旧 `StorageFile`。
+- 对 ready/partial 的文件注入 compact file card：
+  - 文件名
+  - MIME type
+  - 状态
+  - 摘要
+  - 可用 capability
+  - 可用 anchors / chunk 引用提示
+- 不在 prompt 中直接注入 chunk 正文；需要正文时让 Agent 使用 `file_search` / `file_read`。
+- 大文件不全文进入 prompt。
+- 解析失败或旧消息 fallback 到 `LoadFileCommand`。
+
+### `LoadFileCommand` 兼容层
+
+入口：
+
+```text
+packages/server-ai/src/shared/commands/handlers/load-file.handler.ts
+```
+
+现在逻辑是：
+
+1. 优先读取 `FileAsset` artifacts/chunks。
+2. 如果没有新资产，再走旧文件 loader。
+
+这保证旧会话可继续使用，同时新链路不会依赖 `StorageFile` 的业务语义。
+
+### Agent tools 与内置 middleware
+
+工具入口：
+
+```text
+packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts
+```
+
+工具由内置 middleware 创建：
+
+```text
+packages/server-ai/src/file-understanding/middlewares/file-understanding.middleware.ts
+```
+
+运行时由 subgraph 创建一个隐藏的必需 middleware entry，并进入统一的 middleware tool 链路：
+
+```text
+packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts
+```
+
+这表示 `file_search` 等工具不再是 subgraph 手动追加的裸工具，而是 `FileUnderstandingMiddleware` 产出的内置 middleware tools。Agent 画布上不需要手动连接该 middleware；ChatKit 会话附件默认可用，同时后续可以复用 middleware 的 tool wrapping、hook、工具描述覆盖和运行时治理能力。
+
+工具列表：
+
+- `file_search(fileIds, query, limit)`
+- `file_read(fileId, chunkId, orderNo)`
+- `file_table_query(fileId, query, limit)`
+- `file_preview(fileId)`
+- `workspace_list()`
+- `workspace_read(fileId | path, chunkId, orderNo)`
+- `workspace_search(query, limit)`
+
+使用原则：
+
+- 回答文件问题时先 `file_search` 或 `workspace_search`。
+- 需要上下文时再 `file_read`。
+- `file_preview` 返回轻量 preview，只包含文件业务字段、短摘要、artifact 索引和 chunk anchor，不返回租户/组织/审计字段、artifact 全文、chunk 全文或底层 parser metadata。
+- 如果 file card 或 `workspace_list` 返回了 `workspacePath`，并且 Agent 有 `sandbox_file` 或 shell 工具，可以按该路径读取原文件。
+- `workspace_read` 支持通过 `fileId` 或 `workspacePath` 解析到文件索引，但它读取的是解析后的 chunk，不直接读取二进制原文。
+- 表格和 CSV 优先用 `file_table_query`。
+- 引用来源使用 chunk 返回的 `anchor`。
+- 不让 Agent 直接构造对象存储路径读取原文件。
+
+### Workspace projection
+
+ChatKit 上传时会把当前 `xpertId` 发送给 `/contexts/file`。当消息提交并且文件绑定到 conversation 后，后端会把对象存储中的原文件投影到会话 workspace：
+
+```text
+sessions/{conversationId}/files/{fileAssetId}/{originalName}
+```
+
+写入成功后，`FileAsset.workspacePath` 和 `workspace` capability 会更新。Docker sandbox 下路径通常形如 `/workspace/sessions/...`；local shell sandbox 下是本机 runtime volume 路径。
+
+## ChatKit UI 行为
+
+相关文件：
+
+```text
+chatkit-js/packages/chatkit-ui/src/lib/types.ts
+chatkit-js/packages/chatkit-ui/src/components/chat.tsx
+```
+
+当前 UI 行为：
+
+- `StorageFile` 保持旧对象存储类型。
+- 新增 `AgentFile`。
+- `UploadingFile.uploadedFile` 保存 `AgentFile`。
+- 附件上传成功后，composer chip 显示 parse status。
+- `uploaded`、`scanning`、`parsing` 展示处理中状态。
+- `failed` 展示失败状态。
+- 发送消息时带 `files` handle，不带文件解析内容。
+- 展示历史消息时合并 `fileAssets` 和 legacy `attachments`。
+- 删除上传附件时仍调用 `/contexts/file/:storageFileId`，保证对象存储和 FileAsset 一起清理。
+
+图片粘贴引用仍使用 `storageFileId`，因为现有 image reference resolver 读取旧 `StorageFile`。这是图片展示兼容路径，不代表新业务模型回退到 `StorageFile`。
+
+## 和旧链路的本质区别
+
+| 旧链路                                   | 新链路                                                 |
+| ---------------------------------------- | ------------------------------------------------------ |
+| `StorageFile` 同时表示存储对象和聊天附件 | `StorageFile` 只表示存储对象，聊天附件使用 `FileAsset` |
+| 消息通过 `attachments` 关联旧文件        | 新消息通过 `fileAssets` 关联文件理解资产               |
+| Agent 运行时临时读全文                   | 上传后先解析、切 chunk、生成 anchors                   |
+| 大文件容易挤占 prompt                    | prompt 只注入摘要和工具说明                            |
+| 引用位置不稳定                           | chunk 带页码、sheet、slide、path anchor                |
+| 文件能力散落在上传和 loader              | 独立模块统一管理解析、索引、读取                       |
+| 后续接 OCR/VLM/向量检索会影响聊天主链路  | 能力可在 parser/index/tool 层独立升级                  |
+
+## 升级指南
+
+### 新增 parser
+
+1. 在 `parsers/` 新增 adapter，实现 `FileParser`。
+2. 在 `supports(source)` 中判断 MIME、扩展名或 magic bytes。
+3. 在 `parse(source)` 输出：
+   - `artifacts`
+   - `capabilities`
+   - `summary`
+   - `metadata`
+   - 可选 `status`
+4. 把 parser 注册到 `FileParserRegistry` 和 `FileParsers`。
+5. 如新增 artifact kind，先更新 `domain/types.ts`。
+6. 如 artifact 需要检索，加入 `CHUNKABLE_ARTIFACT_KINDS`。
+7. 为稳定引用补充 anchor，例如 `{ page }`、`{ sheet }`、`{ slide }`、`{ path }`。
+
+### 接入 OCR / VLM
+
+推荐落点：
+
+- `ImageFileParser`：生成 `ocr_text`、image caption、image labels。
+- `PdfFileParser`：无文本页生成 OCR task 或 `ocr_text` artifact。
+- `FileArtifactKind`：复用 `ocr_text`，必要时新增 image caption kind。
+
+注意：
+
+- OCR/VLM 结果应保存为 artifacts，不要只写入 summary。
+- 每段 OCR 文本必须带页码或图片 path anchor。
+- `status` 可以先置为 `partial`，异步任务完成后更新为 `ready`。
+
+### 接入向量检索
+
+当前 `SearchFileChunksQuery` 使用数据库文本匹配。升级语义检索时：
+
+1. 在 parse/index 后为 chunk 创建 embedding。
+2. 将外部向量 id 写入 `file_embedding.vectorId`。
+3. 保持 `SearchFileChunksQuery` 的输入输出稳定。
+4. 在 query handler 内先走 vector store，再按权限和 fileId 回表读取 chunk。
+5. 保持 `FileUnderstandingMiddleware` 的 tool schema 不变，尤其是 `file_search`。
+
+这样可以不改 ChatKit 和 Agent tool 调用方式。
+
+### 接入真正异步队列
+
+当前 `EnqueueFileParseCommand` 是异步边界预留。接入队列时：
+
+1. `fast` 仍可 inline。
+2. `auto` 根据文件大小、类型、租户策略决定 inline 或 queue。
+3. `deep` 强制 queue。
+4. Queue worker 执行 `ParseFileAssetCommand`。
+5. UI 轮询 `/api/ai/files/:fileId/status`。
+6. 失败写入 `error` 和 `failedAt`，支持 retry。
+
+### 强化 workspace / code archive
+
+当前 zip parser 会生成 manifest、code tree 和可索引文本文件。要做成 Codex 风格 workspace：
+
+1. 解压到 conversation/project volume。
+2. 写入 `workspacePath`。
+3. `workspace_list/read/search` 支持 path 级别读取，而不仅是 chunk 读取。
+4. 对大仓库增加 ignore 规则、文件大小限制、二进制过滤和语言识别。
+5. 在 citation anchor 中保留 `path` 和 chunk 序号。
+
+### 生产迁移
+
+如果生产环境没有开启 TypeORM synchronize，需要增加数据库 migration：
+
+- 创建 `file_asset`
+- 创建 `file_artifact`
+- 创建 `file_chunk`
+- 创建 `file_citation_anchor`
+- 创建 `file_embedding`
+- 创建 `conversation_file_link`
+- 创建 `chat_message_file_asset`
+- 为 `storageFileId`、`conversationId`、`threadId`、`sha256`、`fileAssetId`、`chunkId` 等字段加索引
+
+旧表和旧消息结构不删除。
+
+## 维护约束
+
+新增能力时遵守这些边界：
+
+- 不要把新字段继续塞进 `StorageFile`。
+- 不要把解析后的全文写入 chat message。
+- 不要让 Agent tool 绕过 `FileAsset` 直接读任意 storage path。
+- 不要在 ChatKit 中依赖 parser 内部 artifact 结构。
+- 不要让 parser 读取会话、租户、消息等业务上下文。
+- 不要把新消息写入 legacy `attachments`，除非输入本来就是旧 `StorageFile`。
+
+## 验证清单
+
+后端：
+
+```bash
+pnpm nx build server-ai
+pnpm check:typeorm-columns
+```
+
+ChatKit：
+
+```bash
+pnpm --filter @xpert-ai/chatkit-ui types
+```
+
+功能验证：
+
+- 上传 txt/md/json，状态变为 `ready`，Agent 可搜索和读取。
+- 上传 PDF，chunk anchor 带页码。
+- 上传 xlsx/csv，`file_table_query` 可返回 sheet/table chunk。
+- 上传图片，状态可为 `partial`，capabilities 包含 `vision` / `ocr`。
+- 上传 zip，`workspace_list` 可看到文件，`workspace_search` 可搜到文本文件内容。
+- 大文件不会全文进入 prompt。
+- 旧 `StorageFile` 附件仍可 fallback 读取。
+- 删除 `/contexts/file/:storageFileId` 后，`FileAsset` 和 `StorageFile` 都被清理。
+- 文件不能跨会话、跨租户读取。
