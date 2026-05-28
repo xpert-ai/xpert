@@ -8,6 +8,7 @@ import {
     Param,
     Patch,
     Post,
+    Put,
     Query,
     UseGuards,
     UseInterceptors
@@ -23,8 +24,14 @@ import {
 } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import { FindOptionsOrder, Like } from 'typeorm'
-import { IChatConversation, IChatMessage, IChatMessageFeedback } from '@xpert-ai/contracts'
-import { ChatConversationService } from '../chat-conversation'
+import {
+    IChatConversation,
+    IChatMessage,
+    IChatMessageFeedback,
+    TThreadGoalPatchRequest,
+    TThreadGoalSetRequest
+} from '@xpert-ai/contracts'
+import { ChatConversationGoalService, ChatConversationService } from '../chat-conversation'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ChatMessageFeedbackService } from '../chat-message-feedback/feedback.service'
 import { ChatConversationUpsertCommand } from '../chat-conversation/commands'
@@ -69,6 +76,7 @@ type FeedbackSearchRequest = {
 export class ConversationsController {
     constructor(
         private readonly conversationService: ChatConversationService,
+        private readonly goalService: ChatConversationGoalService,
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
         private readonly commandBus: CommandBus
@@ -146,6 +154,36 @@ export class ConversationsController {
         const conversation = await this.conversationService.findOneInOrganizationOrTenant(id)
         assertPublicXpertSessionConversationAccess(conversation)
         await this.commandBus.execute(new ThreadDeleteCommand(conversation.threadId))
+    }
+
+    @Get(':conversation_id/goal')
+    async getGoal(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.goalService.getByConversationId(conversation.id)
+    }
+
+    @Put(':conversation_id/goal')
+    async setGoal(
+        @Param('conversation_id', UUIDValidationPipe) conversationId: string,
+        @Body() body: TThreadGoalSetRequest
+    ) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.goalService.setGoalFromUser(conversation.id, body)
+    }
+
+    @Patch(':conversation_id/goal')
+    async updateGoal(
+        @Param('conversation_id', UUIDValidationPipe) conversationId: string,
+        @Body() body: TThreadGoalPatchRequest
+    ) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.goalService.patchGoalFromUser(conversation.id, body)
+    }
+
+    @Delete(':conversation_id/goal')
+    async clearGoal(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.goalService.clearGoalFromUser(conversation.id)
     }
 
     @Get(':conversation_id/messages')

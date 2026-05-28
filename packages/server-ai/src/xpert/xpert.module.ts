@@ -33,6 +33,7 @@ import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { RuntimeCommandService } from '../ai/runtime-command.service'
 import { SseStreamModule } from '../shared/stream'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationModule } from '../chat-conversation'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.entity'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
@@ -61,6 +62,7 @@ import { XpertFrequentQuestionsService } from './xpert-frequent-questions.servic
         CopilotCheckpointModule,
         CopilotStoreModule,
         HandoffQueueModule,
+        ChatConversationModule,
         SseStreamModule
     ],
     controllers: [XpertController, XpertAccessController],

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { ChatConversationModule } from '../chat-conversation'
 import { BrowserAutomationMiddleware } from './browser-automation.middleware'
 import { ClientToolMiddleware } from './client-tool.middleware'
 import { ContextCompressionMiddleware } from './context-compression.middleware'
@@ -7,6 +8,7 @@ import { OfficeAutomationMiddleware } from './office-automation.middleware'
 import { RalphLoopMiddleware } from './ralph-loop.middleware'
 
 @Module({
+    imports: [ChatConversationModule],
     providers: [
         BrowserAutomationMiddleware,
         ClientToolMiddleware,
