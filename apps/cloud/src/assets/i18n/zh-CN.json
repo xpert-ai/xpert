@@ -1290,6 +1290,7 @@
       "MembersHint": "管理当前组织内用户的成员状态、默认组织和组织级访问关系。",
       "MemberAdded": "成员添加成功",
       "NoMembers": "当前组织暂无成员。",
+      "Loading": "正在加载组织...",
       "EmptySearch": "没有匹配的组织。"
     },
     "Role": {
