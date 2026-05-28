@@ -1,12 +1,5 @@
 // request-context.ts
-import {
-  IApiKey,
-  IRequestScopeContext,
-  IUser,
-  LanguagesEnum,
-  PermissionsEnum,
-  RolesEnum
-} from '@xpert-ai/contracts'
+import { IApiKey, IRequestScopeContext, IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 import type { IApiPrincipal, RequestScopeLevel } from '@xpert-ai/contracts'
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'http'
@@ -32,13 +25,13 @@ export class RequestContext {
   }
 
   static currentApiKey(): IApiKey | null {
-		return RequestContext.currentApiPrincipal()?.apiKey ?? null;
-	}
+    return RequestContext.currentApiPrincipal()?.apiKey ?? null
+  }
 
-	static currentApiPrincipal(): IApiPrincipal | null {
-		const user = RequestContext.currentUser() as IApiPrincipal | null;
-		return user?.apiKey ? user : null;
-	}
+  static currentApiPrincipal(): IApiPrincipal | null {
+    const user = RequestContext.currentUser() as IApiPrincipal | null
+    return user?.apiKey ? user : null
+  }
 
   static currentRequest(): IncomingMessage {
     const requestContext = RequestContext.currentRequestContext()
@@ -130,10 +123,7 @@ export class RequestContext {
     const scopeLevelHeader = getHeaderValue(request, ['x-scope-level'])
 
     if (scopeLevelHeader) {
-      if (
-        scopeLevelHeader !== TENANT_SCOPE &&
-        scopeLevelHeader !== ORGANIZATION_SCOPE
-      ) {
+      if (scopeLevelHeader !== TENANT_SCOPE && scopeLevelHeader !== ORGANIZATION_SCOPE) {
         throw new BadRequestException(`Unsupported scope level: ${scopeLevelHeader}`)
       }
 
@@ -285,21 +275,24 @@ export class RequestContext {
   static hasRoles(roles: RolesEnum[], throwError?: boolean): boolean {
     const context = RequestContext.currentRequestContext()
     if (context) {
-      try {
-        // tslint:disable-next-line
-        const token = this.currentToken()
-        if (token) {
+      // tslint:disable-next-line
+      const token = this.currentToken()
+      if (token) {
+        try {
           const { role } = verify(token, process.env['JWT_SECRET']) as { id: string; role: RolesEnum }
-          return roles.includes(role ?? null)
-        } else if (this.currentUser().role) {
-          return roles.includes(this.currentUser().role.name as RolesEnum)
+          if (role) {
+            return roles.includes(role)
+          }
+        } catch (error) {
+          if (!(error instanceof JsonWebTokenError)) {
+            throw error
+          }
         }
-      } catch (error) {
-        if (error instanceof JsonWebTokenError) {
-          return false
-        } else {
-          throw error
-        }
+      }
+
+      const role = this.currentUser()?.role?.name
+      if (role) {
+        return roles.includes(role as RolesEnum)
       }
     }
     if (throwError) {
@@ -315,10 +308,7 @@ export function getRequestContext() {
   return als.getStore()
 }
 
-function getHeaderValue(
-  req: IncomingMessage | null,
-  keys: string[]
-): string | null {
+function getHeaderValue(req: IncomingMessage | null, keys: string[]): string | null {
   if (!req?.headers) {
     return null
   }

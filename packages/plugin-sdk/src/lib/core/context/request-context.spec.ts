@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
+import { RolesEnum } from '@xpert-ai/contracts'
 import { runWithRequestContext } from './request-context.middleware'
 import { RequestContext } from './request-context'
 
@@ -9,7 +10,7 @@ describe('RequestContext scope parsing', () => {
   function runInContext<T>(
     req: {
       headers?: Record<string, string>
-      user?: { id?: string; tenantId?: string }
+      user?: { id?: string; tenantId?: string; role?: { name?: string } }
     },
     callback: () => T
   ): T {
@@ -97,5 +98,24 @@ describe('RequestContext scope parsing', () => {
         () => RequestContext.requireOrganizationScope()
       )
     ).toThrow(BadRequestException)
+  })
+
+  it('falls back to the authenticated request user role when the bearer token is not a platform JWT', () => {
+    const hasRole = runInContext(
+      {
+        headers: {
+          authorization: 'Bearer oidc-token'
+        },
+        user: {
+          tenantId: 'tenant-1',
+          role: {
+            name: RolesEnum.SUPER_ADMIN
+          }
+        }
+      },
+      () => RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+    )
+
+    expect(hasRole).toBe(true)
   })
 })

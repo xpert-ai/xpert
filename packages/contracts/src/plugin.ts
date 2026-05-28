@@ -38,6 +38,23 @@ export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
 export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
 export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
 export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
+export type PluginTargetApp = 'xpert' | 'data-xpert' | (string & {})
+
+export interface PluginTargetAppMetadata {
+  /**
+   * App-owned classification values. Each target app owns the vocabulary for its own entry.
+   */
+  types?: string[]
+  /**
+   * Minimum version of the target app that can safely use this plugin.
+   */
+  minAppVersion?: string
+  capabilities?: string[]
+  [key: string]: unknown
+}
+
+export type PluginTargetAppMeta = Record<string, PluginTargetAppMetadata | undefined>
+
 export interface PluginCodeSourceConfig {
   workspacePath?: string
 }
@@ -53,6 +70,16 @@ export interface PluginMeta {
    * Declares the plugin's operational level used for visibility and install/uninstall guardrails.
    */
   level?: PluginLevel
+  /**
+   * Declares the product surfaces this plugin is intended to appear in.
+   *
+   * When omitted, the plugin remains a generic xpert-pro plugin for backwards compatibility.
+   */
+  targetApps?: PluginTargetApp[]
+  /**
+   * App-specific metadata grouped by target app without overloading the technical category.
+   */
+  targetAppMeta?: PluginTargetAppMeta
   icon?: IconDefinition
   category:
     | 'set'
