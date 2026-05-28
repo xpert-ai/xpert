@@ -15,6 +15,8 @@ export type XpertViewActionPlacement = 'toolbar' | 'row'
 
 export type XpertViewActionType = 'invoke' | 'navigate' | 'open_detail' | 'refresh'
 
+export type XpertViewActionTransport = 'json' | 'file'
+
 export type XpertViewSortDirection = 'asc' | 'desc'
 
 export type XpertViewFilterOperator =
@@ -262,6 +264,7 @@ export interface XpertViewActionDefinition {
   icon?: string
   placement?: XpertViewActionPlacement
   actionType: XpertViewActionType
+  transport?: XpertViewActionTransport
   inputSchema?: JsonSchemaObjectType
   inputDefaults?: 'target' | Record<string, unknown>
   confirm?: {

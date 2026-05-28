@@ -11,6 +11,13 @@ import {
   XpertViewQuery
 } from '@xpert-ai/contracts'
 
+export interface XpertViewFileActionFile {
+  buffer: Buffer
+  originalname?: string
+  mimetype?: string
+  size?: number
+}
+
 export interface IXpertViewExtensionProvider {
   supports(context: XpertResolvedViewHostContext): Promise<boolean> | boolean
 
@@ -30,6 +37,14 @@ export interface IXpertViewExtensionProvider {
     viewKey: string,
     actionKey: string,
     request: XpertViewActionRequest
+  ): Promise<XpertViewActionResult> | XpertViewActionResult
+
+  executeViewFileAction?(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    actionKey: string,
+    request: XpertViewActionRequest,
+    file: XpertViewFileActionFile
   ): Promise<XpertViewActionResult> | XpertViewActionResult
 
   getViewParameterOptions?(

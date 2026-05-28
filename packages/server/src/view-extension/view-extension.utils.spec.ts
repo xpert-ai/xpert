@@ -58,6 +58,7 @@ describe('view extension utils', () => {
 		expect(normalized.key).toBe('provider_a__users')
 		expect(normalized.source.provider).toBe('provider_a')
 		expect(normalized.actions?.[0].placement).toBe('toolbar')
+		expect(normalized.actions?.[0].transport).toBe('json')
 	})
 
 	it('rejects unsupported public view keys and unexpected query parameters', () => {
@@ -122,6 +123,22 @@ describe('view extension utils', () => {
 
 		expect(() => normalizeManifest(invalidActionManifest, 'provider_a', context, 'detail.main_tabs')).toThrow(
 			"Unsupported action placement 'inline'"
+		)
+
+		const invalidTransportManifest = {
+			...manifest,
+			actions: [
+				{
+					key: 'upload',
+					label: text('Upload', '上传'),
+					actionType: 'invoke',
+					transport: 'binary'
+				}
+			]
+		} as unknown as XpertExtensionViewManifest
+
+		expect(() => normalizeManifest(invalidTransportManifest, 'provider_a', context, 'detail.main_tabs')).toThrow(
+			"Unsupported action transport 'binary'"
 		)
 	})
 

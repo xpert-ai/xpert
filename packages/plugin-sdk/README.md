@@ -15,3 +15,7 @@ Run `nx test plugin-sdk` to execute the unit tests via [Jest](https://jestjs.io)
 ## Permissions
 
 [插件权限设计指南](./PERMISSIONS.md)
+
+## View extensions
+
+[View Extension Protocol](./docs/view-extension-protocol.md)

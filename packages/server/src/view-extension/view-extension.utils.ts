@@ -4,6 +4,7 @@ import {
 	XpertResolvedViewHostContext,
 	XpertViewActionDefinition,
 	XpertViewActionPlacement,
+	XpertViewActionTransport,
 	XpertViewActionType,
 	XpertViewDataSource,
 	XpertViewFilter,
@@ -28,6 +29,7 @@ const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>([
 ])
 const ALLOWED_ACTION_TYPES = new Set<XpertViewActionType>(['invoke', 'navigate', 'open_detail', 'refresh'])
 const ALLOWED_ACTION_PLACEMENTS = new Set<XpertViewActionPlacement>(['toolbar', 'row'])
+const ALLOWED_ACTION_TRANSPORTS = new Set<XpertViewActionTransport>(['json', 'file'])
 const VIEW_KEY_SEPARATOR = '__'
 const ALLOWED_QUERY_KEYS = new Set([
 	'page',
@@ -305,9 +307,15 @@ function normalizeActions(actions?: XpertViewActionDefinition[]) {
 			throw new BadRequestException(`Unsupported action placement '${placement}'`)
 		}
 
+		const transport = action.transport ?? 'json'
+		if (!ALLOWED_ACTION_TRANSPORTS.has(transport)) {
+			throw new BadRequestException(`Unsupported action transport '${transport}'`)
+		}
+
 		return {
 			...action,
-			placement
+			placement,
+			transport
 		}
 	})
 }

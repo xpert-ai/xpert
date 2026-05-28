@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { ViewExtensionProviderRegistry, XpertViewFileActionFile } from '@xpert-ai/plugin-sdk'
 import {
 	XpertExtensionViewManifest,
 	XpertRemoteComponentEntry,
@@ -176,12 +176,54 @@ export class ViewExtensionService {
 		}
 		this.permissionService.ensureActionVisible(action)
 
+		if ((action.transport ?? 'json') !== 'json') {
+			throw new BadRequestException(`Action '${actionKey}' does not support JSON transport`)
+		}
+
 		if (!resolved.provider.executeViewAction) {
 			throw new NotFoundException(`Action '${actionKey}' is not supported for view '${viewKey}'`)
 		}
 
 		const result = await Promise.resolve(
 			resolved.provider.executeViewAction(context, resolved.manifestKey, actionKey, request)
+		)
+
+		if (result.refresh) {
+			await this.cacheService.invalidateView(context, viewKey)
+		}
+
+		return result
+	}
+
+	async executeFileAction(
+		hostType: string,
+		hostId: string,
+		viewKey: string,
+		actionKey: string,
+		request: XpertViewActionRequest,
+		file: XpertViewFileActionFile
+	) {
+		const context = await this.resolveHostContext(hostType, hostId)
+		const resolved = await this.resolveProviderManifest(context, viewKey)
+
+		this.permissionService.ensureManifestVisible(resolved.manifest)
+
+		const action = resolved.manifest.actions?.find((item) => item.key === actionKey)
+		if (!action) {
+			throw new NotFoundException(`Action '${actionKey}' was not found for view '${viewKey}'`)
+		}
+		this.permissionService.ensureActionVisible(action)
+
+		if ((action.transport ?? 'json') !== 'file') {
+			throw new BadRequestException(`Action '${actionKey}' does not support file transport`)
+		}
+
+		if (!resolved.provider.executeViewFileAction) {
+			throw new NotFoundException(`File action '${actionKey}' is not supported for view '${viewKey}'`)
+		}
+
+		const result = await Promise.resolve(
+			resolved.provider.executeViewFileAction(context, resolved.manifestKey, actionKey, request, file)
 		)
 
 		if (result.refresh) {
