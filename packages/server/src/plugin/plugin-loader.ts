@@ -16,6 +16,12 @@ export interface PluginLoadOptions {
 	basedir?: string
 	source?: PluginSource | string
 	workspacePath?: string
+	/**
+	 * Internal distinction for `source=code` plugins:
+	 * - `workspace-ts`: built-in monorepo plugins load the original workspace source in development.
+	 * - `staged-package`: externally imported code plugins load from the staged package directory.
+	 */
+	codeLoadMode?: 'workspace-ts' | 'staged-package'
 }
 
 function isProd() {
@@ -163,6 +169,15 @@ function getPreferredWorkspaceTsEntry(opts: PluginLoadOptions) {
 function getPreferredCodeTsEntry(modName: string, opts: PluginLoadOptions) {
 	if (opts.source !== 'code') {
 		return null
+	}
+
+	if (opts.codeLoadMode === 'workspace-ts') {
+		const workspaceEntry = getPreferredWorkspaceTsEntry(opts)
+		if (workspaceEntry) {
+			return workspaceEntry
+		}
+
+		return getStagedPluginTsEntryPath(modName, opts.basedir)
 	}
 
 	const stagedEntry = getStagedPluginTsEntryPath(modName, opts.basedir)

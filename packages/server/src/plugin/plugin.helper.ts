@@ -314,7 +314,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  * @param opts
  * @returns
  */
-export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger,) {
+export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
@@ -391,14 +391,18 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
 				: baseDirRoot
-			const workspacePath = source === 'code'
-				? getCodeWorkspacePath(sourceConfig) ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot)
-				: undefined
+			const configuredWorkspacePath = source === 'code' ? getCodeWorkspacePath(sourceConfig) : undefined
+			const workspacePath =
+				source === 'code'
+					? (configuredWorkspacePath ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot))
+					: undefined
 			// 2) Load each plugin and merge its configuration defaults.
 			const plugin = await loadPlugin(name, {
 				basedir: pluginBaseDir,
 				source,
-				workspacePath
+				workspacePath,
+				codeLoadMode:
+					source === 'code' ? (configuredWorkspacePath ? 'staged-package' : 'workspace-ts') : undefined
 			})
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
