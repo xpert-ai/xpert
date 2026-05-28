@@ -5,6 +5,7 @@ import {
     IWFNMiddleware,
     IXpert,
     normalizeMiddlewareProvider,
+    type TXpertTeamNode,
     TXpertFeatures,
     XpertTypeEnum,
     XpertViewHostCapabilities,
@@ -127,7 +128,7 @@ export class AgentViewHostDefinition implements XpertViewHostDefinition {
     }
 
     private findPrimaryAgentKey(graph?: IXpert['graph'] | null): string | null {
-        const agentNode = graph?.nodes?.find((node) => node.type === 'agent')
+        const agentNode = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
         return agentNode?.key ?? agentNode?.entity?.key ?? null
     }
 }
