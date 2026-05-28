@@ -123,7 +123,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
 
     @Get(':id/goal')
     async getGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
-        return this.organizationScopeService.run(organizationId, () => this.goalService.getByConversationId(id))
+        return this.organizationScopeService.run(organizationId, async () => {
+            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            return this.goalService.getByConversationId(conversation.id)
+        })
     }
 
     @Put(':id/goal')
@@ -132,7 +135,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Body() body: TThreadGoalSetRequest,
         @Query('organizationId') organizationId?: string
     ) {
-        return this.organizationScopeService.run(organizationId, () => this.goalService.setGoalFromUser(id, body))
+        return this.organizationScopeService.run(organizationId, async () => {
+            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            return this.goalService.setGoalFromUser(conversation.id, body)
+        })
     }
 
     @Patch(':id/goal')
@@ -141,12 +147,18 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Body() body: TThreadGoalPatchRequest,
         @Query('organizationId') organizationId?: string
     ) {
-        return this.organizationScopeService.run(organizationId, () => this.goalService.patchGoalFromUser(id, body))
+        return this.organizationScopeService.run(organizationId, async () => {
+            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            return this.goalService.patchGoalFromUser(conversation.id, body)
+        })
     }
 
     @Delete(':id/goal')
     async clearGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
-        return this.organizationScopeService.run(organizationId, () => this.goalService.clearGoalFromUser(id))
+        return this.organizationScopeService.run(organizationId, async () => {
+            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            return this.goalService.clearGoalFromUser(conversation.id)
+        })
     }
 
     @Post(':id/cancel')

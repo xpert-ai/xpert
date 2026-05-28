@@ -2,7 +2,13 @@ jest.mock('@xpert-ai/server-core', () => ({
     TenantBaseEntity: class TenantBaseEntity {},
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
     TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
-        constructor(public readonly repository: { save: (entity: unknown) => Promise<T> }) {}
+        constructor(
+            public readonly repository: {
+                delete: (criteria: string) => Promise<unknown>
+                findAllInOrganizationOrTenant: (filter: unknown) => Promise<{ items: T[]; total: number }>
+                save: (entity: unknown) => Promise<T>
+            }
+        ) {}
 
         save(entity: unknown): Promise<T> {
             return this.repository.save(entity)
@@ -10,6 +16,14 @@ jest.mock('@xpert-ai/server-core', () => ({
 
         create(entity: unknown): Promise<T> {
             return this.repository.save(entity)
+        }
+
+        delete(criteria: string): Promise<unknown> {
+            return this.repository.delete(criteria)
+        }
+
+        findAllInOrganizationOrTenant(filter: unknown): Promise<{ items: T[]; total: number }> {
+            return this.repository.findAllInOrganizationOrTenant(filter)
         }
     }
 }))
@@ -32,7 +46,7 @@ import { ChatConversationGoalService } from './conversation-goal.service'
 
 describe('ChatConversationGoalService', () => {
     let repository: {
-        findOne: jest.Mock<Promise<ChatConversationGoal | null>, [unknown]>
+        findAllInOrganizationOrTenant: jest.Mock<Promise<{ items: ChatConversationGoal[]; total: number }>, [unknown]>
         save: jest.Mock<Promise<ChatConversationGoal>, [unknown]>
         delete: jest.Mock<Promise<unknown>, [string]>
     }
@@ -56,7 +70,7 @@ describe('ChatConversationGoalService', () => {
 
     beforeEach(() => {
         repository = {
-            findOne: jest.fn().mockResolvedValue(existingGoal),
+            findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [existingGoal], total: 1 }),
             save: jest.fn(async (entity) => entity as ChatConversationGoal),
             delete: jest.fn().mockResolvedValue({})
         }
@@ -77,7 +91,7 @@ describe('ChatConversationGoalService', () => {
 
         service = new ChatConversationGoalService(
             repository as unknown as Repository<ChatConversationGoal>,
-            { findOne: jest.fn() } as unknown as ChatConversationService,
+            { findOneInOrganizationOrTenant: jest.fn() } as unknown as ChatConversationService,
             queryBus as unknown as QueryBus,
             redisSseStreamService as unknown as RedisSseStreamService
         )
@@ -85,12 +99,12 @@ describe('ChatConversationGoalService', () => {
 
     it('creates user goals without token budgets', async () => {
         ;(
-            service as unknown as { conversationService: { findOne: jest.Mock } }
-        ).conversationService.findOne.mockResolvedValue({
+            service as unknown as { conversationService: { findOneInOrganizationOrTenant: jest.Mock } }
+        ).conversationService.findOneInOrganizationOrTenant.mockResolvedValue({
             id: 'conversation-1',
             threadId: 'thread-1'
         })
-        repository.findOne.mockResolvedValue(null)
+        repository.findAllInOrganizationOrTenant.mockResolvedValue({ items: [], total: 0 })
 
         await service.setGoalFromUser('conversation-1', {
             objective: 'ship feature'
@@ -121,6 +135,17 @@ describe('ChatConversationGoalService', () => {
         })
     })
 
+    it('reads goals through the organization-aware service path', async () => {
+        await expect(service.getByConversationId('conversation-1')).resolves.toBe(existingGoal)
+
+        expect(repository.findAllInOrganizationOrTenant).toHaveBeenCalledWith({
+            where: {
+                conversationId: 'conversation-1'
+            },
+            take: 1
+        })
+    })
+
     it('publishes a cleared event to the active run stream when an existing goal is cleared', async () => {
         await service.clearGoalFromUser('conversation-1')
 
@@ -143,7 +168,7 @@ describe('ChatConversationGoalService', () => {
     })
 
     it('does not publish a cleared event when no goal exists', async () => {
-        repository.findOne.mockResolvedValue(null)
+        repository.findAllInOrganizationOrTenant.mockResolvedValue({ items: [], total: 0 })
 
         await expect(service.clearGoalFromUser('conversation-1')).resolves.toBeNull()
 

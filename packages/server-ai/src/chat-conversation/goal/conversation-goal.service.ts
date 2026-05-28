@@ -40,15 +40,19 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
 
     async getByConversationId(conversationId: string): Promise<ChatConversationGoal | null> {
         const normalizedConversationId = this.normalizeId(conversationId, 'conversationId')
-        return this.repository.findOne({
+        const result = await this.findAllInOrganizationOrTenant({
             where: {
                 conversationId: normalizedConversationId
-            }
+            },
+            take: 1
         })
+        return result.items[0] ?? null
     }
 
     async setGoalFromUser(conversationId: string, request: TThreadGoalSetRequest): Promise<ChatConversationGoal> {
-        const conversation = await this.conversationService.findOne(this.normalizeId(conversationId, 'conversationId'))
+        const conversation = await this.conversationService.findOneInOrganizationOrTenant(
+            this.normalizeId(conversationId, 'conversationId')
+        )
         const objective = this.normalizeObjective(request.objective)
         const existing = await this.getByConversationId(conversation.id)
         const now = new Date()
@@ -110,7 +114,7 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         if (!goal?.id) {
             return null
         }
-        await this.repository.delete(goal.id)
+        await this.delete(goal.id)
         await this.publishGoalClearedEvent(goal)
         return goal
     }
@@ -121,7 +125,9 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
             throw new BadRequestException('Conversation already has a goal.')
         }
 
-        const conversation = await this.conversationService.findOne(this.normalizeId(conversationId, 'conversationId'))
+        const conversation = await this.conversationService.findOneInOrganizationOrTenant(
+            this.normalizeId(conversationId, 'conversationId')
+        )
         const now = new Date()
         return this.create({
             conversationId: conversation.id,
