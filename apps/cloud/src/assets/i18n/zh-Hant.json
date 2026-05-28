@@ -1969,6 +1969,7 @@
       "MembersHint": "管理目前組織內用戶的成員狀態、默認組織與組織級訪問關係。",
       "MemberAdded": "成員新增成功",
       "NoMembers": "目前組織暫無成員。",
+      "Loading": "正在載入組織...",
       "EmptySearch": "沒有匹配的組織。"
     },
     "Role": {
