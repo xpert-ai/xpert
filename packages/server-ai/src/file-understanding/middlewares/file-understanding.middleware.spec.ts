@@ -32,10 +32,10 @@ describe('FileUnderstandingMiddleware', () => {
         const queryBus = {
             execute: jest.fn()
         }
-        const middleware = await Promise.resolve(
-            new FileUnderstandingMiddleware(queryBus as any).createMiddleware(undefined, createContext())
-        )
+        const strategy = new FileUnderstandingMiddleware(queryBus as any)
+        const middleware = await Promise.resolve(strategy.createMiddleware(undefined, createContext()))
 
+        expect(strategy.meta.builtin).toBe(true)
         expect(middleware.name).toBe(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
         expect(middleware.tools?.map((item) => item.name)).toEqual([
             'file_search',

@@ -73,6 +73,7 @@ import {
   genXpertSkillKey,
   IWFNMiddleware,
   genXpertMiddlewareKey,
+  isUserAddableAgentMiddleware,
   injectXpertAgentAPI,
   TAgentMiddlewareMeta,
   TXpertTeamNode,
@@ -187,6 +188,9 @@ export class XpertStudioContextMenuComponent {
     () =>
       this.agentMiddlewares()?.filter((middleware) => {
         const term = this.#searchMiddlewaresTerm()?.toLowerCase().trim()
+        if (!isUserAddableAgentMiddleware(middleware.meta)) {
+          return false
+        }
         return term
           ? middleware.meta.name.toLowerCase().includes(term) ||
               this.i18n.transform(middleware.meta.label).toLowerCase().includes(term)
@@ -274,7 +278,10 @@ export class XpertStudioContextMenuComponent {
   }
 
   middlewareRemainingConfigCount(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
-    return Math.max(0, this.middlewareConfigEntries(middleware).length - this.middlewareConfigPreview(middleware).length)
+    return Math.max(
+      0,
+      this.middlewareConfigEntries(middleware).length - this.middlewareConfigPreview(middleware).length
+    )
   }
 
   createAgent(menu: CdkMenu, byNode: TXpertTeamNode) {
