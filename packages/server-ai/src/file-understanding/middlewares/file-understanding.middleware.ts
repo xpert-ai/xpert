@@ -34,6 +34,7 @@ export class FileUnderstandingMiddleware implements IAgentMiddlewareStrategy<Fil
             en_US: 'Built-in tools for searching, reading, previewing, and citing parsed conversation files.',
             zh_Hans: '内置的会话文件检索、读取、预览和引用工具。'
         },
+        builtin: true,
         icon: {
             type: 'svg',
             value: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15H6V2Zm8 1.5V8h4.5L14 3.5ZM8 12h8v1.5H8V12Zm0 3h8v1.5H8V15Zm0 3h5v1.5H8V18Z"/></svg>',

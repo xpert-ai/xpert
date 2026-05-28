@@ -4,6 +4,7 @@ import {
   IWFNMiddleware,
   LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME,
   isRequiredMiddleware,
+  isUserAddableAgentMiddleware,
   normalizeMiddlewareNode,
   normalizeMiddlewareNodes,
   normalizeMiddlewareProvider
@@ -15,9 +16,7 @@ describe('middleware model helpers', () => {
     expect(normalizeMiddlewareProvider(LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME)).toBe(
       CONTEXT_COMPRESSION_MIDDLEWARE_NAME
     )
-    expect(normalizeMiddlewareProvider(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)).toBe(
-      CONTEXT_COMPRESSION_MIDDLEWARE_NAME
-    )
+    expect(normalizeMiddlewareProvider(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)).toBe(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
     expect(normalizeMiddlewareProvider(undefined)).toBe('')
   })
 
@@ -48,5 +47,12 @@ describe('middleware model helpers', () => {
     expect(isRequiredMiddleware({ required: false })).toBe(false)
     expect(isRequiredMiddleware({})).toBe(false)
     expect(isRequiredMiddleware(null)).toBe(false)
+  })
+
+  it('treats builtin middleware strategies as not user addable', () => {
+    expect(isUserAddableAgentMiddleware({ builtin: true })).toBe(false)
+    expect(isUserAddableAgentMiddleware({ builtin: false })).toBe(true)
+    expect(isUserAddableAgentMiddleware({})).toBe(true)
+    expect(isUserAddableAgentMiddleware(null)).toBe(true)
   })
 })

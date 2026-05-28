@@ -77,6 +77,11 @@ export type TAgentMiddlewareMeta = {
   configSchema?: JsonSchemaObjectType
   features?: Array<TXpertFeatureKey | string>
   slashCommands?: SkillSlashCommand[]
+  builtin?: boolean
+}
+
+export function isUserAddableAgentMiddleware(meta?: Pick<TAgentMiddlewareMeta, 'builtin'> | null) {
+  return meta?.builtin !== true
 }
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]

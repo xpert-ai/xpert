@@ -971,6 +971,42 @@ describe('XpertNewBlankComponent', () => {
     expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual(['guard'])
   })
 
+  it('hides builtin middleware from the middleware picker options', async () => {
+    const { component } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'guard',
+              label: {
+                en_US: 'Guard'
+              }
+            }
+          },
+          {
+            meta: {
+              name: 'FileUnderstandingMiddleware',
+              label: {
+                en_US: 'File Understanding'
+              },
+              builtin: true
+            }
+          }
+        ]
+      }
+    )
+
+    component.selectedMiddlewares.set(['FileUnderstandingMiddleware', 'legacy-middleware'])
+
+    expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'guard',
+      'legacy-middleware'
+    ])
+  })
+
   it('auto-enables required middleware features when creating a blank xpert', async () => {
     const createdXpert = createAgentXpert('created-xpert')
     const { component, fixture, xpertService } = await createComponent(
