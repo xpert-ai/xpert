@@ -7,7 +7,7 @@ import { ICopilot, TCopilotTokenUsage } from './copilot.model'
 export const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 
 /**
- *
+ * 
  */
 export interface ICopilotUser extends IBasePerTenantAndOrganizationEntityModel, TCopilotTokenUsage {
   orgId?: string
