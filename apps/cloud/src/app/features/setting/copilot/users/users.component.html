@@ -1,148 +1,295 @@
-<div class="w-full relative overflow-auto flex-1" waIntersectionObserver waIntersectionThreshold="0.5">
-  <table class="table-fixed w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
-    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary">
-      <tr>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64 truncate">
-          {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64">
-          {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48">
-          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48 truncate">
-          {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
-        </th>
-
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
-        </th>
-
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32">
-          {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
-        </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]">
-          {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
-        </th>
-        <th
-          scope="col"
-          class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-background-default-subtle p-3 w-[240px]"
-        >
-          {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (item of usages(); track item.id) {
-        <tr class="row cursor-pointer bg-components-card-bg border-b border-divider-regular">
-          <td class="px-4 py-2 whitespace-nowrap truncate">
-            @if (item.user) {
-              <pac-user-profile-inline [user]="item.user" small />
-            }
-          </td>
-          <td class="px-4 py-2">
-            @if (item.organization) {
-              <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-                <pac-org-avatar
-                  [organization]="item.organization"
-                  class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2"
-                />
-                <span class="whitespace-nowrap" [title]="item.organization.name">{{ item.organization.name }}</span>
-              </div>
-            }
-          </td>
-          <td class="px-4 py-2">{{ item.provider }}</td>
-          <td class="px-4 py-2">{{ item.model }}</td>
-          <td class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
-          <td class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
-          <td class="px-4 py-2">{{ item.tokenTotalUsed | number: '0.0-0' }}</td>
-
-          <td class="px-4 py-2">{{ item.priceUsed | number: '0.0-7' }}</td>
-          <td class="px-4 py-2">{{ item.priceLimit | number: '0.0-7' }}</td>
-          <td class="px-4 py-2">{{ item.priceTotalUsed | number: '0.0-7' }}</td>
-
-          <td class="px-4 py-2">{{ item.currency }}</td>
-          <td class="px-4 py-2">{{ item.updatedAt | relative }}</td>
-          <td class="px-4 py-2 sticky right-0 border-l border-solid border-divider-regular bg-background-default-subtle">
-            <div class="flex items-center gap-2" displayDensity="compact">
-              @if (editId() === item.id) {
-                <ngm-input
-                  type="number"
-                  simple
-                  [placeholder]="'PAC.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
-                  [disabled]="loading()"
-                  [(ngModel)]="tokenLimit"
-                />
-                <ngm-input
-                  type="number"
-                  simple
-                  [placeholder]="'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }"
-                  [disabled]="loading()"
-                  [(ngModel)]="priceLimit"
-                />
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  class="text-text-quaternary"
-                  [disabled]="loading()"
-                  [zTooltip]="'PAC.ChatBI.Save' | translate: { Default: 'Save' }"
-                  (click)="save(item.id)"
-                >
-                  <z-icon zType="save"></z-icon>
-                </button>
-              } @else {
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  class="text-text-quaternary"
-                  [disabled]="loading()"
-                  [zTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: { Default: 'Renew token limit' }"
-                  (click)="renewToken(item.id)"
-                >
-                  <z-icon zType="autorenew"></z-icon>
-                </button>
-              }
-            </div>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
-
-  @if (loading()) {
-    <div class="flex justify-center">
-      <ngm-spin />
-    </div>
-  }
-
-  @if (!done()) {
-    <button
-      (waIntersectionObservee)="onIntersection()"
-      class="w-full flex justify-center p-2 cursor-pointer hover:bg-hover-bg"
-      [disabled]="loading()"
-      (click)="onIntersection()"
+<div class="w-full relative flex-1 overflow-hidden px-4 py-3">
+  <div class="w-full h-full overflow-auto" waIntersectionObserver waIntersectionThreshold="0.5">
+    <table
+      z-table
+      zSize="compact"
+      class="table-fixed w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary"
     >
-      <i class="ri-arrow-down-wide-line"></i>
-    </button>
-  }
+      <thead
+        z-table-header
+        class="text-sm text-text-secondary uppercase bg-background-default-subtle dark:text-text-quaternary"
+      >
+        <tr z-table-row>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64 truncate"
+          >
+            {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-64"
+          >
+            {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48"
+          >
+            {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-48 truncate"
+          >
+            {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
+          >
+            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
+          >
+            {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
+          >
+            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+          </th>
+
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
+          >
+            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
+          >
+            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+          </th>
+
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-32"
+          >
+            {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
+          </th>
+          <th
+            z-table-head
+            scope="col"
+            class="sticky top-0 whitespace-nowrap z-10 bg-background-default-subtle p-3 w-[180px]"
+          >
+            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+          </th>
+          <th
+            z-table-head
+            zTableStickyEnd
+            [zTableStickyEnd]="0"
+            [zTableStickyZIndex]="10"
+            scope="col"
+            class="sticky top-0 whitespace-nowrap border-l border-solid border-divider-regular bg-background-default-subtle p-3 w-[240px]"
+          >
+            {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+          </th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @for (item of usages(); track item.id) {
+          <tr
+            z-table-row
+            class="row cursor-pointer bg-components-card-bg border-b border-divider-regular"
+            (click)="toggleDetails(item)"
+          >
+            <td z-table-cell class="px-4 py-2 whitespace-nowrap truncate">
+              <div class="flex min-w-0 items-center gap-2">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="shrink-0 text-text-quaternary"
+                  [zTooltip]="
+                    isExpanded(item)
+                      ? ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                      : ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                  "
+                  (click)="toggleDetails(item); $event.stopPropagation()"
+                >
+                  <z-icon [zType]="isExpanded(item) ? 'chevron-down' : 'chevron-right'"></z-icon>
+                </button>
+                @if (item.user) {
+                  <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
+                }
+              </div>
+            </td>
+            <td z-table-cell class="px-4 py-2">
+              @if (item.org) {
+                <div class="flex justify-start items-center overflow-hidden text-ellipsis">
+                  <pac-org-avatar
+                    [organization]="item.org"
+                    class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2"
+                  />
+                  <span class="whitespace-nowrap" [title]="item.org.name">{{ item.org.name }}</span>
+                </div>
+              }
+            </td>
+            <td z-table-cell class="px-4 py-2">{{ item.provider }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.model }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.tokenTotalUsed | number: '0.0-0' }}</td>
+
+            <td z-table-cell class="px-4 py-2">{{ item.priceUsed | number: '0.0-7' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.priceTotalUsed | number: '0.0-7' }}</td>
+
+            <td z-table-cell class="px-4 py-2">{{ item.currency }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.updatedAt | relative }}</td>
+            <td
+              z-table-cell
+              zTableStickyEnd
+              [zTableStickyEnd]="0"
+              [zTableStickyZIndex]="4"
+              class="px-4 py-2 border-l border-solid border-divider-regular bg-components-card-bg"
+            >
+              <div class="flex items-center gap-2" displayDensity="compact">
+                @if (editId() === item.id) {
+                  <input
+                    z-input
+                    type="number"
+                    zSize="sm"
+                    class="w-44"
+                    [placeholder]="'PAC.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
+                    [disabled]="loading()"
+                    [ngModel]="tokenLimit()"
+                    (ngModelChange)="setTokenLimit($event)"
+                    (click)="$event.stopPropagation()"
+                  />
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    class="text-text-quaternary"
+                    [disabled]="loading()"
+                    [zTooltip]="'PAC.ChatBI.Save' | translate: { Default: 'Save' }"
+                    (click)="save(item); $event.stopPropagation()"
+                  >
+                    <z-icon zType="save"></z-icon>
+                  </button>
+                } @else {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    class="text-text-quaternary"
+                    [disabled]="loading()"
+                    [zTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: { Default: 'Renew token limit' }"
+                    (click)="renewToken(item); $event.stopPropagation()"
+                  >
+                    <z-icon zType="autorenew"></z-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+          @if (isExpanded(item)) {
+            <tr z-table-row class="bg-background-default-subtle border-b border-divider-regular">
+              <td z-table-cell colspan="12" class="p-0">
+                <div class="px-12 py-3">
+                  @if (isLoadingDetails(item)) {
+                    <div class="flex justify-center py-4">
+                      <ngm-spin />
+                    </div>
+                  } @else if (item.details?.length) {
+                    <table
+                      z-table
+                      zSize="compact"
+                      class="w-full table-fixed text-xs text-left text-text-tertiary dark:text-text-quaternary"
+                    >
+                      <thead z-table-header class="text-text-secondary">
+                        <tr z-table-row>
+                          <th z-table-head scope="col" class="px-3 py-2 w-64 truncate">
+                            {{ 'PAC.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-48 truncate">
+                            {{ 'PAC.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-40 truncate">
+                            {{ 'PAC.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-32">
+                            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
+                            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
+                            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
+                            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+                          </th>
+                          <th z-table-head scope="col" class="px-3 py-2 w-[180px]">
+                            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody z-table-body>
+                        @for (detail of item.details; track detail.id) {
+                          <tr z-table-row class="border-t border-divider-regular">
+                            <td z-table-cell class="px-3 py-2 truncate" [title]="detail.threadId">
+                              {{ detail.threadId || '-' }}
+                            </td>
+                            <td z-table-cell class="px-3 py-2 truncate" [title]="detail.xpertId">
+                              {{ detail.xpertId || '-' }}
+                            </td>
+                            <td z-table-cell class="px-3 py-2 truncate">{{ detail.usageHour || '-' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.tokenUsed | number: '0.0-0' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.tokenTotalUsed | number: '0.0-0' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.priceUsed | number: '0.0-7' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.priceTotalUsed | number: '0.0-7' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.updatedAt | relative }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <div class="py-4 text-center text-text-quaternary">
+                      {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+
+    @if (loading()) {
+      <div class="flex justify-center">
+        <ngm-spin />
+      </div>
+    }
+
+    @if (!done()) {
+      <button
+        (waIntersectionObservee)="onIntersection()"
+        class="w-full flex justify-center p-2 cursor-pointer hover:bg-hover-bg"
+        [disabled]="loading()"
+        (click)="onIntersection()"
+      >
+        <i class="ri-arrow-down-wide-line"></i>
+      </button>
+    }
+  </div>
 </div>

@@ -14,12 +14,19 @@ import { switchMap, tap } from 'rxjs/operators'
 import {
   CopilotUsageService,
   DateRelativePipe,
-  ICopilotUser,
+  ICopilotUserUsageSummary,
   injectFormatRelative,
   OrderTypeEnum,
   ToastrService
 } from '../../../../@core'
-import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTableImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-users',
@@ -35,6 +42,8 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipI
     ZardButtonComponent,
     WaIntersectionObserver,
     NgmCommonModule,
+    ZardInputDirective,
+    ...ZardTableImports,
     OrgAvatarComponent,
     UserProfileInlineComponent,
     DateRelativePipe
@@ -52,11 +61,12 @@ export class CopilotUsersComponent {
   readonly formatRelative = injectFormatRelative()
   readonly locale = inject(LOCALE_ID)
 
-  readonly usages = signal<ICopilotUser[]>([])
+  readonly usages = signal<ICopilotUserUsageSummary[]>([])
+  readonly expandedIds = signal<Set<string>>(new Set())
+  readonly detailLoadingIds = signal<Set<string>>(new Set())
 
   readonly editId = signal<string | null>(null)
   readonly tokenLimit = model<number>(null)
-  readonly priceLimit = model<number>(null)
 
   readonly loading = signal(false)
   readonly pageSize = 20
@@ -67,17 +77,23 @@ export class CopilotUsersComponent {
     this.loadMore()
   }
 
-  renewToken(id: string) {
-    this.editId.set(id)
+  renewToken(item: ICopilotUserUsageSummary) {
+    this.tokenLimit.set(item.tokenLimit)
+    this.editId.set(this.usageId(item))
   }
 
-  save(id: string) {
+  setTokenLimit(value: string | number | null) {
+    this.tokenLimit.set(value === null || value === '' ? null : Number(value))
+  }
+
+  save(item: ICopilotUserUsageSummary) {
     this.loading.set(true)
-    this.usageService.renewUserLimit(id, this.tokenLimit(), this.priceLimit()).subscribe({
+    this.usageService.renewUserUsageSummary(item, this.tokenLimit()).subscribe({
       next: (result) => {
-        this.usages.update((records) => records.map((item) => (item.id === id ? { ...item, ...result } : item)))
+        this.usages.update((records) =>
+          records.map((record) => (this.usageId(record) === this.usageId(item) ? { ...record, ...result } : record))
+        )
         this.tokenLimit.set(null)
-        this.priceLimit.set(null)
         this.editId.set(null)
         this.loading.set(false)
       },
@@ -92,7 +108,7 @@ export class CopilotUsersComponent {
     return origin$.pipe(
       switchMap(() => {
         this.loading.set(true)
-        return this.usageService.getUserUsages({
+        return this.usageService.getUserUsageSummaries({
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize
@@ -113,6 +129,65 @@ export class CopilotUsersComponent {
       })
     )
   })
+
+  toggleDetails(item: ICopilotUserUsageSummary) {
+    const id = this.usageId(item)
+    const shouldExpand = !this.expandedIds().has(id)
+    this.expandedIds.update((state) => {
+      const next = new Set(state)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+
+    if (shouldExpand && item.details === undefined) {
+      this.loadDetails(item)
+    }
+  }
+
+  isExpanded(item: ICopilotUserUsageSummary) {
+    return this.expandedIds().has(this.usageId(item))
+  }
+
+  isLoadingDetails(item: ICopilotUserUsageSummary) {
+    return this.detailLoadingIds().has(this.usageId(item))
+  }
+
+  loadDetails(item: ICopilotUserUsageSummary) {
+    const id = this.usageId(item)
+    this.setDetailLoading(id, true)
+    this.usageService.getUserUsageDetails(item).subscribe({
+      next: (details) => {
+        this.usages.update((records) =>
+          records.map((record) => (this.usageId(record) === id ? { ...record, details } : record))
+        )
+        this.setDetailLoading(id, false)
+      },
+      error: (error) => {
+        this.setDetailLoading(id, false)
+        this._toastrService.error(error, 'Error')
+      }
+    })
+  }
+
+  usageId(item: ICopilotUserUsageSummary) {
+    return String(item.id)
+  }
+
+  private setDetailLoading(id: string, loading: boolean) {
+    this.detailLoadingIds.update((state) => {
+      const next = new Set(state)
+      if (loading) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
 
   onIntersection() {
     if (!this.loading() && !this.done()) {
