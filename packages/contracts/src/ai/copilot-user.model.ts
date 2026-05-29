@@ -7,7 +7,7 @@ import { ICopilot, TCopilotTokenUsage } from './copilot.model'
 export const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 
 /**
- * 
+ *
  */
 export interface ICopilotUser extends IBasePerTenantAndOrganizationEntityModel, TCopilotTokenUsage {
   orgId?: string
@@ -30,3 +30,30 @@ export interface ICopilotUser extends IBasePerTenantAndOrganizationEntityModel, 
   tokenTotalUsed?: number
   priceTotalUsed?: number
 }
+
+export interface ICopilotUserUsageGroupKey {
+  tenantId?: string
+  organizationId?: string
+  orgId?: string | null
+  userId?: string
+  provider?: AiProvider | string
+  model?: string
+  currency?: string | null
+}
+
+export interface ICopilotUserUsageSummary extends IBasePerTenantAndOrganizationEntityModel, TCopilotTokenUsage {
+  orgId?: string | null
+  org?: IOrganization
+  userId?: string
+  user?: IUser
+  provider?: AiProvider | string
+  model?: string
+  currency?: string | null
+  tokenTotalUsed?: number
+  priceTotalUsed?: number
+  groupKey: ICopilotUserUsageGroupKey
+  details?: ICopilotUser[]
+}
+
+export type TCopilotUserUsageSummaryRenewInput = ICopilotUserUsageGroupKey &
+  Pick<TCopilotTokenUsage, 'tokenLimit' | 'priceLimit'>
