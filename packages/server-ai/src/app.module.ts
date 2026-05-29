@@ -31,7 +31,7 @@ import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertToolModule } from './xpert-tool/index'
 import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
-import { CommandHandlers } from './shared'
+import { AgentMiddlewareRuntimeModule, CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
@@ -51,6 +51,7 @@ import { MetricsModule } from './metrics'
     imports: [
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
+        AgentMiddlewareRuntimeModule,
         AssistantBindingModule,
         ChatModule,
         ChatConversationModule,

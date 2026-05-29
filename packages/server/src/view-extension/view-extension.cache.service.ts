@@ -124,12 +124,12 @@ export class ViewExtensionCacheService implements OnModuleInit {
 	}
 
 	private getManifestCacheKey(context: XpertResolvedViewHostContext, slot: string) {
-		// Slot manifests may depend on assistant middleware capabilities, so the
-		// cache key must change when features/providers are added or removed.
-		const capabilitiesHash = createHash('sha1')
-			.update(JSON.stringify(this.normalizeCapabilities(context.capabilities)))
+		// Slot manifests may depend on host-provided activation state, so the
+		// cache key must change when features or host state are added or removed.
+		const activationHash = createHash('sha1')
+			.update(JSON.stringify(this.normalizeActivationState(context)))
 			.digest('hex')
-		return `view-extension:${this.getHostScopeKey(context)}:slot:${slot}:${capabilitiesHash}`
+		return `view-extension:${this.getHostScopeKey(context)}:slot:${slot}:${activationHash}`
 	}
 
 	private getDataCacheKey(context: XpertResolvedViewHostContext, viewKey: string, query: XpertViewQuery) {
@@ -176,11 +176,12 @@ export class ViewExtensionCacheService implements OnModuleInit {
 		})
 	}
 
-	private normalizeCapabilities(capabilities: XpertResolvedViewHostContext['capabilities']) {
+	private normalizeActivationState(context: XpertResolvedViewHostContext) {
 		return {
-			features: [...(capabilities?.features ?? [])].sort(),
-			middlewareProviders: [...(capabilities?.middlewareProviders ?? [])].sort(),
-			middlewareNodeKeys: [...(capabilities?.middlewareNodeKeys ?? [])].sort()
+			capabilities: {
+				features: [...(context.capabilities?.features ?? [])].sort()
+			},
+			hostState: context.hostState ?? {}
 		}
 	}
 

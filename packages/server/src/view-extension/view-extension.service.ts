@@ -284,11 +284,13 @@ export class ViewExtensionService {
 
 		await this.permissionService.assertHostReadable(definition, baseContext, resolution)
 
+		const contextExtension = isRecord(resolution.context) ? resolution.context : {}
+
 		return {
+			...contextExtension,
 			...baseContext,
 			workspaceId: resolution.workspaceId ?? null,
 			hostSnapshot: resolution.hostSnapshot,
-			capabilities: resolution.capabilities,
 			slots: [...definition.slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 		}
 	}
@@ -315,4 +317,8 @@ export class ViewExtensionService {
 			throw new BadRequestException(`Invalid remote component entry '${entry}'`)
 		}
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }

@@ -58,7 +58,9 @@ describe('ViewExtensionService file actions', () => {
 			resolve: jest.fn(async () => ({
 				workspaceId: 'workspace-1',
 				hostSnapshot: { id: 'assistant-1' },
-				capabilities: {}
+				context: {
+					capabilities: {}
+				}
 			}))
 		}
 		const hostDefinitionRegistry = {

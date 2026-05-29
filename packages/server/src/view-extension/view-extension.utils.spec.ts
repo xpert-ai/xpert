@@ -157,22 +157,19 @@ describe('view extension utils', () => {
 		const activatedManifest: XpertExtensionViewManifest = {
 			...manifest,
 			activation: {
-				requiredFeatures: ['sandbox', 'datax_metric_management'],
-				requiredMiddlewareProviders: ['SkillsMiddleware']
+				requiredFeatures: ['sandbox', 'datax_metric_management']
 			}
 		}
 		const activeContext: XpertResolvedViewHostContext = {
 			...context,
 			capabilities: {
-				features: ['sandbox', 'datax_metric_management'],
-				middlewareProviders: ['SkillsMiddleware']
+				features: ['sandbox', 'datax_metric_management']
 			}
 		}
 		const inactiveContext: XpertResolvedViewHostContext = {
 			...context,
 			capabilities: {
-				features: ['sandbox'],
-				middlewareProviders: ['SkillsMiddleware']
+				features: ['sandbox']
 			}
 		}
 

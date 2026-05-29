@@ -9,10 +9,11 @@ import {
     TXpertFeatures,
     XpertTypeEnum,
     XpertViewHostCapabilities,
+    XpertViewHostState,
     XpertViewSlot
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
-import { RequestContext, ViewHostDefinition, XpertViewHostDefinition } from '@xpert-ai/server-core'
+import { RequestContext, ViewHostDefinition, ViewHostDefinitionContract } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
@@ -22,7 +23,7 @@ export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 
 @Injectable()
 @ViewHostDefinition('agent')
-export class AgentViewHostDefinition implements XpertViewHostDefinition {
+export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     readonly hostType = 'agent'
     readonly slots: XpertViewSlot[] = [
         { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
@@ -44,7 +45,7 @@ export class AgentViewHostDefinition implements XpertViewHostDefinition {
             return null
         }
 
-        const capabilities = this.resolveCapabilities(xpert as IXpert)
+        const agentContext = this.resolveAgentContext(xpert as IXpert)
 
         return {
             workspaceId: xpert.workspaceId ?? null,
@@ -56,13 +57,18 @@ export class AgentViewHostDefinition implements XpertViewHostDefinition {
                 active: xpert.active ?? true,
                 environmentId: xpert.environmentId ?? null,
                 workspaceId: xpert.workspaceId ?? null,
-                capabilities
+                agent: {
+                    key: agentContext.agentKey ?? null
+                }
             },
-            capabilities
+            context: {
+                capabilities: agentContext.capabilities,
+                hostState: agentContext.hostState
+            }
         }
     }
 
-    async canRead(context: Parameters<XpertViewHostDefinition['canRead']>[0]) {
+    async canRead(context: Parameters<ViewHostDefinitionContract['canRead']>[0]) {
         if (RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
             return true
         }
@@ -75,13 +81,18 @@ export class AgentViewHostDefinition implements XpertViewHostDefinition {
         }
     }
 
-    private resolveCapabilities(xpert: IXpert): XpertViewHostCapabilities {
+    private resolveAgentContext(xpert: IXpert): {
+        agentKey: string | null
+        capabilities: XpertViewHostCapabilities
+        hostState: XpertViewHostState
+    } {
         const runtimeXpert = figureOutXpert(xpert, false) as IXpert
         const features = new Set<string>(this.getEnabledXpertFeatures(runtimeXpert.features))
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
         const graph = runtimeXpert.graph
         const agentKey = runtimeXpert.agent?.key ?? this.findPrimaryAgentKey(graph)
+        const knowledgebaseIds = runtimeXpert.agent?.knowledgebaseIds ?? []
 
         if (graph && agentKey) {
             for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
@@ -111,9 +122,21 @@ export class AgentViewHostDefinition implements XpertViewHostDefinition {
         }
 
         return {
-            features: Array.from(features).sort(),
-            middlewareProviders: Array.from(middlewareProviders).sort(),
-            middlewareNodeKeys: Array.from(middlewareNodeKeys).sort()
+            agentKey,
+            capabilities: {
+                features: Array.from(features).sort()
+            },
+            hostState: {
+                agent: {
+                    key: agentKey,
+                    middlewareProviders: Array.from(middlewareProviders).sort(),
+                    middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
+                    connections: knowledgebaseIds.map((id) => ({
+                        type: 'knowledgebase',
+                        id
+                    }))
+                }
+            }
         }
     }
 

@@ -19,7 +19,8 @@ describe('AgentViewHostDefinition', () => {
                     }
                 },
                 agent: {
-                    key: 'Agent_BusinessAssistant'
+                    key: 'Agent_BusinessAssistant',
+                    knowledgebaseIds: ['kb-1']
                 },
                 graph: {
                     nodes: [
@@ -66,10 +67,24 @@ describe('AgentViewHostDefinition', () => {
             relations: ['agent']
         })
         expect(middlewareRegistry.get).toHaveBeenCalledWith('BomDocumentIntakeMiddleware', 'org-1')
-        expect(resolved?.capabilities).toEqual({
-            features: ['bom_document_intake', 'sandbox'],
-            middlewareNodeKeys: ['Middleware_BOM'],
-            middlewareProviders: ['BomDocumentIntakeMiddleware']
+        expect(resolved?.context).toEqual({
+            capabilities: {
+                features: ['bom_document_intake', 'sandbox']
+            },
+            hostState: {
+                agent: {
+                    connections: [
+                        {
+                            id: 'kb-1',
+                            type: 'knowledgebase'
+                        }
+                    ],
+                    key: 'Agent_BusinessAssistant',
+                    middlewareNodeKeys: ['Middleware_BOM'],
+                    middlewareProviders: ['BomDocumentIntakeMiddleware']
+                }
+            }
         })
+        expect((resolved?.hostSnapshot as any).agent.key).toBe('Agent_BusinessAssistant')
     })
 })

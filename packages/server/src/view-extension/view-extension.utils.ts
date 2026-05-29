@@ -94,18 +94,10 @@ export function isManifestActiveForContext(
 	}
 
 	const requiredFeatures = normalizeStringList(activation.requiredFeatures)
-	const requiredMiddlewareProviders = normalizeStringList(activation.requiredMiddlewareProviders)
 
 	if (requiredFeatures.length) {
 		const availableFeatures = new Set(normalizeStringList(context.capabilities?.features))
 		if (!requiredFeatures.every((feature) => availableFeatures.has(feature))) {
-			return false
-		}
-	}
-
-	if (requiredMiddlewareProviders.length) {
-		const availableProviders = new Set(normalizeStringList(context.capabilities?.middlewareProviders))
-		if (!requiredMiddlewareProviders.every((provider) => availableProviders.has(provider))) {
 			return false
 		}
 	}

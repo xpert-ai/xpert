@@ -48,14 +48,15 @@ export interface XpertViewHostContext {
 
 export interface XpertViewHostCapabilities {
   features?: string[]
-  middlewareProviders?: string[]
-  middlewareNodeKeys?: string[]
 }
+
+export type XpertViewHostState = Record<string, unknown>
 
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
   slots: XpertViewSlot[]
   hostSnapshot?: unknown
   capabilities?: XpertViewHostCapabilities
+  hostState?: XpertViewHostState
 }
 
 export interface XpertViewSlot {
@@ -83,7 +84,6 @@ export interface XpertViewPolling {
 
 export interface XpertViewActivation {
   requiredFeatures?: string[]
-  requiredMiddlewareProviders?: string[]
 }
 
 export interface XpertWorkbenchViewOptions {
