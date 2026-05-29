@@ -7,6 +7,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImport
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
+import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
   AssistantCode,
   AiThreadService,
@@ -15,6 +16,7 @@ import {
   getErrorMessage,
   injectToastr
 } from '../../../@core'
+import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -445,7 +447,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #toastr = injectToastr()
+  readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #responseActive = signal(false)
+  #unregisterAssistantCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
   readonly facade = inject(ClawXpertFacade)
@@ -553,6 +557,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
 
   constructor() {
+    this.#unregisterAssistantCommand = registerAssistantChatSendMessageCommand(this.#clientCommands, {
+      getControl: () => this.control(),
+      isReady: () => this.facade.viewState() === 'ready',
+      unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+
     effect((onCleanup) => {
       const chatkitHost = this.chatkitHost()?.nativeElement
       const viewState = this.facade.viewState()
@@ -663,6 +673,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.#unregisterAssistantCommand?.()
+    this.#unregisterAssistantCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)

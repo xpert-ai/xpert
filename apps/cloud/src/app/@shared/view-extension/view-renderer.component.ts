@@ -22,6 +22,7 @@ import { TableViewRendererComponent } from './renderers/table-view-renderer.comp
 import { ListViewRendererComponent } from './renderers/list-view-renderer.component'
 import { DetailViewRendererComponent } from './renderers/detail-view-renderer.component'
 import { RawJsonViewRendererComponent } from './renderers/raw-json-view-renderer.component'
+import { RemoteComponentRendererComponent } from './renderers/remote-component-renderer.component'
 
 @Component({
   standalone: true,
@@ -34,7 +35,8 @@ import { RawJsonViewRendererComponent } from './renderers/raw-json-view-renderer
     TableViewRendererComponent,
     ListViewRendererComponent,
     DetailViewRendererComponent,
-    RawJsonViewRendererComponent
+    RawJsonViewRendererComponent,
+    RemoteComponentRendererComponent
   ],
   template: `
     <div class="flex flex-col gap-4">
@@ -53,7 +55,9 @@ import { RawJsonViewRendererComponent } from './renderers/raw-json-view-renderer
       }
 
       @if (error()) {
-        <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
+        <div
+          class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
+        >
           {{ error() }}
         </div>
       } @else {
@@ -113,8 +117,19 @@ import { RawJsonViewRendererComponent } from './renderers/raw-json-view-renderer
               />
             }
           }
+          @case ('remote_component') {
+            <xp-remote-component-renderer
+              [hostType]="hostType()"
+              [hostId]="hostId()"
+              [manifest]="manifest()"
+              [query]="query()"
+              [active]="active()"
+            />
+          }
           @default {
-            <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
+            <div
+              class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
+            >
               {{ 'PAC.ViewExtension.Unsupported' | translate: { Default: 'Unsupported view schema' } }}
             </div>
           }
@@ -145,24 +160,27 @@ export class ViewRendererComponent {
   readonly items = signal<unknown[]>([])
 
   constructor() {
-    effect(() => {
-      const manifest = this.manifest()
-      const defaultPageSize = this.defaultPageSize()
+    effect(
+      () => {
+        const manifest = this.manifest()
+        const defaultPageSize = this.defaultPageSize()
 
-      this.items.set([])
-      this.data.set({})
-      this.error.set(null)
+        this.items.set([])
+        this.data.set({})
+        this.error.set(null)
 
-      if (manifest.view.type === 'table' || manifest.view.type === 'list') {
-        this.query.set({
-          page: 1,
-          pageSize: defaultPageSize
-        })
-        return
-      }
+        if (manifest.view.type === 'table' || manifest.view.type === 'list') {
+          this.query.set({
+            page: 1,
+            pageSize: defaultPageSize
+          })
+          return
+        }
 
-      this.query.set({})
-    }, { allowSignalWrites: true })
+        this.query.set({})
+      },
+      { allowSignalWrites: true }
+    )
 
     effect(() => {
       this.hostType()
@@ -171,6 +189,9 @@ export class ViewRendererComponent {
       this.query()
 
       if (!this.active()) {
+        return
+      }
+      if (this.manifest().view.type === 'remote_component') {
         return
       }
 
@@ -198,8 +219,10 @@ export class ViewRendererComponent {
     })
   }
 
-  readonly toolbarActions = computed(
-    () => (this.manifest().actions ?? []).filter((action) => action.placement === 'toolbar')
+  readonly toolbarActions = computed(() =>
+    this.manifest().view.type === 'remote_component'
+      ? []
+      : (this.manifest().actions ?? []).filter((action) => action.placement === 'toolbar')
   )
   readonly rowActions = computed(() => (this.manifest().actions ?? []).filter((action) => action.placement === 'row'))
   readonly defaultPageSize = computed(() => {
@@ -343,9 +366,7 @@ export class ViewRendererComponent {
     try {
       const manifest = this.manifest()
       const query = this.query()
-      const data = await firstValueFrom(
-        this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query)
-      )
+      const data = await firstValueFrom(this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query))
 
       if (requestId !== this.requestId) {
         return

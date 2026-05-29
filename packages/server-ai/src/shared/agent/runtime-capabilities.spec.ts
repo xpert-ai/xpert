@@ -1,4 +1,8 @@
-import { mergeRuntimeCapabilitiesSelection, normalizeRuntimeCapabilitiesSelection } from './runtime-capabilities'
+import {
+    getRecommendedRuntimeSkillSelection,
+    mergeRuntimeCapabilitiesSelection,
+    normalizeRuntimeCapabilitiesSelection
+} from './runtime-capabilities'
 
 describe('runtime capabilities selection', () => {
     it('normalizes missing sub-agents as an empty allow-list', () => {
@@ -67,6 +71,34 @@ describe('runtime capabilities selection', () => {
                 }
             }
         })
+    })
+
+    it('extracts only recommended runtime skills as explicit skill selections', () => {
+        expect(
+            getRecommendedRuntimeSkillSelection({
+                mode: 'allowlist',
+                skills: { workspaceId: 'workspace-1', ids: ['skill-available'] },
+                plugins: { nodeKeys: [] },
+                subAgents: { nodeKeys: [] },
+                recommended: {
+                    skills: { ids: [' skill-recommended ', 'skill-recommended'] },
+                    plugins: { nodeKeys: [] },
+                    subAgents: { nodeKeys: [] }
+                }
+            })
+        ).toEqual({
+            workspaceId: 'workspace-1',
+            ids: ['skill-recommended']
+        })
+
+        expect(
+            getRecommendedRuntimeSkillSelection({
+                mode: 'allowlist',
+                skills: { workspaceId: 'workspace-1', ids: ['skill-available'] },
+                plugins: { nodeKeys: [] },
+                subAgents: { nodeKeys: [] }
+            })
+        ).toEqual({ ids: [] })
     })
 
     it('preserves recommended metadata while merging selections', () => {

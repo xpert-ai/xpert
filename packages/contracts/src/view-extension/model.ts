@@ -274,6 +274,13 @@ export interface XpertViewActionDefinition {
   permissions?: string[]
 }
 
+export interface XpertViewClientCommandDefinition {
+  key: string
+  label?: I18nObject
+  description?: I18nObject
+  permissions?: string[]
+}
+
 export interface XpertExtensionViewManifest {
   key: string
   title: I18nObject
@@ -294,6 +301,7 @@ export interface XpertExtensionViewManifest {
   dataSource: XpertViewDataSource
   parameters?: XpertViewParameterDefinition[]
   actions?: XpertViewActionDefinition[]
+  clientCommands?: XpertViewClientCommandDefinition[]
 }
 
 export interface XpertViewActionRequest {

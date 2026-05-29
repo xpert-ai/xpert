@@ -17,6 +17,7 @@ import { AgentStateAnnotation } from './state'
 import { buildReferencedPrompt, normalizeReferences } from './human-input'
 import { isPromptWorkflowInvocationCandidate } from './prompt-workflow-invocation'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
+import { buildSelectedRuntimeSkillsPrompt } from './runtime-skills-prompt'
 
 type ResolvedFile = _TFile & {
     id?: string
@@ -156,7 +157,14 @@ export async function createHumanMessage(
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
     const references = normalizeReferences(agentHuman?.references)
     const referencePrompt = buildReferencedPrompt(references)
-    const finalText =
+    const selectedSkillsPrompt = await buildSelectedRuntimeSkillsPrompt(
+        queryBus,
+        state,
+        human,
+        agentHuman,
+        options?.xpert
+    )
+    const finalTextWithoutSkills =
         input.trim().length > 0 && referencePrompt.trim().length > 0
             ? input.includes(referencePrompt)
                 ? input
@@ -164,6 +172,7 @@ export async function createHumanMessage(
             : input.trim().length > 0
               ? input
               : referencePrompt
+    const finalText = appendPromptSection(finalTextWithoutSkills, selectedSkillsPrompt)
     const imageReferences = references.filter(
         (reference): reference is Extract<(typeof references)[number], { type: 'image' }> => reference.type === 'image'
     )
@@ -316,6 +325,13 @@ function buildFileUnderstandingPrompt(
 function truncatePromptText(text: string, maxLength: number) {
     const normalized = text.replace(/\s+/g, ' ').trim()
     return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
+}
+
+function appendPromptSection(text: string, section: string | null) {
+    if (!section) {
+        return text
+    }
+    return text.trim().length ? `${text.trimEnd()}\n\n${section}` : section
 }
 
 async function resolvePromptWorkflowHumanInput(

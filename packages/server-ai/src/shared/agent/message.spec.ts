@@ -2,6 +2,7 @@ import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { GetFilePreviewQuery } from '../../file-understanding'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
+import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 
 describe('createHumanMessage', () => {
     it('expands raw prompt workflow invocations before creating the agent human message', async () => {
@@ -67,6 +68,94 @@ describe('createHumanMessage', () => {
         )
 
         expect(message.content).toBe('Please review src/app.ts')
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('appends explicitly selected runtime skills to the agent human message', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof ListWorkspaceSkillsQuery) {
+                    return [
+                        {
+                            id: 'skill-motor-bom',
+                            name: 'motor-bom-parse',
+                            metadata: {
+                                name: 'motor-bom-parse'
+                            }
+                        }
+                    ]
+                }
+                return null
+            })
+        }
+
+        const message = await createHumanMessage(
+            {
+                execute: jest.fn()
+            } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                selectedSkillIds: ['skill-motor-bom'],
+                selectedSkillWorkspaceId: 'workspace-1',
+                human: {
+                    input: 'Parse contract data from the documents',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: { workspaceId: 'workspace-1', ids: ['skill-motor-bom'] },
+                        plugins: { nodeKeys: [] },
+                        subAgents: { nodeKeys: [] },
+                        recommended: {
+                            skills: { workspaceId: 'workspace-1', ids: ['skill-motor-bom'] },
+                            plugins: { nodeKeys: [] },
+                            subAgents: { nodeKeys: [] }
+                        }
+                    }
+                }
+            } as any,
+            undefined,
+            {
+                xpert: {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                }
+            }
+        )
+
+        expect(message.content).toContain('Parse contract data from the documents')
+        expect(message.content).toContain('<selected_runtime_skills>')
+        expect(message.content).toContain('For this request, I selected the following skill(s)')
+        expect(message.content).toContain('motor-bom-parse')
+        expect(message.content).toContain('please use the matching skill')
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListWorkspaceSkillsQuery))
+    })
+
+    it('does not append available-only runtime skills as an explicit user skill mention', async () => {
+        const queryBus = {
+            execute: jest.fn()
+        }
+
+        const message = await createHumanMessage(
+            {
+                execute: jest.fn()
+            } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                selectedSkillIds: ['skill-motor-bom'],
+                selectedSkillWorkspaceId: 'workspace-1',
+                human: {
+                    input: 'Parse contract data from the documents',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: { workspaceId: 'workspace-1', ids: ['skill-motor-bom'] },
+                        plugins: { nodeKeys: [] },
+                        subAgents: { nodeKeys: [] }
+                    }
+                }
+            } as any,
+            undefined
+        )
+
+        expect(message.content).toBe('Parse contract data from the documents')
         expect(queryBus.execute).not.toHaveBeenCalled()
     })
 

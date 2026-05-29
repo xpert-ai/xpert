@@ -55,7 +55,8 @@ jest.mock('./execution', () => {
 })
 
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { KnowledgebaseRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'
+import { AssistantTaskRuntimeCapability, KnowledgebaseRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'
+import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
 import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limit.command'
@@ -66,6 +67,7 @@ import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
@@ -485,6 +487,62 @@ describe('AgentMiddlewareRuntimeService', () => {
                 agentKey: 'agent-1',
                 knowledgebaseId: 'kb-1',
                 writeKey: 'bom-root:root-1'
+            })
+        )
+    })
+
+    it('starts an assistant task through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof XpertChatCommand) {
+                return of({ data: { event: 'done' } } as MessageEvent)
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+            xpertId: 'assistant-1',
+            agentKey: 'agent-main',
+            taskId: 'task-1',
+            prompt: '重新解析合同',
+            files: [
+                {
+                    fileAssetId: 'file-asset-1',
+                    storageFileId: 'storage-1',
+                    name: '合同.pdf',
+                    mimeType: 'application/pdf'
+                }
+            ],
+            context: {
+                source: 'test'
+            }
+        })
+
+        expect(result).toEqual(expect.objectContaining({ status: 'running', taskId: 'task-1' }))
+        const command = commandBus.execute.mock.calls[0][0] as XpertChatCommand
+        expect(command.request).toEqual(
+            expect.objectContaining({
+                action: 'send',
+                message: expect.objectContaining({
+                    input: expect.objectContaining({
+                        input: '重新解析合同',
+                        files: [
+                            expect.objectContaining({
+                                fileId: 'file-asset-1',
+                                fileAssetId: 'file-asset-1',
+                                storageFileId: 'storage-1'
+                            })
+                        ]
+                    })
+                })
+            })
+        )
+        expect(command.options).toEqual(
+            expect.objectContaining({
+                xpertId: 'assistant-1',
+                from: 'job',
+                taskId: 'task-1',
+                context: { source: 'test' }
             })
         )
     })

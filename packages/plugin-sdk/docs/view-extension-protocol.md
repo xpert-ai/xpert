@@ -48,14 +48,15 @@ Rules:
 
 Parent to iframe:
 
-| Type               | Purpose                                                                   |
-| ------------------ | ------------------------------------------------------------------------- |
-| `init`             | Supplies manifest, initial data payload, query, locale, and theme tokens. |
-| `data`             | Response to `requestData`.                                                |
-| `parameterOptions` | Response to `requestParameterOptions`.                                    |
-| `actionResult`     | Response to `executeAction`.                                              |
-| `fileActionResult` | Response to `executeFileAction`.                                          |
-| `error`            | Request-scoped failure response.                                          |
+| Type                  | Purpose                                                                   |
+| --------------------- | ------------------------------------------------------------------------- |
+| `init`                | Supplies manifest, initial data payload, query, locale, and theme tokens. |
+| `data`                | Response to `requestData`.                                                |
+| `parameterOptions`    | Response to `requestParameterOptions`.                                    |
+| `actionResult`        | Response to `executeAction`.                                              |
+| `fileActionResult`    | Response to `executeFileAction`.                                          |
+| `clientCommandResult` | Response to `invokeClientCommand`.                                        |
+| `error`               | Request-scoped failure response.                                          |
 
 Iframe to parent:
 
@@ -68,6 +69,7 @@ Iframe to parent:
 | `requestParameterOptions` | Requests dynamic parameter options.          |
 | `executeAction`           | Executes a JSON action.                      |
 | `executeFileAction`       | Executes a multipart file action.            |
+| `invokeClientCommand`     | Requests a host-side client command.         |
 
 No other message type may perform backend I/O until it is added to this document, the host bridge, and the provider interface.
 
@@ -102,6 +104,8 @@ Rules:
 - If `transport` is omitted, hosts must treat the action as `json` for backward compatibility.
 - File actions should normally use `actionType: 'invoke'` and should not be rendered as generic toolbar buttons unless the host explicitly supports file input for declared actions.
 - `inputSchema` only describes JSON fields. It does not describe the uploaded file body.
+- `clientCommands` declares host-side UI capabilities that the iframe may request through `invokeClientCommand`.
+- Client commands are resolved by the host page, not by the plugin provider. They must be allowlisted in the manifest and must return structured success or error data.
 - Manifests must not include access tokens, concrete API URLs, host IDs, assistant IDs, or tenant IDs.
 
 ## Provider Interface Mapping
@@ -162,6 +166,28 @@ Mapping:
 | JSON action       | `actions[].transport = 'json'` or omitted     | `executeAction`           | JSON `POST /actions/:key`           | `executeViewAction`       |
 | File action       | `actions[].transport = 'file'`                | `executeFileAction`       | multipart `POST /actions/:key/file` | `executeViewFileAction`   |
 | Remote entry      | `view.type = 'remote_component'`              | host-managed              | `GET /remote-component/entry`       | `getRemoteComponentEntry` |
+| Client command    | `clientCommands[].key`                        | `invokeClientCommand`     | host in-page registry               | host-managed              |
+
+## Client Command Rules
+
+Client commands let a remote component ask the current host page to perform a UI-local action, for example sending a message through the page's visible assistant ChatKit. They are not backend RPC and they must not expose auth or host internals to the iframe.
+
+```ts
+type XpertViewClientCommandDefinition = {
+  key: string
+  label?: I18nObject
+  description?: I18nObject
+  permissions?: string[]
+}
+```
+
+Rules:
+
+- The iframe may call only command keys declared in `manifest.clientCommands`.
+- The host must reject messages from the wrong iframe window or wrong `instanceId`.
+- Command payloads are intent data only. They may include text, attachments, references, and view state, but not tokens, API URLs, assistant IDs, or tenant IDs.
+- If the command handler is missing or unavailable, the host should return a structured unsupported result so the remote component can fall back to a backend action.
+- Provider code must continue to work without client commands; they are an optional host enhancement.
 
 ## File Action Rules
 

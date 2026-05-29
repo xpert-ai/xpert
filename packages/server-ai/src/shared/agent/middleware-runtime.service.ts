@@ -1,9 +1,14 @@
-import { ICopilotModel, IXpertAgentExecution, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { randomUUID } from 'crypto'
+import { ICopilotModel, IXpertAgentExecution, TChatRequest, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { Observable } from 'rxjs'
 import {
     AIModelProviderNotFoundException,
+    AgentMiddlewareAssistantTaskFile,
+    AgentMiddlewareAssistantTaskInput,
+    AgentMiddlewareAssistantTaskResult,
     AgentMiddlewareCreateModelClientOptions,
     AgentMiddlewareKnowledgebaseDocument,
     AgentMiddlewareKnowledgebaseListInput,
@@ -15,6 +20,7 @@ import {
     AgentMiddlewareRuntimeApi,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
+    AssistantTaskRuntimeCapability,
     DefaultAgentMiddlewareRuntimeCapabilityRegistry,
     KnowledgebaseRuntimeCapability,
     RequestContext
@@ -31,6 +37,7 @@ import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
+import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { wrapAgentExecution } from './execution'
 
 @Injectable()
@@ -43,6 +50,12 @@ export class AgentMiddlewareRuntimeService {
                 list: (input) => this.listKnowledgebases(input),
                 search: (input) => this.searchKnowledgebase(input),
                 writeChunk: (input) => this.writeKnowledgeChunk(input)
+            }
+        ],
+        [
+            AssistantTaskRuntimeCapability,
+            {
+                startTask: (input) => this.startAssistantTask(input)
             }
         ]
     ])
@@ -194,6 +207,56 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new WriteAgentKnowledgeChunkCommand(input))
     }
 
+    async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
+        const xpertId = normalizeOptionalString(input.xpertId)
+        const prompt = normalizeOptionalString(input.prompt)
+        if (!xpertId) {
+            throw new Error('xpertId is required to start an assistant task')
+        }
+        if (!prompt) {
+            throw new Error('prompt is required to start an assistant task')
+        }
+
+        const taskId = normalizeOptionalString(input.taskId) ?? randomUUID()
+        const request: TChatRequest = {
+            action: 'send',
+            ...(normalizeOptionalString(input.conversationId)
+                ? { conversationId: normalizeOptionalString(input.conversationId) }
+                : {}),
+            ...(normalizeOptionalString(input.projectId)
+                ? { projectId: normalizeOptionalString(input.projectId) }
+                : {}),
+            message: {
+                clientMessageId: normalizeOptionalString(input.clientMessageId) ?? `assistant-task:${taskId}`,
+                input: {
+                    input: prompt,
+                    files: normalizeTaskFiles(input.files)
+                }
+            }
+        }
+
+        const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
+            new XpertChatCommand(request, {
+                xpertId,
+                from: 'job',
+                taskId,
+                projectId: normalizeOptionalString(input.projectId) ?? undefined,
+                context: input.context
+            })
+        )
+
+        stream.subscribe({
+            error: (error) => this.#logger.error(error),
+            complete: () => undefined
+        })
+
+        return {
+            status: 'running',
+            taskId,
+            conversationId: normalizeOptionalString(input.conversationId)
+        }
+    }
+
     readonly api = {
         createModelClient: (...args) => this.createModelClient(...args),
         wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
@@ -209,4 +272,39 @@ export class AgentMiddlewareRuntimeService {
 
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function normalizeTaskFiles(files: AgentMiddlewareAssistantTaskFile[] | undefined) {
+    if (!Array.isArray(files)) {
+        return []
+    }
+
+    return files
+        .map((file) => {
+            const fileAssetId = normalizeOptionalString(file.fileAssetId) ?? normalizeOptionalString(file.fileId)
+            const storageFileId = normalizeOptionalString(file.storageFileId)
+            const originalName = normalizeOptionalString(file.originalName) ?? normalizeOptionalString(file.name)
+            const mimeType = normalizeOptionalString(file.mimeType) ?? normalizeOptionalString(file.mimetype)
+            if (fileAssetId) {
+                return {
+                    id: fileAssetId,
+                    fileId: fileAssetId,
+                    fileAssetId,
+                    ...(storageFileId ? { storageFileId } : {}),
+                    ...(originalName ? { originalName } : {}),
+                    ...(mimeType ? { mimeType } : {}),
+                    ...(typeof file.size === 'number' ? { size: file.size } : {})
+                }
+            }
+            if (storageFileId) {
+                return {
+                    id: storageFileId,
+                    ...(originalName ? { originalName } : {}),
+                    ...(mimeType ? { mimetype: mimeType, mimeType } : {}),
+                    ...(typeof file.size === 'number' ? { size: file.size } : {})
+                }
+            }
+            return null
+        })
+        .filter(Boolean)
 }

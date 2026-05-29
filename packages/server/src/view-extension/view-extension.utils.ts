@@ -6,6 +6,7 @@ import {
 	XpertViewActionPlacement,
 	XpertViewActionTransport,
 	XpertViewActionType,
+	XpertViewClientCommandDefinition,
 	XpertViewDataSource,
 	XpertViewFilter,
 	XpertViewFilterOperator,
@@ -80,7 +81,8 @@ export function normalizeManifest(
 			version: manifest.source?.version
 		},
 		dataSource: normalizeDataSource(manifest.dataSource),
-		actions: normalizeActions(manifest.actions)
+		actions: normalizeActions(manifest.actions),
+		clientCommands: normalizeClientCommands(manifest.clientCommands)
 	}
 }
 
@@ -309,6 +311,28 @@ function normalizeActions(actions?: XpertViewActionDefinition[]) {
 			placement,
 			transport
 		}
+	})
+}
+
+function normalizeClientCommands(clientCommands?: XpertViewClientCommandDefinition[]) {
+	const seenKeys = new Set<string>()
+
+	return clientCommands?.map((command) => {
+		if (!command.key?.trim()) {
+			throw new BadRequestException('View client commands must have a key')
+		}
+		if (seenKeys.has(command.key)) {
+			throw new BadRequestException(`Duplicate view client command '${command.key}'`)
+		}
+		seenKeys.add(command.key)
+		if (command.label !== undefined) {
+			assertI18nText(command.label, `View client command '${command.key}' has an invalid label`)
+		}
+		if (command.description !== undefined) {
+			assertI18nText(command.description, `View client command '${command.key}' has an invalid description`)
+		}
+
+		return command
 	})
 }
 

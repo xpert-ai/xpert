@@ -45,6 +45,9 @@ export class ViewExtensionApiService {
     if (query.selectionId) {
       params = params.set('selectionId', query.selectionId)
     }
+    if (query.parameters && Object.keys(query.parameters).length) {
+      params = params.set('parameters', JSON.stringify(query.parameters))
+    }
     if (query.filters?.length) {
       params = params.set('filters', JSON.stringify(query.filters))
     }
@@ -55,10 +58,90 @@ export class ViewExtensionApiService {
     )
   }
 
-  executeAction(hostType: string, hostId: string, viewKey: string, actionKey: string, body: { targetId?: string }) {
+  getRemoteComponentEntry(hostType: string, hostId: string, viewKey: string) {
+    return this.httpClient.get(
+      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/remote-component/entry`,
+      { responseType: 'text' }
+    )
+  }
+
+  getViewParameterOptions(
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    parameterKey: string,
+    query: {
+      search?: string
+      parameters?: Record<string, unknown>
+    } = {}
+  ) {
+    let params = new HttpParams()
+    if (query.search) {
+      params = params.set('search', query.search)
+    }
+    if (query.parameters && Object.keys(query.parameters).length) {
+      params = params.set('parameters', JSON.stringify(query.parameters))
+    }
+
+    return this.httpClient.get(
+      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/parameters/${encodeURIComponent(parameterKey)}/options`,
+      { params }
+    )
+  }
+
+  executeAction(
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    actionKey: string,
+    body: {
+      targetId?: string
+      input?: Record<string, unknown> | null
+      parameters?: Record<string, unknown>
+    }
+  ) {
     return this.httpClient.post<XpertViewActionResult>(
       `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}`,
       body
+    )
+  }
+
+  executeFileAction(
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    actionKey: string,
+    body: {
+      targetId?: string
+      input?: Record<string, unknown> | null
+      parameters?: Record<string, unknown>
+      file: {
+        name?: string
+        type?: string
+        size?: number
+        buffer: ArrayBuffer
+      }
+    }
+  ) {
+    const formData = new FormData()
+    const fileName = body.file.name || 'upload.bin'
+    const file = new File([body.file.buffer], fileName, {
+      type: body.file.type || 'application/octet-stream'
+    })
+    formData.append('file', file, fileName)
+    if (body.targetId) {
+      formData.append('targetId', body.targetId)
+    }
+    if (body.input) {
+      formData.append('input', JSON.stringify(body.input))
+    }
+    if (body.parameters) {
+      formData.append('parameters', JSON.stringify(body.parameters))
+    }
+
+    return this.httpClient.post<XpertViewActionResult>(
+      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}/file`,
+      formData
     )
   }
 }

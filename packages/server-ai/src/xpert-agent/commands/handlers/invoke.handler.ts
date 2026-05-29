@@ -272,7 +272,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
-        const runtimeContext = mergeRuntimeContextWithEnv(options.context, options.environment)
+        const runtimeContext = withHumanInputFileContext(
+            mergeRuntimeContextWithEnv(options.context, options.environment),
+            state?.[STATE_VARIABLE_HUMAN]?.files
+        )
         const runtimeSystemState = buildRuntimeSystemState(state?.[STATE_VARIABLE_SYS], {
             language: languageCode,
             userEmail: user.email,
@@ -589,6 +592,22 @@ function toInterruptCommand(resume?: TResumeCommand | null): TInterruptCommand |
 
 function shouldRejectResumeWithGraph(resume?: TResumeCommand | null): boolean {
     return resume?.decision.type === 'reject' && resume.decision.payload === undefined
+}
+
+function withHumanInputFileContext(context: Record<string, unknown> | null | undefined, files: unknown) {
+    if (!Array.isArray(files) || !files.length) {
+        return context
+    }
+
+    const base = context ?? {}
+    const humanInput = isRecord(base.humanInput) ? base.humanInput : {}
+    return {
+        ...base,
+        humanInput: {
+            ...humanInput,
+            files
+        }
+    }
 }
 
 function buildRuntimeSystemState(

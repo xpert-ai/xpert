@@ -23,7 +23,12 @@ export type TRuntimeCapabilitiesSelectionWithRecommended = TRuntimeCapabilitiesS
     recommended?: TRuntimeCapabilitiesSelectionSet
 }
 
-function normalizeStringArray(value: unknown): string[] {
+export type TRuntimeSkillSelection = {
+    workspaceId?: string
+    ids: string[]
+}
+
+export function normalizeStringArray(value: unknown): string[] {
     if (!Array.isArray(value)) {
         return []
     }
@@ -168,6 +173,19 @@ export function normalizeRuntimeCapabilitiesSelection(
         mode: 'allowlist',
         ...merged,
         ...(hasSelectionSet(recommended) ? { recommended } : {})
+    }
+}
+
+export function getRecommendedRuntimeSkillSelection(value: unknown): TRuntimeSkillSelection {
+    const runtimeCapabilities = normalizeRuntimeCapabilitiesSelection(value)
+    const recommendedSkills = runtimeCapabilities?.recommended?.skills
+    if (!recommendedSkills?.ids.length) {
+        return { ids: [] }
+    }
+
+    return {
+        workspaceId: recommendedSkills.workspaceId ?? runtimeCapabilities.skills.workspaceId,
+        ids: recommendedSkills.ids
     }
 }
 
