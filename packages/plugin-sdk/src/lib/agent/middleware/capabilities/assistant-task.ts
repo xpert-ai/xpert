@@ -1,6 +1,12 @@
 import { createRuntimeCapability } from '../runtime-capability'
 
-export type AgentMiddlewareAssistantTaskStatus = 'queued' | 'running'
+export type AgentMiddlewareAssistantTaskStatus =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'interrupted'
+  | 'unknown'
 
 export type AgentMiddlewareAssistantTaskFile = {
   id?: string
@@ -32,10 +38,22 @@ export type AgentMiddlewareAssistantTaskResult = {
   taskId?: string
   executionId?: string
   conversationId?: string
+  threadId?: string
+  errorMessage?: string
+}
+
+export type AgentMiddlewareAssistantTaskStatusInput = {
+  taskId?: string
+  executionId?: string
+  conversationId?: string
+  threadId?: string
+  clientMessageId?: string
+  xpertId?: string
 }
 
 export interface AgentMiddlewareAssistantTaskApi {
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
+  getTaskStatus?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskResult | null>
 }
 
 export const AssistantTaskRuntimeCapability = createRuntimeCapability<AgentMiddlewareAssistantTaskApi>(

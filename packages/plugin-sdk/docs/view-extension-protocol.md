@@ -51,6 +51,7 @@ Parent to iframe:
 | Type                  | Purpose                                                                   |
 | --------------------- | ------------------------------------------------------------------------- |
 | `init`                | Supplies manifest, initial data payload, query, locale, and theme tokens. |
+| `hostEvent`           | Delivers a host-side event that matched `manifest.hostEvents`.            |
 | `data`                | Response to `requestData`.                                                |
 | `parameterOptions`    | Response to `requestParameterOptions`.                                    |
 | `actionResult`        | Response to `executeAction`.                                              |
@@ -106,7 +107,92 @@ Rules:
 - `inputSchema` only describes JSON fields. It does not describe the uploaded file body.
 - `clientCommands` declares host-side UI capabilities that the iframe may request through `invokeClientCommand`.
 - Client commands are resolved by the host page, not by the plugin provider. They must be allowlisted in the manifest and must return structured success or error data.
+- `hostEvents` declares host-side events that the view wants to observe. The host owns event normalization and matching; the plugin owns event semantics and UI behavior.
 - Manifests must not include access tokens, concrete API URLs, host IDs, assistant IDs, or tenant IDs.
+
+## Host Event Subscriptions
+
+Host events let a view react to activity that happened outside the iframe, for example an assistant tool call completing in the visible ChatKit. They are browser-local signals, not backend subscriptions.
+
+The provider declares subscriptions in the manifest:
+
+```ts
+type XpertViewHostEventSubscription = {
+  key: string
+  event: string
+  filter?: {
+    sources?: string[]
+    toolNames?: string[]
+    viewKeys?: string[]
+    visualizationTypes?: string[]
+  }
+  action?: {
+    // Defaults to 'refresh'.
+    type?: 'refresh' | 'forward' | 'refresh-and-forward'
+    debounceMs?: number
+  }
+}
+
+type XpertExtensionViewManifest = {
+  hostEvents?: {
+    subscriptions?: XpertViewHostEventSubscription[]
+  }
+}
+```
+
+Current data-xpert hosts normalize ChatKit logs into these event types:
+
+| Event                             | Source    | Notes                                                                                                  |
+| --------------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| `assistant.tool.completed`        | `chatkit` | Emitted from `lg.tool.end` logs and component logs that contain tool output or visualization metadata. |
+| `assistant.visualization.emitted` | `chatkit` | Emitted when a component log contains visualization metadata but the host cannot resolve a tool name.  |
+
+Action behavior:
+
+| Action                | Host behavior                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `refresh`             | Re-run the normal view refresh flow. Declarative views call `getViewData`; remote components receive the current `init` again. |
+| `forward`             | Send a `hostEvent` message to the iframe. The remote component decides whether and how to refresh.                             |
+| `refresh-and-forward` | Do both.                                                                                                                       |
+
+Matching rules:
+
+- The host first matches the current assistant context. The assistant identifier is host-internal and must not be forwarded to the iframe.
+- `subscription.event` must equal the normalized host event type.
+- `sources`, `toolNames`, `viewKeys`, and `visualizationTypes` are optional allowlists. If present, the event field must match.
+- `debounceMs` is a lightweight duplicate guard for cases where one tool completion appears in multiple ChatKit logs.
+- The host must not hard-code plugin view keys or tool names in the workbench extension renderer. Plugin-owned behavior belongs in the manifest and the remote component.
+
+The forwarded `hostEvent` payload is intentionally small and sanitized:
+
+```ts
+{
+  type: 'hostEvent',
+  event: {
+    id: 'assistant.tool.completed:...',
+    type: 'assistant.tool.completed',
+    source: 'chatkit',
+    receivedAt: '2026-05-29T00:00:00.000Z',
+    toolName: 'save_contract',
+    toolCallId: 'tool-call-id',
+    runId: 'run-id',
+    threadId: 'thread-id',
+    data: {
+      output: {
+        contractId: 'contract-1'
+      }
+    },
+    visualization: {
+      type: 'xpert.extension_view',
+      viewKey: 'provider__review'
+    }
+  }
+}
+```
+
+The payload must not include access tokens, API URLs, host IDs, assistant IDs, tenant IDs, organization IDs, or host-internal assistant routing fields.
+
+Remote components should treat `hostEvent` as an intent signal. They may inspect `event.toolName`, `event.data.output`, and visualization metadata to switch tabs, update query parameters, refresh one data section, or ignore the event.
 
 ## Provider Interface Mapping
 
@@ -167,6 +253,7 @@ Mapping:
 | File action       | `actions[].transport = 'file'`                | `executeFileAction`       | multipart `POST /actions/:key/file` | `executeViewFileAction`   |
 | Remote entry      | `view.type = 'remote_component'`              | host-managed              | `GET /remote-component/entry`       | `getRemoteComponentEntry` |
 | Client command    | `clientCommands[].key`                        | `invokeClientCommand`     | host in-page registry               | host-managed              |
+| Host event        | `hostEvents.subscriptions[]`                  | `hostEvent`               | browser-local                       | host-managed              |
 
 ## Client Command Rules
 

@@ -63,6 +63,7 @@ import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limi
 import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-record.command'
 import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
+import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
@@ -545,5 +546,38 @@ describe('AgentMiddlewareRuntimeService', () => {
                 context: { source: 'test' }
             })
         )
+    })
+
+    it('checks assistant task status from the chat conversation thread', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof GetChatConversationQuery) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    xpertId: 'assistant-1',
+                    status: 'idle'
+                }
+            }
+
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).getTaskStatus?.({
+            threadId: 'thread-1',
+            xpertId: 'assistant-1'
+        })
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                status: 'succeeded',
+                conversationId: 'conversation-1',
+                threadId: 'thread-1'
+            })
+        )
+        const query = queryBus.execute.mock.calls[0][0] as GetChatConversationQuery
+        expect(query.conditions).toEqual({
+            threadId: 'thread-1',
+            xpertId: 'assistant-1'
+        })
     })
 })

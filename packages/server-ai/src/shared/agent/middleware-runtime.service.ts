@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto'
-import { ICopilotModel, IXpertAgentExecution, TChatRequest, mapTranslationLanguage } from '@xpert-ai/contracts'
+import {
+    ICopilotModel,
+    IChatConversation,
+    IXpertAgentExecution,
+    TChatConversationStatus,
+    TChatRequest,
+    mapTranslationLanguage
+} from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -9,6 +16,8 @@ import {
     AgentMiddlewareAssistantTaskFile,
     AgentMiddlewareAssistantTaskInput,
     AgentMiddlewareAssistantTaskResult,
+    AgentMiddlewareAssistantTaskStatus,
+    AgentMiddlewareAssistantTaskStatusInput,
     AgentMiddlewareCreateModelClientOptions,
     AgentMiddlewareKnowledgebaseDocument,
     AgentMiddlewareKnowledgebaseListInput,
@@ -37,6 +46,7 @@ import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
 import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
+import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { wrapAgentExecution } from './execution'
 
@@ -55,7 +65,8 @@ export class AgentMiddlewareRuntimeService {
         [
             AssistantTaskRuntimeCapability,
             {
-                startTask: (input) => this.startAssistantTask(input)
+                startTask: (input) => this.startAssistantTask(input),
+                getTaskStatus: (input) => this.getAssistantTaskStatus(input)
             }
         ]
     ])
@@ -207,6 +218,24 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new WriteAgentKnowledgeChunkCommand(input))
     }
 
+    async getAssistantTaskStatus(
+        input: AgentMiddlewareAssistantTaskStatusInput
+    ): Promise<AgentMiddlewareAssistantTaskResult | null> {
+        const conversation = await this.findAssistantTaskConversation(input)
+        if (!conversation) {
+            return null
+        }
+
+        return {
+            status: mapConversationStatusToTaskStatus(conversation.status),
+            taskId: normalizeOptionalString(input.taskId),
+            executionId: normalizeOptionalString(input.executionId),
+            conversationId: conversation.id,
+            threadId: conversation.threadId,
+            errorMessage: conversation.error
+        }
+    }
+
     async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
         const xpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
@@ -268,10 +297,60 @@ export class AgentMiddlewareRuntimeService {
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService
     ) {}
+
+    private async findAssistantTaskConversation(
+        input: AgentMiddlewareAssistantTaskStatusInput
+    ): Promise<IChatConversation | null> {
+        const conversationId = normalizeOptionalString(input.conversationId)
+        const threadId = normalizeOptionalString(input.threadId)
+        const taskId = normalizeOptionalString(input.taskId)
+        const xpertId = normalizeOptionalString(input.xpertId)
+        const conditions = conversationId
+            ? { id: conversationId, ...(xpertId ? { xpertId } : {}) }
+            : threadId
+              ? { threadId, ...(xpertId ? { xpertId } : {}) }
+              : taskId
+                ? { taskId, ...(xpertId ? { xpertId } : {}) }
+                : null
+
+        if (!conditions) {
+            return null
+        }
+
+        try {
+            return await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
+                new GetChatConversationQuery(conditions)
+            )
+        } catch (error) {
+            this.#logger.debug(
+                `Assistant task status conversation was not found: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            )
+            return null
+        }
+    }
 }
 
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function mapConversationStatusToTaskStatus(
+    status: TChatConversationStatus | undefined
+): AgentMiddlewareAssistantTaskStatus {
+    switch (status) {
+        case 'busy':
+            return 'running'
+        case 'error':
+            return 'failed'
+        case 'interrupted':
+            return 'interrupted'
+        case 'idle':
+            return 'succeeded'
+        default:
+            return 'unknown'
+    }
 }
 
 function normalizeTaskFiles(files: AgentMiddlewareAssistantTaskFile[] | undefined) {

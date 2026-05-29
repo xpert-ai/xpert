@@ -61,6 +61,48 @@ describe('view extension utils', () => {
 		expect(normalized.actions?.[0].transport).toBe('json')
 	})
 
+	it('normalizes host event subscriptions', () => {
+		const normalized = normalizeManifest(
+			{
+				...manifest,
+				hostEvents: {
+					subscriptions: [
+						{
+							key: 'tool-completed',
+							event: 'assistant.tool.completed',
+							filter: {
+								sources: ['chatkit', ''],
+								toolNames: ['save_tool'],
+								viewKeys: ['provider_a__users']
+							},
+							action: {
+								type: 'forward',
+								debounceMs: 100.8
+							}
+						}
+					]
+				}
+			},
+			'provider_a',
+			context,
+			'detail.main_tabs'
+		)
+
+		expect(normalized.hostEvents?.subscriptions?.[0]).toMatchObject({
+			key: 'tool-completed',
+			event: 'assistant.tool.completed',
+			filter: {
+				sources: ['chatkit'],
+				toolNames: ['save_tool'],
+				viewKeys: ['provider_a__users']
+			},
+			action: {
+				type: 'forward',
+				debounceMs: 100
+			}
+		})
+	})
+
 	it('rejects unsupported public view keys and unexpected query parameters', () => {
 		expect(() => splitPublicViewKey('provider-only')).toThrow("Invalid view key 'provider-only'")
 

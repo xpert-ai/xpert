@@ -11,6 +11,8 @@ import {
 	XpertViewFilter,
 	XpertViewFilterOperator,
 	XpertViewHostContext,
+	XpertViewHostEventSubscriptionActionType,
+	XpertViewHostEvents,
 	XpertViewParameterDefinition,
 	XpertViewQuery,
 	XpertViewScalar,
@@ -31,6 +33,11 @@ const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>([
 const ALLOWED_ACTION_TYPES = new Set<XpertViewActionType>(['invoke', 'navigate', 'open_detail', 'refresh'])
 const ALLOWED_ACTION_PLACEMENTS = new Set<XpertViewActionPlacement>(['toolbar', 'row'])
 const ALLOWED_ACTION_TRANSPORTS = new Set<XpertViewActionTransport>(['json', 'file'])
+const ALLOWED_HOST_EVENT_ACTION_TYPES = new Set<XpertViewHostEventSubscriptionActionType>([
+	'refresh',
+	'forward',
+	'refresh-and-forward'
+])
 const VIEW_KEY_SEPARATOR = '__'
 const ALLOWED_QUERY_KEYS = new Set([
 	'page',
@@ -82,7 +89,8 @@ export function normalizeManifest(
 		},
 		dataSource: normalizeDataSource(manifest.dataSource),
 		actions: normalizeActions(manifest.actions),
-		clientCommands: normalizeClientCommands(manifest.clientCommands)
+		clientCommands: normalizeClientCommands(manifest.clientCommands),
+		hostEvents: normalizeHostEvents(manifest.hostEvents)
 	}
 }
 
@@ -334,6 +342,55 @@ function normalizeClientCommands(clientCommands?: XpertViewClientCommandDefiniti
 
 		return command
 	})
+}
+
+function normalizeHostEvents(hostEvents?: XpertViewHostEvents) {
+	if (!hostEvents) {
+		return undefined
+	}
+
+	const seenKeys = new Set<string>()
+	const subscriptions = (hostEvents.subscriptions ?? []).map((subscription) => {
+		if (!subscription.key?.trim()) {
+			throw new BadRequestException('View host event subscriptions must have a key')
+		}
+		if (!subscription.event?.trim()) {
+			throw new BadRequestException(`View host event subscription '${subscription.key}' must have an event`)
+		}
+		if (seenKeys.has(subscription.key)) {
+			throw new BadRequestException(`Duplicate view host event subscription '${subscription.key}'`)
+		}
+		seenKeys.add(subscription.key)
+
+		const actionType = subscription.action?.type ?? 'refresh'
+		if (!ALLOWED_HOST_EVENT_ACTION_TYPES.has(actionType)) {
+			throw new BadRequestException(`Unsupported host event action '${actionType}'`)
+		}
+		const debounceMs = subscription.action?.debounceMs
+
+		return {
+			...subscription,
+			filter: subscription.filter
+				? {
+						sources: normalizeStringList(subscription.filter.sources),
+						toolNames: normalizeStringList(subscription.filter.toolNames),
+						viewKeys: normalizeStringList(subscription.filter.viewKeys),
+						visualizationTypes: normalizeStringList(subscription.filter.visualizationTypes)
+					}
+				: undefined,
+			action: {
+				type: actionType,
+				debounceMs:
+					typeof debounceMs === 'number' && Number.isFinite(debounceMs)
+						? Math.max(0, Math.floor(debounceMs))
+						: undefined
+			}
+		}
+	})
+
+	return {
+		subscriptions
+	}
 }
 
 function normalizeStringList(values?: string[]) {

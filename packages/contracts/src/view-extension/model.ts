@@ -281,6 +281,27 @@ export interface XpertViewClientCommandDefinition {
   permissions?: string[]
 }
 
+export type XpertViewHostEventSubscriptionActionType = 'refresh' | 'forward' | 'refresh-and-forward'
+
+export interface XpertViewHostEventSubscription {
+  key: string
+  event: string
+  filter?: {
+    sources?: string[]
+    toolNames?: string[]
+    viewKeys?: string[]
+    visualizationTypes?: string[]
+  }
+  action?: {
+    type?: XpertViewHostEventSubscriptionActionType
+    debounceMs?: number
+  }
+}
+
+export interface XpertViewHostEvents {
+  subscriptions?: XpertViewHostEventSubscription[]
+}
+
 export interface XpertExtensionViewManifest {
   key: string
   title: I18nObject
@@ -302,6 +323,7 @@ export interface XpertExtensionViewManifest {
   parameters?: XpertViewParameterDefinition[]
   actions?: XpertViewActionDefinition[]
   clientCommands?: XpertViewClientCommandDefinition[]
+  hostEvents?: XpertViewHostEvents
 }
 
 export interface XpertViewActionRequest {
