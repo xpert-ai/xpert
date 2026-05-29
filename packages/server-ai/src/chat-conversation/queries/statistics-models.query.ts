@@ -2,15 +2,14 @@ import { IQuery } from '@nestjs/cqrs'
 import { StatisticsQueryFilters } from './statistics-filters'
 
 /**
- * Daily conversations
+ * Used models in conversation statistics
  */
-export class StatisticsDailyConvQuery implements IQuery {
-    static readonly type = '[Conversation] Statistics daily conversations'
+export class StatisticsModelsQuery implements IQuery {
+    static readonly type = '[ChatConversation] Statistics models'
 
     constructor(
         public readonly start: string,
         public readonly end: string,
-        public readonly xpertId?: string,
         public readonly filters?: StatisticsQueryFilters
     ) {}
 }

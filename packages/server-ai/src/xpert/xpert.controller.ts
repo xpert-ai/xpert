@@ -1249,15 +1249,15 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-messages')
-    async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end))
+    async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+        return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end, { model, userId }))
     }
 
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-tokens')
-    async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
+    async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+        return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end, { model, userId }))
     }
 
     @UseGuards(PermissionGuard)

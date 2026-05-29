@@ -5,6 +5,7 @@ import { Logger } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { StatisticsTokenCostQuery } from '../statistics-token-cost.query'
+import { normalizeStatisticsFilters, statisticsConversationUserSql, statisticsModelSql } from '../statistics-filters'
 
 @QueryHandler(StatisticsTokenCostQuery)
 export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery> {
@@ -14,9 +15,10 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
     public repository: Repository<ChatConversation>
 
 	public async execute(command: StatisticsTokenCostQuery) {
-		const { xpertId, start, end } = command
+		const { xpertId, start, end, filters } = command
         const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+		const normalizedFilters = normalizeStatisticsFilters(filters)
 
 		const repository = this.repository
 
@@ -24,6 +26,9 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
 		let paramIndex = params.length + 1
 		let organizationWhere = ''
 		let xpertWhere = ''
+		let userWhere = ''
+		let executionModelWhere = ''
+		let subexecutionModelWhere = ''
 
 		// For xpert-specific monitor, aggregate all usages by xpertId across organizations.
 		if (!xpertId) {
@@ -34,6 +39,18 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
 		if (xpertId) {
 			xpertWhere = `AND cc."xpertId" = $${paramIndex}`
 			params.push(xpertId)
+			paramIndex++
+		}
+		if (normalizedFilters.userId) {
+			userWhere = `AND ${statisticsConversationUserSql('cc')} = $${paramIndex}`
+			params.push(normalizedFilters.userId)
+			paramIndex++
+		}
+		if (normalizedFilters.model) {
+			const modelParam = `$${paramIndex}`
+			executionModelWhere = `AND ${statisticsModelSql('execution')} = ${modelParam}`
+			subexecutionModelWhere = `AND ${statisticsModelSql('subexecution')} = ${modelParam}`
+			params.push(normalizedFilters.model)
 		}
 
         const query = `SELECT 
@@ -61,6 +78,8 @@ FROM (
         cc."tenantId" = $1
         ${organizationWhere}
         ${xpertWhere}
+        ${userWhere}
+        ${executionModelWhere}
         AND cc."from" != $2
         AND cm."role" = $3
         AND cc."createdAt" >= $4::timestamptz
@@ -91,6 +110,8 @@ FROM (
         cc."tenantId" = $1
         ${organizationWhere}
         ${xpertWhere}
+        ${userWhere}
+        ${subexecutionModelWhere}
         AND cc."from" != $2
         AND cm."role" = $3
         AND cc."createdAt" >= $4::timestamptz

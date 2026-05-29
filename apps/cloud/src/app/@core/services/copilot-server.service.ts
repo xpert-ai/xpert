@@ -15,6 +15,11 @@ import {
   ParameterRule
 } from '../types'
 
+type StatisticsFilters = {
+  model?: string | null
+  userId?: string | null
+}
+
 @Injectable({ providedIn: 'root' })
 export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> {
   readonly #logger = inject(NGXLogger)
@@ -130,58 +135,76 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
 
   // Statistics
 
-  getStatisticsDailyConversations(timeRange: string[]) {
+  getStatisticsDailyConversations(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count?: number }[]>(
       this.apiBaseUrl + `/statistics/daily-conversations`,
       {
-        params: this.timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getStatisticsDailyEndUsers(timeRange: string[]) {
+  getStatisticsDailyEndUsers(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count?: number }[]>(this.apiBaseUrl + `/statistics/daily-end-users`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: this.statisticsParams(timeRange, filters)
     })
   }
 
-  getStatisticsAverageSessionInteractions(timeRange: string[]) {
+  getStatisticsAverageSessionInteractions(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count?: number }[]>(
       this.apiBaseUrl + `/statistics/average-session-interactions`,
       {
-        params: this.timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getStatisticsDailyMessages(timeRange: string[]) {
+  getStatisticsDailyMessages(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count?: number }[]>(this.apiBaseUrl + `/statistics/daily-messages`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: this.statisticsParams(timeRange, filters)
     })
   }
 
-  getStatisticsTokensPerSecond(timeRange: string[]) {
+  getStatisticsTokensPerSecond(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; count?: number }[]>(this.apiBaseUrl + `/statistics/tokens-per-second`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: this.statisticsParams(timeRange, filters)
     })
   }
 
-  getStatisticsTokenCost(timeRange: string[]) {
+  getStatisticsTokenCost(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
       this.apiBaseUrl + `/statistics/token-costs`,
       {
-        params: this.timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
   }
 
-  getStatisticsUserSatisfactionRate(timeRange: string[]) {
+  getStatisticsUserSatisfactionRate(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
       this.apiBaseUrl + `/statistics/user-satisfaction-rate`,
       {
-        params: this.timeRangeToParams(new HttpParams(), timeRange)
+        params: this.statisticsParams(timeRange, filters)
       }
     )
+  }
+
+  getStatisticsModels(timeRange: string[], filters?: Pick<StatisticsFilters, 'userId'>) {
+    return this.httpClient.get<{ model: string; tokens: number }[]>(this.apiBaseUrl + `/statistics/models`, {
+      params: this.statisticsParams(timeRange, filters)
+    })
+  }
+
+  statisticsParams(timeRange: string[], filters?: StatisticsFilters) {
+    let params = this.timeRangeToParams(new HttpParams(), timeRange)
+    if (filters?.model) {
+      params = params.set('model', filters.model)
+    }
+    if (filters?.userId) {
+      params = params.set('userId', filters.userId)
+    }
+
+    return params
   }
 
   timeRangeToParams(params: HttpParams, timeRange: string[]) {

@@ -8,6 +8,7 @@ import { ChatConversationLogsHandler } from "./conversation-logs.handler";
 import { StatisticsTokensPerSecondHandler } from "./statistics-tokens-per-second.handler";
 import { StatisticsTokenCostQueryHandler } from "./statistics-token-cost.handler";
 import { StatisticsUserSatisfactionRateHandler } from "./statistics-user-satisfaction-rate.handler";
+import { StatisticsModelsHandler } from "./statistics-models.handler";
 
 export const QueryHandlers = [
 	GetChatConversationHandler,
@@ -19,5 +20,6 @@ export const QueryHandlers = [
 	StatisticsTokensPerSecondHandler,
 	StatisticsTokenCostQueryHandler,
 	StatisticsUserSatisfactionRateHandler,
+	StatisticsModelsHandler,
 	ChatConversationLogsHandler
 ];
