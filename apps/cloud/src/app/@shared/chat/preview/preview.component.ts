@@ -215,6 +215,12 @@ function isFollowUpConsumedEventPayload(value: TChatStreamChatEventData): value 
   return parseFollowUpConsumedEvent(value) !== null
 }
 
+function isThreadGoalEventPayload(
+  value: TChatStreamChatEventData
+): value is Extract<TChatStreamChatEventData, { type: 'thread_goal_updated' | 'thread_goal_cleared' }> {
+  return value.type === 'thread_goal_updated' || value.type === 'thread_goal_cleared'
+}
+
 type ComposerSelectionOffsets = {
   start: number
   end: number
@@ -1143,6 +1149,9 @@ export class ChatConversationPreviewComponent {
       case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
         const chatEventData = event.data
         if (isThreadContextUsageEvent(chatEventData)) {
+          break
+        }
+        if (isThreadGoalEventPayload(chatEventData)) {
           break
         }
         if (isFollowUpConsumedEventPayload(chatEventData)) {

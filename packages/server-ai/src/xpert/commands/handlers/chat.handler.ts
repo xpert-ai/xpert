@@ -525,6 +525,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         normalizeRuntimeCapabilitiesSelection(persistedInput?.runtimeCapabilities)
                     const fileAssets = toFileAssetReferences(persistedInput?.files)
                     const legacyAttachments = toLegacyStorageFileAttachments(persistedInput?.files)
+                    const thirdPartyMessage =
+                        persistedRuntimeCapabilities || persistedInput?.commandSource
+                            ? {
+                                  ...(persistedRuntimeCapabilities
+                                      ? {
+                                            runtimeCapabilities: persistedRuntimeCapabilities
+                                        }
+                                      : {}),
+                                  ...(persistedInput?.commandSource
+                                      ? {
+                                            commandSource: persistedInput.commandSource
+                                        }
+                                      : {})
+                              }
+                            : null
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
@@ -545,11 +560,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                   fileAssets
                               }
                             : {}),
-                        ...(persistedRuntimeCapabilities
+                        ...(thirdPartyMessage
                             ? {
-                                  thirdPartyMessage: {
-                                      runtimeCapabilities: persistedRuntimeCapabilities
-                                  }
+                                  thirdPartyMessage
                               }
                             : {})
                     }

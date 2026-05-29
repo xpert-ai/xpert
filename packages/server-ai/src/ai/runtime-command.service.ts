@@ -260,6 +260,16 @@ export class RuntimeCommandService {
             }
         }
 
+        if (action.type === 'client_action') {
+            return {
+                type: 'client_action',
+                action: compactObject<Extract<SkillSlashCommandAction, { type: 'client_action' }>['action']>({
+                    type: action.action.type,
+                    payload: action.action.payload
+                })
+            }
+        }
+
         return null
     }
 
