@@ -857,7 +857,9 @@
       }
     },
     "Copilot": {
-      "SelectModel": "Select model"
+      "SelectModel": "Select model",
+      "AllModels": "All models",
+      "AllUsers": "All users"
     },
     "Assistant": {
       "SettingsEyebrow": "Unified assistant configuration",

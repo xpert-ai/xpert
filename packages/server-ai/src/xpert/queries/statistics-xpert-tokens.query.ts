@@ -1,4 +1,5 @@
 import { IQuery } from '@nestjs/cqrs'
+import { StatisticsQueryFilters } from '../../chat-conversation/queries'
 
 /**
  * Tokens by xpert
@@ -9,5 +10,6 @@ export class StatisticsXpertTokensQuery implements IQuery {
     constructor(
         public readonly start: string,
         public readonly end: string,
+        public readonly filters?: StatisticsQueryFilters
     ) {}
 }

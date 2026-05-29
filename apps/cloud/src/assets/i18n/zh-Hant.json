@@ -2162,6 +2162,8 @@
       "CharacterLength": "字數",
       "Resubmit": "重新提交",
       "Model": "模型",
+      "AllModels": "全部模型",
+      "AllUsers": "全部用戶",
       "Options": "選項",
       "UseSystemPrompt": "使用系統提示",
       "ExamplesOfPrompts": "提示語示例",
