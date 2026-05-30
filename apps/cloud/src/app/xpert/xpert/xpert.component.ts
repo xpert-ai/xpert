@@ -1,4 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
@@ -36,6 +37,9 @@ import { XpertHomeService } from '../home.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { debounceTime, fromEvent } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
+import { registerWorkbenchFileOpenCommand } from '../../features/assistant/workbench-file-open-client-command'
+import { openWorkbenchFilePreviewDialog } from '../../features/assistant/workbench-file-preview-dialog.component'
 
 @Component({
   standalone: true,
@@ -54,7 +58,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ChatCanvasComponent,
     UserPipe,
     ChatConversationComponent
-],
+  ],
   selector: 'xpert-webapp',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
@@ -67,6 +71,8 @@ export class XpertChatAppComponent {
   readonly homeService = inject(XpertHomeService)
   readonly #elementRef = inject(ElementRef)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #clientCommands = inject(ViewClientCommandRegistry)
+  readonly #dialog = inject(Dialog)
 
   readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
   readonly paramRole = injectParams('name')
@@ -118,18 +124,16 @@ export class XpertChatAppComponent {
   })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(
-    () => {
-      if (this.idleLayout() === 'welcome') {
-        return null
-      }
-
-      return (
-        this.xpert()?.agentConfig?.parameters ??
-        (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
-      )
+  readonly parameters = computed(() => {
+    if (this.idleLayout() === 'welcome') {
+      return null
     }
-  )
+
+    return (
+      this.xpert()?.agentConfig?.parameters ??
+      (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+    )
+  })
   readonly parametersValue = model<Record<string, unknown>>()
 
   readonly parameterInvalid = computed(() => {
@@ -158,64 +162,62 @@ export class XpertChatAppComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        const resolvedXpert = this.xpert()
-
-        if (!resolvedXpert && this.paramRole() && this.paramRole() !== 'common' && !this.paramConvId()) {
-          return
-        }
-
-        this.chatService.xpert.set(resolvedXpert)
-        // this.homeService.xpert.set(this.xpert())
+    const unregisterFileOpen = registerWorkbenchFileOpenCommand(this.#clientCommands, {
+      openFile: (file) => {
+        openWorkbenchFilePreviewDialog(this.#dialog, file)
       }
-    )
+    })
 
-    effect(
-      () => {
-        this.paramRole()
-        // Reset staged parameters when switching role in "new chat" context.
-        if (!this.paramConvId()) {
-          this.parametersValue.set({})
-        }
+    effect(() => {
+      const resolvedXpert = this.xpert()
+
+      if (!resolvedXpert && this.paramRole() && this.paramRole() !== 'common' && !this.paramConvId()) {
+        return
       }
-    )
 
-    effect(
-      () => {
-        if (this.parametersValue()) {
-          this.chatService.parametersValue.set(this.parametersValue())
-        }
+      this.chatService.xpert.set(resolvedXpert)
+      // this.homeService.xpert.set(this.xpert())
+    })
+
+    effect(() => {
+      this.paramRole()
+      // Reset staged parameters when switching role in "new chat" context.
+      if (!this.paramConvId()) {
+        this.parametersValue.set({})
       }
-    )
+    })
 
-    effect(
-      () => {
-        const conv = this.chatService.conversation()
-        if (conv?.id) {
-          const xpertId = conv.xpertId ?? ''
-          this.homeService.conversations.update((state) => {
-            const items = state[xpertId]?.items ?? []
-            const index = items.findIndex((_) => _.id === conv.id)
-            if (index > -1) {
-              items[index] = {
-                ...items[index],
-                ...conv
-              }
-            } else {
-              items.push(conv)
+    effect(() => {
+      if (this.parametersValue()) {
+        this.chatService.parametersValue.set(this.parametersValue())
+      }
+    })
+
+    effect(() => {
+      const conv = this.chatService.conversation()
+      if (conv?.id) {
+        const xpertId = conv.xpertId ?? ''
+        this.homeService.conversations.update((state) => {
+          const items = state[xpertId]?.items ?? []
+          const index = items.findIndex((_) => _.id === conv.id)
+          if (index > -1) {
+            items[index] = {
+              ...items[index],
+              ...conv
             }
-            return {
-              ...state,
-              [xpertId]: {
-                ...(state[xpertId] ?? {}),
-                items: [...items]
-              }
+          } else {
+            items.push(conv)
+          }
+          return {
+            ...state,
+            [xpertId]: {
+              ...(state[xpertId] ?? {}),
+              items: [...items]
             }
-          })
-        }
+          }
+        })
       }
-    )
+    })
 
     effect(() => {
       // Follow the latest news
@@ -225,6 +227,7 @@ export class XpertChatAppComponent {
     })
 
     this.#destroyRef.onDestroy(() => {
+      unregisterFileOpen()
       this.homeService.canvasOpened.set(null)
     })
 

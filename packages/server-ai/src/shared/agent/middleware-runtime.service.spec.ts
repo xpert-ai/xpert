@@ -55,7 +55,13 @@ jest.mock('./execution', () => {
 })
 
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { AssistantTaskRuntimeCapability, KnowledgebaseRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    AssistantTaskRuntimeCapability,
+    FileRuntimeCapability,
+    KnowledgebaseRuntimeCapability,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
+import { GetStorageFileQuery } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
@@ -64,6 +70,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
+import { GetFileAssetQuery } from '../../file-understanding'
 import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
@@ -488,6 +495,52 @@ describe('AgentMiddlewareRuntimeService', () => {
                 agentKey: 'agent-1',
                 knowledgebaseId: 'kb-1',
                 writeKey: 'bom-root:root-1'
+            })
+        )
+    })
+
+    it('resolves file asset references through the runtime facade', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof GetFileAssetQuery) {
+                return {
+                    id: 'file-asset-1',
+                    storageFileId: 'storage-1',
+                    originalName: '合同.pdf',
+                    mimeType: 'application/pdf',
+                    size: 1024
+                }
+            }
+
+            if (query instanceof GetStorageFileQuery) {
+                return [
+                    {
+                        id: 'storage-1',
+                        file: 'files/tenant-1/contract.pdf',
+                        fileUrl: 'https://files.example/contract.pdf',
+                        originalName: '合同.pdf',
+                        mimetype: 'application/pdf',
+                        size: 1024
+                    }
+                ]
+            }
+
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const file = await service.api.capabilities?.require(FileRuntimeCapability).resolveFile({
+            fileAssetId: 'file-asset-1'
+        })
+
+        expect(file).toEqual(
+            expect.objectContaining({
+                id: 'file-asset-1',
+                fileId: 'file-asset-1',
+                fileAssetId: 'file-asset-1',
+                storageFileId: 'storage-1',
+                name: '合同.pdf',
+                mimeType: 'application/pdf',
+                url: 'https://files.example/contract.pdf',
+                previewUrl: 'https://files.example/contract.pdf'
             })
         )
     })

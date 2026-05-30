@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import {
     ICopilotModel,
     IChatConversation,
+    IStorageFile,
     IXpertAgentExecution,
     TChatConversationStatus,
     TChatRequest,
@@ -18,6 +19,8 @@ import {
     AgentMiddlewareAssistantTaskResult,
     AgentMiddlewareAssistantTaskStatus,
     AgentMiddlewareAssistantTaskStatusInput,
+    AgentMiddlewareFileReference,
+    AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
     AgentMiddlewareKnowledgebaseDocument,
     AgentMiddlewareKnowledgebaseListInput,
@@ -31,9 +34,11 @@ import {
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     AssistantTaskRuntimeCapability,
     DefaultAgentMiddlewareRuntimeCapabilityRegistry,
+    FileRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
+import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { ModelProvider } from '../../ai-model/ai-provider'
@@ -47,6 +52,7 @@ import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context
 import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
+import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { wrapAgentExecution } from './execution'
 
@@ -67,6 +73,12 @@ export class AgentMiddlewareRuntimeService {
             {
                 startTask: (input) => this.startAssistantTask(input),
                 getTaskStatus: (input) => this.getAssistantTaskStatus(input)
+            }
+        ],
+        [
+            FileRuntimeCapability,
+            {
+                resolveFile: (input) => this.resolveFile(input)
             }
         ]
     ])
@@ -218,6 +230,71 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new WriteAgentKnowledgeChunkCommand(input))
     }
 
+    async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {
+        const directUrl =
+            normalizeOptionalString(input.previewUrl) ??
+            normalizeOptionalString(input.fileUrl) ??
+            normalizeOptionalString(input.url)
+        const fileAssetId =
+            normalizeOptionalString(input.fileAssetId) ??
+            normalizeOptionalString(input.fileId) ??
+            (!normalizeOptionalString(input.storageFileId) ? normalizeOptionalString(input.id) : undefined)
+        let storageFileId = normalizeOptionalString(input.storageFileId)
+        let fileAsset: FileAsset | null = null
+        let storageFile: IStorageFile | null = null
+
+        if (!directUrl && fileAssetId) {
+            fileAsset = await this.queryBus.execute<GetFileAssetQuery, FileAsset | null>(
+                new GetFileAssetQuery(fileAssetId)
+            )
+            storageFileId = storageFileId ?? normalizeOptionalString(fileAsset?.storageFileId)
+        }
+
+        if (!directUrl && storageFileId) {
+            const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
+                new GetStorageFileQuery([storageFileId])
+            )
+            storageFile = storageFiles[0] ?? null
+        }
+
+        const url = directUrl ?? this.resolveStorageFileUrl(storageFile)
+        if (!url) {
+            return null
+        }
+
+        const name =
+            normalizeOptionalString(input.name) ??
+            normalizeOptionalString(input.originalName) ??
+            normalizeOptionalString(fileAsset?.originalName) ??
+            normalizeOptionalString(fileAsset?.fileName) ??
+            normalizeOptionalString(storageFile?.originalName) ??
+            'source-document'
+        const mimeType =
+            normalizeOptionalString(input.mimeType) ??
+            normalizeOptionalString(input.mimetype) ??
+            normalizeOptionalString(fileAsset?.mimeType) ??
+            normalizeOptionalString(storageFile?.mimetype)
+        const size =
+            typeof input.size === 'number'
+                ? input.size
+                : typeof fileAsset?.size === 'number'
+                  ? fileAsset.size
+                  : typeof storageFile?.size === 'number'
+                    ? storageFile.size
+                    : undefined
+
+        return {
+            id: fileAssetId ?? storageFileId ?? url,
+            ...(fileAssetId ? { fileId: fileAssetId, fileAssetId } : {}),
+            ...(storageFileId ? { storageFileId } : {}),
+            name,
+            ...(mimeType ? { mimeType } : {}),
+            ...(typeof size === 'number' ? { size } : {}),
+            url,
+            previewUrl: url
+        }
+    }
+
     async getAssistantTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskResult | null> {
@@ -297,6 +374,24 @@ export class AgentMiddlewareRuntimeService {
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService
     ) {}
+
+    private resolveStorageFileUrl(storageFile: IStorageFile | null) {
+        if (!storageFile) {
+            return undefined
+        }
+
+        const directUrl = normalizeOptionalString(storageFile.fileUrl) ?? normalizeOptionalString(storageFile.url)
+        if (directUrl) {
+            return directUrl
+        }
+
+        const file = normalizeOptionalString(storageFile.file)
+        if (!file) {
+            return undefined
+        }
+
+        return new FileStorage().getProvider(storageFile.storageProvider)?.url(file)
+    }
 
     private async findAssistantTaskConversation(
         input: AgentMiddlewareAssistantTaskStatusInput
