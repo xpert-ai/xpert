@@ -35,7 +35,7 @@ import {
 @Module({
 	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance]), CqrsModule],
 	controllers: [PluginController],
-	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN],
+	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN, LOADED_PLUGINS],
 	providers: [
 		{ provide: LOADED_PLUGINS, useValue: loaded },
 		PluginConfigResolverProvider,

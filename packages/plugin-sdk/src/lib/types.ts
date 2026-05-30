@@ -1,4 +1,12 @@
-import { JsonSchemaObjectType, PluginMeta } from '@xpert-ai/contracts'
+import {
+  IconDefinition,
+  JsonSchemaObjectType,
+  PluginMeta,
+  PluginTargetApp,
+  PluginTargetAppMeta,
+  TAvatar,
+  XpertTypeEnum
+} from '@xpert-ai/contracts'
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import type { ZodSchema } from 'zod'
@@ -37,10 +45,44 @@ export interface PluginConfigSpec<T extends object = any> {
 export interface XpertPlugin<TConfig extends object = any> extends PluginLifecycle, PluginHealth {
   meta: PluginMeta
   config?: PluginConfigSpec<TConfig>
+  /**
+   * Xpert DSL templates contributed by this plugin. The platform namespaces
+   * template ids as `${pluginName}:${key}` when exposing them through the
+   * xpert-template API.
+   */
+  templates?: XpertTemplateContribution[] | XpertTemplateProvider
   /** Declares the required system-level permissions for this plugin. */
   permissions?: Permissions
   /** Returns the DynamicModule to be mounted to the main application (can be set as global) */
   register(ctx: PluginContext<TConfig>): DynamicModule
+}
+
+export interface XpertTemplateContribution {
+  key: string
+  id?: string
+  name?: string
+  title?: string
+  description?: string
+  category?: string
+  copyright?: string | null
+  privacyPolicy?: string | null
+  avatar?: TAvatar
+  icon?: IconDefinition
+  type?: XpertTypeEnum | 'project'
+  targetApps?: PluginTargetApp[]
+  targetAppMeta?: PluginTargetAppMeta | null
+  dslContent?: string
+  export_data?: string
+  order?: number
+  default?: boolean
+  startPrompts?: string[]
+  releaseNotes?: string
+  xpertName?: string
+  [key: string]: unknown
+}
+
+export interface XpertTemplateProvider {
+  listTemplates(ctx: PluginContext): PromiseOrValue<XpertTemplateContribution[]>
 }
 
 export interface PluginContext<TConfig extends object = any> {
