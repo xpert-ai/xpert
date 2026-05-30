@@ -176,4 +176,60 @@ describe('RemoteComponentRendererComponent', () => {
 
     expect(handler).not.toHaveBeenCalled()
   })
+
+  it('caps iframe resize messages to the visible viewport only when requested', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    jest.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 100,
+      toJSON: () => ({})
+    } as DOMRect)
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 800
+    })
+
+    const component = fixture.componentInstance as unknown as {
+      instanceId(): string
+      height(): number
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+    component.handleMessage({
+      source: frame.contentWindow,
+      data: {
+        channel: 'xpertai.remote_component',
+        protocolVersion: 1,
+        instanceId: component.instanceId(),
+        type: 'resize',
+        height: 2000
+      }
+    })
+    expect(component.height()).toBe(2000)
+
+    component.handleMessage({
+      source: frame.contentWindow,
+      data: {
+        channel: 'xpertai.remote_component',
+        protocolVersion: 1,
+        instanceId: component.instanceId(),
+        type: 'resize',
+        height: 2000,
+        viewportBound: true
+      }
+    })
+    expect(component.height()).toBe(676)
+  })
 })

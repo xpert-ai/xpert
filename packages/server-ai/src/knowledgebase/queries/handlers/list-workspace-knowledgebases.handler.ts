@@ -45,7 +45,9 @@ export class ListWorkspaceKnowledgebasesHandler implements IQueryHandler<ListWor
                 permission: item.permission ?? null,
                 workspaceId: item.workspaceId ?? null,
                 documentNum: item.documentNum ?? null,
-                chunkNum: item.chunkNum ?? null
+                chunkNum: item.chunkNum ?? null,
+                graphRag: item.graphRag ?? null,
+                graphStatus: item.graphStatus ?? null
             }))
     }
 }

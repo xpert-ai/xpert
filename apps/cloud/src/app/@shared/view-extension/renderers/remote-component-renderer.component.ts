@@ -58,7 +58,13 @@ export class RemoteComponentRendererComponent {
 
   readonly html = signal('')
   readonly error = signal<string | null>(null)
-  readonly height = signal(520)
+  readonly requestedHeight = signal(520)
+  readonly viewportBound = signal(false)
+  readonly viewportHeight = signal(720)
+  readonly height = computed(() => {
+    const requested = Math.max(this.requestedHeight(), 520)
+    return this.viewportBound() ? Math.min(requested, this.viewportHeight()) : requested
+  })
   readonly #instanceNonce = signal(createInstanceNonce())
   readonly instanceId = computed(() => `${this.manifest().key}:${this.#instanceNonce()}`)
 
@@ -66,8 +72,15 @@ export class RemoteComponentRendererComponent {
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
+    const onViewportChange = () => this.updateViewportHeight()
     window.addEventListener('message', onMessage)
-    this.#destroyRef.onDestroy(() => window.removeEventListener('message', onMessage))
+    window.addEventListener('resize', onViewportChange)
+    window.addEventListener('scroll', onViewportChange, true)
+    this.#destroyRef.onDestroy(() => {
+      window.removeEventListener('message', onMessage)
+      window.removeEventListener('resize', onViewportChange)
+      window.removeEventListener('scroll', onViewportChange, true)
+    })
 
     effect(() => {
       const active = this.active()
@@ -85,7 +98,9 @@ export class RemoteComponentRendererComponent {
   private async loadEntry(requestId: number, hostType: string, hostId: string, viewKey: string) {
     this.error.set(null)
     this.html.set('')
-    this.height.set(520)
+    this.requestedHeight.set(520)
+    this.viewportBound.set(false)
+    this.updateViewportHeight()
     this.#instanceNonce.set(createInstanceNonce())
 
     try {
@@ -128,7 +143,9 @@ export class RemoteComponentRendererComponent {
 
     switch (message.type) {
       case 'resize':
-        this.height.set(Math.max(Number(message.height) || 0, 520))
+        this.requestedHeight.set(Math.max(Number(message.height) || 0, 520))
+        this.viewportBound.set(message.viewportBound === true)
+        this.updateViewportHeight()
         return
       case 'notify':
         this.notify(message)
@@ -267,6 +284,10 @@ export class RemoteComponentRendererComponent {
       '*'
     )
   }
+
+  private updateViewportHeight() {
+    this.viewportHeight.set(getAvailableFrameHeight(this.frame()?.nativeElement))
+  }
 }
 
 function isRemoteComponentMessage(value: unknown): value is RemoteComponentMessage {
@@ -319,4 +340,13 @@ function createInstanceNonce() {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function getAvailableFrameHeight(frame?: HTMLIFrameElement) {
+  if (typeof window === 'undefined') {
+    return 720
+  }
+  const viewportHeight = Math.floor(window.visualViewport?.height ?? window.innerHeight ?? 720)
+  const frameTop = frame ? Math.max(0, frame.getBoundingClientRect().top) : 0
+  return Math.max(520, viewportHeight - frameTop - 24)
 }

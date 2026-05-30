@@ -47,6 +47,11 @@ export type AgentMiddlewareKnowledgebaseListItem = {
   workspaceId?: string | null
   documentNum?: number | null
   chunkNum?: number | null
+  graphRag?: {
+    enabled?: boolean
+    [key: string]: JSONValue | undefined
+  } | null
+  graphStatus?: string | null
 }
 
 export type AgentMiddlewareKnowledgebaseWriteChunkInput = {
