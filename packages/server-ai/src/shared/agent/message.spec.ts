@@ -278,6 +278,19 @@ describe('createHumanMessage', () => {
                             summary: 'preview summary',
                             workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf'
                         },
+                        artifacts: [
+                            {
+                                kind: 'page_image',
+                                orderNo: 2,
+                                mimeType: 'image/png',
+                                anchor: { page: 1, path: 'page-0001.png' },
+                                file: {
+                                    workspacePath:
+                                        '/workspace/sessions/conversation-1/files/file-asset-1/pages/page-0001.png',
+                                    fileName: 'page-0001.png'
+                                }
+                            }
+                        ],
                         chunks: [
                             {
                                 id: 'chunk-1',
@@ -324,6 +337,10 @@ describe('createHumanMessage', () => {
         expect(fileCard).toContain('fileId: file-asset-1')
         expect(fileCard).toContain('workspacePath: /workspace/sessions/conversation-1/files/file-asset-1/report.pdf')
         expect(fileCard).toContain('availableAnchors: page 1')
+        expect(fileCard).toContain('pageImages:')
+        expect(fileCard).toContain('/workspace/sessions/conversation-1/files/file-asset-1/pages/page-0001.png')
+        expect(fileCard).toContain('file_page_images')
+        expect(fileCard).toContain('view-image')
         expect(fileCard).not.toContain('FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT')
         expect(fileCard).not.toContain('<preview_chunks>')
         expect(commandBus.execute).not.toHaveBeenCalled()

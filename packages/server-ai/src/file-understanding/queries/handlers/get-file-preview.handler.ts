@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { createPageImagePreviewFile } from '../../domain/page-image-artifact'
 import { FileArtifact, FileAsset, FileChunk } from '../../entities'
 import { GetFilePreviewQuery } from '../get-file-preview.query'
 
@@ -50,7 +51,8 @@ export class GetFilePreviewHandler implements IQueryHandler<GetFilePreviewQuery>
                     kind: true,
                     orderNo: true,
                     mimeType: true,
-                    anchor: true
+                    anchor: true,
+                    metadata: true
                 },
                 order: { orderNo: 'ASC' },
                 take: FILE_PREVIEW_ARTIFACT_LIMIT + 1
@@ -86,12 +88,17 @@ export class GetFilePreviewHandler implements IQueryHandler<GetFilePreviewQuery>
             artifacts: artifacts
                 .filter((artifact) => artifact.kind !== 'summary')
                 .slice(0, FILE_PREVIEW_ARTIFACT_LIMIT)
-                .map((artifact) => ({
-                    kind: artifact.kind,
-                    orderNo: artifact.orderNo,
-                    mimeType: artifact.mimeType,
-                    anchor: artifact.anchor
-                })),
+                .map((artifact) => {
+                    const file =
+                        artifact.kind === 'page_image' ? createPageImagePreviewFile(artifact.metadata) : undefined
+                    return {
+                        kind: artifact.kind,
+                        orderNo: artifact.orderNo,
+                        mimeType: artifact.mimeType,
+                        anchor: artifact.anchor,
+                        ...(file ? { file } : {})
+                    }
+                }),
             chunks: chunks.map((chunk) => ({
                 chunkId: chunk.id,
                 orderNo: chunk.orderNo,
@@ -115,7 +122,8 @@ function compactMetadata(metadata?: Record<string, unknown>) {
     const compact = {
         parser: metadata.parser,
         chunkCount: metadata.chunkCount,
-        fileCount: metadata.fileCount
+        fileCount: metadata.fileCount,
+        pdfPageImages: metadata.pdfPageImages
     }
     return Object.values(compact).some((value) => value !== undefined) ? compact : undefined
 }

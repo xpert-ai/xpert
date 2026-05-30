@@ -12,6 +12,7 @@ import {
     GetFileAssetQuery,
     GetFilePreviewQuery
 } from '../../file-understanding'
+import type { FilePreviewResult } from '../../file-understanding'
 import { LoadFileCommand } from '../commands'
 import { AgentStateAnnotation } from './state'
 import { buildReferencedPrompt, normalizeReferences } from './human-input'
@@ -35,6 +36,7 @@ type CreateHumanMessageOptions = {
 }
 
 const MAX_FILE_PROMPT_SUMMARY_LENGTH = 700
+const MAX_FILE_PROMPT_PAGE_IMAGES = 8
 
 // StorageFile remains the object-storage lookup layer; FileAsset carries the
 // agent-facing understanding state and workspace path.
@@ -240,7 +242,7 @@ export async function createHumanMessage(
 
                 if (file.fileAsset?.id && ['ready', 'partial'].includes(file.fileAsset.status)) {
                     const preview = await queryBus.execute(new GetFilePreviewQuery(file.fileAsset.id))
-                    if (preview?.chunks?.length || preview?.file?.summary) {
+                    if (shouldBuildFileUnderstandingPrompt(preview)) {
                         return {
                             type: 'text',
                             text: buildFileUnderstandingPrompt(file, preview)
@@ -278,18 +280,13 @@ export async function createHumanMessage(
  * capabilities, anchors, and an optional workspacePath, but intentionally avoids
  * embedding chunk/page content in the prompt.
  */
-function buildFileUnderstandingPrompt(
-    file: ResolvedFile,
-    preview: {
-        chunks?: Array<{ id?: string; orderNo?: number; content?: string; anchor?: Record<string, any> }>
-        file?: Partial<FileAsset>
-    }
-) {
+function buildFileUnderstandingPrompt(file: ResolvedFile, preview: FilePreviewResult | null | undefined) {
     const asset = {
         ...(file.fileAsset ?? {}),
         ...(preview?.file ?? {})
     } as Partial<FileAsset>
     const chunks = Array.isArray(preview?.chunks) ? preview.chunks : []
+    const pageImages = formatPageImageArtifacts(preview)
     const anchors = chunks
         .map((chunk) => {
             const anchor = chunk.anchor
@@ -315,11 +312,37 @@ function buildFileUnderstandingPrompt(
         asset?.workspacePath ? `workspacePath: ${asset.workspacePath}` : '',
         asset?.summary ? `summary: ${truncatePromptText(asset.summary, MAX_FILE_PROMPT_SUMMARY_LENGTH)}` : '',
         anchors.length ? `availableAnchors: ${anchors.join(', ')}` : '',
-        'Do not assume the summary is exhaustive. Use file_search/file_read when the user asks about parsed file contents. If workspacePath is present and sandbox_file or shell tools are available, you may read the original file by that path. Cite page/sheet/slide/path anchors when available.',
+        pageImages.length ? `pageImages:\n${pageImages.map((image) => `- ${image}`).join('\n')}` : '',
+        'Do not assume the summary is exhaustive. Use file_search/file_read when the user asks about parsed file contents. If workspacePath is present and sandbox_file or shell tools are available, you may read the original file by that path. If pageImages are present, use file_page_images for the complete or page-specific image list, then use a view-image tool on the listed image path or URL when visual layout, charts, screenshots, tables, or OCR are needed. Cite page/sheet/slide/path anchors when available.',
         '</file_understanding>'
     ]
         .filter(Boolean)
         .join('\n')
+}
+
+function shouldBuildFileUnderstandingPrompt(preview: FilePreviewResult | null | undefined) {
+    return Boolean(preview?.chunks?.length || preview?.file?.summary || preview?.artifacts?.length)
+}
+
+function formatPageImageArtifacts(preview: FilePreviewResult | null | undefined) {
+    const artifacts = Array.isArray(preview?.artifacts) ? preview.artifacts : []
+    return artifacts
+        .flatMap((artifact) => {
+            if (artifact.kind !== 'page_image') {
+                return []
+            }
+            const imagePath = artifact.file?.workspacePath ?? artifact.file?.url
+            if (!imagePath) {
+                return []
+            }
+            const page = artifact.anchor?.page
+            const label =
+                typeof page === 'number'
+                    ? `page ${page}`
+                    : (artifact.file?.fileName ?? artifact.anchor?.path ?? 'page image')
+            return [`${label}: ${imagePath}`]
+        })
+        .slice(0, MAX_FILE_PROMPT_PAGE_IMAGES)
 }
 
 function truncatePromptText(text: string, maxLength: number) {

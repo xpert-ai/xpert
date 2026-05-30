@@ -1,11 +1,20 @@
 import { tool } from '@langchain/core/tools'
 import { QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
-import { GetFilePreviewQuery, ListConversationFilesQuery, ReadFileChunkQuery, SearchFileChunksQuery } from '../queries'
+import type { FilePageImageResult } from '../queries'
+import {
+    GetFilePreviewQuery,
+    ListConversationFilesQuery,
+    ListFilePageImagesQuery,
+    ReadFileChunkQuery,
+    SearchFileChunksQuery
+} from '../queries'
 
 type CreateFileUnderstandingToolsOptions = {
     conversationId?: string
 }
+
+const WORKSPACE_LIST_PAGE_IMAGE_LIMIT = 12
 
 export function createFileUnderstandingTools(queryBus: QueryBus, options?: CreateFileUnderstandingToolsOptions) {
     const listConversationFiles = async () => {
@@ -105,9 +114,37 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         },
         {
             name: 'file_preview',
-            description: 'Preview parsed file metadata, summary, artifacts, and first chunks.',
+            description:
+                'Preview parsed file metadata, summary, artifacts, and first chunks. PDF page_image artifacts include workspace image paths that can be inspected with view-image tools.',
             schema: z.object({
                 fileId: z.string()
+            })
+        }
+    )
+
+    const filePageImages = tool(
+        async ({ fileId, pageStart, pageEnd, limit }) => {
+            const pageImages = await queryBus.execute<ListFilePageImagesQuery, FilePageImageResult[]>(
+                new ListFilePageImagesQuery(fileId, {
+                    pageStart,
+                    pageEnd,
+                    limit
+                })
+            )
+            return JSON.stringify({
+                fileId,
+                pageImages: toPageImageToolFiles(pageImages)
+            })
+        },
+        {
+            name: 'file_page_images',
+            description:
+                'List rendered PDF page images for a parsed file. Use this before view-image when a PDF page must be inspected visually.',
+            schema: z.object({
+                fileId: z.string(),
+                pageStart: z.number().int().positive().optional(),
+                pageEnd: z.number().int().positive().optional(),
+                limit: z.number().int().positive().max(300).optional()
             })
         }
     )
@@ -138,19 +175,25 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
     const workspaceList = tool(
         async () => {
             const files = await listConversationFiles()
+            const pageImagesByFileId = await listPageImagesByFileId(files)
             return JSON.stringify(
-                files.map((file) => ({
-                    fileId: file.id,
-                    name: file.originalName,
-                    workspacePath: file.workspacePath,
-                    status: file.status,
-                    capabilities: file.capabilities
-                }))
+                files.map((file) => {
+                    const pageImages = pageImagesByFileId.get(file.id)
+                    return {
+                        fileId: file.id,
+                        name: file.originalName,
+                        workspacePath: file.workspacePath,
+                        status: file.status,
+                        capabilities: file.capabilities,
+                        ...(pageImages?.length ? { pageImages } : {})
+                    }
+                })
             )
         },
         {
             name: 'workspace_list',
-            description: 'List uploaded files currently linked to this conversation workspace.',
+            description:
+                'List uploaded files currently linked to this conversation workspace. PDF files with rendered page images include initial pageImages paths or URLs; use file_page_images for a complete or page-specific list.',
             schema: z.object({})
         }
     )
@@ -207,5 +250,56 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         }
     )
 
-    return [fileSearch, fileRead, fileTableQuery, filePreview, workspaceList, workspaceRead, workspaceSearch]
+    async function listPageImagesByFileId(files: Awaited<ReturnType<typeof listConversationFiles>>) {
+        const entries = await Promise.all(
+            files.map(async (file) => {
+                if (!file.capabilities?.includes('page_images')) {
+                    return null
+                }
+                const pageImages = await queryBus.execute<ListFilePageImagesQuery, FilePageImageResult[]>(
+                    new ListFilePageImagesQuery(file.id, {
+                        limit: WORKSPACE_LIST_PAGE_IMAGE_LIMIT
+                    })
+                )
+                const pageImageFiles = toPageImageToolFiles(pageImages)
+                return pageImageFiles.length ? ([file.id, pageImageFiles] as const) : null
+            })
+        )
+        return new Map(entries.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)))
+    }
+
+    return [
+        fileSearch,
+        fileRead,
+        fileTableQuery,
+        filePreview,
+        filePageImages,
+        workspaceList,
+        workspaceRead,
+        workspaceSearch
+    ]
+}
+
+function toPageImageToolFiles(pageImages: FilePageImageResult[]) {
+    return pageImages.flatMap((pageImage) => {
+        const workspacePath = pageImage.file.workspacePath
+        const url = pageImage.file.url
+        if (!workspacePath && !url) {
+            return []
+        }
+        return [
+            {
+                orderNo: pageImage.orderNo,
+                mimeType: pageImage.mimeType,
+                page: pageImage.anchor?.page,
+                path: pageImage.anchor?.path,
+                workspacePath,
+                url,
+                fileName: pageImage.file.fileName,
+                width: pageImage.file.width,
+                height: pageImage.file.height,
+                size: pageImage.file.size
+            }
+        ]
+    })
 }

@@ -1,5 +1,29 @@
-import { GetFilePreviewHandler } from './get-file-preview.handler'
 import { GetFilePreviewQuery } from '../get-file-preview.query'
+import { GetFilePreviewHandler } from './get-file-preview.handler'
+
+type MockFileRepository = {
+    findOne: jest.Mock
+}
+
+type MockArtifactRepository = {
+    find: jest.Mock
+}
+
+type MockChunkRepository = {
+    find: jest.Mock
+}
+
+function createHandler(
+    fileRepository: MockFileRepository,
+    artifactRepository: MockArtifactRepository,
+    chunkRepository: MockChunkRepository
+): GetFilePreviewHandler {
+    return Reflect.construct(GetFilePreviewHandler, [
+        fileRepository,
+        artifactRepository,
+        chunkRepository
+    ]) as GetFilePreviewHandler
+}
 
 describe('GetFilePreviewHandler', () => {
     it('returns a compact preview without entity audit fields or artifact content', async () => {
@@ -56,11 +80,7 @@ describe('GetFilePreviewHandler', () => {
                 }
             ])
         }
-        const handler = new GetFilePreviewHandler(
-            fileRepository as any,
-            artifactRepository as any,
-            chunkRepository as any
-        )
+        const handler = createHandler(fileRepository, artifactRepository, chunkRepository)
 
         const preview = await handler.execute(new GetFilePreviewQuery('file-1'))
 
@@ -80,7 +100,8 @@ describe('GetFilePreviewHandler', () => {
                     kind: true,
                     orderNo: true,
                     mimeType: true,
-                    anchor: true
+                    anchor: true,
+                    metadata: true
                 }
             })
         )
@@ -104,7 +125,8 @@ describe('GetFilePreviewHandler', () => {
                 metadata: {
                     parser: 'pdf',
                     chunkCount: 4,
-                    fileCount: undefined
+                    fileCount: undefined,
+                    pdfPageImages: undefined
                 }
             }),
             artifacts: [
@@ -128,5 +150,75 @@ describe('GetFilePreviewHandler', () => {
         expect(JSON.stringify(preview)).not.toContain('FULL_CHUNK_TEXT_SHOULD_NOT_RETURN')
         expect(JSON.stringify(preview)).not.toContain('tenant-1')
         expect(JSON.stringify(preview)).not.toContain('/private/source.pdf')
+    })
+
+    it('returns safe PDF page image file info without storage internals', async () => {
+        const fileRepository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'file-1',
+                storageFileId: 'storage-1',
+                originalName: 'deck.pdf',
+                mimeType: 'application/pdf',
+                size: 456,
+                status: 'ready',
+                capabilities: ['preview', 'read', 'page_images', 'vision'],
+                workspacePath: '/workspace/sessions/conversation-1/files/file-1/deck.pdf',
+                summary: 'Deck summary',
+                metadata: {
+                    parser: 'pdf',
+                    pdfPageImages: {
+                        pageCount: 1,
+                        renderedPageCount: 1,
+                        truncated: false
+                    }
+                }
+            })
+        }
+        const artifactRepository = {
+            find: jest.fn().mockResolvedValue([
+                {
+                    kind: 'page_image',
+                    orderNo: 2,
+                    mimeType: 'image/png',
+                    anchor: { page: 1, path: 'page-0001.png' },
+                    metadata: {
+                        storageKey: 'contexts/tenant-1/file-understanding/file-1/run-1/pages/page-0001.png',
+                        serverPath: '/private/server/page-0001.png',
+                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
+                        url: 'https://files.example/page-0001.png',
+                        fileName: 'page-0001.png',
+                        width: 800,
+                        height: 1000,
+                        size: 1234
+                    }
+                }
+            ])
+        }
+        const chunkRepository = {
+            find: jest.fn().mockResolvedValue([])
+        }
+        const handler = createHandler(fileRepository, artifactRepository, chunkRepository)
+
+        const preview = await handler.execute(new GetFilePreviewQuery('file-1'))
+
+        expect(preview?.artifacts).toEqual([
+            {
+                kind: 'page_image',
+                orderNo: 2,
+                mimeType: 'image/png',
+                anchor: { page: 1, path: 'page-0001.png' },
+                file: {
+                    workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
+                    url: 'https://files.example/page-0001.png',
+                    fileName: 'page-0001.png',
+                    width: 800,
+                    height: 1000,
+                    size: 1234
+                }
+            }
+        ])
+        expect(JSON.stringify(preview)).not.toContain('storageKey')
+        expect(JSON.stringify(preview)).not.toContain('contexts/tenant-1/file-understanding')
+        expect(JSON.stringify(preview)).not.toContain('/private/server/page-0001.png')
     })
 })

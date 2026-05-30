@@ -42,6 +42,7 @@ describe('FileUnderstandingMiddleware', () => {
             'file_read',
             'file_table_query',
             'file_preview',
+            'file_page_images',
             'workspace_list',
             'workspace_read',
             'workspace_search'

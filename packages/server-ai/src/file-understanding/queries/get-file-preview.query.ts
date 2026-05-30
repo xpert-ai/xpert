@@ -1,4 +1,5 @@
 import { Query } from '@nestjs/cqrs'
+import { PageImagePreviewFile } from '../domain/page-image-artifact'
 import { FileAnchor, FileArtifactKind, FileAssetStatus, FileCapability } from '../domain/types'
 
 export type FilePreviewResult = {
@@ -19,6 +20,7 @@ export type FilePreviewResult = {
             parser?: unknown
             chunkCount?: unknown
             fileCount?: unknown
+            pdfPageImages?: unknown
         }
     }
     artifacts: Array<{
@@ -26,6 +28,7 @@ export type FilePreviewResult = {
         orderNo: number
         mimeType?: string
         anchor?: FileAnchor
+        file?: PageImagePreviewFile
     }>
     chunks: Array<{
         chunkId: string
