@@ -1,5 +1,6 @@
 export * from './copilot-checkpoint.module'
 export * from './copilot-checkpoint.service'
 export * from './checkpoint-saver'
+export * from './retention.service'
 export * from './commands/index'
 export * from './queries/index'
