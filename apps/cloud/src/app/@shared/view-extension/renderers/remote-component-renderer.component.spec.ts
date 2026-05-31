@@ -5,6 +5,22 @@ import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 
+async function flushRemoteEntry(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }) {
+  fixture.detectChanges()
+  await fixture.whenStable()
+  await Promise.resolve()
+  fixture.detectChanges()
+}
+
+async function readBlobText(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+}
+
 describe('RemoteComponentRendererComponent', () => {
   const manifest: XpertExtensionViewManifest = {
     key: 'bom_document_intake__review',
@@ -44,8 +60,23 @@ describe('RemoteComponentRendererComponent', () => {
     executeFileAction: jest.Mock
   }
   let registry: ViewClientCommandRegistry
+  let originalCreateObjectURL: typeof URL.createObjectURL | undefined
+  let originalRevokeObjectURL: typeof URL.revokeObjectURL | undefined
+  let objectUrlIndex: number
 
   beforeEach(async () => {
+    originalCreateObjectURL = URL.createObjectURL
+    originalRevokeObjectURL = URL.revokeObjectURL
+    objectUrlIndex = 0
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: jest.fn(() => `blob:remote-component-entry-${++objectUrlIndex}`)
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: jest.fn()
+    })
+
     api = {
       getRemoteComponentEntry: jest.fn(() => of('<!doctype html><html><body></body></html>')),
       getViewData: jest.fn(),
@@ -78,7 +109,41 @@ describe('RemoteComponentRendererComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule()
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectURL
+      })
+    } else {
+      Reflect.deleteProperty(URL, 'createObjectURL')
+    }
+    if (originalRevokeObjectURL) {
+      Object.defineProperty(URL, 'revokeObjectURL', {
+        configurable: true,
+        value: originalRevokeObjectURL
+      })
+    } else {
+      Reflect.deleteProperty(URL, 'revokeObjectURL')
+    }
     jest.clearAllMocks()
+  })
+
+  it('keeps the remote component iframe document intact', async () => {
+    const remoteHtml =
+      '<!doctype html><html><head><script>window.__remote_component_probe = true</script></head><body><div id="root"></div></body></html>'
+    api.getRemoteComponentEntry.mockReturnValue(of(remoteHtml))
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const blob = (URL.createObjectURL as jest.Mock).mock.calls[0][0] as Blob
+    await expect(readBlobText(blob)).resolves.toBe(remoteHtml)
+    expect(frame.getAttribute('src')).toBe('blob:remote-component-entry-1')
+    expect(frame.hasAttribute('srcdoc')).toBe(false)
   })
 
   it('executes declared client commands through the host registry', async () => {
@@ -89,8 +154,7 @@ describe('RemoteComponentRendererComponent', () => {
     fixture.componentRef.setInput('hostType', 'agent')
     fixture.componentRef.setInput('hostId', 'assistant-1')
     fixture.componentRef.setInput('manifest', manifest)
-    fixture.detectChanges()
-    await fixture.whenStable()
+    await flushRemoteEntry(fixture)
 
     const component = fixture.componentInstance as unknown as {
       handleClientCommandRequest(message: Record<string, unknown>): Promise<unknown>
@@ -126,8 +190,7 @@ describe('RemoteComponentRendererComponent', () => {
       ...manifest,
       clientCommands: []
     })
-    fixture.detectChanges()
-    await fixture.whenStable()
+    await flushRemoteEntry(fixture)
 
     const component = fixture.componentInstance as unknown as {
       handleClientCommandRequest(message: Record<string, unknown>): Promise<unknown>
@@ -152,8 +215,7 @@ describe('RemoteComponentRendererComponent', () => {
     fixture.componentRef.setInput('hostType', 'agent')
     fixture.componentRef.setInput('hostId', 'assistant-1')
     fixture.componentRef.setInput('manifest', manifest)
-    fixture.detectChanges()
-    await fixture.whenStable()
+    await flushRemoteEntry(fixture)
 
     const component = fixture.componentInstance as unknown as {
       instanceId(): string
@@ -182,8 +244,7 @@ describe('RemoteComponentRendererComponent', () => {
     fixture.componentRef.setInput('hostType', 'agent')
     fixture.componentRef.setInput('hostId', 'assistant-1')
     fixture.componentRef.setInput('manifest', manifest)
-    fixture.detectChanges()
-    await fixture.whenStable()
+    await flushRemoteEntry(fixture)
 
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
     jest.spyOn(frame, 'getBoundingClientRect').mockReturnValue({

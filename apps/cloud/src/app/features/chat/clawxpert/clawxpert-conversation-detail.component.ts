@@ -1,18 +1,26 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
-import type { ChatKitQuoteReference, TChatElementReference, TChatFileElementReference } from '@xpert-ai/contracts'
+import type {
+  ChatKitQuoteReference,
+  I18nObject,
+  TChatElementReference,
+  TChatFileElementReference,
+  XpertExtensionViewManifest
+} from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
+import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
   AssistantCode,
   AiThreadService,
   ChatConversationService,
   IChatConversation,
+  ViewExtensionApiService,
   getErrorMessage,
   injectToastr
 } from '../../../@core'
@@ -36,6 +44,8 @@ const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
+const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+const DEFAULT_FIXED_VIEW_ICON = 'ri-layout-grid-line'
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -48,7 +58,8 @@ type ChatKitCodeComposerReference = {
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
 type ClawXpertStaticTabId = 'files' | 'terminal'
-type ClawXpertWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
+type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
+type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
 type ClawXpertToolTab = {
   id: string
   kind: ClawXpertStaticTabId
@@ -63,10 +74,24 @@ type ClawXpertBrowserTab = {
   deviceToolbarVisible: boolean
   reloadKey: number
 }
-type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab
+type ClawXpertFixedViewTab = {
+  id: string
+  kind: 'fixed-view'
+  viewKey: string
+  title: string
+  icon: string | null
+}
+type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
 
-type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview'
+type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view'
 type ClawXpertBrowserTabChange = Partial<Omit<ClawXpertBrowserTab, 'id' | 'kind'>>
+type ClawXpertFixedViewMenuItem = {
+  viewKey: string
+  title: string
+  description: string | null
+  icon: string | null
+  order: number
+}
 const DEFAULT_BROWSER_ZOOM = 100
 const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
   id: 'files-initial',
@@ -98,7 +123,8 @@ type ChatKitReferenceComposerControl = {
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
-    ChatSharedTerminalComponent
+    ChatSharedTerminalComponent,
+    ExtensionHostOutletComponent
   ],
   template: `
     <div [class]="workspaceLayoutClasses()">
@@ -107,7 +133,7 @@ type ChatKitReferenceComposerControl = {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
             <div
               data-workspace-tab-header
-              class="flex min-w-0 items-center justify-start gap-1 border-b border-divider-regular px-4 pt-1"
+              class="flex min-w-0 items-center justify-start gap-1.5 bg-components-panel-bg px-2 py-1.5"
             >
               <nav
                 z-tab-nav-bar
@@ -125,27 +151,34 @@ type ChatKitReferenceComposerControl = {
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex min-w-0 items-center gap-2 !border-transparent transition-colors hover:rounded-2xl hover:bg-hover-bg data-[active=true]:rounded-xl data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                    class="group/tab flex h-9 min-w-0 items-center gap-2 rounded-xl !border-transparent bg-hover-bg px-3 text-sm font-medium text-text-primary transition-[background-color,color] hover:bg-hover-bg data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
                     <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                      @switch (tab.kind) {
-                        @case ('files') {
-                          <i class="ri-folder-3-line shrink-0 text-base"></i>
+                      <span
+                        class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
+                      >
+                        @switch (tab.kind) {
+                          @case ('files') {
+                            <i class="ri-folder-3-line shrink-0 text-lg"></i>
+                          }
+                          @case ('terminal') {
+                            <i class="ri-terminal-window-line shrink-0 text-lg"></i>
+                          }
+                          @case ('browser') {
+                            <i class="ri-global-line shrink-0 text-lg"></i>
+                          }
+                          @case ('fixed-view') {
+                            <i [class]="fixedViewIconClass(tab.icon)"></i>
+                          }
                         }
-                        @case ('terminal') {
-                          <i class="ri-terminal-window-line shrink-0 text-base"></i>
-                        }
-                        @case ('browser') {
-                          <i class="ri-global-line shrink-0 text-base"></i>
-                        }
-                      }
+                      </span>
                       <span
                         role="button"
                         tabindex="0"
                         [attr.data-close-tab]="tab.id"
-                        class="absolute inset-0 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                        class="absolute inset-0 flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
                         (click)="closeWorkspaceTab($event, tab.id)"
                         (keydown.enter)="closeWorkspaceTab($event, tab.id)"
                         (keydown.space)="closeWorkspaceTab($event, tab.id)"
@@ -155,14 +188,21 @@ type ChatKitReferenceComposerControl = {
                     </span>
                     @switch (tab.kind) {
                       @case ('files') {
-                        <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                        <span class="truncate">{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                       }
                       @case ('terminal') {
-                        <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                        <span class="truncate">
+                          {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                        </span>
                       }
                       @case ('browser') {
                         <span class="max-w-[12rem] truncate">
                           {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
+                        </span>
+                      }
+                      @case ('fixed-view') {
+                        <span class="max-w-[12rem] truncate">
+                          {{ tab.title }}
                         </span>
                       }
                     }
@@ -176,7 +216,7 @@ type ChatKitReferenceComposerControl = {
                 zType="ghost"
                 zSize="icon"
                 data-add-workspace-tab
-                class="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:bg-components-card-bg hover:text-text-primary"
                 [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
                 z-menu
                 [zMenuTriggerFor]="workspaceTabMenu"
@@ -204,6 +244,51 @@ type ChatKitReferenceComposerControl = {
                       <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
                     </span>
                   </button>
+                  @if (fixedViewMenuVisible()) {
+                    <div class="my-1 border-t border-divider-regular"></div>
+                    <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
+                      {{ 'PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
+                    </div>
+                    @if (loadingFixedViews()) {
+                      <button type="button" z-menu-item disabled data-fixed-views-loading>
+                        <span class="flex items-center gap-2 text-text-tertiary">
+                          <i class="ri-loader-4-line text-base"></i>
+                          <span>
+                            {{
+                              'PAC.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' }
+                            }}
+                          </span>
+                        </span>
+                      </button>
+                    } @else if (fixedViewError()) {
+                      <button type="button" z-menu-item disabled data-fixed-views-error>
+                        <span class="flex items-center gap-2 text-text-tertiary">
+                          <i class="ri-error-warning-line text-base"></i>
+                          <span>
+                            {{
+                              'PAC.Chat.ClawXpert.FixedViewsLoadFailed'
+                                | translate: { Default: 'Failed to load fixed views' }
+                            }}
+                          </span>
+                        </span>
+                      </button>
+                    } @else {
+                      @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
+                        <button
+                          type="button"
+                          z-menu-item
+                          data-add-fixed-view-tab
+                          [attr.data-fixed-view-key]="fixedView.viewKey"
+                          (click)="openFixedViewTab(fixedView)"
+                        >
+                          <span class="flex min-w-0 items-center gap-2">
+                            <i [class]="fixedViewIconClass(fixedView.icon)"></i>
+                            <span class="min-w-0 truncate">{{ fixedView.title }}</span>
+                          </span>
+                        </button>
+                      }
+                    }
+                  }
                 </div>
               </ng-template>
             </div>
@@ -247,6 +332,26 @@ type ChatKitReferenceComposerControl = {
                           {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
                         </div>
                       </button>
+                      @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
+                        <button
+                          type="button"
+                          data-empty-workspace-card="fixed-view"
+                          [attr.data-fixed-view-key]="fixedView.viewKey"
+                          class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                          (click)="openFixedViewTab(fixedView)"
+                        >
+                          <i [class]="fixedViewLauncherIconClass(fixedView.icon)"></i>
+                          <div class="mt-4 text-xl font-semibold text-text-primary">
+                            {{ fixedView.title }}
+                          </div>
+                          <div class="mt-2 text-lg text-text-secondary">
+                            {{
+                              fixedView.description ||
+                                ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
+                            }}
+                          </div>
+                        </button>
+                      }
                       <button
                         type="button"
                         data-empty-workspace-card="terminal"
@@ -266,6 +371,23 @@ type ChatKitReferenceComposerControl = {
                       </button>
                     </div>
                   </div>
+                } @else if (activeFixedViewTab(); as fixedViewTab) {
+                  @if (fixedViewHostId(); as hostId) {
+                    <xp-extension-host-outlet
+                      class="block h-full min-h-0 overflow-auto"
+                      mode="single-view"
+                      hostType="agent"
+                      [hostId]="hostId"
+                      [slot]="agentWorkbenchFixedSlot"
+                      [viewKey]="fixedViewTab.viewKey"
+                    />
+                  } @else {
+                    <div
+                      class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                    >
+                      {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
+                    </div>
+                  }
                 } @else if (contextLoading() && !resolvedConversationId()) {
                   <div
                     class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
@@ -446,13 +568,18 @@ type ChatKitReferenceComposerControl = {
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
   readonly #conversationService = inject(ChatConversationService)
+  readonly #viewExtensionApi = inject(ViewExtensionApiService)
+  readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  #fixedViewsLoadVersion = 0
+  #fixedViewsHostId: string | null = null
 
   readonly facade = inject(ClawXpertFacade)
+  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
     assistantId: computed(() => this.facade.resolvedPreference()?.assistantId ?? null),
@@ -500,6 +627,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
   )
+  readonly fixedViewTabs = computed<ClawXpertFixedViewTab[]>(() =>
+    this.workspaceTabs().filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view')
+  )
   readonly activeTabId = signal<string>(INITIAL_WORKSPACE_TAB.id)
   readonly activeTab = computed<ClawXpertWorkspaceTab | null>(() => {
     const tabs = this.workspaceTabs()
@@ -509,6 +639,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const tab = this.activeTab()
     return tab?.kind === 'browser' ? tab : null
   })
+  readonly activeFixedViewTab = computed(() => {
+    const tab = this.activeTab()
+    return tab?.kind === 'fixed-view' ? tab : null
+  })
   readonly activePanel = computed<ClawXpertConversationPanel | null>(() => {
     const tab = this.activeTab()
     if (!tab) {
@@ -517,6 +651,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     return tab.kind === 'browser' ? 'preview' : tab.kind
   })
+  readonly fixedViewHostId = computed(() => (this.facade.viewState() === 'ready' ? this.facade.xpertId() : null))
+  readonly loadingFixedViews = signal(false)
+  readonly fixedViewError = signal<string | null>(null)
+  readonly fixedViewMenuItems = signal<ClawXpertFixedViewMenuItem[]>([])
+  readonly fixedViewMenuVisible = computed(
+    () => this.loadingFixedViews() || Boolean(this.fixedViewError()) || this.fixedViewMenuItems().length > 0
+  )
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
@@ -561,6 +702,27 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+
+    effect((onCleanup) => {
+      const hostId = this.fixedViewHostId()
+      if (!hostId) {
+        this.#fixedViewsHostId = null
+        this.resetFixedViews(true)
+        return
+      }
+
+      if (this.#fixedViewsHostId !== hostId) {
+        this.#fixedViewsHostId = hostId
+        this.resetFixedViews(true)
+      }
+
+      let cancelled = false
+      void this.loadFixedViews(hostId, () => cancelled)
+
+      onCleanup(() => {
+        cancelled = true
+      })
     })
 
     effect((onCleanup) => {
@@ -708,7 +870,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     await this.attachComposerReferences([toPageElementQuoteReference(request)])
   }
 
-  selectPanel(panel: ClawXpertConversationPanel) {
+  selectPanel(panel: ClawXpertStaticTabId | 'preview') {
     if (panel === 'preview') {
       this.openBrowserTabFromSandboxEvent()
       return
@@ -731,7 +893,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.activeTabId.set(tabId)
   }
 
-  addWorkspaceTab(kind: ClawXpertWorkspaceTabKind) {
+  addWorkspaceTab(kind: ClawXpertAddableWorkspaceTabKind) {
     if (kind === 'browser') {
       return this.addBrowserTab()
     }
@@ -740,6 +902,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       id: this.createWorkspaceTabId(kind),
       kind
     }
+
+    this.workspaceTabs.update((tabs) => [...tabs, tab])
+    this.activeTabId.set(tab.id)
+    return tab
+  }
+
+  openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
+    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === fixedView.viewKey)
+    if (existing) {
+      this.activeTabId.set(existing.id)
+      return existing
+    }
+
+    const tab = this.createFixedViewTab(fixedView)
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
@@ -839,8 +1015,139 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     )
   }
 
+  fixedViewIconClass(icon: string | null | undefined) {
+    return `${normalizeFixedViewIcon(icon)} shrink-0 text-base`
+  }
+
+  fixedViewLauncherIconClass(icon: string | null | undefined) {
+    return `${normalizeFixedViewIcon(icon)} text-3xl text-text-tertiary`
+  }
+
   private createWorkspaceTabId(kind: ClawXpertWorkspaceTabKind) {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
+  }
+
+  private async loadFixedViews(hostId: string, isCancelled: () => boolean) {
+    const version = ++this.#fixedViewsLoadVersion
+    this.loadingFixedViews.set(true)
+    this.fixedViewError.set(null)
+
+    try {
+      const manifests = await firstValueFrom(
+        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_FIXED_SLOT)
+      )
+      if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
+        return
+      }
+
+      const items = manifests
+        .filter((manifest) => shouldShowFixedViewInMenu(manifest))
+        .map((manifest) => this.toFixedViewMenuItem(manifest))
+        .sort((a, b) => a.order - b.order)
+
+      this.fixedViewMenuItems.set(items)
+      this.syncFixedViewTabs(items)
+    } catch (error) {
+      if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
+        return
+      }
+
+      this.fixedViewError.set(getErrorMessage(error) || 'Failed to load fixed views')
+      this.fixedViewMenuItems.set([])
+    } finally {
+      if (!isCancelled() && version === this.#fixedViewsLoadVersion && this.#fixedViewsHostId === hostId) {
+        this.loadingFixedViews.set(false)
+      }
+    }
+  }
+
+  private resetFixedViews(removeTabs: boolean) {
+    this.#fixedViewsLoadVersion += 1
+    this.loadingFixedViews.set(false)
+    this.fixedViewError.set(null)
+    this.fixedViewMenuItems.set([])
+    if (removeTabs) {
+      this.removeFixedViewTabs()
+    }
+  }
+
+  private removeFixedViewTabs() {
+    const tabs = this.workspaceTabs()
+    if (!tabs.some((tab) => tab.kind === 'fixed-view')) {
+      return
+    }
+
+    const nextTabs = tabs.filter((tab) => tab.kind !== 'fixed-view')
+    this.workspaceTabs.set(nextTabs)
+    if (!nextTabs.some((tab) => tab.id === this.activeTabId())) {
+      this.activeTabId.set(nextTabs[0]?.id ?? '')
+    }
+  }
+
+  private syncFixedViewTabs(items: ClawXpertFixedViewMenuItem[]) {
+    const itemByViewKey = new Map(items.map((item) => [item.viewKey, item]))
+    const tabs = this.workspaceTabs()
+    const fixedTabsByViewKey = new Map(
+      tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
+    )
+    const nextFixedTabs = items.map((item) => {
+      const tab = fixedTabsByViewKey.get(item.viewKey)
+      if (!tab) {
+        return this.createFixedViewTab(item)
+      }
+
+      if (tab.title === item.title && tab.icon === item.icon) {
+        return tab
+      }
+
+      return {
+        ...tab,
+        title: item.title,
+        icon: item.icon
+      }
+    })
+    const nextNonFixedTabs = tabs.filter(
+      (tab) => tab.kind !== 'fixed-view' && !(items.length > 0 && isInitialWorkspaceTab(tab))
+    )
+    const nextTabs: ClawXpertWorkspaceTab[] =
+      items.length > 0 ? [...nextFixedTabs, ...nextNonFixedTabs] : tabs.filter((tab) => tab.kind !== 'fixed-view')
+    const changed =
+      nextTabs.length !== tabs.length ||
+      nextTabs.some((tab, index) => tab !== tabs[index]) ||
+      tabs.some((tab) => tab.kind === 'fixed-view' && !itemByViewKey.has(tab.viewKey))
+
+    if (changed) {
+      this.workspaceTabs.set(nextTabs)
+    }
+
+    const activeTabId = this.activeTabId()
+    if (
+      !nextTabs.some((tab) => tab.id === activeTabId) ||
+      isInitialWorkspaceTab(tabs.find((tab) => tab.id === activeTabId))
+    ) {
+      this.activeTabId.set(nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
+    }
+  }
+
+  private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
+    return {
+      id: `fixed-view-${fixedView.viewKey}`,
+      kind: 'fixed-view',
+      viewKey: fixedView.viewKey,
+      title: fixedView.title,
+      icon: fixedView.icon
+    }
+  }
+
+  private toFixedViewMenuItem(manifest: XpertExtensionViewManifest): ClawXpertFixedViewMenuItem {
+    const menu = manifest.workbench?.menu
+    return {
+      viewKey: manifest.key,
+      title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
+      description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
+      icon: normalizeOptionalString(menu?.icon ?? manifest.icon),
+      order: menu?.order ?? manifest.order ?? Number.MAX_SAFE_INTEGER
+    }
   }
 
   private async attachComposerReferences(references: ChatKitComposerReference[]) {
@@ -1002,6 +1309,60 @@ function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandbox
   return typeof targetUrl === 'string' && targetUrl.trim()
     ? tab.url === targetUrl || tab.displayUrl === targetUrl
     : false
+}
+
+function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
+  if (manifest.visible === false) {
+    return false
+  }
+  if (manifest.workbench?.fixed === false) {
+    return false
+  }
+  return manifest.workbench?.menu?.enabled !== false
+}
+
+function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
+  return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
+}
+
+function normalizeFixedViewIcon(icon: string | null | undefined) {
+  return normalizeOptionalString(icon) ?? DEFAULT_FIXED_VIEW_ICON
+}
+
+function normalizeOptionalString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
+  if (typeof value === 'string') {
+    return value.trim() || fallback
+  }
+  if (!value || typeof value !== 'object') {
+    return fallback
+  }
+
+  const normalizedLanguage = (language ?? '').toLowerCase()
+  const preferredKeys =
+    normalizedLanguage.includes('hant') || normalizedLanguage.includes('tw')
+      ? ['zh_Hant', 'zh_Hans', 'en_US']
+      : normalizedLanguage.startsWith('zh')
+        ? ['zh_Hans', 'zh_Hant', 'en_US']
+        : ['en_US', 'zh_Hans', 'zh_Hant']
+
+  for (const key of preferredKeys) {
+    const text = Reflect.get(value, key)
+    if (typeof text === 'string' && text.trim()) {
+      return text.trim()
+    }
+  }
+
+  for (const text of Object.values(value)) {
+    if (typeof text === 'string' && text.trim()) {
+      return text.trim()
+    }
+  }
+
+  return fallback
 }
 
 function toFileElementQuoteReference(reference: TChatFileElementReference): ChatKitQuoteReference {

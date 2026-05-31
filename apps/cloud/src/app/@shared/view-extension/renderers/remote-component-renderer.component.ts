@@ -7,6 +7,7 @@ import {
   XpertViewParameterDefinition,
   XpertViewQuery
 } from '@xpert-ai/contracts'
+import { SafePipe } from '@xpert-ai/core'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 
@@ -25,7 +26,7 @@ type RemoteComponentMessage = {
 @Component({
   standalone: true,
   selector: 'xp-remote-component-renderer',
-  imports: [CommonModule],
+  imports: [CommonModule, SafePipe],
   template: `
     @if (error()) {
       <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
@@ -37,7 +38,7 @@ type RemoteComponentMessage = {
         class="block w-full border-0 bg-components-card-bg"
         [style.height.px]="height()"
         [attr.title]="manifest().title.en_US"
-        [srcdoc]="html()"
+        [src]="entryUrl() | safe: 'resourceUrl'"
         sandbox="allow-downloads allow-forms allow-modals allow-popups allow-scripts"
       ></iframe>
     }
@@ -56,7 +57,7 @@ export class RemoteComponentRendererComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly frame = viewChild('frame', { read: ElementRef<HTMLIFrameElement> })
 
-  readonly html = signal('')
+  readonly entryUrl = signal<string | null>(null)
   readonly error = signal<string | null>(null)
   readonly requestedHeight = signal(520)
   readonly viewportBound = signal(false)
@@ -69,6 +70,7 @@ export class RemoteComponentRendererComponent {
   readonly instanceId = computed(() => `${this.manifest().key}:${this.#instanceNonce()}`)
 
   #entryRequestId = 0
+  #entryObjectUrl: string | null = null
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
@@ -80,6 +82,7 @@ export class RemoteComponentRendererComponent {
       window.removeEventListener('message', onMessage)
       window.removeEventListener('resize', onViewportChange)
       window.removeEventListener('scroll', onViewportChange, true)
+      this.clearEntryUrl()
     })
 
     effect(() => {
@@ -97,7 +100,7 @@ export class RemoteComponentRendererComponent {
 
   private async loadEntry(requestId: number, hostType: string, hostId: string, viewKey: string) {
     this.error.set(null)
-    this.html.set('')
+    this.clearEntryUrl()
     this.requestedHeight.set(520)
     this.viewportBound.set(false)
     this.updateViewportHeight()
@@ -108,12 +111,28 @@ export class RemoteComponentRendererComponent {
       if (requestId !== this.#entryRequestId) {
         return
       }
-      this.html.set(html)
+      this.setEntryHtml(html)
     } catch (error) {
       if (requestId !== this.#entryRequestId) {
         return
       }
       this.error.set(getErrorMessage(error))
+    }
+  }
+
+  private setEntryHtml(html: string) {
+    this.clearEntryUrl()
+    const objectUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+    this.#entryObjectUrl = objectUrl
+    this.entryUrl.set(objectUrl)
+  }
+
+  private clearEntryUrl() {
+    const objectUrl = this.#entryObjectUrl
+    this.#entryObjectUrl = null
+    this.entryUrl.set(null)
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl)
     }
   }
 
