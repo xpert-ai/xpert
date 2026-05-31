@@ -97,7 +97,8 @@ describe('plugin helper registerPluginsAsync', () => {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo',
 			source: 'code',
 			workspacePath: '/tmp/workspaces/plugin-code-demo',
-			codeLoadMode: 'staged-package'
+			codeLoadMode: 'staged-package',
+			onCompatibilityWarnings: expect.any(Function)
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({
@@ -105,6 +106,70 @@ describe('plugin helper registerPluginsAsync', () => {
 				name: '@xpert-ai/plugin-code-demo',
 				packageName: '@xpert-ai/plugin-code-demo',
 				source: 'code'
+			})
+		])
+	})
+
+	it('records sdk compatibility warnings on loaded plugin records', async () => {
+		const warnings = [
+			{
+				code: 'plugin-sdk-peer-range-incompatible',
+				packageName: '@xpert-ai/plugin-code-demo',
+				hostVersion: '4.0.0',
+				peerRange: '^3.9.1',
+				message:
+					'@xpert-ai/plugin-sdk peerDependencies range "^3.9.1" is incompatible with host SDK version 4.0.0.'
+			}
+		]
+
+		;(loadPlugin as jest.Mock).mockImplementationOnce(
+			async (
+				name: string,
+				options: {
+					onCompatibilityWarnings?: (value: typeof warnings) => void
+				}
+			) => {
+				options.onCompatibilityWarnings?.(warnings)
+				return {
+					meta: {
+						name,
+						version: '1.0.0',
+						level: 'organization'
+					},
+					register: jest.fn(() => ({
+						module: class RuntimePluginModule {}
+					}))
+				}
+			}
+		)
+
+		await expect(
+			registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-code-demo',
+						source: 'code',
+						sourceConfig: {
+							workspacePath: '/tmp/workspaces/plugin-code-demo'
+						}
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-code-demo': {}
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				errors: []
+			})
+		)
+
+		expect(loaded).toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-code-demo',
+				sdkCompatibilityWarnings: warnings
 			})
 		])
 	})
@@ -142,7 +207,8 @@ describe('plugin helper registerPluginsAsync', () => {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule',
 			source: 'code',
 			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/),
-			codeLoadMode: 'workspace-ts'
+			codeLoadMode: 'workspace-ts',
+			onCompatibilityWarnings: expect.any(Function)
 		})
 	})
 
@@ -183,7 +249,8 @@ describe('plugin helper registerPluginsAsync', () => {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123',
 			source: 'code',
 			workspacePath: '/tmp/workspaces/plugin-code-demo',
-			codeLoadMode: 'staged-package'
+			codeLoadMode: 'staged-package',
+			onCompatibilityWarnings: expect.any(Function)
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({

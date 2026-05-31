@@ -226,6 +226,15 @@ export class PluginsComponent {
     })
   }
 
+  sdkCompatibilityWarningMessage(plugin: TInstalledPlugin) {
+    return (
+      plugin.sdkCompatibilityWarnings
+        ?.map((warning) => warning.message)
+        .filter(Boolean)
+        .join('\n') ?? ''
+    )
+  }
+
   reload() {
     this.reloadInstalledPlugins()
   }

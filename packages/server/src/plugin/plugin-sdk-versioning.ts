@@ -1,4 +1,4 @@
-import type { PluginSourceConfig } from '@xpert-ai/contracts'
+import type { PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -37,6 +37,7 @@ type PluginPackageManifest = {
 export interface PluginSdkCompatibilityInfo {
 	hostVersion: string
 	peerRange: string
+	warnings: PluginSdkCompatibilityWarning[]
 }
 
 export interface PluginInstallValidationOptions {
@@ -252,7 +253,23 @@ function normalizePeerRange(range: string | undefined, hostVersion: string) {
 	return workspaceRange
 }
 
-function assertSingleMajorRange(pluginName: string, range: string, hostVersion: string, rawRange: string) {
+function createWarning(
+	code: PluginSdkCompatibilityWarning['code'],
+	pluginName: string,
+	hostVersion: string,
+	peerRange: string | null,
+	message: string
+): PluginSdkCompatibilityWarning {
+	return {
+		code,
+		packageName: pluginName,
+		hostVersion,
+		peerRange,
+		message
+	}
+}
+
+function getSingleMajorRangeWarning(pluginName: string, range: string, hostVersion: string, rawRange: string) {
 	const hostMajor = major(hostVersion)
 	const previousMajorSentinel = hostMajor > 0 ? `${hostMajor - 1}.999.999` : undefined
 	const nextMajorSentinel = `${hostMajor + 1}.0.0`
@@ -261,11 +278,16 @@ function assertSingleMajorRange(pluginName: string, range: string, hostVersion: 
 	const satisfiesNextMajor = satisfies(nextMajorSentinel, range, { includePrerelease: true })
 
 	if (satisfiesPreviousMajor || satisfiesNextMajor) {
-		throw new PluginSdkValidationError(
+		return createWarning(
+			'plugin-sdk-peer-range-spans-major',
 			pluginName,
-			`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies must use an explicit single-major range compatible with host version ${hostVersion}; received "${rawRange}".`
+			hostVersion,
+			rawRange,
+			`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies range "${rawRange}" spans multiple SDK major versions. The plugin will be loaded with host SDK version ${hostVersion}; verify runtime behavior after SDK upgrades.`
 		)
 	}
+
+	return undefined
 }
 
 export function getHostPluginSdkVersion() {
@@ -310,6 +332,7 @@ export function assertPluginSdkCompatibility(
 	const sdkDependency = manifest.dependencies?.[HOSTED_PLUGIN_SDK_PACKAGE]
 	const rawPeerRange = manifest.peerDependencies?.[HOSTED_PLUGIN_SDK_PACKAGE]
 	const peerRange = normalizePeerRange(rawPeerRange, hostVersion)
+	const warnings: PluginSdkCompatibilityWarning[] = []
 
 	if (expectedPackageName && manifest.name && manifest.name !== expectedPackageName) {
 		throw new PluginSdkValidationError(
@@ -326,31 +349,75 @@ export function assertPluginSdkCompatibility(
 	}
 
 	if (!rawPeerRange) {
-		throw new PluginSdkValidationError(
-			pluginName,
-			`${HOSTED_PLUGIN_SDK_PACKAGE} must be declared in peerDependencies with an explicit single-major range compatible with host version ${hostVersion}.`
+		warnings.push(
+			createWarning(
+				'plugin-sdk-peer-dependency-missing',
+				pluginName,
+				hostVersion,
+				null,
+				`${HOSTED_PLUGIN_SDK_PACKAGE} is not declared in peerDependencies. The plugin will be loaded with host SDK version ${hostVersion}; declare a peer dependency range to document tested compatibility.`
+			)
 		)
+
+		return {
+			hostVersion,
+			peerRange,
+			warnings
+		}
 	}
 
 	if (!validRange(peerRange)) {
-		throw new PluginSdkValidationError(
-			pluginName,
-			`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies range "${rawPeerRange}" is not a valid semver range.`
+		warnings.push(
+			createWarning(
+				'plugin-sdk-peer-range-invalid',
+				pluginName,
+				hostVersion,
+				rawPeerRange,
+				`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies range "${rawPeerRange}" is not a valid semver range. The plugin will be loaded with host SDK version ${hostVersion}; declare a valid range to document tested compatibility.`
+			)
+		)
+
+		return {
+			hostVersion,
+			peerRange,
+			warnings
+		}
+	}
+
+	const isHostVersionInPeerRange = satisfies(hostVersion, peerRange, { includePrerelease: true })
+	if (!isHostVersionInPeerRange) {
+		warnings.push(
+			createWarning(
+				'plugin-sdk-peer-range-incompatible',
+				pluginName,
+				hostVersion,
+				rawPeerRange,
+				`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies range "${rawPeerRange}" is incompatible with host SDK version ${hostVersion}. The plugin will be loaded with the host SDK; verify runtime behavior after SDK upgrades.`
+			)
 		)
 	}
 
-	if (!satisfies(hostVersion, peerRange, { includePrerelease: true })) {
-		throw new PluginSdkValidationError(
-			pluginName,
-			`${HOSTED_PLUGIN_SDK_PACKAGE} peerDependencies range "${rawPeerRange}" is incompatible with host SDK version ${hostVersion}.`
-		)
+	if (isHostVersionInPeerRange) {
+		const singleMajorWarning = getSingleMajorRangeWarning(pluginName, peerRange, hostVersion, rawPeerRange)
+		if (singleMajorWarning) {
+			warnings.push(singleMajorWarning)
+		}
 	}
-
-	assertSingleMajorRange(pluginName, peerRange, hostVersion, rawPeerRange)
 
 	return {
 		hostVersion,
-		peerRange
+		peerRange,
+		warnings
+	}
+}
+
+export function warnPluginSdkCompatibility(info: PluginSdkCompatibilityInfo | undefined) {
+	if (!info?.warnings.length) {
+		return
+	}
+
+	for (const warning of info.warnings) {
+		console.warn(`[${warning.packageName}] ${warning.message}`)
 	}
 }
 

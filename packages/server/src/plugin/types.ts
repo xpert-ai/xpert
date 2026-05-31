@@ -4,6 +4,7 @@ import type {
 	IPluginInstallResult,
 	IPluginUpdateResult,
 	PluginLevel,
+	PluginSdkCompatibilityWarning,
 	PluginSource
 } from '@xpert-ai/contracts'
 
@@ -19,6 +20,7 @@ export interface LoadedPluginRecord {
 	source?: PluginSource
 	baseDir?: string
 	level?: PluginLevel
+	sdkCompatibilityWarnings?: PluginSdkCompatibilityWarning[]
 }
 
 export type PluginInstallInput = IPluginInstallInput

@@ -9,7 +9,7 @@ import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
+import { PluginLevel, PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
@@ -396,13 +396,17 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				source === 'code'
 					? (configuredWorkspacePath ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot))
 					: undefined
+			let sdkCompatibilityWarnings: PluginSdkCompatibilityWarning[] = []
 			// 2) Load each plugin and merge its configuration defaults.
 			const plugin = await loadPlugin(name, {
 				basedir: pluginBaseDir,
 				source,
 				workspacePath,
 				codeLoadMode:
-					source === 'code' ? (configuredWorkspacePath ? 'staged-package' : 'workspace-ts') : undefined
+					source === 'code' ? (configuredWorkspacePath ? 'staged-package' : 'workspace-ts') : undefined,
+				onCompatibilityWarnings: (warnings) => {
+					sdkCompatibilityWarnings = warnings
+				}
 			})
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
@@ -430,7 +434,8 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				level: resolvePluginLevel(plugin.meta?.level ?? level),
 				instance: plugin,
 				ctx,
-				baseDir: pluginBaseDir
+				baseDir: pluginBaseDir,
+				sdkCompatibilityWarnings
 			})
 		} catch (error) {
 			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)

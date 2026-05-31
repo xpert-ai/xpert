@@ -18,23 +18,16 @@
 
 ## 💡 新功能
 
-**🚀 3.9.0 ClawXpert 与 Skills！**
+**🚀 3.10 Agentic Apps 与 File Understanding！**
 
-XpertAI 3.9.0 进一步扩展了智能体工作区体验，重点带来 `ClawXpert` 和更完整的 `Skills` 工作流，覆盖绑定、安装、编辑、配置到运行时启用的完整链路。
+XpertAI 3.10 将插件升级为一等公民的 `Agentic Apps`：插件可以贡献 Xpert 模板、Workbench 视图和运行时 middleware 能力，结合新的文件理解链路，形成更可扩展的助手平台。
 
-- `ClawXpert` 支持每个用户按组织绑定一个已发布的 Xpert，并在 `/chat/clawxpert` 中作为嵌入式助手入口持续使用。
-- 可以在同一套 ClawXpert shell 中维护 `SOUL.md`、`USER.md` 长期上下文，并统一管理会话、模型、触发器草稿、工具和技能偏好。
-- `Skills` 支持精选技能、仓库索引和工作区内的安装、上传、查看、编辑，形成更完整的技能工作台体验。
-- 支持通过 `skill-repositories.yaml`、`skills-market.yaml` 和 `workspace-defaults.yaml` 初始化租户级技能仓库与默认工作区技能。
-- 在空白 Xpert 向导中可以直接选择已安装的工作区技能，并通过 `Skills Middleware` 自动接入主智能体流程。
-
-**最近版本补充：3.8 沙箱环境**
-
-XpertAI 3.8 版本正式发布智能体沙箱功能，沙箱为智能体提供隔离的执行与文件操作环境，沙箱插件的核心能力之一是 Provider 插件机制。通过自定义 Provider，可以接入不同的运行时基础设施，例如：
-
-- Docker/Podman 容器体系
-- [Runloop](https://runloop.ai/), [Modal](https://modal.com/), [Daytona](https://daytona.io/)
-- 远程虚拟机或安全沙盒服务
+- 通过插件 `targetApps`、`targetAppMeta`、插件贡献的 Xpert 模板、废弃标记和更丰富的 manifest 元数据，构建面向业务应用的插件中心。
+- View Extension 支持固定 Workbench 视图、remote component iframe entry、宿主主题透传、宿主事件、任务状态更新和 client commands。
+- Assistant Workbench 可以打开工具触发的 remote component，包括内置 Data X 指标管理插件，用于项目与语义模型指标操作。
+- 新增 File Understanding 层，将上传文件解析为 `FileAsset`、artifacts、chunks、page images、citation anchors 和 workspace paths，Agent 可按需检索和读取。
+- Middleware Runtime 新增文件、知识库、assistant task、组织上下文、chat event 等能力，并加入 Office Automation middleware 流程。
+- Copilot 运维观测增强：支持用户级使用明细、使用汇总、筛选、checkpoint retention 清理、Prometheus 指标和 conversation goals。
 
 ## 智能体与工作流混合架构
 
@@ -158,7 +151,7 @@ Xpert AI 云平台链接为 <https://app.xpertai.cn> 。
   - [ ] 评估框架
 - [ ] 系统运行监控和告警
   - [ ] Sentry 集成
-  - [ ] Prometheus 集成
+  - [x] Prometheus 集成
 
 ## 💌 联系我们
 

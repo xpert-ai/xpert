@@ -5,7 +5,8 @@ import { tmpdir } from 'os'
 jest.mock('./plugin-sdk-versioning', () => ({
 	assertInstalledPluginSdkCompatibility: jest.fn(),
 	ensureHostContractsLink: jest.fn(),
-	ensureHostPluginSdkLink: jest.fn()
+	ensureHostPluginSdkLink: jest.fn(),
+	warnPluginSdkCompatibility: jest.fn()
 }))
 
 const { loadPlugin } = require('./plugin-loader')

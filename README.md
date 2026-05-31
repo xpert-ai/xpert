@@ -38,23 +38,16 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 3.9.0 ClawXpert & Skills!**
+**🚀 3.10 Agentic Apps & File Understanding!**
 
-XpertAI 3.9.0 expands the agent workspace with `ClawXpert`, a dedicated assistant shell built around published Xperts, and a more complete `Skills` workflow for discovery, installation, editing, and runtime enablement.
+XpertAI 3.10 turns plugins into first-class `Agentic Apps`, combining plugin-provided Xpert templates, Workbench views, runtime middleware capabilities, and file-aware agent execution into a more extensible assistant platform.
 
-- `ClawXpert` lets each user bind one published Xpert per organization and use it as an embedded assistant entry in `/chat/clawxpert`.
-- Keep long-term assistant context in `SOUL.md` and `USER.md`, continue conversations, and manage model, trigger draft, tool, and skill preferences from the same shell.
-- Browse featured skills and repository indexes, then install, upload, inspect, and edit workspace skills directly inside Xpert.
-- Bootstrap tenant skill repositories and default workspace skills through `skill-repositories.yaml`, `skills-market.yaml`, and `workspace-defaults.yaml`.
-- Enable installed workspace skills in the blank Xpert wizard, with `Skills Middleware` wiring them into the primary agent flow automatically.
-
-**Also in recent releases: 3.8 Sandbox Environment**
-
-XpertAI 3.8 releases the Agent Sandbox feature, providing an isolated execution and file operation environment for agents. One of the core capabilities of the sandbox plugin is the provider plugin mechanism. Through custom providers, you can integrate different runtime infrastructures, such as:
-
-- Docker/Podman container systems
-- [Runloop](https://runloop.ai/), [Modal](https://modal.com/), [Daytona](https://daytona.io/)
-- Remote virtual machines or secure sandbox services
+- Build business apps with plugin `targetApps` and `targetAppMeta`, plugin-contributed Xpert templates, deprecation controls, and richer manifest metadata for app-specific plugin centers.
+- Render plugin-owned Workbench experiences with fixed views, remote component iframe entries, host theme propagation, host events, task status updates, and client commands.
+- Open tool-triggered remote components in the Assistant Workbench, including the built-in Data X metric management plugin for project and semantic model metric operations.
+- Use the new File Understanding layer to parse uploads into `FileAsset` records, artifacts, chunks, page images, citation anchors, and workspace paths that agents can search and read on demand.
+- Give middleware safer runtime capabilities for files, knowledgebases, assistant tasks, organization context, chat events, and the new Office Automation middleware flow.
+- Monitor Copilot operations with user-level usage details, usage summaries, filters, checkpoint retention cleanup, Prometheus metrics, and conversation goals.
 
 ## Agent-Workflow Hybrid Architecture
 
@@ -166,7 +159,7 @@ For Production, we recommend:
   - [ ] Evaluation framework
 - [ ] System monitoring and alerting
   - [ ] Sentry integration
-  - [ ] Prometheus integration
+  - [x] Prometheus integration
 
 ## 💌 Contact Us
 
