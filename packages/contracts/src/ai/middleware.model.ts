@@ -78,6 +78,14 @@ export type TAgentMiddlewareMeta = {
   features?: Array<TXpertFeatureKey | string>
   slashCommands?: SkillSlashCommand[]
   builtin?: boolean
+  /**
+   * Marks a middleware as deprecated while keeping it selectable/visible for migration.
+   */
+  deprecated?: boolean
+  /**
+   * Optional user-facing migration guidance shown when the middleware is deprecated.
+   */
+  deprecationMessage?: I18nObject
 }
 
 export function isUserAddableAgentMiddleware(meta?: Pick<TAgentMiddlewareMeta, 'builtin'> | null) {

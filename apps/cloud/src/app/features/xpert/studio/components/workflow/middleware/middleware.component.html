@@ -13,8 +13,26 @@
       [title]="meta.label | i18n"
       class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center"
     >
-      <div>{{ meta.label | i18n }}</div>
+      <div [class]="meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
+        {{ meta.label | i18n }}
+      </div>
     </div>
+    @if (meta.deprecated) {
+      <i
+        class="ri-alert-line mr-1 shrink-0 text-text-warning"
+        [zTooltip]="
+          meta.deprecationMessage
+            ? (meta.deprecationMessage | i18n)
+            : ('PAC.Xpert.DeprecatedMiddleware'
+              | translate
+                : {
+                    Default:
+                      'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                  })
+        "
+        zPosition="top"
+      ></i>
+    }
     @if (required()) {
       <span
         class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"

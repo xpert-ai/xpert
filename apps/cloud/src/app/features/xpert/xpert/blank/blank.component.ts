@@ -11,6 +11,7 @@ import {
   ZardComboboxDeprecatedComponent,
   ZardDialogService,
   ZardStepperImports,
+  ZardTooltipImports,
   type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -266,6 +267,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     RouterModule,
     DragDropModule,
     ...ZardStepperImports,
+    ...ZardTooltipImports,
     FormsModule,
     CdkListboxModule,
     NgmI18nPipe,

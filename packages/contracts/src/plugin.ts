@@ -1,6 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { JsonSchemaObjectType } from './ai/types'
-import { IconDefinition } from './types'
+import { IconDefinition, I18nObject } from './types'
 
 export type PluginName = string
 export const PLUGIN_LEVEL = {
@@ -80,6 +80,14 @@ export interface PluginMeta {
    * App-specific metadata grouped by target app without overloading the technical category.
    */
   targetAppMeta?: PluginTargetAppMeta
+  /**
+   * Marks a plugin as deprecated while keeping it installable/visible for migration.
+   */
+  deprecated?: boolean
+  /**
+   * Optional user-facing migration guidance shown when the plugin is deprecated.
+   */
+  deprecationMessage?: I18nObject
   icon?: IconDefinition
   category:
     | 'set'

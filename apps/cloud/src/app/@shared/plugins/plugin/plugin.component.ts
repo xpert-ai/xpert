@@ -1,8 +1,8 @@
-
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -11,6 +11,8 @@ export type TPlugin = {
   displayName: I18nObject
   description: I18nObject
   version: string
+  deprecated?: boolean
+  deprecationMessage?: I18nObject
   category: string
   icon: IconDefinition
   author: {
@@ -26,23 +28,16 @@ export type TPlugin = {
 
 @Component({
   standalone: true,
-  imports: [
-    TranslateModule,
-    FormsModule,
-    NgmI18nPipe,
-    IconComponent
-],
+  imports: [TranslateModule, FormsModule, NgmI18nPipe, IconComponent, ...ZardTooltipImports],
   selector: 'xp-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],
   animations: []
 })
 export class PluginComponent {
-
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
-  
+
   // Inputs
   readonly plugin = input<TPlugin>()
   readonly installed = input<boolean>(false)
-
 }

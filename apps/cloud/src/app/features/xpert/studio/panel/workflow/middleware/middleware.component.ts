@@ -8,6 +8,7 @@ import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { XpertToolTestComponent } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isEqual, uniq } from 'lodash-es'
 import {
   injectXpertAgentAPI,
@@ -28,6 +29,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     CommonModule,
     FormsModule,
     TranslateModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     IconComponent,
     JSONSchemaFormComponent,
@@ -70,7 +72,9 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
       xpertId: this.xpertId()
     }),
     loader: ({ request }) => {
-      return request.provider ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId) : null
+      return request.provider
+        ? this.agentAPI.getAgentMiddleware(request.provider, request.options, request.xpertId)
+        : null
     }
   })
   readonly middlewareTools = computed(() => this.#middlewareToolsRes.value()?.tools ?? [])

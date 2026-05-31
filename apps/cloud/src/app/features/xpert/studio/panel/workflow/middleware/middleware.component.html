@@ -1,13 +1,31 @@
 <div class="p-4 space-y-3">
-  <div class="text-lg font-semibold flex items-center gap-1 text-text-primary">
-    <xp-icon [icon]="providerMeta()?.icon" size="20" class="w-8 h-8 shrink-0 inline-flex items-center" />
-    <span>
-      {{ providerMeta()?.label | i18n }}
-    </span>
-  </div>
-  <div class="text-sm text-text-tertiary leading-5">
-    {{ providerMeta()?.description | i18n }}
-  </div>
+  @if (providerMeta(); as meta) {
+    <div class="text-lg font-semibold flex items-center gap-1 text-text-primary">
+      <xp-icon [icon]="meta.icon" size="20" class="w-8 h-8 shrink-0 inline-flex items-center" />
+      <span [class]="meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
+        {{ meta.label | i18n }}
+      </span>
+      @if (meta.deprecated) {
+        <i
+          class="ri-alert-line shrink-0 text-text-warning"
+          [zTooltip]="
+            meta.deprecationMessage
+              ? (meta.deprecationMessage | i18n)
+              : ('PAC.Xpert.DeprecatedMiddleware'
+                | translate
+                  : {
+                      Default:
+                        'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                    })
+          "
+          zPosition="top"
+        ></i>
+      }
+    </div>
+    <div class="text-sm text-text-tertiary leading-5">
+      {{ meta.description | i18n }}
+    </div>
+  }
 </div>
 
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
