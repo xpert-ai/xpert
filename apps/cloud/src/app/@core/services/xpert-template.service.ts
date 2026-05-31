@@ -11,41 +11,48 @@ export class XpertTemplateService {
   readonly #httpClient = inject(HttpClient)
 
   getAll() {
-    return this.#httpClient.get<{categories: string[]; recommendedApps: TXpertTemplate[]}>(API_PREFIX + `/xpert-template`)
+    return this.#httpClient.get<{ categories: string[]; recommendedApps: TXpertTemplate[] }>(
+      API_PREFIX + `/xpert-template`
+    )
   }
 
   getTemplate(id: string) {
-    return this.#httpClient.get<TXpertTemplate>(API_PREFIX + `/xpert-template/${id}`)
+    return this.#httpClient.get<TXpertTemplate>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}`)
   }
 
   getAllMCP(paginationParams: PaginationParams<IXpertTemplate>) {
-    return this.#httpClient.get<{categories: string[]; templates: IXpertMCPTemplate[]}>(API_PREFIX + `/xpert-template/mcps`, {
-      params: toHttpParams(paginationParams)
-    })
+    return this.#httpClient.get<{ categories: string[]; templates: IXpertMCPTemplate[] }>(
+      API_PREFIX + `/xpert-template/mcps`,
+      {
+        params: toHttpParams(paginationParams)
+      }
+    )
   }
 
   getMCPTemplate(id: string) {
-    return this.#httpClient.get<IXpertMCPTemplate>(API_PREFIX + `/xpert-template/mcps/${id}`)
+    return this.#httpClient.get<IXpertMCPTemplate>(API_PREFIX + `/xpert-template/mcps/${encodeURIComponent(id)}`)
   }
 
   getAllKnowledgePipelines(paginationParams: PaginationParams<IXpertTemplate>) {
-    return this.#httpClient.get<{categories: string[]; templates: TKnowledgePipelineTemplate[]}>(API_PREFIX + `/xpert-template/pipelines`, {
-      params: toHttpParams(paginationParams)
-    })
+    return this.#httpClient.get<{ categories: string[]; templates: TKnowledgePipelineTemplate[] }>(
+      API_PREFIX + `/xpert-template/pipelines`,
+      {
+        params: toHttpParams(paginationParams)
+      }
+    )
   }
 
   getKnowledgePipelineTemplate(id: string) {
-    return this.#httpClient.get<TKnowledgePipelineTemplate>(API_PREFIX + `/xpert-template/pipelines/${id}`)
+    return this.#httpClient.get<TKnowledgePipelineTemplate>(
+      API_PREFIX + `/xpert-template/pipelines/${encodeURIComponent(id)}`
+    )
   }
 
   getSkillsMarket() {
     return this.#httpClient.get<ISkillMarketConfig>(API_PREFIX + `/xpert-template/skills-market`)
   }
 
-  syncSkillAssets(body?: {
-    mode?: TemplateSkillSyncMode
-    validateOnly?: boolean
-  }) {
+  syncSkillAssets(body?: { mode?: TemplateSkillSyncMode; validateOnly?: boolean }) {
     return this.#httpClient.post<ITemplateSkillSyncResult>(API_PREFIX + `/xpert-template/sync-skill-assets`, body ?? {})
   }
 }
