@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-integration-github",
-  "version": "0.0.9",
+  "version": "1.0.0",
   "xpert": {
     "plugin": {
       "level": "system"
