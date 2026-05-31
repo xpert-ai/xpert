@@ -1,5 +1,18 @@
 # @xpert-ai/plugin-integration-github
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [df9d7e2]
+  - @xpert-ai/plugin-sdk@4.0.0
+
+## 0.0.9
+
+### Patch Changes
+
+- @xpert-ai/plugin-sdk@3.9.9
+
 ## 0.0.8
 
 ### Patch Changes

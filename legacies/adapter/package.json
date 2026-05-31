@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/adapter",
-  "version": "3.9.6",
+  "version": "4.0.0",
   "private": true,
   "license": "AGPL-3.0",
   "dependencies": {
