@@ -2,6 +2,10 @@ jest.mock('../../copilot-model/utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
 
+jest.mock('@langchain/core/callbacks/dispatch', () => ({
+    dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
+}))
+
 jest.mock('./execution', () => {
     const { XpertAgentExecutionStatusEnum } = require('@xpert-ai/contracts')
     const { XpertAgentExecutionUpsertCommand } = require('../../xpert-agent-execution/commands/upsert.command')
@@ -54,7 +58,8 @@ jest.mock('./execution', () => {
     }
 })
 
-import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
     AssistantTaskRuntimeCapability,
     FileRuntimeCapability,
@@ -105,6 +110,37 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('emits middleware events as chat events without agent identity', async () => {
+        await service.api.emitMiddlewareEvent({
+            middlewareName: 'ModelRetryMiddleware',
+            middlewareKey: 'model-retry-node',
+            title: 'Model retry',
+            message: 'Retrying model call, attempt 2/3',
+            status: 'running',
+            phase: 'retry_started',
+            executionId: 'exec-1',
+            threadId: 'thread-1',
+            agentKey: 'should-not-leak'
+        } as any)
+
+        expect(dispatchCustomEvent).toHaveBeenCalledWith(
+            ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+            expect.objectContaining({
+                type: 'middleware_event',
+                middlewareName: 'ModelRetryMiddleware',
+                middlewareKey: 'model-retry-node',
+                title: 'Model retry',
+                message: 'Retrying model call, attempt 2/3',
+                status: 'running',
+                phase: 'retry_started',
+                executionId: 'exec-1',
+                threadId: 'thread-1',
+                created_date: expect.any(String)
+            })
+        )
+        expect((dispatchCustomEvent as jest.Mock).mock.calls[0][1]).not.toHaveProperty('agentKey')
     })
 
     function mockCreateModelClientDependencies(options?: { tokenRecordError?: Error }) {

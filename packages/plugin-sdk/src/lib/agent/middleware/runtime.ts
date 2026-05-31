@@ -88,6 +88,25 @@ export type AgentMiddlewareWrapWorkflowNodeExecutionParams = {
   catchError?: (error: Error) => Promise<void>
 }
 
+export type AgentMiddlewareEventStatus = 'running' | 'success' | 'fail'
+
+export type AgentMiddlewareEvent = {
+  type?: 'middleware_event'
+  middlewareName?: string
+  middlewareKey?: string
+  title?: string
+  message?: string
+  status?: AgentMiddlewareEventStatus
+  phase?: string
+  executionId?: string
+  threadId?: string
+  created_date?: string
+  end_date?: string
+  error?: unknown
+  data?: unknown
+  [key: string]: unknown
+}
+
 export interface AgentMiddlewareRuntimeApi {
   createModelClient<T = AgentMiddlewareModelClient>(
     copilotModel: ICopilotModel,
@@ -98,6 +117,8 @@ export interface AgentMiddlewareRuntimeApi {
     run: (execution: Partial<IXpertAgentExecution>) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
     params: AgentMiddlewareWrapWorkflowNodeExecutionParams
   ): Promise<T>
+
+  emitMiddlewareEvent?(event: AgentMiddlewareEvent): Promise<void> | void
 
   capabilities?: AgentMiddlewareRuntimeCapabilityRegistry
 }

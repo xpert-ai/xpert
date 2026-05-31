@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
+    ChatMessageEventTypeEnum,
     ICopilotModel,
     IChatConversation,
     IStorageFile,
@@ -28,6 +30,7 @@ import {
     AgentMiddlewareKnowledgebaseSearchInput,
     AgentMiddlewareKnowledgebaseWriteChunkInput,
     AgentMiddlewareKnowledgebaseWriteChunkResult,
+    AgentMiddlewareEvent,
     AgentMiddlewareModelClient,
     AgentMiddlewareRuntimeApi,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
@@ -186,6 +189,26 @@ export class AgentMiddlewareRuntimeService {
             commandBus: this.commandBus,
             queryBus: this.queryBus
         })()
+    }
+
+    async emitMiddlewareEvent(event: AgentMiddlewareEvent): Promise<void> {
+        const timestamp = new Date().toISOString()
+        const {
+            agentKey: _agentKey,
+            type: _type,
+            created_date,
+            end_date,
+            status,
+            ...safeEvent
+        } = event as AgentMiddlewareEvent & { agentKey?: unknown }
+
+        await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+            ...safeEvent,
+            type: 'middleware_event',
+            ...(status ? { status } : {}),
+            created_date: created_date ?? timestamp,
+            ...(end_date ? { end_date } : status && status !== 'running' ? { end_date: timestamp } : {})
+        })
     }
 
     async listKnowledgebases(
@@ -366,6 +389,7 @@ export class AgentMiddlewareRuntimeService {
     readonly api = {
         createModelClient: (...args) => this.createModelClient(...args),
         wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
+        emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
         capabilities: this.capabilities
     } satisfies AgentMiddlewareRuntimeApi
 

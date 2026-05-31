@@ -151,7 +151,7 @@ type ChatKitReferenceComposerControl = {
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex h-9 min-w-0 items-center gap-2 rounded-xl !border-transparent bg-hover-bg px-3 text-sm font-medium text-text-primary transition-[background-color,color] hover:bg-hover-bg data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                    class="group/tab flex h-9 min-w-0 items-center gap-2 rounded-xl !border-transparent border-0 bg-hover-bg px-3 text-sm font-medium text-text-primary transition-[background-color,color] hover:bg-hover-bg data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >

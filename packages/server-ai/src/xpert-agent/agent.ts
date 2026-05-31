@@ -85,6 +85,32 @@ function getExecutionStreamMetadata(
     }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeMiddlewareChatEvent(data: unknown) {
+    if (!isRecord(data) || data.type !== 'middleware_event') {
+        return null
+    }
+
+    const {
+        agentKey: _agentKey,
+        metadata: _metadata,
+        name: _name,
+        runId: _runId,
+        run_id: _run_id,
+        tags: _tags,
+        ...event
+    } = data
+
+    return {
+        ...event,
+        type: 'middleware_event',
+        created_date: typeof event.created_date === 'string' ? event.created_date : new Date().toISOString()
+    }
+}
+
 /**
  * Create an operator function that intercepts Langgraph events,
  * passes the message content through, and sends other events to client by sse subscriber.
@@ -449,6 +475,18 @@ export function createMapStreamEvents(
                     }
                     case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                         // logger.debug(`on_chat_event`, data)
+                        const middlewareEvent = normalizeMiddlewareChatEvent(data)
+                        if (middlewareEvent) {
+                            subscriber.next({
+                                data: {
+                                    type: ChatMessageTypeEnum.EVENT,
+                                    event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                                    data: middlewareEvent
+                                }
+                            } as MessageEvent)
+                            break
+                        }
+
                         subscriber.next({
                             data: {
                                 type: ChatMessageTypeEnum.EVENT,

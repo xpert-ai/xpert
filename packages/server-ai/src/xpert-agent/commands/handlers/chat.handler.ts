@@ -22,6 +22,15 @@ import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
 import { applicationMetrics } from '../../../metrics'
 
+function isMiddlewareChatEvent(data: unknown) {
+    return (
+        typeof data === 'object' &&
+        data !== null &&
+        !Array.isArray(data) &&
+        (data as Record<string, unknown>).type === 'middleware_event'
+    )
+}
+
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
     readonly #logger = new Logger(XpertAgentChatHandler.name)
@@ -213,6 +222,10 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                         {
                             handleCustomEvent(eventName, data, runId) {
                                 if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+                                    if (isMiddlewareChatEvent(data)) {
+                                        return
+                                    }
+
                                     logger.debug(`========= handle custom event in xpert agent: ${eventName} ${runId}`)
                                     subscriber.next({
                                         data: {
