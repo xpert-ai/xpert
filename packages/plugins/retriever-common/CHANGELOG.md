@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-retriever-common
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [a83c9ea]
+  - @xpert-ai/plugin-sdk@3.10.0
+
 ## 1.0.0
 
 ### Patch Changes
