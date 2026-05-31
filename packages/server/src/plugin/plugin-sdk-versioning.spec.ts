@@ -45,7 +45,8 @@ describe('plugin sdk versioning', () => {
 			)
 		).toEqual({
 			hostVersion: '3.8.4',
-			peerRange: '^3.8.0'
+			peerRange: '^3.8.0',
+			warnings: []
 		})
 	})
 
@@ -65,7 +66,8 @@ describe('plugin sdk versioning', () => {
 			)
 		).toEqual({
 			hostVersion: '3.9.0-beta.0',
-			peerRange: '3.9.0-beta.0'
+			peerRange: '3.9.0-beta.0',
+			warnings: []
 		})
 	})
 
@@ -88,8 +90,8 @@ describe('plugin sdk versioning', () => {
 		).toThrow(PluginSdkValidationError)
 	})
 
-	it('rejects plugins that do not declare the sdk in peerDependencies', () => {
-		expect(() =>
+	it('warns when plugins do not declare the sdk in peerDependencies', () => {
+		expect(
 			assertPluginSdkCompatibility(
 				{
 					name: '@xpert-ai/plugin-demo'
@@ -98,11 +100,45 @@ describe('plugin sdk versioning', () => {
 					hostVersion: '3.8.4'
 				}
 			)
-		).toThrow(/peerDependencies/)
+		).toEqual({
+			hostVersion: '3.8.4',
+			peerRange: '',
+			warnings: [
+				expect.objectContaining({
+					code: 'plugin-sdk-peer-dependency-missing',
+					packageName: '@xpert-ai/plugin-demo'
+				})
+			]
+		})
 	})
 
-	it('rejects overly broad peer ranges that span multiple sdk majors', () => {
-		expect(() =>
+	it('warns for invalid sdk peer ranges', () => {
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-demo',
+					peerDependencies: {
+						'@xpert-ai/plugin-sdk': 'latest'
+					}
+				},
+				{
+					hostVersion: '3.8.4'
+				}
+			)
+		).toEqual({
+			hostVersion: '3.8.4',
+			peerRange: 'latest',
+			warnings: [
+				expect.objectContaining({
+					code: 'plugin-sdk-peer-range-invalid',
+					peerRange: 'latest'
+				})
+			]
+		})
+	})
+
+	it('warns for overly broad peer ranges that span multiple sdk majors', () => {
+		expect(
 			assertPluginSdkCompatibility(
 				{
 					name: '@xpert-ai/plugin-demo',
@@ -114,9 +150,18 @@ describe('plugin sdk versioning', () => {
 					hostVersion: '3.8.4'
 				}
 			)
-		).toThrow(/single-major range/)
+		).toEqual({
+			hostVersion: '3.8.4',
+			peerRange: '*',
+			warnings: [
+				expect.objectContaining({
+					code: 'plugin-sdk-peer-range-spans-major',
+					peerRange: '*'
+				})
+			]
+		})
 
-		expect(() =>
+		expect(
 			assertPluginSdkCompatibility(
 				{
 					name: '@xpert-ai/plugin-demo',
@@ -128,11 +173,20 @@ describe('plugin sdk versioning', () => {
 					hostVersion: '3.8.4'
 				}
 			)
-		).toThrow(/single-major range/)
+		).toEqual({
+			hostVersion: '3.8.4',
+			peerRange: '>=3.8.0',
+			warnings: [
+				expect.objectContaining({
+					code: 'plugin-sdk-peer-range-spans-major',
+					peerRange: '>=3.8.0'
+				})
+			]
+		})
 	})
 
-	it('rejects peer ranges that are incompatible with the host sdk version', () => {
-		expect(() =>
+	it('warns for peer ranges that are incompatible with the host sdk version', () => {
+		expect(
 			assertPluginSdkCompatibility(
 				{
 					name: '@xpert-ai/plugin-demo',
@@ -144,7 +198,16 @@ describe('plugin sdk versioning', () => {
 					hostVersion: '3.8.4'
 				}
 			)
-		).toThrow(/incompatible/)
+		).toEqual({
+			hostVersion: '3.8.4',
+			peerRange: '^4.0.0',
+			warnings: [
+				expect.objectContaining({
+					code: 'plugin-sdk-peer-range-incompatible',
+					peerRange: '^4.0.0'
+				})
+			]
+		})
 	})
 
 	it('skips registry preflight for non-registry install sources', async () => {
@@ -203,13 +266,17 @@ describe('plugin sdk versioning', () => {
 	})
 
 	it('falls back to monorepo plugin manifests for code plugins without an installed package.json', () => {
-		expect(readInstalledPluginManifest('@xpert-ai/plugin-draft', join(process.cwd(), 'plugins/global/@xpert-ai/plugin-draft')))
-			.toMatchObject({
-				name: '@xpert-ai/plugin-draft',
-				peerDependencies: expect.objectContaining({
-					'@xpert-ai/plugin-sdk': 'workspace:*'
-				})
+		expect(
+			readInstalledPluginManifest(
+				'@xpert-ai/plugin-draft',
+				join(process.cwd(), 'plugins/global/@xpert-ai/plugin-draft')
+			)
+		).toMatchObject({
+			name: '@xpert-ai/plugin-draft',
+			peerDependencies: expect.objectContaining({
+				'@xpert-ai/plugin-sdk': 'workspace:*'
 			})
+		})
 	})
 
 	it('finds monorepo plugin manifests even when the process cwd is inside a package app', () => {

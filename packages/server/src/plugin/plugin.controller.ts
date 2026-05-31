@@ -262,6 +262,7 @@ export class PluginController {
 			configSchema: resolvePluginConfigSchema(plugin.instance),
 			configurationStatus,
 			configurationError,
+			sdkCompatibilityWarnings: plugin.sdkCompatibilityWarnings ?? [],
 			loadStatus: PLUGIN_LOAD_STATUS.LOADED,
 			loadError: null,
 			effectiveInCurrentScope: scopeSemantics.effectiveInCurrentScope,
@@ -307,13 +308,17 @@ export class PluginController {
 			isGlobal: !plugin.organizationId,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
 			canConfigure: false,
-			canRefresh: plugin.source === 'code' && !!workspacePath && canUninstallPlugin({ organizationId: scope, level: plugin.level }, organizationId),
+			canRefresh:
+				plugin.source === 'code' &&
+				!!workspacePath &&
+				canUninstallPlugin({ organizationId: scope, level: plugin.level }, organizationId),
 			canUninstall: true, // allow uninstalling failed plugins to recover from load failures, even if they would normally be protected from uninstallation based on their level
 			canUpdate: false,
 			hasUpdate: false,
 			configSchema: undefined,
 			configurationStatus: plugin.configurationStatus,
 			configurationError: plugin.configurationError,
+			sdkCompatibilityWarnings: [],
 			loadStatus: PLUGIN_LOAD_STATUS.FAILED,
 			loadError,
 			effectiveInCurrentScope: scopeSemantics.effectiveInCurrentScope,

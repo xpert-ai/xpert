@@ -227,6 +227,12 @@
                         }
                         @if (plugin.loadStatus === 'failed') {
                           <i class="ri-error-warning-line shrink-0 ml-1 text-text-destructive"></i>
+                        } @else if (plugin.sdkCompatibilityWarnings?.length) {
+                          <i
+                            class="ri-alert-line shrink-0 ml-1 text-text-warning"
+                            [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
+                            zPosition="top"
+                          ></i>
                         } @else {
                           <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                         }
@@ -291,6 +297,21 @@
                                   </div>
                                 </div>
                               </div>
+                            </div>
+                          }
+                          @if (plugin.loadStatus !== 'failed' && plugin.sdkCompatibilityWarnings?.length) {
+                            <div
+                              class="mt-2 flex items-center gap-1 text-xs text-text-warning"
+                              [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
+                              zPosition="top"
+                            >
+                              <i class="ri-alert-line"></i>
+                              <span>
+                                {{
+                                  'PAC.Plugin.SdkCompatibilityWarning'
+                                    | translate: { Default: 'SDK compatibility warning' }
+                                }}
+                              </span>
                             </div>
                           }
                           @if (plugin.configurationStatus === 'invalid') {

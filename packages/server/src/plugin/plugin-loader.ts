@@ -7,9 +7,11 @@ import { join, resolve } from 'path'
 import {
 	assertInstalledPluginSdkCompatibility,
 	ensureHostContractsLink,
-	ensureHostPluginSdkLink
+	ensureHostPluginSdkLink,
+	warnPluginSdkCompatibility
 } from './plugin-sdk-versioning'
 import { PluginLoadError } from './errors'
+import type { PluginSdkCompatibilityWarning } from '@xpert-ai/contracts'
 
 export interface PluginLoadOptions {
 	/** Resolve modules relative to this base directory (expects a node_modules inside it) */
@@ -22,6 +24,7 @@ export interface PluginLoadOptions {
 	 * - `staged-package`: externally imported code plugins load from the staged package directory.
 	 */
 	codeLoadMode?: 'workspace-ts' | 'staged-package'
+	onCompatibilityWarnings?: (warnings: PluginSdkCompatibilityWarning[]) => void
 }
 
 function isProd() {
@@ -141,7 +144,11 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 
 	ensureHostPluginSdkLink(opts.basedir)
 	ensureHostContractsLink(opts.basedir)
-	assertInstalledPluginSdkCompatibility(modName, opts.basedir)
+	const sdkCompatibility = assertInstalledPluginSdkCompatibility(modName, opts.basedir)
+	warnPluginSdkCompatibility(sdkCompatibility)
+	if (sdkCompatibility?.warnings.length) {
+		opts.onCompatibilityWarnings?.(sdkCompatibility.warnings)
+	}
 	const m = await loadModule(modName, opts)
 	const plugin = (m?.default ?? m) as XpertPlugin
 	if (!plugin?.meta || typeof plugin.register !== 'function') {

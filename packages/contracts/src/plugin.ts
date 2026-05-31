@@ -39,6 +39,19 @@ export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[key
 export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
 export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
 export type PluginTargetApp = 'xpert' | 'data-xpert' | (string & {})
+export type PluginSdkCompatibilityWarningCode =
+  | 'plugin-sdk-peer-dependency-missing'
+  | 'plugin-sdk-peer-range-invalid'
+  | 'plugin-sdk-peer-range-incompatible'
+  | 'plugin-sdk-peer-range-spans-major'
+
+export interface PluginSdkCompatibilityWarning {
+  code: PluginSdkCompatibilityWarningCode
+  packageName: PluginName
+  hostVersion: string
+  peerRange?: string | null
+  message: string
+}
 
 export interface PluginTargetAppMetadata {
   /**
@@ -160,6 +173,7 @@ export interface IPluginDescriptor {
   configSchema?: JsonSchemaObjectType
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null
+  sdkCompatibilityWarnings?: PluginSdkCompatibilityWarning[]
   loadStatus?: PluginLoadStatus | null
   loadError?: string | null
   effectiveInCurrentScope: boolean

@@ -53,7 +53,8 @@ jest.mock('./plugin-http-routes', () => ({
 jest.mock('./plugin-sdk-versioning', () => ({
 	assertPluginSdkInstallCandidate: jest.fn(async () => ({
 		hostVersion: '3.8.4',
-		peerRange: '^3.8.0'
+		peerRange: '^3.8.0',
+		warnings: []
 	}))
 }))
 
@@ -62,7 +63,7 @@ jest.mock('./organization-plugin.store', () => ({
 		const sanitizedName = pluginName.replace(/[\/@]/g, '__')
 		return `/tmp/plugins/${organizationId}/${sanitizedName}`
 	}),
-	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins'),
+	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins')
 }))
 
 jest.mock('./plugin-instance.service', () => ({
@@ -166,7 +167,8 @@ describe('PluginManagementService', () => {
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
 			hostVersion: '3.8.4',
-			peerRange: '^3.8.0'
+			peerRange: '^3.8.0',
+			warnings: []
 		})
 		service = new PluginManagementService(
 			loadedPlugins,
@@ -478,10 +480,28 @@ describe('PluginManagementService', () => {
 		])
 	})
 
-	it('rejects sdk-incompatible plugins before uninstalling the current installation', async () => {
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockRejectedValue(
-			new Error('plugin-sdk peerDependencies range "^4.0.0" is incompatible with host SDK version 3.8.4')
-		)
+	it('continues installing when sdk preflight returns compatibility warnings', async () => {
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '4.0.0',
+			peerRange: '^3.9.1',
+			warnings: [
+				{
+					code: 'plugin-sdk-peer-range-incompatible',
+					packageName: '@xpert-ai/plugin-future-demo',
+					hostVersion: '4.0.0',
+					peerRange: '^3.9.1',
+					message:
+						'@xpert-ai/plugin-sdk peerDependencies range "^3.9.1" is incompatible with host SDK version 4.0.0.'
+				}
+			]
+		})
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-future-demo',
+				version: '1.2.3',
+				level: 'organization'
+			}
+		})
 
 		await expect(
 			service.installPlugin({
@@ -489,7 +509,12 @@ describe('PluginManagementService', () => {
 				version: '1.2.3',
 				source: 'npm'
 			})
-		).rejects.toBeInstanceOf(Error)
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-future-demo'
+			})
+		)
 
 		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-future-demo',
@@ -497,9 +522,18 @@ describe('PluginManagementService', () => {
 			source: 'npm',
 			sourceConfig: null
 		})
-		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).uninstallByPackageName).toHaveBeenCalledWith(
+			'tenant-1',
+			'org-1',
+			'@xpert-ai/plugin-future-demo'
+		)
+		expect(registerPluginsAsync).toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-future-demo',
+				version: '1.2.3'
+			})
+		)
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
 	})
 
@@ -510,19 +544,17 @@ describe('PluginManagementService', () => {
 			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
 		).resolves.toBeUndefined()
 
-		expect((pluginInstanceService as any).uninstall).toHaveBeenCalledWith(
-			'tenant-1',
-			'__global__',
-			['@xpert-ai/plugin-global-demo']
-		)
+		expect((pluginInstanceService as any).uninstall).toHaveBeenCalledWith('tenant-1', '__global__', [
+			'@xpert-ai/plugin-global-demo'
+		])
 	})
 
 	it('rejects global plugin uninstalls for non-super-admin users', async () => {
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 
-		await expect(
-			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
-		).rejects.toThrow('Only super admins can uninstall global plugins')
+		await expect(service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')).rejects.toThrow(
+			'Only super admins can uninstall global plugins'
+		)
 
 		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
 	})
