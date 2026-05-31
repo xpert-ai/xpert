@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.10.0
+
+### Minor Changes
+
+- a83c9ea: fix
+
 ## 4.0.0
 
 ### Minor Changes
