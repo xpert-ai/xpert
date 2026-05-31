@@ -1,4 +1,7 @@
+import type { ThreadGoalStatus } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+
+export type { ThreadGoalStatus } from '@xpert-ai/chatkit-types'
 
 export const THREAD_GOAL_STATUS_VALUES = [
   'active',
@@ -8,9 +11,7 @@ export const THREAD_GOAL_STATUS_VALUES = [
   'usage_limited',
   'budget_limited',
   'complete'
-] as const
-
-export type ThreadGoalStatus = (typeof THREAD_GOAL_STATUS_VALUES)[number]
+] as const satisfies readonly ThreadGoalStatus[]
 
 export type ThreadGoalUserStatus = Extract<ThreadGoalStatus, 'active' | 'paused'>
 export type ThreadGoalModelStatus = Extract<ThreadGoalStatus, 'complete' | 'blocked'>

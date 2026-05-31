@@ -1,5 +1,12 @@
-import type { TFollowUpConsumedEvent, TChatEventMessage } from '@xpert-ai/chatkit-types'
+import type {
+  TChatEventMessage,
+  TFollowUpConsumedEvent,
+  TThreadGoalClearedEvent,
+  TThreadGoalUpdatedEvent
+} from '@xpert-ai/chatkit-types'
 import type { IThreadGoal } from './thread-goal.model'
+
+export type { TThreadGoalClearedEvent, TThreadGoalUpdatedEvent } from '@xpert-ai/chatkit-types'
 
 export const CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED = 'follow_up_consumed' as const
 export const CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE = 'thread_context_usage' as const
@@ -26,21 +33,6 @@ export function createFollowUpConsumedEvent(event: Omit<TFollowUpConsumedEvent, 
     type: CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
     ...event
   }
-}
-
-export type TThreadGoalUpdatedEvent = {
-  type: typeof CHAT_EVENT_TYPE_THREAD_GOAL_UPDATED
-  conversationId: string
-  threadId: string
-  goal: IThreadGoal
-  updatedAt: string
-}
-
-export type TThreadGoalClearedEvent = {
-  type: typeof CHAT_EVENT_TYPE_THREAD_GOAL_CLEARED
-  conversationId: string
-  threadId: string
-  updatedAt: string
 }
 
 export function createThreadGoalUpdatedEvent(
