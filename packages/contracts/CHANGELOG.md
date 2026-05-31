@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.10.0
+
+### Minor Changes
+
+- df9d7e2: agentic app
+
 ## 3.9.9
 
 ### Patch Changes

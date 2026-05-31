@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 4.0.0
+
+### Minor Changes
+
+- df9d7e2: agentic app
+
+### Patch Changes
+
+- Updated dependencies [df9d7e2]
+  - @xpert-ai/contracts@3.10.0
+
 ## 3.9.9
 
 ### Patch Changes

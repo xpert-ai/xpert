@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-integration-slack
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [df9d7e2]
+  - @xpert-ai/plugin-sdk@4.0.0
+  - @xpert-ai/contracts@3.10.0
+
 ## 0.0.9
 
 ### Patch Changes

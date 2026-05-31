@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-trigger-schedule
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [df9d7e2]
+  - @xpert-ai/plugin-sdk@4.0.0
+
 ## 0.0.9
 
 ### Patch Changes
