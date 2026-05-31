@@ -31,6 +31,10 @@ type WorkspacePluginPackageJson = {
 	dependencies?: Record<string, string>
 }
 
+type WorkspacePluginProjectJson = {
+	targets?: Record<string, { options?: { outputPath?: string } }>
+}
+
 export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
 const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
@@ -55,10 +59,7 @@ function readExecFailureOutput(value: unknown) {
 	return ''
 }
 
-function installStagedWorkspaceRuntimeDependencies(
-	targetPackageDir: string,
-	packageJson: WorkspacePluginPackageJson
-) {
+function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, packageJson: WorkspacePluginPackageJson) {
 	if (!hasRuntimeDependencies(packageJson)) {
 		return
 	}
@@ -113,6 +114,80 @@ function assertWorkspacePathAllowed(workspacePath: string) {
 	if (!roots.some((root) => isWithinRoot(workspacePath, root))) {
 		throw new Error(`workspacePath '${workspacePath}' is outside allowed roots: ${roots.join(', ')}`)
 	}
+}
+
+function readJsonFile<T>(filePath: string): T | null {
+	if (!fs.existsSync(filePath)) {
+		return null
+	}
+
+	try {
+		return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T
+	} catch {
+		return null
+	}
+}
+
+function findNxWorkspaceRoot(startPath: string) {
+	let current = path.resolve(startPath)
+	while (true) {
+		if (fs.existsSync(path.join(current, 'nx.json')) && fs.existsSync(path.join(current, 'package.json'))) {
+			return current
+		}
+
+		const parent = path.dirname(current)
+		if (parent === current) {
+			return null
+		}
+		current = parent
+	}
+}
+
+function findWorkspaceBuildInfo(workspacePath: string) {
+	for (const allowedRoot of resolveAllowedWorkspaceRoots()) {
+		if (!isWithinRoot(workspacePath, allowedRoot)) {
+			continue
+		}
+
+		// PLUGIN_WORKSPACE_ROOTS is an allow-list for source paths, not a build root.
+		// It may point inside an Nx workspace, such as `packages/plugins`, while Nx
+		// outputPath remains relative to the workspace root. Resolve that root only
+		// for locating an already-built dist; staging never triggers a build.
+		const nxRoot = findNxWorkspaceRoot(workspacePath)
+		const root =
+			nxRoot && (isWithinRoot(allowedRoot, nxRoot) || isWithinRoot(nxRoot, allowedRoot)) ? nxRoot : allowedRoot
+		const relativeWorkspacePath = path.relative(root, workspacePath)
+		const projectJson = readJsonFile<WorkspacePluginProjectJson>(path.join(workspacePath, 'project.json'))
+		const outputPath = projectJson?.targets?.build?.options?.outputPath
+		const distPath = outputPath ? path.resolve(root, outputPath) : path.join(root, 'dist', relativeWorkspacePath)
+		if (!isWithinRoot(distPath, root)) {
+			throw new Error(`Plugin build outputPath '${outputPath}' resolves outside workspace root '${root}'`)
+		}
+
+		return {
+			root,
+			distPath,
+			relativeDistPath: path.relative(root, distPath)
+		}
+	}
+
+	return null
+}
+
+function resolveWorkspaceBuildOutput(workspacePath: string) {
+	const buildInfo = findWorkspaceBuildInfo(workspacePath)
+	if (!buildInfo) {
+		return null
+	}
+
+	if (fs.existsSync(buildInfo.distPath) && fs.statSync(buildInfo.distPath).isDirectory()) {
+		return {
+			distPath: buildInfo.distPath,
+			relativeDistPath: buildInfo.relativeDistPath
+		}
+	}
+
+	return null
 }
 
 function isPluginInstalled(pluginDir: string, pluginName: string) {
@@ -243,6 +318,19 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 			return !['node_modules', '.git', '.DS_Store'].includes(base)
 		}
 	})
+
+	const workspaceDist = resolveWorkspaceBuildOutput(workspacePath)
+	if (workspaceDist) {
+		// Keep staged root-relative dist paths available for package-level `index.cjs` fallback files.
+		const targetDistPath = path.join(pluginDir, workspaceDist.relativeDistPath)
+		fs.rmSync(targetDistPath, { recursive: true, force: true })
+		ensureDir(path.dirname(targetDistPath))
+		fs.cpSync(workspaceDist.distPath, targetDistPath, {
+			recursive: true,
+			dereference: true
+		})
+	}
+
 	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
 
 	return pluginDir

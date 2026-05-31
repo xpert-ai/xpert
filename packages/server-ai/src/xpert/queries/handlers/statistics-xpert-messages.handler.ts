@@ -4,6 +4,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
 import { ChatConversation } from '../../../core/entities/internal'
 import { StatisticsXpertMessagesQuery } from '../statistics-xpert-messages.query'
+import { applyStatisticsMessageFilters } from '../../../chat-conversation/queries'
 
 @QueryHandler(StatisticsXpertMessagesQuery)
 export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsXpertMessagesQuery> {
@@ -12,7 +13,7 @@ export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsX
 	) {}
 
 	public async execute(command: StatisticsXpertMessagesQuery) {
-		const { start, end } = command
+		const { start, end, filters } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
@@ -40,6 +41,7 @@ export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsX
 		if (end) {
 			query.andWhere('conversation.createdAt <= :end', { end })
 		}
+		applyStatisticsMessageFilters(query, 'conversation', 'message', filters)
 		query.addGroupBy('slug').orderBy('count', 'DESC')
 
 		return await query.getRawMany()

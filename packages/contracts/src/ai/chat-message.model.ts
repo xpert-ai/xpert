@@ -1,5 +1,11 @@
 import { MessageType } from '@langchain/core/messages'
-import type { ChatKitReference, ChatKitReferenceBase, TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
+import type {
+  ChatKitReference,
+  ChatKitReferenceBase,
+  TChatMessageStep,
+  TMessageContent,
+  TMessageContentReasoning
+} from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
@@ -77,9 +83,15 @@ export interface IChatMessage
   parentId?: string | null
 
   /**
-   * Files
+   * @deprecated Chat attachments now use `fileAssets`. This field is kept only
+   * for historical messages that stored raw StorageFile handles.
    */
   attachments?: IStorageFile[]
+  /**
+   * Parsed file assets used by the file understanding pipeline and agent tools.
+   */
+  fileAssets?: Array<{ id?: string; storageFileId?: string; [key: string]: any }>
+
   /**
    * Structured references associated with the human input
    */

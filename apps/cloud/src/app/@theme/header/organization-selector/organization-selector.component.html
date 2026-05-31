@@ -3,19 +3,18 @@
   class="w-full mx-2 rounded-lg border border-divider-regular bg-components-card-bg/70 p-2 transition-colors hover:bg-hover-bg"
   [class.cursor-pointer]="canOpenMenu()"
   [class.cursor-default]="!canOpenMenu()"
-  [zTooltip]="
-    ('PAC.Scope.Switch' | translate: { Default: 'Switch scope' }) +
-    ': ' +
-    scopeLabel()
-  "
+  [zTooltip]="('PAC.Scope.Switch' | translate: { Default: 'Switch scope' }) + ': ' + scopeLabel()"
   zPosition="right"
   [zDisabled]="!isCollapsed()"
   [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+  (cdkMenuOpened)="loadOrganizations()"
   (closed)="resetSearch()"
 >
   <div class="flex items-center gap-2">
     @if (isTenantScope()) {
-      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
+      <div
+        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
+      >
         <i class="ri-building-4-line text-base"></i>
       </div>
     } @else if (currentOrganization()) {
@@ -45,13 +44,24 @@
       <ngm-search class="w-full mb-1 rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
     </div>
 
+    @if (organizationsLoading()) {
+      <div class="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary" role="status" aria-live="polite">
+        <i class="ri-loader-4-line shrink-0 animate-spin text-base text-text-tertiary"></i>
+        <span class="truncate">
+          {{ 'PAC.Organization.Loading' | translate: { Default: 'Loading organizations...' } }}
+        </span>
+      </div>
+    }
+
     @if (showTenantScopeItem()) {
       <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
         {{ 'PAC.Scope.TenantSection' | translate: { Default: 'Tenant Console' } }}
       </div>
       <div cdkMenuItem [class.active]="isTenantScope()" (click)="selectTenantScope()">
         <div class="flex items-start gap-3 overflow-hidden">
-          <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
+          <div
+            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
+          >
             <i class="ri-building-4-line text-base"></i>
           </div>
           <div class="min-w-0">
@@ -59,7 +69,10 @@
               {{ 'PAC.Scope.TenantLabel' | translate: { Default: 'Tenant defaults and governance' } }}
             </div>
             <div class="truncate text-xs text-text-secondary">
-              {{ 'PAC.Scope.TenantHint' | translate: { Default: 'Manage tenant-wide defaults, organizations, and inherited configuration.' } }}
+              {{
+                'PAC.Scope.TenantHint'
+                  | translate: { Default: 'Manage tenant-wide defaults, organizations, and inherited configuration.' }
+              }}
             </div>
           </div>
         </div>

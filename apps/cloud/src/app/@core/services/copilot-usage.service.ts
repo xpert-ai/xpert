@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
-import { ICopilotOrganization, ICopilotUser, OrderTypeEnum } from '@xpert-ai/contracts'
+import { ICopilotOrganization, ICopilotUser, ICopilotUserUsageSummary, OrderTypeEnum } from '@xpert-ai/contracts'
 import { NGXLogger } from 'ngx-logger'
 import { map } from 'rxjs'
 import { API_COPILOT_ORGANIZATION, API_COPILOT_USER } from '../constants/app.constants'
@@ -36,11 +36,33 @@ export class CopilotUsageService {
       })
   }
 
+  getUserUsageSummaries(options: PaginationParams<ICopilotUserUsageSummary>) {
+    return this.httpClient.get<{ items: ICopilotUserUsageSummary[]; total?: number }>(API_COPILOT_USER + '/summary', {
+      params: toHttpParams({
+        ...options,
+        order: {
+          updatedAt: OrderTypeEnum.DESC
+        }
+      })
+    })
+  }
+
+  getUserUsageDetails(item: ICopilotUserUsageSummary) {
+    return this.httpClient.post<ICopilotUser[]>(API_COPILOT_USER + '/summary/details', item.groupKey)
+  }
+
   renewOrgLimit(id: string, tokenLimit: number, priceLimit: number) {
     return this.httpClient.post<ICopilotOrganization>(API_COPILOT_ORGANIZATION + `/${id}/renew`, { tokenLimit, priceLimit })
   }
 
   renewUserLimit(id: string, tokenLimit: number, priceLimit: number) {
     return this.httpClient.post<ICopilotUser>(API_COPILOT_USER + `/${id}/renew`, { tokenLimit, priceLimit })
+  }
+
+  renewUserUsageSummary(item: ICopilotUserUsageSummary, tokenLimit: number) {
+    return this.httpClient.post<ICopilotUserUsageSummary>(API_COPILOT_USER + '/summary/renew', {
+      ...item.groupKey,
+      tokenLimit
+    })
   }
 }

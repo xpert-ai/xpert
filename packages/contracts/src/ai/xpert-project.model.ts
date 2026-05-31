@@ -46,9 +46,12 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   knowledges?: IKnowledgebase[]
   members?: IUser[]
   /**
-   * @deprecated Use *file volume* instead
+   * @deprecated Use project file volume / FileAsset workspace projection instead.
    */
   files?: IXpertProjectFile[]
+  /**
+   * @deprecated Use project file volume / FileAsset workspace projection instead.
+   */
   attachments?: IStorageFile[]
 
   vcs?: IXpertProjectVCS
@@ -97,7 +100,7 @@ export interface IXpertProjectVCS extends IBasePerXpertProjectEntityModel {
 }
 
 /**
- * @deprecated Use `attachments`
+ * @deprecated Use project file volume / FileAsset workspace projection instead.
  */
 export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt' | 'updatedAt'> {}
 

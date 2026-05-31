@@ -7,6 +7,7 @@ type TFollowUpMessageLike = {
     createdAt?: Date | string | null
     references?: unknown
     attachments?: unknown
+    fileAssets?: unknown
     followUpStatus?: 'pending' | 'consumed' | 'canceled' | null
     targetExecutionId?: string | null
     thirdPartyMessage?: unknown
@@ -77,8 +78,9 @@ function sortPendingFollowUps<T extends TFollowUpMessageLike>(messages: T[] | nu
 }
 
 function mergeInputText(previousInput: unknown, nextInput: unknown): string | undefined {
-    const segments = [previousInput, nextInput]
-        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    const segments = [previousInput, nextInput].filter(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+    )
 
     return segments.length ? segments.join('\n\n') : undefined
 }
@@ -107,15 +109,21 @@ export function readPersistedFollowUpInput(message: TFollowUpMessageLike): TChat
 
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
         const inputText =
-            typeof raw.input === 'string' && raw.input.trim()
-                ? raw.input
-                : stringifyMessageContent(message.content)
+            typeof raw.input === 'string' && raw.input.trim() ? raw.input : stringifyMessageContent(message.content)
+        /**
+         * @deprecated Legacy follow-ups may only have StorageFile attachments;
+         * replay them only when FileAsset handles are absent.
+         */
+        const legacyAttachmentFiles =
+            Array.isArray(message.attachments) && message.attachments.length
+                ? (message.attachments as TChatRequestHuman['files'])
+                : undefined
         const files =
             Array.isArray(raw.files) && raw.files.length
                 ? raw.files
-                : Array.isArray(message.attachments) && message.attachments.length
-                  ? (message.attachments as TChatRequestHuman['files'])
-                  : undefined
+                : Array.isArray(message.fileAssets) && message.fileAssets.length
+                  ? (message.fileAssets as TChatRequestHuman['files'])
+                  : legacyAttachmentFiles
         const references =
             Array.isArray(raw.references) && raw.references.length
                 ? raw.references
@@ -134,11 +142,17 @@ export function readPersistedFollowUpInput(message: TFollowUpMessageLike): TChat
     const content = stringifyMessageContent(message.content)
     return {
         ...(content ? { input: content } : {}),
-        ...(Array.isArray(message.attachments) && message.attachments.length
+        ...(Array.isArray(message.fileAssets) && message.fileAssets.length
             ? {
-                  files: message.attachments as TChatRequestHuman['files']
+                  files: message.fileAssets as TChatRequestHuman['files']
               }
-            : {}),
+            : Array.isArray(message.attachments) && message.attachments.length
+              ? {
+                    // Legacy StorageFile attachments are replayed only when
+                    // FileAsset handles are absent.
+                    files: message.attachments as TChatRequestHuman['files']
+                }
+              : {}),
         ...(Array.isArray(message.references) && message.references.length
             ? {
                   references: message.references as TChatRequestHuman['references']

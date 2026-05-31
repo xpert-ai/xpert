@@ -5,6 +5,7 @@ import { ChatConversationService } from '../../conversation.service'
 import { StatisticsTokensPerSecondQuery } from '../statistics-tokens-per-second.query'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
+import { normalizeStatisticsFilters, statisticsConversationUserSql, statisticsModelSql } from '../statistics-filters'
 
 @QueryHandler(StatisticsTokensPerSecondQuery)
 export class StatisticsTokensPerSecondHandler
@@ -16,9 +17,10 @@ export class StatisticsTokensPerSecondHandler
         private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsTokensPerSecondQuery) {
-		const { xpertId, start, end } = command
+		const { xpertId, start, end, filters } = command
         const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+		const normalizedFilters = normalizeStatisticsFilters(filters)
 
 		const repository = this.repository
 
@@ -26,6 +28,9 @@ export class StatisticsTokensPerSecondHandler
 		let paramIndex = params.length + 1
 		let organizationWhere = ''
 		let xpertWhere = ''
+		let userWhere = ''
+		let executionModelWhere = ''
+		let subexecutionModelWhere = ''
 
 		if (!xpertId) {
 			organizationWhere = `AND cc."organizationId" = $${paramIndex}`
@@ -35,6 +40,18 @@ export class StatisticsTokensPerSecondHandler
 		if (xpertId) {
 			xpertWhere = `AND cc."xpertId" = $${paramIndex}`
 			params.push(xpertId)
+			paramIndex++
+		}
+		if (normalizedFilters.userId) {
+			userWhere = `AND ${statisticsConversationUserSql('cc')} = $${paramIndex}`
+			params.push(normalizedFilters.userId)
+			paramIndex++
+		}
+		if (normalizedFilters.model) {
+			const modelParam = `$${paramIndex}`
+			executionModelWhere = `AND ${statisticsModelSql('execution')} = ${modelParam}`
+			subexecutionModelWhere = `AND ${statisticsModelSql('subexecution')} = ${modelParam}`
+			params.push(normalizedFilters.model)
 		}
 
 		return await repository.manager.query(`SELECT 
@@ -59,6 +76,8 @@ FROM (
         cc."tenantId" = $1
         ${organizationWhere}
         ${xpertWhere}
+        ${userWhere}
+        ${executionModelWhere}
         AND cc."from" != $2
         AND cm."role" = $3
         AND cc."createdAt" >= $4
@@ -88,6 +107,8 @@ FROM (
         cc."tenantId" = $1
         ${organizationWhere}
         ${xpertWhere}
+        ${userWhere}
+        ${subexecutionModelWhere}
         AND cc."from" != $2
         AND cm."role" = $3
         AND cc."createdAt" >= $4

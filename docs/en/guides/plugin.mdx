@@ -102,6 +102,62 @@ When `config.formSchema` is present:
 - the host stores the config in `PluginInstance.config`
 - the stored value is encrypted at rest before persistence
 
+Frontend surfaces should also check that `config.formSchema.type === "object"` and that `config.formSchema.properties` contains at least one renderable field before showing a `Configure` action. Plugins without actual configuration fields should not open an empty configuration dialog.
+
+## Target app metadata
+
+Plugins can use `meta.targetApps` and `meta.targetAppMeta` to declare which product surfaces they are intended for and to provide app-specific business metadata. `category` remains the xpert-pro technical category and should not be used to infer whether a plugin belongs to an upper-layer business app.
+
+```ts
+export const plugin: XpertPlugin = {
+  meta: {
+    name: '@xpert-ai/plugin-bom-document-intake',
+    version: '0.0.1',
+    level: 'system',
+    category: 'middleware',
+    displayName: 'BOM Document Intake',
+    description: 'Parse BOM change documents and expose review views.',
+    author: 'Xpert AI',
+    targetApps: ['data-xpert'],
+    targetAppMeta: {
+      'data-xpert': {
+        types: ['workbench-view', 'assistant-tool', 'business-app'],
+        minAppVersion: '0.1.0',
+        capabilities: ['bom-document-intake', 'bom-review-workbench', 'bom-change-governance']
+      }
+    }
+  },
+  register(ctx) {
+    // ...
+  }
+}
+```
+
+Field contract:
+
+| Field                              | Meaning                                                                                                                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `targetApps`                       | Product surfaces where the plugin should appear. When omitted, the plugin remains a generic xpert-pro plugin and is not automatically shown in an upper-layer business plugin center. |
+| `targetAppMeta`                    | App-specific metadata keyed by product surface, for example `targetAppMeta["data-xpert"]`. Each target app owns its own `types` vocabulary and compatibility rules.                   |
+| `targetAppMeta[app].types`         | Business type values for that target app. xpert-pro does not interpret these values; it only passes them through.                                                                     |
+| `targetAppMeta[app].minAppVersion` | Minimum target app version supported by the plugin.                                                                                                                                   |
+| `targetAppMeta[app].capabilities`  | Business capability identifiers exposed to the target app for search, filtering, detail pages, or governance rules.                                                                   |
+
+data-xpert currently uses these type values:
+
+- `resource-adapter`
+- `workbench-view`
+- `assistant-tool`
+- `governance-extension`
+- `business-app`
+
+The data-xpert plugin center only shows plugins that satisfy both conditions:
+
+1. `targetApps` includes `data-xpert`
+2. `targetAppMeta["data-xpert"].types` is not empty
+
+Do not put data-xpert business metadata in a top-level `dataXpert` field for new plugins. That old shape is only read as a migration fallback; new plugins should use `targetAppMeta["data-xpert"]`.
+
 ## Related guides
 
 - [Unified File Upload Architecture](/en/guides/file-upload-architecture)

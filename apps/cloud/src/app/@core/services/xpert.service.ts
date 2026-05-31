@@ -58,6 +58,11 @@ export type TXpertVariablesOptions = {
   revision?: number
 }
 
+type StatisticsFilters = {
+  model?: string | null
+  userId?: string | null
+}
+
 export type TSandboxProvider = {
   type: string
   meta: TSandboxProviderMeta
@@ -498,15 +503,15 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  getStatisticsXpertMessages(timeRange: string[]) {
+  getStatisticsXpertMessages(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ slug: string; count: number }[]>(this.apiBaseUrl + `/statistics/xpert-messages`, {
-      params: timeRangeToParams(new HttpParams(), timeRange)
+      params: this.statisticsParams(timeRange, filters)
     })
   }
 
-  getStatisticsXpertTokens(timeRange: string[]) {
+  getStatisticsXpertTokens(timeRange: string[], filters?: StatisticsFilters) {
     return this.httpClient.get<{ slug: string; count: number }[]>(this.apiBaseUrl + `/statistics/xpert-tokens`, {
-      params: timeRangeToParams(new HttpParams(), timeRange)
+      params: this.statisticsParams(timeRange, filters)
     })
   }
 
@@ -514,6 +519,18 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.get<{ slug: string; count: number }[]>(this.apiBaseUrl + `/statistics/xpert-integrations`, {
       params: timeRangeToParams(new HttpParams(), timeRange)
     })
+  }
+
+  private statisticsParams(timeRange: string[], filters?: StatisticsFilters) {
+    let params = timeRangeToParams(new HttpParams(), timeRange)
+    if (filters?.model) {
+      params = params.set('model', filters.model)
+    }
+    if (filters?.userId) {
+      params = params.set('userId', filters.userId)
+    }
+
+    return params
   }
 }
 

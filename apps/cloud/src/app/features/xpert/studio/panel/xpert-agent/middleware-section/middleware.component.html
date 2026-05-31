@@ -43,13 +43,32 @@
 
       <div class="min-w-0 flex flex-col gap-1">
         <div class="flex items-center gap-2 min-w-0">
-          <div class="text-text-primary system-sm-medium truncate">
+          <div
+            class="text-text-primary system-sm-medium truncate"
+            [class]="middleware.strategy?.meta?.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+          >
             {{
               middleware.strategy?.meta.label
                 ? (middleware.strategy?.meta.label | i18n)
                 : middleware.strategy?.meta.name || middleware.node.key
             }}
           </div>
+          @if (middleware.strategy?.meta?.deprecated) {
+            <i
+              class="ri-alert-line shrink-0 text-text-warning"
+              [zTooltip]="
+                middleware.strategy?.meta?.deprecationMessage
+                  ? (middleware.strategy?.meta?.deprecationMessage | i18n)
+                  : ('PAC.Xpert.DeprecatedMiddleware'
+                    | translate
+                      : {
+                          Default:
+                            'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                        })
+              "
+              zPosition="top"
+            ></i>
+          }
           <div class="text-text-tertiary text-xs font-mono truncate">
             {{ middleware.strategy?.meta.name || middleware.node.key }}
           </div>

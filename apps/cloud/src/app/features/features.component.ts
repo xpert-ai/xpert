@@ -21,7 +21,7 @@ import {
   RouterOutlet
 } from '@angular/router'
 import { PacMenuItem } from '@xpert-ai/cloud/auth'
-import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_BOOTSTRAP_SELECT, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -212,7 +212,10 @@ export class FeaturesComponent implements OnInit {
     this.user =
       hasHydratedUser
         ? cachedUser
-        : await this.#usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS])
+        : await this.#usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS], CURRENT_USER_BOOTSTRAP_SELECT, {
+          currentOrganizationId: this.#store.organizationId ?? this.#store.lastOrganizationId,
+          limitOrganizations: true
+        })
 
     //When a new user registers & logs in for the first time, he/she does not have tenantId.
     //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.

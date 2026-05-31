@@ -4,6 +4,7 @@ import { ChatConversation } from '../../../core/entities/internal'
 import { StatisticsDailyEndUsersQuery } from '../statistics-daily-end-suers.query'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
+import { applyStatisticsFilters } from '../statistics-filters'
 
 @QueryHandler(StatisticsDailyEndUsersQuery)
 export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsDailyEndUsersQuery> {
@@ -13,7 +14,7 @@ export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsD
 		private readonly queryBus: QueryBus) {}
 
 	public async execute(command: StatisticsDailyEndUsersQuery) {
-		const { xpertId, start, end } = command
+		const { xpertId, start, end, filters } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
@@ -43,6 +44,7 @@ export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsD
 		if (end) {
 			query.andWhere('conversation.createdAt <= :end', { end })
 		}
+		applyStatisticsFilters(query, 'conversation', filters)
 		query.addGroupBy('date').orderBy('date')
 
 		return await query.getRawMany()

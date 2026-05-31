@@ -5,6 +5,7 @@ import { ChatConversationService } from '../../conversation.service'
 import { StatisticsAverageSessionInteractionsQuery } from '../statistics-average-session-interactions.query'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
+import { applyStatisticsFilters } from '../statistics-filters'
 
 @QueryHandler(StatisticsAverageSessionInteractionsQuery)
 export class StatisticsAverageSessionInteractionsHandler
@@ -16,7 +17,7 @@ export class StatisticsAverageSessionInteractionsHandler
 		private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsAverageSessionInteractionsQuery) {
-		const { xpertId, start, end } = command
+		const { xpertId, start, end, filters } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 
@@ -49,6 +50,7 @@ export class StatisticsAverageSessionInteractionsHandler
 		if (end) {
 			query.andWhere('conversation.createdAt <= :end', { end })
 		}
+		applyStatisticsFilters(query, 'conversation', filters)
 		query.addGroupBy('date').orderBy('date')
 
 		return await query.getRawMany()

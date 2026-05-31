@@ -299,6 +299,10 @@
         "Computer": "电脑",
         "Browser": "浏览器",
         "NewWorkspaceTab": "新增工作区标签",
+        "FixedViews": "固定视图",
+        "NoFixedViews": "暂无固定视图",
+        "LoadingFixedViews": "正在加载固定视图…",
+        "FixedViewsLoadFailed": "加载固定视图失败",
         "EnterUrl": "输入 URL",
         "LocalServices": "本地",
         "Zoom": "缩放",
@@ -1290,6 +1294,7 @@
       "MembersHint": "管理当前组织内用户的成员状态、默认组织和组织级访问关系。",
       "MemberAdded": "成员添加成功",
       "NoMembers": "当前组织暂无成员。",
+      "Loading": "正在加载组织...",
       "EmptySearch": "没有匹配的组织。"
     },
     "Role": {
@@ -1505,6 +1510,8 @@
       "CharacterLength": "字数",
       "Resubmit": "重新提交",
       "Model": "模型",
+      "AllModels": "全部模型",
+      "AllUsers": "全部用户",
       "Options": "选项",
       "UseSystemPrompt": "使用系统提示",
       "ExamplesOfPrompts": "提示语示例",

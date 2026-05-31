@@ -1,5 +1,6 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	getErrorMessage: jest.fn((error: unknown) => (error instanceof Error ? error.message : String(error))),
 	ORGANIZATION_METADATA_KEY: 'organization-metadata',
 	PLUGIN_METADATA: {
 		ENTITIES: 'plugin:entities',
@@ -95,7 +96,8 @@ describe('plugin helper registerPluginsAsync', () => {
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo',
 			source: 'code',
-			workspacePath: '/tmp/workspaces/plugin-code-demo'
+			workspacePath: '/tmp/workspaces/plugin-code-demo',
+			codeLoadMode: 'staged-package'
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({
@@ -139,7 +141,8 @@ describe('plugin helper registerPluginsAsync', () => {
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-trigger-schedule', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule',
 			source: 'code',
-			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/)
+			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/),
+			codeLoadMode: 'workspace-ts'
 		})
 	})
 
@@ -179,7 +182,8 @@ describe('plugin helper registerPluginsAsync', () => {
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123',
 			source: 'code',
-			workspacePath: '/tmp/workspaces/plugin-code-demo'
+			workspacePath: '/tmp/workspaces/plugin-code-demo',
+			codeLoadMode: 'staged-package'
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({
@@ -229,8 +233,7 @@ describe('plugin helper registerPluginsAsync', () => {
 				expect.objectContaining({
 					errors: [
 						expect.objectContaining({
-							error:
-								'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
+							error: 'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
 						})
 					]
 				})
@@ -241,8 +244,7 @@ describe('plugin helper registerPluginsAsync', () => {
 					organizationId: 'org-1',
 					pluginName: '@xpert-ai/plugin-code-demo',
 					packageName: '@xpert-ai/plugin-code-demo',
-					error:
-						'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
+					error: 'Cannot find module ./dist/index.js | stageWorkspacePlugin failed earlier: workspacePath must be an absolute path'
 				})
 			])
 		} finally {

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@angular/core'
 import { Router } from '@angular/router'
 import { Ability, AbilityBuilder } from '@casl/ability'
 import { IUser } from '@xpert-ai/contracts'
-import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, UsersService } from '@xpert-ai/cloud/state'
+import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_BOOTSTRAP_SELECT, UsersService } from '@xpert-ai/cloud/state'
 import * as Sentry from "@sentry/angular";
 import { NgxPermissionsService } from 'ngx-permissions'
 import { firstValueFrom } from 'rxjs'
@@ -32,7 +32,14 @@ export class AppInitService {
     try {
       const id = this.store.userId
       if (id) {
-        this.user = await this.usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS])
+        this.user = await this.usersService.getMe(
+          [...CURRENT_USER_BOOTSTRAP_RELATIONS],
+          CURRENT_USER_BOOTSTRAP_SELECT,
+          {
+            currentOrganizationId: this.store.organizationId ?? this.store.lastOrganizationId,
+            limitOrganizations: true
+          }
+        )
 
         //When a new user registers & logs in for the first time, he/she does not have tenantId.
         //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.

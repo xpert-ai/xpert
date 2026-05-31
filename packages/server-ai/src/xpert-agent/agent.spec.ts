@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common'
 import { ToolMessage } from '@langchain/core/messages'
-import { ChatMessageTypeEnum, IXpertAgent } from '@xpert-ai/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { createMapStreamEvents } from './agent'
 
@@ -212,5 +212,71 @@ describe('createMapStreamEvents', () => {
                 })
             })
         )
+    })
+
+    it('forwards middleware chat events without LangGraph envelope or agent identity', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            {
+                agent: { key: 'Agent_root' } as unknown as IXpertAgent,
+                unmutes: []
+            }
+        )
+
+        mapStreamEvent({
+            event: 'on_custom_event',
+            name: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+            tags: ['thread-1', 'xpert-1', 'Agent_root'],
+            run_id: 'langgraph-run-1',
+            data: {
+                type: 'middleware_event',
+                middlewareName: 'ModelFallbackMiddleware',
+                middlewareKey: 'Middleware_1',
+                title: 'Model fallback',
+                phase: 'fallback_started',
+                message: 'Trying fallback model 1/1',
+                status: 'running',
+                executionId: 'execution-1',
+                threadId: 'thread-1',
+                created_date: '2026-05-31T11:11:52.310Z',
+                agentKey: 'Agent_root',
+                runId: 'langgraph-run-1',
+                metadata: { agentKey: 'Agent_root' }
+            },
+            metadata: {
+                agentKey: 'Agent_root',
+                executionId: 'execution-1'
+            }
+        })
+
+        expect(subscriber.next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    type: ChatMessageTypeEnum.EVENT,
+                    event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                    data: expect.objectContaining({
+                        type: 'middleware_event',
+                        middlewareName: 'ModelFallbackMiddleware',
+                        middlewareKey: 'Middleware_1',
+                        title: 'Model fallback',
+                        phase: 'fallback_started',
+                        message: 'Trying fallback model 1/1',
+                        status: 'running',
+                        executionId: 'execution-1',
+                        threadId: 'thread-1',
+                        created_date: '2026-05-31T11:11:52.310Z'
+                    })
+                })
+            })
+        )
+        const eventData = (subscriber.next as jest.Mock).mock.calls[0][0].data.data
+        expect(eventData).not.toHaveProperty('agentKey')
+        expect(eventData).not.toHaveProperty('runId')
+        expect(eventData).not.toHaveProperty('run_id')
+        expect(eventData).not.toHaveProperty('metadata')
+        expect(eventData).not.toHaveProperty('tags')
+        expect(eventData).not.toHaveProperty('name')
     })
 })

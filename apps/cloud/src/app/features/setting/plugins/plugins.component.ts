@@ -19,7 +19,7 @@ import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectPluginAPI } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { debouncedSignal, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
+import { debouncedSignal, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
@@ -38,6 +38,7 @@ import { TInstalledPlugin } from './types'
     CdkMenuModule,
     ...ZardTooltipImports,
     NgmSelectComponent,
+    NgmI18nPipe,
     NgmHighlightDirective,
     IconComponent,
     NgmSpinComponent,
@@ -428,10 +429,7 @@ export class PluginsComponent {
       }
 
       const latestVersionMap = new Map(
-        latestVersions.map((plugin) => [
-          this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name),
-          plugin
-        ])
+        latestVersions.map((plugin) => [this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name), plugin])
       )
 
       this.plugins.update((plugins) =>

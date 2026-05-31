@@ -1,18 +1,16 @@
 import { XpertViewHostContext, XpertViewSlot } from '@xpert-ai/contracts'
 
-export interface XpertViewHostResolution {
-  workspaceId?: string | null
-  hostSnapshot?: unknown
+export interface ViewHostResolution {
+	workspaceId?: string | null
+	hostSnapshot?: unknown
+	context?: Record<string, unknown>
 }
 
-export interface XpertViewHostDefinition {
-  readonly hostType: string
-  readonly slots: XpertViewSlot[]
+export interface ViewHostDefinitionContract {
+	readonly hostType: string
+	readonly slots: XpertViewSlot[]
 
-  resolve(hostId: string): Promise<XpertViewHostResolution | null> | XpertViewHostResolution | null
+	resolve(hostId: string): Promise<ViewHostResolution | null> | ViewHostResolution | null
 
-  canRead(
-    context: XpertViewHostContext,
-    resolution: XpertViewHostResolution
-  ): Promise<boolean> | boolean
+	canRead(context: XpertViewHostContext, resolution: ViewHostResolution): Promise<boolean> | boolean
 }

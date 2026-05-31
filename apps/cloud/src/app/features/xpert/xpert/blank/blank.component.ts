@@ -11,6 +11,7 @@ import {
   ZardComboboxDeprecatedComponent,
   ZardDialogService,
   ZardStepperImports,
+  ZardTooltipImports,
   type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -23,6 +24,7 @@ import {
   I18nObject,
   getErrorMessage,
   ICopilotModel,
+  isUserAddableAgentMiddleware,
   ISkillPackage,
   ISkillRepositoryIndex,
   IXpert,
@@ -148,8 +150,7 @@ export const BLANK_XPERT_DIALOG_CATEGORY = {
   CLAW: 'claw'
 } as const
 
-export type BlankXpertDialogCategory =
-  (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
+export type BlankXpertDialogCategory = (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
 
 export function normalizeBlankXpertDialogCategory(
   category: string | null | undefined
@@ -266,6 +267,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     RouterModule,
     DragDropModule,
     ...ZardStepperImports,
+    ...ZardTooltipImports,
     FormsModule,
     CdkListboxModule,
     NgmI18nPipe,
@@ -425,15 +427,24 @@ export class XpertNewBlankComponent {
     )
   )
   readonly middlewareProviderOptions = computed<BlankMiddlewareProviderOption[]>(() => {
-    const availableProviders = uniqueByName<BlankMiddlewareProviderOption>(
+    const runtimeProviders = uniqueByName<BlankMiddlewareProviderOption>(
       this.middlewareProviders().map(({ meta }) => ({ meta })),
       (provider) => provider.meta.name
     ).filter((provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+    const builtinProviderNames = new Set(
+      runtimeProviders
+        .filter((provider) => !isUserAddableAgentMiddleware(provider.meta))
+        .map((provider) => provider.meta.name)
+    )
+    const availableProviders = runtimeProviders.filter((provider) => isUserAddableAgentMiddleware(provider.meta))
     const availableNames = new Set(availableProviders.map((provider) => provider.meta.name))
     const unavailableTemplateSelections = this.selectedMiddlewares()
       .filter(
         (provider) =>
-          !!provider && provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && !availableNames.has(provider)
+          !!provider &&
+          provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER &&
+          !availableNames.has(provider) &&
+          !builtinProviderNames.has(provider)
       )
       .map((provider) => ({
         meta: {
@@ -849,7 +860,10 @@ export class XpertNewBlankComponent {
     }
 
     const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
-    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(this.buildTemplateImportDraft(draft), primaryAgentPrompt)
+    const nextDraft = this.withInitialPrimaryAgentPromptInDraft(
+      this.buildTemplateImportDraft(draft),
+      primaryAgentPrompt
+    )
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
     const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
     const preparedXpert = await this.provisionKnowledgebaseIfNeeded(hydratedXpert)
@@ -974,7 +988,11 @@ export class XpertNewBlankComponent {
       const skillPackage = await firstValueFrom(
         this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
       )
-      if (!this.usesWorkspaceSkillDefaults() && item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER && item.repositoryId) {
+      if (
+        !this.usesWorkspaceSkillDefaults() &&
+        item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER &&
+        item.repositoryId
+      ) {
         const repositoryDefault = this.selectedRepositoryDefault()
         const disabledSkillIds =
           repositoryDefault?.repositoryId === item.repositoryId
@@ -1058,7 +1076,8 @@ export class XpertNewBlankComponent {
   }
 
   private buildTemplateImportDraft(draft: TXpertTeamDraft) {
-    const selectedCopilotModel = this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
+    const selectedCopilotModel =
+      this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
       ? applyAgentTemplateWizardState(draft, this.getSelections(), {
           defaultCopilotModel: selectedCopilotModel,

@@ -304,7 +304,25 @@
                   />
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
-                      <span>{{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}</span>
+                      <span [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
+                        {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
+                      </span>
+                      @if (middleware.meta.deprecated) {
+                        <i
+                          class="ri-alert-line shrink-0 text-text-warning"
+                          [zTooltip]="
+                            middleware.meta.deprecationMessage
+                              ? (middleware.meta.deprecationMessage | i18n)
+                              : ('PAC.Xpert.DeprecatedMiddleware'
+                                | translate
+                                  : {
+                                      Default:
+                                        'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                                    })
+                          "
+                          zPosition="top"
+                        ></i>
+                      }
                       @if (middleware.unavailable) {
                         <span
                           class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
@@ -339,7 +357,7 @@
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="max-w-3xl text-sm leading-6 text-text-secondary">
                 {{
-                          'PAC.Xpert.AddWorkspaceSkillsHelp'
+                  'PAC.Xpert.AddWorkspaceSkillsHelp'
                     | translate
                       : {
                           Default: usesWorkspaceSkillDefaults()

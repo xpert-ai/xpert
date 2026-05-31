@@ -13,60 +13,75 @@ import { XpertTemplate } from './xpert-template.entity'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertTemplateController {
-	readonly #logger = new Logger(XpertTemplateController.name)
+    readonly #logger = new Logger(XpertTemplateController.name)
 
-	constructor(
-		private readonly service: XpertTemplateService,
-		private readonly templateSkillSyncService: TemplateSkillSyncService,
-		private readonly commandBus: CommandBus
-	) {}
+    constructor(
+        private readonly service: XpertTemplateService,
+        private readonly templateSkillSyncService: TemplateSkillSyncService,
+        private readonly commandBus: CommandBus
+    ) {}
 
-	@Get()
-	async getAll(@I18nLang() language: LanguagesEnum) {
-		return this.service.getAll(LanguagesMap[language] ?? language)
-	}
+    @Get()
+    async getAll(
+        @I18nLang() language: LanguagesEnum,
+        @Query('targetApp') targetApp?: string,
+        @Query('templateType') templateType?: string
+    ) {
+        return this.service.getAll(LanguagesMap[language] ?? language, { targetApp, templateType })
+    }
 
-	@Get('mcps')
-	async getMCPTemplates(@I18nLang() language: LanguagesEnum, @Query('data', ParseJsonPipe) paginationParams: PaginationParams<XpertTemplate>) {
-		return await this.service.getMCPTemplates(LanguagesMap[language] ?? language, paginationParams)
-	}
+    @Get('mcps')
+    async getMCPTemplates(
+        @I18nLang() language: LanguagesEnum,
+        @Query('data', ParseJsonPipe) paginationParams: PaginationParams<XpertTemplate>
+    ) {
+        return await this.service.getMCPTemplates(LanguagesMap[language] ?? language, paginationParams)
+    }
 
-	@Get('mcps/:key')
-	async getMCPTemplate(@I18nLang() language: LanguagesEnum, @Param('key') key: string) {
-		return await this.service.getMCPTemplate(LanguagesMap[language] ?? language, key)
-	}
+    @Get('mcps/:key')
+    async getMCPTemplate(@I18nLang() language: LanguagesEnum, @Param('key') key: string) {
+        return await this.service.getMCPTemplate(LanguagesMap[language] ?? language, key)
+    }
 
-	@Get('pipelines')
-	async getKnowledgePipelines(@I18nLang() language: LanguagesEnum, @Query('data', ParseJsonPipe) paginationParams: PaginationParams<XpertTemplate>) {
-		return await this.service.getKnowledgePipelines(LanguagesMap[language] ?? language, paginationParams)
-	}
+    @Get('pipelines')
+    async getKnowledgePipelines(
+        @I18nLang() language: LanguagesEnum,
+        @Query('data', ParseJsonPipe) paginationParams: PaginationParams<XpertTemplate>
+    ) {
+        return await this.service.getKnowledgePipelines(LanguagesMap[language] ?? language, paginationParams)
+    }
 
-	@Get('pipelines/:id')
-	async getKnowledgePipeline(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
-		return await this.service.getKnowledgePipeline(LanguagesMap[language] ?? language, id)
-	}
+    @Get('pipelines/:id')
+    async getKnowledgePipeline(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+        return await this.service.getKnowledgePipeline(LanguagesMap[language] ?? language, id)
+    }
 
-	@Get('skills-market')
-	async getSkillsMarket(@I18nLang() language: LanguagesEnum) {
-		return await this.service.getSkillsMarket(LanguagesMap[language] ?? language)
-	}
+    @Get('skills-market')
+    async getSkillsMarket(@I18nLang() language: LanguagesEnum) {
+        return await this.service.getSkillsMarket(LanguagesMap[language] ?? language)
+    }
 
-	@Post('sync-skill-assets')
-	async syncSkillAssets(
-		@Body()
-		body?: {
-			mode?: TemplateSkillSyncMode
-			validateOnly?: boolean
-		}
-	) {
-		return this.templateSkillSyncService.syncSkillAssets({
-			mode: body?.mode,
-			validateOnly: body?.validateOnly
-		})
-	}
+    @Post('sync-skill-assets')
+    async syncSkillAssets(
+        @Body()
+        body?: {
+            mode?: TemplateSkillSyncMode
+            validateOnly?: boolean
+        }
+    ) {
+        return this.templateSkillSyncService.syncSkillAssets({
+            mode: body?.mode,
+            validateOnly: body?.validateOnly
+        })
+    }
 
-	@Get(':id')
-	async getTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
-		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)
-	}
+    @Get(':id')
+    async getTemplate(
+        @I18nLang() language: LanguagesEnum,
+        @Param('id') id: string,
+        @Query('targetApp') targetApp?: string,
+        @Query('templateType') templateType?: string
+    ) {
+        return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language, { targetApp, templateType })
+    }
 }

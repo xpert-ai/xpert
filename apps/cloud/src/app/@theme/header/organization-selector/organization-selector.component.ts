@@ -1,9 +1,17 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, effect, inject, input, model } from '@angular/core'
+import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import {
+  CurrentUserHydrationService,
+  CURRENT_USER_BOOTSTRAP_RELATIONS,
+  CURRENT_USER_ORGANIZATIONS_SELECT,
+  type IUser,
+  type IUserOrganization,
+  UsersService
+} from '@xpert-ai/cloud/state'
 import { nonNullable, OverlayAnimation1 } from '@xpert-ai/core'
 import { NgmSearchComponent, NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
@@ -34,12 +42,16 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 export class OrganizationSelectorComponent {
   private readonly store = inject(Store)
   private readonly scopeService = inject(ScopeService)
+  private readonly usersService = inject(UsersService)
+  private readonly currentUserHydrationService = inject(CurrentUserHydrationService)
   readonly i18nService = injectI18nService()
 
   readonly isCollapsed = input<boolean>(false)
 
   readonly searchTerm = model<string>('')
   readonly search = debouncedSignal(this.searchTerm, 300)
+  readonly organizationsLoadedKey = signal<string | null>(null)
+  readonly organizationsLoading = signal(false)
   readonly activeScope = this.scopeService.activeScope
   readonly canUseTenantScope = this.scopeService.canUseTenantScope
   readonly currentUser = toSignal(this.store.user$, {
@@ -155,5 +167,83 @@ export class OrganizationSelectorComponent {
     }
 
     this.searchTerm.set('')
+  }
+
+  async loadOrganizations() {
+    const user = this.currentUser()
+    const loadKey = getCurrentUserOrganizationsLoadKey(user)
+    if (!loadKey || this.organizationsLoadedKey() === loadKey || this.organizationsLoading()) {
+      return
+    }
+
+    this.organizationsLoading.set(true)
+    try {
+      const loadedUser = await this.usersService.getMe(
+        [...CURRENT_USER_BOOTSTRAP_RELATIONS],
+        CURRENT_USER_ORGANIZATIONS_SELECT
+      )
+      const currentUser = this.store.user
+      if (!currentUser || getCurrentUserOrganizationsLoadKey(currentUser) !== loadKey) {
+        return
+      }
+
+      this.store.user = mergeLoadedCurrentUserOrganizations(currentUser, loadedUser)
+      this.organizationsLoadedKey.set(loadKey)
+
+      if (this.store.featureContextHydrated) {
+        try {
+          await this.currentUserHydrationService.getFeatureHydration({ force: true })
+        } catch (error) {
+          console.warn('Refresh current-user feature hydration after loading organizations failed', error)
+        }
+      }
+    } catch (error) {
+      console.warn('Load current-user organizations failed', error)
+    } finally {
+      this.organizationsLoading.set(false)
+    }
+  }
+}
+
+function getCurrentUserOrganizationsLoadKey(user: { id?: string | null; tenantId?: string | null } | null | undefined) {
+  return user?.id ? `${user.tenantId ?? 'tenant'}:${user.id}` : null
+}
+
+function getMembershipOrganizationId(membership: IUserOrganization) {
+  return membership.organizationId ?? membership.organization?.id ?? null
+}
+
+function mergeLoadedCurrentUserOrganizations(currentUser: IUser, loadedUser: IUser): IUser {
+  const featureOrganizationsByOrganization = new Map(
+    (currentUser.organizations ?? [])
+      .map((membership) => {
+        const organizationId = getMembershipOrganizationId(membership)
+        const featureOrganizations = membership.organization?.featureOrganizations
+        return organizationId && Array.isArray(featureOrganizations)
+          ? ([organizationId, featureOrganizations] as const)
+          : null
+      })
+      .filter(nonNullable)
+  )
+  const organizations = (loadedUser.organizations ?? []).map((membership) => {
+    const organizationId = getMembershipOrganizationId(membership)
+    const featureOrganizations = organizationId ? featureOrganizationsByOrganization.get(organizationId) : undefined
+
+    if (!membership.organization || !featureOrganizations) {
+      return membership
+    }
+
+    return {
+      ...membership,
+      organization: {
+        ...membership.organization,
+        featureOrganizations
+      }
+    }
+  })
+
+  return {
+    ...currentUser,
+    organizations
   }
 }

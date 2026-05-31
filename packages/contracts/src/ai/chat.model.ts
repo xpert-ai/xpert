@@ -134,7 +134,8 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   // One to Many
   executions?: IXpertAgentExecution[]
   /**
-   * Files
+   * @deprecated Conversation-level chat attachments are superseded by
+   * per-message `fileAssets` and `ConversationFileLink`.
    */
   attachments?: IStorageFile[]
 }

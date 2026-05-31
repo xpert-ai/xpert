@@ -31,7 +31,7 @@ import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertToolModule } from './xpert-tool/index'
 import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
-import { CommandHandlers } from './shared'
+import { AgentMiddlewareRuntimeModule, CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
@@ -44,11 +44,14 @@ import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 import { VolumeModule } from './shared/volume'
 import { FileMemoryModule } from './file-memory'
+import { FileUnderstandingModule } from './file-understanding'
+import { MetricsModule } from './metrics'
 
 @Module({
     imports: [
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
+        AgentMiddlewareRuntimeModule,
         AssistantBindingModule,
         ChatModule,
         ChatConversationModule,
@@ -67,8 +70,10 @@ import { FileMemoryModule } from './file-memory'
         GraphragModule,
         HandoffQueueModule,
         FileUploadTargetsModule,
+        MetricsModule,
         VolumeModule,
         FileMemoryModule,
+        FileUnderstandingModule,
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,
@@ -81,9 +86,9 @@ import { FileMemoryModule } from './file-memory'
         XpertTaskModule,
         XpertTableModule,
         SkillRepositoryModule,
-		SkillRepositoryIndexModule,
-		SkillPackageModule,
-		PromptWorkflowModule,
+        SkillRepositoryIndexModule,
+        SkillPackageModule,
+        PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,

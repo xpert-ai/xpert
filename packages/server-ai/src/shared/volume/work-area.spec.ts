@@ -53,7 +53,8 @@ describe('XpertWorkAreaResolver', () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',
             userId: 'user-1',
-            xpertId: 'xpert-1'
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1'
         })
 
         expect(volumeClient.resolve).toHaveBeenCalledWith({
@@ -66,9 +67,11 @@ describe('XpertWorkAreaResolver', () => {
         expect(workArea.workingDirectory).toBe(tempRoot)
         expect(workArea.defaultPath.relativePath).toBe('')
         expect(workArea.sharedPath?.workspacePath).toBe(path.join(tempRoot, 'shared'))
+        expect(workArea.sessionPath?.workspacePath).toBe(path.join(tempRoot, 'sessions/conversation-1'))
         expect(workArea.memoryPath?.workspacePath).toBe(path.join(tempRoot, '.xpert/memory'))
         await expect(fsPromises.stat(tempRoot)).resolves.toBeTruthy()
         await expect(fsPromises.stat(path.join(tempRoot, 'shared'))).resolves.toBeTruthy()
+        await expect(fsPromises.stat(path.join(tempRoot, 'sessions/conversation-1'))).resolves.toBeTruthy()
         await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory'))).resolves.toBeTruthy()
     })
 

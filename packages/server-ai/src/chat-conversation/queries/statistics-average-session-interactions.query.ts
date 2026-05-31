@@ -1,4 +1,5 @@
 import { IQuery } from '@nestjs/cqrs'
+import { StatisticsQueryFilters } from './statistics-filters'
 
 /**
  * 
@@ -10,5 +11,6 @@ export class StatisticsAverageSessionInteractionsQuery implements IQuery {
         public readonly start: string,
         public readonly end: string,
         public readonly xpertId?: string,
+        public readonly filters?: StatisticsQueryFilters
     ) {}
 }

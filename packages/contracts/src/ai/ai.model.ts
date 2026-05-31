@@ -2,6 +2,7 @@ import type { TFollowUpConsumedEvent, TMessageContentComplex, TThreadContextUsag
 import type { IChatConversation } from './chat.model'
 import type { IChatMessage } from './chat-message.model'
 import type { IXpertAgentExecution } from './xpert-agent-execution.model'
+import type { TThreadGoalClearedEvent, TThreadGoalUpdatedEvent } from './chat-event.model'
 
 /**
  * Business roles for AI copilot (commands or contexts)
@@ -193,6 +194,8 @@ export type TChatStreamChatEventData =
   | NonNullable<IChatMessage['events']>[number]
   | TFollowUpConsumedEvent
   | TThreadContextUsageEvent
+  | TThreadGoalUpdatedEvent
+  | TThreadGoalClearedEvent
 
 export type TChatStreamChatEventPayload = {
   type: ChatMessageTypeEnum.EVENT

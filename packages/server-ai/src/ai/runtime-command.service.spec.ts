@@ -442,6 +442,22 @@ describe('RuntimeCommandService', () => {
                     nodeKey: 'middleware-goal',
                     label: 'Goal Loop'
                 }
+            }),
+            expect.objectContaining({
+                name: 'invoke',
+                label: 'invoke',
+                action: {
+                    type: 'client_action',
+                    action: {
+                        type: 'middleware_only'
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'goal-loop-provider',
+                    nodeKey: 'middleware-goal',
+                    label: 'Goal Loop'
+                }
             })
         ])
     })

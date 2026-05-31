@@ -15,9 +15,23 @@ import { EventNameXpertValidate, XpertDraftValidateEvent } from '../../../xpert/
 import { SKILLS_MIDDLEWARE_NAME } from '../../../skill-package/types'
 
 const MULTIPLE_SKILLS_MIDDLEWARE_CONNECTED = 'MULTIPLE_SKILLS_MIDDLEWARE_CONNECTED'
+const XPERT_FEATURE_KEYS = new Set<string>([
+    'opener',
+    'suggestion',
+    'textToSpeech',
+    'speechToText',
+    'attachment',
+    'memoryReply',
+    'sandbox',
+    'title'
+])
 
 function isXpertFeatureEnabled(xpertFeatures: TXpertFeatures | null | undefined, feature: TXpertFeatureKey) {
     return xpertFeatures?.[feature]?.enabled === true
+}
+
+function isKnownXpertFeature(feature: string): feature is TXpertFeatureKey {
+    return XPERT_FEATURE_KEYS.has(feature)
 }
 
 const normalizeConnectionNodeKey = (key?: string | null) => key?.split('/')?.[0] ?? ''
@@ -114,7 +128,7 @@ export class WorkflowMiddlewareNodeValidator {
             ]
         }
 
-        const requiredFeatures = Array.from(new Set(meta.features ?? []))
+        const requiredFeatures = Array.from(new Set(meta.features ?? [])).filter(isKnownXpertFeature)
         if (requiredFeatures.length === 0) {
             return []
         }

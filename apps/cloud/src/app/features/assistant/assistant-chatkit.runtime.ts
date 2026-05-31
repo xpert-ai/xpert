@@ -31,12 +31,12 @@ type AssistantHostedClientSecret =
     }
 type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> &
   AssistantChatKitEventHandlers & {
-  api: {
-    apiUrl: string
-    xpertId?: string
-    getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
+    api: {
+      apiUrl: string
+      xpertId?: string
+      getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
+    }
   }
-}
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
@@ -290,6 +290,14 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         }
       },
       history: input.history,
+      composer: {
+        attachments: {
+          enabled: true,
+          maxCount: 5,
+          maxSize: 10 * 1024 * 1024
+        },
+        tools: []
+      },
       request: {
         context: requestContext ?? {}
       },

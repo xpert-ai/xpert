@@ -1,12 +1,13 @@
 import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures } from '@xpert-ai/contracts'
-import { StructuredToolInterface } from "@langchain/core/tools";
-import { RunnableToolLike } from '@langchain/core/runnables';
+import { StructuredToolInterface } from '@langchain/core/tools'
+import { RunnableToolLike } from '@langchain/core/runnables'
 import { AgentMiddleware } from './types'
 import { PromiseOrValue } from '../../types'
 import { AgentMiddlewareRuntimeApi } from './runtime'
 
 export interface IAgentMiddlewareContext {
   tenantId: string
+  organizationId?: string | null
   userId: string
   workspaceId?: string
   projectId?: string

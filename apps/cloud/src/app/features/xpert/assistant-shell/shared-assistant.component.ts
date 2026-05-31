@@ -1,5 +1,10 @@
-import { Component, inject } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { Component, DestroyRef, inject } from '@angular/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
+import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
+import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
+import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { XpertAssistantFacade } from './assistant.facade'
 
 @Component({
@@ -16,7 +21,27 @@ import { XpertAssistantFacade } from './assistant.facade'
 })
 export class XpertSharedAssistantComponent {
   readonly #facade = inject(XpertAssistantFacade)
+  readonly #clientCommands = inject(ViewClientCommandRegistry)
+  readonly #destroyRef = inject(DestroyRef)
+  readonly #dialog = inject(Dialog)
 
   readonly control = this.#facade.control
   readonly status = this.#facade.status
+
+  constructor() {
+    const unregisterAssistant = registerAssistantChatSendMessageCommand(this.#clientCommands, {
+      getControl: () => this.control(),
+      isReady: () => this.status() === 'ready'
+    })
+    const unregisterFileOpen = registerWorkbenchFileOpenCommand(this.#clientCommands, {
+      openFile: (file) => {
+        openWorkbenchFilePreviewDialog(this.#dialog, file)
+      }
+    })
+
+    this.#destroyRef.onDestroy(() => {
+      unregisterAssistant()
+      unregisterFileOpen()
+    })
+  }
 }

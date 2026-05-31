@@ -72,8 +72,8 @@
   </div>
 </div>
 
-<div class="mt-2 mb-8">
-  <span class="text-lg mr-2">
+<div class="mt-2 mb-8 flex flex-wrap items-center gap-2">
+  <span class="text-lg mr-1">
     {{ 'PAC.Xpert.Analysis' | translate: { Default: 'Analysis' } }}
   </span>
 
@@ -83,6 +83,22 @@
     icon="ri-calendar-line"
     [selectOptions]="TimeRanges"
     [(ngModel)]="timeRangeValue"
+  />
+  <ngm-select
+    class="inline-block w-64"
+    [placeholder]="'PAC.Copilot.AllModels' | translate: { Default: 'All models' }"
+    icon="ri-brain-line"
+    searchable
+    [selectOptions]="modelOptions()"
+    [(ngModel)]="selectedModel"
+  />
+  <ngm-select
+    class="inline-block w-64"
+    [placeholder]="'PAC.Copilot.AllUsers' | translate: { Default: 'All users' }"
+    icon="ri-user-line"
+    searchable
+    [selectOptions]="userOptions()"
+    [(ngModel)]="selectedUserId"
   />
 </div>
 

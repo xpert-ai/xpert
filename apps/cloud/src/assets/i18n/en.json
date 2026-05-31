@@ -134,6 +134,7 @@
       "RegistryTenantHelp": "Tenant scope shows every organization in the tenant. Pick a row to open its details workspace.",
       "RegistryOrganizationHelp": "Organization scope is narrowed to the current organization so you can review its details in place.",
       "LoadFailed": "Unable to load organizations",
+      "Loading": "Loading organizations...",
       "EmptyStateTitle": "No organizations available",
       "EmptyStateDescription": "There is no organization in the current scope yet. Add one from tenant scope or switch to an organization context first.",
       "TabGeneral": "General",
@@ -778,6 +779,10 @@
         "Computer": "Computer",
         "Browser": "Browser",
         "NewWorkspaceTab": "New workspace tab",
+        "FixedViews": "Fixed Views",
+        "NoFixedViews": "No fixed views",
+        "LoadingFixedViews": "Loading fixed views...",
+        "FixedViewsLoadFailed": "Failed to load fixed views",
         "EnterUrl": "Enter URL",
         "LocalServices": "Local",
         "Zoom": "Zoom",
@@ -856,7 +861,9 @@
       }
     },
     "Copilot": {
-      "SelectModel": "Select model"
+      "SelectModel": "Select model",
+      "AllModels": "All models",
+      "AllUsers": "All users"
     },
     "Assistant": {
       "SettingsEyebrow": "Unified assistant configuration",

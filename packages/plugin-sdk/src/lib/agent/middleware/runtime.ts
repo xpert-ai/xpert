@@ -2,22 +2,15 @@
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import type {
-  Runtime as LangGraphRuntime,
-  PregelOptions,
-  StreamMode,
-} from "@langchain/langgraph";
-import type { BaseMessage } from "@langchain/core/messages";
-import {
-  ICopilotModel,
-  ILLMUsage,
-  IXpertAgentExecution,
-  JSONValue,
-  TSandboxConfigurable,
-} from "@xpert-ai/contracts";
+import type { Runtime as LangGraphRuntime, PregelOptions, StreamMode } from '@langchain/langgraph'
+import type { BaseMessage } from '@langchain/core/messages'
+import { ICopilotModel, ILLMUsage, IXpertAgentExecution, JSONValue, TSandboxConfigurable } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { IRerank } from '../../ai-model/types'
+import type { AgentMiddlewareRuntimeCapabilityRegistry } from './runtime-capability'
 
+export * from './runtime-capability'
+export * from './capabilities'
 
 /**
  * Type for the agent's built-in state properties.
@@ -35,7 +28,7 @@ export type AgentBuiltInState = {
    * Messages are accumulated throughout the agent's lifecycle and can be
    * accessed or modified by middleware hooks during execution.
    */
-  messages: BaseMessage[];
+  messages: BaseMessage[]
   /**
    * Structured response data returned by the agent when a `responseFormat` is configured.
    *
@@ -48,42 +41,36 @@ export type AgentBuiltInState = {
    * generic type parameters are not accessible. You may need to cast this to your specific
    * response type when accessing it.
    */
-  structuredResponse?: Record<string, unknown>;
-};
+  structuredResponse?: Record<string, unknown>
+}
 
 /**
  * Type helper to check if TContext is an optional Zod schema
  */
-type IsOptionalZodObject<T> = T extends any ? true : false;
-type IsDefaultZodObject<T> = T extends any ? true : false;
+type IsOptionalZodObject<T> = T extends any ? true : false
+type IsDefaultZodObject<T> = T extends any ? true : false
 
 export type WithMaybeContext<TContext> = undefined extends TContext
   ? { readonly context?: TContext }
   : IsOptionalZodObject<TContext> extends true
-  ? { readonly context?: TContext }
-  : IsDefaultZodObject<TContext> extends true
-  ? { readonly context?: TContext }
-  : { readonly context: TContext };
+    ? { readonly context?: TContext }
+    : IsDefaultZodObject<TContext> extends true
+      ? { readonly context?: TContext }
+      : { readonly context: TContext }
 
 /**
  * Runtime information available to middleware (readonly).
  */
-export type Runtime<TContext = unknown> = Partial<
-  Omit<LangGraphRuntime<TContext>, "context" | "configurable">
-> &
+export type Runtime<TContext = unknown> = Partial<Omit<LangGraphRuntime<TContext>, 'context' | 'configurable'>> &
   WithMaybeContext<TContext> & {
     configurable?: {
-      thread_id?: string;
-      sandbox?: TSandboxConfigurable | null;
-      [key: string]: unknown;
-    };
-  };
+      thread_id?: string
+      sandbox?: TSandboxConfigurable | null
+      [key: string]: unknown
+    }
+  }
 
-export type AgentMiddlewareModelClient =
-  | BaseLanguageModel
-  | BaseChatModel
-  | Embeddings
-  | IRerank
+export type AgentMiddlewareModelClient = BaseLanguageModel | BaseChatModel | Embeddings | IRerank
 
 export type AgentMiddlewareCreateModelClientOptions = {
   abortController?: AbortController
@@ -101,6 +88,25 @@ export type AgentMiddlewareWrapWorkflowNodeExecutionParams = {
   catchError?: (error: Error) => Promise<void>
 }
 
+export type AgentMiddlewareEventStatus = 'running' | 'success' | 'fail'
+
+export type AgentMiddlewareEvent = {
+  type?: 'middleware_event'
+  middlewareName?: string
+  middlewareKey?: string
+  title?: string
+  message?: string
+  status?: AgentMiddlewareEventStatus
+  phase?: string
+  executionId?: string
+  threadId?: string
+  created_date?: string
+  end_date?: string
+  error?: unknown
+  data?: unknown
+  [key: string]: unknown
+}
+
 export interface AgentMiddlewareRuntimeApi {
   createModelClient<T = AgentMiddlewareModelClient>(
     copilotModel: ICopilotModel,
@@ -108,9 +114,11 @@ export interface AgentMiddlewareRuntimeApi {
   ): Promise<T>
 
   wrapWorkflowNodeExecution<T>(
-    run: (
-      execution: Partial<IXpertAgentExecution>
-    ) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
+    run: (execution: Partial<IXpertAgentExecution>) => Promise<AgentMiddlewareWrapWorkflowNodeExecutionResult<T>>,
     params: AgentMiddlewareWrapWorkflowNodeExecutionParams
   ): Promise<T>
+
+  emitMiddlewareEvent?(event: AgentMiddlewareEvent): Promise<void> | void
+
+  capabilities?: AgentMiddlewareRuntimeCapabilityRegistry
 }

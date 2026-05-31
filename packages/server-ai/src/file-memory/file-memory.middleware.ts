@@ -19,7 +19,7 @@ import { z } from 'zod/v3'
 import { FileMemoryService } from './file-memory.service'
 import { FileMemoryWritebackRunner } from './file-memory.writeback-runner'
 import { FileMemoryRecallPlanner } from './recall-planner'
-import { FileMemoryHeader, FileMemoryType } from './types'
+import { FileMemoryHeader, FileMemoryType, ICON } from './types'
 import { assertFileMemoryType } from './taxonomy'
 import { assertFileMemorySandboxFeatureEnabled } from './sandbox-memory.store'
 
@@ -103,8 +103,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         },
         icon: {
             type: 'svg',
-            value: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h9l5 5v13H6V3Zm8 1.5V9h4.5L14 4.5ZM9 12h6v1.5H9V12Zm0 3h6v1.5H9V15Z"/></svg>',
-            color: '#2f7cf6'
+            value: ICON
         },
         features: ['sandbox'],
         configSchema: {

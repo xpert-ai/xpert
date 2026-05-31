@@ -4,6 +4,11 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Xpert } from '../../xpert.entity'
 import { StatisticsXpertTokensQuery } from '../statistics-xpert-tokens.query'
+import {
+	normalizeStatisticsFilters,
+	statisticsConversationUserSql,
+	statisticsModelSql
+} from '../../../chat-conversation/queries'
 
 @QueryHandler(StatisticsXpertTokensQuery)
 export class StatisticsXpertTokensHandler implements IQueryHandler<StatisticsXpertTokensQuery> {
@@ -13,10 +18,27 @@ export class StatisticsXpertTokensHandler implements IQueryHandler<StatisticsXpe
 	) {}
 
 	public async execute(command: StatisticsXpertTokensQuery) {
-		const { start, end } = command
+		const { start, end, filters } = command
         const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+		const normalizedFilters = normalizeStatisticsFilters(filters)
+		const params: Array<string> = [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '']
+		let paramIndex = params.length + 1
+		let userWhere = ''
+		let executionModelWhere = ''
+		let subexecutionModelWhere = ''
 
+		if (normalizedFilters.userId) {
+			userWhere = `AND ${statisticsConversationUserSql('cc')} = $${paramIndex}`
+			params.push(normalizedFilters.userId)
+			paramIndex++
+		}
+		if (normalizedFilters.model) {
+			const modelParam = `$${paramIndex}`
+			executionModelWhere = `AND ${statisticsModelSql('execution')} = ${modelParam}`
+			subexecutionModelWhere = `AND ${statisticsModelSql('subexecution')} = ${modelParam}`
+			params.push(normalizedFilters.model)
+		}
 
 		return await this.repository.manager.query(`SELECT 
     slug, 
@@ -42,6 +64,8 @@ FROM (
     WHERE 
         cc."tenantId" = $1
         AND cc."organizationId" = $2
+        ${userWhere}
+        ${executionModelWhere}
         AND cc."from" != $3
         AND cm."role" = $4
         AND cc."createdAt" >= $5
@@ -73,6 +97,8 @@ FROM (
     WHERE 
          cc."tenantId" = $1
         AND cc."organizationId" = $2
+        ${userWhere}
+        ${subexecutionModelWhere}
         AND cc."from" != $3
         AND cm."role" = $4
         AND cc."createdAt" >= $5
@@ -84,6 +110,6 @@ FROM (
 GROUP BY 
     slug 
 ORDER BY 
-    tokens DESC;`, [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ])
+    tokens DESC;`, params)
 	}
 }

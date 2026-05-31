@@ -1,0 +1,306 @@
+---
+title: 'View Extension 运行时能力'
+description: '说明扩展视图系统的 manifest、参数、action input 和 remote_component iframe runtime'
+---
+
+# View Extension 运行时能力
+
+View Extension 是 xpert-pro 面向插件和平台模块的扩展视图协议。插件可以通过 `ViewExtensionProvider` 返回 manifest、data、actions 和参数选项，由宿主前端使用平台内置 renderer 渲染；也可以提供 `remote_component + react + iframe` 的受控远程组件入口。
+
+本版本新增能力集中在运行时协议层：
+
+- 可按公开 `viewKey` 直接读取单个 manifest。
+- data 查询和 action 请求支持 view parameters。
+- action 可以声明 `inputSchema` 和默认输入。
+- provider 可以为参数提供 options。
+- provider 可以为 `remote_component` 提供 iframe HTML entry。
+- view manifest 可以通过 `hostEvents` 声明监听宿主侧事件，并由 remote page 自定义刷新逻辑。
+
+## Host 与 Slot
+
+宿主对象通过 `ViewHostDefinition` 暴露可扩展 slot。例如 agent host 提供：
+
+```ts
+readonly slots: XpertViewSlot[] = [
+  { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
+  { key: 'agent.workbench.main', mode: 'sections', order: 10 }
+]
+```
+
+slot key 必须描述宿主能力，而不是某个消费端页面或具体业务插件。具体业务名称应留在插件 provider、tool 或 view key 中。
+
+常见 slot 命名：
+
+- `detail.main_tabs`
+- `detail.sections`
+- `detail.sidebar`
+- `agent.workbench.main`
+
+## Provider Manifest
+
+插件通过 `@ViewExtensionProvider(providerKey)` 注册 provider，并在 `getViewManifests(context, slot)` 中返回视图声明。
+
+平台对外暴露的公开 view key 为：
+
+```text
+<providerKey>__<manifestKey>
+```
+
+例如 provider key 为 `datax_metric_management`，manifest key 为 `metrics`，公开 view key 是：
+
+```text
+datax_metric_management__metrics
+```
+
+## 新增 API
+
+运行时接口包括：
+
+```text
+GET  /api/view-hosts/:hostType/:hostId/slots/:slot/views
+GET  /api/view-hosts/:hostType/:hostId/views/:viewKey/manifest
+GET  /api/view-hosts/:hostType/:hostId/views/:viewKey/data
+POST /api/view-hosts/:hostType/:hostId/views/:viewKey/actions/:actionKey
+GET  /api/view-hosts/:hostType/:hostId/views/:viewKey/parameters/:parameterKey/options
+GET  /api/view-hosts/:hostType/:hostId/views/:viewKey/remote-component/entry
+```
+
+`manifest` 接口用于工具触发型场景：前端已经从工具结果中拿到 `viewKey`，无需先枚举 slot 下所有视图。
+
+## 参数化视图
+
+manifest 可以声明参数：
+
+```ts
+parameters: [
+  {
+    key: 'projectId',
+    label: { en_US: 'Project', zh_Hans: '项目' },
+    required: true,
+    type: 'string',
+    optionSource: {
+      mode: 'provider',
+      searchable: true,
+      preload: true
+    }
+  },
+  {
+    key: 'modelId',
+    label: { en_US: 'Model', zh_Hans: '模型' },
+    type: 'string',
+    optionSource: {
+      mode: 'provider',
+      searchable: true,
+      preload: true,
+      dependsOn: ['projectId']
+    }
+  }
+]
+```
+
+data 查询通过 `parameters` 传递当前参数值：
+
+```ts
+{
+  page: 1,
+  pageSize: 20,
+  parameters: {
+    projectId: 'project-1',
+    modelId: 'model-1'
+  }
+}
+```
+
+如果视图支持参数化查询，`dataSource.querySchema.supportsParameters` 应设为 `true`。否则运行时会拒绝携带 parameters 的请求。
+
+## 参数选项
+
+provider 可实现 `getViewParameterOptions`：
+
+```ts
+getViewParameterOptions(
+  context,
+  viewKey,
+  parameterKey,
+  query
+): Promise<XpertViewParameterOptionsResult>
+```
+
+返回值：
+
+```ts
+{
+  items: [
+    {
+      value: 'project-1',
+      label: '销售分析项目'
+    }
+  ]
+}
+```
+
+`query.parameters` 用于依赖参数场景。例如 `modelId` options 可以根据当前 `projectId` 过滤。
+
+## Action Input
+
+action 可以声明输入表单：
+
+```ts
+{
+  key: 'create',
+  label: { en_US: 'Create', zh_Hans: '新建' },
+  placement: 'toolbar',
+  actionType: 'invoke',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      code: { type: 'string', title: { zh_Hans: '编码', en_US: 'Code' } },
+      name: { type: 'string', title: { zh_Hans: '名称', en_US: 'Name' } }
+    },
+    required: ['code', 'name']
+  }
+}
+```
+
+执行 action 时，运行时会把当前参数和用户输入一起传给 provider：
+
+```ts
+{
+  targetId: 'metric-1',
+  input: {
+    code: 'gmv',
+    name: 'GMV'
+  },
+  parameters: {
+    projectId: 'project-1'
+  }
+}
+```
+
+action 返回 `refresh: true` 时，平台会清理该 view 的缓存，前端可重新加载当前视图。
+
+## Remote Component iframe Runtime
+
+协议支持远程 React iframe 组件 schema：
+
+```ts
+{
+  type: 'remote_component',
+  runtime: 'react',
+  protocolVersion: 1,
+  component: {
+    isolation: 'iframe' | 'module_federation',
+    entry: 'metric-management',
+    module: './Widget',
+    exportName: 'default',
+    integrity: 'sha256-...',
+    propsSchema: {}
+  },
+  dataSource: {
+    mode: 'platform'
+  },
+  actions: []
+}
+```
+
+当前版本只执行 `isolation: 'iframe'`。`entry` 是 provider-local key，不是浏览器 URL；运行时会调用 provider 的 `getRemoteComponentEntry(context, viewKey, component)`，返回单文件 HTML：
+
+```ts
+{
+  html: '<!doctype html>...',
+  contentType: 'text/html; charset=utf-8'
+}
+```
+
+entry endpoint 会复用 host permission、manifest visibility 和 provider 支持校验，并拒绝绝对 URL、`..`、反斜杠等不安全 entry key。iframe 内组件不接收 token、hostId、assistantId 或 API URL，数据、参数选项和 action 都由宿主通过 `postMessage` bridge 调用平台接口。
+
+插件应使用 plugin-sdk 的 `renderRemoteReactIframeHtml()` 生成 HTML shell。该 helper 内置统一的 remote UI 样式：
+
+- 基础 reset 和 CSS variables。
+- `.xui-button`、`.xui-input`、`.xui-control`、`.xui-table`、`.xui-modal`、`.xui-notice`、`.xui-pill` 等控件类。
+- `init.theme.tokens` 到 `--xui-*` CSS variables 的同步逻辑。
+- 字号和控件高度 tokens，例如 `fontSizeControl`、`fontSizeButton`、`fontSizeTable`、`controlHeight`、`buttonHeight`，宿主可统一映射到 `--xui-font-size-*` 和 `--xui-*-height`。
+
+插件业务代码应优先组合 `.xui-*` class；如需补充 CSS，只写业务布局，不重新定义基础控件视觉。
+
+远程页面应读取父窗口 `init` 消息中的 `locale`，并至少提供 `zh-Hans` 和 `en-US` 文案。manifest 的 `title`、`description`、参数和 action label 继续使用 View Extension 的多语言文本对象。
+
+## Host Events
+
+`hostEvents` 用于让插件视图监听宿主页面里的运行时事件，例如 Assistant ChatKit 发起的工具调用完成。它是浏览器内事件机制，不新增后端 API，也不把插件业务逻辑写进宿主 Workbench。
+
+manifest 示例：
+
+```ts
+hostEvents: {
+  subscriptions: [
+    {
+      key: 'tool-completed',
+      event: 'assistant.tool.completed',
+      filter: {
+        sources: ['chatkit'],
+        toolNames: ['save_contract', 'match_contract']
+      },
+      action: {
+        type: 'forward',
+        debounceMs: 1000
+      }
+    }
+  ]
+}
+```
+
+字段说明：
+
+| 字段                        | 说明                                                          |
+| --------------------------- | ------------------------------------------------------------- |
+| `key`                       | 订阅唯一 key，用于去重和排错                                  |
+| `event`                     | 宿主归一化后的事件类型，例如 `assistant.tool.completed`       |
+| `filter.sources`            | 事件来源白名单，目前 data-xpert 使用 `chatkit`                |
+| `filter.toolNames`          | tool name 白名单；具体插件 tool 名必须由插件自己声明          |
+| `filter.viewKeys`           | visualization view key 白名单，可用于只接收某类视图事件       |
+| `filter.visualizationTypes` | visualization type 白名单，例如 `xpert.extension_view`        |
+| `action.type`               | `refresh`、`forward` 或 `refresh-and-forward`，默认 `refresh` |
+| `action.debounceMs`         | 轻量去重窗口，避免同一次工具完成重复触发                      |
+
+action 行为：
+
+- `refresh`：宿主复用标准刷新流程。声明式 view 重新调用 `getViewData`；`remote_component` 重新收到当前 `init`。
+- `forward`：宿主只向 iframe 发送 `hostEvent`，插件页面自己判断是否切 tab、更新 query 或刷新局部数据。
+- `refresh-and-forward`：两者同时执行。
+
+data-xpert 当前会把 ChatKit `onLog` 归一化为：
+
+| 事件类型                          | 来源      | 说明                                                                             |
+| --------------------------------- | --------- | -------------------------------------------------------------------------------- |
+| `assistant.tool.completed`        | `chatkit` | 支持 `lg.tool.end`，也支持 `component` log 中的 tool output / visualization meta |
+| `assistant.visualization.emitted` | `chatkit` | component log 中存在 visualization meta，但无法识别 tool name                    |
+
+转发到 iframe 的消息：
+
+```ts
+{
+  type: 'hostEvent',
+  event: {
+    id: 'assistant.tool.completed:...',
+    type: 'assistant.tool.completed',
+    source: 'chatkit',
+    receivedAt: '2026-05-29T00:00:00.000Z',
+    toolName: 'save_contract',
+    data: {
+      output: {
+        contractId: 'contract-1'
+      }
+    }
+  }
+}
+```
+
+安全约束：
+
+- 宿主必须先按当前 assistant 上下文匹配事件，不能把其他 Assistant 的事件发给当前视图。
+- `hostEvent` 不携带 token、API URL、assistantId、hostId、tenantId、organizationId，也不携带宿主内部的 assistant routing 字段。
+- 宿主 Workbench extension 代码不能硬编码插件 view key 或 tool name；这些必须由插件 manifest 声明。
+- 具体业务逻辑留在插件 view page 中，例如根据 `event.toolName` 和 `event.data.output` 决定只刷新合同数据、匹配数据或切换 tab。
+
+`module_federation` 仍保留在 schema 中，但当前版本不执行该模式。

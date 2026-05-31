@@ -355,7 +355,11 @@ describe('PluginController', () => {
 				meta: {
 					name: '@xpert-ai/plugin-env-demo',
 					version: '0.0.1',
-					level: PLUGIN_LEVEL.ORGANIZATION
+					level: PLUGIN_LEVEL.ORGANIZATION,
+					deprecated: true,
+					deprecationMessage: {
+						en_US: 'Use the built-in replacement.'
+					}
 				}
 			},
 			ctx: {}
@@ -369,7 +373,13 @@ describe('PluginController', () => {
 				canUpdate: true,
 				hasUpdate: false,
 				currentVersion: '0.0.1',
-				latestVersion: undefined
+				latestVersion: undefined,
+				meta: expect.objectContaining({
+					deprecated: true,
+					deprecationMessage: {
+						en_US: 'Use the built-in replacement.'
+					}
+				})
 			})
 		])
 		expect((queryBus as any).execute).not.toHaveBeenCalled()
