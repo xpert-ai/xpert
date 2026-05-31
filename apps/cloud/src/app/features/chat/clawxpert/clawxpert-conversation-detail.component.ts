@@ -133,7 +133,7 @@ type ChatKitReferenceComposerControl = {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
             <div
               data-workspace-tab-header
-              class="flex min-w-0 items-center justify-start gap-1.5 bg-components-panel-bg px-2 py-1.5"
+              class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5"
             >
               <nav
                 z-tab-nav-bar

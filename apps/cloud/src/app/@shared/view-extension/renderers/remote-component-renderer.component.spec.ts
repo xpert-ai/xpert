@@ -109,6 +109,7 @@ describe('RemoteComponentRendererComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule()
+    delete document.documentElement.dataset.theme
     if (originalCreateObjectURL) {
       Object.defineProperty(URL, 'createObjectURL', {
         configurable: true,
@@ -144,6 +145,76 @@ describe('RemoteComponentRendererComponent', () => {
     await expect(readBlobText(blob)).resolves.toBe(remoteHtml)
     expect(frame.getAttribute('src')).toBe('blob:remote-component-entry-1')
     expect(frame.hasAttribute('srcdoc')).toBe(false)
+  })
+
+  it('passes the current host theme to the iframe init message', async () => {
+    document.documentElement.dataset.theme = 'dark'
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const frameWindow = frame.contentWindow as Window
+    const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    const component = fixture.componentInstance as unknown as {
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+
+    component.handleMessage({
+      source: frameWindow,
+      data: {
+        channel: 'xpertai.remote_component',
+        protocolVersion: 1,
+        type: 'ready'
+      }
+    })
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'init',
+        theme: expect.objectContaining({
+          mode: 'dark',
+          tokens: expect.objectContaining({
+            colorBackground: expect.any(String),
+            colorForeground: expect.any(String)
+          })
+        })
+      }),
+      '*'
+    )
+  })
+
+  it('resends init with the updated host theme when the host theme changes', async () => {
+    document.documentElement.dataset.theme = 'light'
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const frameWindow = frame.contentWindow as Window
+    const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    postMessage.mockClear()
+
+    document.documentElement.dataset.theme = 'dark'
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    fixture.detectChanges()
+    await Promise.resolve()
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'init',
+        theme: expect.objectContaining({
+          mode: 'dark'
+        })
+      }),
+      '*'
+    )
   })
 
   it('executes declared client commands through the host registry', async () => {
