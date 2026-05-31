@@ -30,7 +30,6 @@ import {
     allChannels,
     channelName,
     ChatMessageEventTypeEnum,
-    ChatMessageTypeEnum,
     figureOutXpert,
     findStartNodes,
     getCurrentGraph,
@@ -45,7 +44,6 @@ import {
     mapTranslationLanguage,
     resolveRuntimeXpert,
     STATE_VARIABLE_HUMAN,
-    STATE_VARIABLE_SYS,
     TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
@@ -57,7 +55,6 @@ import {
 } from '@xpert-ai/contracts'
 import { stringifyMessageContent } from '@xpert-ai/copilot'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
@@ -69,6 +66,7 @@ import {
     IAgentMiddlewareContext,
     JumpToTarget,
     ModelRequest,
+    RequestContext,
     WrapModelCallHandler,
     WrapToolCallHook
 } from '@xpert-ai/plugin-sdk'
@@ -732,8 +730,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const visibleMiddlewareNodes = getRuntimeEnabledMiddlewareNodes(graph, agent, {
             runtimeCapabilities: options.runtimeCapabilities
         })
+        const organizationId = RequestContext.getOrganizationId() ?? null
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: xpert.tenantId,
+            organizationId,
             userId: RequestContext.currentUserId(),
             workspaceId: xpert.workspaceId,
             projectId: options.projectId,
