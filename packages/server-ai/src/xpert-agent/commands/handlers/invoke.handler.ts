@@ -158,6 +158,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 )
             } catch (err) {
                 this.#logger.warn(`Sandbox backend acquire failed: ${getErrorMessage(err)}`)
+                throw err
             }
         }
         const volumePath = workArea.volumePath
