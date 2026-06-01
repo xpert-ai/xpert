@@ -63,7 +63,11 @@ function createContext(options?: { modelResponse?: string }) {
     }
 }
 
-function createRuntimeConfig(subscriber: { next: jest.Mock }, input = '/compact') {
+function createRuntimeConfig(
+    subscriber: { next: jest.Mock },
+    input = '/compact',
+    modelOptions?: Record<string, unknown>
+) {
     return {
         state: {
             human: {
@@ -73,7 +77,8 @@ function createRuntimeConfig(subscriber: { next: jest.Mock }, input = '/compact'
         configurable: {
             copilotModel: {
                 options: {
-                    context_size: 200_000
+                    context_size: 200_000,
+                    ...(modelOptions ?? {})
                 }
             },
             subscriber
@@ -199,6 +204,45 @@ describe('ContextCompressionMiddleware', () => {
         expect(
             subscriber.next.mock.calls.some((call) => call[0]?.data?.data?.data?.reason === 'no_unprotected_history')
         ).toBe(false)
+    })
+
+    it('uses total token usage as the next prompt anchor for automatic compression', async () => {
+        const strategy = new ContextCompressionMiddleware()
+        const { context, model, runtime, subscriber } = createContext()
+        const middleware = (await strategy.createMiddleware(
+            {
+                enableTwoPhaseCompression: false,
+                threshold: 0.5,
+                protectedUserTurns: 2,
+                preserveFraction: 0.3
+            },
+            context
+        )) as AgentMiddleware
+        const beforeModel = getBeforeModel(middleware)
+        const state = {
+            messages: [
+                new HumanMessage('Earlier request. '.repeat(20)),
+                new AIMessage({
+                    content: 'Earlier answer. '.repeat(20),
+                    response_metadata: {
+                        usage: {
+                            prompt_tokens: 90_000,
+                            completion_tokens: 30_000,
+                            total_tokens: 120_000
+                        }
+                    }
+                }),
+                new HumanMessage('Next request.')
+            ]
+        }
+
+        await beforeModel(state as any, createRuntimeConfig(subscriber, 'Next request.', { max_tokens: 1000 }))
+
+        expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
+        expect(model.invoke).toHaveBeenCalledTimes(1)
+        expect(state.messages[0]).toBeInstanceOf(HumanMessage)
+        expect(state.messages[0].additional_kwargs?.compressed).toBe(true)
+        expect(state.messages[state.messages.length - 1].content).toBe('Next request.')
     })
 
     it('reports a no-op success when a manual summary would increase context size', async () => {

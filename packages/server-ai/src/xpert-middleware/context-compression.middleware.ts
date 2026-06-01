@@ -942,6 +942,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
         const responseMetadata = message.response_metadata as Record<string, unknown> | undefined
         const responseUsage = responseMetadata?.['usage'] as Record<string, unknown> | undefined
+        const usageTotalTokens = this.toPositiveTokenCount(responseUsage?.['total_tokens'])
+        if (usageTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: usageTotalTokens,
+                source: 'response_metadata.usage.total_tokens'
+            }
+        }
+
         const usagePromptTokens = this.toPositiveTokenCount(responseUsage?.['prompt_tokens'])
         if (usagePromptTokens !== null) {
             return {
@@ -952,6 +961,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const tokenUsage = responseMetadata?.['tokenUsage'] as Record<string, unknown> | undefined
+        const tokenUsageTotalTokens = this.toPositiveTokenCount(tokenUsage?.['totalTokens'])
+        if (tokenUsageTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: tokenUsageTotalTokens,
+                source: 'response_metadata.tokenUsage.totalTokens'
+            }
+        }
+
         const tokenUsagePromptTokens = this.toPositiveTokenCount(tokenUsage?.['promptTokens'])
         if (tokenUsagePromptTokens !== null) {
             return {
@@ -962,6 +980,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const usageMetadata = message.usage_metadata as Record<string, unknown> | undefined
+        const totalTokens = this.toPositiveTokenCount(usageMetadata?.['total_tokens'])
+        if (totalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: totalTokens,
+                source: 'usage_metadata.total_tokens'
+            }
+        }
+
         const inputTokens = this.toPositiveTokenCount(usageMetadata?.['input_tokens'])
         if (inputTokens !== null) {
             return {
@@ -972,6 +999,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const rawResponse = (message.additional_kwargs as Record<string, any> | undefined)?.['__raw_response']
+        const rawTotalTokens = this.toPositiveTokenCount(rawResponse?.usage?.total_tokens)
+        if (rawTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: rawTotalTokens,
+                source: 'additional_kwargs.__raw_response.usage.total_tokens'
+            }
+        }
+
         const rawPromptTokens = this.toPositiveTokenCount(rawResponse?.usage?.prompt_tokens)
         if (rawPromptTokens !== null) {
             return {
