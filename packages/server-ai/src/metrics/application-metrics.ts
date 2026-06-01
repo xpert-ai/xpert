@@ -38,6 +38,12 @@ type ToolMessageMetricInput = {
     end_date?: unknown
 }
 
+type ToolComponentMetricInput = {
+    id?: unknown
+    type?: unknown
+    data?: unknown
+}
+
 class CounterMetric {
     private readonly samples = new Map<string, { labels: MetricLabels; value: number }>()
 
@@ -308,6 +314,31 @@ export class ApplicationMetricsRegistry {
         }
     }
 
+    recordToolComponentMessage(input: unknown, previousContent: unknown) {
+        const component = toolComponentMetricInput(input)
+        if (!component) {
+            return
+        }
+
+        const data = toolMessageMetricInput(component.data)
+        if (!data) {
+            return
+        }
+
+        const status = stringValue(data.status)
+        if (!status || status === 'running') {
+            return
+        }
+
+        const previousData = findToolComponentData(previousContent, component.id)
+        const previousStatus = stringValue(previousData?.status)
+        if (previousStatus && previousStatus !== 'running') {
+            return
+        }
+
+        this.recordToolMessage(mergeToolMessageMetricInput(previousData, data))
+    }
+
     render() {
         return (
             [
@@ -427,11 +458,75 @@ function formatNumber(value: number) {
 }
 
 function isToolMessageMetricInput(value: unknown): value is ToolMessageMetricInput {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    const candidate = toolMessageMetricInput(value)
+    if (!candidate) {
         return false
     }
-    const candidate = value as ToolMessageMetricInput
     return stringValue(candidate.tool) !== null || stringValue(candidate.toolset) !== null
+}
+
+function toolMessageMetricInput(value: unknown) {
+    if (!isMetricObject(value)) {
+        return null
+    }
+
+    return {
+        toolset: objectProperty(value, 'toolset'),
+        tool: objectProperty(value, 'tool'),
+        status: objectProperty(value, 'status'),
+        created_date: objectProperty(value, 'created_date'),
+        end_date: objectProperty(value, 'end_date')
+    } satisfies ToolMessageMetricInput
+}
+
+function toolComponentMetricInput(value: unknown) {
+    if (!isMetricObject(value)) {
+        return null
+    }
+    const type = objectProperty(value, 'type')
+    if (type !== 'component') {
+        return null
+    }
+
+    return {
+        id: objectProperty(value, 'id'),
+        type,
+        data: objectProperty(value, 'data')
+    } satisfies ToolComponentMetricInput
+}
+
+function findToolComponentData(content: unknown, id: unknown) {
+    const targetId = stringValue(id)
+    if (!targetId || !Array.isArray(content)) {
+        return null
+    }
+
+    for (const item of content) {
+        const component = toolComponentMetricInput(item)
+        if (!component || stringValue(component.id) !== targetId) {
+            continue
+        }
+        return toolMessageMetricInput(component.data)
+    }
+    return null
+}
+
+function mergeToolMessageMetricInput(previous: ToolMessageMetricInput | null, incoming: ToolMessageMetricInput) {
+    return {
+        toolset: incoming.toolset ?? previous?.toolset,
+        tool: incoming.tool ?? previous?.tool,
+        status: incoming.status ?? previous?.status,
+        created_date: previous?.created_date ?? incoming.created_date,
+        end_date: incoming.end_date ?? previous?.end_date
+    } satisfies ToolMessageMetricInput
+}
+
+function isMetricObject(value: unknown): value is object {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function objectProperty(value: object, key: string): unknown {
+    return Object.getOwnPropertyDescriptor(value, key)?.value
 }
 
 function eventDurationSeconds(start: unknown, end: unknown) {

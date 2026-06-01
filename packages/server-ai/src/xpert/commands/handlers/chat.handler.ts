@@ -745,6 +745,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     fallbackStreamId: aiMessage?.id ?? executionId
                                 })
 
+                                applicationMetrics.recordToolComponentMessage(event.data.data, aiMessage.content)
                                 appendMessageContent(aiMessage, event.data.data, messageContext)
                                 result = appendMessagePlainText(result, event.data.data, messageContext)
                             } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
