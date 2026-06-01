@@ -482,7 +482,7 @@ function readThemeColor(
   if (/^(#|rgb|hsl|oklch|color-mix)/i.test(value)) {
     return value
   }
-  return `hsl(${value})`
+  return resolveCssColor(document, value) ?? `hsl(${value})`
 }
 
 function resolveCssColor(document: Document, value: string) {
@@ -493,6 +493,9 @@ function resolveCssColor(document: Document, value: string) {
   const probe = document.createElement('span')
   const probeHost = document.body ?? document.documentElement
   probe.style.color = value
+  if (!probe.style.color) {
+    return null
+  }
   probeHost.appendChild(probe)
   const computedColor = view.getComputedStyle(probe).color
   probe.remove()
