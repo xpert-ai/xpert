@@ -73,6 +73,67 @@ describe('ApplicationMetricsRegistry', () => {
         )
     })
 
+    it('records completed tool component transitions without double counting', () => {
+        const registry = new ApplicationMetricsRegistry()
+        const runningContent = [
+            {
+                id: 'tool-1',
+                type: 'component',
+                data: {
+                    toolset: 'browser_automation',
+                    tool: 'host_page_snapshot',
+                    status: 'running',
+                    created_date: '2026-05-27T00:00:00.000Z'
+                }
+            }
+        ]
+        const completedContent = [
+            {
+                id: 'tool-1',
+                type: 'component',
+                data: {
+                    toolset: 'browser_automation',
+                    tool: 'host_page_snapshot',
+                    status: 'success',
+                    created_date: '2026-05-27T00:00:00.000Z',
+                    end_date: '2026-05-27T00:00:02.000Z'
+                }
+            }
+        ]
+
+        registry.recordToolComponentMessage(
+            {
+                id: 'tool-1',
+                type: 'component',
+                data: {
+                    status: 'success',
+                    end_date: '2026-05-27T00:00:02.000Z'
+                }
+            },
+            runningContent
+        )
+        registry.recordToolComponentMessage(
+            {
+                id: 'tool-1',
+                type: 'component',
+                data: {
+                    status: 'success',
+                    end_date: '2026-05-27T00:00:02.000Z'
+                }
+            },
+            completedContent
+        )
+
+        const output = registry.render()
+
+        expect(output).toContain(
+            'xpert_tool_calls_total{status="success",tool="host_page_snapshot",toolset="browser_automation"} 1'
+        )
+        expect(output).toContain(
+            'xpert_tool_duration_seconds_sum{status="success",tool="host_page_snapshot",toolset="browser_automation"} 2'
+        )
+    })
+
     it('exposes a singleton registry for instrumentation call sites', () => {
         applicationMetrics.reset()
         applicationMetrics.recordChatRequest({ action: 'follow_up', from: 'api', status: 'queued', durationMs: 10 })
