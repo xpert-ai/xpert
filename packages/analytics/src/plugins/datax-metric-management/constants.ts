@@ -8,6 +8,22 @@ export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 export const DATA_X_METRIC_MANAGEMENT_FEATURE = 'datax_metric_management'
 export const XPERT_VISUALIZATION_META_KEY = 'xpertai/visualization'
 export const INDICATOR_MANAGEMENT_OPEN_TOOL_NAME = 'indicator_management_open'
+export const MEMORY_BI_PROJECT_ID_KEY = 'bi_project_id'
+
+export enum DataXMetricManagementToolName {
+	SWITCH_PROJECT = 'switch_project',
+	LIST_INDICATORS = 'list_indicators',
+	LIST_CUBES = 'indicator_list_cubes',
+	CREATE_DERIVE_INDICATOR = 'create_derive_indicator',
+	CREATE_BASIC_INDICATOR = 'create_basic_indicator',
+	EDIT_INDICATOR = 'edit_indicator',
+	DELETE_INDICATOR = 'delete_indicator',
+	INDICATOR_RETRIEVER = 'indicator_retriever',
+	SHOW_INDICATORS = 'show_indicators',
+	GET_CUBE_CONTEXT = 'get_indicator_cube_context',
+	DIMENSION_MEMBER_RETRIEVER = 'dimension_member_retriever'
+}
+
 export const DATA_X_METRIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
   <rect x="28" y="28" width="200" height="200" rx="36" fill="#EFF6FF"/>
   <path d="M72 174V92" stroke="#2563EB" stroke-width="16" stroke-linecap="round"/>
@@ -18,15 +34,15 @@ export const DATA_X_METRIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width
 </svg>`
 export const DATA_X_METRIC_MANAGEMENT_TOOL_NAMES = [
 	INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
-	'switch_project',
-	'indicator_list_cubes',
-	'list_indicators',
-	'create_derive_indicator',
-	'create_basic_indicator',
-	'edit_indicator',
-	'delete_indicator',
-	'indicator_retriever',
-	'show_indicators',
-	'dimension_member_retriever',
-	'get_indicator_cube_context'
+	DataXMetricManagementToolName.SWITCH_PROJECT,
+	DataXMetricManagementToolName.LIST_CUBES,
+	DataXMetricManagementToolName.LIST_INDICATORS,
+	DataXMetricManagementToolName.CREATE_DERIVE_INDICATOR,
+	DataXMetricManagementToolName.CREATE_BASIC_INDICATOR,
+	DataXMetricManagementToolName.EDIT_INDICATOR,
+	DataXMetricManagementToolName.DELETE_INDICATOR,
+	DataXMetricManagementToolName.INDICATOR_RETRIEVER,
+	DataXMetricManagementToolName.SHOW_INDICATORS,
+	DataXMetricManagementToolName.DIMENSION_MEMBER_RETRIEVER,
+	DataXMetricManagementToolName.GET_CUBE_CONTEXT
 ] as const

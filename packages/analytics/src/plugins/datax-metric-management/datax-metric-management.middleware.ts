@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import {
 	AgentMiddleware,
@@ -8,6 +7,7 @@ import {
 	IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
 import { DATA_X_METRIC_ICON, DATA_X_METRIC_MANAGEMENT_FEATURE, DATA_X_METRIC_PROVIDER_KEY } from './constants'
+import { DataXMetricManagementService } from './datax-metric-management.service'
 import { DataXMetricManagementRuntime } from './runtime'
 
 export const DataXMetricManagementMiddlewareName = DATA_X_METRIC_PROVIDER_KEY
@@ -17,16 +17,13 @@ export const DataXMetricManagementMiddlewareName = DATA_X_METRIC_PROVIDER_KEY
 export class DataXMetricManagementMiddleware implements IAgentMiddlewareStrategy<Record<string, never>> {
 	readonly meta = createDataXMetricManagementMeta(DataXMetricManagementMiddlewareName)
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+	constructor(private readonly metricManagementService: DataXMetricManagementService) {}
 
 	async createMiddleware(
 		_options: Record<string, never>,
 		context: IAgentMiddlewareContext
 	): Promise<AgentMiddleware> {
-		const runtime = new DataXMetricManagementRuntime(this.commandBus, this.queryBus, context)
+		const runtime = new DataXMetricManagementRuntime(this.metricManagementService.createSession(context))
 		await runtime.init()
 
 		return {

@@ -1,79 +1,55 @@
-import { tool } from '@langchain/core/tools'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
-import { z } from 'zod'
-
-type MockIndicatorToolsetInstance = {
-	toolset: unknown
-	params: unknown
-}
-
-const mockIndicatorTools = [
-	'switch_project',
-	'create_derive_indicator',
-	'create_basic_indicator',
-	'list_indicators',
-	'indicator_list_cubes',
-	'edit_indicator',
-	'delete_indicator',
-	'indicator_retriever',
-	'get_indicator_cube_context',
-	'dimension_member_retriever',
-	'show_indicators'
-].map((name) =>
-	tool(async () => name, {
-		name,
-		description: name,
-		schema: z.object({})
-	})
-)
-const mockIndicatorToolsetInstances: MockIndicatorToolsetInstance[] = []
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	__esModule: true,
 	AgentMiddlewareStrategy: () => () => undefined
 }))
-
+jest.mock('@xpert-ai/server-config', () => ({
+	environment: {
+		clientBaseUrl: 'http://localhost'
+	}
+}))
+jest.mock('../../ai/queries', () => ({
+	GetBIContextQuery: class GetBIContextQuery {
+		constructor(
+			public readonly models?: string[],
+			public readonly params?: unknown
+		) {}
+	}
+}))
 jest.mock('../../ai/toolset/builtin/bi-toolset', () => ({
 	BIToolsEnum: {
 		SHOW_INDICATORS: 'show_indicators'
-	}
+	},
+	updateOcapIndicators: jest.fn()
 }))
-
-jest.mock('../../ai/toolset/builtin/indicators/indicators', () => ({
-	IndicatorsToolset: class IndicatorsToolset {
-		static provider = 'indicators'
-		tools = mockIndicatorTools
-		models = []
-
+jest.mock('../../indicator', () => ({
+	IndicatorService: class IndicatorService {},
+	applyIndicatorDraft: (indicator: unknown) => indicator,
+	createIndicatorNamespace: (projectId: string) => ['project', projectId, 'indicators']
+}))
+jest.mock('../../indicator/indicator.entity', () => ({
+	Indicator: class Indicator {}
+}))
+jest.mock('../../model-member', () => ({
+	RetrieveMembersCommand: class RetrieveMembersCommand {
 		constructor(
-			public readonly toolset: unknown,
-			public readonly params: unknown
-		) {
-			mockIndicatorToolsetInstances.push({ toolset, params })
-		}
-
-		async initTools() {
-			return this.tools
-		}
+			public readonly query: string,
+			public readonly options: unknown
+		) {}
 	}
 }))
-
-jest.mock('../../ai/toolset/schema', () => {
-	const zod = jest.requireActual<typeof import('zod')>('zod')
-	return {
-		BasicIndicatorSchema: zod.z.object({
-			code: zod.z.string()
-		}),
-		IndicatorSchema: zod.z.object({
-			code: zod.z.string()
-		})
+jest.mock('../../project', () => ({
+	CreateProjectStoreCommand: class CreateProjectStoreCommand {
+		constructor(public readonly input: unknown) {}
+	},
+	ProjectGetQuery: class ProjectGetQuery {
+		constructor(public readonly input: unknown) {}
+	},
+	ProjectMyQuery: class ProjectMyQuery {
+		constructor(public readonly input: unknown) {}
 	}
-})
-
-jest.mock('../../ai/toolset/types', () => ({
-	markdownModelCubes: () => 'model cubes'
 }))
 
 import {
@@ -82,26 +58,37 @@ import {
 	INDICATOR_MANAGEMENT_OPEN_TOOL_NAME
 } from './constants'
 import { DataXMetricManagementMiddleware } from './datax-metric-management.middleware'
+import { DataXMetricManagementService } from './datax-metric-management.service'
 
 describe('DataXMetricManagementMiddleware', () => {
-	beforeEach(() => {
-		mockIndicatorToolsetInstances.length = 0
-	})
-
 	it('exposes the metric management middleware feature', () => {
-		const middleware = new DataXMetricManagementMiddleware(createCommandBus(), createQueryBus())
+		const middleware = new DataXMetricManagementMiddleware(createMetricService())
 
 		expect(middleware.meta.name).toBe(DATA_X_METRIC_PROVIDER_KEY)
 		expect(middleware.meta.features).toContain(DATA_X_METRIC_MANAGEMENT_FEATURE)
 		expect(middleware.meta.deprecated).toBeUndefined()
 	})
 
-	it('creates the metric management middleware with the indicator tool surface', async () => {
-		const middleware = await new DataXMetricManagementMiddleware(
-			createCommandBus(),
-			createQueryBus()
-		).createMiddleware({}, createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY))
+	it('creates the metric management middleware with native plugin tools', async () => {
+		const service = createMetricService()
+		const middleware = await new DataXMetricManagementMiddleware(service).createMiddleware(
+			{},
+			createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY)
+		)
 
+		expect(service.createSession).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				userId: 'user-1',
+				workspaceId: 'workspace-1',
+				projectId: 'project-1',
+				conversationId: 'conversation-1',
+				xpertId: 'xpert-1',
+				agentKey: 'agent-1'
+			})
+		)
+		expect(service.session.init).toHaveBeenCalled()
 		expect(middleware.name).toBe(DATA_X_METRIC_PROVIDER_KEY)
 		expect(middleware.tools?.map((item) => item.name)).toEqual([
 			INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
@@ -120,10 +107,10 @@ describe('DataXMetricManagementMiddleware', () => {
 	})
 
 	it('preserves the indicator middleware state variables', async () => {
-		const middleware = await new DataXMetricManagementMiddleware(
-			createCommandBus(),
-			createQueryBus()
-		).createMiddleware({}, createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY))
+		const middleware = await new DataXMetricManagementMiddleware(createMetricService()).createMiddleware(
+			{},
+			createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY)
+		)
 
 		const parsed = middleware.stateSchema?.parse({})
 
@@ -132,47 +119,69 @@ describe('DataXMetricManagementMiddleware', () => {
 			'tool_indicators_cubes',
 			'tool_indicators'
 		])
-		expect(parsed?.tool_indicators_cubes).toBe('model cubes')
+		expect(parsed?.tool_indicators_prompts_default).toContain('switch_project')
+		expect(parsed?.tool_indicators_cubes).toContain('model-1')
 	})
 
-	it('passes middleware runtime context to the existing indicators toolset', async () => {
-		const commandBus = createCommandBus()
-		const queryBus = createQueryBus()
-		await new DataXMetricManagementMiddleware(commandBus, queryBus).createMiddleware(
+	it('delegates initial state creation to the native metric session', async () => {
+		const service = createMetricService()
+		const middleware = await new DataXMetricManagementMiddleware(service).createMiddleware(
 			{},
 			createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY)
 		)
 
-		expect(mockIndicatorToolsetInstances).toHaveLength(1)
-		expect(mockIndicatorToolsetInstances[0]?.toolset).toMatchObject({
-			name: 'Data X Metric Management',
-			type: 'indicators',
-			tools: []
+		const initial = (middleware.beforeAgent as (state: Record<string, unknown>) => unknown)?.({
+			tool_indicators_prompts_default: 'custom prompt',
+			tool_indicators_cubes: 'custom cubes',
+			tool_indicators: { indicators: [{ code: 'A' }] }
 		})
-		expect(mockIndicatorToolsetInstances[0]?.params).toMatchObject({
-			tenantId: 'tenant-1',
-			organizationId: 'org-1',
-			userId: 'user-1',
-			projectId: 'project-1',
-			conversationId: 'conversation-1',
-			xpertId: 'xpert-1',
-			agentKey: 'agent-1',
-			commandBus,
-			queryBus
+
+		expect(service.session.createInitialState).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tool_indicators_prompts_default: 'custom prompt'
+			}),
+			expect.stringContaining('switch_project')
+		)
+		expect(initial).toEqual({
+			tool_indicators_prompts_default: 'custom prompt',
+			tool_indicators_cubes: 'custom cubes',
+			tool_indicators: { indicators: [{ code: 'A' }] }
 		})
 	})
 })
 
-function createCommandBus() {
-	return Object.assign(Object.create(CommandBus.prototype), {
-		execute: jest.fn()
-	}) as CommandBus
-}
-
-function createQueryBus() {
-	return Object.assign(Object.create(QueryBus.prototype), {
-		execute: jest.fn()
-	}) as QueryBus
+function createMetricService() {
+	const session = {
+		models: [
+			{
+				id: 'model-1',
+				name: 'Model 1',
+				options: {
+					schema: {
+						cubes: [{ name: 'Sales' }]
+					}
+				}
+			}
+		],
+		init: jest.fn(async () => undefined),
+		createInitialState: jest.fn((state) => state),
+		switchProjectTool: jest.fn(),
+		createDeriveIndicatorTool: jest.fn(),
+		createBasicIndicatorTool: jest.fn(),
+		listIndicatorsTool: jest.fn(),
+		listCubesTool: jest.fn(),
+		editIndicatorTool: jest.fn(),
+		deleteIndicatorTool: jest.fn(),
+		indicatorRetrieverTool: jest.fn(),
+		getCubeContextTool: jest.fn(),
+		dimensionMemberRetrieverTool: jest.fn(),
+		showIndicatorsTool: jest.fn()
+	}
+	const service = {
+		session,
+		createSession: jest.fn(() => session)
+	}
+	return service as unknown as DataXMetricManagementService & { session: typeof session; createSession: jest.Mock }
 }
 
 function createMiddlewareContext(provider: string): IAgentMiddlewareContext {

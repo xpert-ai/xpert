@@ -43,7 +43,18 @@
 			refresh: '刷新',
 			close: '关闭',
 			noModel: '不指定模型',
+			cube: '立方体',
 			entity: '实体',
+			description: '描述',
+			calendar: '日历',
+			measure: '度量',
+			formula: '公式',
+			filters: '过滤条件',
+			addFilter: '添加过滤',
+			remove: '移除',
+			dimension: '维度',
+			hierarchy: '层级',
+			member: '成员',
 			unit: '单位',
 			business: '业务口径',
 			visible: '可见',
@@ -89,7 +100,18 @@
 			refresh: 'Refresh',
 			close: 'Close',
 			noModel: 'No model',
+			cube: 'Cube',
 			entity: 'Entity',
+			description: 'Description',
+			calendar: 'Calendar',
+			measure: 'Measure',
+			formula: 'Formula',
+			filters: 'Filters',
+			addFilter: 'Add filter',
+			remove: 'Remove',
+			dimension: 'Dimension',
+			hierarchy: 'Hierarchy',
+			member: 'Member',
 			unit: 'Unit',
 			business: 'Business definition',
 			visible: 'Visible',
@@ -228,13 +250,20 @@
 
 	function buildFormState(row, query) {
 		const draft = isObject(row && row.draft) ? row.draft : {}
+		const options = isObject(draft.options) ? draft.options : isObject(row && row.options) ? row.options : {}
 		return {
 			code: draft.code || (row && row.code) || '',
 			name: draft.name || (row && row.name) || '',
 			type: draft.type || (row && row.type) || 'BASIC',
 			modelId: draft.modelId || (row && row.modelId) || query.parameters.modelId || '',
+			cube: draft.cube || draft.entity || (row && (row.cube || row.entity)) || '',
 			entity: draft.entity || (row && row.entity) || '',
+			description: draft.description || draft.business || (row && (row.description || row.business)) || '',
 			business: draft.business || (row && row.business) || '',
+			calendar: draft.calendar || options.calendar || '',
+			measure: draft.measure || options.measure || '',
+			formula: draft.formula || options.formula || '',
+			filters: normalizeFilters(draft.filters || options.filters),
 			unit: draft.unit || (row && row.unit) || '',
 			visible:
 				typeof draft.visible === 'boolean'
@@ -243,6 +272,23 @@
 						? row.visible
 						: true
 		}
+	}
+
+	function normalizeFilters(filters) {
+		if (!Array.isArray(filters)) return []
+		return filters
+			.map((filter) => {
+				if (!isObject(filter)) return null
+				const dimension = isObject(filter.dimension) ? filter.dimension : {}
+				const members = Array.isArray(filter.members) ? filter.members : []
+				return {
+					dimension:
+						filter.dimension && !isObject(filter.dimension) ? filter.dimension : dimension.dimension || '',
+					hierarchy: filter.hierarchy || dimension.hierarchy || '',
+					member: filter.member || (members[0] && members[0].key) || ''
+				}
+			})
+			.filter(Boolean)
 	}
 
 	function MetricApp() {
@@ -387,8 +433,23 @@
 				name: form.name.trim(),
 				type: form.type,
 				modelId: form.modelId || undefined,
-				entity: form.entity.trim() || undefined,
-				business: form.business.trim() || undefined,
+				cube: form.cube.trim() || form.entity.trim() || undefined,
+				entity: form.cube.trim() || form.entity.trim() || undefined,
+				description: form.description.trim() || form.business.trim() || undefined,
+				business: form.description.trim() || form.business.trim() || undefined,
+				calendar: form.calendar.trim() || undefined,
+				measure: form.type === 'BASIC' ? form.measure.trim() || undefined : undefined,
+				formula: form.type === 'DERIVE' ? form.formula.trim() || undefined : undefined,
+				filters:
+					form.type === 'BASIC'
+						? form.filters
+								.map((filter) => ({
+									dimension: filter.dimension.trim(),
+									hierarchy: filter.hierarchy.trim() || undefined,
+									member: filter.member.trim()
+								}))
+								.filter((filter) => filter.dimension && filter.member)
+						: undefined,
 				unit: form.unit.trim() || undefined,
 				visible: form.visible
 			}
@@ -512,6 +573,9 @@
 								['type', t('type')],
 								['status', t('status')],
 								['model', t('model')],
+								['entity', t('entity')],
+								['business', t('business')],
+								['unit', t('unit')],
 								['embeddingStatus', t('embeddingStatus')],
 								['updatedAt', t('updatedAt')],
 								['actions', t('actions')]
@@ -530,6 +594,9 @@
 								h('td', null, h('span', { className: 'xui-pill' }, row.type || '-')),
 								h('td', null, h('span', { className: 'xui-pill' }, row.status || '-')),
 								h('td', null, row.modelName || optionLabel(models, row.modelId) || '-'),
+								h('td', null, row.entity || '-'),
+								h('td', null, row.business || '-'),
+								h('td', null, row.unit || '-'),
 								h('td', null, h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')),
 								h('td', null, formatDate(row.updatedAt)),
 								h(
@@ -698,7 +765,23 @@
 								)
 							)
 						),
-						field(t('entity'), 'entity'),
+						field(t('cube'), 'cube'),
+						field(t('calendar'), 'calendar'),
+						form.type === 'BASIC' ? field(t('measure'), 'measure') : null,
+						form.type === 'DERIVE'
+							? h(
+									'div',
+									{ className: 'xui-field xui-field-full' },
+									h('label', null, t('formula')),
+									h('textarea', {
+										className: 'xui-textarea',
+										value: form.formula,
+										onChange: (event) =>
+											setForm(Object.assign({}, form, { formula: event.target.value }))
+									})
+								)
+							: null,
+						form.type === 'BASIC' ? renderFilters() : null,
 						field(t('unit'), 'unit'),
 						h(
 							'div',
@@ -706,8 +789,14 @@
 							h('label', null, t('business')),
 							h('textarea', {
 								className: 'xui-textarea',
-								value: form.business,
-								onChange: (event) => setForm(Object.assign({}, form, { business: event.target.value }))
+								value: form.description,
+								onChange: (event) =>
+									setForm(
+										Object.assign({}, form, {
+											description: event.target.value,
+											business: event.target.value
+										})
+									)
 							})
 						),
 						h(
@@ -756,6 +845,76 @@
 					)
 				)
 			)
+		}
+
+		function renderFilters() {
+			const filters = Array.isArray(form.filters) ? form.filters : []
+			return h(
+				'div',
+				{ className: 'xui-field xui-field-full' },
+				h('label', null, t('filters')),
+				filters.map((filter, index) =>
+					h(
+						'div',
+						{ className: 'xui-actions', key: index },
+						h('input', {
+							className: 'xui-input',
+							value: filter.dimension,
+							placeholder: t('dimension'),
+							onChange: (event) => updateFilter(index, { dimension: event.target.value })
+						}),
+						h('input', {
+							className: 'xui-input',
+							value: filter.hierarchy,
+							placeholder: t('hierarchy'),
+							onChange: (event) => updateFilter(index, { hierarchy: event.target.value })
+						}),
+						h('input', {
+							className: 'xui-input',
+							value: filter.member,
+							placeholder: t('member'),
+							onChange: (event) => updateFilter(index, { member: event.target.value })
+						}),
+						h(
+							'button',
+							{
+								className: 'xui-button xui-button-sm',
+								type: 'button',
+								onClick: () => removeFilter(index)
+							},
+							t('remove')
+						)
+					)
+				),
+				h(
+					'button',
+					{
+						className: 'xui-button xui-button-sm',
+						type: 'button',
+						onClick: () =>
+							setForm(
+								Object.assign({}, form, {
+									filters: filters.concat([{ dimension: '', hierarchy: '', member: '' }])
+								})
+							)
+					},
+					t('addFilter')
+				)
+			)
+		}
+
+		function updateFilter(index, patch) {
+			const filters = (Array.isArray(form.filters) ? form.filters : []).map((filter, itemIndex) =>
+				itemIndex === index ? Object.assign({}, filter, patch) : filter
+			)
+			setForm(Object.assign({}, form, { filters }))
+		}
+
+		function removeFilter(index) {
+			const filters = (Array.isArray(form.filters) ? form.filters : []).filter(
+				(_, itemIndex) => itemIndex !== index
+			)
+			setForm(Object.assign({}, form, { filters }))
 		}
 
 		function field(label, key) {
