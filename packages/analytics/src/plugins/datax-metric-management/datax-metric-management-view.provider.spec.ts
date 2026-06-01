@@ -21,6 +21,7 @@ import {
 	AGENT_WORKBENCH_FIXED_SLOT,
 	AGENT_WORKBENCH_MAIN_SLOT,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
+	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
 	DATA_X_METRIC_VIEW_KEY
 } from './constants'
@@ -52,6 +53,7 @@ describe('DataXMetricManagementViewProvider', () => {
 				}
 			})
 		)
+		expect(manifest.activation?.requiredFeatures).toEqual([DATA_X_METRIC_MANAGEMENT_FEATURE])
 	})
 
 	it('declares fixed workbench metadata behind the metric management feature', () => {
@@ -66,6 +68,26 @@ describe('DataXMetricManagementViewProvider', () => {
 				menu: expect.objectContaining({
 					enabled: true
 				})
+			})
+		)
+	})
+
+	it('subscribes the remote component to metric tool completion events', () => {
+		const provider = new DataXMetricManagementViewProvider({} as never, {} as never)
+		const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_MAIN_SLOT)
+
+		expect(manifest.hostEvents?.subscriptions?.[0]).toEqual(
+			expect.objectContaining({
+				key: 'datax-metric-management-tool-completed',
+				event: 'assistant.tool.completed',
+				filter: {
+					sources: ['chatkit'],
+					toolNames: [...DATA_X_METRIC_MANAGEMENT_TOOL_NAMES]
+				},
+				action: {
+					type: 'forward',
+					debounceMs: 1000
+				}
 			})
 		)
 	})

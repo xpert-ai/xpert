@@ -742,6 +742,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             xpertFeatures: resolveRuntimeXpert(xpert as IXpert, Boolean(options?.isDraft)).features ?? null,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,
+            store: options.store,
             tools: toolMap,
             runtime: this.agentMiddlewareRuntimeService.api
         }

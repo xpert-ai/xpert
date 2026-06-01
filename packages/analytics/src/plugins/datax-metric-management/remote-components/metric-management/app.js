@@ -187,6 +187,13 @@
 
 		if (message.instanceId !== instanceId) return
 
+		if (message.type === 'hostEvent') {
+			if (window.__metricAppHandleHostEvent) {
+				window.__metricAppHandleHostEvent(message.event)
+			}
+			return
+		}
+
 		if (message.requestId && pending.has(message.requestId)) {
 			const item = pending.get(message.requestId)
 			pending.delete(message.requestId)
@@ -207,6 +214,11 @@
 				initialQuery.parameters || {}
 			)
 		})
+	}
+
+	function getEventOutput(event) {
+		const data = (event && event.data) || {}
+		return isObject(data.output) ? data.output : data
 	}
 
 	function optionLabel(options, value) {
@@ -249,6 +261,7 @@
 		const t = React.useMemo(() => createTranslator(locale), [locale])
 
 		window.__metricAppSetContext = setContext
+		window.__metricAppHandleHostEvent = handleHostEvent
 
 		React.useEffect(() => {
 			if (!context) return
@@ -386,6 +399,26 @@
 			if (result.success) {
 				setModal(null)
 			}
+		}
+
+		async function handleHostEvent(event) {
+			if (!context || !event || event.type !== 'assistant.tool.completed') {
+				return
+			}
+			const output = getEventOutput(event)
+			const nextParameters = Object.assign({}, query.parameters)
+			if (output && output.projectId) {
+				nextParameters.projectId = output.projectId
+			}
+			if (output && output.modelId) {
+				nextParameters.modelId = output.modelId
+			}
+			const nextQuery = Object.assign({}, query, {
+				page: 1,
+				parameters: nextParameters
+			})
+			setQuery(nextQuery)
+			await loadData(nextQuery)
 		}
 
 		function renderToolbar() {

@@ -1,6 +1,7 @@
 import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures } from '@xpert-ai/contracts'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { RunnableToolLike } from '@langchain/core/runnables'
+import { BaseStore } from '@langchain/langgraph'
 import { AgentMiddleware } from './types'
 import { PromiseOrValue } from '../../types'
 import { AgentMiddlewareRuntimeApi } from './runtime'
@@ -16,6 +17,7 @@ export interface IAgentMiddlewareContext {
   xpertFeatures?: TXpertFeatures | null
   agentKey?: string
   knowledgebaseIds?: string[]
+  store?: BaseStore
   node: IWFNMiddleware
   tools: Map<string, StructuredToolInterface | RunnableToolLike>
   runtime: AgentMiddlewareRuntimeApi

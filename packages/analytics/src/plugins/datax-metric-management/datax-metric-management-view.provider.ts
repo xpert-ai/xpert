@@ -5,6 +5,7 @@ import { createRequire } from 'module'
 import { dirname, join } from 'path'
 import {
 	I18nObject,
+	IconDefinition,
 	IIndicator,
 	IProject,
 	IndicatorType,
@@ -31,6 +32,7 @@ import {
 	AGENT_WORKBENCH_MAIN_SLOT,
 	AGENT_WORKBENCH_FIXED_SLOT,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
+	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_PLUGIN_NAME,
 	DATA_X_METRIC_PROVIDER_KEY,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
@@ -40,6 +42,11 @@ import {
 const requireFromHere = createRequire(__filename)
 
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
+const DATA_X_METRIC_VIEW_ICON = {
+	type: 'svg',
+	value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-4 3 3 5-7"/></svg>',
+	alt: 'Metric Management'
+} satisfies IconDefinition
 
 type ProjectListResult = {
 	items: IProject[]
@@ -126,18 +133,18 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				slot,
 				order: 10,
 				refreshable: true,
+				activation: {
+					requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
+				},
 				...(isFixedWorkbenchView
 					? {
-							activation: {
-								requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
-							},
 							workbench: {
 								fixed: true,
 								menu: {
 									enabled: true,
 									label: text('Metric Management', '指标管理'),
 									order: 10,
-									icon: 'ri-line-chart-line'
+									icon: DATA_X_METRIC_VIEW_ICON
 								}
 							}
 						}
@@ -195,6 +202,22 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 					cache: {
 						enabled: false
 					}
+				},
+				hostEvents: {
+					subscriptions: [
+						{
+							key: 'datax-metric-management-tool-completed',
+							event: 'assistant.tool.completed',
+							filter: {
+								sources: ['chatkit'],
+								toolNames: [...DATA_X_METRIC_MANAGEMENT_TOOL_NAMES]
+							},
+							action: {
+								type: 'forward',
+								debounceMs: 1000
+							}
+						}
+					]
 				},
 				actions: [
 					{

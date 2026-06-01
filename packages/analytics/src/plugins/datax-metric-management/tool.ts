@@ -1,6 +1,10 @@
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
-import { DATA_X_METRIC_PUBLIC_VIEW_KEY, XPERT_VISUALIZATION_META_KEY } from './constants'
+import {
+	DATA_X_METRIC_PUBLIC_VIEW_KEY,
+	INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
+	XPERT_VISUALIZATION_META_KEY
+} from './constants'
 
 const OpenMetricManagementSchema = z.object({
 	projectId: z.string().optional().describe('Optional BI project id to preselect in the metric management view.'),
@@ -43,7 +47,7 @@ export function buildOpenMetricManagementTool() {
 			})
 		},
 		{
-			name: 'indicator_management_open',
+			name: INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
 			description:
 				'Open the Data X metric management plugin view in the assistant workbench. Use it when users want to manage, list, create, edit, publish, delete, embed, or refresh indicators.',
 			schema: OpenMetricManagementSchema

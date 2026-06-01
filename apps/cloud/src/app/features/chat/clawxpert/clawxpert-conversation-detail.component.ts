@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
   ChatKitQuoteReference,
+  IconDefinition,
   I18nObject,
   TChatElementReference,
   TChatFileElementReference,
@@ -12,6 +13,7 @@ import type {
 import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
+import { IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
@@ -45,7 +47,11 @@ const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
-const DEFAULT_FIXED_VIEW_ICON = 'ri-layout-grid-line'
+const DEFAULT_FIXED_VIEW_ICON = {
+  type: 'font',
+  value: 'ri-layout-grid-line',
+  alt: 'Fixed view'
+} satisfies IconDefinition
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -79,7 +85,7 @@ type ClawXpertFixedViewTab = {
   kind: 'fixed-view'
   viewKey: string
   title: string
-  icon: string | null
+  icon: IconDefinition | null
 }
 type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
 
@@ -89,7 +95,7 @@ type ClawXpertFixedViewMenuItem = {
   viewKey: string
   title: string
   description: string | null
-  icon: string | null
+  icon: IconDefinition | null
   order: number
 }
 const DEFAULT_BROWSER_ZOOM = 100
@@ -124,6 +130,7 @@ type ChatKitReferenceComposerControl = {
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
     ChatSharedTerminalComponent,
+    IconComponent,
     ExtensionHostOutletComponent
   ],
   template: `
@@ -131,10 +138,7 @@ type ChatKitReferenceComposerControl = {
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         @if (showDetailPanel()) {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
-            <div
-              data-workspace-tab-header
-              class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5"
-            >
+            <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
               <nav
                 z-tab-nav-bar
                 [tabPanel]="tabPanel"
@@ -170,7 +174,11 @@ type ChatKitReferenceComposerControl = {
                             <i class="ri-global-line shrink-0 text-lg"></i>
                           }
                           @case ('fixed-view') {
-                            <i [class]="fixedViewIconClass(tab.icon)"></i>
+                            <xp-icon
+                              [icon]="tab.icon ?? defaultFixedViewIcon"
+                              [size]="18"
+                              class="shrink-0 text-text-primary"
+                            />
                           }
                         }
                       </span>
@@ -282,7 +290,11 @@ type ChatKitReferenceComposerControl = {
                           (click)="openFixedViewTab(fixedView)"
                         >
                           <span class="flex min-w-0 items-center gap-2">
-                            <i [class]="fixedViewIconClass(fixedView.icon)"></i>
+                            <xp-icon
+                              [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                              [size]="16"
+                              class="shrink-0 text-text-primary"
+                            />
                             <span class="min-w-0 truncate">{{ fixedView.title }}</span>
                           </span>
                         </button>
@@ -340,7 +352,11 @@ type ChatKitReferenceComposerControl = {
                           class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
                           (click)="openFixedViewTab(fixedView)"
                         >
-                          <i [class]="fixedViewLauncherIconClass(fixedView.icon)"></i>
+                          <xp-icon
+                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                            [size]="32"
+                            class="text-text-tertiary"
+                          />
                           <div class="mt-4 text-xl font-semibold text-text-primary">
                             {{ fixedView.title }}
                           </div>
@@ -580,6 +596,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   readonly facade = inject(ClawXpertFacade)
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
+  readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
     assistantId: computed(() => this.facade.resolvedPreference()?.assistantId ?? null),
@@ -1015,14 +1032,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     )
   }
 
-  fixedViewIconClass(icon: string | null | undefined) {
-    return `${normalizeFixedViewIcon(icon)} shrink-0 text-base`
-  }
-
-  fixedViewLauncherIconClass(icon: string | null | undefined) {
-    return `${normalizeFixedViewIcon(icon)} text-3xl text-text-tertiary`
-  }
-
   private createWorkspaceTabId(kind: ClawXpertWorkspaceTabKind) {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
@@ -1145,7 +1154,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       viewKey: manifest.key,
       title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
       description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
-      icon: normalizeOptionalString(menu?.icon ?? manifest.icon),
+      icon: menu?.icon ?? manifest.icon ?? null,
       order: menu?.order ?? manifest.order ?? Number.MAX_SAFE_INTEGER
     }
   }
@@ -1323,14 +1332,6 @@ function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
 
 function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
   return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
-}
-
-function normalizeFixedViewIcon(icon: string | null | undefined) {
-  return normalizeOptionalString(icon) ?? DEFAULT_FIXED_VIEW_ICON
-}
-
-function normalizeOptionalString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
