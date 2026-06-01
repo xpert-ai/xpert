@@ -100,6 +100,8 @@ const COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE =
     'No unprotected history available to compress. Recent user turns were preserved.'
 const COMPRESSION_NO_TOKEN_GAIN_MESSAGE =
     'Context compression was skipped because the generated summary would not reduce the context.'
+const COMPRESSION_SOFT_PROTECTION_MESSAGE =
+    'Protected user turns exceeded the compression budget. Older protected turns were summarized; the latest user turn was preserved.'
 
 type CompressionDisplayText = I18nText
 
@@ -251,7 +253,7 @@ function findCompressSplitPoint(
     messages: BaseMessage[],
     fraction: number,
     protectedTurns: number = PROTECTED_USER_TURNS
-): number {
+): { splitPoint: number; softenedProtection: boolean } {
     if (fraction <= 0 || fraction >= 1) {
         throw new Error('Fraction must be between 0 and 1')
     }
@@ -265,6 +267,7 @@ function findCompressSplitPoint(
 
     // Calculate minimum protected index (protect the last N user turns)
     let minProtectedIndex = 0
+    const latestUserTurnIndex = userTurnIndices[0] ?? 0
     if (userTurnIndices.length > protectedTurns && protectedTurns > 0) {
         // Index of the Nth user turn (counting from the end)
         minProtectedIndex = userTurnIndices[protectedTurns - 1]
@@ -283,12 +286,18 @@ function findCompressSplitPoint(
         if (isHumanMessage(message)) {
             // Ensure we don't split into the protected region
             if (i >= minProtectedIndex) {
-                // Already reached protected region, return current split point
-                return Math.max(lastSplitPoint, i)
+                if (cumulativeCharCount >= targetCharCount || latestUserTurnIndex <= i) {
+                    // Old context reached the compression target, so keep the configured protected turns.
+                    return { splitPoint: Math.max(lastSplitPoint, i), softenedProtection: false }
+                }
+
+                // The protected region itself exceeds the compression target. Soften protection by
+                // summarizing older protected turns while still keeping the latest user turn intact.
+                return { splitPoint: latestUserTurnIndex, softenedProtection: true }
             }
 
             if (cumulativeCharCount >= targetCharCount) {
-                return i
+                return { splitPoint: i, softenedProtection: false }
             }
             lastSplitPoint = i
         }
@@ -299,10 +308,13 @@ function findCompressSplitPoint(
     // Check if all content can be compressed
     const lastMessage = messages[messages.length - 1]
     if (isAIMessage(lastMessage) && !hasToolCalls(lastMessage)) {
-        return Math.min(messages.length, minProtectedIndex > 0 ? minProtectedIndex : messages.length)
+        return {
+            splitPoint: Math.min(messages.length, minProtectedIndex > 0 ? minProtectedIndex : messages.length),
+            softenedProtection: false
+        }
     }
 
-    return lastSplitPoint
+    return { splitPoint: lastSplitPoint, softenedProtection: false }
 }
 
 /**
@@ -930,6 +942,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
         const responseMetadata = message.response_metadata as Record<string, unknown> | undefined
         const responseUsage = responseMetadata?.['usage'] as Record<string, unknown> | undefined
+        const usageTotalTokens = this.toPositiveTokenCount(responseUsage?.['total_tokens'])
+        if (usageTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: usageTotalTokens,
+                source: 'response_metadata.usage.total_tokens'
+            }
+        }
+
         const usagePromptTokens = this.toPositiveTokenCount(responseUsage?.['prompt_tokens'])
         if (usagePromptTokens !== null) {
             return {
@@ -940,6 +961,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const tokenUsage = responseMetadata?.['tokenUsage'] as Record<string, unknown> | undefined
+        const tokenUsageTotalTokens = this.toPositiveTokenCount(tokenUsage?.['totalTokens'])
+        if (tokenUsageTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: tokenUsageTotalTokens,
+                source: 'response_metadata.tokenUsage.totalTokens'
+            }
+        }
+
         const tokenUsagePromptTokens = this.toPositiveTokenCount(tokenUsage?.['promptTokens'])
         if (tokenUsagePromptTokens !== null) {
             return {
@@ -950,6 +980,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const usageMetadata = message.usage_metadata as Record<string, unknown> | undefined
+        const totalTokens = this.toPositiveTokenCount(usageMetadata?.['total_tokens'])
+        if (totalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: totalTokens,
+                source: 'usage_metadata.total_tokens'
+            }
+        }
+
         const inputTokens = this.toPositiveTokenCount(usageMetadata?.['input_tokens'])
         if (inputTokens !== null) {
             return {
@@ -960,6 +999,15 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         }
 
         const rawResponse = (message.additional_kwargs as Record<string, any> | undefined)?.['__raw_response']
+        const rawTotalTokens = this.toPositiveTokenCount(rawResponse?.usage?.total_tokens)
+        if (rawTotalTokens !== null) {
+            return {
+                index: -1,
+                promptTokens: rawTotalTokens,
+                source: 'additional_kwargs.__raw_response.usage.total_tokens'
+            }
+        }
+
         const rawPromptTokens = this.toPositiveTokenCount(rawResponse?.usage?.prompt_tokens)
         if (rawPromptTokens !== null) {
             return {
@@ -1540,14 +1588,14 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
             const truncatedHistory = await this.truncateHistoryToBudget(currentMessages, options.toolOutputBudget)
 
-            const splitPoint = findCompressSplitPoint(
+            const splitResult = findCompressSplitPoint(
                 truncatedHistory,
                 1 - options.preserveFraction,
                 options.protectedUserTurns
             )
 
-            const historyToCompress = truncatedHistory.slice(0, splitPoint)
-            const historyToKeep = truncatedHistory.slice(splitPoint)
+            const historyToCompress = truncatedHistory.slice(0, splitResult.splitPoint)
+            const historyToKeep = truncatedHistory.slice(splitResult.splitPoint)
 
             if (historyToCompress.length === 0) {
                 this.logger.debug(COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE)
@@ -1632,7 +1680,9 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             this.emitCompressionChunk(runtime, {
                 id: currentCompressionId,
                 message: compressionStats,
-                summary: snapshot,
+                summary: splitResult.softenedProtection
+                    ? `${COMPRESSION_SOFT_PROTECTION_MESSAGE}\n\n${snapshot}`
+                    : snapshot,
                 status: 'success'
             })
 

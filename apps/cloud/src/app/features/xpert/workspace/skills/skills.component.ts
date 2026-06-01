@@ -1,7 +1,17 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef,
+  viewChild
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
@@ -64,7 +74,7 @@ type MobilePane = 'skills' | 'tree' | 'file'
 })
 export class XpertWorkspaceSkillsComponent {
   readonly cx = cx
-  
+
   readonly defaultSkillIcon: IconDefinition = {
     type: 'emoji',
     value: '🧩',
@@ -108,8 +118,11 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly selectedSkillIds = signal<Set<string>>(new Set())
   readonly activeSkillId = signal<string | null>(null)
+  readonly downloadingSkillIds = signal<Set<string>>(new Set())
   readonly #pendingAssistantSkillId = signal<string | null>(null)
-  readonly activeSkill = computed(() => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null)
+  readonly activeSkill = computed(
+    () => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null
+  )
   readonly filteredSkills = computed(() => {
     const term = this.search().trim().toLowerCase()
     if (!term) {
@@ -134,7 +147,9 @@ export class XpertWorkspaceSkillsComponent {
     )
   })
   readonly hasSelection = computed(() => this.selectedSkillIds().size > 0)
-  readonly allSelected = computed(() => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length)
+  readonly allSelected = computed(
+    () => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length
+  )
   readonly partialSelected = computed(() => {
     const total = this.skills().length
     const selected = this.selectedSkillIds().size
@@ -250,7 +265,11 @@ export class XpertWorkspaceSkillsComponent {
 
   readonly #syncSelectionWithData = effect(
     () => {
-      const ids = new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id))
+      const ids = new Set(
+        this.skills()
+          .map((skill) => skill.id)
+          .filter((id): id is string => !!id)
+      )
       this.selectedSkillIds.update((selected) => {
         const next = new Set<string>()
         selected.forEach((id) => {
@@ -309,7 +328,10 @@ export class XpertWorkspaceSkillsComponent {
       return skill.skillIndex.repository.provider
     }
 
-    return readGithubProvenanceText(skill?.metadata, 'sourceProvider') || this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    return (
+      readGithubProvenanceText(skill?.metadata, 'sourceProvider') ||
+      this.translateDefault('PAC.Skill.LocalProvider', 'local')
+    )
   }
 
   publisherLabel(skill: ISkillPackage | null | undefined): string {
@@ -324,6 +346,10 @@ export class XpertWorkspaceSkillsComponent {
 
   formatStat(value?: number | null): string {
     return typeof value === 'number' && Number.isFinite(value) ? this.#compactNumber.format(value) : '--'
+  }
+
+  isDownloadingSkill(skillId: string | null | undefined) {
+    return !!skillId && this.downloadingSkillIds().has(skillId)
   }
 
   async onInstalling(skill: ISkillRepositoryIndex) {
@@ -443,6 +469,25 @@ export class XpertWorkspaceSkillsComponent {
     }
   }
 
+  async downloadSkillPackage(skill: ISkillPackage, event?: MouseEvent) {
+    event?.stopPropagation()
+    const workspaceId = this.workspace()?.id
+    const skillId = skill.id
+    if (!workspaceId || !skillId || this.isDownloadingSkill(skillId)) {
+      return
+    }
+
+    this.markDownloadingSkill(skillId, true)
+    try {
+      const blob = await firstValueFrom(this.skillPackageAPI.downloadPackage(workspaceId, skillId))
+      triggerSkillPackageDownload(blob, `${toDownloadFileName(this.displayName(skill) || skill.name || skillId)}.zip`)
+    } catch (error) {
+      this.#toastr.danger(getErrorMessage(error))
+    } finally {
+      this.markDownloadingSkill(skillId, false)
+    }
+  }
+
   deleteSkill(skill: ISkillPackage) {
     const skillId = skill.id
     const workspaceId = this.workspace()?.id
@@ -487,7 +532,13 @@ export class XpertWorkspaceSkillsComponent {
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked
     this.selectedSkillIds.set(
-      checked ? new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id)) : new Set()
+      checked
+        ? new Set(
+            this.skills()
+              .map((skill) => skill.id)
+              .filter((id): id is string => !!id)
+          )
+        : new Set()
     )
   }
 
@@ -559,9 +610,36 @@ export class XpertWorkspaceSkillsComponent {
     return !result || result === key ? fallback : result
   }
 
+  private markDownloadingSkill(skillId: string, downloading: boolean) {
+    this.downloadingSkillIds.update((ids) => {
+      const next = new Set(ids)
+      if (downloading) {
+        next.add(skillId)
+      } else {
+        next.delete(skillId)
+      }
+      return next
+    })
+  }
+
   setWorkbenchPane(pane: 'tree' | 'file') {
     this.mobilePane.set(pane)
   }
+}
+
+function triggerSkillPackageDownload(blob: Blob, fileName: string) {
+  const anchor = document.createElement('a')
+  const objectUrl = URL.createObjectURL(blob)
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(objectUrl)
+}
+
+function toDownloadFileName(value: string) {
+  return value.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'skill'
 }
 
 function readI18nText(value: unknown) {
