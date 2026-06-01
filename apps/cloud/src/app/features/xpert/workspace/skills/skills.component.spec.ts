@@ -134,6 +134,7 @@ async function setup(
     uninstallPackageInWorkspace: jest.fn(() => of(null)),
     getFiles: jest.fn(),
     getFile: jest.fn(),
+    downloadPackage: jest.fn(() => of(new Blob(['skill package'], { type: 'application/zip' }))),
     saveFile: jest.fn()
   }
   const dialog = {
@@ -193,7 +194,8 @@ async function setup(
   await fixture.whenStable()
   fixture.detectChanges()
 
-  const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as MockFileWorkbenchComponent
+  const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent))
+    .componentInstance as MockFileWorkbenchComponent
 
   return {
     fixture,
@@ -207,7 +209,7 @@ async function setup(
 describe('XpertWorkspaceSkillsComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
-    jest.clearAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('loads installed skills and wires the active skill into the shared workbench', async () => {
@@ -236,6 +238,69 @@ describe('XpertWorkspaceSkillsComponent', () => {
     expect(component.publisherLabel(createLocalSkill())).toBe('Workspace Owner')
     expect(component.repositoryLabel(createLocalSkill())).toBeTruthy()
     expect(fixture.nativeElement.textContent).toContain('Custom Skill')
+  })
+
+  it('downloads a skill package zip from the card action', async () => {
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    const createObjectURL = jest.fn(() => 'blob:skill-package')
+    const revokeObjectURL = jest.fn()
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL
+    })
+    const click = jest.fn()
+    const appendChild = jest.spyOn(document.body, 'appendChild')
+    const removeChild = jest.spyOn(document.body, 'removeChild')
+    const originalCreateElement = document.createElement.bind(document)
+    const createElement = jest.spyOn(document, 'createElement')
+    createElement.mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+      const element = originalCreateElement(tagName, options)
+      if (tagName.toLowerCase() === 'a') {
+        Object.defineProperty(element, 'click', {
+          configurable: true,
+          value: click
+        })
+      }
+      return element
+    })
+
+    try {
+      const { component, skillPackageService } = await setup()
+
+      await component.downloadSkillPackage(createRepositorySkill())
+
+      expect(skillPackageService.downloadPackage).toHaveBeenCalledWith('workspace-1', 'skill-1')
+      expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+      expect(click).toHaveBeenCalled()
+      expect(appendChild).toHaveBeenCalledWith(expect.any(HTMLAnchorElement))
+      expect(removeChild).toHaveBeenCalledWith(expect.any(HTMLAnchorElement))
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:skill-package')
+    } finally {
+      createElement.mockRestore()
+      appendChild.mockRestore()
+      removeChild.mockRestore()
+      if (typeof originalCreateObjectURL === 'function') {
+        Object.defineProperty(URL, 'createObjectURL', {
+          configurable: true,
+          value: originalCreateObjectURL
+        })
+      } else {
+        Reflect.deleteProperty(URL, 'createObjectURL')
+      }
+      if (typeof originalRevokeObjectURL === 'function') {
+        Object.defineProperty(URL, 'revokeObjectURL', {
+          configurable: true,
+          value: originalRevokeObjectURL
+        })
+      } else {
+        Reflect.deleteProperty(URL, 'revokeObjectURL')
+      }
+    }
   })
 
   it('processes each assistant skill refresh event once', async () => {

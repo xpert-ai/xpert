@@ -88,6 +88,12 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
     })
   }
 
+  downloadPackage(workspaceId: string, id: string) {
+    return this.httpClient.get(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/download`, {
+      responseType: 'blob'
+    })
+  }
+
   saveFile(workspaceId: string, id: string, path: string, content: string) {
     return this.httpClient.put<TFile>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/file`, {
       path,
