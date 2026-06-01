@@ -154,7 +154,7 @@ describe('ContextCompressionMiddleware', () => {
         expect(response.content).toBe('No old context was available to compress, so compression was skipped.')
     })
 
-    it('reports a no-op success when protected user turns leave no old history to compress', async () => {
+    it('softens protected user turns when protected history exceeds the compression target', async () => {
         const strategy = new ContextCompressionMiddleware()
         const { context, model, runtime, subscriber } = createContext()
         const middleware = (await strategy.createMiddleware(
@@ -166,36 +166,39 @@ describe('ContextCompressionMiddleware', () => {
             context
         )) as AgentMiddleware
         const beforeModel = getBeforeModel(middleware)
+        const longProtectedText = 'Protected history that should be summarized when it exceeds the budget. '.repeat(500)
         const messages = [
-            new HumanMessage('First protected request.'),
-            new AIMessage('First protected answer.'),
+            new HumanMessage(longProtectedText),
+            new AIMessage(longProtectedText),
             new HumanMessage('Second protected request.'),
             new AIMessage('Second protected answer.')
         ]
 
         const beforeResult = (await beforeModel({ messages } as any, createRuntimeConfig(subscriber))) as any
 
-        expect(runtime.createModelClient).not.toHaveBeenCalled()
-        expect(model.invoke).not.toHaveBeenCalled()
-        expect(beforeResult?.messages).toBeUndefined()
+        expect(runtime.createModelClient).toHaveBeenCalledTimes(1)
+        expect(model.invoke).toHaveBeenCalledTimes(1)
         expect(beforeResult?.[MANUAL_RESULT_KEY]).toEqual({
-            status: 'skipped',
-            message: 'No old context was available to compress, so compression was skipped.'
+            status: 'compressed',
+            message: 'Context compressed.'
         })
+        expect(beforeResult?.messages?.[0]).toBeInstanceOf(RemoveMessage)
+        expect(beforeResult.messages[1].additional_kwargs?.compressed).toBe(true)
+        expect(beforeResult.messages[beforeResult.messages.length - 2].content).toBe('Second protected request.')
+        expect(beforeResult.messages[beforeResult.messages.length - 1].content).toBe('Second protected answer.')
 
-        const successEvent = subscriber.next.mock.calls.find(
-            (call) => call[0]?.data?.data?.data?.reason === 'no_unprotected_history'
+        const successEvent = subscriber.next.mock.calls.find((call) =>
+            call[0]?.data?.data?.data?.summary?.includes('Protected user turns exceeded the compression budget.')
         )
         expect(successEvent?.[0]?.data?.data?.data).toEqual(
             expect.objectContaining({
                 status: 'success',
-                reason: 'no_unprotected_history',
-                message: {
-                    en_US: 'No unprotected history available to compress. Recent user turns were preserved.',
-                    zh_Hans: '没有可压缩的旧上下文。最近的用户回合已被保留。'
-                }
+                summary: expect.stringContaining('Protected user turns exceeded the compression budget.')
             })
         )
+        expect(
+            subscriber.next.mock.calls.some((call) => call[0]?.data?.data?.data?.reason === 'no_unprotected_history')
+        ).toBe(false)
     })
 
     it('reports a no-op success when a manual summary would increase context size', async () => {
