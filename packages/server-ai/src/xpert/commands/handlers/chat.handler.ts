@@ -979,53 +979,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
                 .catch((err) => {
                     console.error(err)
-                    const error = getErrorMessage(err)
                     finishChatMetrics('error')
-                    const timeEnd = Date.now()
-
-                    Promise.all([
-                        this.commandBus.execute(
-                            new XpertAgentExecutionUpsertCommand({
-                                id: executionId,
-                                elapsedTime: timeEnd - timeStart,
-                                status: XpertAgentExecutionStatusEnum.ERROR,
-                                error
-                            })
-                        ),
-                        this.commandBus.execute(
-                            new ChatMessageUpsertCommand({
-                                ...aiMessage,
-                                status: XpertAgentExecutionStatusEnum.ERROR,
-                                error
-                            })
-                        ),
-                        this.commandBus.execute(
-                            new ChatConversationUpsertCommand({
+                    subscriber.next({
+                        data: {
+                            type: ChatMessageTypeEnum.EVENT,
+                            event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+                            data: {
                                 id: conversation.id,
                                 status: 'error',
-                                title: conversation.title || shortTitle(titleInput || input?.input),
-                                error,
-                                options: conversation.options
-                            })
-                        )
-                    ])
-                        .then(([, , _conversation]) => {
-                            subscriber.next({
-                                data: {
-                                    type: ChatMessageTypeEnum.EVENT,
-                                    event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
-                                    data: {
-                                        id: _conversation.id,
-                                        title: _conversation.title,
-                                        status: _conversation.status,
-                                        operation: _conversation.operation,
-                                        error: _conversation.error
-                                    }
-                                }
-                            } as MessageEvent)
-                        })
-                        .catch((persistErr) => this.#logger.warn(persistErr))
-                        .finally(() => subscriber.error(err))
+                                error: getErrorMessage(err)
+                            }
+                        }
+                    } as MessageEvent)
+                    subscriber.error(err)
                 })
 
             // It will be triggered when the subscription ends normally or is unsubscribed.
