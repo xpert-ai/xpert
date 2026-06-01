@@ -19,6 +19,12 @@ describe('CopilotModelSelectComponent', () => {
     expect(template).toContain('[zTooltip]="parameter.help | i18n" zPosition="top"')
   })
 
+  it('uses viewport-aware model menu sizing', () => {
+    const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
+
+    expect(template).toContain('[style.max-height.px]="getMenuMaxHeight(modelContainer)"')
+  })
+
   const copilot = {
     id: 'copilot-1',
     role: 'primary',
@@ -151,6 +157,25 @@ describe('CopilotModelSelectComponent', () => {
       max_tokens: 8192
     })
   }))
+
+  it('caps the model menu height to the larger available viewport side', () => {
+    const originalVisualViewport = window.visualViewport
+    const container = document.createElement('div')
+    jest.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 500, 600, 32))
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: { offsetTop: 0, offsetLeft: 0, width: 1024, height: 768 }
+    })
+
+    try {
+      expect(component.getMenuMaxHeight(container)).toBe(476)
+    } finally {
+      Object.defineProperty(window, 'visualViewport', {
+        configurable: true,
+        value: originalVisualViewport
+      })
+    }
+  })
 
   it('copies inherited options before applying the first local parameter override', fakeAsync(() => {
     fixture.componentRef.setInput('inheritModel', {
