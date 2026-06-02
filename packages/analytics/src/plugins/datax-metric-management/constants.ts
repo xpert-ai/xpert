@@ -8,10 +8,13 @@ export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 export const DATA_X_METRIC_MANAGEMENT_FEATURE = 'datax_metric_management'
 export const XPERT_VISUALIZATION_META_KEY = 'xpertai/visualization'
 export const INDICATOR_MANAGEMENT_OPEN_TOOL_NAME = 'indicator_management_open'
-export const MEMORY_BI_PROJECT_ID_KEY = 'bi_project_id'
 
 export enum DataXMetricManagementToolName {
-	SWITCH_PROJECT = 'switch_project',
+	SCOPE_GET = 'indicator_scope_get',
+	SCOPE_SET = 'indicator_scope_set',
+	SCOPE_CLEAR = 'indicator_scope_clear',
+	SCOPE_OPTIONS = 'indicator_scope_options',
+	SCOPE_PREVIEW = 'indicator_scope_preview',
 	LIST_INDICATORS = 'list_indicators',
 	LIST_CUBES = 'indicator_list_cubes',
 	CREATE_DERIVE_INDICATOR = 'create_derive_indicator',
@@ -34,7 +37,11 @@ export const DATA_X_METRIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width
 </svg>`
 export const DATA_X_METRIC_MANAGEMENT_TOOL_NAMES = [
 	INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
-	DataXMetricManagementToolName.SWITCH_PROJECT,
+	DataXMetricManagementToolName.SCOPE_GET,
+	DataXMetricManagementToolName.SCOPE_SET,
+	DataXMetricManagementToolName.SCOPE_CLEAR,
+	DataXMetricManagementToolName.SCOPE_OPTIONS,
+	DataXMetricManagementToolName.SCOPE_PREVIEW,
 	DataXMetricManagementToolName.LIST_CUBES,
 	DataXMetricManagementToolName.LIST_INDICATORS,
 	DataXMetricManagementToolName.CREATE_DERIVE_INDICATOR,

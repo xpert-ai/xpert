@@ -154,6 +154,11 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 			draft: draft,
 			projectId,
 			modelId: draft.modelId,
+			type: draft.type,
+			businessAreaId: draft.businessAreaId,
+			business: draft.business,
+			unit: draft.unit,
+			visible: draft.visible,
 			embeddingStatus: EmbeddingStatusEnum.REQUIRED,
 			status: IndicatorStatusEnum.DRAFT
 		}
@@ -177,7 +182,18 @@ export class IndicatorService extends BusinessAreaAwareCrudService<Indicator> {
 		draft.checklist = await this.validate(draft)
 		draft.version = draft?.version ? draft.version + 1 : 1
 		draft.savedAt = new Date()
-		await this.update(id, { draft })
+		await this.update(id, {
+			draft,
+			code: draft.code,
+			name: draft.name,
+			modelId: draft.modelId,
+			entity: draft.entity,
+			type: draft.type,
+			businessAreaId: draft.businessAreaId,
+			business: draft.business,
+			unit: draft.unit,
+			visible: draft.visible
+		})
 		return this.findOne(id)
 	}
 

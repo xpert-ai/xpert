@@ -30,7 +30,11 @@ export class DataXMetricManagementMiddleware implements IAgentMiddlewareStrategy
 			name: DataXMetricManagementMiddlewareName,
 			stateSchema: runtime.createStateSchema(),
 			tools: runtime.createTools(),
-			beforeAgent: (state) => runtime.createInitialState(state)
+			beforeAgent: (state, config) =>
+				runtime.createInitialState({
+					...((config as { state?: Record<string, unknown> } | undefined)?.state ?? {}),
+					...(state ?? {})
+				})
 		}
 	}
 }

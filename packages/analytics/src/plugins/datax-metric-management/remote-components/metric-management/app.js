@@ -16,6 +16,9 @@
 			requiredFields: '编码和名称为必填项。',
 			selectProject: '选择项目',
 			allModels: '全部模型',
+			allBusinessAreas: '全部业务域',
+			allStatuses: '全部状态',
+			allTypes: '全部类型',
 			searchPlaceholder: '搜索指标编码、名称或业务口径',
 			search: '搜索',
 			createMetric: '新建指标',
@@ -28,6 +31,7 @@
 			type: '类型',
 			status: '状态',
 			model: '模型',
+			businessArea: '业务域',
 			embeddingStatus: '向量状态',
 			updatedAt: '更新时间',
 			actions: '操作',
@@ -73,6 +77,9 @@
 			requiredFields: 'Code and name are required.',
 			selectProject: 'Select project',
 			allModels: 'All models',
+			allBusinessAreas: 'All business areas',
+			allStatuses: 'All statuses',
+			allTypes: 'All types',
 			searchPlaceholder: 'Search metric code, name, or business definition',
 			search: 'Search',
 			createMetric: 'Create metric',
@@ -85,6 +92,7 @@
 			type: 'Type',
 			status: 'Status',
 			model: 'Model',
+			businessArea: 'Business area',
 			embeddingStatus: 'Embedding',
 			updatedAt: 'Updated at',
 			actions: 'Actions',
@@ -263,6 +271,8 @@
 			name: draft.name || (row && row.name) || '',
 			type: draft.type || (row && row.type) || 'BASIC',
 			modelId: draft.modelId || (row && row.modelId) || query.parameters.modelId || '',
+			businessAreaId:
+				draft.businessAreaId || (row && row.businessAreaId) || query.parameters.businessAreaId || '',
 			cube: draft.cube || draft.entity || (row && (row.cube || row.entity)) || '',
 			entity: draft.entity || (row && row.entity) || '',
 			description: draft.description || draft.business || (row && (row.description || row.business)) || '',
@@ -304,6 +314,9 @@
 		const [data, setData] = React.useState({ items: [], total: 0 })
 		const [projects, setProjects] = React.useState([])
 		const [models, setModels] = React.useState([])
+		const [businessAreas, setBusinessAreas] = React.useState([])
+		const [statuses, setStatuses] = React.useState([])
+		const [types, setTypes] = React.useState([])
 		const [searchInput, setSearchInput] = React.useState('')
 		const [loading, setLoading] = React.useState(false)
 		const [busy, setBusy] = React.useState('')
@@ -322,21 +335,23 @@
 			setQuery(nextQuery)
 			setSearchInput(nextQuery.search || '')
 			loadProjects(nextQuery)
+			loadStaticScopeOptions(nextQuery)
 			if (nextQuery.parameters.projectId) {
 				loadModels(nextQuery.parameters.projectId, nextQuery)
+				loadBusinessAreas(nextQuery.parameters.projectId, nextQuery)
 			}
 			loadData(nextQuery)
 		}, [context])
 
 		React.useEffect(() => {
 			reportResize()
-		}, [data, projects, models, loading, notice, modal, form])
+		}, [data, projects, models, businessAreas, statuses, types, loading, notice, modal, form])
 
 		async function loadProjects(nextQuery) {
 			try {
 				const response = await request('requestParameterOptions', {
 					parameterKey: 'projectId',
-					parameters: nextQuery.parameters
+					query: { parameters: nextQuery.parameters }
 				})
 				setProjects((response.result && response.result.items) || [])
 			} catch (error) {
@@ -348,9 +363,38 @@
 			try {
 				const response = await request('requestParameterOptions', {
 					parameterKey: 'modelId',
-					parameters: Object.assign({}, nextQuery.parameters, { projectId })
+					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
 				})
 				setModels((response.result && response.result.items) || [])
+			} catch (error) {
+				setNotice({ error: true, text: error.message })
+			}
+		}
+
+		async function loadBusinessAreas(projectId, nextQuery) {
+			try {
+				const response = await request('requestParameterOptions', {
+					parameterKey: 'businessAreaId',
+					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
+				})
+				setBusinessAreas((response.result && response.result.items) || [])
+			} catch (error) {
+				setNotice({ error: true, text: error.message })
+			}
+		}
+
+		async function loadStaticScopeOptions(nextQuery) {
+			try {
+				const statusResponse = await request('requestParameterOptions', {
+					parameterKey: 'status',
+					query: { parameters: nextQuery.parameters }
+				})
+				const typeResponse = await request('requestParameterOptions', {
+					parameterKey: 'type',
+					query: { parameters: nextQuery.parameters }
+				})
+				setStatuses((statusResponse.result && statusResponse.result.items) || [])
+				setTypes((typeResponse.result && typeResponse.result.items) || [])
 			} catch (error) {
 				setNotice({ error: true, text: error.message })
 			}
@@ -377,14 +421,17 @@
 		function updateProject(projectId) {
 			const parameters = Object.assign({}, query.parameters, { projectId })
 			delete parameters.modelId
+			delete parameters.businessAreaId
 			const nextQuery = Object.assign({}, query, {
 				page: 1,
 				parameters
 			})
 			setModels([])
+			setBusinessAreas([])
 			setQuery(nextQuery)
 			if (projectId) {
 				loadModels(projectId, nextQuery)
+				loadBusinessAreas(projectId, nextQuery)
 			}
 			loadData(nextQuery)
 		}
@@ -393,6 +440,13 @@
 			const parameters = Object.assign({}, query.parameters)
 			if (modelId) parameters.modelId = modelId
 			else delete parameters.modelId
+			applyQuery(Object.assign({}, query, { page: 1, parameters }))
+		}
+
+		function updateParameter(key, value) {
+			const parameters = Object.assign({}, query.parameters)
+			if (value) parameters[key] = value
+			else delete parameters[key]
 			applyQuery(Object.assign({}, query, { page: 1, parameters }))
 		}
 
@@ -440,6 +494,7 @@
 				name: form.name.trim(),
 				type: form.type,
 				modelId: form.modelId || undefined,
+				businessAreaId: form.businessAreaId || undefined,
 				cube: form.cube.trim() || form.entity.trim() || undefined,
 				entity: form.cube.trim() || form.entity.trim() || undefined,
 				description: form.description.trim() || form.business.trim() || undefined,
@@ -475,23 +530,60 @@
 			}
 			const output = getEventOutput(event)
 			const nextParameters = Object.assign({}, query.parameters)
-			if (output && output.projectId) {
-				nextParameters.projectId = output.projectId
-			}
-			if (output && output.modelId) {
-				nextParameters.modelId = output.modelId
+			const scope = output && isObject(output.metricScope) ? output.metricScope : null
+			if (scope) {
+				mergeScopeParameters(nextParameters, scope)
+			} else {
+				if (output && output.projectId) {
+					nextParameters.projectId = output.projectId
+				}
+				if (output && output.modelId) {
+					nextParameters.modelId = output.modelId
+				}
+				if (output && output.businessAreaId) {
+					nextParameters.businessAreaId = output.businessAreaId
+				}
 			}
 			const nextQuery = Object.assign({}, query, {
 				page: 1,
 				parameters: nextParameters
 			})
 			setQuery(nextQuery)
+			if (nextParameters.projectId) {
+				loadModels(nextParameters.projectId, nextQuery)
+				loadBusinessAreas(nextParameters.projectId, nextQuery)
+			}
 			await loadData(nextQuery)
+		}
+
+		function mergeScopeParameters(parameters, scope) {
+			if (scope.projectId) parameters.projectId = scope.projectId
+			else delete parameters.projectId
+
+			setSingleScopeParameter(parameters, 'modelId', scope.modelIds)
+			setSingleScopeParameter(parameters, 'businessAreaId', scope.businessAreaIds)
+			setSingleScopeParameter(parameters, 'entity', scope.entities)
+
+			if (scope.status) parameters.status = scope.status
+			else delete parameters.status
+			if (scope.type) parameters.type = scope.type
+			else delete parameters.type
+		}
+
+		function setSingleScopeParameter(parameters, key, values) {
+			if (Array.isArray(values) && values.length === 1) {
+				parameters[key] = values[0]
+			} else {
+				delete parameters[key]
+			}
 		}
 
 		function renderToolbar() {
 			const projectId = query.parameters.projectId || ''
 			const modelId = query.parameters.modelId || ''
+			const businessAreaId = query.parameters.businessAreaId || ''
+			const status = query.parameters.status || ''
+			const type = query.parameters.type || ''
 			return h(
 				'div',
 				{ className: 'xui-toolbar xui-metric-sticky-toolbar' },
@@ -515,6 +607,37 @@
 					},
 					h('option', { value: '' }, t('allModels')),
 					models.map((model) => h('option', { key: model.value, value: model.value }, model.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: businessAreaId,
+						disabled: !projectId,
+						onChange: (event) => updateParameter('businessAreaId', event.target.value)
+					},
+					h('option', { value: '' }, t('allBusinessAreas')),
+					businessAreas.map((area) => h('option', { key: area.value, value: area.value }, area.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: status,
+						onChange: (event) => updateParameter('status', event.target.value)
+					},
+					h('option', { value: '' }, t('allStatuses')),
+					statuses.map((item) => h('option', { key: item.value, value: item.value }, item.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: type,
+						onChange: (event) => updateParameter('type', event.target.value)
+					},
+					h('option', { value: '' }, t('allTypes')),
+					types.map((item) => h('option', { key: item.value, value: item.value }, item.label))
 				),
 				h('input', {
 					className: 'xui-input',
@@ -580,6 +703,7 @@
 								['type', t('type')],
 								['status', t('status')],
 								['model', t('model')],
+								['businessArea', t('businessArea')],
 								['entity', t('entity')],
 								['business', t('business')],
 								['unit', t('unit')],
@@ -612,6 +736,11 @@
 									'td',
 									{ style: NO_WRAP_STYLE },
 									row.modelName || optionLabel(models, row.modelId) || '-'
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									row.businessAreaName || optionLabel(businessAreas, row.businessAreaId) || '-'
 								),
 								h('td', { style: NO_WRAP_STYLE }, row.entity || '-'),
 								h('td', { style: NO_WRAP_STYLE }, row.business || '-'),
@@ -789,6 +918,24 @@
 								h('option', { value: '' }, t('noModel')),
 								models.map((model) =>
 									h('option', { key: model.value, value: model.value }, model.label)
+								)
+							)
+						),
+						h(
+							'div',
+							{ className: 'xui-field' },
+							h('label', null, t('businessArea')),
+							h(
+								'select',
+								{
+									className: 'xui-input',
+									value: form.businessAreaId,
+									onChange: (event) =>
+										setForm(Object.assign({}, form, { businessAreaId: event.target.value }))
+								},
+								h('option', { value: '' }, t('allBusinessAreas')),
+								businessAreas.map((area) =>
+									h('option', { key: area.value, value: area.value }, area.label)
 								)
 							)
 						),

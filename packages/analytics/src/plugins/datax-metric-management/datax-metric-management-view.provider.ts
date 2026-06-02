@@ -5,6 +5,7 @@ import { dirname, join } from 'path'
 import {
 	I18nObject,
 	IconDefinition,
+	IndicatorStatusEnum,
 	IndicatorType,
 	JsonSchemaObjectType,
 	XpertExtensionViewManifest,
@@ -29,7 +30,12 @@ import {
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
 	DATA_X_METRIC_VIEW_KEY
 } from './constants'
-import { DataXMetricManagementService, getStringInput, toModelOption } from './datax-metric-management.service'
+import {
+	DataXMetricManagementService,
+	getStringInput,
+	toBusinessAreaOption,
+	toModelOption
+} from './datax-metric-management.service'
 
 const requireFromHere = createRequire(__filename)
 
@@ -172,6 +178,10 @@ const createIndicatorInputSchema = {
 			type: 'string',
 			title: text('Model ID', '模型 ID')
 		},
+		businessAreaId: {
+			type: 'string',
+			title: text('Business Area', '业务域')
+		},
 		cube: {
 			type: 'string',
 			title: text('Cube', '立方体')
@@ -308,6 +318,35 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 							searchable: true,
 							preload: true,
 							dependsOn: ['projectId']
+						}
+					},
+					{
+						key: 'businessAreaId',
+						label: text('Business Area', '业务域'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['projectId']
+						}
+					},
+					{
+						key: 'status',
+						label: text('Status', '状态'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							preload: true
+						}
+					},
+					{
+						key: 'type',
+						label: text('Type', '类型'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							preload: true
 						}
 					}
 				],
@@ -452,7 +491,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 	}
 
 	async getViewParameterOptions(
-		_context: XpertResolvedViewHostContext,
+		context: XpertResolvedViewHostContext,
 		viewKey: string,
 		parameterKey: string,
 		query: XpertViewParameterOptionsQuery
@@ -487,6 +526,33 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			}
 		}
 
+		if (parameterKey === 'businessAreaId') {
+			const projectId = getStringInput(query.parameters, 'projectId')
+			const areas = await this.metricManagementService.loadBusinessAreas(projectId, context.userId)
+
+			return {
+				items: areas
+					.map((area) => toBusinessAreaOption(area))
+					.filter((area) => !search || area.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'status') {
+			return {
+				items: Object.values(IndicatorStatusEnum)
+					.map((value) => ({ value, label: value }))
+					.filter((item) => !search || item.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'type') {
+			return {
+				items: Object.values(IndicatorType)
+					.map((value) => ({ value, label: value }))
+					.filter((item) => !search || item.label.toLowerCase().includes(search))
+			}
+		}
+
 		return { items: [] }
 	}
 
@@ -509,7 +575,10 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			if (!projectId) {
 				return failure('Project is required', '请先选择项目')
 			}
-			await this.metricManagementService.createViewDraft(projectId, request.input)
+			await this.metricManagementService.createViewDraft(
+				projectId,
+				withScopeDefaults(request.input, request.parameters)
+			)
 			return success('Metric created', '指标已创建')
 		}
 
@@ -519,7 +588,10 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		}
 
 		if (actionKey === 'edit') {
-			await this.metricManagementService.updateViewDraft(targetId, request.input)
+			await this.metricManagementService.updateViewDraft(
+				targetId,
+				withScopeDefaults(request.input, request.parameters)
+			)
 			return success('Metric updated', '指标已更新')
 		}
 
@@ -560,4 +632,19 @@ function failure(en_US: string, zh_Hans: string): XpertViewActionResult {
 		success: false,
 		message: text(en_US, zh_Hans)
 	}
+}
+
+function withScopeDefaults(
+	input: Record<string, unknown> | null | undefined,
+	parameters: Record<string, unknown> | undefined
+) {
+	return {
+		...(input ?? {}),
+		...defaultIfMissing(input, 'modelId', getStringInput(parameters, 'modelId')),
+		...defaultIfMissing(input, 'businessAreaId', getStringInput(parameters, 'businessAreaId'))
+	}
+}
+
+function defaultIfMissing(input: Record<string, unknown> | null | undefined, key: string, value: string | undefined) {
+	return value && !(input && typeof input[key] === 'string' && input[key]) ? { [key]: value } : {}
 }

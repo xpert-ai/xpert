@@ -1,11 +1,14 @@
 import { z, ZodSchema } from 'zod'
-import { BIToolsEnum } from '../../ai/toolset/builtin/bi-toolset'
+import { IndicatorStatusEnum, IndicatorType } from '@xpert-ai/contracts'
 import { BasicIndicatorSchema, IndicatorSchema } from '../../ai/toolset/schema'
+import { BIToolsEnum } from '../../ai/toolset/builtin/bi-toolset'
 import { DataXMetricManagementToolName } from './constants'
 
 export const TOOL_INDICATORS_PROMPTS_DEFAULT =
-	`1. Before performing any operations, please call the tool 'switch_project' to select or create a project (leave projectId blank if you don't know it), and then use this project for other operations.\n` +
-	`3. 'indicator_retriever' tool can retrieve published indicators. For indicators in draft state, please use 'list_indicators' tool to list detailed indicators.\n` +
+	`1. Before performing metric operations, use 'indicator_scope_get' to inspect the active project/model/business-area scope.\n` +
+	`2. If 'indicator_scope_get' says no scope/project is selected, do NOT call 'list_indicators', 'indicator_retriever', create/edit/delete tools, cube context, or member retriever. First call 'indicator_scope_options' to list selectable projects, then call 'indicator_scope_set' with projectId. After calling 'indicator_scope_set', wait for that tool result before calling metric operation tools; never emit scope selection and metric operation tools in the same tool-call batch.\n` +
+	`3. Use 'indicator_scope_set' to narrow metric operations by BI project, semantic model, business area, cube/entity, status, type, or search text. Mutating tools inherit a single selected model/business area/cube from the active scope; if multiple values are selected, pass the exact value explicitly.\n` +
+	`4. 'indicator_retriever' tool can retrieve published indicators. For indicators in draft state, please use 'list_indicators' tool to list detailed indicators after the scope is selected.\n` +
 	`## Cube Context
   Before creating an indicator or call 'dimension_member_retriever', you need to call the 'get_indicator_cube_context' tool to get the Context of the Cube to be used.
   Before creating an indicator, you need to call the 'list_indicators' tool to check existing indicators that can be reused.
@@ -26,35 +29,95 @@ export enum IndicatorsVariableEnum {
 export type MetricState = {
 	tool_indicators_prompts_default?: string | null
 	tool_indicators_cubes?: string | null
+	tool_indicators_scope?: MetricScope | null
 	tool_indicators?: {
 		cubes?: unknown[]
 		indicators?: unknown[]
 	} | null
 }
 
-export const SwitchProjectSchema = z.object({
-	project_id: z.string().optional().nullable().describe('The ID of project if switching to an existing one'),
-	is_new: z
+const OptionalString = z.string().optional().nullable()
+const OptionalStringArray = z.array(z.string()).optional().nullable()
+
+export const MetricScopeSchema = z.object({
+	project_id: OptionalString.describe('BI project ID, legacy snake_case alias'),
+	projectId: OptionalString.describe('BI project ID'),
+	model_id: OptionalString.describe('Single semantic model ID, legacy snake_case alias'),
+	modelId: OptionalString.describe('Single semantic model ID'),
+	model_ids: OptionalStringArray.describe('Semantic model IDs, legacy snake_case alias'),
+	modelIds: OptionalStringArray.describe('Semantic model IDs'),
+	business_area_id: OptionalString.describe('Single business area ID, legacy snake_case alias'),
+	businessAreaId: OptionalString.describe('Single business area ID'),
+	business_area_ids: OptionalStringArray.describe('Business area IDs, legacy snake_case alias'),
+	businessAreaIds: OptionalStringArray.describe('Business area IDs'),
+	cube_name: OptionalString.describe('Single cube/entity name, legacy snake_case alias'),
+	cubeName: OptionalString.describe('Single cube/entity name'),
+	entity: OptionalString.describe('Single cube/entity name'),
+	entities: OptionalStringArray.describe('Cube/entity names'),
+	status: z.nativeEnum(IndicatorStatusEnum).optional().nullable().describe('Indicator status filter'),
+	type: z.nativeEnum(IndicatorType).optional().nullable().describe('Indicator type filter'),
+	search: OptionalString.describe('Text search for indicator code, name, or business definition')
+})
+
+export type MetricScopeInput = z.infer<typeof MetricScopeSchema>
+
+export type MetricScope = {
+	projectId?: string
+	modelIds?: string[]
+	businessAreaIds?: string[]
+	entities?: string[]
+	status?: IndicatorStatusEnum
+	type?: IndicatorType
+	search?: string
+}
+
+export const ListIndicatorsSchema = MetricScopeSchema
+
+export const MetricScopeSetSchema = MetricScopeSchema.extend({
+	replace: z
 		.boolean()
 		.optional()
 		.nullable()
-		.describe(
-			'Whether to create a new project if no project_id is provided, otherwise load project from memory store first'
-		)
+		.describe('Replace the active scope instead of merging with the current active scope')
 })
 
-export const ListIndicatorsSchema = z.object({
-	model_id: z.string().optional().nullable().describe('Model ID'),
-	cube_name: z.string().optional().nullable().describe('Cube Name')
+export const MetricScopeClearSchema = z.object({
+	keep_project: z
+		.boolean()
+		.optional()
+		.nullable()
+		.describe('Keep the currently selected BI project while clearing narrower filters')
+})
+
+export const MetricScopeOptionsSchema = MetricScopeSchema.extend({
+	include_counts: z.boolean().optional().nullable().describe('Include lightweight count metadata when available')
+})
+
+export const MetricScopePreviewSchema = MetricScopeSchema.extend({
+	limit: z.number().optional().nullable().default(10).describe('Maximum number of matching indicators to preview')
 })
 
 export const DeleteIndicatorSchema = z.object({
 	code: z.string().describe('The unique code of indicator')
 })
 
-export const IndicatorRetrieverSchema = z.object({
+export const IndicatorRetrieverSchema = MetricScopeSchema.extend({
 	query: z.string().describe('The query to search for indicators'),
 	limit: z.number().optional().default(10).describe('The maximum number of indicators to retrieve')
+})
+
+const ScopedBasicIndicatorSchema = BasicIndicatorSchema.extend({
+	businessAreaId: OptionalString.describe('Business area ID used to group this indicator')
+}).partial({
+	modelId: true,
+	cube: true
+})
+
+const ScopedDeriveIndicatorSchema = IndicatorSchema.extend({
+	businessAreaId: OptionalString.describe('Business area ID used to group this indicator')
+}).partial({
+	modelId: true,
+	cube: true
 })
 
 export const ShowIndicatorsSchema = z.object({
@@ -95,54 +158,84 @@ export const MetricManagementToolDefinitions: Array<{
 	responseFormat?: 'content_and_artifact'
 }> = [
 	{
-		name: DataXMetricManagementToolName.SWITCH_PROJECT,
-		description: 'Switch or create a BI project before metric management operations.',
-		schema: SwitchProjectSchema
+		name: DataXMetricManagementToolName.SCOPE_GET,
+		description: 'Get the current Data X metric management scope remembered in this agent session.',
+		schema: z.object({})
+	},
+	{
+		name: DataXMetricManagementToolName.SCOPE_SET,
+		description:
+			'Set the active metric management scope. Include projectId when no scope exists. Use this before list/retrieve/create/edit/delete tools to narrow later metric tools by project, semantic model, business area, cube, status, type, and search.',
+		schema: MetricScopeSetSchema
+	},
+	{
+		name: DataXMetricManagementToolName.SCOPE_CLEAR,
+		description: 'Clear the active metric management scope, optionally keeping the selected BI project.',
+		schema: MetricScopeClearSchema
+	},
+	{
+		name: DataXMetricManagementToolName.SCOPE_OPTIONS,
+		description:
+			'List selectable metric scope options for projects, semantic models, business areas, statuses, and types. Safe to call when no scope exists.',
+		schema: MetricScopeOptionsSchema
+	},
+	{
+		name: DataXMetricManagementToolName.SCOPE_PREVIEW,
+		description: 'Preview matching indicators for a scope before running metric operations.',
+		schema: MetricScopePreviewSchema
 	},
 	{
 		name: DataXMetricManagementToolName.CREATE_DERIVE_INDICATOR,
-		description: 'Create a new derive indicator. The unique code cannot be repeated in the project.',
-		schema: IndicatorSchema
+		description:
+			'Create a new derive indicator in the active metric scope. Requires project scope. The unique code cannot be repeated in the project.',
+		schema: ScopedDeriveIndicatorSchema
 	},
 	{
 		name: DataXMetricManagementToolName.CREATE_BASIC_INDICATOR,
-		description: 'Create a new basic type indicator. The unique code cannot be repeated in the project.',
-		schema: BasicIndicatorSchema
+		description:
+			'Create a new basic type indicator in the active metric scope. Requires project scope. The unique code cannot be repeated in the project.',
+		schema: ScopedBasicIndicatorSchema
 	},
 	{
 		name: DataXMetricManagementToolName.LIST_INDICATORS,
-		description: 'List all indicators in the selected BI project.',
+		description:
+			'List indicators in the active metric scope. Requires project scope; do not use this tool to select a project.',
 		schema: ListIndicatorsSchema
 	},
 	{
 		name: DataXMetricManagementToolName.LIST_CUBES,
-		description: 'List cubes in the project workspace.',
-		schema: z.object({})
+		description:
+			'List cubes in the active metric scope. Requires project scope; do not use this tool to select a project.',
+		schema: MetricScopeSchema
 	},
 	{
 		name: DataXMetricManagementToolName.EDIT_INDICATOR,
-		description: 'Edit an indicator by its exact unique code.',
-		schema: IndicatorSchema
+		description: 'Edit an indicator by exact unique code in the active metric scope. Requires project scope.',
+		schema: ScopedDeriveIndicatorSchema
 	},
 	{
 		name: DataXMetricManagementToolName.DELETE_INDICATOR,
-		description: 'Delete an indicator by its exact unique code.',
+		description:
+			'Delete an indicator by exact unique code in the active metric scope. Requires project scope and user confirmation.',
 		schema: DeleteIndicatorSchema
 	},
 	{
 		name: DataXMetricManagementToolName.INDICATOR_RETRIEVER,
-		description: 'Retrieve published indicators based on a query.',
+		description:
+			'Retrieve published indicators based on a query in the active metric scope. Requires project scope; do not use this tool to select a project.',
 		schema: IndicatorRetrieverSchema,
 		responseFormat: 'content_and_artifact'
 	},
 	{
 		name: DataXMetricManagementToolName.GET_CUBE_CONTEXT,
-		description: 'Get the context info for the cube of an indicator.',
+		description:
+			'Get the context info for the cube of an indicator in the active metric scope. Requires project scope.',
 		schema: GetCubeContextSchema
 	},
 	{
 		name: DataXMetricManagementToolName.DIMENSION_MEMBER_RETRIEVER,
-		description: 'Search for dimension member key information about filter conditions.',
+		description:
+			'Search for dimension member key information about filter conditions in the active metric scope. Requires project scope.',
 		schema: DimensionMemberRetrieverSchema
 	},
 	{
@@ -152,12 +245,15 @@ export const MetricManagementToolDefinitions: Array<{
 	}
 ]
 
-export type SwitchProjectInput = z.infer<typeof SwitchProjectSchema>
 export type ListIndicatorsInput = z.infer<typeof ListIndicatorsSchema>
+export type MetricScopeSetInput = z.infer<typeof MetricScopeSetSchema>
+export type MetricScopeClearInput = z.infer<typeof MetricScopeClearSchema>
+export type MetricScopeOptionsInput = z.infer<typeof MetricScopeOptionsSchema>
+export type MetricScopePreviewInput = z.infer<typeof MetricScopePreviewSchema>
 export type DeleteIndicatorInput = z.infer<typeof DeleteIndicatorSchema>
 export type IndicatorRetrieverInput = z.infer<typeof IndicatorRetrieverSchema>
 export type ShowIndicatorsInput = z.infer<typeof ShowIndicatorsSchema>
 export type DimensionMemberRetrieverInput = z.infer<typeof DimensionMemberRetrieverSchema>
 export type GetCubeContextInput = z.infer<typeof GetCubeContextSchema>
-export type BasicIndicatorInput = z.infer<typeof BasicIndicatorSchema>
-export type DeriveIndicatorInput = z.infer<typeof IndicatorSchema>
+export type BasicIndicatorInput = z.infer<typeof ScopedBasicIndicatorSchema>
+export type DeriveIndicatorInput = z.infer<typeof ScopedDeriveIndicatorSchema>

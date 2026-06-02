@@ -92,7 +92,11 @@ describe('DataXMetricManagementMiddleware', () => {
 		expect(middleware.name).toBe(DATA_X_METRIC_PROVIDER_KEY)
 		expect(middleware.tools?.map((item) => item.name)).toEqual([
 			INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
-			'switch_project',
+			'indicator_scope_get',
+			'indicator_scope_set',
+			'indicator_scope_clear',
+			'indicator_scope_options',
+			'indicator_scope_preview',
 			'create_derive_indicator',
 			'create_basic_indicator',
 			'list_indicators',
@@ -117,10 +121,12 @@ describe('DataXMetricManagementMiddleware', () => {
 		expect(Object.keys(parsed ?? {})).toEqual([
 			'tool_indicators_prompts_default',
 			'tool_indicators_cubes',
+			'tool_indicators_scope',
 			'tool_indicators'
 		])
-		expect(parsed?.tool_indicators_prompts_default).toContain('switch_project')
+		expect(parsed?.tool_indicators_prompts_default).toContain('indicator_scope_get')
 		expect(parsed?.tool_indicators_cubes).toContain('model-1')
+		expect(parsed?.tool_indicators_scope).toEqual({})
 	})
 
 	it('delegates initial state creation to the native metric session', async () => {
@@ -133,6 +139,7 @@ describe('DataXMetricManagementMiddleware', () => {
 		const initial = (middleware.beforeAgent as (state: Record<string, unknown>) => unknown)?.({
 			tool_indicators_prompts_default: 'custom prompt',
 			tool_indicators_cubes: 'custom cubes',
+			tool_indicators_scope: { projectId: 'project-1' },
 			tool_indicators: { indicators: [{ code: 'A' }] }
 		})
 
@@ -140,12 +147,46 @@ describe('DataXMetricManagementMiddleware', () => {
 			expect.objectContaining({
 				tool_indicators_prompts_default: 'custom prompt'
 			}),
-			expect.stringContaining('switch_project')
+			expect.stringContaining('indicator_scope_set')
 		)
 		expect(initial).toEqual({
 			tool_indicators_prompts_default: 'custom prompt',
 			tool_indicators_cubes: 'custom cubes',
+			tool_indicators_scope: { projectId: 'project-1' },
 			tool_indicators: { indicators: [{ code: 'A' }] }
+		})
+	})
+
+	it('restores metric scope from root graph state passed to beforeAgent runtime', async () => {
+		const service = createMetricService()
+		const middleware = await new DataXMetricManagementMiddleware(service).createMiddleware(
+			{},
+			createMiddlewareContext(DATA_X_METRIC_PROVIDER_KEY)
+		)
+
+		const initial = (
+			middleware.beforeAgent as (state: Record<string, unknown>, config: Record<string, unknown>) => unknown
+		)?.(
+			{
+				messages: []
+			},
+			{
+				state: {
+					tool_indicators_scope: { projectId: 'project-from-root' },
+					tool_indicators_cubes: 'root cubes'
+				}
+			}
+		)
+
+		expect(service.session.createInitialState).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tool_indicators_scope: { projectId: 'project-from-root' },
+				tool_indicators_cubes: 'root cubes'
+			}),
+			expect.any(String)
+		)
+		expect(initial).toMatchObject({
+			tool_indicators_scope: { projectId: 'project-from-root' }
 		})
 	})
 })
@@ -163,13 +204,18 @@ function createMetricService() {
 				}
 			}
 		],
+		metricScope: {},
 		init: jest.fn(async () => undefined),
 		createInitialState: jest.fn((state) => state),
-		switchProjectTool: jest.fn(),
 		createDeriveIndicatorTool: jest.fn(),
 		createBasicIndicatorTool: jest.fn(),
 		listIndicatorsTool: jest.fn(),
 		listCubesTool: jest.fn(),
+		metricScopeGetTool: jest.fn(),
+		metricScopeSetTool: jest.fn(),
+		metricScopeClearTool: jest.fn(),
+		metricScopeOptionsTool: jest.fn(),
+		metricScopePreviewTool: jest.fn(),
 		editIndicatorTool: jest.fn(),
 		deleteIndicatorTool: jest.fn(),
 		indicatorRetrieverTool: jest.fn(),

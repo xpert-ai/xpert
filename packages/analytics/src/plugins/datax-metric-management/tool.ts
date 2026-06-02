@@ -8,7 +8,17 @@ import {
 
 const OpenMetricManagementSchema = z.object({
 	projectId: z.string().optional().describe('Optional BI project id to preselect in the metric management view.'),
-	modelId: z.string().optional().describe('Optional semantic model id to preselect in the metric management view.')
+	modelId: z.string().optional().describe('Optional semantic model id to preselect in the metric management view.'),
+	businessAreaId: z
+		.string()
+		.optional()
+		.describe('Optional business area id to preselect in the metric management view.'),
+	status: z
+		.string()
+		.optional()
+		.describe('Optional indicator status filter to preselect in the metric management view.'),
+	type: z.string().optional().describe('Optional indicator type filter to preselect in the metric management view.'),
+	search: z.string().optional().describe('Optional metric search text to initialize the metric management view.')
 })
 
 export function buildOpenMetricManagementTool() {
@@ -16,9 +26,24 @@ export function buildOpenMetricManagementTool() {
 		async (input) => {
 			const parameters = compactRecord({
 				projectId: input['projectId'],
-				modelId: input['modelId']
+				modelId: input['modelId'],
+				businessAreaId: input['businessAreaId'],
+				status: input['status'],
+				type: input['type']
 			})
-			const stableKey = [parameters['projectId'], parameters['modelId']].filter(Boolean).join(':') || 'default'
+			const search =
+				typeof input['search'] === 'string' && input['search'].trim() ? input['search'].trim() : undefined
+			const stableKey =
+				[
+					parameters['projectId'],
+					parameters['modelId'],
+					parameters['businessAreaId'],
+					parameters['status'],
+					parameters['type'],
+					search
+				]
+					.filter(Boolean)
+					.join(':') || 'default'
 
 			return JSON.stringify({
 				message: 'Metric management plugin view is ready.',
@@ -35,7 +60,8 @@ export function buildOpenMetricManagementTool() {
 							parameters,
 							initialQuery: {
 								page: 1,
-								pageSize: 20
+								pageSize: 20,
+								...(search ? { search } : {})
 							}
 						},
 						metadata: {

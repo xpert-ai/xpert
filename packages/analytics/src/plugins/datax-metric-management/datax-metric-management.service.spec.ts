@@ -1,5 +1,5 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { IndicatorType, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { IndicatorStatusEnum, IndicatorType, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 
 const mockInterrupt = jest.fn((_input?: unknown) => ({ projectId: 'project-1' }))
@@ -8,7 +8,6 @@ jest.mock('@langchain/langgraph', () => {
 	const actual = jest.requireActual('@langchain/langgraph')
 	return {
 		...actual,
-		getStore: jest.fn(() => undefined),
 		interrupt: (input: unknown) => mockInterrupt(input)
 	}
 })
@@ -59,7 +58,12 @@ jest.mock('../../project', () => ({
 	}
 }))
 
-import { DataXMetricManagementService, toIndicatorDraft, toMetricRow } from './datax-metric-management.service'
+import {
+	DataXMetricManagementService,
+	buildIndicatorWhere,
+	toIndicatorDraft,
+	toMetricRow
+} from './datax-metric-management.service'
 
 describe('DataXMetricManagementService', () => {
 	beforeEach(() => {
@@ -72,6 +76,7 @@ describe('DataXMetricManagementService', () => {
 			name: 'GMV Product A',
 			type: IndicatorType.BASIC,
 			modelId: 'model-1',
+			businessAreaId: 'area-1',
 			cube: 'Sales',
 			description: 'GMV for product A',
 			calendar: '[Date]',
@@ -85,6 +90,7 @@ describe('DataXMetricManagementService', () => {
 			name: 'GMV Product A',
 			type: IndicatorType.BASIC,
 			modelId: 'model-1',
+			businessAreaId: 'area-1',
 			entity: 'Sales',
 			business: 'GMV for product A',
 			visible: false,
@@ -116,6 +122,7 @@ describe('DataXMetricManagementService', () => {
 				code: 'NEW',
 				name: 'New',
 				modelId: 'model-2',
+				businessAreaId: 'area-1',
 				entity: 'Sales',
 				business: 'New definition',
 				unit: '%',
@@ -125,6 +132,9 @@ describe('DataXMetricManagementService', () => {
 			},
 			model: {
 				name: 'Sales Model'
+			},
+			businessArea: {
+				name: 'Sales Area'
 			}
 		} as any)
 
@@ -134,6 +144,8 @@ describe('DataXMetricManagementService', () => {
 			name: 'New',
 			modelId: 'model-2',
 			modelName: 'Sales Model',
+			businessAreaId: 'area-1',
+			businessAreaName: 'Sales Area',
 			entity: 'Sales',
 			business: 'New definition',
 			unit: '%',
@@ -203,7 +215,14 @@ describe('DataXMetricManagementService', () => {
 			})
 		).resolves.toEqual({
 			items: [expect.objectContaining({ id: 'metric-1', code: 'NEW' })],
-			total: 1
+			total: 1,
+			meta: expect.objectContaining({
+				metricScope: expect.objectContaining({
+					projectId: 'project-1',
+					modelIds: ['model-1']
+				}),
+				scopeSummary: 'project=project-1; models=model-1'
+			})
 		})
 		expect(indicatorService.findMy).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -213,6 +232,30 @@ describe('DataXMetricManagementService', () => {
 				}
 			})
 		)
+	})
+
+	it('builds scoped indicator filters for project, model, business area, type, status, and search', () => {
+		const where = buildIndicatorWhere({
+			projectId: 'project-1',
+			modelIds: ['model-1'],
+			businessAreaIds: ['area-1'],
+			type: IndicatorType.BASIC,
+			status: IndicatorStatusEnum.DRAFT,
+			search: 'sales'
+		})
+
+		expect(where).toEqual([
+			expect.objectContaining({
+				projectId: 'project-1',
+				modelId: 'model-1',
+				businessAreaId: 'area-1',
+				type: IndicatorType.BASIC,
+				status: IndicatorStatusEnum.DRAFT,
+				code: expect.anything()
+			}),
+			expect.objectContaining({ name: expect.anything() }),
+			expect.objectContaining({ business: expect.anything() })
+		])
 	})
 
 	it('initializes a runtime session for a selected project', async () => {
@@ -242,7 +285,7 @@ describe('DataXMetricManagementService', () => {
 		})
 
 		const session = service.createSession(createContext())
-		const project = await session.switchProject('project-1')
+		const project = await session.loadProjectContext('project-1')
 		const state = session.createInitialState({}, 'prompt')
 
 		expect(project.id).toBe('project-1')
@@ -255,41 +298,47 @@ describe('DataXMetricManagementService', () => {
 		expect(state.tool_indicators_cubes).toContain('Sales')
 	})
 
-	it('prompts for a project when metric tools run without a store', async () => {
+	it('returns scope guidance instead of throwing when read tools run without a project scope', async () => {
 		const { service, queryBus } = createService()
-		queryBus.execute.mockImplementation(async (query: any) => {
-			if (query.constructor.name === 'ProjectGetQuery') {
-				return {
-					id: 'project-1',
-					models: [{ id: 'model-1' }]
-				}
-			}
-			return {
-				models: [
-					{
-						id: 'model-1',
-						name: 'Sales Model',
-						options: {
-							schema: {
-								cubes: [{ name: 'Sales' }]
-							}
-						}
-					}
-				],
-				dsCoreService: {},
-				indicatorService: {}
-			}
-		})
+		queryBus.execute.mockImplementation(mockProjectBIContext)
 
 		const session = service.createSession(createContext())
 		await session.init()
-		await expect(session.listCubesTool({}, { configurable: {} } as any)).resolves.toContain('Sales')
-
-		expect(mockInterrupt).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: 'switch_project'
-			})
+		await expect(session.listCubesTool({}, { configurable: {} } as any)).resolves.toContain(
+			'Metric scope is required before metric operations'
 		)
+		await expect(session.indicatorRetrieverTool({ query: '销售额' }, { configurable: {} } as any)).resolves.toEqual(
+			[expect.stringContaining('Metric scope is required before metric operations'), []]
+		)
+
+		expect(mockInterrupt).not.toHaveBeenCalled()
+	})
+
+	it('restores active metric scope from graph state before the next tool call', async () => {
+		const { service, queryBus } = createService()
+		queryBus.execute.mockImplementation(mockProjectBIContext)
+
+		const session = service.createSession(createContext())
+		await session.init()
+		session.createInitialState({ tool_indicators_scope: { projectId: 'project-1' } }, 'prompt')
+
+		await expect(session.listCubesTool({}, { configurable: {} } as any)).resolves.toContain('Sales')
+		expect(mockInterrupt).not.toHaveBeenCalled()
+	})
+
+	it('waits for a concurrently selected scope before failing metric operations', async () => {
+		const { service, queryBus } = createService()
+		queryBus.execute.mockImplementation(mockProjectBIContext)
+
+		const session = service.createSession(createContext())
+		const config = { configurable: {} } as any
+		await session.init()
+		const pendingCubes = session.listCubesTool({}, config)
+		await new Promise((resolve) => setTimeout(resolve, 20))
+		await session.metricScopeSetTool({ projectId: 'project-1' }, config)
+
+		await expect(pendingCubes).resolves.toContain('Sales')
+		expect(mockInterrupt).not.toHaveBeenCalled()
 	})
 })
 
@@ -319,7 +368,31 @@ function createService() {
 	}
 }
 
-function createContext(): IAgentMiddlewareContext {
+function mockProjectBIContext(query: any) {
+	if (query.constructor.name === 'ProjectGetQuery') {
+		return Promise.resolve({
+			id: 'project-1',
+			models: [{ id: 'model-1' }]
+		})
+	}
+	return Promise.resolve({
+		models: [
+			{
+				id: 'model-1',
+				name: 'Sales Model',
+				options: {
+					schema: {
+						cubes: [{ name: 'Sales' }]
+					}
+				}
+			}
+		],
+		dsCoreService: {},
+		indicatorService: {}
+	})
+}
+
+function createContext(overrides: Partial<IAgentMiddlewareContext> = {}): IAgentMiddlewareContext {
 	return {
 		tenantId: 'tenant-1',
 		organizationId: 'org-1',
@@ -343,6 +416,7 @@ function createContext(): IAgentMiddlewareContext {
 			wrapWorkflowNodeExecution: async () => {
 				throw new Error('not used')
 			}
-		}
+		},
+		...overrides
 	}
 }

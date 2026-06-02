@@ -1,6 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { getContextVariable } from '@langchain/core/context'
 import { ToolMessage } from '@langchain/core/messages'
-import { BaseStore, Command, getStore, interrupt, LangGraphRunnableConfig } from '@langchain/langgraph'
+import { BaseStore, Command, interrupt, LangGraphRunnableConfig } from '@langchain/langgraph'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
@@ -8,12 +9,14 @@ import {
 	ChatDashboardMessageType,
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
-	configurableStoreNamespace,
-	getStoreNamespace,
+	CONTEXT_VARIABLE_CURRENTSTATE,
 	getToolCallIdFromConfig,
+	IBusinessArea,
 	IIndicator,
 	IProject,
 	ISemanticModel,
+	IUser,
+	IndicatorStatusEnum,
 	IndicatorType,
 	TIndicatorDraft,
 	TInterruptMessage,
@@ -43,16 +46,16 @@ import { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { groupBy } from 'lodash'
 import { firstValueFrom, switchMap } from 'rxjs'
-import { FindOptionsOrder, ILike } from 'typeorm'
+import { FindOptionsOrder, ILike, In } from 'typeorm'
 import { GetBIContextQuery } from '../../ai/queries'
 import { TBIContext } from '../../ai/types'
 import { updateOcapIndicators } from '../../ai/toolset/builtin/bi-toolset'
 import { markdownIndicators, markdownModelCubes, tryFixFormula } from '../../ai/toolset/types'
+import { BusinessAreaMyCommand } from '../../business-area/commands/business-area.my.command'
 import { applyIndicatorDraft, createIndicatorNamespace, IndicatorService } from '../../indicator'
 import { Indicator } from '../../indicator/indicator.entity'
 import { RetrieveMembersCommand } from '../../model-member'
 import { CreateProjectStoreCommand, ProjectGetQuery, ProjectMyQuery } from '../../project'
-import { MEMORY_BI_PROJECT_ID_KEY } from './constants'
 import {
 	BasicIndicatorInput,
 	DeleteIndicatorInput,
@@ -62,12 +65,21 @@ import {
 	IndicatorRetrieverInput,
 	IndicatorsVariableEnum,
 	ListIndicatorsInput,
+	MetricScope,
+	MetricScopeClearInput,
+	MetricScopeInput,
+	MetricScopeOptionsInput,
+	MetricScopePreviewInput,
+	MetricScopeSetInput,
 	MetricState,
-	ShowIndicatorsInput,
-	SwitchProjectInput
+	ShowIndicatorsInput
 } from './schemas'
 
 const MAXIMUM_CUBE_CONTEXT_WAIT_TIME = 3000
+const METRIC_SCOPE_SYNC_RETRY_COUNT = 6
+const METRIC_SCOPE_SYNC_RETRY_INTERVAL = 50
+const METRIC_SCOPE_REQUIRED_MESSAGE =
+	'Metric scope is required before metric operations. Call indicator_scope_options to list selectable projects, then call indicator_scope_set with projectId.'
 
 type ProjectListResult = {
 	items: IProject[]
@@ -82,6 +94,8 @@ export type MetricRow = {
 	status?: string
 	modelId?: string
 	modelName?: string
+	businessAreaId?: string
+	businessAreaName?: string
 	entity?: string
 	business?: string
 	unit?: string
@@ -96,6 +110,13 @@ type ModelOptionSource = {
 	id?: string
 	name?: string
 	title?: string
+	businessAreaId?: string
+	businessArea?: BusinessAreaOptionSource
+}
+
+type BusinessAreaOptionSource = {
+	id?: string
+	name?: string
 }
 
 @Injectable()
@@ -127,11 +148,30 @@ export class DataXMetricManagementService {
 		return result.items
 	}
 
+	async loadBusinessAreas(projectId?: string, userId?: string): Promise<IBusinessArea[]> {
+		const areas = await this.commandBus.execute<BusinessAreaMyCommand, IBusinessArea[]>(
+			new BusinessAreaMyCommand(toUserReference(userId))
+		)
+		if (!projectId) {
+			return areas
+		}
+
+		const projects = await this.loadProjects()
+		const project = projects.find((item) => item.id === projectId)
+		const projectAreaIds = new Set(
+			(project?.models ?? []).map((model) => (model as ModelOptionSource).businessAreaId).filter(Boolean)
+		)
+		if (!projectAreaIds.size) {
+			return areas
+		}
+		return areas.filter((area) => area.id && projectAreaIds.has(area.id))
+	}
+
 	async getViewData(
 		query: XpertViewQuery
 	): Promise<{ items: MetricRow[]; total: number; meta?: Record<string, unknown> }> {
-		const projectId = getStringInput(query.parameters, 'projectId')
-		if (!projectId) {
+		const scope = metricScopeFromViewQuery(query)
+		if (!scope.projectId) {
 			return {
 				items: [],
 				total: 0,
@@ -141,12 +181,11 @@ export class DataXMetricManagementService {
 			}
 		}
 
-		const modelId = getStringInput(query.parameters, 'modelId')
 		const page = query.page ?? 1
 		const pageSize = query.pageSize ?? 20
 		const result = await this.indicatorService.findMy({
-			where: buildIndicatorWhere(projectId, modelId, query.search),
-			relations: ['model'],
+			where: buildIndicatorWhere(scope),
+			relations: ['model', 'businessArea'],
 			take: pageSize,
 			skip: (page - 1) * pageSize,
 			order: buildIndicatorOrder(query.sortBy, query.sortDirection)
@@ -154,7 +193,11 @@ export class DataXMetricManagementService {
 
 		return {
 			items: result.items.map(toMetricRow),
-			total: result.total
+			total: result.total,
+			meta: {
+				metricScope: scope,
+				scopeSummary: summarizeMetricScope(scope)
+			}
 		}
 	}
 
@@ -190,6 +233,7 @@ export class DataXMetricManagementService {
 export class DataXMetricManagementSession {
 	private project: IProject | null = null
 	private biContext: TBIContext | null = null
+	private currentMetricScope: MetricScope = {}
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -203,31 +247,28 @@ export class DataXMetricManagementSession {
 		return this.biContext?.models ?? []
 	}
 
-	async init() {
-		const store = this.getRuntimeStore()
-		if (store) {
-			const namespace = configurableStoreNamespace(this.context)
-			const memory = await store.get(namespace, MEMORY_BI_PROJECT_ID_KEY)
-			const projectId = memory?.value?.projectId as string
-			if (projectId) {
-				await this.switchProject(projectId)
-				return
-			}
-		}
+	get metricScope() {
+		return this.currentMetricScope
+	}
 
+	async init() {
 		this.biContext = await this.queryBus.execute<GetBIContextQuery, TBIContext>(new GetBIContextQuery())
 		this.decorateBIContext()
 	}
 
 	createInitialState(state: MetricState = {}, defaultPrompt: string) {
+		if (state.tool_indicators_scope !== undefined) {
+			this.currentMetricScope = normalizeMetricScope(state.tool_indicators_scope)
+		}
 		return {
 			tool_indicators_prompts_default: state.tool_indicators_prompts_default || defaultPrompt,
 			tool_indicators_cubes: state.tool_indicators_cubes || markdownModelCubes(this.models),
+			tool_indicators_scope: this.currentMetricScope,
 			[IndicatorsVariableEnum.INDICATORS]: state[IndicatorsVariableEnum.INDICATORS] ?? {}
 		}
 	}
 
-	async switchProject(projectId: string) {
+	async loadProjectContext(projectId: string) {
 		const project = await this.queryBus.execute<ProjectGetQuery, IProject>(
 			new ProjectGetQuery({
 				id: projectId,
@@ -248,44 +289,112 @@ export class DataXMetricManagementSession {
 		return this.project
 	}
 
-	async switchProjectTool(input: SwitchProjectInput, config: LangGraphRunnableConfig) {
-		const project = input.project_id
-			? await this.switchProject(input.project_id)
-			: await this.interruptBIProject(config, input)
-		const content = JSON.stringify({
-			message: `Project with ID '${project.id}' has been initialized successfully.`,
-			projectId: project.id
-		})
+	async metricScopeGetTool(_input: Record<string, never>, _config: LangGraphRunnableConfig) {
+		return JSON.stringify(
+			this.metricScopeOutput(this.currentMetricScope, {
+				message: this.currentMetricScope.projectId
+					? 'Current metric management scope is ready.'
+					: `No metric management scope has been selected. ${METRIC_SCOPE_REQUIRED_MESSAGE}`
+			})
+		)
+	}
 
-		return new Command({
-			update: {
-				tool_indicators_cubes: markdownModelCubes(this.models),
-				messages: [
-					new ToolMessage({
-						content,
-						tool_call_id: getToolCallIdFromConfig(config)
-					})
-				]
-			}
+	async metricScopeSetTool(input: MetricScopeSetInput, config: LangGraphRunnableConfig) {
+		const explicitScope = normalizeMetricScopeInput(input)
+		const candidateScope = input.replace ? explicitScope : mergeMetricScope(this.currentMetricScope, explicitScope)
+		if (!candidateScope.projectId) {
+			throw new Error(METRIC_SCOPE_REQUIRED_MESSAGE)
+		}
+		const nextScope = await this.setActiveMetricScope(candidateScope, config, true)
+		return this.metricScopeCommand(config, nextScope, {
+			message: 'Metric management scope has been updated.'
 		})
 	}
 
-	async listCubesTool(_input: Record<string, never>, config: LangGraphRunnableConfig) {
-		await this.interruptBIProject(config, {})
-		return markdownModelCubes(this.models)
+	async metricScopeClearTool(input: MetricScopeClearInput, config: LangGraphRunnableConfig) {
+		const nextScope =
+			input.keep_project && this.currentMetricScope.projectId
+				? { projectId: this.currentMetricScope.projectId }
+				: {}
+		const scope = await this.setActiveMetricScope(nextScope, config, true)
+		return this.metricScopeCommand(config, scope, {
+			message: input.keep_project
+				? 'Metric scope filters have been cleared.'
+				: 'Metric management scope has been cleared.'
+		})
+	}
+
+	async metricScopeOptionsTool(input: MetricScopeOptionsInput, _config: LangGraphRunnableConfig) {
+		const scope = mergeMetricScope(this.currentMetricScope, normalizeMetricScopeInput(input))
+		const projects = await this.queryBus.execute<unknown, ProjectListResult>(
+			new ProjectMyQuery({
+				relations: ['models']
+			})
+		)
+		const project = scope.projectId ? projects.items.find((item) => item.id === scope.projectId) : undefined
+		const businessAreas = await this.loadAvailableBusinessAreas(scope.projectId)
+		const search = scope.search?.toLowerCase()
+		const options = {
+			projects: projects.items
+				.filter((item) => !search || item.name?.toLowerCase().includes(search) || item.id?.includes(search))
+				.map((item) => ({ value: item.id, label: item.name ?? item.id })),
+			models: (project?.models ?? [])
+				.map((model) => toModelOption(model))
+				.filter((item) => !search || item.label.toLowerCase().includes(search) || item.value.includes(search)),
+			businessAreas: businessAreas
+				.filter((area) => !search || area.name?.toLowerCase().includes(search) || area.id?.includes(search))
+				.map((area) => ({ value: area.id, label: area.name ?? area.id })),
+			statuses: Object.values(IndicatorStatusEnum).map((value) => ({ value, label: value })),
+			types: Object.values(IndicatorType).map((value) => ({ value, label: value }))
+		}
+		return JSON.stringify(
+			this.metricScopeOutput(scope, {
+				message: 'Metric scope options are ready.',
+				options
+			})
+		)
+	}
+
+	async metricScopePreviewTool(input: MetricScopePreviewInput, config: LangGraphRunnableConfig) {
+		const scope = await this.tryResolveMetricScope(config, input)
+		if (!scope) {
+			return JSON.stringify(this.metricScopeRequiredOutput())
+		}
+		const limit = input.limit ?? 10
+		const { items, total } = await this.indicatorService.findMy({
+			where: buildIndicatorWhere(scope),
+			relations: ['model', 'businessArea'],
+			take: limit,
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		return JSON.stringify(
+			this.metricScopeOutput(scope, {
+				message: `Found ${total} metric(s) in the selected scope.`,
+				total,
+				items: items.map(toMetricRow)
+			})
+		)
+	}
+
+	async listCubesTool(input: MetricScopeInput, config: LangGraphRunnableConfig) {
+		const scope = await this.tryResolveMetricScope(config, input)
+		if (!scope) {
+			return this.metricScopeRequiredText()
+		}
+		return markdownModelCubes(this.getScopedModels(scope))
 	}
 
 	async listIndicatorsTool(input: ListIndicatorsInput, config: LangGraphRunnableConfig) {
-		const project = await this.interruptBIProject(config, {})
-		const where: Record<string, string> = { projectId: project.id }
-		if (input.model_id) {
-			where.modelId = input.model_id
+		const scope = await this.tryResolveMetricScope(config, input)
+		if (!scope) {
+			return this.metricScopeRequiredText()
 		}
-		if (input.cube_name) {
-			where.entity = input.cube_name
-		}
-
-		const { items, total } = await this.indicatorService.findAll({ where })
+		const { items, total } = await this.indicatorService.findMy({
+			where: buildIndicatorWhere(scope),
+			relations: ['model', 'businessArea']
+		})
 		const indicators = items.map(applyIndicatorDraft)
 		await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 			id: getToolCallIdFromConfig(config),
@@ -294,7 +403,7 @@ export class DataXMetricManagementSession {
 			message: `(${total})`,
 			data: indicators.map((item) => item.id)
 		})
-		return markdownIndicators(indicators)
+		return [`Scope: ${summarizeMetricScope(scope)}`, markdownIndicators(indicators)].join('\n\n')
 	}
 
 	async createBasicIndicatorTool(input: BasicIndicatorInput, config: LangGraphRunnableConfig) {
@@ -302,24 +411,24 @@ export class DataXMetricManagementSession {
 			throw new Error('The measure field of indicator cannot be empty')
 		}
 
-		const project = await this.interruptBIProject(config, {})
-		await this.assertCodeUnique(input.code, project.id)
-		this.checkModelCube(input.modelId, input.cube)
-		await this.dispatchToolMessage(config, input.name + ` [${input.code}]`)
+		const { projectId, scope, input: scopedInput } = await this.prepareBasicIndicatorInput(input, config)
+		await this.assertCodeUnique(scopedInput.code, projectId)
+		this.checkModelCube(scopedInput.modelId, scopedInput.cube)
+		await this.dispatchToolMessage(config, scopedInput.name + ` [${scopedInput.code}]`)
 
-		const entityType = await this.loadEntityType(input.modelId, input.cube)
-		this.checkCalendar(entityType, input.calendar, input.cube)
-		this.checkBasicFilters(entityType, input.filters, input.cube)
+		const entityType = await this.loadEntityType(scopedInput.modelId, scopedInput.cube)
+		this.checkCalendar(entityType, scopedInput.calendar, scopedInput.cube)
+		this.checkBasicFilters(entityType, scopedInput.filters, scopedInput.cube)
 
 		const draft: TIndicatorDraft = {
-			...input,
-			entity: input.cube,
-			business: input.description,
+			...scopedInput,
+			entity: scopedInput.cube,
+			business: scopedInput.description,
 			type: IndicatorType.BASIC,
 			visible: true,
 			options: {
-				calendar: input.calendar,
-				filters: input.filters?.map((filter) => ({
+				calendar: scopedInput.calendar,
+				filters: scopedInput.filters?.map((filter) => ({
 					dimension: {
 						dimension: filter.dimension,
 						hierarchy: filter.hierarchy || null
@@ -330,20 +439,22 @@ export class DataXMetricManagementSession {
 						}
 					]
 				})),
-				measure: input.measure
+				measure: scopedInput.measure
 			}
 		}
 
-		const indicator = await this.indicatorService.createDraft(draft, project.id)
+		const indicator = await this.indicatorService.createDraft(draft, projectId)
 		await updateOcapIndicators(this.getBIContext().dsCoreService, [indicator], {
 			logger: this.logger,
 			isDraft: true
 		})
 		await this.dispatchIndicatorCreated(config, draft, indicator)
 		return this.indicatorCommand(config, draft, {
-			message: `The basic indicator with code '${input.code}' has been created.`,
-			projectId: project.id,
+			message: `The basic indicator with code '${scopedInput.code}' has been created.`,
+			projectId,
 			modelId: draft.modelId,
+			businessAreaId: draft.businessAreaId,
+			metricScope: scope,
 			indicatorId: indicator.id
 		})
 	}
@@ -353,38 +464,40 @@ export class DataXMetricManagementSession {
 			throw new Error('The formula of indicator cannot be empty')
 		}
 
-		const project = await this.interruptBIProject(config, {})
-		await this.assertCodeUnique(input.code, project.id)
-		this.checkModelCube(input.modelId, input.cube)
-		await this.dispatchToolMessage(config, input.name + ` [${input.code}]`)
+		const { projectId, scope, input: scopedInput } = await this.prepareDeriveIndicatorInput(input, config)
+		await this.assertCodeUnique(scopedInput.code, projectId)
+		this.checkModelCube(scopedInput.modelId, scopedInput.cube)
+		await this.dispatchToolMessage(config, scopedInput.name + ` [${scopedInput.code}]`)
 
-		const formula = tryFixFormula(input.formula, input.code)
-		await this.testFormula(input, formula)
-		const entityType = await this.loadEntityType(input.modelId, input.cube)
-		this.checkCalendar(entityType, input.calendar, input.cube)
+		const formula = tryFixFormula(scopedInput.formula, scopedInput.code)
+		await this.testFormula(scopedInput, formula)
+		const entityType = await this.loadEntityType(scopedInput.modelId, scopedInput.cube)
+		this.checkCalendar(entityType, scopedInput.calendar, scopedInput.cube)
 
 		const draft: TIndicatorDraft = {
-			...input,
-			entity: input.cube,
-			business: input.description,
+			...scopedInput,
+			entity: scopedInput.cube,
+			business: scopedInput.description,
 			type: IndicatorType.DERIVE,
 			visible: true,
 			options: {
-				calendar: input.calendar,
+				calendar: scopedInput.calendar,
 				formula
 			}
 		}
 
-		const indicator = await this.indicatorService.createDraft(draft, project.id)
+		const indicator = await this.indicatorService.createDraft(draft, projectId)
 		await updateOcapIndicators(this.getBIContext().dsCoreService, [indicator], {
 			logger: this.logger,
 			isDraft: true
 		})
 		await this.dispatchIndicatorCreated(config, draft, indicator)
 		return this.indicatorCommand(config, draft, {
-			message: `The indicator with code '${input.code}' has been created.`,
-			projectId: project.id,
+			message: `The indicator with code '${scopedInput.code}' has been created.`,
+			projectId,
 			modelId: draft.modelId,
+			businessAreaId: draft.businessAreaId,
+			metricScope: scope,
 			indicatorId: indicator.id
 		})
 	}
@@ -394,27 +507,27 @@ export class DataXMetricManagementSession {
 			throw new Error('The formula of indicator cannot be empty')
 		}
 
-		const project = await this.interruptBIProject(config, {})
-		await this.dispatchToolMessage(config, input.name || input.code)
+		const { projectId, scope, input: scopedInput } = await this.prepareDeriveIndicatorInput(input, config)
+		await this.dispatchToolMessage(config, scopedInput.name || scopedInput.code)
 		const { record, success } = await this.indicatorService.findOneOrFailByWhereOptions({
-			code: input.code,
-			projectId: project.id
+			...buildIndicatorBaseWhere(scope),
+			code: scopedInput.code
 		})
 		if (!success) {
-			throw new Error(`The indicator code '${input.code}' does not exist in the project '${project.id}'`)
+			throw new Error(`The indicator code '${scopedInput.code}' does not exist in the selected metric scope`)
 		}
 
-		this.checkModelCube(input.modelId, input.cube)
-		const formula = tryFixFormula(input.formula, input.code)
-		await this.testFormula(input, formula)
+		this.checkModelCube(scopedInput.modelId, scopedInput.cube)
+		const formula = tryFixFormula(scopedInput.formula, scopedInput.code)
+		await this.testFormula(scopedInput, formula)
 		const draft: TIndicatorDraft = {
-			...input,
-			entity: input.cube,
-			business: input.description,
+			...scopedInput,
+			entity: scopedInput.cube,
+			business: scopedInput.description,
 			type: IndicatorType.DERIVE,
 			visible: true,
 			options: {
-				calendar: input.calendar,
+				calendar: scopedInput.calendar,
 				formula
 			}
 		}
@@ -432,9 +545,11 @@ export class DataXMetricManagementSession {
 			}
 		} as TMessageComponent<TMessageContentIndicator>)
 		return this.indicatorCommand(config, draft, {
-			message: `The indicator with code '${input.code}' has been updated.`,
-			projectId: project.id,
+			message: `The indicator with code '${scopedInput.code}' has been updated.`,
+			projectId,
 			modelId: draft.modelId,
+			businessAreaId: draft.businessAreaId,
+			metricScope: scope,
 			indicatorId: indicator.id
 		})
 	}
@@ -444,37 +559,42 @@ export class DataXMetricManagementSession {
 			throw new Error('The code of indicator cannot be empty')
 		}
 
-		const project = await this.interruptBIProject(config, {})
+		const scope = await this.resolveMetricScope(config, {})
 		const { record: indicator, success } = await this.indicatorService.findOneOrFailByWhereOptions({
-			code: input.code,
-			projectId: project.id
+			...buildIndicatorBaseWhere(scope),
+			code: input.code
 		})
 		if (!success) {
-			throw new Error(`The indicator code '${input.code}' does not exist in the project '${project.id}'`)
+			throw new Error(`The indicator code '${input.code}' does not exist in the selected metric scope`)
 		}
 
 		const confirm = await this.interruptDeleteIndicator(indicator)
 		if (!confirm) {
 			await this.dispatchToolMessage(config, `[rejected by user] ${indicator.code}`)
-			return JSON.stringify({
-				message: `Deletion of indicator with code '${input.code}' has been rejected by user.`,
-				projectId: project.id,
-				indicatorId: indicator.id,
-				rejected: true
-			})
+			return JSON.stringify(
+				this.metricScopeOutput(scope, {
+					message: `Deletion of indicator with code '${input.code}' has been rejected by user.`,
+					indicatorId: indicator.id,
+					rejected: true
+				})
+			)
 		}
 
 		await this.dispatchToolMessage(config, indicator.name + `[${indicator.code}]`)
 		await this.indicatorService.deleteById(indicator.id)
-		return JSON.stringify({
-			message: `Indicator with code '${input.code}' has been deleted successfully.`,
-			projectId: project.id,
-			indicatorId: indicator.id
-		})
+		return JSON.stringify(
+			this.metricScopeOutput(scope, {
+				message: `Indicator with code '${input.code}' has been deleted successfully.`,
+				indicatorId: indicator.id
+			})
+		)
 	}
 
 	async indicatorRetrieverTool(input: IndicatorRetrieverInput, config: LangGraphRunnableConfig) {
-		const project = await this.interruptBIProject(config, {})
+		const scope = await this.tryResolveMetricScope(config, input)
+		if (!scope) {
+			return [this.metricScopeRequiredText(), []]
+		}
 		const toolCallId = getToolCallIdFromConfig(config)
 		await this.dispatchToolMessage(config, input.query)
 
@@ -482,10 +602,28 @@ export class DataXMetricManagementSession {
 			const projectStore = await this.commandBus.execute<CreateProjectStoreCommand, BaseStore>(
 				new CreateProjectStoreCommand({})
 			)
-			const indicators: IIndicator[] = []
-			const namespace = createIndicatorNamespace(project.id)
+			const namespace = createIndicatorNamespace(scope.projectId)
 			const items = await projectStore.search(namespace, { query: input.query, limit: input.limit })
-			indicators.push(...items.map((item) => item.value))
+			const vectorIndicators = items.map((item) => item.value as IIndicator)
+			const codes = vectorIndicators.map((item) => item.code).filter(Boolean)
+			const { items: dbIndicators } = codes.length
+				? await this.indicatorService.findMy({
+						where: {
+							...buildIndicatorBaseWhere(scope),
+							code: In(codes)
+						},
+						relations: ['model', 'businessArea']
+					})
+				: { items: [] }
+			const indicatorByCode = new Map<string, IIndicator>(
+				dbIndicators
+					.filter((indicator) => indicator.code)
+					.map((indicator) => [indicator.code, indicator] as [string, IIndicator])
+			)
+			const indicators = vectorIndicators
+				.map((indicator) => (indicator.code ? indicatorByCode.get(indicator.code) : null))
+				.filter(Boolean)
+				.map((indicator) => applyIndicatorDraft(indicator as IIndicator))
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCallId,
@@ -499,7 +637,13 @@ export class DataXMetricManagementSession {
 				}))
 			} as TMessageComponent)
 
-			return [indicators.map((item) => JSON.stringify(item, null, 2)).join('\n\n'), indicators]
+			return [
+				[
+					`Scope: ${summarizeMetricScope(scope)}`,
+					indicators.map((item) => JSON.stringify(item, null, 2)).join('\n\n')
+				].join('\n\n'),
+				indicators
+			]
 		} catch (err) {
 			this.logger.error(err)
 			return [`Error: ${getErrorMessage(err)}`, []]
@@ -507,7 +651,10 @@ export class DataXMetricManagementSession {
 	}
 
 	async getCubeContextTool(input: GetCubeContextInput, config: LangGraphRunnableConfig) {
-		await this.interruptBIProject(config, {})
+		const scope = await this.tryResolveMetricScope(config, {})
+		if (!scope) {
+			return this.metricScopeRequiredText()
+		}
 		await this.dispatchToolMessage(config, input.cube_name)
 		this.checkModelCube(input.model_id, input.cube_name)
 
@@ -543,7 +690,10 @@ export class DataXMetricManagementSession {
 	}
 
 	async dimensionMemberRetrieverTool(input: DimensionMemberRetrieverInput, config: LangGraphRunnableConfig) {
-		await this.interruptBIProject(config, {})
+		const scope = await this.tryResolveMetricScope(config, {})
+		if (!scope) {
+			return this.metricScopeRequiredText()
+		}
 		const dataSource = await firstValueFrom(
 			this.getBIContext().dsCoreService.getDataSource(this.getModelKey(input.modelId))
 		)
@@ -606,6 +756,12 @@ export class DataXMetricManagementSession {
 	}
 
 	async showIndicatorsTool(input: ShowIndicatorsInput, config: LangGraphRunnableConfig) {
+		const scope = await this.tryResolveMetricScope(config, {
+			modelId: input.modelId
+		})
+		if (!scope) {
+			return this.metricScopeRequiredText()
+		}
 		const dataSource = await this.getBIContext().dsCoreService._getDataSource(this.getModelKey(input.modelId))
 		const cubes = groupBy(input.indicators, 'cube')
 		for await (const cube of Object.keys(cubes)) {
@@ -670,62 +826,228 @@ export class DataXMetricManagementSession {
 		return 'The detailed data of the indicator list has been visually presented to the user, and you do not need to repeat the indicator information.'
 	}
 
-	private async interruptBIProject(
-		config: LangGraphRunnableConfig,
-		input: { project_id?: string | null; is_new?: boolean | null }
-	) {
-		if (this.project && !input.is_new && !input.project_id) {
-			return this.project
-		}
-		if (input.project_id) {
-			return this.switchProject(input.project_id)
-		}
-
-		const store = this.getRuntimeStore(config)
-		const namespace = this.getRuntimeStoreNamespace(config)
-		const projectId = await this.interruptBIProjectId(store, namespace, input)
-		return this.switchProject(projectId)
-	}
-
-	private getRuntimeStore(config?: LangGraphRunnableConfig) {
-		return extractStore(config?.store ?? safeGetStore() ?? this.context.store)
-	}
-
-	private getRuntimeStoreNamespace(config?: LangGraphRunnableConfig) {
-		if (config?.configurable) {
-			return getStoreNamespace(config)
-		}
-		return configurableStoreNamespace(this.context)
-	}
-
-	private async interruptBIProjectId(
-		store: BaseStore | undefined,
-		namespace: string[],
-		input: { project_id?: string | null; is_new?: boolean | null }
-	) {
-		const memory = store ? await store.get(namespace, MEMORY_BI_PROJECT_ID_KEY) : null
-		let projectId = memory?.value?.projectId as string
-		if (!projectId || input.is_new) {
-			const value = interrupt<TInterruptMessage<{ projectId?: string }>, { projectId: string }>({
-				category: 'BI',
-				type: BIInterruptMessageType.SwitchProject,
-				title: {
-					en_US: 'Switch project',
-					zh_Hans: '切换项目'
-				},
-				message: {
-					en_US: 'Please select a project or create a new one',
-					zh_Hans: '请选择或创建一个新的项目'
-				},
-				data: { projectId: input.project_id ?? undefined }
-			})
-
-			projectId = value.projectId
-			if (store) {
-				await store.put(namespace, MEMORY_BI_PROJECT_ID_KEY, { projectId })
+	private async resolveMetricScope(config: LangGraphRunnableConfig, input: MetricScopeInput): Promise<MetricScope> {
+		const explicit = normalizeMetricScopeInput(input)
+		let scope = mergeMetricScope(this.currentMetricScope, explicit)
+		if (!scope.projectId) {
+			const runtimeScope = await this.waitForRuntimeMetricScope(config)
+			if (runtimeScope.projectId) {
+				scope = mergeMetricScope(runtimeScope, explicit)
 			}
 		}
-		return projectId
+		if (!scope.projectId) {
+			throw new Error(METRIC_SCOPE_REQUIRED_MESSAGE)
+		} else {
+			await this.ensureProjectLoaded(scope.projectId)
+		}
+		return this.validateMetricScope(scope)
+	}
+
+	private async tryResolveMetricScope(config: LangGraphRunnableConfig, input: MetricScopeInput) {
+		try {
+			return await this.resolveMetricScope(config, input)
+		} catch (err) {
+			if (getErrorMessage(err).includes(METRIC_SCOPE_REQUIRED_MESSAGE)) {
+				return null
+			}
+			throw err
+		}
+	}
+
+	private metricScopeRequiredOutput() {
+		return this.metricScopeOutput(this.currentMetricScope, {
+			message: METRIC_SCOPE_REQUIRED_MESSAGE,
+			metricScopeRequired: true
+		})
+	}
+
+	private metricScopeRequiredText() {
+		return [
+			METRIC_SCOPE_REQUIRED_MESSAGE,
+			'Use indicator_scope_options to inspect selectable projects, then call indicator_scope_set with projectId. Retry the metric operation only after indicator_scope_set has completed.'
+		].join('\n')
+	}
+
+	private async waitForRuntimeMetricScope(config: LangGraphRunnableConfig) {
+		for (let attempt = 0; attempt <= METRIC_SCOPE_SYNC_RETRY_COUNT; attempt += 1) {
+			const scope = await this.readRuntimeMetricScope(config)
+			if (scope.projectId) {
+				return scope
+			}
+			if (attempt < METRIC_SCOPE_SYNC_RETRY_COUNT) {
+				await sleep(METRIC_SCOPE_SYNC_RETRY_INTERVAL)
+			}
+		}
+		return {}
+	}
+
+	private async readRuntimeMetricScope(config: LangGraphRunnableConfig) {
+		if (this.currentMetricScope.projectId) {
+			return this.currentMetricScope
+		}
+
+		const currentState = getContextVariable<Record<string, unknown>>(CONTEXT_VARIABLE_CURRENTSTATE)
+		const scope = normalizeMetricScope(
+			(currentState?.tool_indicators_scope ??
+				(config as { state?: Record<string, unknown> } | undefined)?.state
+					?.tool_indicators_scope) as MetricScope
+		)
+		if (scope.projectId) {
+			this.currentMetricScope = scope
+			return scope
+		}
+		return {}
+	}
+
+	private async setActiveMetricScope(scope: MetricScope, config: LangGraphRunnableConfig, replace: boolean) {
+		const nextScope = await this.validateMetricScope(
+			replace ? scope : mergeMetricScope(this.currentMetricScope, scope)
+		)
+		if (nextScope.projectId) {
+			await this.ensureProjectLoaded(nextScope.projectId)
+		}
+		this.currentMetricScope = nextScope
+		return nextScope
+	}
+
+	private async validateMetricScope(scope: MetricScope): Promise<MetricScope> {
+		const normalized = normalizeMetricScope(scope)
+		if (!normalized.projectId) {
+			return normalized
+		}
+
+		await this.ensureProjectLoaded(normalized.projectId)
+		const modelIds = new Set(this.models.map((model) => model.id).filter(Boolean))
+		for (const modelId of normalized.modelIds ?? []) {
+			if (!modelIds.has(modelId)) {
+				throw new Error(`Model with ID ${modelId} is not available in project '${normalized.projectId}'`)
+			}
+		}
+
+		if (normalized.businessAreaIds?.length) {
+			const businessAreaIds = new Set(
+				(await this.loadAvailableBusinessAreas(normalized.projectId)).map((area) => area.id).filter(Boolean)
+			)
+			for (const businessAreaId of normalized.businessAreaIds) {
+				if (!businessAreaIds.has(businessAreaId)) {
+					throw new Error(`Business area with ID ${businessAreaId} is not available for the current user`)
+				}
+			}
+		}
+
+		for (const entity of normalized.entities ?? []) {
+			const hasEntity = this.getScopedModels(normalized).some((model) =>
+				model.options?.schema?.cubes?.some((cube) => cube.name === entity)
+			)
+			if (!hasEntity) {
+				throw new Error(`Cube/entity '${entity}' is not available in the selected metric scope`)
+			}
+		}
+
+		return normalized
+	}
+
+	private async prepareBasicIndicatorInput(input: BasicIndicatorInput, config: LangGraphRunnableConfig) {
+		const scope = await this.resolveMetricScope(config, input)
+		const modelId = input.modelId ?? requireSingleScopeValue(scope.modelIds, 'semantic model')
+		const cube = input.cube ?? requireSingleScopeValue(scope.entities, 'cube/entity')
+		const businessAreaId = input.businessAreaId ?? optionalSingleScopeValue(scope.businessAreaIds, 'business area')
+		const scopedInput = {
+			...input,
+			modelId,
+			cube,
+			...(businessAreaId ? { businessAreaId } : {})
+		} as BasicIndicatorInput & { modelId: string; cube: string }
+		return {
+			projectId: scope.projectId as string,
+			scope,
+			input: scopedInput
+		}
+	}
+
+	private async prepareDeriveIndicatorInput(input: DeriveIndicatorInput, config: LangGraphRunnableConfig) {
+		const scope = await this.resolveMetricScope(config, input)
+		const modelId = input.modelId ?? requireSingleScopeValue(scope.modelIds, 'semantic model')
+		const cube = input.cube ?? requireSingleScopeValue(scope.entities, 'cube/entity')
+		const businessAreaId = input.businessAreaId ?? optionalSingleScopeValue(scope.businessAreaIds, 'business area')
+		const scopedInput = {
+			...input,
+			modelId,
+			cube,
+			...(businessAreaId ? { businessAreaId } : {})
+		} as DeriveIndicatorInput & { modelId: string; cube: string }
+		return {
+			projectId: scope.projectId as string,
+			scope,
+			input: scopedInput
+		}
+	}
+
+	private async ensureProjectLoaded(projectId: string) {
+		if (this.project?.id === projectId) {
+			return this.project
+		}
+		return this.loadProjectContext(projectId)
+	}
+
+	private getScopedModels(scope: MetricScope): ISemanticModel[] {
+		const modelIds = new Set(scope.modelIds ?? [])
+		const businessAreaIds = new Set(scope.businessAreaIds ?? [])
+		return this.models.filter((model) => {
+			if (modelIds.size && !modelIds.has(model.id)) {
+				return false
+			}
+			if (businessAreaIds.size && !businessAreaIds.has((model as ModelOptionSource).businessAreaId)) {
+				return false
+			}
+			return true
+		})
+	}
+
+	private async loadAvailableBusinessAreas(projectId?: string): Promise<IBusinessArea[]> {
+		const areas = await this.commandBus.execute<BusinessAreaMyCommand, IBusinessArea[]>(
+			new BusinessAreaMyCommand(toUserReference(this.context.userId))
+		)
+		if (!projectId) {
+			return areas
+		}
+		const project = this.project?.id === projectId ? this.project : await this.loadProjectContext(projectId)
+		const projectAreaIds = new Set(
+			(project.models ?? []).map((model) => (model as ModelOptionSource).businessAreaId).filter(Boolean)
+		)
+		if (!projectAreaIds.size) {
+			return areas
+		}
+		return areas.filter((area) => area.id && projectAreaIds.has(area.id))
+	}
+
+	private metricScopeCommand(config: LangGraphRunnableConfig, scope: MetricScope, content: Record<string, unknown>) {
+		return new Command({
+			update: {
+				tool_indicators_cubes: markdownModelCubes(this.models),
+				tool_indicators_scope: scope,
+				messages: [
+					new ToolMessage({
+						content: JSON.stringify(this.metricScopeOutput(scope, content)),
+						tool_call_id: getToolCallIdFromConfig(config),
+						status: 'success'
+					})
+				]
+			}
+		})
+	}
+
+	private metricScopeOutput(scope: MetricScope, content: Record<string, unknown>) {
+		const modelId = scope.modelIds?.length === 1 ? scope.modelIds[0] : undefined
+		const businessAreaId = scope.businessAreaIds?.length === 1 ? scope.businessAreaIds[0] : undefined
+		return {
+			...content,
+			projectId: content.projectId ?? scope.projectId,
+			...(modelId ? { modelId } : {}),
+			...(businessAreaId ? { businessAreaId } : {}),
+			metricScope: scope,
+			scopeSummary: summarizeMetricScope(scope)
+		}
 	}
 
 	private async interruptDeleteIndicator(indicator: IIndicator) {
@@ -892,15 +1214,17 @@ export class DataXMetricManagementSession {
 		draft: TIndicatorDraft,
 		content: Record<string, unknown>
 	) {
+		const output = this.metricScopeOutput(this.currentMetricScope, content)
 		return new Command({
 			update: {
 				[IndicatorsVariableEnum.INDICATORS]: {
 					indicators: [draft]
 				},
+				tool_indicators_scope: this.currentMetricScope,
 				messages: [
 					new ToolMessage({
 						tool_call_id: getToolCallIdFromConfig(config),
-						content: JSON.stringify(content),
+						content: JSON.stringify(output),
 						status: 'success'
 					})
 				]
@@ -911,8 +1235,10 @@ export class DataXMetricManagementSession {
 
 export function toMetricRow(indicator: IIndicator): MetricRow {
 	const model = indicator.model as ModelOptionSource | undefined
+	const businessArea = indicator.businessArea as BusinessAreaOptionSource | undefined
 	const draft = indicator.draft ?? {}
 	const options = (draft as TIndicatorDraft).options ?? indicator.options
+	const businessAreaId = (draft as TIndicatorDraft).businessAreaId ?? indicator.businessAreaId
 
 	return {
 		id: indicator.id,
@@ -922,6 +1248,8 @@ export function toMetricRow(indicator: IIndicator): MetricRow {
 		status: indicator.status,
 		modelId: (draft as TIndicatorDraft).modelId ?? indicator.modelId,
 		modelName: model?.name ?? model?.title ?? (draft as TIndicatorDraft).modelId ?? indicator.modelId,
+		businessAreaId,
+		businessAreaName: businessArea?.name ?? businessAreaId,
 		entity: (draft as TIndicatorDraft).entity ?? indicator.entity,
 		business: (draft as TIndicatorDraft).business ?? indicator.business,
 		unit: (draft as TIndicatorDraft).unit ?? indicator.unit,
@@ -941,18 +1269,34 @@ export function toModelOption(model: unknown) {
 	}
 }
 
+export function toBusinessAreaOption(area: unknown) {
+	const source = area as BusinessAreaOptionSource
+	return {
+		value: source.id ?? '',
+		label: source.name ?? source.id ?? ''
+	}
+}
+
 export function getStringInput(parameters: Record<string, unknown> | undefined, key: string) {
 	const value = parameters?.[key]
 	const normalized = Array.isArray(value) ? value[0] : value
 	return typeof normalized === 'string' && normalized.trim() ? normalized.trim() : undefined
 }
 
-function buildIndicatorWhere(projectId: string, modelId?: string, search?: string) {
-	const base = {
-		projectId,
-		...(modelId ? { modelId } : {})
+export function buildIndicatorBaseWhere(scope: MetricScope) {
+	return {
+		projectId: scope.projectId,
+		...toWhereList('modelId', scope.modelIds),
+		...toWhereList('businessAreaId', scope.businessAreaIds),
+		...toWhereList('entity', scope.entities),
+		...(scope.status ? { status: scope.status } : {}),
+		...(scope.type ? { type: scope.type } : {})
 	}
-	const normalizedSearch = search?.trim()
+}
+
+export function buildIndicatorWhere(scope: MetricScope) {
+	const base = buildIndicatorBaseWhere(scope)
+	const normalizedSearch = scope.search?.trim()
 
 	if (!normalizedSearch) {
 		return base
@@ -964,6 +1308,15 @@ function buildIndicatorWhere(projectId: string, modelId?: string, search?: strin
 		{ ...base, name: ILike(pattern) },
 		{ ...base, business: ILike(pattern) }
 	]
+}
+
+function toWhereList(key: string, values: string[] | undefined) {
+	if (!values?.length) {
+		return {}
+	}
+	return {
+		[key]: values.length === 1 ? values[0] : In(values)
+	}
 }
 
 function buildIndicatorOrder(sortBy?: string, sortDirection?: string): FindOptionsOrder<Indicator> {
@@ -1004,6 +1357,7 @@ export function toIndicatorDraft(input: Record<string, unknown> | null | undefin
 		modelId: getOptionalString(source, 'modelId'),
 		entity: cube,
 		business: description,
+		businessAreaId: getOptionalString(source, 'businessAreaId'),
 		unit: getOptionalString(source, 'unit'),
 		visible: getOptionalBoolean(source, 'visible') ?? true,
 		isApplication: getOptionalBoolean(source, 'isApplication') ?? false,
@@ -1054,21 +1408,151 @@ function getIndicatorType(source: Record<string, unknown>) {
 	return IndicatorType.BASIC
 }
 
-function safeGetStore(): BaseStore | undefined {
-	try {
-		return getStore()
-	} catch {
-		return undefined
+function metricScopeFromViewQuery(query: XpertViewQuery): MetricScope {
+	return normalizeMetricScope({
+		projectId: getStringInput(query.parameters, 'projectId'),
+		modelIds: getStringListInput(query.parameters, 'modelId'),
+		businessAreaIds: getStringListInput(query.parameters, 'businessAreaId'),
+		status: getStringInput(query.parameters, 'status') as IndicatorStatusEnum | undefined,
+		type: getStringInput(query.parameters, 'type') as IndicatorType | undefined,
+		search: query.search
+	})
+}
+
+export function normalizeMetricScopeInput(input: Partial<MetricScopeInput> | undefined | null): MetricScope {
+	const source = (input ?? {}) as MetricScopeInput
+	return normalizeMetricScope({
+		projectId: firstString(source.projectId, source.project_id),
+		modelIds: firstStringList(source.modelIds, source.model_ids, source.modelId, source.model_id),
+		businessAreaIds: firstStringList(
+			source.businessAreaIds,
+			source.business_area_ids,
+			source.businessAreaId,
+			source.business_area_id
+		),
+		entities: firstStringList(source.entities, source.entity, source.cubeName, source.cube_name),
+		status: source.status ?? undefined,
+		type: source.type ?? undefined,
+		search: firstString(source.search)
+	})
+}
+
+export function normalizeMetricScope(scope: MetricScope | undefined | null): MetricScope {
+	return {
+		projectId: normalizeString(scope?.projectId),
+		modelIds: normalizeStringList(scope?.modelIds),
+		businessAreaIds: normalizeStringList(scope?.businessAreaIds),
+		entities: normalizeStringList(scope?.entities),
+		status: scope?.status ?? undefined,
+		type: scope?.type ?? undefined,
+		search: normalizeString(scope?.search)
 	}
 }
 
-function extractStore(input?: BaseStore): BaseStore | undefined {
-	if (!input) {
+function mergeMetricScope(base: MetricScope, patch: MetricScope): MetricScope {
+	const next = normalizeMetricScope({
+		projectId: patch.projectId ?? base.projectId,
+		modelIds: patch.modelIds ?? base.modelIds,
+		businessAreaIds: patch.businessAreaIds ?? base.businessAreaIds,
+		entities: patch.entities ?? base.entities,
+		status: patch.status ?? base.status,
+		type: patch.type ?? base.type,
+		search: patch.search ?? base.search
+	})
+	if (patch.projectId && patch.projectId !== base.projectId) {
+		next.modelIds = patch.modelIds
+		next.businessAreaIds = patch.businessAreaIds
+		next.entities = patch.entities
+	}
+	return next
+}
+
+export function summarizeMetricScope(scope: MetricScope) {
+	const parts = [
+		scope.projectId ? `project=${scope.projectId}` : null,
+		scope.modelIds?.length ? `models=${scope.modelIds.join(',')}` : null,
+		scope.businessAreaIds?.length ? `businessAreas=${scope.businessAreaIds.join(',')}` : null,
+		scope.entities?.length ? `entities=${scope.entities.join(',')}` : null,
+		scope.status ? `status=${scope.status}` : null,
+		scope.type ? `type=${scope.type}` : null,
+		scope.search ? `search=${scope.search}` : null
+	].filter(Boolean)
+	return parts.length ? parts.join('; ') : 'all accessible metrics'
+}
+
+function requireSingleScopeValue(values: string[] | undefined, label: string) {
+	if (!values?.length) {
+		throw new Error(`A ${label} is required. Provide it explicitly or set a single active metric scope.`)
+	}
+	if (values.length > 1) {
+		throw new Error(`Multiple ${label}s are selected in the active metric scope. Provide one explicitly.`)
+	}
+	return values[0]
+}
+
+function optionalSingleScopeValue(values: string[] | undefined, label: string) {
+	if (!values?.length) {
 		return undefined
 	}
-	let current = input as BaseStore & { store?: BaseStore }
-	while (current?.constructor?.name === 'AsyncBatchedStore' && current.store) {
-		current = current.store as BaseStore & { store?: BaseStore }
+	if (values.length > 1) {
+		throw new Error(`Multiple ${label}s are selected in the active metric scope. Provide one explicitly.`)
 	}
-	return current
+	return values[0]
+}
+
+function getStringListInput(parameters: Record<string, unknown> | undefined, key: string) {
+	const value = parameters?.[key]
+	if (Array.isArray(value)) {
+		return normalizeStringList(value)
+	}
+	const normalized = normalizeString(value)
+	return normalized ? [normalized] : undefined
+}
+
+function firstString(...values: unknown[]) {
+	for (const value of values) {
+		const normalized = normalizeString(value)
+		if (normalized) {
+			return normalized
+		}
+	}
+	return undefined
+}
+
+function firstStringList(...values: unknown[]) {
+	for (const value of values) {
+		const normalized = Array.isArray(value) ? normalizeStringList(value) : normalizeString(value)
+		if (Array.isArray(normalized) && normalized.length) {
+			return normalized
+		}
+		if (typeof normalized === 'string') {
+			return [normalized]
+		}
+	}
+	return undefined
+}
+
+function normalizeString(value: unknown) {
+	return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function normalizeStringList(values: unknown[] | undefined) {
+	const seen = new Set<string>()
+	const result: string[] = []
+	for (const value of values ?? []) {
+		const normalized = normalizeString(value)
+		if (normalized && !seen.has(normalized)) {
+			seen.add(normalized)
+			result.push(normalized)
+		}
+	}
+	return result.length ? result : undefined
+}
+
+function toUserReference(userId: string | undefined) {
+	return (userId ? { id: userId } : undefined) as IUser
+}
+
+function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }

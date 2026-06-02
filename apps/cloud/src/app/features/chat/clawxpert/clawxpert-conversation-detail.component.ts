@@ -228,7 +228,7 @@ type ChatKitReferenceComposerControl = {
                 zType="ghost"
                 zSize="icon"
                 data-add-workspace-tab
-                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:bg-components-card-bg hover:text-text-primary"
+                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:text-text-primary"
                 [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
                 z-menu
                 [zMenuTriggerFor]="workspaceTabMenu"

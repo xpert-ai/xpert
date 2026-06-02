@@ -23,6 +23,7 @@ export class DataXMetricManagementRuntime {
 		return z.object({
 			tool_indicators_prompts_default: z.string().default(TOOL_INDICATORS_PROMPTS_DEFAULT),
 			tool_indicators_cubes: z.string().default(markdownModelCubes(this.session.models)),
+			tool_indicators_scope: z.unknown().default(this.session.metricScope),
 			[IndicatorsVariableEnum.INDICATORS]: z
 				.object({
 					cubes: z.array(z.unknown()).optional(),
@@ -43,8 +44,16 @@ export class DataXMetricManagementRuntime {
 				tool(
 					async (input, config) => {
 						switch (definition.name) {
-							case 'switch_project':
-								return this.session.switchProjectTool(input as never, config)
+							case 'indicator_scope_get':
+								return this.session.metricScopeGetTool(input as never, config)
+							case 'indicator_scope_set':
+								return this.session.metricScopeSetTool(input as never, config)
+							case 'indicator_scope_clear':
+								return this.session.metricScopeClearTool(input as never, config)
+							case 'indicator_scope_options':
+								return this.session.metricScopeOptionsTool(input as never, config)
+							case 'indicator_scope_preview':
+								return this.session.metricScopePreviewTool(input as never, config)
 							case 'create_derive_indicator':
 								return this.session.createDeriveIndicatorTool(input as never, config)
 							case 'create_basic_indicator':
