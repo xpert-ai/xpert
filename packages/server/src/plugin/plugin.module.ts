@@ -23,6 +23,9 @@ import { QueryHandlers } from './queries/handlers'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
+import { PluginMarketplaceRegistryItem } from './plugin-marketplace-registry-item.entity'
+import { PluginMarketplaceSource } from './plugin-marketplace-source.entity'
+import { PluginMarketplaceService } from './plugin-marketplace.service'
 import {
 	PluginAccountBindingPermissionService,
 	PluginBoundIdentityLoginPermissionService,
@@ -33,7 +36,11 @@ import {
 
 @Global()
 @Module({
-	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance]), CqrsModule],
+	imports: [
+		ConfigModule,
+		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
+		CqrsModule
+	],
 	controllers: [PluginController],
 	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN, LOADED_PLUGINS],
 	providers: [
@@ -55,6 +62,7 @@ import {
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
 		PluginConfigResolver,
 		PluginInstanceService,
+		PluginMarketplaceService,
 		PluginManagementService,
 		PluginBoundIdentityLoginPermissionService,
 		PluginSsoBindingPermissionService,

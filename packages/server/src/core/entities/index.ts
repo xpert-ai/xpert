@@ -29,8 +29,10 @@ import {
 	SecretToken,
 	Integration,
 	PluginInstance,
-	ExternalIdentityBinding,
-} from './internal';
+	PluginMarketplaceRegistryItem,
+	PluginMarketplaceSource,
+	ExternalIdentityBinding
+} from './internal'
 
 export const coreEntities = [
 	ApiKey,
@@ -63,5 +65,7 @@ export const coreEntities = [
 	SecretToken,
 	Integration,
 	PluginInstance,
+	PluginMarketplaceRegistryItem,
+	PluginMarketplaceSource,
 	ExternalIdentityBinding
-];
+]

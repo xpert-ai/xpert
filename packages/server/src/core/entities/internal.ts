@@ -39,5 +39,7 @@ export * from '../../tags/tag.subscriber'
 export * from '../../integration/integration.entity'
 export * from '../../api-key/api-key.entity'
 export * from '../../plugin/plugin-instance.entity'
+export * from '../../plugin/plugin-marketplace-registry-item.entity'
+export * from '../../plugin/plugin-marketplace-source.entity'
 export * from '../../account-binding/external-identity-binding.entity'
 //core subscribers

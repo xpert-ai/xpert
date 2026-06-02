@@ -1,33 +1,51 @@
 <h1 class="text-3xl font-semibold mb-2 shrink-0 text-center text-text-primary">
-  {{ 'PAC.Plugin.EmpowerAIDevelopment' | translate: {Default: 'Empower your AI development'} }}
+  {{ 'PAC.Plugin.EmpowerAIDevelopment' | translate: { Default: 'Empower your AI development' } }}
 </h1>
 <h2 class="body-md-regular flex shrink-0 items-center justify-center text-center text-text-tertiary">
-  {{ 'PAC.Plugin.Discover' | translate: {Default: 'Discover'} }}
-  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
+  {{ 'PAC.Plugin.Discover' | translate: { Default: 'Discover' } }}
+  <span
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
     <span class="relative z-[2] lowercase">
       {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
-    </span>
-  </span>,
-  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
-      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}</span>
-  </span>,
-  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
-      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.DocSources' | translate: { Default: 'Doc Sources' } }}</span>
-  </span>,
-  <span class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
-      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Transformer' | translate: { Default: 'Transformer' } }}</span>
-  </span>,
-  <span class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
-      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Integration' | translate: { Default: 'Integration' } }}</span>
+    </span> </span
+  >,
+  <span
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
+    <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}</span> </span
+  >,
+  <span
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
+    <span class="relative z-[2] lowercase">{{
+      'PAC.Plugin.DocSources' | translate: { Default: 'Doc Sources' }
+    }}</span> </span
+  >,
+  <span
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
+    <span class="relative z-[2] lowercase">{{
+      'PAC.Plugin.Transformer' | translate: { Default: 'Transformer' }
+    }}</span> </span
+  >,
+  <span
+    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
+    <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Integration' | translate: { Default: 'Integration' } }}</span>
   </span>
-  {{ 'PAC.Plugin.And' | translate: {Default: 'and'} }}
-  <span class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']">
-      <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.VectorStore' | translate: { Default: 'Vector Store' } }}</span>
+  {{ 'PAC.Plugin.And' | translate: { Default: 'and' } }}
+  <span
+    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+  >
+    <span class="relative z-[2] lowercase">{{
+      'PAC.Plugin.VectorStore' | translate: { Default: 'Vector Store' }
+    }}</span>
   </span>
   <span class="mr-1">
-    {{ 'PAC.Plugin.In' | translate: {Default: 'in'} }}
+    {{ 'PAC.Plugin.In' | translate: { Default: 'in' } }}
   </span>
-  {{ 'PAC.Plugin.PluginsMarketplace' | translate: {Default: 'Plugins Marketplace'} }}
+  {{ 'PAC.Plugin.PluginsMarketplace' | translate: { Default: 'Plugins Marketplace' } }}
 </h2>
 
 <div
@@ -35,10 +53,16 @@
   [class]="loading() ? 'pointer-events-none opacity-80' : ''"
 >
   <div class="mb-4 h-px shrink-0 bg-transparent"></div>
-  <div class="flex items-center mx-auto w-[640px] shrink-0 ">
-    <div class="flex items-center rounded-xl border border-(--border) bg-components-panel-bg-blur p-1.5 shadow-sm w-full">
-      <div class="shrink-0" >
-        <ngm-select class="inline-block w-[160px]" multiple searchable [selectOptions]="keywordsOptions()"
+  <div class="flex items-center mx-auto w-full max-w-[920px] shrink-0 gap-2 px-4">
+    <div
+      class="flex min-w-0 flex-1 items-center rounded-xl border border-(--border) bg-components-panel-bg-blur p-1.5 shadow-sm"
+    >
+      <div class="shrink-0">
+        <ngm-select
+          class="inline-block w-[160px]"
+          multiple
+          searchable
+          [selectOptions]="keywordsOptions()"
           [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
           [(ngModel)]="keywords"
           icon="ri-filter-3-line"
@@ -46,11 +70,28 @@
       </div>
       <div class="w-[1px] bg-divider-regular mx-1 h-3.5"></div>
       <div class="flex grow items-center gap-x-2 p-1">
-        <input class="body-md-medium inline-block grow appearance-none bg-transparent text-text-secondary outline-none"
+        <input
+          class="body-md-medium inline-block grow appearance-none bg-transparent text-text-secondary outline-none"
           [placeholder]="'PAC.Plugin.SearchPlugins' | translate: { Default: 'Search plugins' }"
-          [(ngModel)]="searchModel">
+          [(ngModel)]="searchModel"
+        />
       </div>
     </div>
+    <select
+      class="h-11 min-w-[180px] rounded-xl border border-(--border) bg-components-panel-bg-blur px-3 text-sm text-text-secondary shadow-sm outline-none"
+      [(ngModel)]="sourceFilter"
+    >
+      <option value="all">{{ 'PAC.Plugin.AllSources' | translate: { Default: 'All sources' } }}</option>
+      @for (source of sources(); track source.id) {
+        <option [value]="source.id">
+          @if (sourceI18nKey(source.id, source.name); as sourceKey) {
+            {{ sourceKey | translate: { Default: source.name } }}
+          } @else {
+            {{ source.name }}
+          }
+        </option>
+      }
+    </select>
   </div>
 </div>
 
@@ -60,12 +101,15 @@
   cdkListbox
   [(ngModel)]="categories"
 >
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     [class.active]="categories().length === 0"
-    (click)="categories.set([])">
+    (click)="categories.set([])"
+  >
     {{ 'PAC.Plugin.All' | translate: { Default: 'All' } }}
   </div>
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     #option1="cdkOption"
     [class.active]="option1.isSelected()"
     cdkOption="model"
@@ -73,7 +117,8 @@
     <i class="ri-brain-2-line mr-1.5 shrink-0"></i>
     {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
   </div>
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     #option2="cdkOption"
     [class.active]="option2.isSelected()"
     cdkOption="tools"
@@ -90,7 +135,8 @@
     <i class="ri-database-2-line mr-1.5 shrink-0"></i>
     {{ 'PAC.Plugin.Database' | translate: { Default: 'Database' } }}
   </div>
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     #option4="cdkOption"
     [class.active]="option4.isSelected()"
     cdkOption="middleware"
@@ -98,7 +144,8 @@
     <i class="ri-speak-ai-line mr-1.5 shrink-0"></i>
     {{ 'PAC.Plugin.Agent' | translate: { Default: 'Agent' } }}
   </div>
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     #option5="cdkOption"
     [class.active]="option5.isSelected()"
     cdkOption="integration"
@@ -106,7 +153,8 @@
     <i class="ri-puzzle-2-line mr-1.5 shrink-0"></i>
     {{ 'PAC.Plugin.Integration' | translate: { Default: 'Integrations' } }}
   </div>
-  <div class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+  <div
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
     #option6="cdkOption"
     [class.active]="option6.isSelected()"
     cdkOption="vector-store"
@@ -150,13 +198,19 @@
             </div>
 
             <div class="grid grid-cols-3 gap-2">
-              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+              <div
+                class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary"
+              >
                 {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
               </div>
-              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+              <div
+                class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary"
+              >
                 {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
               </div>
-              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+              <div
+                class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary"
+              >
                 {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
               </div>
             </div>
@@ -212,64 +266,576 @@
       </div>
     </div>
   } @else {
-    <div class="py-3">
-      <div class="flex items-end justify-between">
-        <div>
-          <div class="text-xl font-semibold text-text-primary">
-            {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
+    @if (sourceErrors().length) {
+      <div
+        class="mb-3 rounded-2xl border border-text-warning/30 bg-components-card-bg px-4 py-3 text-sm text-text-warning"
+      >
+        @for (sourceError of sourceErrors(); track sourceError.sourceId + sourceError.message) {
+          <div>
+            @if (sourceI18nKey(sourceError.sourceId, sourceError.sourceName); as sourceKey) {
+              {{ sourceKey | translate: { Default: sourceError.sourceName } }}
+            } @else {
+              {{ sourceError.sourceName }}
+            }
+            : {{ sourceError.message }}
           </div>
-          <div class="system-xs-regular text-text-tertiary">
-            {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
-          </div>
-        </div>
-      </div>
-      <div class="mt-2 grid grid-cols-4 gap-3">
-        @for (plugin of partnerPlugins(); track plugin.name) {
-          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-            [plugin]="plugin"
-          />
         }
       </div>
-    </div>
+    }
 
-    <div class="py-3">
-      <div class="flex items-end justify-between">
-        <div>
-          <div class="text-xl font-semibold text-text-primary">
-            {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
-          </div>
-          <div class="system-xs-regular text-text-tertiary">
-            {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
+    @if (marketplacePlugins().length) {
+      <div class="py-3">
+        <div class="flex items-end justify-between">
+          <div>
+            <div class="text-xl font-semibold text-text-primary">
+              {{ 'PAC.Plugin.Marketplace' | translate: { Default: 'Marketplace' } }}
+            </div>
+            <div class="system-xs-regular text-text-tertiary">
+              {{
+                'PAC.Plugin.MarketplaceDescription'
+                  | translate: { Default: 'Plugins discovered from the selected marketplace sources.' }
+              }}
+            </div>
           </div>
         </div>
+        <div class="mt-2 grid grid-cols-4 gap-3">
+          @for (plugin of marketplacePlugins(); track plugin.name) {
+            <xp-settings-plugin
+              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              [plugin]="plugin"
+            />
+          }
+        </div>
       </div>
-      <div class="mt-2 grid grid-cols-4 gap-3">
-        @for (plugin of officialPlugins(); track plugin.name) {
-          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-            [plugin]="plugin"
-          />
-        }
-      </div>
-    </div>
+    }
 
-    <div class="py-3">
-      <div class="flex items-end justify-between">
-        <div>
-          <div class="text-xl font-semibold text-text-primary">
-            {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
-          </div>
-          <div class="system-xs-regular text-text-tertiary">
-            {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
+    @if (partnerPlugins().length) {
+      <div class="py-3">
+        <div class="flex items-end justify-between">
+          <div>
+            <div class="text-xl font-semibold text-text-primary">
+              {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
+            </div>
+            <div class="system-xs-regular text-text-tertiary">
+              {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
+            </div>
           </div>
         </div>
+        <div class="mt-2 grid grid-cols-4 gap-3">
+          @for (plugin of partnerPlugins(); track plugin.name) {
+            <xp-settings-plugin
+              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              [plugin]="plugin"
+            />
+          }
+        </div>
       </div>
-      <div class="mt-2 grid grid-cols-4 gap-3">
-        @for (plugin of communityPlugins(); track plugin.name) {
-          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-            [plugin]="plugin"
-          />
-        }
+    }
+
+    @if (officialPlugins().length) {
+      <div class="py-3">
+        <div class="flex items-end justify-between">
+          <div>
+            <div class="text-xl font-semibold text-text-primary">
+              {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
+            </div>
+            <div class="system-xs-regular text-text-tertiary">
+              {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 grid grid-cols-4 gap-3">
+          @for (plugin of officialPlugins(); track plugin.name) {
+            <xp-settings-plugin
+              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              [plugin]="plugin"
+            />
+          }
+        </div>
       </div>
-    </div>
+    }
+
+    @if (communityPlugins().length) {
+      <div class="py-3">
+        <div class="flex items-end justify-between">
+          <div>
+            <div class="text-xl font-semibold text-text-primary">
+              {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
+            </div>
+            <div class="system-xs-regular text-text-tertiary">
+              {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 grid grid-cols-4 gap-3">
+          @for (plugin of communityPlugins(); track plugin.name) {
+            <xp-settings-plugin
+              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              [plugin]="plugin"
+            />
+          }
+        </div>
+      </div>
+    }
   }
 </div>
+
+<ng-template #addSourceDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div>
+        <div class="text-xl font-semibold text-text-primary">
+          {{ 'PAC.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}
+        </div>
+        <div class="mt-1 max-w-xl text-sm text-text-tertiary">
+          {{
+            'PAC.Plugin.AddMarketplaceDescription'
+              | translate
+                : {
+                    Default:
+                      'Add a marketplace from a repository, Git URL, or static index URL. XpertAI only reads manifest and package metadata.'
+                  }
+          }}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center"
+        (click)="dialogRef.close()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+
+    <div class="relative flex flex-col gap-4">
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-text-tertiary">
+            {{ 'PAC.Plugin.SourceType' | translate: { Default: 'Source type' } }}
+          </span>
+          <select
+            class="w-full rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            [(ngModel)]="sourceType"
+          >
+            <option value="github">{{ 'PAC.Plugin.SourceTypeGithub' | translate: { Default: 'Repository' } }}</option>
+            <option value="git">{{ 'PAC.Plugin.SourceTypeGit' | translate: { Default: 'Git URL' } }}</option>
+            <option value="url">{{ 'PAC.Plugin.SourceTypeUrl' | translate: { Default: 'Static index URL' } }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-text-tertiary">
+            {{ 'PAC.Plugin.SourceName' | translate: { Default: 'Name' } }}
+          </span>
+          <input
+            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            [placeholder]="'PAC.Plugin.SourceNamePlaceholder' | translate: { Default: 'XpertAI Plugin Registry' }"
+            [(ngModel)]="sourceName"
+          />
+        </label>
+      </div>
+
+      <label class="flex flex-col gap-2">
+        <span class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.SourceUrl' | translate: { Default: 'Source' } }}
+        </span>
+        <input
+          class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+          [placeholder]="
+            'PAC.Plugin.SourceUrlPlaceholder'
+              | translate: { Default: 'xpert-ai/plugin-registry or https://example.com/plugins/index.json' }
+          "
+          [(ngModel)]="sourceUrl"
+        />
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-text-tertiary">
+            {{ 'PAC.Plugin.SourceRef' | translate: { Default: 'Git ref' } }}
+          </span>
+          <input
+            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            [placeholder]="'PAC.Plugin.SourceRefPlaceholder' | translate: { Default: 'main' }"
+            [(ngModel)]="sourceRef"
+          />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-medium text-text-tertiary">
+            {{ 'PAC.Plugin.SourceSparsePath' | translate: { Default: 'Sparse path' } }}
+          </span>
+          <input
+            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            [placeholder]="'PAC.Plugin.SourceSparsePathPlaceholder' | translate: { Default: 'plugins/data-x' }"
+            [(ngModel)]="sourceSparsePath"
+          />
+        </label>
+      </div>
+
+      @if (sourceAddError()) {
+        <div class="max-h-40 overflow-auto whitespace-break-spaces text-sm text-text-destructive">
+          {{ sourceAddError() }}
+        </div>
+      }
+      @if (sourceAdding()) {
+        <ngm-spin class="absolute left-0 top-0 h-full w-full rounded-xl bg-components-card-bg/20 backdrop-blur-sm" />
+      }
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-5">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="sourceAdding() || !sourceUrl()?.trim()"
+        (click)="confirmAddSource(dialogRef)"
+      >
+        @if (sourceAdding()) {
+          <ngm-spin small class="!text-primary-200" />
+        } @else {
+          <i class="ri-add-line"></i>
+        }
+        <span>{{ 'PAC.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #registryDialog let-dialogRef="dialogRef">
+  <div
+    class="flex max-h-[calc(100vh-48px)] w-full flex-col overflow-hidden rounded-2xl bg-components-card-bg px-6 py-5"
+  >
+    <div class="flex shrink-0 items-start justify-between pb-4">
+      <div>
+        <div class="text-xl font-semibold text-text-primary">
+          {{ 'PAC.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
+        </div>
+        <div class="mt-1 max-w-2xl text-sm text-text-tertiary">
+          {{
+            'PAC.Plugin.ManageRegisteredPluginsDescription'
+              | translate
+                : {
+                    Default:
+                      'Maintain platform-level plugin entries that users can discover and install from the marketplace.'
+                  }
+          }}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center"
+        (click)="dialogRef.close()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+
+    <div class="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4 overflow-hidden">
+      <div class="flex min-h-0 flex-col rounded-xl border border-divider-regular bg-components-panel-bg">
+        <div
+          class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-divider-regular bg-components-panel-bg px-3 py-2"
+        >
+          <div class="system-sm-semibold text-text-secondary">
+            {{ 'PAC.Plugin.RegisteredPlugins' | translate: { Default: 'Registered plugins' } }}
+          </div>
+          <button type="button" class="btn btn-ghost btn-small" (click)="resetRegistryForm()">
+            <i class="ri-add-line"></i>
+            <span class="pl-1">{{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}</span>
+          </button>
+        </div>
+
+        <div class="min-h-0 grow overflow-auto p-2">
+          @if (registryLoading()) {
+            <div class="flex h-40 items-center justify-center">
+              <ngm-spin />
+            </div>
+          } @else if (!registryItems().length) {
+            <div class="flex h-40 flex-col items-center justify-center gap-2 text-center text-sm text-text-tertiary">
+              <i class="ri-inbox-line text-xl"></i>
+              <div>{{ 'PAC.Plugin.NoRegisteredPlugins' | translate: { Default: 'No registered plugins' } }}</div>
+            </div>
+          } @else {
+            <div class="flex flex-col gap-1">
+              @for (item of registryItems(); track item.id) {
+                <button
+                  type="button"
+                  class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left hover:bg-state-base-hover"
+                  [class.bg-state-base-hover]="registryEditingId() === item.id"
+                  (click)="editRegistryItem(item)"
+                >
+                  <i class="ri-puzzle-2-line mt-0.5 text-base text-text-tertiary"></i>
+                  <span class="min-w-0 grow">
+                    <span class="block truncate system-sm-semibold text-text-primary">{{ item.displayName }}</span>
+                    <span class="block truncate text-xs text-text-tertiary">{{ item.packageName }}</span>
+                  </span>
+                  @if (item.enabled === false) {
+                    <span class="rounded-full bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-tertiary">
+                      {{ 'PAC.Plugin.Disabled' | translate: { Default: 'Disabled' } }}
+                    </span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div
+        class="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-divider-regular bg-components-panel-bg p-4"
+      >
+        <div class="mb-4 flex shrink-0 items-center justify-between">
+          <div>
+            <div class="system-md-semibold text-text-primary">
+              @if (registryEditingId()) {
+                {{ 'PAC.Plugin.EditRegisteredPlugin' | translate: { Default: 'Edit registered plugin' } }}
+              } @else {
+                {{ 'PAC.Plugin.RegisterPlugin' | translate: { Default: 'Register plugin' } }}
+              }
+            </div>
+            <div class="mt-0.5 text-xs text-text-tertiary">
+              {{ 'PAC.Plugin.PlatformRegistry' | translate: { Default: 'XpertAI Platform Registry' } }}
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            @if (registryEditingId()) {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-danger btn-small"
+                [disabled]="registryDeleting() === registryEditingId() || !selectedRegistryItem()"
+                (click)="selectedRegistryItem() && deleteRegistryItem(selectedRegistryItem()!)"
+              >
+                @if (registryDeleting() === registryEditingId()) {
+                  <ngm-spin small />
+                } @else {
+                  <i class="ri-delete-bin-line"></i>
+                }
+                <span class="pl-1">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+              </button>
+            }
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-secondary btn-small"
+              (click)="resetRegistryForm()"
+            >
+              {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+            </button>
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-primary btn-small flex items-center gap-1"
+              [disabled]="registrySaveDisabled()"
+              (click)="saveRegistryItem()"
+            >
+              @if (registrySaving()) {
+                <ngm-spin small class="!text-primary-200" />
+              } @else {
+                <i class="ri-save-line"></i>
+              }
+              <span>{{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="min-h-0 grow overflow-auto pr-1">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.PackageName' | translate: { Default: 'Package name' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && !registryPackageName().trim())"
+                [class.border-text-destructive]="registryFormSubmitted() && !registryPackageName().trim()"
+                aria-required="true"
+                placeholder="@xpert-ai/plugin-example"
+                [(ngModel)]="registryPackageName"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                placeholder="latest"
+                [(ngModel)]="registryVersion"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && !registryDisplayName().trim())"
+                [class.border-text-destructive]="registryFormSubmitted() && !registryDisplayName().trim()"
+                aria-required="true"
+                [(ngModel)]="registryDisplayName"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.Author' | translate: { Default: 'Author' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && !registryAuthor().trim())"
+                [class.border-text-destructive]="registryFormSubmitted() && !registryAuthor().trim()"
+                aria-required="true"
+                [(ngModel)]="registryAuthor"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.Category' | translate: { Default: 'Category' } }}
+              </span>
+              <select
+                class="w-full rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && !registryCategory())"
+                [class.border-text-destructive]="registryFormSubmitted() && !registryCategory()"
+                aria-required="true"
+                [(ngModel)]="registryCategory"
+              >
+                @for (category of registryCategoryOptions; track category) {
+                  <option [value]="category">
+                    {{ 'PAC.Plugin.Category_' + category | translate: { Default: category } }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.RegistrySection' | translate: { Default: 'Section' } }}
+              </span>
+              <select
+                class="w-full rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [(ngModel)]="registrySection"
+              >
+                @for (section of registrySectionOptions; track section) {
+                  <option [value]="section">
+                    {{ 'PAC.Plugin.RegistrySection_' + section | translate: { Default: section } }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.TargetApps' | translate: { Default: 'Target apps' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppsMissing())"
+                [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppsMissing()"
+                aria-required="true"
+                [(ngModel)]="registryTargetApps"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.Keywords' | translate: { Default: 'Keywords' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [(ngModel)]="registryKeywords"
+              />
+            </label>
+            <label class="col-span-2 flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                <span class="mr-0.5 text-text-destructive">*</span>
+                {{ 'PAC.Plugin.Description' | translate: { Default: 'Description' } }}
+              </span>
+              <textarea
+                rows="2"
+                class="w-full resize-none appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && !registryDescription().trim())"
+                [class.border-text-destructive]="registryFormSubmitted() && !registryDescription().trim()"
+                aria-required="true"
+                [(ngModel)]="registryDescription"
+              ></textarea>
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [(ngModel)]="registryHomepage"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.Repository' | translate: { Default: 'Repository' } }}
+              </span>
+              <input
+                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [(ngModel)]="registryRepositoryUrl"
+              />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.Priority' | translate: { Default: 'Priority' } }}
+              </span>
+              <input
+                type="number"
+                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [(ngModel)]="registryPriority"
+              />
+            </label>
+            <label class="flex items-center gap-2 pt-7 text-sm text-text-secondary">
+              <input type="checkbox" class="h-4 w-4" [(ngModel)]="registryEnabled" />
+              <span>{{ 'PAC.Plugin.Enabled' | translate: { Default: 'Enabled' } }}</span>
+            </label>
+            <label class="col-span-2 flex flex-col gap-2">
+              <span class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Plugin.AdvancedJson' | translate: { Default: 'Advanced JSON' } }}
+              </span>
+              <textarea
+                rows="10"
+                class="w-full resize-y appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 font-mono text-xs text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppMetaInvalid())"
+                [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppMetaInvalid()"
+                [(ngModel)]="registryTargetAppMetaJson"
+                spellcheck="false"
+              ></textarea>
+            </label>
+          </div>
+
+          @if (registryFormError()) {
+            <div class="mt-3 max-h-28 overflow-auto whitespace-break-spaces text-sm text-text-destructive">
+              {{ registryFormError() }}
+            </div>
+          } @else if (registryFormInvalid()) {
+            <div
+              class="mt-3 flex items-start gap-2 rounded-lg bg-state-destructive-hover/40 px-3 py-2 text-sm text-text-destructive"
+            >
+              <i class="ri-error-warning-line mt-0.5"></i>
+              <span>
+                @if (registryRequiredFieldsMissing()) {
+                  {{
+                    'PAC.Plugin.RegisteredPluginRequiredFields'
+                      | translate
+                        : { Default: 'Package, name, description, category, author, and target apps are required.' }
+                  }}
+                } @else {
+                  {{
+                    'PAC.Plugin.RegisteredPluginJsonInvalid'
+                      | translate: { Default: 'Advanced JSON must be a valid object.' }
+                  }}
+                }
+              </span>
+            </div>
+          }
+        </div>
+
+        @if (registrySaving()) {
+          <ngm-spin class="absolute left-0 top-0 h-full w-full rounded-xl bg-components-card-bg/20 backdrop-blur-sm" />
+        }
+      </div>
+    </div>
+  </div>
+</ng-template>

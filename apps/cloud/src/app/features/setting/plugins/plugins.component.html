@@ -28,6 +28,40 @@
 
   <div class="flex shrink-0 items-center gap-1">
     @if (category() === 'marketplace') {
+      @if (isSuperAdmin()) {
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+          [disabled]="marketplaceLoading() || marketplaceRefreshingSource()"
+          (click)="refreshMarketplaceSource()"
+        >
+          @if (marketplaceRefreshingSource()) {
+            <ngm-spin small />
+          } @else {
+            <i class="ri-refresh-line"></i>
+          }
+          <span class="pl-1">{{ 'PAC.Plugin.RefreshSource' | translate: { Default: 'Refresh' } }}</span>
+        </button>
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+          (click)="openManageRegisteredPlugins()"
+        >
+          <i class="ri-list-settings-line"></i>
+          <span class="pl-1">
+            {{ 'PAC.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
+          (click)="openAddMarketplace()"
+        >
+          <i class="ri-add-line"></i>
+          <span class="pl-1">{{ 'PAC.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
+        </button>
+        <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
+      }
       <a target="_blank" href="https://github.com/xpert-ai/xpert-plugins/issues/new?template=plugin_request.yaml">
         <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium text-text-tertiary">
           {{ 'PAC.Plugin.RequestPlugin' | translate: { Default: 'Request a plugin' } }}

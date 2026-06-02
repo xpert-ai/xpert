@@ -8,6 +8,7 @@ import {
   getErrorMessage,
   injectHelpWebsite,
   injectToastr,
+  injectUser,
   routeAnimations,
   KnowledgebaseService,
   XpertAgentService,
@@ -28,6 +29,7 @@ import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TInstalledPlugin } from './types'
+import { RolesEnum } from '@xpert-ai/contracts'
 
 @Component({
   standalone: true,
@@ -58,11 +60,13 @@ export class PluginsComponent {
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
+  readonly currentUser = injectUser()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly #agentService = inject(XpertAgentService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toolsetService = inject(XpertToolsetService)
+  readonly marketplace = viewChild(PluginsMarketplaceComponent)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
   readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
 
@@ -112,6 +116,9 @@ export class PluginsComponent {
 
   readonly categories = model<string[]>([])
   readonly keywords = model<string[]>([])
+  readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
+  readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
+  readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()
@@ -237,6 +244,21 @@ export class PluginsComponent {
 
   reload() {
     this.reloadInstalledPlugins()
+  }
+
+  refreshMarketplaceSource() {
+    if (!this.isSuperAdmin()) {
+      return
+    }
+    this.marketplace()?.refreshSelectedSource()
+  }
+
+  openAddMarketplace() {
+    this.marketplace()?.openAddSource()
+  }
+
+  openManageRegisteredPlugins() {
+    this.marketplace()?.openRegistryManager()
   }
 
   configure(plugin: TInstalledPlugin) {
