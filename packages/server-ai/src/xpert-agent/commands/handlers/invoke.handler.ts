@@ -56,6 +56,7 @@ import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolv
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
+import { applicationTracing } from '../../../tracing'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -415,7 +416,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
         )
 
-        return concat(
+        const stream = concat(
             contentStream,
             of(1).pipe(
                 // Then do the final async work after the graph events stream
@@ -494,6 +495,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 }
             })
         )
+
+        return applicationTracing.traceObservable(stream, 'agent.invoke', {
+            'execution.id': execution.id,
+            'root.execution.id': rootExecutionId,
+            'agent.key': agent.key,
+            'thread.id': thread_id,
+            'xpert.id': xpert.id,
+            'sandbox.enabled': Boolean(sandboxContext)
+        })
     }
 
     /**
