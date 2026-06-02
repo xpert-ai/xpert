@@ -1327,11 +1327,9 @@ function toFileAssetHandles(files: unknown): FileAssetHandle[] {
             const fileAssetId =
                 typeof record.fileAssetId === 'string'
                     ? record.fileAssetId
-                    : typeof record.fileId === 'string'
-                      ? record.fileId
-                      : storageFileId && typeof record.id === 'string'
-                        ? record.id
-                        : null
+                    : storageFileId && typeof record.id === 'string'
+                      ? record.id
+                      : null
             return typeof fileAssetId === 'string'
                 ? {
                       id: fileAssetId,

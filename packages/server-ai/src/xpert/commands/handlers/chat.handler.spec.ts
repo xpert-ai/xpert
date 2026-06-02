@@ -350,6 +350,91 @@ describe('XpertChatHandler', () => {
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
     })
 
+    it('does not persist legacy v1 file upload ids passed as fileId as FileAsset relations', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const legacyV1File = {
+            id: '1780307483877_7txra10ja',
+            fileId: '1780307483877_7txra10ja',
+            name: 'resumes.zip',
+            type: 'application/zip',
+            originalName: 'resumes.zip',
+            mimeType: 'application/zip'
+        }
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Read this file',
+                            files: [legacyV1File]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+
+        expect(humanMessageCommand.entity.attachments).toEqual([legacyV1File])
+        expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
+    })
+
     it('inherits runtime capabilities saved on an existing conversation when the request omits them', async () => {
         const commands: any[] = []
         const persistedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
