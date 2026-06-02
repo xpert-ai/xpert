@@ -32,7 +32,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
+import { MCPImportJsonComponent, MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
 @Component({
   standalone: true,
@@ -163,6 +163,37 @@ export class XpertWorkspaceMCPToolsComponent {
         next: (saved) => {
           if (saved) {
             this.refresh()
+          }
+        }
+      })
+  }
+
+  importFromJson(event: Event) {
+    event.stopPropagation()
+    this.#dialog
+      .open<Partial<IXpertToolset>>(MCPImportJsonComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
+        disableClose: true
+      })
+      .closed.subscribe({
+        next: (toolset) => {
+          if (toolset) {
+            this.#dialog
+              .open(XpertMCPManageComponent, {
+                backdropClass: 'backdrop-blur-lg-white',
+                disableClose: true,
+                data: {
+                  workspaceId: this.workspaceId(),
+                  toolset
+                }
+              })
+              .closed.subscribe({
+                next: (saved) => {
+                  if (saved) {
+                    this.refresh()
+                  }
+                }
+              })
           }
         }
       })
