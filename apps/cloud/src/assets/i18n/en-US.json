@@ -52,6 +52,11 @@
       "Enabled": "Enabled",
       "NoTools": "No tools"
     },
+    "MCP": {
+      "CreateFromJson": "Create from JSON",
+      "PasteMCPJson": "Paste an MCP JSON config to create a toolset.",
+      "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
+    },
     "Chat": {
       "QuoteSelection": "Quote selection",
       "RemoveReference": "Remove reference",

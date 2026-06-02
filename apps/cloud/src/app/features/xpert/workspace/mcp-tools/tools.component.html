@@ -19,6 +19,14 @@
       <i class="ri-add-line mr-2 shrink-0 text-base"></i>
       {{ 'PAC.Xpert.CreateMCPTool' | translate: {Default: 'Create MCP Toolset'} }}
     </div>
+    <button
+      type="button"
+      class="mb-1 flex w-full items-center rounded-lg px-6 py-[7px] text-left text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+      (click)="importFromJson($event)"
+    >
+      <i class="ri-file-code-line mr-2 shrink-0 text-base"></i>
+      {{ 'PAC.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}
+    </button>
   </ngm-card-create>
 
   @for (toolset of toolsets(); track toolset.id) {
