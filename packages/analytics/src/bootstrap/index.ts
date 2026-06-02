@@ -1,6 +1,6 @@
 import { environment as env, getConfig, setConfig } from '@xpert-ai/server-config'
 import { API_PRINCIPAL_USER_ID_HEADER } from '@xpert-ai/contracts'
-import { MetricsService } from '@xpert-ai/server-ai'
+import { initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
 import {
 	AppService,
 	AuthGuard,
@@ -40,6 +40,7 @@ import { BootstrapModule } from './bootstrap.module'
 export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
 	const config = await preBootstrapApplicationConfig({})
+	initializeApplicationTracingFromEnv()
 
 	const baseDir = config.assetOptions.serverRoot
 	await initI18next(path.join(baseDir, 'packages'))
