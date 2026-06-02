@@ -21,6 +21,7 @@ import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
 import { applicationMetrics } from '../../../metrics'
+import { applicationTracing } from '../../../tracing'
 
 function isMiddlewareChatEvent(data: unknown) {
     return (
@@ -58,7 +59,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
         const thread_id = execution.threadId
         let operation: TSensitiveOperation = null
-        return new Observable<MessageEvent>((subscriber) => {
+        const stream = new Observable<MessageEvent>((subscriber) => {
             let agentMetricsFinished = false
             const finishAgentMetrics = (status: string) => {
                 if (agentMetricsFinished) {
@@ -273,5 +274,13 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                 }
             })
         )
+
+        return applicationTracing.traceObservable(stream, 'execution.root', {
+            'execution.id': execution.id,
+            'execution.category': execution.category,
+            'agent.key': agentKey,
+            'thread.id': thread_id,
+            'xpert.id': xpert.id
+        })
     }
 }
