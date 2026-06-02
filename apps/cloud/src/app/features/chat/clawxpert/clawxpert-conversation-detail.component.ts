@@ -149,17 +149,17 @@ type ChatKitReferenceComposerControl = {
                 zSize="sm"
                 class="m-0 min-w-0 max-w-full shrink border-0 p-0"
               >
-                @for (tab of workspaceTabs(); track tab.id) {
+                @for (tab of workspaceTabs(); track tab.id; let last = $last) {
                   <button
                     z-tab-link
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex h-9 min-w-0 items-center gap-2 rounded-xl !border-transparent border-0 bg-hover-bg px-3 text-sm font-medium text-text-primary transition-[background-color,color] hover:bg-hover-bg data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
-                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
                       <span
                         class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
                       >
@@ -213,6 +213,10 @@ type ChatKitReferenceComposerControl = {
                           {{ tab.title }}
                         </span>
                       }
+                    }
+
+                    @if (!last) {
+                      <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
                     }
                   </button>
                 }
@@ -390,7 +394,7 @@ type ChatKitReferenceComposerControl = {
                 } @else if (activeFixedViewTab(); as fixedViewTab) {
                   @if (fixedViewHostId(); as hostId) {
                     <xp-extension-host-outlet
-                      class="block h-full min-h-0 overflow-auto"
+                      class="block h-full min-h-0 overflow-hidden"
                       mode="single-view"
                       hostType="agent"
                       [hostId]="hostId"

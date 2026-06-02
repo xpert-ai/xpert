@@ -282,6 +282,13 @@
       "ContextCompressed": "上下文已自动压缩",
       "ContextCompressionSkipped": "上下文无需压缩",
       "ContextCompressionFailed": "上下文压缩失败",
+      "TerminalConnected": "已连接",
+      "TerminalConnecting": "正在连接",
+      "TerminalDisconnected": "已断开",
+      "TerminalUnsupportedProvider": "不支持的提供方",
+      "TerminalOpenFailed": "打开失败",
+      "TerminalSessionClosed": "会话已关闭",
+      "TerminalIdle": "空闲",
       "ClawXpert": {
         "Loading": "正在准备 ClawXpert…",
         "OrganizationRequired": "请选择一个组织以使用 ClawXpert",

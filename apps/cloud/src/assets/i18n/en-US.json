@@ -59,6 +59,13 @@
       "ContextCompressed": "Context automatically compressed",
       "ContextCompressionSkipped": "Context not compressed",
       "ContextCompressionFailed": "Context compression failed",
+      "TerminalConnected": "Connected",
+      "TerminalConnecting": "Connecting",
+      "TerminalDisconnected": "Disconnected",
+      "TerminalUnsupportedProvider": "Unsupported provider",
+      "TerminalOpenFailed": "Open failed",
+      "TerminalSessionClosed": "Session closed",
+      "TerminalIdle": "Idle",
       "ClawXpert": {
         "Loading": "Preparing ClawXpert...",
         "OrganizationRequired": "Select an organization to use ClawXpert",

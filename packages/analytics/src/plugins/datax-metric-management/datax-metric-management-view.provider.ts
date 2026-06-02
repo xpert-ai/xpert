@@ -39,6 +39,113 @@ const DATA_X_METRIC_VIEW_ICON = {
 	value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-4 3 3 5-7"/></svg>',
 	alt: 'Metric Management'
 } satisfies IconDefinition
+const DATA_X_METRIC_REMOTE_CSS = `
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.xui-app {
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xui-metric-sticky-toolbar {
+  position: sticky;
+  top: 0;
+  flex: 0 0 auto;
+  z-index: 40;
+  padding: 2px 0 10px;
+  background: var(--xui-color-background);
+}
+
+.xui-notice,
+.xui-pager {
+  flex: 0 0 auto;
+}
+
+.xui-empty,
+.xui-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.xui-table-wrap {
+  overflow: auto;
+}
+
+.xui-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.xui-table th,
+.xui-table td {
+  white-space: nowrap;
+}
+
+.xui-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.xui-table-actions-cell {
+  min-width: 232px;
+}
+
+.xui-table-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.xui-table-actions .xui-button {
+  flex: 0 0 auto;
+}
+
+.xui-metric-pager {
+  justify-content: space-between;
+  min-height: var(--xui-button-height-sm);
+}
+
+.xui-metric-pager-total {
+  white-space: nowrap;
+}
+
+.xui-metric-pager-actions {
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.xui-metric-pager-actions .xui-button,
+.xui-metric-pager-actions .xui-muted {
+  flex: 0 0 auto;
+}
+
+.xui-metric-pager-actions .xui-muted {
+  display: inline-flex;
+  min-height: var(--xui-button-height-sm);
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .xui-metric-sticky-toolbar {
+    position: sticky;
+  }
+}
+`
 
 const filterInputSchema = {
 	type: 'object' as const,
@@ -325,6 +432,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				lang: 'zh-Hans',
 				reactUmd: react,
 				reactDomUmd: reactDom,
+				appCss: DATA_X_METRIC_REMOTE_CSS,
 				appScript
 			}),
 			contentType: 'text/html; charset=utf-8'

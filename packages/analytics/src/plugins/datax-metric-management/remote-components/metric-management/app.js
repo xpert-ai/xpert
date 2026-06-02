@@ -2,6 +2,9 @@
 	const CHANNEL = 'xpertai.remote_component'
 	const VERSION = 1
 	const h = React.createElement
+	const NO_WRAP_STYLE = { whiteSpace: 'nowrap' }
+	const ACTIONS_NO_WRAP_STYLE = { whiteSpace: 'nowrap', flexWrap: 'nowrap' }
+	const VIEWPORT_BOUND_FILL_HEIGHT = 100000
 	let instanceId = null
 	let requestSequence = 0
 	const pending = new Map()
@@ -183,8 +186,12 @@
 	}
 
 	function reportResize() {
-		const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 420)
-		post('resize', { height })
+		const height = Math.max(
+			document.body.scrollHeight,
+			document.documentElement.scrollHeight,
+			VIEWPORT_BOUND_FILL_HEIGHT
+		)
+		post('resize', { height, viewportBound: true })
 	}
 
 	window.addEventListener('message', (event) => {
@@ -487,7 +494,7 @@
 			const modelId = query.parameters.modelId || ''
 			return h(
 				'div',
-				{ className: 'xui-toolbar' },
+				{ className: 'xui-toolbar xui-metric-sticky-toolbar' },
 				h(
 					'select',
 					{
@@ -579,7 +586,7 @@
 								['embeddingStatus', t('embeddingStatus')],
 								['updatedAt', t('updatedAt')],
 								['actions', t('actions')]
-							].map((column) => h('th', { key: column[0] }, column[1]))
+							].map((column) => h('th', { key: column[0], style: NO_WRAP_STYLE }, column[1]))
 						)
 					),
 					h(
@@ -589,27 +596,44 @@
 							h(
 								'tr',
 								{ key: row.id },
-								h('td', null, row.code || '-'),
-								h('td', null, row.name || '-'),
-								h('td', null, h('span', { className: 'xui-pill' }, row.type || '-')),
-								h('td', null, h('span', { className: 'xui-pill' }, row.status || '-')),
-								h('td', null, row.modelName || optionLabel(models, row.modelId) || '-'),
-								h('td', null, row.entity || '-'),
-								h('td', null, row.business || '-'),
-								h('td', null, row.unit || '-'),
-								h('td', null, h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')),
-								h('td', null, formatDate(row.updatedAt)),
+								h('td', { style: NO_WRAP_STYLE }, row.code || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.name || '-'),
 								h(
 									'td',
-									null,
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.type || '-')
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.status || '-')
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									row.modelName || optionLabel(models, row.modelId) || '-'
+								),
+								h('td', { style: NO_WRAP_STYLE }, row.entity || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.business || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.unit || '-'),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')
+								),
+								h('td', { style: NO_WRAP_STYLE }, formatDate(row.updatedAt)),
+								h(
+									'td',
+									{ className: 'xui-table-actions-cell', style: NO_WRAP_STYLE },
 									h(
 										'div',
-										{ className: 'xui-actions' },
+										{ className: 'xui-actions xui-table-actions', style: ACTIONS_NO_WRAP_STYLE },
 										h(
 											'button',
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => openModal('edit', row)
 											},
@@ -620,6 +644,7 @@
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => executeAction('publish', { targetId: row.id })
 											},
@@ -630,6 +655,7 @@
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => executeAction('embedding', { targetId: row.id })
 											},
@@ -640,6 +666,7 @@
 											{
 												className: 'xui-button xui-button-sm xui-button-danger',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => {
 													if (confirm(t('confirmDelete'))) {
@@ -665,11 +692,11 @@
 			const hasNext = page * pageSize < total
 			return h(
 				'div',
-				{ className: 'xui-pager' },
-				h('span', null, t('totalRows', { total })),
+				{ className: 'xui-pager xui-metric-pager' },
+				h('span', { className: 'xui-metric-pager-total' }, t('totalRows', { total })),
 				h(
 					'div',
-					{ className: 'xui-actions' },
+					{ className: 'xui-actions xui-metric-pager-actions' },
 					h(
 						'button',
 						{
