@@ -1329,7 +1329,7 @@ function toFileAssetHandles(files: unknown): FileAssetHandle[] {
                     ? record.fileAssetId
                     : typeof record.fileId === 'string'
                       ? record.fileId
-                      : (storageFileId || record.type === 'file') && typeof record.id === 'string'
+                      : storageFileId && typeof record.id === 'string'
                         ? record.id
                         : null
             return typeof fileAssetId === 'string'
