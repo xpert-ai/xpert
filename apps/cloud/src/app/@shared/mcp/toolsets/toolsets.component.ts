@@ -31,6 +31,7 @@ import {
 } from '@cloud/app/@core'
 import { AppService } from '@cloud/app/app.service'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { MCPImportJsonComponent } from '../import-json/import-json.component'
 import { XpertMCPManageComponent } from '../manage/manage.component'
 
 @Component({
@@ -150,6 +151,37 @@ export class MCPToolsetsComponent {
         next: (saved) => {
           if (saved) {
             this.refresh()
+          }
+        }
+      })
+  }
+
+  importFromJson(event: Event) {
+    event.stopPropagation()
+    this.#dialog
+      .open<Partial<IXpertToolset>>(MCPImportJsonComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
+        disableClose: true
+      })
+      .closed.subscribe({
+        next: (toolset) => {
+          if (toolset) {
+            this.#dialog
+              .open(XpertMCPManageComponent, {
+                backdropClass: 'backdrop-blur-lg-white',
+                disableClose: true,
+                data: {
+                  workspaceId: this.workspaceId(),
+                  toolset
+                }
+              })
+              .closed.subscribe({
+                next: (saved) => {
+                  if (saved) {
+                    this.refresh()
+                  }
+                }
+              })
           }
         }
       })

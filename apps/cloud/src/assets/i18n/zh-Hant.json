@@ -3853,7 +3853,10 @@
       "ReconnectMaxAttempts": "最大嘗試連接次數",
       "ReconnectDelayMs": "重啟嘗試之間的延遲（以毫秒為單位）",
       "ToolNamePrefix": "工具名前綴",
-      "MoreMCPTools": "更多 MCP 工具"
+      "MoreMCPTools": "更多 MCP 工具",
+      "CreateFromJson": "從 JSON 創建",
+      "PasteMCPJson": "貼上 MCP JSON 配置以創建工具集。",
+      "UrlOnlySSECompatibility": "未聲明類型的 URL 配置會按 SSE 導入，以兼容舊配置。"
     },
     "title": {
       "short": "Xpert AI"

@@ -87,6 +87,11 @@
       "NoTools": "No tools",
       "Reset": "Reset"
     },
+    "MCP": {
+      "CreateFromJson": "Create from JSON",
+      "PasteMCPJson": "Paste an MCP JSON config to create a toolset.",
+      "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
+    },
     "MENU": {
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
