@@ -25,6 +25,8 @@ import {
     AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
     AgentMiddlewareKnowledgebaseDocument,
+    AgentMiddlewareKnowledgebaseDeleteChunksInput,
+    AgentMiddlewareKnowledgebaseDeleteChunksResult,
     AgentMiddlewareKnowledgebaseListInput,
     AgentMiddlewareKnowledgebaseListItem,
     AgentMiddlewareKnowledgebaseSearchInput,
@@ -52,7 +54,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
-import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
+import { DeleteAgentKnowledgeChunksCommand, WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
@@ -68,7 +70,8 @@ export class AgentMiddlewareRuntimeService {
             {
                 list: (input) => this.listKnowledgebases(input),
                 search: (input) => this.searchKnowledgebase(input),
-                writeChunk: (input) => this.writeKnowledgeChunk(input)
+                writeChunk: (input) => this.writeKnowledgeChunk(input),
+                deleteChunks: (input) => this.deleteKnowledgeChunks(input)
             }
         ],
         [
@@ -251,6 +254,12 @@ export class AgentMiddlewareRuntimeService {
         input: AgentMiddlewareKnowledgebaseWriteChunkInput
     ): Promise<AgentMiddlewareKnowledgebaseWriteChunkResult> {
         return this.commandBus.execute(new WriteAgentKnowledgeChunkCommand(input))
+    }
+
+    async deleteKnowledgeChunks(
+        input: AgentMiddlewareKnowledgebaseDeleteChunksInput
+    ): Promise<AgentMiddlewareKnowledgebaseDeleteChunksResult> {
+        return this.commandBus.execute(new DeleteAgentKnowledgeChunksCommand(input))
     }
 
     async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {

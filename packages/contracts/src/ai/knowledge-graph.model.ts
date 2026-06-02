@@ -29,6 +29,7 @@ export type KnowledgeGraphVisibility = 'active' | 'hidden'
 
 export type GraphRagConfig = {
   enabled?: boolean
+  mode?: GraphRagRetrievalMode
   entityTopK?: number
   neighborHops?: number
   communityTopK?: number

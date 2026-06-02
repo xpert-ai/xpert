@@ -53,8 +53,17 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly recall = attrModel(this.knowledgebase, 'recall')
   readonly score = attrModel(this.recall, 'score', null)
   readonly topK = attrModel(this.recall, 'topK', null)
-  readonly mode = attrModel(this.knowledgebase, 'mode', 'vector' as GraphRagRetrievalMode)
   readonly graphRag = attrModel(this.knowledgebase, 'graphRag', {})
+  readonly mode = linkedModel<GraphRagRetrievalMode>({
+    initialValue: 'vector',
+    compute: () => this.graphRag()?.mode ?? this.knowledgebase()?.mode ?? 'vector',
+    update: (value) => {
+      this.graphRag.update((state) => ({
+        ...(state ?? {}),
+        mode: value
+      }))
+    }
+  })
   readonly graphEnabled = attrModel(this.graphRag, 'enabled', false)
   readonly entityTopK = attrModel(this.graphRag, 'entityTopK', 8)
   readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)

@@ -119,4 +119,116 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         )
         expect(results[1].metadata.score).toBeCloseTo(0.45)
     })
+
+    it('uses the knowledgebase retrieval mode when the request does not override it', async () => {
+        const queryBus = {
+            execute: jest.fn(async () => ({
+                docs: [chunk('graph-1', { graphScore: 0.9, score: 0.9 })]
+            }))
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        graphRag: { enabled: true, mode: 'hybrid', graphWeight: 0.25 }
+                    }
+                ]
+            }))
+        }
+        const handler = new KnowledgeSearchQueryHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            queryBus as unknown as QueryBus
+        )
+        const vectorSearch = jest
+            .spyOn(handler, 'similaritySearchWithScore')
+            .mockResolvedValue([chunk('chunk-1', { score: 0.8 })])
+
+        const results = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'who owns the platform?',
+                source: 'spec'
+            })
+        )
+
+        expect(vectorSearch).toHaveBeenCalled()
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(KnowledgeGraphSearchQuery))
+        expect(results.map((doc) => doc.metadata.chunkId)).toEqual(['chunk-1', 'graph-1'])
+    })
+
+    it('applies metadata filters stored on agent-written chunks', async () => {
+        const queryBus = {
+            execute: jest.fn()
+        }
+        const vectorStore = {
+            embeddingModel: 'test-embedding',
+            similaritySearchWithScore: jest.fn(async () => [
+                [chunk('agent-write-key'), 0.4] as [DocumentInterface, number]
+            ])
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: {},
+                        graphRag: { enabled: false }
+                    }
+                ]
+            })),
+            getActiveVectorStore: jest.fn(async () => vectorStore)
+        }
+        const handler = new KnowledgeSearchQueryHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            queryBus as unknown as QueryBus
+        )
+        const documentService = {
+            findAll: jest.fn(async () => ({ items: [] }))
+        }
+        const chunkService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'db-chunk-1',
+                        metadata: {
+                            chunkId: 'agent-write-key',
+                            documentType: 'bom-product-profile'
+                        }
+                    }
+                ]
+            }))
+        }
+        Object.defineProperty(handler, 'documentService', { value: documentService })
+        Object.defineProperty(handler, 'chunkService', { value: chunkService })
+
+        const results = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'YBX4 180M2 22kW',
+                source: 'spec',
+                k: 20,
+                filter: {
+                    documentType: 'bom-product-profile'
+                }
+            })
+        )
+
+        expect(documentService.findAll).toHaveBeenCalled()
+        expect(chunkService.findAll).toHaveBeenCalled()
+        expect(vectorStore.similaritySearchWithScore).toHaveBeenCalledWith('YBX4 180M2 22kW', 20, {
+            chunkId: {
+                in: ['agent-write-key']
+            }
+        })
+        expect(results).toHaveLength(1)
+        expect(results[0].metadata.score).toBeCloseTo(0.6)
+    })
 })

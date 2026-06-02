@@ -127,6 +127,14 @@
               class="absolute top-0.5 right-0.5 z-20 hidden group-hover/chunk:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-actionbar-border bg-components-actionbar-bg shadow-md backdrop-blur-[5px]"
             >
               <div
+                class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover hover:text-text-primary cursor-pointer"
+                [zTooltip]="'PAC.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' }"
+                zPosition="top"
+                (click)="openChunkMetadata(chunk)"
+              >
+                <i class="ri-database-2-line"></i>
+              </div>
+              <div
                 class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-state-base-hover cursor-pointer"
                 (click)="editChunk.set(chunk)"
               >
@@ -219,6 +227,92 @@
     </div>
   }
 
+  @if (metadataChunk(); as selectedMetadataChunk) {
+    <div
+      class="shrink-0 w-[320px] md:w-[420px] lg:w-[520px] flex flex-col absolute right-1 top-1 bottom-1 rounded-2xl border border-solid border-divider-subtle bg-components-card-bg shadow-lg z-30"
+    >
+      <div class="flex items-center justify-between gap-3 border-b border-divider-subtle px-4 py-3">
+        <div class="min-w-0">
+          <div class="text-text-primary system-xl-semibold">
+            {{ 'PAC.Knowledgebase.ChunkMetadata' | translate: { Default: 'Chunk Metadata' } }}
+          </div>
+          <div class="mt-0.5 flex min-w-0 items-center gap-x-2 text-text-tertiary">
+            <i class="ri-text-block shrink-0"></i>
+            <span class="system-xs-medium truncate">
+              {{ selectedMetadataChunk.id || selectedMetadataChunk.metadata?.chunkId || '-' }}
+            </span>
+            <span class="system-xs-medium text-text-quaternary">·</span>
+            <span class="system-xs-medium shrink-0">
+              {{ selectedMetadataChunk.pageContent?.length || 0 }}
+              {{ 'PAC.Knowledgebase.Characters' | translate: { Default: 'Characters' } }}
+            </span>
+          </div>
+        </div>
+        <div class="flex shrink-0 items-center gap-1">
+          <copy
+            class="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover hover:text-text-primary"
+            [content]="chunkMetadataJson()"
+            [zTooltip]="'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' }"
+            zPosition="top"
+          />
+          <button
+            type="button"
+            class="flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover hover:text-text-primary"
+            [zTooltip]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
+            zPosition="top"
+            (click)="closeChunkMetadata()"
+          >
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex min-h-0 grow flex-col overflow-auto px-4 py-3">
+        <div class="system-sm-semibold text-text-secondary">
+          {{ 'PAC.Knowledgebase.MetadataFields' | translate: { Default: 'Metadata Fields' } }}
+        </div>
+        <div class="mt-2 rounded-lg border border-divider-subtle">
+          @if (chunkMetadataEntries().length) {
+            @for (entry of chunkMetadataEntries(); track entry.key) {
+              <div
+                class="grid grid-cols-[minmax(104px,160px)_minmax(0,1fr)] border-b border-divider-subtle last:border-b-0"
+              >
+                <div class="min-w-0 border-r border-divider-subtle bg-components-panel-bg px-3 py-2">
+                  <div class="system-xs-semibold text-text-secondary break-all">{{ entry.key }}</div>
+                </div>
+                <div class="min-w-0 px-3 py-2">
+                  <div class="system-xs-regular whitespace-pre-wrap break-words text-text-primary">
+                    {{ entry.value }}
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="px-3 py-6 text-center text-text-tertiary system-sm-regular">
+              {{ 'PAC.Knowledgebase.NoMetadata' | translate: { Default: 'No metadata' } }}
+            </div>
+          }
+        </div>
+
+        <div class="mt-4 flex items-center justify-between gap-2">
+          <div class="system-sm-semibold text-text-secondary">
+            {{ 'PAC.Knowledgebase.MetadataJson' | translate: { Default: 'Metadata JSON' } }}
+          </div>
+          <copy
+            class="flex h-7 cursor-pointer items-center rounded-lg border border-components-button-secondary-border bg-components-button-secondary-bg px-2 text-text-tertiary hover:bg-state-base-hover hover:text-text-primary"
+            [content]="chunkMetadataJson()"
+            [zTooltip]="'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' }"
+            zPosition="top"
+          />
+        </div>
+        <pre
+          class="mt-2 min-h-40 overflow-auto rounded-lg border border-divider-subtle bg-components-panel-bg p-3 text-xs leading-5 text-text-secondary whitespace-pre-wrap break-words"
+          >{{ chunkMetadataJson() }}</pre
+        >
+      </div>
+    </div>
+  }
+
   @if (sideExpand() || editChunk()) {
     <div
       class="shrink-0 w-[300px] md:w-[400px] lg:w-[500px] flex flex-col absolute right-1 top-1 bottom-1 rounded-2xl border border-solid border-divider-subtle bg-components-card-bg shadow-lg z-20"
@@ -264,7 +358,9 @@
               <span class="text-components-button-secondary-text system-sm-medium">
                 {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
               </span>
-              <span class="px-[1px] bg-components-input-bg-normal rounded-[2.5px] shadow-md text-text-tertiary text-sm">ESC</span>
+              <span class="px-[1px] bg-components-input-bg-normal rounded-[2.5px] shadow-md text-text-tertiary text-sm"
+                >ESC</span
+              >
             </div>
           </button>
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="saveEdit()">

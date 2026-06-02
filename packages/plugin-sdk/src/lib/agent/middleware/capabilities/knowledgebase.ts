@@ -73,12 +73,33 @@ export type AgentMiddlewareKnowledgebaseWriteChunkResult = {
   message?: string
 }
 
+export type AgentMiddlewareKnowledgebaseDeleteChunksInput = {
+  xpertId: string
+  agentKey: string
+  knowledgebaseIds: string[]
+  knowledgebaseId: string
+  writeKeys?: string[]
+  writeKeyPrefix?: string
+}
+
+export type AgentMiddlewareKnowledgebaseDeleteChunksResult = {
+  deletedCount: number
+  knowledgebaseId: string
+  documentId?: string
+  writeKeys?: string[]
+  writeKeyPrefix?: string
+}
+
 export interface AgentMiddlewareKnowledgebaseApi {
   list(input: AgentMiddlewareKnowledgebaseListInput): Promise<AgentMiddlewareKnowledgebaseListItem[]>
 
   search(input: AgentMiddlewareKnowledgebaseSearchInput): Promise<AgentMiddlewareKnowledgebaseDocument[]>
 
   writeChunk(input: AgentMiddlewareKnowledgebaseWriteChunkInput): Promise<AgentMiddlewareKnowledgebaseWriteChunkResult>
+
+  deleteChunks(
+    input: AgentMiddlewareKnowledgebaseDeleteChunksInput
+  ): Promise<AgentMiddlewareKnowledgebaseDeleteChunksResult>
 }
 
 export const KnowledgebaseRuntimeCapability = createRuntimeCapability<AgentMiddlewareKnowledgebaseApi>(
