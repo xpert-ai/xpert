@@ -1,5 +1,7 @@
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { GetFilePreviewQuery } from '../../file-understanding'
+import { GetStorageFileQuery } from '@xpert-ai/server-core'
+import { GetFileAssetByStorageFileQuery, GetFileAssetQuery, GetFilePreviewQuery } from '../../file-understanding'
+import { LoadFileCommand } from '../commands'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -344,5 +346,102 @@ describe('createHumanMessage', () => {
         expect(fileCard).not.toContain('FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT')
         expect(fileCard).not.toContain('<preview_chunks>')
         expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('does not resolve legacy fileId values as FileAsset ids when building attachments', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileAssetQuery) {
+                    throw new Error('legacy fileId should not be used as a FileAsset id')
+                }
+                if (query instanceof GetStorageFileQuery) {
+                    return []
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn().mockImplementation((command) => {
+                if (command instanceof LoadFileCommand) {
+                    return [{ pageContent: 'legacy file text' }]
+                }
+                throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+            })
+        }
+        const legacyFile = {
+            id: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+            fileId: '1780307484176_4z5k3xian',
+            filePath: '/tmp/resumes.zip',
+            originalName: 'resumes.zip',
+            mimeType: 'application/zip'
+        }
+        const state = {
+            human: {
+                input: 'Read this file',
+                files: [legacyFile]
+            }
+        } as unknown as Parameters<typeof createHumanMessage>[2]
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            state,
+            undefined
+        )
+
+        expect(Array.isArray(message.content)).toBe(true)
+        expect((message.content as Array<{ type: string; text?: string }>)[0].text).toContain('legacy file text')
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(GetFileAssetQuery))
+    })
+
+    it('does not resolve non-uuid bare file ids as StorageFile ids when building attachments', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileAssetQuery) {
+                    throw new Error('bare id should not be used as a FileAsset id')
+                }
+                if (query instanceof GetStorageFileQuery) {
+                    throw new Error('bare id should not be used as a StorageFile id')
+                }
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    throw new Error('bare id should not be used as a StorageFile id')
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn().mockImplementation((command) => {
+                if (command instanceof LoadFileCommand) {
+                    return [{ pageContent: 'direct file text' }]
+                }
+                throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+            })
+        }
+        const state = {
+            human: {
+                input: 'Read this file',
+                files: [
+                    {
+                        id: '1780307484176_4z5k3xian',
+                        filePath: '/tmp/resumes.zip',
+                        originalName: 'resumes.zip',
+                        mimeType: 'application/zip'
+                    }
+                ]
+            }
+        } as unknown as Parameters<typeof createHumanMessage>[2]
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            state,
+            undefined
+        )
+
+        expect(Array.isArray(message.content)).toBe(true)
+        expect((message.content as Array<{ type: string; text?: string }>)[0].text).toContain('direct file text')
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(GetFileAssetQuery))
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(GetStorageFileQuery))
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(GetFileAssetByStorageFileQuery))
     })
 })

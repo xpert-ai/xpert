@@ -267,7 +267,7 @@ describe('XpertChatHandler', () => {
         })
     })
 
-    it('does not persist ChatKit file attachment ids as FileAsset relations', async () => {
+    it('does not persist ChatKit file attachment ids as UUID relations', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -346,11 +346,11 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
         ) as ChatMessageUpsertCommand
 
-        expect(humanMessageCommand.entity.attachments).toEqual([chatKitAttachment])
+        expect(humanMessageCommand.entity.attachments).toBeUndefined()
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
     })
 
-    it('does not persist legacy v1 file upload ids passed as fileId as FileAsset relations', async () => {
+    it('does not persist legacy v1 file upload ids passed as fileId as UUID relations', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -431,7 +431,90 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
         ) as ChatMessageUpsertCommand
 
-        expect(humanMessageCommand.entity.attachments).toEqual([legacyV1File])
+        expect(humanMessageCommand.entity.attachments).toBeUndefined()
+        expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
+    })
+
+    it('does not persist non-uuid file ids as FileAsset relations when storageFileId is present', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const file = {
+            id: '1780307484176_4z5k3xian',
+            storageFileId: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+            name: 'report.pdf',
+            mimeType: 'application/pdf'
+        }
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Read this file',
+                            files: [file]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+
+        expect(humanMessageCommand.entity.attachments).toBeUndefined()
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
     })
 

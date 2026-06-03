@@ -3,6 +3,7 @@ import { HumanMessage } from '@langchain/core/messages'
 import { _TFile, IStorageFile, IXpert, TXpertAgentOptions } from '@xpert-ai/contracts'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { isUUID } from 'class-validator'
 import fs from 'fs'
 import { get } from 'lodash'
 import sharp from 'sharp'
@@ -59,11 +60,15 @@ async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<R
     }
 }
 
+function normalizeLegacyStorageFileId(fileId: string | undefined) {
+    return fileId && isUUID(fileId) ? fileId : undefined
+}
+
 // Accepts both new AgentFile/FileAsset handles and legacy StorageFile handles,
 // resolving them to a single runtime shape before prompt construction.
 async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Promise<ResolvedFile | null> {
-    const explicitAssetId = file.fileId ?? file.fileAssetId
-    const storageFileId = file.storageFileId ?? file.id
+    const explicitAssetId = file.fileAssetId
+    const storageFileId = file.storageFileId ?? normalizeLegacyStorageFileId(file.id)
     const fileAsset = explicitAssetId
         ? await queryBus.execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(explicitAssetId))
         : storageFileId
@@ -80,8 +85,7 @@ async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Pr
             ...resolvedStorageFile,
             id: resolvedStorageFile.id,
             storageFileId: resolvedStorageFile.storageFileId,
-            fileId: fileAsset?.id ?? file.fileId,
-            fileAssetId: fileAsset?.id ?? file.fileAssetId,
+            ...(fileAsset?.id ? { fileId: fileAsset.id, fileAssetId: fileAsset.id } : {}),
             fileAsset
         }
     }
@@ -129,7 +133,7 @@ async function toImageContentPart(
 function dedupeFiles(files: Array<ResolvedFile>) {
     const seen = new Set<string>()
     return files.filter((file) => {
-        const key = file.fileAssetId ?? file.fileId ?? file.storageFileId ?? file.id ?? file.filePath ?? file.fileUrl
+        const key = file.fileAssetId ?? file.storageFileId ?? file.id ?? file.filePath ?? file.fileUrl ?? file.fileId
         if (!key) {
             return true
         }
@@ -305,8 +309,8 @@ function buildFileUnderstandingPrompt(file: ResolvedFile, preview: FilePreviewRe
     return [
         `Attachment File: ${file.originalName ?? file.filePath ?? asset?.originalName ?? asset?.id}`,
         '<file_understanding>',
-        `fileId: ${asset?.id ?? file.fileId ?? file.fileAssetId ?? ''}`,
-        `storageFileId: ${file.storageFileId ?? file.id ?? ''}`,
+        `fileId: ${asset?.id ?? file.fileAssetId ?? ''}`,
+        `storageFileId: ${file.storageFileId ?? normalizeLegacyStorageFileId(file.id) ?? ''}`,
         `status: ${asset?.status ?? 'unknown'}`,
         `capabilities: ${(asset?.capabilities ?? []).join(', ') || 'preview, read'}`,
         asset?.workspacePath ? `workspacePath: ${asset.workspacePath}` : '',

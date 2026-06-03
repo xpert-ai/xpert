@@ -37,6 +37,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { isUUID } from 'class-validator'
 import { catchError, concat, concatMap, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { uniq } from 'lodash'
 import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
@@ -1337,7 +1338,7 @@ function toFileAssetHandles(files: unknown): FileAssetHandle[] {
             const fileAssetId =
                 typeof record.fileAssetId === 'string'
                     ? record.fileAssetId
-                    : storageFileId && typeof record.id === 'string'
+                    : storageFileId && typeof record.id === 'string' && isUUID(record.id)
                       ? record.id
                       : null
             return typeof fileAssetId === 'string'
@@ -1377,7 +1378,7 @@ function toLegacyStorageFileAttachments(files: unknown): IStorageFile[] {
             if (typeof record.storageFileId === 'string') {
                 return null
             }
-            return typeof record.id === 'string'
+            return typeof record.id === 'string' && isUUID(record.id)
                 ? ({
                       ...record,
                       id: record.id

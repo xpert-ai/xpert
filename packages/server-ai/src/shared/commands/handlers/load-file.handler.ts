@@ -4,6 +4,7 @@ import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { isUUID } from 'class-validator'
 import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { GetFileAssetByStorageFileQuery, GetFileAssetQuery, SearchFileChunksQuery } from '../../../file-understanding'
@@ -108,11 +109,12 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
         storageFileId?: string
         id?: string
     }) {
-        const fileAssetId = file.fileId ?? file.fileAssetId
+        const fileAssetId = file.fileAssetId
+        const storageFileId = file.storageFileId ?? normalizeLegacyStorageFileId(file.id)
         const fileAsset = fileAssetId
             ? await this.queryBus.execute(new GetFileAssetQuery(fileAssetId))
-            : (file.storageFileId ?? file.id)
-              ? await this.queryBus.execute(new GetFileAssetByStorageFileQuery(file.storageFileId ?? file.id))
+            : storageFileId
+              ? await this.queryBus.execute(new GetFileAssetByStorageFileQuery(storageFileId))
               : null
         if (!fileAsset || !['ready', 'partial'].includes(fileAsset.status)) {
             return null
@@ -136,4 +138,8 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
                 })
         )
     }
+}
+
+function normalizeLegacyStorageFileId(fileId: string | undefined) {
+    return fileId && isUUID(fileId) ? fileId : undefined
 }

@@ -613,6 +613,47 @@ describe('AgentMiddlewareRuntimeService', () => {
         )
     })
 
+    it('does not expose legacy fileId values as resolved FileAsset ids', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const file = await service.api.capabilities?.require(FileRuntimeCapability).resolveFile({
+            id: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+            fileId: '1780307484176_4z5k3xian',
+            name: 'resumes.zip',
+            mimeType: 'application/zip',
+            fileUrl: 'https://files.example/resumes.zip'
+        })
+
+        expect(file).toEqual(
+            expect.objectContaining({
+                id: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+                name: 'resumes.zip',
+                mimeType: 'application/zip',
+                url: 'https://files.example/resumes.zip'
+            })
+        )
+        expect(file).not.toHaveProperty('fileId')
+        expect(file).not.toHaveProperty('fileAssetId')
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('does not resolve bare id values as StorageFile references', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const file = await service.api.capabilities?.require(FileRuntimeCapability).resolveFile({
+            id: '1780307484176_4z5k3xian',
+            name: 'resumes.zip',
+            mimeType: 'application/zip'
+        })
+
+        expect(file).toBeNull()
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
     it('starts an assistant task through the runtime facade', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
             if (command instanceof XpertChatCommand) {
@@ -667,6 +708,49 @@ describe('AgentMiddlewareRuntimeService', () => {
                 context: { source: 'test' }
             })
         )
+    })
+
+    it('does not promote legacy assistant task fileId values to FileAsset references', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof XpertChatCommand) {
+                return of({ data: { event: 'done' } } as MessageEvent)
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+            xpertId: 'assistant-1',
+            taskId: 'task-1',
+            prompt: '解析简历',
+            files: [
+                {
+                    id: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+                    fileId: '1780307484176_4z5k3xian',
+                    name: 'resumes.zip',
+                    mimeType: 'application/zip',
+                    size: 4199436
+                }
+            ]
+        })
+
+        const command = commandBus.execute.mock.calls[0][0] as XpertChatCommand
+        expect(command.request.action).toBe('send')
+        if (command.request.action !== 'send') {
+            throw new Error('Expected assistant task to start a send request')
+        }
+
+        const taskFile = command.request.message.input.files?.[0]
+        expect(taskFile).toEqual(
+            expect.objectContaining({
+                id: '89d94277-097f-4b9d-ad02-8e1ddab03487',
+                originalName: 'resumes.zip',
+                mimeType: 'application/zip',
+                size: 4199436
+            })
+        )
+        expect(taskFile).not.toHaveProperty('fileId')
+        expect(taskFile).not.toHaveProperty('fileAssetId')
     })
 
     it('checks assistant task status from the chat conversation thread', async () => {

@@ -267,10 +267,8 @@ export class AgentMiddlewareRuntimeService {
             normalizeOptionalString(input.previewUrl) ??
             normalizeOptionalString(input.fileUrl) ??
             normalizeOptionalString(input.url)
-        const fileAssetId =
-            normalizeOptionalString(input.fileAssetId) ??
-            normalizeOptionalString(input.fileId) ??
-            (!normalizeOptionalString(input.storageFileId) ? normalizeOptionalString(input.id) : undefined)
+        const fileAssetId = normalizeOptionalString(input.fileAssetId)
+        const inputId = normalizeOptionalString(input.id)
         let storageFileId = normalizeOptionalString(input.storageFileId)
         let fileAsset: FileAsset | null = null
         let storageFile: IStorageFile | null = null
@@ -316,7 +314,7 @@ export class AgentMiddlewareRuntimeService {
                     : undefined
 
         return {
-            id: fileAssetId ?? storageFileId ?? url,
+            id: fileAssetId ?? storageFileId ?? inputId ?? url,
             ...(fileAssetId ? { fileId: fileAssetId, fileAssetId } : {}),
             ...(storageFileId ? { storageFileId } : {}),
             name,
@@ -488,8 +486,10 @@ function normalizeTaskFiles(files: AgentMiddlewareAssistantTaskFile[] | undefine
 
     return files
         .map((file) => {
-            const fileAssetId = normalizeOptionalString(file.fileAssetId) ?? normalizeOptionalString(file.fileId)
+            // Legacy upload fileId values are not FileAsset ids.
+            const fileAssetId = normalizeOptionalString(file.fileAssetId)
             const storageFileId = normalizeOptionalString(file.storageFileId)
+            const legacyFileId = normalizeOptionalString(file.id)
             const originalName = normalizeOptionalString(file.originalName) ?? normalizeOptionalString(file.name)
             const mimeType = normalizeOptionalString(file.mimeType) ?? normalizeOptionalString(file.mimetype)
             if (fileAssetId) {
@@ -508,6 +508,14 @@ function normalizeTaskFiles(files: AgentMiddlewareAssistantTaskFile[] | undefine
                     id: storageFileId,
                     ...(originalName ? { originalName } : {}),
                     ...(mimeType ? { mimetype: mimeType, mimeType } : {}),
+                    ...(typeof file.size === 'number' ? { size: file.size } : {})
+                }
+            }
+            if (legacyFileId) {
+                return {
+                    id: legacyFileId,
+                    ...(originalName ? { originalName } : {}),
+                    ...(mimeType ? { mimeType } : {}),
                     ...(typeof file.size === 'number' ? { size: file.size } : {})
                 }
             }
