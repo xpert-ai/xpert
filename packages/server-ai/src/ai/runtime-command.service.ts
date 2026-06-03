@@ -266,7 +266,8 @@ export class RuntimeCommandService {
                 action: compactObject<Extract<SkillSlashCommandAction, { type: 'client_action' }>['action']>({
                     type: action.action.type,
                     payload: action.action.payload
-                })
+                }),
+                runtimeCapabilities
             }
         }
 

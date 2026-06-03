@@ -49,9 +49,14 @@ type RuntimeCommandTextAction =
           runtimeCapabilities?: TRuntimeCapabilitiesSelection
       }
 
+type RuntimeCommandClientAction = Extract<SkillSlashCommandAction, { type: 'client_action' }> & {
+    runtimeCapabilities?: TRuntimeCapabilitiesSelection
+}
+
 export type RuntimeSlashCommandAction =
     | RuntimeCommandTextAction
-    | Extract<SkillSlashCommandAction, { type: 'client_action' | 'select_capability' }>
+    | RuntimeCommandClientAction
+    | Extract<SkillSlashCommandAction, { type: 'select_capability' }>
 
 export type RuntimeSlashCommandSource =
     | {
