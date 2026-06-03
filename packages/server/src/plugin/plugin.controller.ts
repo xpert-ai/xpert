@@ -1,6 +1,20 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Param, Post, Put, Query } from '@nestjs/common'
+import {
+	BadRequestException,
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Inject,
+	Param,
+	Post,
+	Put,
+	Query,
+	UploadedFile,
+	UseInterceptors
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
 import {
 	IPluginConfiguration,
@@ -28,6 +42,7 @@ import { getCodeWorkspacePath } from './source-config'
 import { canUninstallPlugin, canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
 import { ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
+import { UploadedPluginArchiveFile } from './plugin-archive'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
 
 type LoadedPluginScopeState = {
@@ -199,6 +214,22 @@ export class PluginController {
 	@Post()
 	async installPlugin(@Body() body: PluginInstallInput) {
 		return this.pluginManagementService.installPlugin(body)
+	}
+
+	@Post('archive')
+	@ApiConsumes('multipart/form-data')
+	@UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
+	async installPluginArchive(
+		@UploadedFile() file: UploadedPluginArchiveFile | undefined,
+		@Body() body: Record<string, unknown>
+	) {
+		if (!file?.buffer?.length) {
+			throw new BadRequestException('file is required')
+		}
+
+		return this.pluginManagementService.installArchivePlugin(file, {
+			config: parseOptionalObject(body?.config, 'config') ?? undefined
+		})
 	}
 
 	@Post('by-names')
@@ -532,5 +563,26 @@ export class PluginController {
 				hasUpdate: hasNewerVersion(plugin.currentVersion, latestVersion)
 			}
 		})
+	}
+}
+
+function parseOptionalObject(value: unknown, fieldName: string): Record<string, unknown> | undefined {
+	if (value === undefined || value === null || value === '') {
+		return undefined
+	}
+
+	const parsed = typeof value === 'string' ? parseJson(value, fieldName) : value
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		throw new BadRequestException(`${fieldName} must be a JSON object`)
+	}
+
+	return parsed as Record<string, unknown>
+}
+
+function parseJson(value: string, fieldName: string): unknown {
+	try {
+		return JSON.parse(value)
+	} catch {
+		throw new BadRequestException(`${fieldName} must be valid JSON`)
 	}
 }

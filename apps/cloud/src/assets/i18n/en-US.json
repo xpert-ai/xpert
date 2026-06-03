@@ -31,7 +31,13 @@
       "MarketplaceContentType_tool": "Tool",
       "MarketplaceContentType_assistant-template": "Assistant Template",
       "InitializeAssistantTemplate": "Initialize",
-      "InstallPluginBeforeInitialize": "Install or load this plugin before initializing the assistant."
+      "InstallPluginBeforeInitialize": "Install or load this plugin before initializing the assistant.",
+      "ArchiveSource": "Archive file",
+      "InstallFromArchive": "Install from Archive",
+      "ArchiveInstallHint": "Upload a plugin package archive (.zip, .tgz, .tar.gz, or .tar). The archive must contain one package.json and a built dist/ or src/index.ts entry.",
+      "ArchiveFile": "Archive file",
+      "ChooseArchiveFile": "Choose file",
+      "NoArchiveFileSelected": "No file selected"
     },
     "KEY_WORDS": {
       "ACTION": "Action",

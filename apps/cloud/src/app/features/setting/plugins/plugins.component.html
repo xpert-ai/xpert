@@ -507,6 +507,10 @@
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
     <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
+    <div cdkMenuItem class="" (click)="installArchive()">
+      <i class="ri-upload-cloud-2-line mr-1"></i>
+      {{ 'PAC.Plugin.ArchiveSource' | translate: { Default: 'Archive file' } }}
+    </div>
     @if (isDevEnvironment) {
       <div cdkMenuItem class="" (click)="installLocal()">
         <i class="ri-folder-open-line mr-1"></i>
@@ -569,6 +573,105 @@
         (click)="confirmInstallNpm(dialogRef)"
       >
         @if (npmInstalling()) {
+          <ngm-spin small class="!text-primary-200" />
+        }
+        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #archiveInstallDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div class="text-xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InstallFromArchive' | translate: { Default: 'Install from Archive' } }}
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
+        (click)="dialogRef.close()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="relative flex flex-col gap-4">
+      <div
+        class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary"
+      >
+        {{
+          'PAC.Plugin.ArchiveInstallHint'
+            | translate
+              : {
+                  Default:
+                    'Upload a plugin package archive (.zip, .tgz, .tar.gz, or .tar). The archive must contain one package.json and a built dist/ or src/index.ts entry.'
+                }
+        }}
+      </div>
+      <input
+        #archiveFileInput
+        type="file"
+        class="hidden"
+        accept=".zip,.tgz,.tar,.tar.gz,application/zip,application/gzip"
+        (change)="selectArchiveFile($event)"
+      />
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.ArchiveFile' | translate: { Default: 'Archive file' } }}
+        </label>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn disabled:btn-disabled btn-secondary btn-large shrink-0"
+            [disabled]="archiveInstalling()"
+            (click)="archiveFileInput.click()"
+          >
+            <i class="ri-folder-zip-line mr-1"></i>
+            {{ 'PAC.Plugin.ChooseArchiveFile' | translate: { Default: 'Choose file' } }}
+          </button>
+          <div
+            class="flex h-10 min-w-0 grow items-center rounded-lg border border-divider-regular px-3 text-sm text-text-secondary"
+          >
+            @if (archiveFile()) {
+              <span class="truncate">{{ archiveFile()?.name }}</span>
+            } @else {
+              <span class="text-text-tertiary">
+                {{ 'PAC.Plugin.NoArchiveFileSelected' | translate: { Default: 'No file selected' } }}
+              </span>
+            }
+          </div>
+          @if (archiveFile()) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-small h-10 w-10 shrink-0"
+              [disabled]="archiveInstalling()"
+              (click)="clearArchiveFile(archiveFileInput)"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          }
+        </div>
+      </div>
+      @if (archiveInstallError()) {
+        <div class="max-w-xl text-sm max-h-96 overflow-auto whitespace-break-spaces text-text-destructive">
+          {{ archiveInstallError() }}
+        </div>
+      }
+      @if (archiveInstalling()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+      }
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="archiveInstalling() || !archiveFile()"
+        (click)="confirmInstallArchive(dialogRef)"
+      >
+        @if (archiveInstalling()) {
           <ngm-spin small class="!text-primary-200" />
         }
         <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>

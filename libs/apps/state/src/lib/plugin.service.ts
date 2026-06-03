@@ -171,6 +171,16 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     return this.httpClient.post<IPluginInstallResult>(this.apiBaseUrl, input)
   }
 
+  installArchive(file: File, config?: Record<string, any>) {
+    const formData = new FormData()
+    formData.append('file', file, file.name || 'plugin-archive')
+    if (config) {
+      formData.append('config', JSON.stringify(config))
+    }
+
+    return this.httpClient.post<IPluginInstallResult>(`${this.apiBaseUrl}/archive`, formData)
+  }
+
   getByNames(names: string[]) {
     return this.httpClient.post<IPluginDescriptor[]>(`${this.apiBaseUrl}/by-names`, { names })
   }

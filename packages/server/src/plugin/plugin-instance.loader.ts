@@ -1,14 +1,15 @@
 /**
  * Why this exists:
  * Startup restore reads persisted plugin rows before plugin ORM metadata is available.
- * Code plugins are restored by workspace-backed package name, not by a versioned npm spec, so their staged path stays stable across restarts.
- * Keep `sourceConfig` attached so runtime restore can restage local code plugins when needed.
+ * Code plugins are restored by package name, not by a versioned npm spec.
+ * Keep `sourceConfig` attached so runtime restore can restage local workspaces or reuse uploaded staged runtime directories.
  */
 import { getConfig } from '@xpert-ai/server-config'
 import { PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { deserializePluginConfig } from './plugin-config.crypto'
+import { getCodeRuntimeName } from './source-config'
 
 const PLUGIN_INSTANCE_TABLE = 'plugin_instance'
 
@@ -25,7 +26,14 @@ interface PluginInstanceRow {
 
 export interface OrganizationPluginConfig {
 	organizationId?: string
-	plugins: { name: string; version?: string; source?: string; level?: PluginLevel; sourceConfig?: PluginSourceConfig | null }[]
+	plugins: {
+		name: string
+		runtimeName?: string
+		version?: string
+		source?: string
+		level?: PluginLevel
+		sourceConfig?: PluginSourceConfig | null
+	}[]
 	configs: Record<string, any>
 }
 
@@ -74,13 +82,16 @@ export function buildOrganizationPluginConfigs(instances: PluginInstanceRow[]): 
 		const orgId = instance.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const record = byOrg.get(orgId) ?? { organizationId: orgId, plugins: [], configs: {} }
 		const packageName = instance.packageName || instance.pluginName
-		const name = instance.source === 'code'
-			? packageName
-			: instance.version
-				? `${packageName}@${instance.version}`
-				: packageName
+		const runtimeName = instance.source === 'code' ? getCodeRuntimeName(instance.sourceConfig ?? null) : undefined
+		const name =
+			instance.source === 'code'
+				? packageName
+				: instance.version
+					? `${packageName}@${instance.version}`
+					: packageName
 		record.plugins.push({
 			name,
+			...(runtimeName ? { runtimeName } : {}),
 			version: instance.version,
 			source: instance.source,
 			sourceConfig: instance.sourceConfig ?? null,

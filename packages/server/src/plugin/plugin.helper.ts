@@ -24,6 +24,7 @@ import {
 	getOrganizationPluginRoot,
 	installOrganizationPlugins,
 	OrganizationPluginStoreOptions,
+	stagePackageDirectoryPlugin,
 	stageWorkspacePlugin
 } from './organization-plugin.store'
 import {
@@ -39,7 +40,7 @@ import { loadPlugin } from './plugin-loader'
 import { inspectConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
-import { getCodeWorkspacePath } from './source-config'
+import { getCodePackageDir, getCodeRuntimeName, getCodeWorkspacePath } from './source-config'
 import { findWorkspacePluginDirectory } from './plugin-sdk-versioning'
 
 /**
@@ -349,6 +350,28 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			continue
 		}
 
+		const packageDir = getCodePackageDir(plugin.sourceConfig)
+		if (packageDir) {
+			try {
+				stagePackageDirectoryPlugin({
+					organizationId,
+					pluginName: plugin.runtimeName ?? plugin.name,
+					expectedPackageName: normalizePluginName(plugin.name),
+					packageDir,
+					rootDir: opts.rootDir,
+					manifestName: opts.manifestName
+				})
+			} catch (error) {
+				plugin.stageError = getErrorMessage(error)
+				console.error(error)
+				logger.error(
+					`Failed to stage uploaded package plugin ${plugin.name} for organization ${organizationId}: ${plugin.stageError}`,
+					error instanceof Error ? error.stack : error
+				)
+			}
+			continue
+		}
+
 		const workspacePath =
 			getCodeWorkspacePath(plugin.sourceConfig) ??
 			findWorkspacePluginDirectory(normalizePluginName(plugin.name), baseDirRoot)
@@ -392,9 +415,14 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
 				: baseDirRoot
 			const configuredWorkspacePath = source === 'code' ? getCodeWorkspacePath(sourceConfig) : undefined
+			const configuredPackageDir = source === 'code' ? getCodePackageDir(sourceConfig) : undefined
+			const configuredRuntimeName = source === 'code' ? getCodeRuntimeName(sourceConfig) : undefined
 			const workspacePath =
 				source === 'code'
-					? (configuredWorkspacePath ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot))
+					? (configuredWorkspacePath ??
+						(configuredPackageDir || configuredRuntimeName
+							? undefined
+							: findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot)))
 					: undefined
 			let sdkCompatibilityWarnings: PluginSdkCompatibilityWarning[] = []
 			// 2) Load each plugin and merge its configuration defaults.
@@ -403,7 +431,11 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				source,
 				workspacePath,
 				codeLoadMode:
-					source === 'code' ? (configuredWorkspacePath ? 'staged-package' : 'workspace-ts') : undefined,
+					source === 'code'
+						? configuredWorkspacePath || configuredPackageDir
+							? 'staged-package'
+							: 'workspace-ts'
+						: undefined,
 				onCompatibilityWarnings: (warnings) => {
 					sdkCompatibilityWarnings = warnings
 				}

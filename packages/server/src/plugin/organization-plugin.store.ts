@@ -26,6 +26,13 @@ export interface StageWorkspacePluginOptions extends OrganizationPluginStoreOpti
 	workspacePath: string
 }
 
+export interface StagePackageDirectoryPluginOptions extends OrganizationPluginStoreOptions {
+	organizationId: string
+	pluginName: string
+	expectedPackageName: string
+	packageDir: string
+}
+
 type WorkspacePluginPackageJson = {
 	name?: string
 	dependencies?: Record<string, string>
@@ -330,6 +337,72 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 			dereference: true
 		})
 	}
+
+	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
+
+	return pluginDir
+}
+
+export function stagePackageDirectoryPlugin(opts: StagePackageDirectoryPluginOptions): string {
+	if (!opts.packageDir) {
+		throw new Error('packageDir is required')
+	}
+
+	if (!path.isAbsolute(opts.packageDir)) {
+		throw new Error('packageDir must be an absolute path')
+	}
+
+	if (!fs.existsSync(opts.packageDir) || !fs.statSync(opts.packageDir).isDirectory()) {
+		throw new Error(`packageDir does not exist or is not a directory: ${opts.packageDir}`)
+	}
+
+	const packageDir = fs.realpathSync.native(opts.packageDir)
+	const pkgJsonPath = path.join(packageDir, 'package.json')
+	if (!fs.existsSync(pkgJsonPath)) {
+		throw new Error(`package.json not found in uploaded plugin package: ${packageDir}`)
+	}
+
+	const packageJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as WorkspacePluginPackageJson
+	if (!packageJson?.name) {
+		throw new Error(`Invalid package.json in uploaded plugin package: missing 'name'`)
+	}
+
+	const normalizedPackageName = normalizePluginName(opts.expectedPackageName)
+	if (packageJson.name !== normalizedPackageName) {
+		throw new Error(
+			`uploaded package name mismatch: expected '${normalizedPackageName}', got '${packageJson.name}'`
+		)
+	}
+
+	const hasDist = fs.existsSync(path.join(packageDir, 'dist'))
+	const hasSrcEntry = fs.existsSync(path.join(packageDir, 'src', 'index.ts'))
+	const hasCompiledRootEntry = COMPILED_PLUGIN_ENTRY_FILES.some((fileName) =>
+		fs.existsSync(path.join(packageDir, fileName))
+	)
+	if (!hasDist && !hasSrcEntry && !hasCompiledRootEntry) {
+		throw new Error(
+			`Uploaded plugin "${opts.pluginName}" (expected package "${normalizedPackageName}") has an invalid package directory "${packageDir}": ` +
+				`package must contain 'dist/', 'src/index.ts', or a compiled root entry (${COMPILED_PLUGIN_ENTRY_FILES.join(
+					', '
+				)}) for plugin loading`
+		)
+	}
+
+	const pluginDir = getOrganizationPluginPath(opts.organizationId, opts.pluginName, opts)
+	const targetPackageDir = path.join(pluginDir, 'node_modules', normalizedPackageName)
+	const targetBaseDir = path.dirname(targetPackageDir)
+
+	fs.rmSync(pluginDir, { recursive: true, force: true })
+	ensureDir(targetBaseDir)
+
+	fs.cpSync(packageDir, targetPackageDir, {
+		recursive: true,
+		dereference: true,
+		filter: (source) => {
+			const base = path.basename(source)
+			return !['node_modules', '.git', '.DS_Store'].includes(base)
+		}
+	})
 
 	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
 

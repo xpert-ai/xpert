@@ -108,6 +108,46 @@ describe('plugin instance loader', () => {
 		])
 	})
 
+	it('restores uploaded code plugins with their persisted staged runtime name', () => {
+		const configs = buildOrganizationPluginConfigs([
+			{
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-uploaded-demo',
+				packageName: '@xpert-ai/plugin-uploaded-demo',
+				version: '0.2.0',
+				source: 'code',
+				sourceConfig: {
+					runtimeName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+					uploadFileName: 'plugin-uploaded-demo.tgz'
+				},
+				level: 'organization',
+				config: {}
+			}
+		])
+
+		expect(configs).toEqual([
+			{
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-uploaded-demo',
+						runtimeName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+						version: '0.2.0',
+						source: 'code',
+						sourceConfig: {
+							runtimeName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+							uploadFileName: 'plugin-uploaded-demo.tgz'
+						},
+						level: 'organization'
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-uploaded-demo': {}
+				}
+			}
+		])
+	})
+
 	it('falls back to the global organization scope for persisted global plugins', () => {
 		const configs = buildOrganizationPluginConfigs([
 			{

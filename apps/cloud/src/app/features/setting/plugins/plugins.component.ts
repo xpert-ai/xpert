@@ -69,6 +69,7 @@ export class PluginsComponent {
   readonly marketplace = viewChild(PluginsMarketplaceComponent)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
   readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
+  readonly archiveInstallDialog = viewChild('archiveInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
     initialValue: this._category() ?? 'plugins',
@@ -110,6 +111,9 @@ export class PluginsComponent {
   readonly localWorkspacePath = model('')
   readonly localInstalling = signal(false)
   readonly localInstallError = signal<string | null>(null)
+  readonly archiveFile = signal<File | null>(null)
+  readonly archiveInstalling = signal(false)
+  readonly archiveInstallError = signal<string | null>(null)
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
@@ -374,6 +378,37 @@ export class PluginsComponent {
     })
   }
 
+  installArchive() {
+    const template = this.archiveInstallDialog()
+    if (!template) {
+      return
+    }
+
+    this.archiveFile.set(null)
+    this.archiveInstallError.set(null)
+    this.archiveInstalling.set(false)
+
+    const dialogRef = this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-sm-black',
+      minWidth: '480px'
+    })
+    dialogRef.closed.subscribe(() => {
+      this.archiveInstalling.set(false)
+    })
+  }
+
+  selectArchiveFile(event: Event) {
+    const input = event.target as HTMLInputElement
+    this.archiveFile.set(input.files?.[0] ?? null)
+    this.archiveInstallError.set(null)
+  }
+
+  clearArchiveFile(input: HTMLInputElement) {
+    input.value = ''
+    this.archiveFile.set(null)
+    this.archiveInstallError.set(null)
+  }
+
   confirmInstallNpm(dialogRef: DialogRef) {
     const packageName = this.npmPackageName()?.trim()
     if (!packageName) {
@@ -428,6 +463,26 @@ export class PluginsComponent {
           this.localInstalling.set(false)
         }
       })
+  }
+
+  confirmInstallArchive(dialogRef: DialogRef) {
+    const file = this.archiveFile()
+    if (!file) {
+      return
+    }
+
+    this.archiveInstalling.set(true)
+    this.archiveInstallError.set(null)
+    this.pluginAPI.installArchive(file).subscribe({
+      next: () => {
+        this.archiveInstalling.set(false)
+        this.handleInstallSuccess(dialogRef)
+      },
+      error: (err) => {
+        this.archiveInstallError.set(getErrorMessage(err))
+        this.archiveInstalling.set(false)
+      }
+    })
   }
 
   private handleInstallSuccess(dialogRef: DialogRef) {
