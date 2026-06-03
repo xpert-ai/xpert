@@ -12,7 +12,7 @@ export type TPluginMarketplaceOperation = {
 
 export type TPluginMarketplaceContribution = {
   id?: string
-  type: 'app' | 'view' | 'feature' | 'tool' | string
+  type: 'app' | 'view' | 'feature' | 'tool' | 'assistant-template' | string
   name: string
   displayName?: I18nObject | string
   description?: I18nObject | string

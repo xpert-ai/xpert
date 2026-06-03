@@ -106,53 +106,55 @@
                 }}
               </div>
 
-              <div class="grid gap-3 lg:grid-cols-2">
-                <button
-                  type="button"
-                  class="rounded-xl border px-4 py-4 text-left transition-colors"
-                  [class.border-primary-500]="startMode() === 'blank'"
-                  [class.bg-background-default]="startMode() === 'blank'"
-                  [class.border-components-panel-border]="startMode() !== 'blank'"
-                  (click)="setStartMode('blank')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'PAC.Xpert.BlankStartHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Start from the default blank wizard and choose triggers, middlewares, and skills yourself.'
-                            }
-                    }}
-                  </div>
-                </button>
+              @if (!lockStartMode) {
+                <div class="grid gap-3 lg:grid-cols-2">
+                  <button
+                    type="button"
+                    class="rounded-xl border px-4 py-4 text-left transition-colors"
+                    [class.border-primary-500]="startMode() === 'blank'"
+                    [class.bg-background-default]="startMode() === 'blank'"
+                    [class.border-components-panel-border]="startMode() !== 'blank'"
+                    (click)="setStartMode('blank')"
+                  >
+                    <div class="text-base font-semibold text-text-primary">
+                      {{ 'PAC.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+                    </div>
+                    <div class="mt-2 text-sm leading-6 text-text-secondary">
+                      {{
+                        'PAC.Xpert.BlankStartHelp'
+                          | translate
+                            : {
+                                Default:
+                                  'Start from the default blank wizard and choose triggers, middlewares, and skills yourself.'
+                              }
+                      }}
+                    </div>
+                  </button>
 
-                <button
-                  type="button"
-                  class="rounded-xl border px-4 py-4 text-left transition-colors"
-                  [class.border-primary-500]="startMode() === 'template'"
-                  [class.bg-background-default]="startMode() === 'template'"
-                  [class.border-components-panel-border]="startMode() !== 'template'"
-                  (click)="setStartMode('template')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'PAC.Xpert.TemplateStartHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.'
-                            }
-                    }}
-                  </div>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    class="rounded-xl border px-4 py-4 text-left transition-colors"
+                    [class.border-primary-500]="startMode() === 'template'"
+                    [class.bg-background-default]="startMode() === 'template'"
+                    [class.border-components-panel-border]="startMode() !== 'template'"
+                    (click)="setStartMode('template')"
+                  >
+                    <div class="text-base font-semibold text-text-primary">
+                      {{ 'PAC.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+                    </div>
+                    <div class="mt-2 text-sm leading-6 text-text-secondary">
+                      {{
+                        'PAC.Xpert.TemplateStartHelp'
+                          | translate
+                            : {
+                                Default:
+                                  'Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.'
+                              }
+                      }}
+                    </div>
+                  </button>
+                </div>
+              }
 
               @if (startMode() === 'template') {
                 <xpert-blank-template-selection

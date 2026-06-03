@@ -44,7 +44,13 @@ export type PluginSdkCompatibilityWarningCode =
   | 'plugin-sdk-peer-range-invalid'
   | 'plugin-sdk-peer-range-incompatible'
   | 'plugin-sdk-peer-range-spans-major'
-export type PluginMarketplaceContributionType = 'app' | 'view' | 'feature' | 'tool' | (string & {})
+export type PluginMarketplaceContributionType =
+  | 'app'
+  | 'view'
+  | 'feature'
+  | 'tool'
+  | 'assistant-template'
+  | (string & {})
 export type PluginMarketplaceOperationAccess = 'read' | 'write' | 'admin' | (string & {})
 
 export interface PluginMarketplaceOperation {

@@ -24,6 +24,15 @@
   },
   "PAC": {
     "Title": "Metad Analytics Cloud",
+    "Plugin": {
+      "MarketplaceContentType_app": "App",
+      "MarketplaceContentType_view": "View",
+      "MarketplaceContentType_feature": "Feature",
+      "MarketplaceContentType_tool": "Tool",
+      "MarketplaceContentType_assistant-template": "Assistant Template",
+      "InitializeAssistantTemplate": "Initialize",
+      "InstallPluginBeforeInitialize": "Install or load this plugin before initializing the assistant."
+    },
     "KEY_WORDS": {
       "ACTION": "Action",
       "BUSINESS_AREA": "Business Area",

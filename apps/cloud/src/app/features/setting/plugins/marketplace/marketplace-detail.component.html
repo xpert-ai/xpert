@@ -58,12 +58,14 @@
             class="mt-3 divide-y divide-divider-regular rounded-2xl border border-divider-regular bg-background-default-subtle"
           >
             @for (content of contents(); track content.type + ':' + content.name) {
-              <button
-                type="button"
+              <div
                 class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-state-base-hover"
                 [class.bg-components-input-bg-normal]="selectedApp()?.name === content.name && content.type === 'app'"
-                [disabled]="content.type !== 'app'"
+                [class.cursor-pointer]="content.type === 'app'"
+                [attr.role]="content.type === 'app' ? 'button' : null"
+                [attr.tabindex]="content.type === 'app' ? 0 : null"
                 (click)="selectApp(content)"
+                (keydown.enter)="selectApp(content)"
               >
                 <span
                   class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-panel-bg text-text-secondary"
@@ -94,10 +96,32 @@
                     </span>
                   }
                 </span>
-                @if (content.type === 'app') {
+                @if (isAssistantTemplate(content)) {
+                  <span
+                    class="ml-3 mt-0.5 shrink-0"
+                    [title]="
+                      plugin.installed
+                        ? ''
+                        : ('PAC.Plugin.InstallPluginBeforeInitialize'
+                          | translate: { Default: 'Install or load this plugin before initializing the assistant.' })
+                    "
+                  >
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-small gap-1 disabled:btn-disabled"
+                      [disabled]="!plugin.installed"
+                      (click)="initializeAssistantTemplate(content, $event)"
+                    >
+                      <i class="ri-play-circle-line"></i>
+                      <span>
+                        {{ 'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' } }}
+                      </span>
+                    </button>
+                  </span>
+                } @else if (content.type === 'app') {
                   <i class="ri-arrow-right-s-line mt-2 text-text-tertiary"></i>
                 }
-              </button>
+              </div>
             }
           </div>
         } @else {
