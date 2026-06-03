@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { injectProjectService } from '@cloud/app/@core'
-import { IStorageFile, IXpertProject } from '@cloud/app/@core/types'
+import { IXpertProject } from '@cloud/app/@core/types'
+import { getChatStorageFileId, isChatAgentFile, toStorageAttachmentFile, type ChatAgentFile } from '@cloud/app/@shared/chat/attachments/agent-file'
 import { linkedModel } from '@xpert-ai/core'
 import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -27,14 +28,18 @@ export class ProjectService {
   })
 
   // Attachments
-  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
-  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: ChatAgentFile }[]>([])
+  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile).filter(isChatAgentFile) ?? [])
   readonly project_attachments = attrModel(this.project, 'attachments')
-  
-  onAttachCreated(file: IStorageFile) {
-    this.projectsService.addAttachments(this.id(), [file.id]).subscribe({
+
+  onAttachCreated(file: ChatAgentFile) {
+    const storageFileId = getChatStorageFileId(file)
+    if (!storageFileId) {
+      return
+    }
+    this.projectsService.addAttachments(this.id(), [storageFileId]).subscribe({
       next: () => {
-        this.project_attachments.update((state) => [...state, file])
+        this.project_attachments.update((state) => [...(state ?? []), toStorageAttachmentFile(file)])
       },
     })
   }
