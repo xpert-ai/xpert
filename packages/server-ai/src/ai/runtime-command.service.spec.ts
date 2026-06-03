@@ -450,6 +450,18 @@ describe('RuntimeCommandService', () => {
                     type: 'client_action',
                     action: {
                         type: 'middleware_only'
+                    },
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-goal']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
                     }
                 },
                 source: {

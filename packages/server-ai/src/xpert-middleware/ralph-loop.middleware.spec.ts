@@ -70,7 +70,6 @@ function createContext(overrides: Partial<IAgentMiddlewareContext> = {}): IAgent
 
 type GoalServiceMock = {
     getByConversationId: jest.Mock<Promise<GoalRecord | null>, [string]>
-    createGoalFromModel: jest.Mock<Promise<GoalRecord>, [string, string]>
     updateGoalFromModel: jest.Mock<Promise<GoalRecord>, [string, ThreadGoalStatus]>
     addUsage: jest.Mock<Promise<GoalRecord | null>, [string, { totalTokens?: number; elapsedSeconds?: number }]>
     incrementContinuation: jest.Mock<Promise<GoalRecord | null>, [string]>
@@ -82,22 +81,6 @@ function createGoalService(initialGoal?: GoalRecord | null): GoalServiceMock {
 
     return {
         getByConversationId: jest.fn(async (_conversationId: string) => goal),
-        createGoalFromModel: jest.fn(async (conversationId, objective) => {
-            if (goal) {
-                throw new Error('Conversation already has a goal.')
-            }
-            goal = {
-                id: 'goal-created',
-                conversationId,
-                threadId: 'thread-1',
-                objective,
-                status: 'active',
-                tokensUsed: 0,
-                elapsedSeconds: 0,
-                continuationCount: 0
-            }
-            return goal
-        }),
         updateGoalFromModel: jest.fn(async (_conversationId, status) => {
             if (!goal) {
                 throw new Error('Conversation has no goal.')
@@ -216,24 +199,20 @@ describe('RalphLoopMiddleware', () => {
         expect(JSON.stringify(strategy.meta)).not.toContain('<promise>DONE</promise>')
     })
 
-    it('exposes goal tools and rejects non-terminal model updates', async () => {
-        const goalService = createGoalService()
+    it('exposes only read and terminal update goal tools to the model', async () => {
+        const goalService = createGoalService(activeGoal)
         const strategy = new RalphLoopMiddleware(goalService as unknown as ChatConversationGoalService)
         const middleware = await Promise.resolve(strategy.createMiddleware({}, createContext()))
         const toolNames = middleware.tools?.map((tool) => tool.name)
 
-        expect(toolNames).toEqual(['get_goal', 'create_goal', 'update_goal'])
+        expect(toolNames).toEqual(['get_goal', 'update_goal'])
+        expect(toolNames).not.toContain('create_goal')
 
-        const createTool = middleware.tools?.find((tool) => tool.name === 'create_goal')
         const updateTool = middleware.tools?.find((tool) => tool.name === 'update_goal')
-        if (!createTool || !updateTool) {
-            throw new Error('Expected goal tools.')
+        if (!updateTool) {
+            throw new Error('Expected update goal tool.')
         }
 
-        await expect(createTool.invoke({ objective: 'finish docs' })).resolves.toMatchObject({
-            objective: 'finish docs',
-            status: 'active'
-        })
         await expect(updateTool.invoke({ status: 'paused' })).rejects.toThrow('complete or blocked')
         await expect(updateTool.invoke({ status: 'complete' })).resolves.toMatchObject({
             status: 'complete'

@@ -1,5 +1,6 @@
 import {
     getAgentMiddlewareNodes,
+    isRequiredMiddleware,
     normalizeMiddlewareProvider,
     type IWFNMiddleware,
     type IXpert,
@@ -48,6 +49,7 @@ type TemplateSlashCommandAction = Extract<
 type MiddlewareSlashCommandSource = {
     provider: string
     nodeKey: string
+    required: boolean
     command: SkillSlashCommand
     action: TemplateSlashCommandAction
 }
@@ -172,7 +174,7 @@ function applyMiddlewareSlashCommandInvocation(
         return null
     }
 
-    const source = findMiddlewareSlashCommandSource(sources, invocation.name)
+    const source = findMiddlewareSlashCommandSource(sources, invocation.name, input.runtimeCapabilities)
     if (!source) {
         return null
     }
@@ -223,6 +225,7 @@ function resolveMiddlewareSlashCommandSources(
             sources.push({
                 provider,
                 nodeKey: node.key,
+                required: isRequiredMiddleware(entity),
                 command,
                 action
             })
@@ -234,14 +237,27 @@ function resolveMiddlewareSlashCommandSources(
 
 function findMiddlewareSlashCommandSource(
     sources: MiddlewareSlashCommandSource[],
-    name: string
+    name: string,
+    runtimeCapabilities: unknown
 ): MiddlewareSlashCommandSource | null {
     for (const source of sources) {
-        if (getMiddlewareInvocationNames(source.command).includes(name)) {
+        if (
+            getMiddlewareInvocationNames(source.command).includes(name) &&
+            isMiddlewareSlashCommandAvailable(source, runtimeCapabilities)
+        ) {
             return source
         }
     }
     return null
+}
+
+function isMiddlewareSlashCommandAvailable(source: MiddlewareSlashCommandSource, runtimeCapabilities: unknown) {
+    if (source.command.name !== 'goal' || source.required) {
+        return true
+    }
+
+    const selection = normalizeRuntimeCapabilitiesSelection(runtimeCapabilities)
+    return selection?.plugins.nodeKeys.includes(source.nodeKey) === true
 }
 
 function getMiddlewareInvocationNames(command: SkillSlashCommand): string[] {

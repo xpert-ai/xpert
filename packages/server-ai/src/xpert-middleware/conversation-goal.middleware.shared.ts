@@ -41,10 +41,6 @@ export const conversationGoalStateSchema = z.object({
     threadGoalTurnStartedAt: z.number().optional()
 })
 
-const createGoalToolSchema = z.object({
-    objective: z.string().trim().min(1)
-})
-
 const updateGoalToolSchema = z.object({
     status: z.string()
 })
@@ -263,21 +259,6 @@ export function buildConversationGoalAgentMiddleware(
                     name: 'get_goal',
                     description: 'Read the current persisted conversation goal.',
                     schema: z.object({})
-                }
-            ),
-            tool(
-                async (input) => {
-                    if (!conversationId) {
-                        throw new Error('create_goal requires a conversationId.')
-                    }
-                    const goal = await goalService.createGoalFromModel(conversationId, input.objective)
-                    await dispatchGoalUpdated(goal)
-                    return goal
-                },
-                {
-                    name: 'create_goal',
-                    description: 'Create a persistent goal for this conversation. Fails when a goal already exists.',
-                    schema: createGoalToolSchema
                 }
             ),
             tool(
