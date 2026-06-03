@@ -71,7 +71,7 @@ export class ChatProjectConversationComponent {
       setTimeout(() => {
         this.chatSercice.project.set(this.project() as IXpertProject)
         this.chatSercice.ask(navigationInput.input, {
-          files: this.projectService.files()?.map((file) => ({ id: file.id, originalName: file.originalName })),
+          files: this.projectService.files(),
           ...(navigationInput.references?.length ? { references: navigationInput.references } : {})
         })
         this.projectService.attachments.set([])

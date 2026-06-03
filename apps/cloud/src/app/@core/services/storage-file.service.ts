@@ -6,6 +6,20 @@ import { map } from 'rxjs'
 import { FileUploadService } from './file-upload.service'
 
 export const C_API_STORAGEFILE = API_PREFIX + '/storage-file'
+export const C_API_AI_CONTEXT_FILE = API_PREFIX + '/ai/contexts/file'
+
+export type AgentFile = {
+  id: string
+  fileId: string
+  storageFileId: string
+  objectKey?: string
+  url?: string
+  fileUrl?: string
+  thumbUrl?: string
+  originalName?: string
+  size?: number
+  mimeType?: string
+}
 
 @Injectable({
   providedIn: 'root'
@@ -40,6 +54,15 @@ export class StorageFileService {
         })
       })
     )
+  }
+
+  uploadAgentFile(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post<AgentFile>(C_API_AI_CONTEXT_FILE, formData, {
+      observe: 'events',
+      reportProgress: true
+    })
   }
 
   createUrl(input: Partial<IStorageFile>) {

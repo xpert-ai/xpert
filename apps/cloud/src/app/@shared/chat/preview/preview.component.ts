@@ -84,6 +84,12 @@ import {
   XpertChatReference,
   XpertQuoteReference
 } from '../references'
+import {
+  isChatAgentFile,
+  toChatRequestFile,
+  toStorageAttachmentFile,
+  type ChatAgentFile
+} from '../attachments/agent-file'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../context/follow-up-consumed'
 import { getBusyComposerFollowUpMode, readFollowUpBehaviorStorageValue } from '../follow-ups/follow-ups'
 import {
@@ -191,7 +197,7 @@ type PreviewSendMetadata = {
 type PendingFollowUp = {
   id: string
   input: string
-  files?: IStorageFile[]
+  files?: ChatAgentFile[]
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
   targetExecutionId?: string | null
@@ -203,7 +209,7 @@ type PendingFollowUp = {
 type MergedPendingFollowUpGroup = {
   items: PendingFollowUp[]
   input: string
-  files?: IStorageFile[]
+  files?: ChatAgentFile[]
   references?: XpertChatReference[]
   targetExecutionId?: string | null
   planMode?: boolean
@@ -515,11 +521,11 @@ export class ChatConversationPreviewComponent {
     }
     return '*/*'
   })
-  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: ChatAgentFile }[]>([])
   readonly files = computed(() =>
     (this.attachments() ?? [])
       .map(({ storageFile }) => storageFile)
-      .filter((file): file is IStorageFile => Boolean(file))
+      .filter((file): file is ChatAgentFile => Boolean(file))
   )
 
   constructor() {
@@ -642,7 +648,7 @@ export class ChatConversationPreviewComponent {
     options?: {
       input?: string
       confirm?: boolean
-      files?: IStorageFile[]
+      files?: ChatAgentFile[]
       references?: XpertChatReference[]
       messageId?: string
       queuedFollowUpGroup?: MergedPendingFollowUpGroup | null
@@ -709,7 +715,7 @@ export class ChatConversationPreviewComponent {
                   references: item.references
                 }
               : {}),
-            attachments: item.files,
+            attachments: item.files?.map(toStorageAttachmentFile),
             ...(item.planMode || item.runtimeCapabilities || item.commandSource
               ? {
                   thirdPartyMessage: {
@@ -732,7 +738,7 @@ export class ChatConversationPreviewComponent {
                 references
               }
             : {}),
-          attachments: requestFiles,
+          attachments: requestFiles?.map(toStorageAttachmentFile),
           ...(planMode || runtimeCapabilities || commandSource
             ? {
                 thirdPartyMessage: {
@@ -813,16 +819,7 @@ export class ChatConversationPreviewComponent {
             ...createReferenceHumanInput({
               content: options?.input ?? '',
               references,
-              files: requestFiles?.map((file) => ({
-                id: file.id,
-                originalName: file.originalName,
-                name: file.originalName,
-                filePath: file.file,
-                fileUrl: file.url,
-                mimeType: file.mimetype,
-                size: file.size,
-                extension: file.originalName.split('.').pop()
-              }))
+              files: requestFiles?.map(toChatRequestFile)
             }),
             ...(planMode ? { planMode: true } : {}),
             ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
@@ -1487,16 +1484,7 @@ export class ChatConversationPreviewComponent {
           ...createReferenceHumanInput({
             content: item.input,
             references: item.references,
-            files: item.files?.map((file) => ({
-              id: file.id,
-              originalName: file.originalName,
-              name: file.originalName,
-              filePath: file.file,
-              fileUrl: file.url,
-              mimeType: file.mimetype,
-              size: file.size,
-              extension: file.originalName.split('.').pop()
-            }))
+            files: item.files?.map(toChatRequestFile)
           }),
           ...(item.planMode ? { planMode: true } : {}),
           ...(item.runtimeCapabilities ? { runtimeCapabilities: item.runtimeCapabilities } : {}),
@@ -1539,7 +1527,7 @@ export class ChatConversationPreviewComponent {
         content: item.input,
         conversationId: this.conversation()?.id,
         ...(item.references?.length ? { references: item.references } : {}),
-        attachments: item.files,
+        attachments: item.files?.map(toStorageAttachmentFile),
         ...(item.planMode || item.runtimeCapabilities || item.commandSource
           ? {
               thirdPartyMessage: {
@@ -2093,13 +2081,16 @@ export class ChatConversationPreviewComponent {
   onFileDropped(event?: FileList | null) {
     this.addFiles(event ? Array.from(event) : [])
   }
-  onAttachCreated(file: IStorageFile) {
+  onAttachCreated(file: ChatAgentFile) {
     void file
   }
   onAttachDeleted(fileId: string) {
     void fileId
   }
-  addAttachment(file: IStorageFile) {
+  addAttachment(file: ChatAgentFile | IStorageFile) {
+    if (!isChatAgentFile(file)) {
+      return
+    }
     this.attachments.update((state) => {
       const attachments = state ?? []
       if (attachments.some((attachment) => attachment.storageFile?.id === file.id)) {

@@ -20,7 +20,7 @@ import {
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
+import { ChatAttachmentsComponent, isChatAgentFile, type ChatAgentFile } from '@cloud/app/@shared/chat'
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@xpert-ai/core'
@@ -363,13 +363,16 @@ export class ChatProjectHomeComponent {
     this.attachments.update((state) => [...state, ...filesArray.map((file) => ({ file }))])
   }
 
-  onAttachCreated(file: IStorageFile) {
+  onAttachCreated(file: ChatAgentFile) {
     this.projectService.onAttachCreated(file)
   }
   onAttachDeleted(fileId: string) {
     this.projectService.onAttachDeleted(fileId)
   }
-  addAttachment(file: IStorageFile) {
+  addAttachment(file: ChatAgentFile | IStorageFile) {
+    if (!isChatAgentFile(file)) {
+      return
+    }
     this.attachments.update((state) => {
       if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
         return [...state, { storageFile: file }]

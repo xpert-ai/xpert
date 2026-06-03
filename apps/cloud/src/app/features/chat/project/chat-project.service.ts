@@ -2,7 +2,8 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { IStorageFile, IXpert } from '@cloud/app/@core/types'
+import { IXpert } from '@cloud/app/@core/types'
+import type { ChatAgentFile } from '@cloud/app/@shared/chat/attachments/agent-file'
 import { ChatService } from '@cloud/app/xpert'
 import { nonNullable } from '@xpert-ai/ocap-core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -69,15 +70,13 @@ export class ChatProjectService extends ChatService {
 
   constructor() {
     super()
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        } else {
-          this.conversationId.set(null)
-        }
+    effect(() => {
+      if (this.paramId()) {
+        this.conversationId.set(this.paramId())
+      } else {
+        this.conversationId.set(null)
       }
-    )
+    })
   }
 
   newConv(xpert?: IXpert) {
@@ -90,7 +89,7 @@ export class ChatProjectService extends ChatService {
     }
   }
 
-  onAttachCreated(file: IStorageFile): void {
+  onAttachCreated(file: ChatAgentFile): void {
     this.projectService.onAttachCreated(file)
   }
   onAttachDeleted(fileId: string): void {
