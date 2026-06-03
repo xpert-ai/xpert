@@ -23,8 +23,7 @@ import {
 	PLUGIN_CONFIGURATION_STATUS,
 	PLUGIN_LOAD_STATUS,
 	PLUGIN_LEVEL,
-	PluginScopeRelation,
-	RolesEnum
+	PluginScopeRelation
 } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
@@ -276,7 +275,7 @@ export class PluginController {
 
 	private async listVisiblePlugins(names?: string[]) {
 		const organizationId = this.getCurrentOrganizationId()
-		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+		// const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
 		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
 
 		const visiblePlugins = this.loadedPlugins
@@ -284,7 +283,7 @@ export class PluginController {
 				(plugin) =>
 					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
 			)
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
 			.filter(
 				(plugin) =>
 					!normalizedNames ||
@@ -301,7 +300,7 @@ export class PluginController {
 		)
 		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
 		const failedDescriptors = pluginInstances
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
 			.filter(
 				(plugin) =>
 					!normalizedNames || this.matchesNames(normalizedNames, plugin.pluginName, plugin.packageName)
