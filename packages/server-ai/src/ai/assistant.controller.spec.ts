@@ -808,7 +808,109 @@ describe('AssistantsController', () => {
         )
     })
 
-    it('includes slash commands from middleware connected to the current agent', async () => {
+    it('includes slash commands from required middleware connected to the current agent', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                title: 'Assistant 1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'middleware-ralph',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'ralph-loop',
+                                required: true
+                            }
+                        }
+                    ],
+                    connections: [{ type: 'workflow', from: 'agent-1', to: 'middleware-ralph' }]
+                }
+            }))
+        }
+        const assistantBindingService = {
+            getUserPreferenceByAssistantId: jest.fn(async () => null)
+        }
+        const agentMiddlewareRegistry = {
+            get: jest.fn(() => ({
+                meta: {
+                    label: {
+                        en_US: 'Ralph Loop'
+                    },
+                    slashCommands: [
+                        {
+                            name: 'goal',
+                            label: 'Goal',
+                            action: {
+                                type: 'client_action',
+                                action: {
+                                    type: 'chatkit.conversation_goal.command'
+                                }
+                            }
+                        }
+                    ]
+                }
+            }))
+        }
+        const promptWorkflowService = {
+            resolveRuntimeCommandProfile: jest.fn(async () => ({
+                hasProfile: false,
+                xpertCommands: [],
+                workspaceCommands: [],
+                preferredSkillEntries: [],
+                skillEntries: []
+            }))
+        }
+        const controller = createController(
+            publishedXpertAccessService,
+            assistantBindingService,
+            agentMiddlewareRegistry,
+            {
+                getAllByWorkspace: jest.fn()
+            },
+            new RuntimeCommandService(),
+            promptWorkflowService
+        )
+
+        const result = await controller.getRuntimeCapabilities('assistant-1')
+
+        expect(result.commands).toEqual([
+            expect.objectContaining({
+                name: 'goal',
+                action: {
+                    type: 'client_action',
+                    action: {
+                        type: 'chatkit.conversation_goal.command'
+                    },
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        skills: {
+                            ids: []
+                        },
+                        plugins: {
+                            nodeKeys: ['middleware-ralph']
+                        },
+                        subAgents: {
+                            nodeKeys: []
+                        }
+                    }
+                },
+                source: {
+                    type: 'middleware',
+                    provider: 'ralph-loop',
+                    nodeKey: 'middleware-ralph',
+                    label: 'Ralph Loop'
+                }
+            })
+        ])
+    })
+
+    it('includes optional middleware goal commands for selection-gated ChatKit UI', async () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn(async () => ({
                 id: 'assistant-1',
@@ -846,8 +948,18 @@ describe('AssistantsController', () => {
                             name: 'goal',
                             label: 'Goal',
                             action: {
-                                type: 'insert_invocation',
-                                template: 'Goal: {{args}}'
+                                type: 'client_action',
+                                action: {
+                                    type: 'chatkit.conversation_goal.command'
+                                }
+                            }
+                        },
+                        {
+                            name: 'compact',
+                            label: 'Compact',
+                            action: {
+                                type: 'submit_prompt',
+                                template: '/compact'
                             }
                         }
                     ]
@@ -876,33 +988,30 @@ describe('AssistantsController', () => {
 
         const result = await controller.getRuntimeCapabilities('assistant-1')
 
-        expect(result.commands).toEqual([
+        expect(result.plugins).toEqual([
             expect.objectContaining({
-                name: 'goal',
-                action: {
-                    type: 'insert_invocation',
-                    template: '/goal ',
-                    runtimeCapabilities: {
-                        mode: 'allowlist',
-                        skills: {
-                            ids: []
-                        },
-                        plugins: {
-                            nodeKeys: ['middleware-ralph']
-                        },
-                        subAgents: {
-                            nodeKeys: []
-                        }
-                    }
-                },
-                source: {
-                    type: 'middleware',
-                    provider: 'ralph-loop',
-                    nodeKey: 'middleware-ralph',
-                    label: 'Ralph Loop'
-                }
+                provider: 'ralph-loop',
+                nodeKey: 'middleware-ralph'
             })
         ])
+        expect(result.commands).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'goal',
+                    action: expect.objectContaining({
+                        type: 'client_action',
+                        runtimeCapabilities: expect.objectContaining({
+                            plugins: {
+                                nodeKeys: ['middleware-ralph']
+                            }
+                        })
+                    })
+                }),
+                expect.objectContaining({
+                    name: 'compact'
+                })
+            ])
+        )
     })
 
     it('does not include Ralph goal command when the middleware is not connected', async () => {
