@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.10.1
+
+### Patch Changes
+
+- 49101da: release
+
 ## 3.10.0
 
 ### Minor Changes
