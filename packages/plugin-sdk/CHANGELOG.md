@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 3.11.0
+
+### Minor Changes
+
+- 49101da: release
+
+### Patch Changes
+
+- Updated dependencies [49101da]
+  - @xpert-ai/contracts@3.10.1
+
 ## 3.10.0
 
 ### Minor Changes
