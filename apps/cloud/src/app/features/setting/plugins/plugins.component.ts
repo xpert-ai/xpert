@@ -28,7 +28,8 @@ import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { TInstalledPlugin } from './types'
+import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
+import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
 import { RolesEnum } from '@xpert-ai/contracts'
 
 @Component({
@@ -270,6 +271,15 @@ export class PluginsComponent {
       data: {
         plugin,
         reload: this.reload.bind(this)
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
+  }
+
+  openPluginDetails(plugin: TInstalledPlugin) {
+    this.#dialog.open(PluginMarketplaceDetailComponent, {
+      data: {
+        plugin: toPluginMarketplaceDetails(plugin)
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
@@ -548,5 +558,67 @@ export class PluginsComponent {
     this.#agentService.refresh()
     this.#knowledgebaseService.refresh()
     this.#toolsetService.refresh()
+  }
+}
+
+function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownloads {
+  const contributions = getInstalledPluginMarketplaceContributions(plugin)
+  return {
+    name: plugin.packageName ?? plugin.name,
+    displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
+    description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
+    version: plugin.currentVersion ?? plugin.meta.version ?? '',
+    deprecated: plugin.meta.deprecated,
+    deprecationMessage: plugin.meta.deprecationMessage,
+    category: plugin.meta.category ?? 'integration',
+    icon: plugin.meta.icon ?? {
+      type: 'font',
+      value: 'ri-puzzle-2-line'
+    },
+    author: {
+      name: plugin.meta.author ?? 'XpertAI',
+      url: plugin.meta.homepage ?? ''
+    },
+    source: plugin.meta.homepage
+      ? {
+          type: 'website',
+          url: plugin.meta.homepage
+        }
+      : undefined,
+    keywords: plugin.meta.keywords,
+    installed: plugin.loadStatus !== 'failed',
+    contributions,
+    operationSummary: countMarketplaceOperations(contributions),
+    marketplacePlugin: {
+      name: plugin.name,
+      packageName: plugin.packageName ?? plugin.name,
+      currentVersion: plugin.currentVersion,
+      source: plugin.source,
+      targetApps: plugin.meta.targetApps,
+      targetAppMeta: plugin.meta.targetAppMeta
+    }
+  }
+}
+
+function getInstalledPluginMarketplaceContributions(plugin: TInstalledPlugin): TPluginMarketplaceContribution[] {
+  const targetAppMeta = plugin.meta.targetAppMeta
+  if (!targetAppMeta) {
+    return []
+  }
+
+  return Object.values(targetAppMeta)
+    .flatMap((metadata) => metadata?.marketplace?.contents ?? [])
+    .filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
+}
+
+function countMarketplaceOperations(
+  contributions: TPluginMarketplaceContribution[]
+): TPluginWithDownloads['operationSummary'] {
+  const operations = contributions.flatMap((content) => (Array.isArray(content.operations) ? content.operations : []))
+  return {
+    total: operations.length,
+    read: operations.filter((operation) => operation.access === 'read').length,
+    write: operations.filter((operation) => operation.access === 'write').length,
+    admin: operations.filter((operation) => operation.access === 'admin').length
   }
 }

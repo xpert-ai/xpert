@@ -234,15 +234,19 @@
                     />
                     <div class="ml-3 w-0 grow">
                       <div class="flex h-5 items-center">
-                        <div
-                          class="system-md-semibold truncate text-text-primary"
-                          [class]="plugin.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+                        <button
+                          type="button"
+                          class="system-md-semibold min-w-0 truncate text-left text-text-primary transition-colors hover:text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          [class.line-through]="plugin.meta.deprecated"
+                          [class.decoration-2]="plugin.meta.deprecated"
+                          [class.decoration-current]="plugin.meta.deprecated"
                           [title]="plugin.meta.displayName"
                           [ngmHighlight]="searchText()"
                           [content]="plugin.meta.displayName"
+                          (click)="openPluginDetails(plugin)"
                         >
                           {{ plugin.meta.displayName }}
-                        </div>
+                        </button>
                         @if (plugin.meta.deprecated) {
                           <i
                             class="ri-alert-line shrink-0 ml-1 text-text-warning"
