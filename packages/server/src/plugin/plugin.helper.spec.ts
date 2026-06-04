@@ -17,6 +17,7 @@ jest.mock('./organization-plugin.store', () => ({
 	}),
 	getOrganizationPluginRoot: jest.fn((organizationId: string) => `/tmp/plugins/${organizationId}`),
 	installOrganizationPlugins: jest.fn(),
+	stagePackageDirectoryPlugin: jest.fn(),
 	stageWorkspacePlugin: jest.fn()
 }))
 
@@ -49,7 +50,11 @@ jest.mock('./plugin-instance.entity', () => ({
 	resolvePluginLevel: jest.fn((level?: string) => level ?? 'organization')
 }))
 
-const { installOrganizationPlugins, stageWorkspacePlugin } = require('./organization-plugin.store')
+const {
+	installOrganizationPlugins,
+	stagePackageDirectoryPlugin,
+	stageWorkspacePlugin
+} = require('./organization-plugin.store')
 const { loadPlugin } = require('./plugin-loader')
 const { loaded, loadFailures, collectProvidersWithMetadata, registerPluginsAsync } = require('./plugin.helper')
 
@@ -261,6 +266,50 @@ describe('plugin helper registerPluginsAsync', () => {
 				source: 'code'
 			})
 		])
+	})
+
+	it('stages uploaded package directories before loading code plugins', async () => {
+		await expect(
+			registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-uploaded-demo',
+						runtimeName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+						source: 'code',
+						sourceConfig: {
+							packageDir: '/tmp/xpert-plugin-upload-abc/package',
+							runtimeName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+							uploadFileName: 'plugin-uploaded-demo.tgz'
+						}
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-uploaded-demo': {}
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				errors: []
+			})
+		)
+
+		expect(stagePackageDirectoryPlugin).toHaveBeenCalledWith({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+			expectedPackageName: '@xpert-ai/plugin-uploaded-demo',
+			packageDir: '/tmp/xpert-plugin-upload-abc/package',
+			rootDir: undefined,
+			manifestName: undefined
+		})
+		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-uploaded-demo', {
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-uploaded-demo@runtime__abc123',
+			source: 'code',
+			workspacePath: undefined,
+			codeLoadMode: 'staged-package',
+			onCompatibilityWarnings: expect.any(Function)
+		})
 	})
 
 	it('appends stageWorkspacePlugin errors to subsequent load failures', async () => {

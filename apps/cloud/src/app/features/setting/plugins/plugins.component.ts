@@ -8,6 +8,7 @@ import {
   getErrorMessage,
   injectHelpWebsite,
   injectToastr,
+  injectUser,
   routeAnimations,
   KnowledgebaseService,
   XpertAgentService,
@@ -27,7 +28,9 @@ import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { TInstalledPlugin } from './types'
+import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
+import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
+import { RolesEnum } from '@xpert-ai/contracts'
 
 @Component({
   standalone: true,
@@ -58,13 +61,16 @@ export class PluginsComponent {
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
+  readonly currentUser = injectUser()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly #agentService = inject(XpertAgentService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toolsetService = inject(XpertToolsetService)
+  readonly marketplace = viewChild(PluginsMarketplaceComponent)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
   readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
+  readonly archiveInstallDialog = viewChild('archiveInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
     initialValue: this._category() ?? 'plugins',
@@ -106,12 +112,18 @@ export class PluginsComponent {
   readonly localWorkspacePath = model('')
   readonly localInstalling = signal(false)
   readonly localInstallError = signal<string | null>(null)
+  readonly archiveFile = signal<File | null>(null)
+  readonly archiveInstalling = signal(false)
+  readonly archiveInstallError = signal<string | null>(null)
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
 
   readonly categories = model<string[]>([])
   readonly keywords = model<string[]>([])
+  readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
+  readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
+  readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()
@@ -239,11 +251,35 @@ export class PluginsComponent {
     this.reloadInstalledPlugins()
   }
 
+  refreshMarketplaceSource() {
+    if (!this.isSuperAdmin()) {
+      return
+    }
+    this.marketplace()?.refreshSelectedSource()
+  }
+
+  openAddMarketplace() {
+    this.marketplace()?.openAddSource()
+  }
+
+  openManageRegisteredPlugins() {
+    this.marketplace()?.openRegistryManager()
+  }
+
   configure(plugin: TInstalledPlugin) {
     this.#dialog.open(PluginConfigureComponent, {
       data: {
         plugin,
         reload: this.reload.bind(this)
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
+  }
+
+  openPluginDetails(plugin: TInstalledPlugin) {
+    this.#dialog.open(PluginMarketplaceDetailComponent, {
+      data: {
+        plugin: toPluginMarketplaceDetails(plugin)
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
@@ -352,6 +388,37 @@ export class PluginsComponent {
     })
   }
 
+  installArchive() {
+    const template = this.archiveInstallDialog()
+    if (!template) {
+      return
+    }
+
+    this.archiveFile.set(null)
+    this.archiveInstallError.set(null)
+    this.archiveInstalling.set(false)
+
+    const dialogRef = this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-sm-black',
+      minWidth: '480px'
+    })
+    dialogRef.closed.subscribe(() => {
+      this.archiveInstalling.set(false)
+    })
+  }
+
+  selectArchiveFile(event: Event) {
+    const input = event.target as HTMLInputElement
+    this.archiveFile.set(input.files?.[0] ?? null)
+    this.archiveInstallError.set(null)
+  }
+
+  clearArchiveFile(input: HTMLInputElement) {
+    input.value = ''
+    this.archiveFile.set(null)
+    this.archiveInstallError.set(null)
+  }
+
   confirmInstallNpm(dialogRef: DialogRef) {
     const packageName = this.npmPackageName()?.trim()
     if (!packageName) {
@@ -406,6 +473,26 @@ export class PluginsComponent {
           this.localInstalling.set(false)
         }
       })
+  }
+
+  confirmInstallArchive(dialogRef: DialogRef) {
+    const file = this.archiveFile()
+    if (!file) {
+      return
+    }
+
+    this.archiveInstalling.set(true)
+    this.archiveInstallError.set(null)
+    this.pluginAPI.installArchive(file).subscribe({
+      next: () => {
+        this.archiveInstalling.set(false)
+        this.handleInstallSuccess(dialogRef)
+      },
+      error: (err) => {
+        this.archiveInstallError.set(getErrorMessage(err))
+        this.archiveInstalling.set(false)
+      }
+    })
   }
 
   private handleInstallSuccess(dialogRef: DialogRef) {
@@ -471,5 +558,67 @@ export class PluginsComponent {
     this.#agentService.refresh()
     this.#knowledgebaseService.refresh()
     this.#toolsetService.refresh()
+  }
+}
+
+function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownloads {
+  const contributions = getInstalledPluginMarketplaceContributions(plugin)
+  return {
+    name: plugin.packageName ?? plugin.name,
+    displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
+    description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
+    version: plugin.currentVersion ?? plugin.meta.version ?? '',
+    deprecated: plugin.meta.deprecated,
+    deprecationMessage: plugin.meta.deprecationMessage,
+    category: plugin.meta.category ?? 'integration',
+    icon: plugin.meta.icon ?? {
+      type: 'font',
+      value: 'ri-puzzle-2-line'
+    },
+    author: {
+      name: plugin.meta.author ?? 'XpertAI',
+      url: plugin.meta.homepage ?? ''
+    },
+    source: plugin.meta.homepage
+      ? {
+          type: 'website',
+          url: plugin.meta.homepage
+        }
+      : undefined,
+    keywords: plugin.meta.keywords,
+    installed: plugin.loadStatus !== 'failed',
+    contributions,
+    operationSummary: countMarketplaceOperations(contributions),
+    marketplacePlugin: {
+      name: plugin.name,
+      packageName: plugin.packageName ?? plugin.name,
+      currentVersion: plugin.currentVersion,
+      source: plugin.source,
+      targetApps: plugin.meta.targetApps,
+      targetAppMeta: plugin.meta.targetAppMeta
+    }
+  }
+}
+
+function getInstalledPluginMarketplaceContributions(plugin: TInstalledPlugin): TPluginMarketplaceContribution[] {
+  const targetAppMeta = plugin.meta.targetAppMeta
+  if (!targetAppMeta) {
+    return []
+  }
+
+  return Object.values(targetAppMeta)
+    .flatMap((metadata) => metadata?.marketplace?.contents ?? [])
+    .filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
+}
+
+function countMarketplaceOperations(
+  contributions: TPluginMarketplaceContribution[]
+): TPluginWithDownloads['operationSummary'] {
+  const operations = contributions.flatMap((content) => (Array.isArray(content.operations) ? content.operations : []))
+  return {
+    total: operations.length,
+    read: operations.filter((operation) => operation.access === 'read').length,
+    write: operations.filter((operation) => operation.access === 'write').length,
+    admin: operations.filter((operation) => operation.access === 'admin').length
   }
 }

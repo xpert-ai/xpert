@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
   ChatKitQuoteReference,
+  IconDefinition,
   I18nObject,
   TChatElementReference,
   TChatFileElementReference,
@@ -12,6 +13,7 @@ import type {
 import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
+import { IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
@@ -45,7 +47,12 @@ const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
-const DEFAULT_FIXED_VIEW_ICON = 'ri-layout-grid-line'
+const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
+const DEFAULT_FIXED_VIEW_ICON = {
+  type: 'font',
+  value: 'ri-layout-grid-line',
+  alt: 'Fixed view'
+} satisfies IconDefinition
 
 type ChatKitCodeComposerReference = {
   type: 'code'
@@ -79,7 +86,7 @@ type ClawXpertFixedViewTab = {
   kind: 'fixed-view'
   viewKey: string
   title: string
-  icon: string | null
+  icon: IconDefinition | null
 }
 type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
 
@@ -89,7 +96,7 @@ type ClawXpertFixedViewMenuItem = {
   viewKey: string
   title: string
   description: string | null
-  icon: string | null
+  icon: IconDefinition | null
   order: number
 }
 const DEFAULT_BROWSER_ZOOM = 100
@@ -124,6 +131,7 @@ type ChatKitReferenceComposerControl = {
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
     ChatSharedTerminalComponent,
+    IconComponent,
     ExtensionHostOutletComponent
   ],
   template: `
@@ -131,10 +139,7 @@ type ChatKitReferenceComposerControl = {
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         @if (showDetailPanel()) {
           <div class="flex h-full min-h-0 flex-col overflow-hidden">
-            <div
-              data-workspace-tab-header
-              class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5"
-            >
+            <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
               <nav
                 z-tab-nav-bar
                 [tabPanel]="tabPanel"
@@ -145,17 +150,17 @@ type ChatKitReferenceComposerControl = {
                 zSize="sm"
                 class="m-0 min-w-0 max-w-full shrink border-0 p-0"
               >
-                @for (tab of workspaceTabs(); track tab.id) {
+                @for (tab of workspaceTabs(); track tab.id; let last = $last) {
                   <button
                     z-tab-link
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab flex h-9 min-w-0 items-center gap-2 rounded-xl !border-transparent border-0 bg-hover-bg px-3 text-sm font-medium text-text-primary transition-[background-color,color] hover:bg-hover-bg data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
-                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
                       <span
                         class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
                       >
@@ -170,7 +175,11 @@ type ChatKitReferenceComposerControl = {
                             <i class="ri-global-line shrink-0 text-lg"></i>
                           }
                           @case ('fixed-view') {
-                            <i [class]="fixedViewIconClass(tab.icon)"></i>
+                            <xp-icon
+                              [icon]="tab.icon ?? defaultFixedViewIcon"
+                              [size]="18"
+                              class="shrink-0 text-text-primary"
+                            />
                           }
                         }
                       </span>
@@ -206,6 +215,10 @@ type ChatKitReferenceComposerControl = {
                         </span>
                       }
                     }
+
+                    @if (!last) {
+                      <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
+                    }
                   </button>
                 }
               </nav>
@@ -216,7 +229,7 @@ type ChatKitReferenceComposerControl = {
                 zType="ghost"
                 zSize="icon"
                 data-add-workspace-tab
-                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:bg-components-card-bg hover:text-text-primary"
+                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:text-text-primary"
                 [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
                 z-menu
                 [zMenuTriggerFor]="workspaceTabMenu"
@@ -282,7 +295,11 @@ type ChatKitReferenceComposerControl = {
                           (click)="openFixedViewTab(fixedView)"
                         >
                           <span class="flex min-w-0 items-center gap-2">
-                            <i [class]="fixedViewIconClass(fixedView.icon)"></i>
+                            <xp-icon
+                              [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                              [size]="16"
+                              class="shrink-0 text-text-primary"
+                            />
                             <span class="min-w-0 truncate">{{ fixedView.title }}</span>
                           </span>
                         </button>
@@ -340,7 +357,11 @@ type ChatKitReferenceComposerControl = {
                           class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
                           (click)="openFixedViewTab(fixedView)"
                         >
-                          <i [class]="fixedViewLauncherIconClass(fixedView.icon)"></i>
+                          <xp-icon
+                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                            [size]="32"
+                            class="text-text-tertiary"
+                          />
                           <div class="mt-4 text-xl font-semibold text-text-primary">
                             {{ fixedView.title }}
                           </div>
@@ -374,12 +395,13 @@ type ChatKitReferenceComposerControl = {
                 } @else if (activeFixedViewTab(); as fixedViewTab) {
                   @if (fixedViewHostId(); as hostId) {
                     <xp-extension-host-outlet
-                      class="block h-full min-h-0 overflow-auto"
+                      class="block h-full min-h-0 overflow-hidden"
                       mode="single-view"
                       hostType="agent"
                       [hostId]="hostId"
                       [slot]="agentWorkbenchFixedSlot"
                       [viewKey]="fixedViewTab.viewKey"
+                      [fillAvailableHeight]="true"
                     />
                   } @else {
                     <div
@@ -574,12 +596,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
+  #unregisterBrowserOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
 
   readonly facade = inject(ClawXpertFacade)
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
+  readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
     assistantId: computed(() => this.facade.resolvedPreference()?.assistantId ?? null),
@@ -702,6 +726,23 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+    this.#unregisterBrowserOpenCommand = this.#clientCommands.register(WORKBENCH_BROWSER_OPEN_COMMAND, (payload) => {
+      const target = toWorkbenchBrowserPreviewTarget(payload)
+      if (!target) {
+        return {
+          success: false,
+          code: 'invalid_payload',
+          message: 'Workbench browser preview payload must include a URL.'
+        }
+      }
+
+      const tab = this.openBrowserTabFromSandboxEvent(target)
+      return {
+        success: true,
+        tabId: tab.id,
+        url: tab.url ?? tab.displayUrl
+      }
     })
 
     effect((onCleanup) => {
@@ -837,6 +878,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   ngOnDestroy() {
     this.#unregisterAssistantCommand?.()
     this.#unregisterAssistantCommand = null
+    this.#unregisterBrowserOpenCommand?.()
+    this.#unregisterBrowserOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
@@ -1015,14 +1058,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     )
   }
 
-  fixedViewIconClass(icon: string | null | undefined) {
-    return `${normalizeFixedViewIcon(icon)} shrink-0 text-base`
-  }
-
-  fixedViewLauncherIconClass(icon: string | null | undefined) {
-    return `${normalizeFixedViewIcon(icon)} text-3xl text-text-tertiary`
-  }
-
   private createWorkspaceTabId(kind: ClawXpertWorkspaceTabKind) {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
@@ -1145,7 +1180,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       viewKey: manifest.key,
       title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
       description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
-      icon: normalizeOptionalString(menu?.icon ?? manifest.icon),
+      icon: menu?.icon ?? manifest.icon ?? null,
       order: menu?.order ?? manifest.order ?? Number.MAX_SAFE_INTEGER
     }
   }
@@ -1311,6 +1346,43 @@ function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandbox
     : false
 }
 
+function toWorkbenchBrowserPreviewTarget(payload: unknown): ClawXpertSandboxPreviewTarget | null {
+  if (typeof payload === 'string' && payload.trim()) {
+    const url = payload.trim()
+    return {
+      displayUrl: url,
+      url
+    }
+  }
+
+  if (!isPreviewPayloadRecord(payload)) {
+    return null
+  }
+
+  const url =
+    readPreviewPayloadString(payload, 'url') ??
+    readPreviewPayloadString(payload, 'displayUrl') ??
+    readPreviewPayloadString(payload, 'deploymentUrl') ??
+    readPreviewPayloadString(payload, 'previewUrl')
+  if (!url) {
+    return null
+  }
+
+  return {
+    displayUrl: readPreviewPayloadString(payload, 'displayUrl') ?? url,
+    url
+  }
+}
+
+function readPreviewPayloadString(payload: Record<string, unknown>, key: string) {
+  const value = payload[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function isPreviewPayloadRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
 function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
   if (manifest.visible === false) {
     return false
@@ -1323,14 +1395,6 @@ function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
 
 function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
   return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
-}
-
-function normalizeFixedViewIcon(icon: string | null | undefined) {
-  return normalizeOptionalString(icon) ?? DEFAULT_FIXED_VIEW_ICON
-}
-
-function normalizeOptionalString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {

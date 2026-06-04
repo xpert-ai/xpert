@@ -2,6 +2,9 @@
 	const CHANNEL = 'xpertai.remote_component'
 	const VERSION = 1
 	const h = React.createElement
+	const NO_WRAP_STYLE = { whiteSpace: 'nowrap' }
+	const ACTIONS_NO_WRAP_STYLE = { whiteSpace: 'nowrap', flexWrap: 'nowrap' }
+	const VIEWPORT_BOUND_FILL_HEIGHT = 100000
 	let instanceId = null
 	let requestSequence = 0
 	const pending = new Map()
@@ -13,6 +16,9 @@
 			requiredFields: '编码和名称为必填项。',
 			selectProject: '选择项目',
 			allModels: '全部模型',
+			allBusinessAreas: '全部业务域',
+			allStatuses: '全部状态',
+			allTypes: '全部类型',
 			searchPlaceholder: '搜索指标编码、名称或业务口径',
 			search: '搜索',
 			createMetric: '新建指标',
@@ -25,6 +31,7 @@
 			type: '类型',
 			status: '状态',
 			model: '模型',
+			businessArea: '业务域',
 			embeddingStatus: '向量状态',
 			updatedAt: '更新时间',
 			actions: '操作',
@@ -43,7 +50,18 @@
 			refresh: '刷新',
 			close: '关闭',
 			noModel: '不指定模型',
+			cube: '立方体',
 			entity: '实体',
+			description: '描述',
+			calendar: '日历',
+			measure: '度量',
+			formula: '公式',
+			filters: '过滤条件',
+			addFilter: '添加过滤',
+			remove: '移除',
+			dimension: '维度',
+			hierarchy: '层级',
+			member: '成员',
 			unit: '单位',
 			business: '业务口径',
 			visible: '可见',
@@ -59,6 +77,9 @@
 			requiredFields: 'Code and name are required.',
 			selectProject: 'Select project',
 			allModels: 'All models',
+			allBusinessAreas: 'All business areas',
+			allStatuses: 'All statuses',
+			allTypes: 'All types',
 			searchPlaceholder: 'Search metric code, name, or business definition',
 			search: 'Search',
 			createMetric: 'Create metric',
@@ -71,6 +92,7 @@
 			type: 'Type',
 			status: 'Status',
 			model: 'Model',
+			businessArea: 'Business area',
 			embeddingStatus: 'Embedding',
 			updatedAt: 'Updated at',
 			actions: 'Actions',
@@ -89,7 +111,18 @@
 			refresh: 'Refresh',
 			close: 'Close',
 			noModel: 'No model',
+			cube: 'Cube',
 			entity: 'Entity',
+			description: 'Description',
+			calendar: 'Calendar',
+			measure: 'Measure',
+			formula: 'Formula',
+			filters: 'Filters',
+			addFilter: 'Add filter',
+			remove: 'Remove',
+			dimension: 'Dimension',
+			hierarchy: 'Hierarchy',
+			member: 'Member',
 			unit: 'Unit',
 			business: 'Business definition',
 			visible: 'Visible',
@@ -161,8 +194,12 @@
 	}
 
 	function reportResize() {
-		const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 420)
-		post('resize', { height })
+		const height = Math.max(
+			document.body.scrollHeight,
+			document.documentElement.scrollHeight,
+			VIEWPORT_BOUND_FILL_HEIGHT
+		)
+		post('resize', { height, viewportBound: true })
 	}
 
 	window.addEventListener('message', (event) => {
@@ -187,6 +224,13 @@
 
 		if (message.instanceId !== instanceId) return
 
+		if (message.type === 'hostEvent') {
+			if (window.__metricAppHandleHostEvent) {
+				window.__metricAppHandleHostEvent(message.event)
+			}
+			return
+		}
+
 		if (message.requestId && pending.has(message.requestId)) {
 			const item = pending.get(message.requestId)
 			pending.delete(message.requestId)
@@ -209,6 +253,11 @@
 		})
 	}
 
+	function getEventOutput(event) {
+		const data = (event && event.data) || {}
+		return isObject(data.output) ? data.output : data
+	}
+
 	function optionLabel(options, value) {
 		const option = options.find((item) => item.value === value)
 		return option ? option.label : value || ''
@@ -216,13 +265,22 @@
 
 	function buildFormState(row, query) {
 		const draft = isObject(row && row.draft) ? row.draft : {}
+		const options = isObject(draft.options) ? draft.options : isObject(row && row.options) ? row.options : {}
 		return {
 			code: draft.code || (row && row.code) || '',
 			name: draft.name || (row && row.name) || '',
 			type: draft.type || (row && row.type) || 'BASIC',
 			modelId: draft.modelId || (row && row.modelId) || query.parameters.modelId || '',
+			businessAreaId:
+				draft.businessAreaId || (row && row.businessAreaId) || query.parameters.businessAreaId || '',
+			cube: draft.cube || draft.entity || (row && (row.cube || row.entity)) || '',
 			entity: draft.entity || (row && row.entity) || '',
+			description: draft.description || draft.business || (row && (row.description || row.business)) || '',
 			business: draft.business || (row && row.business) || '',
+			calendar: draft.calendar || options.calendar || '',
+			measure: draft.measure || options.measure || '',
+			formula: draft.formula || options.formula || '',
+			filters: normalizeFilters(draft.filters || options.filters),
 			unit: draft.unit || (row && row.unit) || '',
 			visible:
 				typeof draft.visible === 'boolean'
@@ -233,12 +291,32 @@
 		}
 	}
 
+	function normalizeFilters(filters) {
+		if (!Array.isArray(filters)) return []
+		return filters
+			.map((filter) => {
+				if (!isObject(filter)) return null
+				const dimension = isObject(filter.dimension) ? filter.dimension : {}
+				const members = Array.isArray(filter.members) ? filter.members : []
+				return {
+					dimension:
+						filter.dimension && !isObject(filter.dimension) ? filter.dimension : dimension.dimension || '',
+					hierarchy: filter.hierarchy || dimension.hierarchy || '',
+					member: filter.member || (members[0] && members[0].key) || ''
+				}
+			})
+			.filter(Boolean)
+	}
+
 	function MetricApp() {
 		const [context, setContext] = React.useState(null)
 		const [query, setQuery] = React.useState({ page: 1, pageSize: 20, parameters: {} })
 		const [data, setData] = React.useState({ items: [], total: 0 })
 		const [projects, setProjects] = React.useState([])
 		const [models, setModels] = React.useState([])
+		const [businessAreas, setBusinessAreas] = React.useState([])
+		const [statuses, setStatuses] = React.useState([])
+		const [types, setTypes] = React.useState([])
 		const [searchInput, setSearchInput] = React.useState('')
 		const [loading, setLoading] = React.useState(false)
 		const [busy, setBusy] = React.useState('')
@@ -249,6 +327,7 @@
 		const t = React.useMemo(() => createTranslator(locale), [locale])
 
 		window.__metricAppSetContext = setContext
+		window.__metricAppHandleHostEvent = handleHostEvent
 
 		React.useEffect(() => {
 			if (!context) return
@@ -256,21 +335,23 @@
 			setQuery(nextQuery)
 			setSearchInput(nextQuery.search || '')
 			loadProjects(nextQuery)
+			loadStaticScopeOptions(nextQuery)
 			if (nextQuery.parameters.projectId) {
 				loadModels(nextQuery.parameters.projectId, nextQuery)
+				loadBusinessAreas(nextQuery.parameters.projectId, nextQuery)
 			}
 			loadData(nextQuery)
 		}, [context])
 
 		React.useEffect(() => {
 			reportResize()
-		}, [data, projects, models, loading, notice, modal, form])
+		}, [data, projects, models, businessAreas, statuses, types, loading, notice, modal, form])
 
 		async function loadProjects(nextQuery) {
 			try {
 				const response = await request('requestParameterOptions', {
 					parameterKey: 'projectId',
-					parameters: nextQuery.parameters
+					query: { parameters: nextQuery.parameters }
 				})
 				setProjects((response.result && response.result.items) || [])
 			} catch (error) {
@@ -282,9 +363,38 @@
 			try {
 				const response = await request('requestParameterOptions', {
 					parameterKey: 'modelId',
-					parameters: Object.assign({}, nextQuery.parameters, { projectId })
+					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
 				})
 				setModels((response.result && response.result.items) || [])
+			} catch (error) {
+				setNotice({ error: true, text: error.message })
+			}
+		}
+
+		async function loadBusinessAreas(projectId, nextQuery) {
+			try {
+				const response = await request('requestParameterOptions', {
+					parameterKey: 'businessAreaId',
+					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
+				})
+				setBusinessAreas((response.result && response.result.items) || [])
+			} catch (error) {
+				setNotice({ error: true, text: error.message })
+			}
+		}
+
+		async function loadStaticScopeOptions(nextQuery) {
+			try {
+				const statusResponse = await request('requestParameterOptions', {
+					parameterKey: 'status',
+					query: { parameters: nextQuery.parameters }
+				})
+				const typeResponse = await request('requestParameterOptions', {
+					parameterKey: 'type',
+					query: { parameters: nextQuery.parameters }
+				})
+				setStatuses((statusResponse.result && statusResponse.result.items) || [])
+				setTypes((typeResponse.result && typeResponse.result.items) || [])
 			} catch (error) {
 				setNotice({ error: true, text: error.message })
 			}
@@ -311,14 +421,17 @@
 		function updateProject(projectId) {
 			const parameters = Object.assign({}, query.parameters, { projectId })
 			delete parameters.modelId
+			delete parameters.businessAreaId
 			const nextQuery = Object.assign({}, query, {
 				page: 1,
 				parameters
 			})
 			setModels([])
+			setBusinessAreas([])
 			setQuery(nextQuery)
 			if (projectId) {
 				loadModels(projectId, nextQuery)
+				loadBusinessAreas(projectId, nextQuery)
 			}
 			loadData(nextQuery)
 		}
@@ -327,6 +440,13 @@
 			const parameters = Object.assign({}, query.parameters)
 			if (modelId) parameters.modelId = modelId
 			else delete parameters.modelId
+			applyQuery(Object.assign({}, query, { page: 1, parameters }))
+		}
+
+		function updateParameter(key, value) {
+			const parameters = Object.assign({}, query.parameters)
+			if (value) parameters[key] = value
+			else delete parameters[key]
 			applyQuery(Object.assign({}, query, { page: 1, parameters }))
 		}
 
@@ -374,8 +494,24 @@
 				name: form.name.trim(),
 				type: form.type,
 				modelId: form.modelId || undefined,
-				entity: form.entity.trim() || undefined,
-				business: form.business.trim() || undefined,
+				businessAreaId: form.businessAreaId || undefined,
+				cube: form.cube.trim() || form.entity.trim() || undefined,
+				entity: form.cube.trim() || form.entity.trim() || undefined,
+				description: form.description.trim() || form.business.trim() || undefined,
+				business: form.description.trim() || form.business.trim() || undefined,
+				calendar: form.calendar.trim() || undefined,
+				measure: form.type === 'BASIC' ? form.measure.trim() || undefined : undefined,
+				formula: form.type === 'DERIVE' ? form.formula.trim() || undefined : undefined,
+				filters:
+					form.type === 'BASIC'
+						? form.filters
+								.map((filter) => ({
+									dimension: filter.dimension.trim(),
+									hierarchy: filter.hierarchy.trim() || undefined,
+									member: filter.member.trim()
+								}))
+								.filter((filter) => filter.dimension && filter.member)
+						: undefined,
 				unit: form.unit.trim() || undefined,
 				visible: form.visible
 			}
@@ -388,12 +524,69 @@
 			}
 		}
 
+		async function handleHostEvent(event) {
+			if (!context || !event || event.type !== 'assistant.tool.completed') {
+				return
+			}
+			const output = getEventOutput(event)
+			const nextParameters = Object.assign({}, query.parameters)
+			const scope = output && isObject(output.metricScope) ? output.metricScope : null
+			if (scope) {
+				mergeScopeParameters(nextParameters, scope)
+			} else {
+				if (output && output.projectId) {
+					nextParameters.projectId = output.projectId
+				}
+				if (output && output.modelId) {
+					nextParameters.modelId = output.modelId
+				}
+				if (output && output.businessAreaId) {
+					nextParameters.businessAreaId = output.businessAreaId
+				}
+			}
+			const nextQuery = Object.assign({}, query, {
+				page: 1,
+				parameters: nextParameters
+			})
+			setQuery(nextQuery)
+			if (nextParameters.projectId) {
+				loadModels(nextParameters.projectId, nextQuery)
+				loadBusinessAreas(nextParameters.projectId, nextQuery)
+			}
+			await loadData(nextQuery)
+		}
+
+		function mergeScopeParameters(parameters, scope) {
+			if (scope.projectId) parameters.projectId = scope.projectId
+			else delete parameters.projectId
+
+			setSingleScopeParameter(parameters, 'modelId', scope.modelIds)
+			setSingleScopeParameter(parameters, 'businessAreaId', scope.businessAreaIds)
+			setSingleScopeParameter(parameters, 'entity', scope.entities)
+
+			if (scope.status) parameters.status = scope.status
+			else delete parameters.status
+			if (scope.type) parameters.type = scope.type
+			else delete parameters.type
+		}
+
+		function setSingleScopeParameter(parameters, key, values) {
+			if (Array.isArray(values) && values.length === 1) {
+				parameters[key] = values[0]
+			} else {
+				delete parameters[key]
+			}
+		}
+
 		function renderToolbar() {
 			const projectId = query.parameters.projectId || ''
 			const modelId = query.parameters.modelId || ''
+			const businessAreaId = query.parameters.businessAreaId || ''
+			const status = query.parameters.status || ''
+			const type = query.parameters.type || ''
 			return h(
 				'div',
-				{ className: 'xui-toolbar' },
+				{ className: 'xui-toolbar xui-metric-sticky-toolbar' },
 				h(
 					'select',
 					{
@@ -414,6 +607,37 @@
 					},
 					h('option', { value: '' }, t('allModels')),
 					models.map((model) => h('option', { key: model.value, value: model.value }, model.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: businessAreaId,
+						disabled: !projectId,
+						onChange: (event) => updateParameter('businessAreaId', event.target.value)
+					},
+					h('option', { value: '' }, t('allBusinessAreas')),
+					businessAreas.map((area) => h('option', { key: area.value, value: area.value }, area.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: status,
+						onChange: (event) => updateParameter('status', event.target.value)
+					},
+					h('option', { value: '' }, t('allStatuses')),
+					statuses.map((item) => h('option', { key: item.value, value: item.value }, item.label))
+				),
+				h(
+					'select',
+					{
+						className: 'xui-control',
+						value: type,
+						onChange: (event) => updateParameter('type', event.target.value)
+					},
+					h('option', { value: '' }, t('allTypes')),
+					types.map((item) => h('option', { key: item.value, value: item.value }, item.label))
 				),
 				h('input', {
 					className: 'xui-input',
@@ -479,10 +703,14 @@
 								['type', t('type')],
 								['status', t('status')],
 								['model', t('model')],
+								['businessArea', t('businessArea')],
+								['entity', t('entity')],
+								['business', t('business')],
+								['unit', t('unit')],
 								['embeddingStatus', t('embeddingStatus')],
 								['updatedAt', t('updatedAt')],
 								['actions', t('actions')]
-							].map((column) => h('th', { key: column[0] }, column[1]))
+							].map((column) => h('th', { key: column[0], style: NO_WRAP_STYLE }, column[1]))
 						)
 					),
 					h(
@@ -492,24 +720,49 @@
 							h(
 								'tr',
 								{ key: row.id },
-								h('td', null, row.code || '-'),
-								h('td', null, row.name || '-'),
-								h('td', null, h('span', { className: 'xui-pill' }, row.type || '-')),
-								h('td', null, h('span', { className: 'xui-pill' }, row.status || '-')),
-								h('td', null, row.modelName || optionLabel(models, row.modelId) || '-'),
-								h('td', null, h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')),
-								h('td', null, formatDate(row.updatedAt)),
+								h('td', { style: NO_WRAP_STYLE }, row.code || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.name || '-'),
 								h(
 									'td',
-									null,
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.type || '-')
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.status || '-')
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									row.modelName || optionLabel(models, row.modelId) || '-'
+								),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									row.businessAreaName || optionLabel(businessAreas, row.businessAreaId) || '-'
+								),
+								h('td', { style: NO_WRAP_STYLE }, row.entity || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.business || '-'),
+								h('td', { style: NO_WRAP_STYLE }, row.unit || '-'),
+								h(
+									'td',
+									{ style: NO_WRAP_STYLE },
+									h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')
+								),
+								h('td', { style: NO_WRAP_STYLE }, formatDate(row.updatedAt)),
+								h(
+									'td',
+									{ className: 'xui-table-actions-cell', style: NO_WRAP_STYLE },
 									h(
 										'div',
-										{ className: 'xui-actions' },
+										{ className: 'xui-actions xui-table-actions', style: ACTIONS_NO_WRAP_STYLE },
 										h(
 											'button',
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => openModal('edit', row)
 											},
@@ -520,6 +773,7 @@
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => executeAction('publish', { targetId: row.id })
 											},
@@ -530,6 +784,7 @@
 											{
 												className: 'xui-button xui-button-sm',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => executeAction('embedding', { targetId: row.id })
 											},
@@ -540,6 +795,7 @@
 											{
 												className: 'xui-button xui-button-sm xui-button-danger',
 												type: 'button',
+												style: NO_WRAP_STYLE,
 												disabled: Boolean(busy),
 												onClick: () => {
 													if (confirm(t('confirmDelete'))) {
@@ -565,11 +821,11 @@
 			const hasNext = page * pageSize < total
 			return h(
 				'div',
-				{ className: 'xui-pager' },
-				h('span', null, t('totalRows', { total })),
+				{ className: 'xui-pager xui-metric-pager' },
+				h('span', { className: 'xui-metric-pager-total' }, t('totalRows', { total })),
 				h(
 					'div',
-					{ className: 'xui-actions' },
+					{ className: 'xui-actions xui-metric-pager-actions' },
 					h(
 						'button',
 						{
@@ -665,7 +921,41 @@
 								)
 							)
 						),
-						field(t('entity'), 'entity'),
+						h(
+							'div',
+							{ className: 'xui-field' },
+							h('label', null, t('businessArea')),
+							h(
+								'select',
+								{
+									className: 'xui-input',
+									value: form.businessAreaId,
+									onChange: (event) =>
+										setForm(Object.assign({}, form, { businessAreaId: event.target.value }))
+								},
+								h('option', { value: '' }, t('allBusinessAreas')),
+								businessAreas.map((area) =>
+									h('option', { key: area.value, value: area.value }, area.label)
+								)
+							)
+						),
+						field(t('cube'), 'cube'),
+						field(t('calendar'), 'calendar'),
+						form.type === 'BASIC' ? field(t('measure'), 'measure') : null,
+						form.type === 'DERIVE'
+							? h(
+									'div',
+									{ className: 'xui-field xui-field-full' },
+									h('label', null, t('formula')),
+									h('textarea', {
+										className: 'xui-textarea',
+										value: form.formula,
+										onChange: (event) =>
+											setForm(Object.assign({}, form, { formula: event.target.value }))
+									})
+								)
+							: null,
+						form.type === 'BASIC' ? renderFilters() : null,
 						field(t('unit'), 'unit'),
 						h(
 							'div',
@@ -673,8 +963,14 @@
 							h('label', null, t('business')),
 							h('textarea', {
 								className: 'xui-textarea',
-								value: form.business,
-								onChange: (event) => setForm(Object.assign({}, form, { business: event.target.value }))
+								value: form.description,
+								onChange: (event) =>
+									setForm(
+										Object.assign({}, form, {
+											description: event.target.value,
+											business: event.target.value
+										})
+									)
 							})
 						),
 						h(
@@ -723,6 +1019,76 @@
 					)
 				)
 			)
+		}
+
+		function renderFilters() {
+			const filters = Array.isArray(form.filters) ? form.filters : []
+			return h(
+				'div',
+				{ className: 'xui-field xui-field-full' },
+				h('label', null, t('filters')),
+				filters.map((filter, index) =>
+					h(
+						'div',
+						{ className: 'xui-actions', key: index },
+						h('input', {
+							className: 'xui-input',
+							value: filter.dimension,
+							placeholder: t('dimension'),
+							onChange: (event) => updateFilter(index, { dimension: event.target.value })
+						}),
+						h('input', {
+							className: 'xui-input',
+							value: filter.hierarchy,
+							placeholder: t('hierarchy'),
+							onChange: (event) => updateFilter(index, { hierarchy: event.target.value })
+						}),
+						h('input', {
+							className: 'xui-input',
+							value: filter.member,
+							placeholder: t('member'),
+							onChange: (event) => updateFilter(index, { member: event.target.value })
+						}),
+						h(
+							'button',
+							{
+								className: 'xui-button xui-button-sm',
+								type: 'button',
+								onClick: () => removeFilter(index)
+							},
+							t('remove')
+						)
+					)
+				),
+				h(
+					'button',
+					{
+						className: 'xui-button xui-button-sm',
+						type: 'button',
+						onClick: () =>
+							setForm(
+								Object.assign({}, form, {
+									filters: filters.concat([{ dimension: '', hierarchy: '', member: '' }])
+								})
+							)
+					},
+					t('addFilter')
+				)
+			)
+		}
+
+		function updateFilter(index, patch) {
+			const filters = (Array.isArray(form.filters) ? form.filters : []).map((filter, itemIndex) =>
+				itemIndex === index ? Object.assign({}, filter, patch) : filter
+			)
+			setForm(Object.assign({}, form, { filters }))
+		}
+
+		function removeFilter(index) {
+			const filters = (Array.isArray(form.filters) ? form.filters : []).filter(
+				(_, itemIndex) => itemIndex !== index
+			)
+			setForm(Object.assign({}, form, { filters }))
 		}
 
 		function field(label, key) {

@@ -41,6 +41,8 @@ import {
   ChatRuntimeCapabilityKind,
   ChatRuntimeCapabilityOption,
   ChatSlashPaletteComponent,
+  ChatAgentFile,
+  isChatAgentFile,
   createChatCommandSource,
   findSlashOptionByInvocation,
   flattenSlashOptions,
@@ -277,7 +279,7 @@ export class ChatInputComponent {
   readonly files = computed(() =>
     (this.attachments() ?? [])
       .map(({ storageFile }) => storageFile)
-      .filter((file): file is IStorageFile => Boolean(file))
+      .filter((file): file is ChatAgentFile => Boolean(file))
   )
 
   constructor() {
@@ -331,16 +333,7 @@ export class ChatInputComponent {
       ...(planMode ? { planMode: true } : {}),
       ...(runtimeCapabilities ? { runtimeCapabilities } : {}),
       ...(metadata.commandSource ? { commandSource: metadata.commandSource } : {}),
-      files: this.files().map((file) => ({
-        id: file.id,
-        originalName: file.originalName,
-        name: file.originalName,
-        filePath: file.file,
-        fileUrl: file.url,
-        mimeType: file.mimetype,
-        size: file.size,
-        extension: file.originalName.split('.').pop()
-      }))
+      files: this.files()
     })
 
     this.setComposerText('')
@@ -587,7 +580,7 @@ export class ChatInputComponent {
     this.addFiles(event ? Array.from(event) : [])
   }
 
-  onAttachCreated(file: IStorageFile) {
+  onAttachCreated(file: ChatAgentFile) {
     this.chatService.onAttachCreated(file)
   }
 
@@ -595,7 +588,10 @@ export class ChatInputComponent {
     this.chatService.onAttachDeleted(fileId)
   }
 
-  addAttachment(file: IStorageFile) {
+  addAttachment(file: ChatAgentFile | IStorageFile) {
+    if (!isChatAgentFile(file)) {
+      return
+    }
     this.attachments.update((state) => {
       const attachments = state ?? []
       if (!attachments.some((attachment) => attachment.storageFile?.id === file.id)) {

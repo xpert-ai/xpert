@@ -24,6 +24,21 @@
   },
   "PAC": {
     "Title": "Metad Analytics Cloud",
+    "Plugin": {
+      "MarketplaceContentType_app": "App",
+      "MarketplaceContentType_view": "View",
+      "MarketplaceContentType_feature": "Feature",
+      "MarketplaceContentType_tool": "Tool",
+      "MarketplaceContentType_assistant-template": "Assistant Template",
+      "InitializeAssistantTemplate": "Initialize",
+      "InstallPluginBeforeInitialize": "Install or load this plugin before initializing the assistant.",
+      "ArchiveSource": "Archive file",
+      "InstallFromArchive": "Install from Archive",
+      "ArchiveInstallHint": "Upload a plugin package archive (.zip, .tgz, .tar.gz, or .tar). The archive must contain one package.json and a built dist/ or src/index.ts entry.",
+      "ArchiveFile": "Archive file",
+      "ChooseArchiveFile": "Choose file",
+      "NoArchiveFileSelected": "No file selected"
+    },
     "KEY_WORDS": {
       "ACTION": "Action",
       "BUSINESS_AREA": "Business Area",
@@ -52,6 +67,11 @@
       "Enabled": "Enabled",
       "NoTools": "No tools"
     },
+    "MCP": {
+      "CreateFromJson": "Create from JSON",
+      "PasteMCPJson": "Paste an MCP JSON config to create a toolset.",
+      "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
+    },
     "Chat": {
       "QuoteSelection": "Quote selection",
       "RemoveReference": "Remove reference",
@@ -59,6 +79,13 @@
       "ContextCompressed": "Context automatically compressed",
       "ContextCompressionSkipped": "Context not compressed",
       "ContextCompressionFailed": "Context compression failed",
+      "TerminalConnected": "Connected",
+      "TerminalConnecting": "Connecting",
+      "TerminalDisconnected": "Disconnected",
+      "TerminalUnsupportedProvider": "Unsupported provider",
+      "TerminalOpenFailed": "Open failed",
+      "TerminalSessionClosed": "Session closed",
+      "TerminalIdle": "Idle",
       "ClawXpert": {
         "Loading": "Preparing ClawXpert...",
         "OrganizationRequired": "Select an organization to use ClawXpert",
@@ -420,6 +447,9 @@
         "ACCESS_DELETE_ACCOUNT": "Access Delete Account",
         "ACCESS_DELETE_ALL_DATA": "Access Delete All Data",
         "ORG_DEMO_EDIT": "Edit Organization Demo"
+      },
+      "Organization": {
+        "OrganizationId": "Organization ID"
       }
     }
   },
@@ -676,6 +706,10 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "MetadataFields": "Metadata Fields",
+      "ChunkMetadata": "Chunk Metadata",
+      "NoMetadata": "No metadata",
+      "MetadataJson": "Metadata JSON",
       "ModelConfiguration": "Model Configuration",
       "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
       "ModelConfigurationManagedInSettings": "Chat, embedding, vision, and rerank models are configured on the knowledgebase configuration page.",

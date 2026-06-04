@@ -12,13 +12,14 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { injectToastr, IStorageFile, StorageFileService } from '@cloud/app/@core'
+import { injectToastr, StorageFileService } from '@cloud/app/@core'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentComponent } from '../attachment/attachment.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { getChatStorageFileId, isChatAgentFile, type ChatAgentFile, type ChatAttachmentStorageFile } from './agent-file'
 /**
  *
  */
@@ -52,7 +53,7 @@ export class ChatAttachmentsComponent {
 
   // Inputs
   readonly attachments =
-    model<{ file?: File; url?: string; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
+    model<{ file?: File; url?: string; storageFile?: ChatAttachmentStorageFile; error?: string; uploading?: boolean }[]>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -61,7 +62,7 @@ export class ChatAttachmentsComponent {
   })
 
   // Outputs
-  readonly onCreated = output<IStorageFile>()
+  readonly onCreated = output<ChatAgentFile>()
   readonly onDeleted = output<string>()
 
   constructor() {
@@ -70,7 +71,7 @@ export class ChatAttachmentsComponent {
     })
   }
 
-  setStorageFile(index: number, storageFile: IStorageFile) {
+  setStorageFile(index: number, storageFile: ChatAttachmentStorageFile) {
     this.attachments.update((state) => {
       state[index] = {
         ...state[index],
@@ -78,7 +79,9 @@ export class ChatAttachmentsComponent {
       }
       return [...state]
     })
-    this.onCreated.emit(storageFile)
+    if (isChatAgentFile(storageFile)) {
+      this.onCreated.emit(storageFile)
+    }
   }
 
   remove(index: number) {
@@ -87,6 +90,9 @@ export class ChatAttachmentsComponent {
       state.splice(index, 1)
       return [...state]
     })
-    this.onDeleted.emit(attachment.storageFile?.id)
+    const storageFileId = attachment.storageFile ? getChatStorageFileId(attachment.storageFile) : undefined
+    if (storageFileId) {
+      this.onDeleted.emit(storageFileId)
+    }
   }
 }

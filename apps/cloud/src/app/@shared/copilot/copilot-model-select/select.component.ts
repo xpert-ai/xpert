@@ -46,6 +46,10 @@ type ModelParameterRulesResourceValue = {
   rules: ParameterRule[]
 }
 
+const MODEL_MENU_MAX_HEIGHT = 560
+const MODEL_MENU_VIEWPORT_MARGIN = 16
+const MODEL_MENU_TRIGGER_GAP = 8
+
 @Component({
   standalone: true,
   imports: [
@@ -403,6 +407,20 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return container?.getBoundingClientRect().width || 0
   }
 
+  getMenuMaxHeight(container: HTMLElement | null | undefined) {
+    const viewportRect = this.getViewportRect()
+    if (!container || !viewportRect) {
+      return MODEL_MENU_MAX_HEIGHT
+    }
+
+    const rect = container.getBoundingClientRect()
+    const availableAbove = rect.top - viewportRect.top - MODEL_MENU_TRIGGER_GAP - MODEL_MENU_VIEWPORT_MARGIN
+    const availableBelow = viewportRect.bottom - rect.bottom - MODEL_MENU_TRIGGER_GAP - MODEL_MENU_VIEWPORT_MARGIN
+    const availableHeight = Math.max(availableAbove, availableBelow)
+
+    return Math.max(1, Math.floor(Math.min(MODEL_MENU_MAX_HEIGHT, availableHeight)))
+  }
+
   getMenuRailMinWidth(containerWidth: number | null | undefined) {
     return this.getMenuRailBounds(containerWidth).min
   }
@@ -540,10 +558,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return options ? { ...options } : undefined
   }
 
-  private areOptionsEqual(
-    current: Record<string, any> | undefined,
-    next: Record<string, any> | undefined
-  ) {
+  private areOptionsEqual(current: Record<string, any> | undefined, next: Record<string, any> | undefined) {
     const currentKeys = Object.keys(current ?? {})
     const nextKeys = Object.keys(next ?? {})
 
@@ -592,6 +607,27 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   private setRailWidth(width: number, containerWidth: number | null | undefined) {
     this.railWidth.set(this.clampRailWidth(width, containerWidth))
+  }
+
+  private getViewportRect() {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const visualViewport = window.visualViewport
+    const top = visualViewport?.offsetTop ?? 0
+    const left = visualViewport?.offsetLeft ?? 0
+    const width = visualViewport?.width ?? window.innerWidth
+    const height = visualViewport?.height ?? window.innerHeight
+
+    return {
+      top,
+      left,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height
+    }
   }
 
   private stopRailResize() {

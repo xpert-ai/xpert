@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input } from '@angular/core'
+import { Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { OverlayAnimations } from '@xpert-ai/core'
@@ -9,6 +9,7 @@ import { PluginComponent } from '@cloud/app/@shared/plugins'
 import { PluginInstallComponent } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginsComponent } from '../plugins.component'
+import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
 
 @Component({
   standalone: true,
@@ -24,8 +25,14 @@ export class SettingsPluginComponent {
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
   readonly plugin = input<TPluginWithDownloads>()
+  readonly installed = computed(() => this.plugin()?.installed === true)
+  readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
 
   install() {
+    if (this.installed()) {
+      return
+    }
+
     this.#dialog
       .open(PluginInstallComponent, {
         data: {
@@ -40,5 +47,17 @@ export class SettingsPluginComponent {
           console.log('The dialog was closed', result)
         }
       })
+  }
+
+  viewDetails() {
+    if (!this.plugin()) {
+      return
+    }
+    this.#dialog.open(PluginMarketplaceDetailComponent, {
+      data: {
+        plugin: this.plugin()
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
   }
 }

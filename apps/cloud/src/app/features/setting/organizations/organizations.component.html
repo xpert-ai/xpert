@@ -74,17 +74,17 @@
       } @else {
         @if (isTenantScope()) {
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[900px] table-fixed text-left text-sm">
+            <table class="w-full min-w-[1180px] text-left text-sm">
               <thead class="bg-background-default-subtle text-text-secondary">
                 <tr>
-                  <th class="px-4 py-3 font-semibold">
+                  <th class="w-20 px-4 py-3 font-semibold">
                     {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
                   </th>
-                  <th class="px-4 py-3 font-semibold">
+                  <th class="w-24 px-4 py-3 font-semibold">
                     {{ 'PAC.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
                   </th>
-                  <th class="px-4 py-3 font-semibold">
-                    {{ 'PAC.KEY_WORDS.ID' | translate: { Default: 'Identifier' } }}
+                  <th class="min-w-[280px] px-4 py-3 font-semibold">
+                    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate: { Default: 'Organization ID' } }}
                   </th>
                   <th class="px-4 py-3 font-semibold">
                     {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
@@ -124,10 +124,9 @@
                         class="block h-10 w-10 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
                       />
                     </td>
-                    <td class="px-4 py-4 align-middle truncate">
+                    <td class="min-w-[280px] px-4 py-4 align-middle whitespace-nowrap">
                       <div class="space-y-1 whitespace-nowrap">
                         <div class="font-medium text-text-primary">{{ organizationIdentifier(organization) }}</div>
-                        <!-- <div class="text-xs text-text-tertiary">{{ organization.id }}</div> -->
                       </div>
                     </td>
                     <td class="px-4 py-4 align-middle truncate">
@@ -316,6 +315,15 @@
             @case ('general') {
               <form [formGroup]="form" class="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
                 <div class="grid gap-x-6 gap-y-7 md:grid-cols-2">
+                  <div class="form-field md:col-span-2">
+                    <span class="form-label">
+                      {{ 'PAC.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate: { Default: 'Organization ID' } }}
+                    </span>
+                    <span data-testid="organization-id-value" class="break-all text-base text-text-primary">
+                      {{ selectedOrganization()?.id || '-' }}
+                    </span>
+                  </div>
+
                   <label class="form-field md:col-span-2">
                     <span class="form-label">{{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
                     <input z-input formControlName="name" />

@@ -423,7 +423,7 @@ export class OrganizationsComponent {
   }
 
   organizationIdentifier(organization: IOrganization) {
-    return organization?.profile_link || organization?.id || '-'
+    return organization?.id || '-'
   }
 
   organizationStatusLabel(organization: IOrganization) {

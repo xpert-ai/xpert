@@ -636,6 +636,47 @@ describe('XpertNewBlankComponent', () => {
     expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
   })
 
+  it('loads an initial template from dialog data and creates through importDSL', async () => {
+    const { component, templateService, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-salesclaw:salesclaw-business-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    expect(component.availableModes()).toEqual([XpertTypeEnum.Agent])
+    expect(component.startMode()).toBe('template')
+    expect(component.selectedTemplateId()).toBe('@xpert-ai/plugin-salesclaw:salesclaw-business-assistant')
+    expect(templateService.getTemplate).toHaveBeenCalledWith('@xpert-ai/plugin-salesclaw:salesclaw-business-assistant')
+    expect(component.name()).toBe('template-agent')
+    expect(component.title()).toBe('Template Agent')
+    expect(component.description()).toBe('Template agent description')
+
+    await component.create()
+
+    expect(xpertService.create).not.toHaveBeenCalled()
+    expect(xpertService.importDSL).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          latest: true,
+          name: 'template-agent',
+          title: 'Template Agent',
+          workspaceId: 'workspace-1'
+        })
+      })
+    )
+  })
+
   it('surfaces template-selected middlewares even when the runtime no longer provides them', async () => {
     const { component, fixture } = await createComponent(
       {

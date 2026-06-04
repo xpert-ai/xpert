@@ -1,3 +1,4 @@
-export { KnowledgebaseClearCommand } from './knowledge.clear.command';
+export { KnowledgebaseClearCommand } from './knowledge.clear.command'
+export * from './delete-agent-knowledge-chunks.command'
 export * from './plugin-permissions.command'
 export * from './write-agent-knowledge-chunk.command'

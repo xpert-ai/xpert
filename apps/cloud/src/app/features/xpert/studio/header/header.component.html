@@ -14,8 +14,14 @@
     >
   }
   @if (latestPublishDate()) {
-    <span class="flex items-center mx-1">·</span>{{ 'PAC.Xpert.Published' | translate: { Default: 'Published' } }}
-    {{ latestPublishDate() }}
+    <span class="flex items-center mx-1">·</span>
+    <span class="truncate">
+      <span>{{ 'PAC.Xpert.Published' | translate: { Default: 'Published' } }}</span>
+      @if (version()) {
+        <span>：v{{ version() }}</span>
+      }
+      <span class="ml-1">{{ latestPublishDate() }}</span>
+    </span>
   }
 </div>
 

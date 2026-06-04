@@ -20,6 +20,29 @@ Agent Middleware 用于在不改动核心编排逻辑的前提下，为智能体
 | `wrapModelCall` | 包裹模型调用         | 重试、缓存、防护策略     |
 | `wrapToolCall`  | 包裹工具调用         | 鉴权、限流、后处理       |
 
+## 平台知识库能力
+
+Agent middleware 可以通过 runtime capability 使用平台知识库，而不是直接依赖知识库 controller。通用能力包括：
+
+- `list`：列出当前 workspace 可用知识库。
+- `search`：按 query、知识库 ID、`k`、分数阈值、metadata filter 和可选 retrieval 设置检索 chunk。
+- `writeChunk`：向知识库写入由 Agent 或业务插件管理的文本 chunk。
+- `deleteChunks`：按 `writeKey` 或 `writeKeyPrefix` 删除由 Agent 或业务插件写入的 chunk。
+
+`writeChunk` 会把内容写入一个系统托管文档下的 chunk。业务 metadata 存在 chunk metadata 上，因此 `search` 的 metadata filter 会同时匹配文档 metadata 和 chunk metadata；命中后再用 `documentId` 或 `chunkId` 限定向量检索范围。这样业务插件可以安全使用类似 `{ documentType: 'bom-product-profile' }` 的 filter，而不要求系统托管文档本身带同样 metadata。
+
+检索模式建议：
+
+- 不传 `retrieval` 时，使用知识库自身保存的检索设置，例如 `vector`、`graph` 或 `hybrid`。
+- 业务插件只在确实需要覆盖知识库默认行为时传 `retrieval.mode`。
+- `graph` / `hybrid` 依赖 GraphRAG 状态。调用方需要在 trace 或 warning 中记录实际模式、fallback 和图谱状态，避免把知识库原始召回分误认为业务最终分。
+
+写入和删除建议：
+
+- 为每类业务数据设计稳定 `writeKey` 前缀，例如 `domain:indexVersion:entityId:`。
+- 重复索引同一业务实体前，先用 `deleteChunks({ writeKeyPrefix })` 清理旧 chunk，再写入新 chunk。
+- 删除业务实体时同步清理对应前缀的知识库 chunk，避免已删除业务数据继续被召回。
+
 ## 最佳实践
 
 - 保持 hook 幂等，避免重型阻塞逻辑。

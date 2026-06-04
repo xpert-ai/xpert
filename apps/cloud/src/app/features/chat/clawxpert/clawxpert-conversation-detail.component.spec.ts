@@ -185,6 +185,7 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() hostId?: string | null
     @Input() slot?: string
     @Input() viewKey?: string | null
+    @Input() fillAvailableHeight?: boolean
   }
 
   return {
@@ -200,7 +201,7 @@ import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
-import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
@@ -209,6 +210,24 @@ import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-fi
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
+
+const TEST_LAYOUT_ICON = {
+  type: 'font',
+  value: 'ri-layout-grid-line',
+  alt: 'Layout'
+} satisfies IconDefinition
+
+const TEST_LINE_CHART_ICON = {
+  type: 'font',
+  value: 'ri-line-chart-line',
+  alt: 'Metrics'
+} satisfies IconDefinition
+
+const TEST_FILE_LIST_ICON = {
+  type: 'font',
+  value: 'ri-file-list-3-line',
+  alt: 'BOM Review'
+} satisfies IconDefinition
 
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
@@ -280,7 +299,7 @@ function buildFixedViewManifest(
       en_US: `${key} description`,
       zh_Hans: `${key} 描述`
     },
-    icon: 'ri-layout-grid-line',
+    icon: TEST_LAYOUT_ICON,
     hostType: 'agent',
     slot: 'agent.workbench.fixed',
     order: 50,
@@ -460,7 +479,7 @@ describe('ClawXpertConversationDetailComponent', () => {
                 zh_Hans: '指标'
               },
               order: 30,
-              icon: 'ri-line-chart-line'
+              icon: TEST_LINE_CHART_ICON
             }
           }
         }),
@@ -512,7 +531,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect.objectContaining({
         viewKey: 'metrics',
         title: 'Metrics',
-        icon: 'ri-line-chart-line',
+        icon: TEST_LINE_CHART_ICON,
         order: 30
       })
     ])
@@ -543,7 +562,7 @@ describe('ClawXpertConversationDetailComponent', () => {
             en_US: 'BOM Review',
             zh_Hans: 'BOM 审核台'
           },
-          icon: 'ri-file-list-3-line'
+          icon: TEST_FILE_LIST_ICON
         })
       ])
     )
@@ -561,7 +580,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         kind: 'fixed-view',
         viewKey: 'bom_document_intake__review',
         title: 'BOM Review',
-        icon: 'ri-file-list-3-line'
+        icon: TEST_FILE_LIST_ICON
       })
     )
     expect(outlet).not.toBeNull()
@@ -571,7 +590,8 @@ describe('ClawXpertConversationDetailComponent', () => {
         hostType: 'agent',
         hostId: 'assistant-1',
         slot: 'agent.workbench.fixed',
-        viewKey: 'bom_document_intake__review'
+        viewKey: 'bom_document_intake__review',
+        fillAvailableHeight: true
       })
     )
 

@@ -39,7 +39,7 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
     RemoteComponentRendererComponent
   ],
   template: `
-    <div class="flex flex-col gap-4">
+    <div [class]="fillAvailableHeight() ? 'flex h-full min-h-0 flex-col gap-4' : 'flex flex-col gap-4'">
       @if (toolbarActions().length) {
         <div class="flex flex-wrap gap-2">
           @for (action of toolbarActions(); track action.key) {
@@ -124,6 +124,7 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
               [manifest]="manifest()"
               [query]="query()"
               [active]="active()"
+              [fillAvailableHeight]="fillAvailableHeight()"
             />
           }
           @default {
@@ -143,6 +144,7 @@ export class ViewRendererComponent {
   readonly hostId = input.required<string>()
   readonly manifest = input.required<XpertExtensionViewManifest>()
   readonly active = input<boolean>(true)
+  readonly fillAvailableHeight = input(false)
 
   readonly #api = injectViewExtensionApi()
   readonly #toastr = injectToastr()
@@ -185,13 +187,13 @@ export class ViewRendererComponent {
     effect(() => {
       this.hostType()
       this.hostId()
-      this.manifest().key
+      const manifest = this.manifest()
       this.query()
 
       if (!this.active()) {
         return
       }
-      if (this.manifest().view.type === 'remote_component') {
+      if (manifest.view.type === 'remote_component') {
         return
       }
 

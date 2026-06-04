@@ -39,7 +39,11 @@
     <button
       type="button"
       class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-      [class]="mobilePane() === 'skills' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      [class]="
+        mobilePane() === 'skills'
+          ? 'bg-components-card-bg text-text-primary shadow-sm'
+          : 'text-text-secondary hover:bg-hover-bg'
+      "
       (click)="mobilePane.set('skills')"
     >
       <i class="ri-stack-line"></i>
@@ -48,7 +52,11 @@
     <button
       type="button"
       class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-      [class]="mobilePane() === 'tree' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      [class]="
+        mobilePane() === 'tree'
+          ? 'bg-components-card-bg text-text-primary shadow-sm'
+          : 'text-text-secondary hover:bg-hover-bg'
+      "
       (click)="mobilePane.set('tree')"
     >
       <i class="ri-git-branch-line"></i>
@@ -57,7 +65,11 @@
     <button
       type="button"
       class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-      [class]="mobilePane() === 'file' ? 'bg-components-card-bg text-text-primary shadow-sm' : 'text-text-secondary hover:bg-hover-bg'"
+      [class]="
+        mobilePane() === 'file'
+          ? 'bg-components-card-bg text-text-primary shadow-sm'
+          : 'text-text-secondary hover:bg-hover-bg'
+      "
       (click)="mobilePane.set('file')"
     >
       <i class="ri-file-code-line"></i>
@@ -218,6 +230,23 @@
 
                   <button
                     type="button"
+                    class="btn btn-ghost h-8 w-8 shrink-0 rounded-lg"
+                    [disabled]="isDownloadingSkill(skill.id)"
+                    [attr.aria-label]="
+                      'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
+                    "
+                    [title]="'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }"
+                    (click)="downloadSkillPackage(skill, $event)"
+                  >
+                    @if (isDownloadingSkill(skill.id)) {
+                      <i class="ri-loader-4-line animate-spin"></i>
+                    } @else {
+                      <i class="ri-download-2-line"></i>
+                    }
+                  </button>
+
+                  <button
+                    type="button"
                     class="btn btn-ghost h-8 w-8 shrink-0 rounded-lg hover:text-text-destructive"
                     (click)="deleteSkill(skill)"
                   >
@@ -239,7 +268,8 @@
                 'PAC.Skill.NoSkillsWorkbenchHint'
                   | translate
                     : {
-                        Default: 'Upload a skill, or install or update one from a repository, to start browsing its files here.'
+                        Default:
+                          'Upload a skill, or install or update one from a repository, to start browsing its files here.'
                       }
               }}
             </div>
@@ -314,10 +344,7 @@
       </button>
     </div>
     <div class="px-6 py-4">
-      <xp-github-skill-install
-        [workspaceId]="workspace()?.id ?? null"
-        (installed)="onGithubSkillsInstalled($event)"
-      />
+      <xp-github-skill-install [workspaceId]="workspace()?.id ?? null" (installed)="onGithubSkillsInstalled($event)" />
     </div>
   </div>
 </ng-template>

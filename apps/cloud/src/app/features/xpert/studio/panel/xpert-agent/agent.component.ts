@@ -218,6 +218,7 @@ export class XpertStudioPanelAgentComponent {
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
   readonly memories = computed(() => this.agentOptions()?.memories)
   readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
+  readonly fileUnderstandingEnabled = computed(() => this.agentOptions()?.fileUnderstanding?.enabled !== false)
   readonly attachment = linkedModel({
     initialValue: null,
     compute: () => this.agentOptions()?.attachment ?? this.agentOptions()?.vision,
@@ -434,14 +435,12 @@ export class XpertStudioPanelAgentComponent {
   readonly middlewareOrder = attrModel(this.middlewares, 'order')
 
   constructor() {
-    effect(
-      () => {
-        if (this.xpertAgent()) {
-          this.prompt.set(this.xpertAgent().prompt)
-          this.copilotModel.set(this.xpertAgent().copilotModel)
-        }
+    effect(() => {
+      if (this.xpertAgent()) {
+        this.prompt.set(this.xpertAgent().prompt)
+        this.copilotModel.set(this.xpertAgent().copilotModel)
       }
-    )
+    })
   }
 
   onNameChange(event: string) {
@@ -510,6 +509,19 @@ export class XpertStudioPanelAgentComponent {
     const options = this.xpertAgent().options ?? {}
     this.apiService.updateXpertAgent(this.key(), {
       options: { ...options, parallelToolCalls: value }
+    })
+  }
+
+  updateFileUnderstanding(value: boolean) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {
+        ...options,
+        fileUnderstanding: {
+          ...(options.fileUnderstanding ?? {}),
+          enabled: value
+        }
+      }
     })
   }
 

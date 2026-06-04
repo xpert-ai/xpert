@@ -9,12 +9,14 @@ export type ClawXpertSandboxPreviewTarget = {
 }
 
 const SANDBOX_SERVICE_START_TOOL_NAME = 'sandbox_service_start'
+const WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE = 'workbench.browser.preview'
 const TOOL_EVENT_NESTED_KEYS = [
   'data',
   'item',
   'payload',
   'content',
   'detail',
+  'event',
   'message',
   'observation',
   'output',
@@ -30,11 +32,11 @@ const TOOL_EVENT_NESTED_KEYS = [
 ] as const
 
 export function shouldOpenSandboxPreviewFromEffectEvent(event: ClawXpertSandboxPreviewEffectEvent) {
-  return event.name === SANDBOX_SERVICE_START_TOOL_NAME || hasSandboxServiceStartToolEvent(event)
+  return event.name === SANDBOX_SERVICE_START_TOOL_NAME || hasPreviewOpenToolEvent(event)
 }
 
 export function shouldOpenSandboxPreviewFromLogEvent(event: ClawXpertSandboxPreviewLogEvent) {
-  return event.name === SANDBOX_SERVICE_START_TOOL_NAME || hasSandboxServiceStartToolEvent(event)
+  return event.name === SANDBOX_SERVICE_START_TOOL_NAME || hasPreviewOpenToolEvent(event)
 }
 
 export function getSandboxPreviewTargetFromEffectEvent(
@@ -49,25 +51,24 @@ export function getSandboxPreviewTargetFromLogEvent(
   return shouldOpenSandboxPreviewFromLogEvent(event) ? (findSandboxPreviewTarget(event) ?? {}) : null
 }
 
-function hasSandboxServiceStartToolEvent(value: unknown, visited = new Set<object>()): boolean {
+function hasPreviewOpenToolEvent(value: unknown, visited = new Set<object>()): boolean {
   if (!value) {
     return false
   }
 
   const parsedJson = parseJsonPayload(value)
   if (parsedJson !== null) {
-    return hasSandboxServiceStartToolEvent(parsedJson, visited)
+    return hasPreviewOpenToolEvent(parsedJson, visited)
   }
 
   if (Array.isArray(value)) {
-    const tuplePayload =
-      value.length >= 2 && value[0] === 'log' ? hasSandboxServiceStartToolEvent(value[1], visited) : false
+    const tuplePayload = value.length >= 2 && value[0] === 'log' ? hasPreviewOpenToolEvent(value[1], visited) : false
     if (tuplePayload) {
       return true
     }
 
     for (const item of value) {
-      if (hasSandboxServiceStartToolEvent(item, visited)) {
+      if (hasPreviewOpenToolEvent(item, visited)) {
         return true
       }
     }
@@ -84,12 +85,12 @@ function hasSandboxServiceStartToolEvent(value: unknown, visited = new Set<objec
   }
   visited.add(value)
 
-  if (isSandboxServiceStartToolPayload(value)) {
+  if (isSandboxServiceStartToolPayload(value) || isBrowserPreviewPayload(value)) {
     return true
   }
 
   for (const key of TOOL_EVENT_NESTED_KEYS) {
-    if (hasSandboxServiceStartToolEvent(readObjectProperty(value, key), visited)) {
+    if (hasPreviewOpenToolEvent(readObjectProperty(value, key), visited)) {
       return true
     }
   }
@@ -143,6 +144,11 @@ function findSandboxPreviewTarget(value: unknown, visited = new Set<object>()): 
 }
 
 function readSandboxPreviewTarget(value: object): ClawXpertSandboxPreviewTarget | null {
+  const browserPreviewTarget = readBrowserPreviewTarget(value)
+  if (browserPreviewTarget) {
+    return browserPreviewTarget
+  }
+
   const actualPort = readNumberProperty(value, 'actualPort')
   const requestedPort = readNumberProperty(value, 'requestedPort')
   const inputPort = readNumberProperty(value, 'port')
@@ -162,6 +168,22 @@ function readSandboxPreviewTarget(value: object): ClawXpertSandboxPreviewTarget 
   }
 }
 
+function readBrowserPreviewTarget(value: object): ClawXpertSandboxPreviewTarget | null {
+  if (!isBrowserPreviewPayload(value)) {
+    return null
+  }
+
+  const url = readBrowserPreviewUrl(value)
+  if (!url) {
+    return null
+  }
+
+  return {
+    displayUrl: readStringProperty(value, 'displayUrl') ?? url,
+    url
+  }
+}
+
 function isSandboxServiceStartToolPayload(value: object) {
   const tool =
     readStringProperty(value, 'tool') ??
@@ -173,6 +195,21 @@ function isSandboxServiceStartToolPayload(value: object) {
 
   const name = readStringProperty(value, 'name')
   return name === SANDBOX_SERVICE_START_TOOL_NAME && looksLikeNamedToolEvent(value)
+}
+
+function isBrowserPreviewPayload(value: object) {
+  const eventType =
+    readStringProperty(value, 'type') ?? readStringProperty(value, 'eventType') ?? readStringProperty(value, 'name')
+  return eventType === WORKBENCH_BROWSER_PREVIEW_EVENT_TYPE && Boolean(readBrowserPreviewUrl(value))
+}
+
+function readBrowserPreviewUrl(value: object) {
+  return (
+    readStringProperty(value, 'url') ??
+    readStringProperty(value, 'displayUrl') ??
+    readStringProperty(value, 'deploymentUrl') ??
+    readStringProperty(value, 'previewUrl')
+  )
 }
 
 function looksLikeNamedToolEvent(value: object) {

@@ -402,7 +402,7 @@ describe('XpertTemplateService', () => {
                 {
                     organizationId: 'global',
                     name: '@xpert-ai/plugin-demo',
-                    packageName: '@xpert-ai/plugin-demo',
+                    packageName: '@xpert-ai/plugin-demo@0.1.0',
                     ctx: {},
                     instance: {
                         meta: {
@@ -436,6 +436,11 @@ describe('XpertTemplateService', () => {
         }
         const catalog = await service.getAll(LanguagesEnum.English, query)
         const detail = await service.getTemplateDetail('@xpert-ai/plugin-demo:business', LanguagesEnum.English, query)
+        const legacyVersionedDetail = await service.getTemplateDetail(
+            '@xpert-ai/plugin-demo@0.1.0:business',
+            LanguagesEnum.English,
+            query
+        )
 
         expect(catalog.recommendedApps.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
         expect(catalog.categories).toEqual(expect.arrayContaining(['Built-in', 'Plugin']))
@@ -447,6 +452,7 @@ describe('XpertTemplateService', () => {
             pluginDisplayName: 'Demo Plugin',
             export_data: 'team:\n  name: Plugin Business'
         })
+        expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')
     })
 
     it('throws a clear error when an external template file is missing after initialization', async () => {

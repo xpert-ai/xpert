@@ -172,6 +172,10 @@ export type BlankXpertDialogData = {
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
   category?: BlankXpertDialogCategory | null
+  initialStartMode?: BlankXpertStartMode
+  initialTemplateId?: string | null
+  lockStartMode?: boolean
+  lockType?: boolean
 }
 
 type DraftPreparationResult = {
@@ -308,16 +312,21 @@ export class XpertNewBlankComponent {
   readonly templateCategory = normalizeBlankXpertDialogCategory(this.#dialogData.category)
   readonly usesWorkspaceSkillDefaults = computed(() => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW)
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
-  readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
-  readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
-  readonly startMode = model<BlankXpertStartMode>('blank')
+  readonly lockStartMode = !!this.#dialogData.lockStartMode
+  readonly lockType = !!this.#dialogData.lockType
+  readonly initialMode = getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)
+  readonly availableModes = computed(() =>
+    this.lockType ? [this.initialMode] : getBlankWizardAvailableModes(this.requestedType(), this.allowedModes)
+  )
+  readonly types = model<BlankXpertMode[]>([this.initialMode])
+  readonly startMode = model<BlankXpertStartMode>(this.#dialogData.initialStartMode ?? 'blank')
   readonly workspaceId = model<string | null>(this.#dialogData.workspace?.id ?? this.#selectedWorkspace()?.id ?? null)
   readonly name = model<string>()
   readonly description = model<string>()
   readonly avatar = model<TAvatar>()
   readonly title = model<string>()
   readonly copilotModel = model<ICopilotModel>()
-  readonly selectedTemplateId = model<string | null>(null)
+  readonly selectedTemplateId = model<string | null>(this.#dialogData.initialTemplateId ?? null)
   readonly selectedTemplateDraft = signal<TXpertTeamDraft | null>(null)
   readonly templateLoading = signal(false)
   readonly templateLoadError = signal<string | null>(null)
@@ -786,6 +795,10 @@ export class XpertNewBlankComponent {
   }
 
   setStartMode(mode: BlankXpertStartMode) {
+    if (this.lockStartMode && mode !== this.startMode()) {
+      return
+    }
+
     if (mode === this.startMode()) {
       return
     }

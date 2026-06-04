@@ -43,11 +43,12 @@ type RemoteComponentMessage = {
     } @else {
       <iframe
         #frame
-        class="block w-full border-0 bg-components-card-bg"
+        class="block min-h-full w-full border-0"
         [style.height.px]="height()"
         [attr.title]="manifest().title.en_US"
         [src]="entryUrl() | safe: 'resourceUrl'"
         sandbox="allow-downloads allow-forms allow-modals allow-popups allow-scripts"
+        (load)="handleFrameLoad()"
       ></iframe>
     }
   `
@@ -58,6 +59,7 @@ export class RemoteComponentRendererComponent {
   readonly manifest = input.required<XpertExtensionViewManifest>()
   readonly query = input<XpertViewQuery>({})
   readonly active = input<boolean>(true)
+  readonly fillAvailableHeight = input(false)
 
   readonly #api = injectViewExtensionApi()
   readonly #toastr = injectToastr()
@@ -74,6 +76,9 @@ export class RemoteComponentRendererComponent {
   readonly viewportHeight = signal(720)
   readonly height = computed(() => {
     const requested = Math.max(this.requestedHeight(), 520)
+    if (this.fillAvailableHeight()) {
+      return this.viewportHeight()
+    }
     return this.viewportBound() ? Math.min(requested, this.viewportHeight()) : requested
   })
   readonly #instanceNonce = signal(createInstanceNonce())
@@ -84,10 +89,11 @@ export class RemoteComponentRendererComponent {
 
   #entryRequestId = 0
   #entryObjectUrl: string | null = null
+  #viewportUpdateFrame: number | null = null
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
-    const onViewportChange = () => this.updateViewportHeight()
+    const onViewportChange = () => this.scheduleViewportHeightUpdate()
     window.addEventListener('message', onMessage)
     window.addEventListener('resize', onViewportChange)
     window.addEventListener('scroll', onViewportChange, true)
@@ -95,6 +101,7 @@ export class RemoteComponentRendererComponent {
       window.removeEventListener('message', onMessage)
       window.removeEventListener('resize', onViewportChange)
       window.removeEventListener('scroll', onViewportChange, true)
+      this.cancelViewportHeightUpdate()
       this.clearEntryUrl()
     })
 
@@ -182,6 +189,7 @@ export class RemoteComponentRendererComponent {
         this.requestedHeight.set(Math.max(Number(message.height) || 0, 520))
         this.viewportBound.set(message.viewportBound === true)
         this.updateViewportHeight()
+        this.scheduleViewportHeightUpdate()
         return
       case 'notify':
         this.notify(message)
@@ -322,7 +330,42 @@ export class RemoteComponentRendererComponent {
   }
 
   private updateViewportHeight() {
-    this.viewportHeight.set(getAvailableFrameHeight(this.frame()?.nativeElement))
+    this.viewportHeight.set(getAvailableFrameHeight(this.frame()?.nativeElement, this.fillAvailableHeight()))
+  }
+
+  handleFrameLoad() {
+    this.updateViewportHeight()
+    this.scheduleViewportHeightUpdate()
+    this.sendInitToFrame()
+  }
+
+  private scheduleViewportHeightUpdate() {
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      this.updateViewportHeight()
+      return
+    }
+
+    this.cancelViewportHeightUpdate()
+    this.#viewportUpdateFrame = window.requestAnimationFrame(() => {
+      this.#viewportUpdateFrame = null
+      this.updateViewportHeight()
+
+      if (this.fillAvailableHeight()) {
+        this.#viewportUpdateFrame = window.requestAnimationFrame(() => {
+          this.#viewportUpdateFrame = null
+          this.updateViewportHeight()
+        })
+      }
+    })
+  }
+
+  private cancelViewportHeightUpdate() {
+    if (this.#viewportUpdateFrame === null || typeof window === 'undefined') {
+      return
+    }
+
+    window.cancelAnimationFrame(this.#viewportUpdateFrame)
+    this.#viewportUpdateFrame = null
   }
 
   private sendInitToFrame() {
@@ -392,12 +435,22 @@ function createInstanceNonce() {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-function getAvailableFrameHeight(frame?: HTMLIFrameElement) {
+function getAvailableFrameHeight(frame?: HTMLIFrameElement, fillAvailableHeight = false) {
   if (typeof window === 'undefined') {
     return 720
   }
   const viewportHeight = Math.floor(window.visualViewport?.height ?? window.innerHeight ?? 720)
   const frameTop = frame ? Math.max(0, frame.getBoundingClientRect().top) : 0
+  if (fillAvailableHeight && frame) {
+    const hostOutletBottom = frame.closest('xp-extension-host-outlet')?.getBoundingClientRect().bottom
+    const boundaryBottom =
+      typeof hostOutletBottom === 'number' && Number.isFinite(hostOutletBottom)
+        ? Math.min(viewportHeight, Math.max(frameTop, hostOutletBottom))
+        : viewportHeight - 24
+
+    return Math.max(520, Math.floor(boundaryBottom - frameTop))
+  }
+
   return Math.max(520, viewportHeight - frameTop - 24)
 }
 
@@ -482,7 +535,7 @@ function readThemeColor(
   if (/^(#|rgb|hsl|oklch|color-mix)/i.test(value)) {
     return value
   }
-  return `hsl(${value})`
+  return resolveCssColor(document, value) ?? `hsl(${value})`
 }
 
 function resolveCssColor(document: Document, value: string) {
@@ -493,6 +546,9 @@ function resolveCssColor(document: Document, value: string) {
   const probe = document.createElement('span')
   const probeHost = document.body ?? document.documentElement
   probe.style.color = value
+  if (!probe.style.color) {
+    return null
+  }
   probeHost.appendChild(probe)
   const computedColor = view.getComputedStyle(probe).color
   probe.remove()

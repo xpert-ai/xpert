@@ -275,6 +275,11 @@
       "NoTools": "无工具",
       "NoFields": "暂无字段"
     },
+    "MCP": {
+      "CreateFromJson": "从 JSON 创建",
+      "PasteMCPJson": "粘贴 MCP JSON 配置以创建工具集。",
+      "UrlOnlySSECompatibility": "未声明类型的 URL 配置会按 SSE 导入，以兼容旧配置。"
+    },
     "Chat": {
       "QuoteSelection": "引用选中内容",
       "RemoveReference": "移除引用",
@@ -282,6 +287,13 @@
       "ContextCompressed": "上下文已自动压缩",
       "ContextCompressionSkipped": "上下文无需压缩",
       "ContextCompressionFailed": "上下文压缩失败",
+      "TerminalConnected": "已连接",
+      "TerminalConnecting": "正在连接",
+      "TerminalDisconnected": "已断开",
+      "TerminalUnsupportedProvider": "不支持的提供方",
+      "TerminalOpenFailed": "打开失败",
+      "TerminalSessionClosed": "会话已关闭",
+      "TerminalIdle": "空闲",
       "ClawXpert": {
         "Loading": "正在准备 ClawXpert…",
         "OrganizationRequired": "请选择一个组织以使用 ClawXpert",
@@ -1887,6 +1899,7 @@
         "DEMO": "演示数据",
         "GENERATE_DEMO": "生成演示数据",
         "RegenerateDemo": "重新生成演示数据",
+        "OrganizationId": "组织 ID",
         "TotalEmployees": "总员工数",
         "BasicInfo": "基础信息",
         "OtherInfo": "其他信息",

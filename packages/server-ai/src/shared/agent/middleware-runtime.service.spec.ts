@@ -76,7 +76,7 @@ import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { GetFileAssetQuery } from '../../file-understanding'
-import { WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
+import { DeleteAgentKnowledgeChunksCommand, WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
@@ -531,6 +531,38 @@ describe('AgentMiddlewareRuntimeService', () => {
                 agentKey: 'agent-1',
                 knowledgebaseId: 'kb-1',
                 writeKey: 'bom-root:root-1'
+            })
+        )
+    })
+
+    it('exposes knowledgebase chunk deletion through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof DeleteAgentKnowledgeChunksCommand) {
+                return {
+                    deletedCount: 2,
+                    knowledgebaseId: 'kb-1'
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(KnowledgebaseRuntimeCapability).deleteChunks({
+            xpertId: 'xpert-1',
+            agentKey: 'agent-1',
+            knowledgebaseIds: ['kb-1'],
+            knowledgebaseId: 'kb-1',
+            writeKeyPrefix: 'bom-product-profile:v2:root-1:'
+        })
+
+        expect(result?.deletedCount).toBe(2)
+        const command = commandBus.execute.mock.calls[0][0] as DeleteAgentKnowledgeChunksCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                agentKey: 'agent-1',
+                knowledgebaseId: 'kb-1',
+                writeKeyPrefix: 'bom-product-profile:v2:root-1:'
             })
         )
     })

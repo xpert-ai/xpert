@@ -1,4 +1,4 @@
-import type { I18nObject } from '../types'
+import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
 
 export type XpertViewHostType = 'integration' | 'knowledgebase' | 'agent' | 'project' | 'sandbox' | string
@@ -92,7 +92,7 @@ export interface XpertWorkbenchViewOptions {
     enabled?: boolean
     label?: string | I18nObject
     order?: number
-    icon?: string
+    icon?: IconDefinition
   }
 }
 
@@ -306,7 +306,7 @@ export interface XpertExtensionViewManifest {
   key: string
   title: I18nObject
   description?: I18nObject
-  icon?: string
+  icon?: IconDefinition
   hostType: XpertViewHostType
   slot: string
   order?: number

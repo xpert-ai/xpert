@@ -20,6 +20,29 @@ Agent middleware lets you inject cross-cutting logic into the Agent lifecycle wi
 | `wrapModelCall` | Around model call        | Retry, cache, guardrails                      |
 | `wrapToolCall`  | Around tool call         | Auth, rate limit, post-processing             |
 
+## Platform Knowledgebase Capability
+
+Agent middleware can use the platform knowledgebase runtime capability instead of calling knowledgebase controllers directly. The shared capability includes:
+
+- `list`: List knowledgebases available to the current workspace.
+- `search`: Retrieve chunks by query, knowledgebase IDs, `k`, score threshold, metadata filter, and optional retrieval settings.
+- `writeChunk`: Write an Agent-managed or business-plugin-managed text chunk into a knowledgebase.
+- `deleteChunks`: Delete Agent-managed chunks by `writeKey` or `writeKeyPrefix`.
+
+`writeChunk` stores content as a chunk under a system-managed document. Business metadata lives on the chunk metadata, so `search` applies metadata filters against both document metadata and chunk metadata before constraining vector search by `documentId` or `chunkId`. This lets business plugins use filters such as `{ documentType: 'bom-product-profile' }` without requiring the system-managed document itself to carry that metadata.
+
+Retrieval guidance:
+
+- Omit `retrieval` to use the knowledgebase's saved retrieval settings, such as `vector`, `graph`, or `hybrid`.
+- Pass `retrieval.mode` only when a business flow must override the knowledgebase default.
+- `graph` and `hybrid` depend on GraphRAG readiness. Callers should record the requested mode, effective mode, fallback, and graph status in trace or warnings so raw retrieval scores are not confused with business-level scores.
+
+Write/delete guidance:
+
+- Use stable `writeKey` prefixes for each business data type, for example `domain:indexVersion:entityId:`.
+- Before re-indexing the same business entity, delete existing chunks with `deleteChunks({ writeKeyPrefix })`, then write the new chunks.
+- When deleting the business entity, also delete chunks with the corresponding prefix so removed business data cannot be recalled later.
+
 ## Best practices
 
 - Keep hooks idempotent and lightweight.

@@ -5,6 +5,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     IEnvironment,
+    IXpertAgent,
     IXpertAgentExecution,
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
@@ -13,6 +14,7 @@ import {
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
@@ -92,7 +94,7 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             execute: jest.fn()
         }
         const queryBus = {
-            execute: jest.fn()
+            execute: jest.fn().mockResolvedValue([])
         }
 
         const handler = new CreateNodeConsumePendingSteerFollowUpsHandler(
@@ -165,6 +167,42 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             } as any
         )
 
+        const expectedMessageContent = [
+            'steer input 1',
+            '',
+            'steer input 2',
+            '',
+            'Referenced content:',
+            '[Quoted text]',
+            '> ref-1',
+            '',
+            '[Quoted text]',
+            '> ref-2'
+        ].join('\n')
+        const getMessageContent = (message: unknown) => {
+            if (!message || typeof message !== 'object') {
+                return undefined
+            }
+            if ('content' in message && typeof message.content === 'string') {
+                return message.content
+            }
+            if ('kwargs' in message && message.kwargs && typeof message.kwargs === 'object') {
+                if ('content' in message.kwargs && typeof message.kwargs.content === 'string') {
+                    return message.kwargs.content
+                }
+            }
+            return undefined
+        }
+        const getChannelMessages = (channelState: unknown) => {
+            if (!channelState || typeof channelState !== 'object') {
+                throw new Error('Expected channel state object')
+            }
+            if (!('messages' in channelState) || !Array.isArray(channelState.messages)) {
+                throw new Error('Expected channel state messages')
+            }
+            return channelState.messages
+        }
+
         expect(result).toEqual(
             expect.objectContaining({
                 input: 'steer input 1\n\nsteer input 2',
@@ -190,28 +228,12 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
                     ],
                     custom: 'late'
                 },
-                [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [],
-                messages: [
-                    expect.objectContaining({
-                        content: 'steer input 1\n\nsteer input 2'
-                    })
-                ],
-                [channelName('agent-1')]: {
-                    messages: [
-                        expect.objectContaining({
-                            content: 'steer input 1\n\nsteer input 2'
-                        })
-                    ]
-                },
-                [channelName('agent-2')]: {
-                    messages: [
-                        expect.objectContaining({
-                            content: 'steer input 1\n\nsteer input 2'
-                        })
-                    ]
-                }
+                [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
             })
         )
+        expect(getMessageContent(result.messages[0])).toBe(expectedMessageContent)
+        expect(getMessageContent(getChannelMessages(result[channelName('agent-1')])[0])).toBe(expectedMessageContent)
+        expect(getMessageContent(getChannelMessages(result[channelName('agent-2')])[0])).toBe(expectedMessageContent)
         expect(chatMessageRepository.save).toHaveBeenCalledWith(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -370,5 +392,174 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
                 graph: expect.any(Object)
             })
         )
+    })
+})
+
+describe('XpertAgentSubgraphHandler file understanding middleware', () => {
+    type TestGraph = {
+        nodes: Array<{ entity: unknown }>
+        connections: unknown[]
+    }
+
+    function createCommand(agentOptions: Partial<NonNullable<IXpertAgent['options']>> = {}) {
+        const graph = {
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'agent-1',
+                    entity: {
+                        key: 'agent-1',
+                        name: 'Agent',
+                        title: 'Agent',
+                        toolsetIds: [],
+                        knowledgebaseIds: [],
+                        options: {
+                            hidden: true,
+                            ...agentOptions
+                        },
+                        team: {
+                            id: 'xpert-1',
+                            workspaceId: 'workspace-1',
+                            agentConfig: {}
+                        }
+                    }
+                },
+                {
+                    type: 'workflow',
+                    key: 'trigger-1',
+                    entity: {
+                        key: 'trigger-1',
+                        type: WorkflowNodeTypeEnum.TRIGGER,
+                        from: 'chat'
+                    }
+                }
+            ],
+            connections: []
+        }
+        return {
+            graph,
+            command: new XpertAgentSubgraphCommand(
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                },
+                {
+                    isStart: true,
+                    isDraft: true,
+                    mute: [],
+                    store: null,
+                    subscriber: null,
+                    execution: {
+                        id: 'execution-1'
+                    } as IXpertAgentExecution,
+                    rootController: new AbortController(),
+                    signal: new AbortController().signal,
+                    channel: channelName('agent-1'),
+                    thread_id: 'thread-1',
+                    environment: {
+                        variables: []
+                    } as IEnvironment,
+                    conversationId: 'conversation-1'
+                }
+            )
+        }
+    }
+
+    function createHandler(graph: TestGraph, registryGet = jest.fn()) {
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command.constructor.name === 'ToolsetGetToolsCommand') {
+                    return []
+                }
+
+                if (command.constructor.name === 'CreateWorkflowNodeCommand') {
+                    return {
+                        workflowNode: {
+                            graph: RunnableLambda.from(() => ({})),
+                            ends: []
+                        },
+                        nextNodes: []
+                    }
+                }
+
+                throw new Error(`Unexpected command: ${command.constructor.name}`)
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (command) => {
+                if (command.constructor.name === 'GetXpertWorkflowQuery') {
+                    return {
+                        agent: graph.nodes[0].entity,
+                        graph,
+                        next: [],
+                        fail: []
+                    }
+                }
+
+                throw new Error(`Unexpected query: ${command.constructor.name}`)
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                api: {}
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        Object.defineProperty(handler, 'agentMiddlewareRegistry', {
+            value: {
+                get: registryGet
+            }
+        })
+        return handler
+    }
+
+    it('creates file understanding middleware by default', async () => {
+        const { graph, command } = createCommand()
+        const createMiddleware = jest.fn().mockReturnValue({
+            name: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+            tools: [
+                tool(async () => '', {
+                    name: 'file_search',
+                    description: 'Search files.',
+                    schema: z.object({
+                        query: z.string()
+                    })
+                })
+            ]
+        })
+        const registryGet = jest.fn().mockReturnValue({ createMiddleware })
+        const handler = createHandler(graph, registryGet)
+
+        await handler.execute(command)
+
+        expect(registryGet).toHaveBeenCalledWith(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
+        expect(createMiddleware).toHaveBeenCalledWith(
+            { conversationId: 'conversation-1' },
+            expect.objectContaining({
+                node: expect.objectContaining({
+                    provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+                    required: true
+                })
+            })
+        )
+    })
+
+    it('does not mount file understanding tools when the agent disables file understanding', async () => {
+        const { graph, command } = createCommand({
+            fileUnderstanding: {
+                enabled: false
+            }
+        })
+        const registryGet = jest.fn()
+        const handler = createHandler(graph, registryGet)
+
+        await handler.execute(command)
+
+        expect(registryGet).not.toHaveBeenCalled()
     })
 })

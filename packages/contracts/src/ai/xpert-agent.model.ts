@@ -171,6 +171,10 @@ export type TXpertAgentOptions = {
    */
   attachment?: TXpertAgentAttachment
   /**
+   * Built-in file understanding tools config of agent
+   */
+  fileUnderstanding?: TXpertAgentFileUnderstanding
+  /**
    * Config of middlewares for agent
    */
   middlewares?: {
@@ -195,6 +199,13 @@ export type TXpertAgentAttachment = TXpertAgentVision & {
    * Max number of files to be processed
    */
   maxNum?: number
+}
+
+export type TXpertAgentFileUnderstanding = {
+  /**
+   * Enable built-in tools for understanding conversation files. Default: true
+   */
+  enabled?: boolean
 }
 
 export type TAgentPromptTemplate = {

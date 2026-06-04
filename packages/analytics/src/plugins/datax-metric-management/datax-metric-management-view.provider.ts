@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
 import { readFile } from 'fs/promises'
 import { createRequire } from 'module'
 import { dirname, join } from 'path'
 import {
 	I18nObject,
-	IIndicator,
-	IProject,
+	IconDefinition,
+	IndicatorStatusEnum,
 	IndicatorType,
 	JsonSchemaObjectType,
-	TIndicatorDraft,
 	XpertExtensionViewManifest,
 	XpertRemoteComponentEntry,
 	XpertRemoteComponentViewSchema,
@@ -19,36 +17,175 @@ import {
 	XpertViewDataResult,
 	XpertViewParameterOptionsQuery,
 	XpertViewParameterOptionsResult,
-	XpertViewQuery,
-	XpertViewScalar
+	XpertViewQuery
 } from '@xpert-ai/contracts'
 import { IXpertViewExtensionProvider, renderRemoteReactIframeHtml, ViewExtensionProvider } from '@xpert-ai/plugin-sdk'
-import { FindOptionsOrder, ILike } from 'typeorm'
-import { IndicatorService } from '../../indicator'
-import { Indicator } from '../../indicator/indicator.entity'
-import { ProjectMyQuery } from '../../project'
 import {
-	AGENT_WORKBENCH_MAIN_SLOT,
 	AGENT_WORKBENCH_FIXED_SLOT,
+	AGENT_WORKBENCH_MAIN_SLOT,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
+	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_PLUGIN_NAME,
 	DATA_X_METRIC_PROVIDER_KEY,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
 	DATA_X_METRIC_VIEW_KEY
 } from './constants'
+import {
+	DataXMetricManagementService,
+	getStringInput,
+	toBusinessAreaOption,
+	toModelOption
+} from './datax-metric-management.service'
 
 const requireFromHere = createRequire(__filename)
 
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
-
-type ProjectListResult = {
-	items: IProject[]
-	total: number
+const DATA_X_METRIC_VIEW_ICON = {
+	type: 'svg',
+	value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-4 3 3 5-7"/></svg>',
+	alt: 'Metric Management'
+} satisfies IconDefinition
+const DATA_X_METRIC_REMOTE_CSS = `
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
+
+.xui-app {
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xui-metric-sticky-toolbar {
+  position: sticky;
+  top: 0;
+  flex: 0 0 auto;
+  z-index: 40;
+  padding: 2px 0 10px;
+  background: var(--xui-color-background);
+}
+
+.xui-notice,
+.xui-pager {
+  flex: 0 0 auto;
+}
+
+.xui-empty,
+.xui-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.xui-table-wrap {
+  overflow: auto;
+}
+
+.xui-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.xui-table th,
+.xui-table td {
+  white-space: nowrap;
+}
+
+.xui-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.xui-table-actions-cell {
+  min-width: 232px;
+}
+
+.xui-table-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.xui-table-actions .xui-button {
+  flex: 0 0 auto;
+}
+
+.xui-metric-pager {
+  justify-content: space-between;
+  min-height: var(--xui-button-height-sm);
+}
+
+.xui-metric-pager-total {
+  white-space: nowrap;
+}
+
+.xui-metric-pager-actions {
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.xui-metric-pager-actions .xui-button,
+.xui-metric-pager-actions .xui-muted {
+  flex: 0 0 auto;
+}
+
+.xui-metric-pager-actions .xui-muted {
+  display: inline-flex;
+  min-height: var(--xui-button-height-sm);
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .xui-metric-sticky-toolbar {
+    position: sticky;
+  }
+}
+`
+
+const filterInputSchema = {
+	type: 'object' as const,
+	properties: {
+		dimension: {
+			type: 'string',
+			title: text('Dimension', '维度')
+		},
+		hierarchy: {
+			type: 'string',
+			title: text('Hierarchy', '层级')
+		},
+		member: {
+			type: 'string',
+			title: text('Member', '成员')
+		}
+	}
+} satisfies JsonSchemaObjectType
 
 const createIndicatorInputSchema = {
 	type: 'object',
 	properties: {
+		modelId: {
+			type: 'string',
+			title: text('Model ID', '模型 ID')
+		},
+		businessAreaId: {
+			type: 'string',
+			title: text('Business Area', '业务域')
+		},
+		cube: {
+			type: 'string',
+			title: text('Cube', '立方体')
+		},
 		code: {
 			type: 'string',
 			title: text('Code', '编码')
@@ -67,9 +204,30 @@ const createIndicatorInputSchema = {
 			type: 'string',
 			title: text('Entity', '实体')
 		},
+		description: {
+			type: 'string',
+			title: text('Description', '描述')
+		},
 		business: {
 			type: 'string',
 			title: text('Business Definition', '业务口径')
+		},
+		calendar: {
+			type: 'string',
+			title: text('Calendar', '日历')
+		},
+		measure: {
+			type: 'string',
+			title: text('Measure', '度量')
+		},
+		formula: {
+			type: 'string',
+			title: text('Formula', '公式')
+		},
+		filters: {
+			type: 'array',
+			title: text('Filters', '过滤条件'),
+			items: filterInputSchema
 		},
 		unit: {
 			type: 'string',
@@ -87,21 +245,14 @@ const createIndicatorInputSchema = {
 const editIndicatorInputSchema = {
 	...createIndicatorInputSchema,
 	properties: {
-		...createIndicatorInputSchema.properties,
-		modelId: {
-			type: 'string',
-			title: text('Model ID', '模型 ID')
-		}
+		...createIndicatorInputSchema.properties
 	}
 } satisfies JsonSchemaObjectType
 
 @Injectable()
 @ViewExtensionProvider(DATA_X_METRIC_PROVIDER_KEY)
 export class DataXMetricManagementViewProvider implements IXpertViewExtensionProvider {
-	constructor(
-		private readonly indicatorService: IndicatorService,
-		private readonly queryBus: QueryBus
-	) {}
+	constructor(private readonly metricManagementService: DataXMetricManagementService) {}
 
 	supports(context: XpertResolvedViewHostContext) {
 		return context.hostType === 'agent'
@@ -126,18 +277,18 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				slot,
 				order: 10,
 				refreshable: true,
+				activation: {
+					requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
+				},
 				...(isFixedWorkbenchView
 					? {
-							activation: {
-								requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
-							},
 							workbench: {
 								fixed: true,
 								menu: {
 									enabled: true,
 									label: text('Metric Management', '指标管理'),
 									order: 10,
-									icon: 'ri-line-chart-line'
+									icon: DATA_X_METRIC_VIEW_ICON
 								}
 							}
 						}
@@ -168,6 +319,35 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 							preload: true,
 							dependsOn: ['projectId']
 						}
+					},
+					{
+						key: 'businessAreaId',
+						label: text('Business Area', '业务域'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['projectId']
+						}
+					},
+					{
+						key: 'status',
+						label: text('Status', '状态'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							preload: true
+						}
+					},
+					{
+						key: 'type',
+						label: text('Type', '类型'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							preload: true
+						}
 					}
 				],
 				view: {
@@ -195,6 +375,22 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 					cache: {
 						enabled: false
 					}
+				},
+				hostEvents: {
+					subscriptions: [
+						{
+							key: 'datax-metric-management-tool-completed',
+							event: 'assistant.tool.completed',
+							filter: {
+								sources: ['chatkit'],
+								toolNames: [...DATA_X_METRIC_MANAGEMENT_TOOL_NAMES]
+							},
+							action: {
+								type: 'forward',
+								debounceMs: 1000
+							}
+						}
+					]
 				},
 				actions: [
 					{
@@ -275,6 +471,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				lang: 'zh-Hans',
 				reactUmd: react,
 				reactDomUmd: reactDom,
+				appCss: DATA_X_METRIC_REMOTE_CSS,
 				appScript
 			}),
 			contentType: 'text/html; charset=utf-8'
@@ -290,37 +487,11 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			return {}
 		}
 
-		const projectId = getStringParameter(query.parameters, 'projectId')
-		if (!projectId) {
-			return {
-				items: [],
-				total: 0,
-				meta: {
-					reason: 'project_required'
-				}
-			}
-		}
-
-		const modelId = getStringParameter(query.parameters, 'modelId')
-		const page = query.page ?? 1
-		const pageSize = query.pageSize ?? 20
-		const options = {
-			where: buildIndicatorWhere(projectId, modelId, query.search),
-			relations: ['model'],
-			take: pageSize,
-			skip: (page - 1) * pageSize,
-			order: buildIndicatorOrder(query.sortBy, query.sortDirection)
-		}
-		const result = await this.indicatorService.findMy(options)
-
-		return {
-			items: result.items.map(toMetricRow),
-			total: result.total
-		}
+		return this.metricManagementService.getViewData(query)
 	}
 
 	async getViewParameterOptions(
-		_context: XpertResolvedViewHostContext,
+		context: XpertResolvedViewHostContext,
 		viewKey: string,
 		parameterKey: string,
 		query: XpertViewParameterOptionsQuery
@@ -329,7 +500,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			return { items: [] }
 		}
 
-		const projects = await this.loadProjects()
+		const projects = await this.metricManagementService.loadProjects()
 		const search = query.search?.trim().toLowerCase() ?? ''
 
 		if (parameterKey === 'projectId') {
@@ -344,7 +515,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		}
 
 		if (parameterKey === 'modelId') {
-			const projectId = getStringParameter(query.parameters, 'projectId')
+			const projectId = getStringInput(query.parameters, 'projectId')
 			const project = projects.find((item) => item.id === projectId)
 			const models = Array.isArray(project?.models) ? project.models : []
 
@@ -352,6 +523,33 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				items: models
 					.map((model) => toModelOption(model))
 					.filter((model) => !search || model.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'businessAreaId') {
+			const projectId = getStringInput(query.parameters, 'projectId')
+			const areas = await this.metricManagementService.loadBusinessAreas(projectId, context.userId)
+
+			return {
+				items: areas
+					.map((area) => toBusinessAreaOption(area))
+					.filter((area) => !search || area.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'status') {
+			return {
+				items: Object.values(IndicatorStatusEnum)
+					.map((value) => ({ value, label: value }))
+					.filter((item) => !search || item.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'type') {
+			return {
+				items: Object.values(IndicatorType)
+					.map((value) => ({ value, label: value }))
+					.filter((item) => !search || item.label.toLowerCase().includes(search))
 			}
 		}
 
@@ -373,11 +571,14 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		}
 
 		if (actionKey === 'create') {
-			const projectId = getStringParameter(request.parameters, 'projectId')
+			const projectId = getStringInput(request.parameters, 'projectId')
 			if (!projectId) {
 				return failure('Project is required', '请先选择项目')
 			}
-			await this.indicatorService.createDraft(toIndicatorDraft(request.input), projectId)
+			await this.metricManagementService.createViewDraft(
+				projectId,
+				withScopeDefaults(request.input, request.parameters)
+			)
 			return success('Metric created', '指标已创建')
 		}
 
@@ -387,156 +588,30 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		}
 
 		if (actionKey === 'edit') {
-			await this.indicatorService.updateDraft(targetId, toIndicatorDraft(request.input))
+			await this.metricManagementService.updateViewDraft(
+				targetId,
+				withScopeDefaults(request.input, request.parameters)
+			)
 			return success('Metric updated', '指标已更新')
 		}
 
 		if (actionKey === 'publish') {
-			await this.indicatorService.publish(targetId)
+			await this.metricManagementService.publishIndicator(targetId)
 			return success('Metric published', '指标已发布')
 		}
 
 		if (actionKey === 'embedding') {
-			await this.indicatorService.embedding(targetId)
+			await this.metricManagementService.embeddingIndicator(targetId)
 			return success('Metric embedded', '指标已向量化')
 		}
 
 		if (actionKey === 'delete') {
-			await this.indicatorService.deleteById(targetId)
+			await this.metricManagementService.deleteIndicatorById(targetId)
 			return success('Metric deleted', '指标已删除')
 		}
 
 		return failure('Unsupported action', '不支持的操作')
 	}
-
-	private async loadProjects(): Promise<IProject[]> {
-		const result = await this.queryBus.execute<unknown, ProjectListResult>(
-			new ProjectMyQuery({
-				relations: ['models']
-			})
-		)
-		return result.items
-	}
-}
-
-type MetricRow = {
-	id: string
-	code?: string
-	name?: string
-	type?: string
-	status?: string
-	modelId?: string
-	modelName?: string
-	embeddingStatus?: string
-	visible?: boolean
-	updatedAt?: Date
-	draft?: unknown
-}
-
-type ModelOptionSource = {
-	id?: string
-	name?: string
-	title?: string
-}
-
-function buildIndicatorWhere(projectId: string, modelId?: string, search?: string) {
-	const base = {
-		projectId,
-		...(modelId ? { modelId } : {})
-	}
-	const normalizedSearch = search?.trim()
-
-	if (!normalizedSearch) {
-		return base
-	}
-
-	const pattern = `%${normalizedSearch}%`
-	return [
-		{ ...base, code: ILike(pattern) },
-		{ ...base, name: ILike(pattern) },
-		{ ...base, business: ILike(pattern) }
-	]
-}
-
-function buildIndicatorOrder(sortBy?: string, sortDirection?: string): FindOptionsOrder<Indicator> {
-	const direction = sortDirection === 'asc' ? 'ASC' : 'DESC'
-	if (
-		sortBy === 'code' ||
-		sortBy === 'name' ||
-		sortBy === 'type' ||
-		sortBy === 'status' ||
-		sortBy === 'embeddingStatus' ||
-		sortBy === 'updatedAt'
-	) {
-		return { [sortBy]: direction } as FindOptionsOrder<Indicator>
-	}
-
-	return { updatedAt: 'DESC' }
-}
-
-function toMetricRow(indicator: IIndicator): MetricRow {
-	const model = indicator.model as ModelOptionSource | undefined
-
-	return {
-		id: indicator.id,
-		code: indicator.code,
-		name: indicator.name,
-		type: indicator.type,
-		status: indicator.status,
-		modelId: indicator.modelId,
-		modelName: model?.name ?? model?.title ?? indicator.modelId,
-		embeddingStatus: indicator.embeddingStatus,
-		visible: indicator.visible,
-		updatedAt: indicator.updatedAt,
-		draft: indicator.draft
-	}
-}
-
-function toModelOption(model: unknown) {
-	const source = model as ModelOptionSource
-	return {
-		value: source.id ?? '',
-		label: source.name ?? source.title ?? source.id ?? ''
-	}
-}
-
-function getStringParameter(parameters: Record<string, XpertViewScalar | XpertViewScalar[]> | undefined, key: string) {
-	const value = parameters?.[key]
-	const normalized = Array.isArray(value) ? value[0] : value
-	return typeof normalized === 'string' && normalized.trim() ? normalized.trim() : undefined
-}
-
-function toIndicatorDraft(input: Record<string, unknown> | null | undefined): TIndicatorDraft {
-	const source = input ?? {}
-	return {
-		code: getOptionalString(source, 'code'),
-		name: getOptionalString(source, 'name'),
-		type: getIndicatorType(source),
-		modelId: getOptionalString(source, 'modelId'),
-		entity: getOptionalString(source, 'entity'),
-		business: getOptionalString(source, 'business'),
-		unit: getOptionalString(source, 'unit'),
-		visible: getOptionalBoolean(source, 'visible') ?? true,
-		isApplication: getOptionalBoolean(source, 'isApplication') ?? false
-	}
-}
-
-function getOptionalString(source: Record<string, unknown>, key: string) {
-	const value = source[key]
-	return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function getOptionalBoolean(source: Record<string, unknown>, key: string) {
-	const value = source[key]
-	return typeof value === 'boolean' ? value : undefined
-}
-
-function getIndicatorType(source: Record<string, unknown>) {
-	const value = source['type']
-	if (value === IndicatorType.BASIC || value === IndicatorType.DERIVE) {
-		return value
-	}
-	return IndicatorType.BASIC
 }
 
 async function readPackageFile(packageName: string, relativePath: string) {
@@ -557,4 +632,19 @@ function failure(en_US: string, zh_Hans: string): XpertViewActionResult {
 		success: false,
 		message: text(en_US, zh_Hans)
 	}
+}
+
+function withScopeDefaults(
+	input: Record<string, unknown> | null | undefined,
+	parameters: Record<string, unknown> | undefined
+) {
+	return {
+		...(input ?? {}),
+		...defaultIfMissing(input, 'modelId', getStringInput(parameters, 'modelId')),
+		...defaultIfMissing(input, 'businessAreaId', getStringInput(parameters, 'businessAreaId'))
+	}
+}
+
+function defaultIfMissing(input: Record<string, unknown> | null | undefined, key: string, value: string | undefined) {
+	return value && !(input && typeof input[key] === 'string' && input[key]) ? { [key]: value } : {}
 }

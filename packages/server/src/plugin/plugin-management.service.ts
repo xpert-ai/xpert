@@ -29,8 +29,20 @@ import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
 import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
-import { assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
-import { getCodeWorkspacePath, normalizePluginSourceConfig } from './source-config'
+import { assertPluginSdkCompatibility, assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
+import {
+	cleanupExtractedPluginArchive,
+	extractPluginArchive,
+	readPluginPackageJson,
+	UploadedPluginArchiveFile
+} from './plugin-archive'
+import {
+	getCodePackageDir,
+	getCodeRuntimeName,
+	getCodeWorkspacePath,
+	normalizePluginSourceConfig,
+	omitTransientPluginSourceConfig
+} from './source-config'
 import {
 	LOADED_PLUGINS,
 	LoadedPluginRecord,
@@ -122,7 +134,36 @@ export class PluginManagementService {
 		})
 	}
 
-	async installPlugin(body: PluginInstallInput): Promise<PluginInstallResult> {
+	async installArchivePlugin(
+		file: UploadedPluginArchiveFile,
+		options: { config?: Record<string, any> } = {}
+	): Promise<PluginInstallResult> {
+		let extracted: Awaited<ReturnType<typeof extractPluginArchive>> | null = null
+
+		try {
+			extracted = await extractPluginArchive(file)
+			return await this.installPlugin(
+				{
+					pluginName: normalizePluginName(extracted.packageJson.name),
+					source: 'code',
+					sourceConfig: {
+						packageDir: extracted.packageDir,
+						uploadFileName: extracted.originalName,
+						uploadInstalledAt: new Date().toISOString()
+					},
+					config: options.config
+				},
+				{ allowPackageDir: true }
+			)
+		} finally {
+			await cleanupExtractedPluginArchive(extracted?.tempDir)
+		}
+	}
+
+	async installPlugin(
+		body: PluginInstallInput,
+		options: { allowPackageDir?: boolean } = {}
+	): Promise<PluginInstallResult> {
 		if (!body?.pluginName) {
 			throw new BadRequestException(t('server:Error.PluginPackageNameRequired'))
 		}
@@ -138,8 +179,16 @@ export class PluginManagementService {
 			throw new BadRequestException(getErrorMessage(error))
 		}
 		const workspacePath = getCodeWorkspacePath(sourceConfig)
-		if (source === 'code' && !workspacePath) {
-			throw new BadRequestException('sourceConfig.workspacePath is required when source is "code"')
+		const packageDir = getCodePackageDir(sourceConfig)
+		if (source === 'code' && packageDir && !options.allowPackageDir) {
+			throw new BadRequestException(
+				'sourceConfig.packageDir is internal. Upload plugin archives through /plugin/archive.'
+			)
+		}
+		if (source === 'code' && !workspacePath && !packageDir) {
+			throw new BadRequestException(
+				'sourceConfig.workspacePath or sourceConfig.packageDir is required when source is "code"'
+			)
 		}
 
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
@@ -148,38 +197,57 @@ export class PluginManagementService {
 		const packageName = body.pluginName
 		const level = PLUGIN_LEVEL.ORGANIZATION
 		let shouldPersistFailureState = false
+		let persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 
 		try {
-			await assertPluginSdkInstallCandidate({
-				pluginName: packageName,
-				version: body.version,
-				source,
-				sourceConfig
-			})
+			if (source === 'code' && packageDir) {
+				assertPluginSdkCompatibility(readPluginPackageJson(packageDir), {
+					expectedPackageName: normalizePluginName(packageName)
+				})
+			} else {
+				await assertPluginSdkInstallCandidate({
+					pluginName: packageName,
+					version: body.version,
+					source,
+					sourceConfig
+				})
+			}
 
 			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, allowSystemPlugins)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const runtimePluginName =
-				source === 'code' ? this.createCodeRuntimePluginName(packageName) : packageNameWithVersion
+				source === 'code'
+					? (getCodeRuntimeName(sourceConfig) ?? this.createCodeRuntimePluginName(packageName))
+					: packageNameWithVersion
+			if (source === 'code' && packageDir && !getCodeRuntimeName(sourceConfig)) {
+				sourceConfig = {
+					...sourceConfig,
+					runtimeName: runtimePluginName
+				}
+			}
+			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
 			shouldPersistFailureState = true
 
-			const { modules, errors } = await registerPluginsAsync({
-				module: this.moduleRef,
-				organizationId,
-				plugins: [
-					{
-						name: source === 'code' ? packageName : packageNameWithVersion,
-						runtimeName: source === 'code' ? runtimePluginName : undefined,
-						source,
-						level,
-						sourceConfig
-					}
-				],
-				configs: { [packageName]: body.config },
-				baseDir: organizationBaseDir
-			}, this.logger)
+			const { modules, errors } = await registerPluginsAsync(
+				{
+					module: this.moduleRef,
+					organizationId,
+					plugins: [
+						{
+							name: source === 'code' ? packageName : packageNameWithVersion,
+							runtimeName: source === 'code' ? runtimePluginName : undefined,
+							source,
+							level,
+							sourceConfig
+						}
+					],
+					configs: { [packageName]: body.config },
+					baseDir: organizationBaseDir
+				},
+				this.logger
+			)
 
 			if (errors.length) {
 				throw new BadRequestException(errors[0].error)
@@ -278,7 +346,7 @@ export class PluginManagementService {
 				packageName,
 				version: plugin.meta?.version,
 				source,
-				sourceConfig,
+				sourceConfig: persistedSourceConfig,
 				level: resolvedLevel,
 				config: configInspection.config,
 				configurationStatus: configInspection.error
@@ -319,7 +387,7 @@ export class PluginManagementService {
 						packageName: failedPluginName,
 						version: body.version,
 						source,
-						sourceConfig,
+						sourceConfig: persistedSourceConfig,
 						level,
 						config: body.config ?? {},
 						configurationStatus: null,

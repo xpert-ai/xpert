@@ -11,7 +11,16 @@
     [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: {Default: 'Learn more about Xpert MCP toolset'}"
     helpUrl="/docs/ai/tool/mcp/"
     (create)="createTool()"
-  />
+  >
+    <button
+      type="button"
+      class="mx-4 mb-4 flex w-[calc(100%-2rem)] items-center rounded-lg px-4 py-2 text-sm font-medium text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+      (click)="importFromJson($event)"
+    >
+      <i class="ri-file-code-line mr-2 text-base"></i>
+      {{ 'PAC.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}
+    </button>
+  </ngm-card-create>
 
   @for (toolset of toolsets(); track toolset.id) {
     <xpert-toolset-card class="col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"

@@ -17,6 +17,10 @@ jest.mock('@xpert-ai/contracts', () => ({
 		SYSTEM: 'system',
 		ORGANIZATION: 'organization'
 	},
+	OrganizationContactBudgetTypeEnum: {
+		HOURS: 'hours',
+		COST: 'cost'
+	},
 	RolesEnum: {
 		SUPER_ADMIN: 'SUPER_ADMIN'
 	}
@@ -58,6 +62,10 @@ jest.mock('./plugin-management.service', () => ({
 	PluginManagementService: class PluginManagementService {}
 }))
 
+jest.mock('./plugin-marketplace.service', () => ({
+	PluginMarketplaceService: class PluginMarketplaceService {}
+}))
+
 const { PLUGIN_LEVEL } = require('@xpert-ai/contracts')
 const { GLOBAL_ORGANIZATION_SCOPE, RequestContext } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
@@ -78,6 +86,21 @@ describe('PluginController', () => {
 		refreshCodePlugin: jest.fn(),
 		uninstallByNamesWithGuard: jest.fn()
 	} as unknown as PluginManagementService
+
+	const pluginMarketplaceService = {
+		listMarketplace: jest.fn(),
+		listSources: jest.fn(),
+		createSource: jest.fn(),
+		refreshSources: jest.fn(),
+		refreshSource: jest.fn(),
+		updateSource: jest.fn(),
+		deleteSource: jest.fn(),
+		getMarketplacePlugin: jest.fn(),
+		listRegistryItems: jest.fn(),
+		createRegistryItem: jest.fn(),
+		updateRegistryItem: jest.fn(),
+		deleteRegistryItem: jest.fn()
+	}
 
 	const queryBus = {
 		execute: jest.fn()
@@ -103,6 +126,7 @@ describe('PluginController', () => {
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
+			pluginMarketplaceService as any,
 			pluginManagementService,
 			queryBus as any,
 			commandBus as any

@@ -1,6 +1,6 @@
 @if (plugin(); as plugin) {
-  <xp-plugin [plugin]="plugin">
-    <div class="flex h-5 justify-between items-center">
+  <xp-plugin [plugin]="plugin" [installed]="installed()">
+    <div class="flex h-5 justify-between items-center gap-2">
       <div class="flex items-center space-x-1 text-text-tertiary">
         <i class="ri-import-line shrink-0"></i>
         <div class="system-xs-regular font-mono">
@@ -11,23 +11,61 @@
           }
         </div>
       </div>
+      <div class="flex min-w-0 items-center gap-1">
+        @if (plugin.sourceName) {
+          <span
+            class="system-2xs-medium truncate rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary"
+          >
+            @if (plugin.sourceNameI18nKey) {
+              {{ plugin.sourceNameI18nKey | translate: { Default: plugin.sourceName } }}
+            } @else {
+              {{ plugin.sourceName }}
+            }
+          </span>
+        }
+        @if (plugin.contributions?.length) {
+          <span class="system-2xs-medium rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary">
+            {{
+              'PAC.Plugin.ContentCount'
+                | translate: { Default: plugin.contributions.length + ' contents', count: plugin.contributions.length }
+            }}
+          </span>
+        }
+      </div>
     </div>
   </xp-plugin>
 
-  <div class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient">
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
-      (click)="install()">
-      {{ 'PAC.Plugin.Install' | translate: {Default: 'Install'} }}
+  <div
+    class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient"
+  >
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
+      [disabled]="installed()"
+      (click)="install()"
+    >
+      @if (installed()) {
+        {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+      } @else {
+        {{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}
+      }
     </button>
-    <a
-      target="_blank"
-      [href]="plugin.source?.url"
-      class="block flex-1 shrink-0"
+    @if (hasMarketplaceDetails()) {
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-medium flex-1 shrink-0 gap-0.5"
+        (click)="viewDetails()"
       >
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
-        {{ 'PAC.Plugin.Details' | translate: {Default: 'Details'} }}
-        <i class="ri-corner-right-up-line"></i>
+        {{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}
+        <i class="ri-list-check-3"></i>
       </button>
-    </a>
+    } @else if (plugin.source?.url) {
+      <a target="_blank" [href]="plugin.source?.url" class="block flex-1 shrink-0">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
+          {{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}
+          <i class="ri-corner-right-up-line"></i>
+        </button>
+      </a>
+    }
   </div>
 }

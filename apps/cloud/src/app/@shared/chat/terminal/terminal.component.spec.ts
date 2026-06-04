@@ -74,7 +74,7 @@ jest.mock('@xterm/addon-fit', () => ({
 }))
 
 import { TestBed } from '@angular/core/testing'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   SandboxTerminalClosedReason,
   SandboxTerminalServerEvent,
@@ -139,6 +139,22 @@ describe('ChatSharedTerminalComponent', () => {
         }
       ]
     }).compileComponents()
+
+    const translate = TestBed.inject(TranslateService)
+    translate.setTranslation(
+      'en',
+      {
+        PAC: {
+          Chat: {
+            Terminal: 'Terminal',
+            TerminalConnected: 'Connected via i18n',
+            TerminalUnsupportedProvider: 'Unsupported provider'
+          }
+        }
+      },
+      true
+    )
+    translate.use('en')
   })
 
   afterEach(() => {
@@ -192,6 +208,8 @@ describe('ChatSharedTerminalComponent', () => {
       sessionId: 'session-1'
     })
     expect(terminal.options.disableStdin).toBe(false)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Connected via i18n')
   })
 
   it('resizes and closes the active interactive session', async () => {

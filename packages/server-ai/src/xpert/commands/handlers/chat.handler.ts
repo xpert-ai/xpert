@@ -66,6 +66,7 @@ import { AssistantBindingService } from '../../../assistant-binding/assistant-bi
 import { RedisSseStreamService } from '../../../shared/stream'
 import { AttachFileToConversationCommand } from '../../../file-understanding'
 import { applicationMetrics } from '../../../metrics'
+import { applicationTracing } from '../../../tracing'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -745,6 +746,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     fallbackStreamId: aiMessage?.id ?? executionId
                                 })
 
+                                applicationMetrics.recordToolComponentMessage(event.data.data, aiMessage.content)
                                 appendMessageContent(aiMessage, event.data.data, messageContext)
                                 result = appendMessagePlainText(result, event.data.data, messageContext)
                             } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
@@ -1000,13 +1002,22 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
         })
 
-        return (
+        const persistedStream =
             this.redisSseStreamService?.wrapChatStream(stream, {
                 target: options?.streamPersistence,
                 threadId: conversation.threadId,
                 runId: executionId
             }) ?? stream
-        )
+
+        return applicationTracing.traceObservable(persistedStream, 'xpert.chat', {
+            'xpert.chat.action': request.action,
+            'xpert.chat.from': from,
+            'conversation.id': conversation.id,
+            'thread.id': conversation.threadId,
+            'execution.id': executionId,
+            'xpert.id': xpert.id,
+            'project.id': options.projectId
+        })
     }
 }
 
@@ -1326,11 +1337,9 @@ function toFileAssetHandles(files: unknown): FileAssetHandle[] {
             const fileAssetId =
                 typeof record.fileAssetId === 'string'
                     ? record.fileAssetId
-                    : typeof record.fileId === 'string'
-                      ? record.fileId
-                      : (storageFileId || record.type === 'file') && typeof record.id === 'string'
-                        ? record.id
-                        : null
+                    : storageFileId && typeof record.id === 'string'
+                      ? record.id
+                      : null
             return typeof fileAssetId === 'string'
                 ? {
                       id: fileAssetId,

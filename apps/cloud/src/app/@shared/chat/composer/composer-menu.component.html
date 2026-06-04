@@ -14,7 +14,7 @@
 </button>
 
 <ng-template #composerMenu>
-  <div class="composer-menu-panel">
+  <div z-menu-content class="composer-menu-panel">
     @if (attachmentEnabled()) {
       <button z-menu-item type="button" class="composer-menu-row" (click)="upload.emit()">
         <z-icon zType="paperclip"></z-icon>

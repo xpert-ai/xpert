@@ -44,6 +44,7 @@ import { AppService } from '../app.service'
 import { filterLatestMessages } from '../@shared/chat/filter-latest-messages'
 import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/interrupt-request'
 import { createReferenceHumanInput, XpertChatReference } from '../@shared/chat/references'
+import { toChatRequestFile, toStorageAttachmentFile, type ChatAgentFile } from '../@shared/chat/attachments/agent-file'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../@shared/chat/context/follow-up-consumed'
@@ -66,7 +67,7 @@ function createRetryPlaceholderMessage(): TCopilotChatMessage {
 export type PendingFollowUp = {
   id?: string
   content: string
-  files?: Partial<IStorageFile>[]
+  files?: ChatAgentFile[]
   references?: XpertChatReference[]
   mode: 'queue' | 'steer'
   planMode?: boolean
@@ -218,7 +219,7 @@ export abstract class ChatService {
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
 
   // Attachments
-  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: ChatAgentFile }[]>([])
   readonly recentAttachments = signal<IStorageFile[]>(null)
 
   constructor() {
@@ -285,7 +286,7 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string, params?: { files?: { id: string }[]; references?: XpertChatReference[] }) {
+  ask(content: string, params?: { files?: ChatAgentFile[]; references?: XpertChatReference[] }) {
     const id = uuid()
     this.sendMessage({
       id,
@@ -305,7 +306,7 @@ export abstract class ChatService {
   sendMessage(options: {
     id?: string
     content?: string
-    files?: Partial<IStorageFile>[]
+    files?: ChatAgentFile[]
     references?: XpertChatReference[]
     followUpMode?: 'queue' | 'steer'
     planMode?: boolean
@@ -328,6 +329,9 @@ export abstract class ChatService {
       return
     }
 
+    const requestFiles = (options.files ?? []).map(toChatRequestFile)
+    const displayFiles = (options.files ?? []).map(toStorageAttachmentFile)
+
     const humanMessage: TCopilotChatMessage = {
       id: options.id ?? uuid(),
       role: 'user',
@@ -336,8 +340,8 @@ export abstract class ChatService {
     if (references.length) {
       humanMessage.references = references
     }
-    if (options.files?.length) {
-      humanMessage.attachments = options.files as IStorageFile[]
+    if (displayFiles.length) {
+      humanMessage.attachments = displayFiles
     }
     if (options.planMode || options.runtimeCapabilities || options.commandSource) {
       humanMessage.thirdPartyMessage = {
@@ -358,7 +362,7 @@ export abstract class ChatService {
           ...(this.parametersValue() ?? {}),
           ...createReferenceHumanInput({
             content: content ?? '',
-            files: options.files,
+            files: requestFiles,
             references
           }),
           ...(options.planMode ? { planMode: true } : {}),
@@ -440,7 +444,7 @@ export abstract class ChatService {
       /**
        * Attachment files
        */
-      files: Partial<IStorageFile>[]
+      files: ChatAgentFile[]
       references: XpertChatReference[]
       confirm: boolean
       command: TInterruptCommand
@@ -907,7 +911,7 @@ export abstract class ChatService {
           ...(this.parametersValue() ?? {}),
           ...createReferenceHumanInput({
             content: item.content,
-            files: item.files,
+            files: item.files?.map(toChatRequestFile),
             references: item.references
           }),
           ...(item.planMode ? { planMode: true } : {}),
@@ -965,7 +969,7 @@ export abstract class ChatService {
         message.references = item.references
       }
       if (item.files?.length) {
-        message.attachments = item.files as IStorageFile[]
+        message.attachments = item.files.map(toStorageAttachmentFile)
       }
       if (item.planMode || item.runtimeCapabilities || item.commandSource) {
         message.thirdPartyMessage = {
@@ -1035,7 +1039,7 @@ export abstract class ChatService {
   abstract isPublic(): boolean
 
   // Attachments
-  onAttachCreated(file: IStorageFile): void {
+  onAttachCreated(file: ChatAgentFile): void {
     //
   }
   onAttachDeleted(fileId: string): void {

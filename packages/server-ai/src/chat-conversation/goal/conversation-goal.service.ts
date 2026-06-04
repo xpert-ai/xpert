@@ -119,28 +119,6 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         return goal
     }
 
-    async createGoalFromModel(conversationId: string, objective: string): Promise<IThreadGoal> {
-        const existing = await this.getByConversationId(conversationId)
-        if (existing) {
-            throw new BadRequestException('Conversation already has a goal.')
-        }
-
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(
-            this.normalizeId(conversationId, 'conversationId')
-        )
-        const now = new Date()
-        return this.create({
-            conversationId: conversation.id,
-            threadId: conversation.threadId,
-            objective: this.normalizeObjective(objective),
-            status: 'active',
-            tokensUsed: 0,
-            elapsedSeconds: 0,
-            continuationCount: 0,
-            statusUpdatedAt: now
-        })
-    }
-
     async updateGoalFromModel(conversationId: string, status: ThreadGoalModelStatus): Promise<IThreadGoal> {
         const normalizedStatus = this.normalizeModelStatus(status)
         const goal = await this.requireGoal(conversationId)

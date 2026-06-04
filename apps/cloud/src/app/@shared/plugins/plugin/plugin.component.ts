@@ -21,7 +21,7 @@ export type TPlugin = {
   }
   source?: {
     url: string
-    type: 'marketplace' | 'github' | 'npm' | 'website' | 'other'
+    type: 'marketplace' | 'github' | 'git' | 'url' | 'npm' | 'website' | 'other'
   }
   keywords?: string[]
 }

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { IsDirty } from '@xpert-ai/core'
-import { I18nObject, IIntegration, XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
@@ -9,14 +9,27 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { IntegrationService, ViewExtensionApiService } from '../../../../@core'
+import { IconComponent } from '../../../../@shared/avatar'
 import { IntegrationConfigurationComponent } from './configuration.component'
 import { IntegrationExtensionViewComponent } from './integration-extension-view.component'
+
+const CONFIG_TAB_ICON = {
+  type: 'font',
+  value: 'ri-settings-3-line',
+  alt: 'Configuration'
+} satisfies IconDefinition
+
+const DEFAULT_EXTENSION_VIEW_ICON = {
+  type: 'font',
+  value: 'ri-puzzle-2-line',
+  alt: 'Extension view'
+} satisfies IconDefinition
 
 interface IntegrationShellTab {
   key: string
   kind: 'config' | 'view'
   title?: I18nObject
-  icon: string
+  icon: IconDefinition
   routerLink: readonly string[]
   badge?: string | number
   active: boolean
@@ -31,6 +44,7 @@ interface IntegrationShellTab {
     RouterModule,
     TranslateModule,
     NgmI18nPipe,
+    IconComponent,
     ZardDividerComponent,
     ...ZardTabsImports,
     IntegrationConfigurationComponent,
@@ -54,7 +68,9 @@ export class IntegrationComponent implements IsDirty {
   readonly extensionViews = derivedAsync<XpertExtensionViewManifest[]>(
     () => {
       const integrationId = this.paramId()
-      return integrationId ? this.#viewExtensionAPI.getSlotViews('integration', integrationId, 'detail.main_tabs') : of([])
+      return integrationId
+        ? this.#viewExtensionAPI.getSlotViews('integration', integrationId, 'detail.main_tabs')
+        : of([])
     },
     { initialValue: [] }
   )
@@ -65,7 +81,7 @@ export class IntegrationComponent implements IsDirty {
       {
         key: 'config',
         kind: 'config',
-        icon: 'ri-settings-3-line',
+        icon: CONFIG_TAB_ICON,
         routerLink: integrationId ? ['/settings/integration', integrationId] : ['/settings/integration/create'],
         active: !activeViewKey
       }
@@ -82,7 +98,7 @@ export class IntegrationComponent implements IsDirty {
           key: view.key,
           kind: 'view',
           title: view.title,
-          icon: view.icon || 'ri-puzzle-2-line',
+          icon: view.icon ?? DEFAULT_EXTENSION_VIEW_ICON,
           routerLink: ['/settings/integration', integrationId, 'view', view.key],
           badge: view.badge?.value,
           active: activeViewKey === view.key
@@ -99,7 +115,9 @@ export class IntegrationComponent implements IsDirty {
   })
   readonly activeViewDescription = computed(() => {
     const activeViewKey = this.viewKey()
-    return activeViewKey ? this.extensionViews().find((view) => view.key === activeViewKey)?.description ?? null : null
+    return activeViewKey
+      ? (this.extensionViews().find((view) => view.key === activeViewKey)?.description ?? null)
+      : null
   })
   readonly pageTitle = computed(() => {
     if (!this.viewKey()) {

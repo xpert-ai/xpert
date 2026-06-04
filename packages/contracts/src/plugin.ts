@@ -44,6 +44,49 @@ export type PluginSdkCompatibilityWarningCode =
   | 'plugin-sdk-peer-range-invalid'
   | 'plugin-sdk-peer-range-incompatible'
   | 'plugin-sdk-peer-range-spans-major'
+export type PluginMarketplaceContributionType =
+  | 'app'
+  | 'view'
+  | 'feature'
+  | 'tool'
+  | 'assistant-template'
+  | (string & {})
+export type PluginMarketplaceOperationAccess = 'read' | 'write' | 'admin' | (string & {})
+
+export interface PluginMarketplaceOperation {
+  name: string
+  displayName?: string | I18nObject
+  description?: string | I18nObject
+  access?: PluginMarketplaceOperationAccess
+  tags?: string[]
+}
+
+export interface PluginMarketplaceContribution {
+  id?: string
+  type: PluginMarketplaceContributionType
+  name: string
+  displayName?: string | I18nObject
+  description?: string | I18nObject
+  icon?: IconDefinition
+  operations?: PluginMarketplaceOperation[]
+  tags?: string[]
+  metadata?: Record<string, unknown>
+}
+
+export interface PluginTargetAppMarketplaceMetadata {
+  contents?: PluginMarketplaceContribution[]
+  featured?: boolean
+  screenshots?: string[]
+  readme?: string
+  updatedAt?: string
+}
+
+export interface PluginTargetAppRuntimeMetadata {
+  middlewareProviders?: string[]
+  viewProviders?: string[]
+  templateProviders?: string[]
+  [key: string]: unknown
+}
 
 export interface PluginSdkCompatibilityWarning {
   code: PluginSdkCompatibilityWarningCode
@@ -63,6 +106,8 @@ export interface PluginTargetAppMetadata {
    */
   minAppVersion?: string
   capabilities?: string[]
+  marketplace?: PluginTargetAppMarketplaceMetadata
+  runtime?: PluginTargetAppRuntimeMetadata
   [key: string]: unknown
 }
 

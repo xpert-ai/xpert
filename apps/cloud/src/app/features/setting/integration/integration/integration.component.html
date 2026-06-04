@@ -2,9 +2,7 @@
   <div class="flex flex-col gap-3">
     <div class="flex flex-col gap-1">
       <h2 class="pac-page-title">
-        {{
-          pageTitle() || ('PAC.Integration.SystemIntegration' | translate: { Default: 'System Integration' })
-        }}
+        {{ pageTitle() || ('PAC.Integration.SystemIntegration' | translate: { Default: 'System Integration' }) }}
       </h2>
       <p class="pac-page-subtitle text-text-tertiary">
         @if (viewKey()) {
@@ -13,19 +11,21 @@
           } @else {
             {{
               'PAC.ViewExtension.DetailTabHint'
-                | translate: {
-                    Default: 'Provider-specific views are rendered here with the platform declarative view system.'
-                  }
+                | translate
+                  : {
+                      Default: 'Provider-specific views are rendered here with the platform declarative view system.'
+                    }
             }}
           }
         } @else {
           {{
             (hasExtensionTabs() ? 'PAC.Integration.ConfigurationWithTabsHint' : 'PAC.Integration.ConfigurationOnlyHint')
-              | translate: {
-                  Default: hasExtensionTabs()
-                    ? 'Configure the connection here, then switch tabs to inspect plugin-provided data.'
-                    : 'Configure the connection details for this integration here.'
-                }
+              | translate
+                : {
+                    Default: hasExtensionTabs()
+                      ? 'Configure the connection here, then switch tabs to inspect plugin-provided data.'
+                      : 'Configure the connection details for this integration here.'
+                  }
           }}
         }
       </p>
@@ -43,7 +43,7 @@
     >
       @for (tab of tabs(); track tab.key) {
         <a z-tab-link [routerLink]="tab.routerLink" [active]="tab.active" class="flex items-center gap-2">
-          <i [class]="tab.icon"></i>
+          <xp-icon [icon]="tab.icon" [size]="16" class="shrink-0 text-text-primary" />
           <span>
             @if (tab.kind === 'config') {
               {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}

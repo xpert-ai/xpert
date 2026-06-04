@@ -742,33 +742,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             xpertFeatures: resolveRuntimeXpert(xpert as IXpert, Boolean(options?.isDraft)).features ?? null,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,
+            store: options.store,
             tools: toolMap,
             runtime: this.agentMiddlewareRuntimeService.api
         }
-        const fileUnderstandingStrategy = this.agentMiddlewareRegistry.get(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
-        // Platform-required middleware: it is hidden from the graph UI but is
-        // still created through the normal middleware path so its tools enter
-        // toolMap, tracing, and runtime filtering consistently.
-        const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
-            { conversationId: options.conversationId },
-            {
-                ...middlewareContext,
-                node: {
-                    id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
-                    key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
-                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
-                    provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
-                    required: true
+        const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = []
+        if (isFileUnderstandingEnabled(agent)) {
+            const fileUnderstandingStrategy = this.agentMiddlewareRegistry.get(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
+            // Platform middleware: it is hidden from the graph UI but is still
+            // created through the normal middleware path so its tools enter
+            // toolMap, tracing, and runtime filtering consistently.
+            const fileUnderstandingMiddleware = await fileUnderstandingStrategy.createMiddleware(
+                { conversationId: options.conversationId },
+                {
+                    ...middlewareContext,
+                    node: {
+                        id: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                        key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
+                        required: true
+                    }
                 }
-            }
-        )
-        fileUnderstandingMiddleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
-        const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = [
-            {
+            )
+            fileUnderstandingMiddleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
+            builtinMiddlewareEntries.push({
                 key: FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY,
                 middleware: fileUnderstandingMiddleware
-            }
-        ]
+            })
+        }
         const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
@@ -1998,6 +2000,10 @@ function createAfterAgentNavigator(
 }
 
 // Fill tools or structured output into chatModel
+function isFileUnderstandingEnabled(agent: IXpertAgent) {
+    return agent.options?.fileUnderstanding?.enabled !== false
+}
+
 function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
     let structuredChatModel = null
     let jsonSchema: string = null

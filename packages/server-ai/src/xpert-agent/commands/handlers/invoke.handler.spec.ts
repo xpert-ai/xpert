@@ -505,6 +505,57 @@ describe('XpertAgentInvokeHandler', () => {
         )
     })
 
+    it('fails sandbox-enabled invocation when backend acquire fails', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) {
+                throw new Error('No strategy found for type docker-sandbox')
+            }
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        await expect(
+            handler.execute(
+                new XpertAgentInvokeCommand(
+                    {
+                        human: {
+                            input: 'Original prompt'
+                        }
+                    } as unknown as ConstructorParameters<typeof XpertAgentInvokeCommand>[0],
+                    'agent-1',
+                    {
+                        id: 'xpert-1',
+                        features: {
+                            sandbox: {
+                                enabled: true,
+                                provider: 'docker-sandbox'
+                            }
+                        }
+                    } as unknown as ConstructorParameters<typeof XpertAgentInvokeCommand>[2],
+                    {
+                        isDraft: true,
+                        thread_id: 'thread-1',
+                        execution: {
+                            id: 'execution-1',
+                            threadId: 'thread-1'
+                        },
+                        rootExecutionId: 'execution-1',
+                        subscriber: {
+                            next: jest.fn()
+                        },
+                        store: null
+                    } as unknown as ConstructorParameters<typeof XpertAgentInvokeCommand>[3]
+                )
+            )
+        ).rejects.toThrow('No strategy found for type docker-sandbox')
+
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CompileGraphCommand)).toBe(false)
+    })
+
     it('uses the mapped environment workspace when sandboxEnvironmentId is provided', async () => {
         const graph = createGraph()
 

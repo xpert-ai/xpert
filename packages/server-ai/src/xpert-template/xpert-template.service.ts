@@ -155,6 +155,16 @@ const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
 const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
 const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
 
+/** Convert `<pkg>@1.2.3` -> `<pkg>` to align install/load paths. */
+const normalizePluginPackageName = (pluginName: string) => {
+    if (!pluginName.includes('@')) {
+        return pluginName
+    }
+
+    const lastAt = pluginName.lastIndexOf('@')
+    return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName
+}
+
 const isObjectValue = (value: unknown): value is object =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -711,7 +721,16 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor | null> {
         const templates = await this.getPluginTemplates(query)
-        return templates.find((template) => template.id === id || template.key === id) ?? null
+        const normalizedId = this.normalizePluginTemplateId(id)
+        return (
+            templates.find(
+                (template) =>
+                    template.id === id ||
+                    template.key === id ||
+                    this.normalizePluginTemplateId(template.id) === normalizedId ||
+                    this.normalizePluginTemplateId(template.key) === normalizedId
+            ) ?? null
+        )
     }
 
     private getEffectivePluginRecords() {
@@ -766,8 +785,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             throw new Error(`Plugin template is missing key or DSL content`)
         }
 
-        const pluginName = this.normalizeTemplateString(
-            plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name
+        const pluginName = normalizePluginPackageName(
+            this.normalizeTemplateString(plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name) ?? ''
         )
         const namespacedId = `${pluginName}:${key}`
         const targetApps = contribution.targetApps ?? plugin.instance?.meta?.targetApps
@@ -791,6 +810,18 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             pluginDisplayName: this.normalizeTemplateString(plugin.instance?.meta?.displayName ?? pluginName),
             order: typeof contribution.order === 'number' ? contribution.order : Number.MAX_SAFE_INTEGER
         }
+    }
+
+    private normalizePluginTemplateId(id?: string) {
+        const value = this.normalizeTemplateString(id)
+        const separatorIndex = value?.indexOf(':') ?? -1
+        if (!value || separatorIndex < 0) {
+            return value
+        }
+
+        const pluginName = value.slice(0, separatorIndex)
+        const templateKey = value.slice(separatorIndex + 1)
+        return `${normalizePluginPackageName(pluginName)}:${templateKey}`
     }
 
     private matchesTemplateQuery(template: TXpertTemplateDescriptor, query?: TXpertTemplateQuery) {

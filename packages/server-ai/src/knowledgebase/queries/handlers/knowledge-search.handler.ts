@@ -129,7 +129,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         filteringConditions?: TWFCase,
         retrieval?: TKBRetrievalSettings
     ): Promise<DocumentInterface<DocumentMetadata>[]> {
-        const mode = retrieval?.mode ?? 'vector'
+        const mode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
         if (mode === 'graph') {
             const result = await this.queryBus.execute<KnowledgeGraphSearchQuery, TKnowledgeGraphSearchResult>(
                 new KnowledgeGraphSearchQuery({
@@ -304,6 +304,51 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         return 0
     }
 
+    private buildMetadataFilterCondition(filter?: KnowledgeDocumentMetadata, filteringConditions?: TWFCase) {
+        if (filteringConditions) {
+            return buildMetadataCondition(filteringConditions)
+        }
+
+        const entries = Object.entries(filter ?? {})
+        const params = entries.reduce<Record<string, string>>((acc, [key, value], index) => {
+            acc[`metadataKey${index}`] = key
+            acc[`metadataValue${index}`] = String(value)
+            return acc
+        }, {})
+
+        return Raw(
+            (alias) =>
+                entries
+                    .map(
+                        (_, index) =>
+                            `COALESCE((${alias})::jsonb ->> :metadataKey${index}, '') = :metadataValue${index}`
+                    )
+                    .join(' AND '),
+            params
+        )
+    }
+
+    private resolvePersistedChunkId(chunk: Pick<IKnowledgeDocumentChunk, 'id' | 'metadata'>) {
+        const chunkId = chunk.metadata?.chunkId
+        if (typeof chunkId === 'string' && chunkId) {
+            return chunkId
+        }
+        return chunk.id
+    }
+
+    private mergeVectorSearchResults(results: [DocumentInterface, number][]) {
+        const byChunkId = new Map<string, [DocumentInterface, number]>()
+        results.forEach((result) => {
+            const [doc, score] = result
+            const chunkId = this.resolveChunkId(doc)
+            const existing = byChunkId.get(chunkId)
+            if (!existing || score < existing[1]) {
+                byChunkId.set(chunkId, result)
+            }
+        })
+        return [...byChunkId.values()].sort((left, right) => left[1] - right[1])
+    }
+
     /**
      * Built-in knowledge base vector search
      *
@@ -321,40 +366,66 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         filtering_conditions?: TWFCase
     ): Promise<DocumentInterface<DocumentMetadata>[]> {
         const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true)
+        const vectorTopK = k ?? kb.recall?.topK
         this.logger.debug(
             `SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
         )
-        // Filtering documents by metadata filter
-        // Currently, filter is only used for filtering document metadata fields.
+        let items: [DocumentInterface, number][]
+        // Metadata can live either on imported documents or directly on agent-written chunks.
         if (!isEmpty(filter) || filtering_conditions) {
-            const documents = await this.documentService.findAll({
-                where: {
-                    knowledgebaseId: kb.id,
-                    metadata: filtering_conditions
-                        ? buildMetadataCondition(filtering_conditions)
-                        : Raw((alias) => {
-                              const conditions = Object.entries(filter ?? {}).map(([key, value]) => {
-                                  return `${alias} ->> '${key}' = '${value}'`
-                              })
-                              return conditions.join(' AND ')
-                          })
-                },
-                select: {
-                    id: true
-                }
-            })
-            if (documents.items.length === 0) {
+            const [documents, chunks] = await Promise.all([
+                this.documentService.findAll({
+                    where: {
+                        knowledgebaseId: kb.id,
+                        metadata: this.buildMetadataFilterCondition(filter, filtering_conditions)
+                    },
+                    select: {
+                        id: true
+                    }
+                }),
+                this.chunkService.findAll({
+                    where: {
+                        knowledgebaseId: kb.id,
+                        metadata: this.buildMetadataFilterCondition(filter, filtering_conditions)
+                    },
+                    select: {
+                        id: true,
+                        metadata: true
+                    }
+                })
+            ])
+            if (documents.items.length === 0 && chunks.items.length === 0) {
                 return []
             }
-            const documentIds = documents.items.map((doc) => doc.id)
-            // Add documentId filter to vector store search
-            filter = {
-                documentId: {
-                    in: documentIds
-                }
+            const documentIds = documents.items
+                .map((doc) => doc.id)
+                .filter((id): id is string => typeof id === 'string' && !!id)
+            const chunkIds = chunks.items
+                .map((chunk) => this.resolvePersistedChunkId(chunk))
+                .filter((id): id is string => typeof id === 'string' && !!id)
+            const searches: Promise<[DocumentInterface, number][]>[] = []
+            if (documentIds.length) {
+                searches.push(
+                    vectorStore.similaritySearchWithScore(query, vectorTopK, {
+                        documentId: {
+                            in: documentIds
+                        }
+                    })
+                )
             }
+            if (chunkIds.length) {
+                searches.push(
+                    vectorStore.similaritySearchWithScore(query, vectorTopK, {
+                        chunkId: {
+                            in: chunkIds
+                        }
+                    })
+                )
+            }
+            items = this.mergeVectorSearchResults((await Promise.all(searches)).flat())
+        } else {
+            items = await vectorStore.similaritySearchWithScore(query, vectorTopK, filter)
         }
-        const items = await vectorStore.similaritySearchWithScore(query, kb.recall?.topK, filter)
         const chunkMap = new Map<string, Document<ChunkMetadata>>()
         // Split into parent and child chunks
         const parentChunkIds = new Set<string>()

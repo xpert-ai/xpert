@@ -1,9 +1,6 @@
 jest.mock('../../../@core', () => ({
-  SandboxService: class SandboxService {},
-  getErrorMessage: (error: { message?: string } | null | undefined) => error?.message ?? '',
   injectApiBaseUrl: () => 'http://localhost:3000',
   injectToastr: () => ({
-    danger: jest.fn(),
     warning: jest.fn()
   })
 }))
@@ -11,8 +8,7 @@ jest.mock('../../../@core', () => ({
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { of } from 'rxjs'
-import { SandboxService } from '../../../@core'
+import type { ClawXpertManagedServicesSandboxApi } from './clawxpert-managed-services-browser'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 
 async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
@@ -29,16 +25,13 @@ async function nextAnimationFrame() {
   })
 }
 
-async function openFirstLocalService(fixture: { nativeElement: HTMLElement; detectChanges: () => void }) {
-  const serviceCard = fixture.nativeElement.querySelector(
-    '[data-local-service-card="service-1"]'
-  ) as HTMLButtonElement | null
-  expect(serviceCard).not.toBeNull()
-  serviceCard?.click()
-  fixture.detectChanges()
-  await Promise.resolve()
-  await Promise.resolve()
-  fixture.detectChanges()
+async function openPreviewUrl(fixture: {
+  componentInstance: ClawXpertConversationPreviewComponent
+  detectChanges: () => void
+  whenStable: () => Promise<unknown>
+}) {
+  await fixture.componentInstance.navigateToAddress('localhost:4173')
+  await settle(fixture)
 }
 
 function dispatchMouse(target: EventTarget, type: string, clientX: number, clientY: number) {
@@ -53,60 +46,12 @@ function dispatchMouse(target: EventTarget, type: string, clientX: number, clien
 }
 
 describe('ClawXpertConversationPreviewComponent', () => {
-  let sandboxService: {
-    listManagedServices: jest.Mock
-    createManagedServicePreviewSession: jest.Mock
-    getManagedServiceLogs: jest.Mock
-    restartManagedService: jest.Mock
-    stopManagedService: jest.Mock
-  }
   let overlayContainer: OverlayContainer
 
   beforeEach(async () => {
-    sandboxService = {
-      listManagedServices: jest.fn(() =>
-        of([
-          {
-            id: 'service-1',
-            conversationId: 'conversation-1',
-            provider: 'local-shell-sandbox',
-            name: 'web',
-            command: 'npm run dev',
-            workingDirectory: '/workspace/project-1',
-            requestedPort: 4173,
-            actualPort: 4173,
-            previewPath: '/',
-            previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/',
-            status: 'running',
-            transportMode: 'http'
-          }
-        ])
-      ),
-      createManagedServicePreviewSession: jest.fn(() =>
-        of({
-          expiresAt: '2026-04-20T13:00:00.000Z',
-          previewUrl: '/api/sandbox/conversations/conversation-1/services/service-1/proxy/'
-        })
-      ),
-      getManagedServiceLogs: jest.fn(() =>
-        of({
-          stdout: '',
-          stderr: ''
-        })
-      ),
-      restartManagedService: jest.fn(() => of(null)),
-      stopManagedService: jest.fn(() => of(null))
-    }
-
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
-      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent],
-      providers: [
-        {
-          provide: SandboxService,
-          useValue: sandboxService
-        }
-      ]
+      imports: [TranslateModule.forRoot(), ClawXpertConversationPreviewComponent]
     }).compileComponents()
 
     overlayContainer = TestBed.inject(OverlayContainer)
@@ -118,20 +63,35 @@ describe('ClawXpertConversationPreviewComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('shows local services before opening a browser iframe', async () => {
+  it('shows an empty browser state before opening a URL', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
 
-    expect(sandboxService.listManagedServices).toHaveBeenCalledWith('conversation-1')
-    expect(sandboxService.createManagedServicePreviewSession).not.toHaveBeenCalled()
-    expect(fixture.componentInstance.selectedServiceId()).toBe(null)
-    expect(fixture.nativeElement.textContent).toContain('web')
-    expect(fixture.nativeElement.textContent).toContain('localhost:4173')
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
     expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
   })
 
-  it('opens a local service from the address bar', async () => {
+  it('exposes a managed services controller factory without starting it', async () => {
+    const sandboxApi = {
+      createManagedServicePreviewSession: jest.fn(),
+      getManagedServiceLogs: jest.fn(),
+      listManagedServices: jest.fn(),
+      restartManagedService: jest.fn(),
+      stopManagedService: jest.fn()
+    } as unknown as jest.Mocked<ClawXpertManagedServicesSandboxApi>
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    await settle(fixture)
+
+    const controller = fixture.componentInstance.createManagedServicesBrowserController(sandboxApi)
+
+    expect(controller.conversationId).toBe('conversation-1')
+    expect(sandboxApi.listManagedServices).not.toHaveBeenCalled()
+    expect(sandboxApi.createManagedServicePreviewSession).not.toHaveBeenCalled()
+  })
+
+  it('opens a URL from the address bar', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
@@ -139,23 +99,224 @@ describe('ClawXpertConversationPreviewComponent', () => {
     await fixture.componentInstance.navigateToAddress('localhost:4173')
     await settle(fixture)
 
-    expect(sandboxService.createManagedServicePreviewSession).toHaveBeenCalledWith('conversation-1', 'service-1')
-    expect(fixture.componentInstance.selectedServiceId()).toBe('service-1')
     expect(fixture.componentInstance.displayUrl()).toBe('localhost:4173')
+    expect(fixture.componentInstance.externalUrl()).toBe('http://localhost:4173/')
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
     if (!iframe) {
       throw new Error('Expected preview iframe to be rendered for a running service.')
     }
-    expect(iframe.src).toBe('http://localhost:3000/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
+    expect(iframe.src).toBe('http://localhost:4173/')
+  })
+
+  it('renders an external URL from input', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.externalUrl()).toBe(
+      'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1'
+    )
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.BrowserEmptyTitle')
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+    expect(iframe.src).toBe('http://localhost/api/xpert-sites/project-request-dashboard-2?v=1')
+  })
+
+  it('emits element references from an external URL preview in inspect mode', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+
+    const previewDocument = document
+    const button = previewDocument.createElement('button')
+    button.id = 'external-cta'
+    button.textContent = 'Open workspace'
+    Object.defineProperty(button, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 50,
+        height: 30,
+        left: 10,
+        right: 170,
+        toJSON: () => undefined,
+        top: 20,
+        width: 160,
+        x: 10,
+        y: 20
+      })
+    })
+    const previousTitle = previewDocument.title
+    try {
+      previewDocument.title = 'External Preview Page'
+      previewDocument.body.appendChild(button)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      const emitted: unknown[] = []
+      fixture.componentInstance.referenceRequest.subscribe((value) => {
+        emitted.push(value)
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+      fixture.componentInstance.handleFrameLoad()
+
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(emitted).toEqual([
+        expect.objectContaining({
+          label: 'button "Open workspace"',
+          pageTitle: 'External Preview Page',
+          pageUrl: 'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1',
+          selector: '#external-cta',
+          serviceId: 'browser-url',
+          tagName: 'button',
+          text: 'Open workspace',
+          type: 'element'
+        })
+      ])
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "Open workspace"',
+          left: 10,
+          top: 20,
+          width: 160
+        })
+      )
+      expect(fixture.componentInstance.hoveredOverlay()).toBeNull()
+      expect(fixture.componentInstance.mode()).toBe('browse')
+    } finally {
+      button.remove()
+      previewDocument.title = previousTitle
+    }
+  })
+
+  it('keeps hover inspection active after moving across external URL elements', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+
+    const previewDocument = document
+    const first = previewDocument.createElement('button')
+    first.id = 'first-hover-target'
+    first.textContent = 'First'
+    Object.defineProperty(first, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 40,
+        height: 20,
+        left: 10,
+        right: 90,
+        toJSON: () => undefined,
+        top: 20,
+        width: 80,
+        x: 10,
+        y: 20
+      })
+    })
+    const second = previewDocument.createElement('button')
+    second.id = 'second-hover-target'
+    second.textContent = 'Second'
+    const secondRectState = {
+      bottom: 90,
+      height: 30,
+      left: 30,
+      right: 150,
+      top: 60,
+      width: 120,
+      x: 30,
+      y: 60
+    }
+    Object.defineProperty(second, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        ...secondRectState,
+        toJSON: () => undefined
+      })
+    })
+
+    try {
+      previewDocument.body.append(first, second)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+
+      first.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }))
+      first.dispatchEvent(new MouseEvent('mouseleave', { cancelable: true, relatedTarget: second }))
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.hoveredOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "First"',
+          left: 10,
+          top: 20,
+          width: 80
+        })
+      )
+
+      second.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+      await nextAnimationFrame()
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.hoveredOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "Second"',
+          left: 30,
+          top: 60,
+          width: 120
+        })
+      )
+      expect(fixture.componentInstance.mode()).toBe('inspect')
+
+      secondRectState.width = 0
+      secondRectState.height = 0
+
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.hoveredOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "Second"',
+          left: 30,
+          top: 60,
+          width: 120
+        })
+      )
+    } finally {
+      first.remove()
+      second.remove()
+    }
   })
 
   it('updates front-end browser toolbar state', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const component = fixture.componentInstance
     expect(component.zoomLevel()).toBe(100)
@@ -195,7 +356,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const component = fixture.componentInstance
     expect(fixture.nativeElement.querySelector('[data-device-toolbar]')).toBeNull()
@@ -232,7 +393,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     fixture.componentInstance.toggleDeviceToolbar()
     fixture.detectChanges()
@@ -263,7 +424,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     fixture.componentInstance.toggleDeviceToolbar()
     fixture.detectChanges()
@@ -295,34 +456,33 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(viewport?.style.height).toBe('536px')
   })
 
-  it('labels browser menu toggles with show and hide states', async () => {
+  it('labels browser menu toggles with show and hide device toolbar states', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
     ;(fixture.nativeElement.querySelector('[data-browser-menu]') as HTMLButtonElement).click()
     fixture.detectChanges()
     await Promise.resolve()
     fixture.detectChanges()
 
     expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.ShowLogs')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.ShowLogs')
 
     fixture.componentInstance.toggleDeviceToolbar()
-    fixture.componentInstance.toggleLogs()
     fixture.detectChanges()
     await Promise.resolve()
     fixture.detectChanges()
 
     expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideDeviceToolbar')
-    expect(overlayContainer.getContainerElement().textContent).toContain('PAC.Chat.ClawXpert.HideLogs')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('PAC.Chat.ClawXpert.HideLogs')
   })
 
-  it('loads managed services and emits element references selected in inspect mode', async () => {
+  it('emits element references selected in inspect mode from an address-bar URL', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -383,9 +543,9 @@ describe('ClawXpertConversationPreviewComponent', () => {
           label: 'button "Launch"',
           outerHtml: '<button id="hero-cta" data-testid="hero-cta">Launch</button>',
           pageTitle: 'Preview Page',
-          pageUrl: document.location.href,
+          pageUrl: 'http://localhost:4173/',
           selector: '#hero-cta',
-          serviceId: 'service-1',
+          serviceId: 'browser-url',
           tagName: 'button',
           text: 'Launch',
           type: 'element'
@@ -399,6 +559,8 @@ describe('ClawXpertConversationPreviewComponent', () => {
           width: 120
         })
       )
+      expect(fixture.componentInstance.hoveredOverlay()).toBeNull()
+      expect(fixture.componentInstance.mode()).toBe('browse')
     } finally {
       button.remove()
       previewDocument.title = previousTitle
@@ -409,7 +571,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -482,7 +644,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -530,6 +692,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
           top: 40
         })
       )
+      expect(fixture.componentInstance.mode()).toBe('browse')
 
       rectState.left = 120
       rectState.right = 240
@@ -546,6 +709,19 @@ describe('ClawXpertConversationPreviewComponent', () => {
           top: 180
         })
       )
+
+      rectState.width = 0
+      rectState.height = 0
+
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          left: 120,
+          top: 180,
+          width: 120
+        })
+      )
     } finally {
       button.remove()
       previewDocument.title = previousTitle
@@ -556,7 +732,7 @@ describe('ClawXpertConversationPreviewComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')
     await settle(fixture)
-    await openFirstLocalService(fixture)
+    await openPreviewUrl(fixture)
 
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
     expect(iframe).not.toBeNull()
@@ -610,32 +786,5 @@ describe('ClawXpertConversationPreviewComponent', () => {
     } finally {
       button.remove()
     }
-  })
-
-  it('does not render a preview iframe for failed services', async () => {
-    sandboxService.listManagedServices.mockReturnValueOnce(
-      of([
-        {
-          id: 'service-1',
-          conversationId: 'conversation-1',
-          provider: 'local-shell-sandbox',
-          name: 'web',
-          command: 'python -m http.server 8000',
-          workingDirectory: '/workspace/project-1',
-          requestedPort: 8000,
-          actualPort: 8000,
-          status: 'failed',
-          transportMode: 'http',
-          previewUrl: null
-        }
-      ])
-    )
-
-    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
-    fixture.componentRef.setInput('conversationId', 'conversation-1')
-    await settle(fixture)
-
-    expect(sandboxService.createManagedServicePreviewSession).not.toHaveBeenCalled()
-    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
   })
 })

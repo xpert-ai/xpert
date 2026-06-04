@@ -64,6 +64,7 @@ import {
 
 const DEFAULT_GRAPH_RAG_CONFIG: Required<GraphRagConfig> = {
     enabled: false,
+    mode: 'vector',
     entityTopK: 8,
     neighborHops: 1,
     communityTopK: 0,

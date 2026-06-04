@@ -1,6 +1,20 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Post, Put } from '@nestjs/common'
+import {
+	BadRequestException,
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Inject,
+	Param,
+	Post,
+	Put,
+	Query,
+	UploadedFile,
+	UseInterceptors
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
 import {
 	IPluginConfiguration,
@@ -9,8 +23,7 @@ import {
 	PLUGIN_CONFIGURATION_STATUS,
 	PLUGIN_LOAD_STATUS,
 	PLUGIN_LEVEL,
-	PluginScopeRelation,
-	RolesEnum
+	PluginScopeRelation
 } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
@@ -18,11 +31,17 @@ import { findPluginLoadFailure } from './plugin.helper'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
+import {
+	PluginMarketplaceRegistryItemInput,
+	PluginMarketplaceService,
+	PluginMarketplaceSourceInput
+} from './plugin-marketplace.service'
 import { PluginManagementService } from './plugin-management.service'
 import { getCodeWorkspacePath } from './source-config'
 import { canUninstallPlugin, canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
 import { ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
+import { UploadedPluginArchiveFile } from './plugin-archive'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
 
 type LoadedPluginScopeState = {
@@ -39,6 +58,7 @@ export class PluginController {
 		@Inject(LOADED_PLUGINS)
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
 		private readonly pluginInstanceService: PluginInstanceService,
+		private readonly pluginMarketplaceService: PluginMarketplaceService,
 		private readonly pluginManagementService: PluginManagementService,
 		private readonly queryBus: QueryBus,
 		private readonly commandBus: CommandBus
@@ -120,6 +140,70 @@ export class PluginController {
 		}
 	}
 
+	@Get('marketplace')
+	async getMarketplace(
+		@Query('targetApp') targetApp?: string,
+		@Query('sourceId') sourceId?: string,
+		@Query('search') search?: string
+	) {
+		return this.pluginMarketplaceService.listMarketplace({ targetApp, sourceId, search })
+	}
+
+	@Get('marketplace/sources')
+	async getMarketplaceSources() {
+		return this.pluginMarketplaceService.listSources()
+	}
+
+	@Post('marketplace/sources')
+	async createMarketplaceSource(@Body() body: PluginMarketplaceSourceInput) {
+		return this.pluginMarketplaceService.createSource(body)
+	}
+
+	@Post('marketplace/sources/refresh')
+	async refreshMarketplaceSources() {
+		return this.pluginMarketplaceService.refreshSources()
+	}
+
+	@Put('marketplace/sources/:id')
+	async updateMarketplaceSource(@Param('id') id: string, @Body() body: PluginMarketplaceSourceInput) {
+		return this.pluginMarketplaceService.updateSource(id, body)
+	}
+
+	@Delete('marketplace/sources/:id')
+	async deleteMarketplaceSource(@Param('id') id: string) {
+		return this.pluginMarketplaceService.deleteSource(id)
+	}
+
+	@Post('marketplace/sources/:id/refresh')
+	async refreshMarketplaceSource(@Param('id') id: string) {
+		return this.pluginMarketplaceService.refreshSource(id)
+	}
+
+	@Get('marketplace/registry')
+	async getMarketplaceRegistryItems() {
+		return this.pluginMarketplaceService.listRegistryItems()
+	}
+
+	@Post('marketplace/registry')
+	async createMarketplaceRegistryItem(@Body() body: PluginMarketplaceRegistryItemInput) {
+		return this.pluginMarketplaceService.createRegistryItem(body)
+	}
+
+	@Put('marketplace/registry/:id')
+	async updateMarketplaceRegistryItem(@Param('id') id: string, @Body() body: PluginMarketplaceRegistryItemInput) {
+		return this.pluginMarketplaceService.updateRegistryItem(id, body)
+	}
+
+	@Delete('marketplace/registry/:id')
+	async deleteMarketplaceRegistryItem(@Param('id') id: string) {
+		return this.pluginMarketplaceService.deleteRegistryItem(id)
+	}
+
+	@Get('marketplace/:name')
+	async getMarketplacePlugin(@Param('name') name: string, @Query('targetApp') targetApp?: string) {
+		return this.pluginMarketplaceService.getMarketplacePlugin(name, { targetApp })
+	}
+
 	/**
 	 * Install a plugin into the current organization's plugin store and persist its configuration.
 	 *
@@ -129,6 +213,22 @@ export class PluginController {
 	@Post()
 	async installPlugin(@Body() body: PluginInstallInput) {
 		return this.pluginManagementService.installPlugin(body)
+	}
+
+	@Post('archive')
+	@ApiConsumes('multipart/form-data')
+	@UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
+	async installPluginArchive(
+		@UploadedFile() file: UploadedPluginArchiveFile | undefined,
+		@Body() body: Record<string, unknown>
+	) {
+		if (!file?.buffer?.length) {
+			throw new BadRequestException('file is required')
+		}
+
+		return this.pluginManagementService.installArchivePlugin(file, {
+			config: parseOptionalObject(body?.config, 'config') ?? undefined
+		})
 	}
 
 	@Post('by-names')
@@ -175,7 +275,7 @@ export class PluginController {
 
 	private async listVisiblePlugins(names?: string[]) {
 		const organizationId = this.getCurrentOrganizationId()
-		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+		// const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
 		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
 
 		const visiblePlugins = this.loadedPlugins
@@ -183,7 +283,7 @@ export class PluginController {
 				(plugin) =>
 					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
 			)
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
 			.filter(
 				(plugin) =>
 					!normalizedNames ||
@@ -200,7 +300,7 @@ export class PluginController {
 		)
 		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
 		const failedDescriptors = pluginInstances
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
 			.filter(
 				(plugin) =>
 					!normalizedNames || this.matchesNames(normalizedNames, plugin.pluginName, plugin.packageName)
@@ -462,5 +562,26 @@ export class PluginController {
 				hasUpdate: hasNewerVersion(plugin.currentVersion, latestVersion)
 			}
 		})
+	}
+}
+
+function parseOptionalObject(value: unknown, fieldName: string): Record<string, unknown> | undefined {
+	if (value === undefined || value === null || value === '') {
+		return undefined
+	}
+
+	const parsed = typeof value === 'string' ? parseJson(value, fieldName) : value
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		throw new BadRequestException(`${fieldName} must be a JSON object`)
+	}
+
+	return parsed as Record<string, unknown>
+}
+
+function parseJson(value: string, fieldName: string): unknown {
+	try {
+		return JSON.parse(value)
+	} catch {
+		throw new BadRequestException(`${fieldName} must be valid JSON`)
 	}
 }

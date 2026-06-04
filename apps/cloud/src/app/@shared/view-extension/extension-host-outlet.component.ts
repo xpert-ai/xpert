@@ -23,14 +23,24 @@ import { getErrorMessage } from '@cloud/app/@core/types'
       </div>
     } @else if (mode() === 'single-view') {
       @if (selectedView(); as view) {
-        <xp-view-renderer [hostType]="hostType()" [hostId]="hostId()" [manifest]="view" [active]="true" />
+        <xp-view-renderer
+          [hostType]="hostType()"
+          [hostId]="hostId()"
+          [manifest]="view"
+          [active]="true"
+          [fillAvailableHeight]="fillAvailableHeight()"
+        />
       } @else {
-        <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
+        <div
+          class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
+        >
           {{ 'PAC.ViewExtension.NotFound' | translate: { Default: 'View not found' } }}
         </div>
       }
     } @else if (!views().length) {
-      <div class="rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
+      <div
+        class="rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
+      >
         {{ 'PAC.ViewExtension.Empty' | translate: { Default: 'No extension views available' } }}
       </div>
     } @else {
@@ -70,6 +80,7 @@ export class ExtensionHostOutletComponent {
   readonly hostId = input.required<string>()
   readonly slot = input.required<string>()
   readonly viewKey = input<string | null>(null)
+  readonly fillAvailableHeight = input(false)
 
   readonly #api = injectViewExtensionApi()
 
@@ -114,7 +125,7 @@ export class ExtensionHostOutletComponent {
       }
 
       this.views.set(views)
-      this.selectedView.set(mode === 'single-view' ? views.find((item) => item.key === viewKey) ?? null : null)
+      this.selectedView.set(mode === 'single-view' ? (views.find((item) => item.key === viewKey) ?? null) : null)
     } catch (error) {
       if (version !== this.loadVersion) {
         return
