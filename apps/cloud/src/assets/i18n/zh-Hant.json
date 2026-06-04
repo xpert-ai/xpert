@@ -4036,6 +4036,7 @@
         "DEMO": "演示數據",
         "GENERATE_DEMO": "生成演示數據",
         "RegenerateDemo": "重新生成演示數據",
+        "OrganizationId": "組織 ID",
         "TotalEmployees": "總員工數",
         "BasicInfo": "基礎信息",
         "OtherInfo": "其他信息",
