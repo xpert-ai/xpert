@@ -4354,6 +4354,8 @@
       "ShowDiagram": "显示结构图",
       "RefreshExternalXpert": "刷新，同步外部专家配置",
       "Reducer": "归约",
+      "FileUnderstanding": "文件理解",
+      "FileUnderstandingTip": "启用内置文件搜索与读取工具，用于理解对话关联文件",
       "ParallelToolCalls": "并行工具调用",
       "ParallelToolCallsTip": "是否启用工具的并行调用能力，针对部分模型供应商起作用",
       "JoinTheCommunity": "参与社区",
