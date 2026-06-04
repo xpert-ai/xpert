@@ -100,7 +100,10 @@ describe('import dsl util', () => {
               }
             ],
             options: {
-              disableMessageHistory: true
+              disableMessageHistory: true,
+              fileUnderstanding: {
+                enabled: false
+              }
             },
             copilotModel: {
               copilotId: 'copilot-imported',
@@ -149,7 +152,10 @@ describe('import dsl util', () => {
           }
         ],
         options: {
-          disableMessageHistory: true
+          disableMessageHistory: true,
+          fileUnderstanding: {
+            enabled: false
+          }
         },
         copilotModel: {
           copilotId: 'copilot-imported',
@@ -186,7 +192,10 @@ describe('import dsl util', () => {
             }
           ],
           options: {
-            disableMessageHistory: true
+            disableMessageHistory: true,
+            fileUnderstanding: {
+              enabled: false
+            }
           },
           copilotModel: {
             copilotId: 'copilot-imported',
@@ -276,6 +285,35 @@ describe('import dsl util', () => {
             key: 'Agent_imported',
             options: {
               disableMessageHistory: 'yes'
+            }
+          }
+        }
+      ],
+      connections: []
+    } as unknown as TXpertTeamDraft
+
+    expect(() => createOverwriteDraftFromDsl(currentXpert, importedDsl)).toThrow('Invalid primary agent field: options')
+  })
+
+  it('throws when an imported primary agent file understanding option is malformed', () => {
+    const currentXpert = createCurrentXpert()
+    const importedDsl = {
+      team: {
+        type: XpertTypeEnum.Agent,
+        agent: {
+          key: 'Agent_imported'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_imported',
+          entity: {
+            key: 'Agent_imported',
+            options: {
+              fileUnderstanding: {
+                enabled: 'no'
+              }
             }
           }
         }

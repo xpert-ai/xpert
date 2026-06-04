@@ -235,8 +235,13 @@ function isXpertAgentOptions(value: unknown): value is TImportedAgentOptions {
   return (
     hasOptionalBooleanProperties(value, ['hidden', 'disableMessageHistory', 'parallelToolCalls']) &&
     hasOptionalStringProperties(value, ['historyVariable', 'structuredOutputMethod']) &&
-    (!hasProperty(value, 'memories') || isOptionalArray(Reflect.get(value, 'memories')))
+    (!hasProperty(value, 'memories') || isOptionalArray(Reflect.get(value, 'memories'))) &&
+    (!hasProperty(value, 'fileUnderstanding') || isFileUnderstandingOptions(Reflect.get(value, 'fileUnderstanding')))
   )
+}
+
+function isFileUnderstandingOptions(value: unknown): value is TImportedAgentOptions['fileUnderstanding'] {
+  return isObject(value) && hasOptionalBooleanProperties(value, ['enabled'])
 }
 
 function isCopilotModel(value: unknown): value is TImportedCopilotModel {
