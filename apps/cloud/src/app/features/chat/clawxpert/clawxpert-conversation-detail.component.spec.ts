@@ -185,6 +185,7 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() hostId?: string | null
     @Input() slot?: string
     @Input() viewKey?: string | null
+    @Input() fillAvailableHeight?: boolean
   }
 
   return {
@@ -589,7 +590,8 @@ describe('ClawXpertConversationDetailComponent', () => {
         hostType: 'agent',
         hostId: 'assistant-1',
         slot: 'agent.workbench.fixed',
-        viewKey: 'bom_document_intake__review'
+        viewKey: 'bom_document_intake__review',
+        fillAvailableHeight: true
       })
     )
 

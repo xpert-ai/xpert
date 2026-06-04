@@ -401,6 +401,7 @@ type ChatKitReferenceComposerControl = {
                       [hostId]="hostId"
                       [slot]="agentWorkbenchFixedSlot"
                       [viewKey]="fixedViewTab.viewKey"
+                      [fillAvailableHeight]="true"
                     />
                   } @else {
                     <div

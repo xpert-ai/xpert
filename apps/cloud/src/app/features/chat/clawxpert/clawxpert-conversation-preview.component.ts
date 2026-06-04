@@ -15,14 +15,13 @@ import { FormsModule } from '@angular/forms'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective, ZardMenuImports } from '@xpert-ai/headless-ui'
+import { TChatElementReference } from '@xpert-ai/contracts'
+import { injectApiBaseUrl, injectToastr } from '../../../@core'
 import {
-  ISandboxManagedService,
-  TChatElementReference,
-  TSandboxManagedServiceLogs,
-  TSandboxManagedServiceStatus
-} from '@xpert-ai/contracts'
-import { firstValueFrom } from 'rxjs'
-import { SandboxService, getErrorMessage, injectApiBaseUrl, injectToastr } from '../../../@core'
+  createClawXpertManagedServicesBrowserController,
+  type ClawXpertManagedServicesBrowserControllerOptions,
+  type ClawXpertManagedServicesSandboxApi
+} from './clawxpert-managed-services-browser'
 
 type PreviewOverlay = {
   height: number
@@ -48,7 +47,6 @@ export type ClawXpertBrowserStateChange = {
   zoom?: number
 }
 
-const SERVICE_REFRESH_INTERVAL_MS = 5000
 const DEFAULT_ZOOM_LEVEL = 100
 const ZOOM_STEP = 10
 const MIN_ZOOM_LEVEL = 50
@@ -171,21 +169,6 @@ type ElementReferenceContext = {
   serviceId: string
 }
 
-function joinPreviewResourceUrl(rawUrl: string, apiBaseUrl: string): string {
-  const previewUrl = rawUrl.trim()
-  const baseUrl = apiBaseUrl.trim()
-
-  if (!previewUrl || !baseUrl) {
-    return previewUrl
-  }
-
-  try {
-    return new URL(previewUrl, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString()
-  } catch {
-    return `${baseUrl.replace(/\/+$/, '')}/${previewUrl.replace(/^\/+/, '')}`
-  }
-}
-
 function sameOriginApiProxyUrl(rawUrl: string, apiBaseUrl: string): string {
   if (!rawUrl || !apiBaseUrl) {
     return rawUrl
@@ -245,19 +228,6 @@ function normalizeAddressUrl(rawValue: string): string | null {
   }
 }
 
-function parseAddressUrl(rawValue: string): URL | null {
-  const normalizedUrl = normalizeAddressUrl(rawValue)
-  if (!normalizedUrl) {
-    return null
-  }
-
-  try {
-    return new URL(normalizedUrl)
-  } catch {
-    return null
-  }
-}
-
 function formatBrowserDisplayUrl(rawUrl: string): string {
   try {
     const url = new URL(rawUrl)
@@ -300,11 +270,6 @@ function appendBrowserCacheKey(rawUrl: string, reloadNonce: number, cacheBustNon
     const separator = rawUrl.includes('?') ? '&' : '?'
     return `${rawUrl}${separator}${params.toString()}`
   }
-}
-
-function servicePort(service: ISandboxManagedService): number | null {
-  const port = service.actualPort ?? service.requestedPort
-  return typeof port === 'number' && Number.isFinite(port) ? port : null
 }
 
 function isNonEmptyString(value: string | null | undefined): value is string {
@@ -638,98 +603,76 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
       </div>
 
       <div class="flex min-h-0 flex-1 flex-col">
-        @if (loading()) {
-          <div class="flex min-h-[20rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.PreviewLoading' | translate: { Default: 'Loading sandbox services...' } }}
-          </div>
-        } @else if (error()) {
-          <div
-            class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-          >
-            {{ error() }}
-          </div>
-        } @else if (hasBrowserTarget()) {
+        @if (hasBrowserTarget()) {
           <div class="relative min-h-0 flex-1 overflow-hidden">
-            @if (previewSessionLoading()) {
-              <div class="flex h-full min-h-[20rem] items-center justify-center px-6 text-sm text-text-secondary">
-                {{ 'PAC.Chat.ClawXpert.PreviewAuthorizing' | translate: { Default: 'Authorizing sandbox browser...' } }}
-              </div>
-            } @else if (previewSessionError()) {
+            <div
+              data-browser-viewport
+              [class]="
+                deviceToolbar()
+                  ? 'flex h-full w-full items-start justify-center overflow-auto bg-background-default-subtle p-6'
+                  : 'h-full w-full overflow-auto bg-background-default-subtle'
+              "
+            >
               <div
-                class="m-4 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-              >
-                {{ previewSessionError() }}
-              </div>
-            } @else {
-              <div
-                data-browser-viewport
                 [class]="
                   deviceToolbar()
-                    ? 'flex h-full w-full items-start justify-center overflow-auto bg-background-default-subtle p-6'
-                    : 'h-full w-full overflow-auto bg-background-default-subtle'
+                    ? 'relative shrink-0 overflow-visible bg-text-primary/80 pb-10 pl-10 shadow-sm'
+                    : 'h-full w-full'
                 "
               >
-                <div
-                  [class]="
-                    deviceToolbar()
-                      ? 'relative shrink-0 overflow-visible bg-text-primary/80 pb-10 pl-10 shadow-sm'
-                      : 'h-full w-full'
-                  "
-                >
-                  @if (deviceToolbar()) {
-                    <button
-                      type="button"
-                      data-device-resize-width
-                      class="absolute bottom-10 left-0 top-0 flex w-10 cursor-ew-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
-                      (mousedown)="startDeviceViewportResize($event, 'left')"
-                      (touchstart)="startDeviceViewportResize($event, 'left')"
-                    >
-                      <span class="h-12 w-1 rounded-full bg-current"></span>
-                    </button>
-                  }
-
-                  <div
-                    [attr.data-device-viewport]="deviceToolbar() ? '' : null"
-                    [class]="deviceToolbar() ? 'overflow-hidden bg-components-card-bg' : 'h-full w-full'"
-                    [style.width.px]="deviceToolbar() ? deviceViewportWidth() : null"
-                    [style.height.px]="deviceToolbar() ? deviceViewportHeight() : null"
+                @if (deviceToolbar()) {
+                  <button
+                    type="button"
+                    data-device-resize-width
+                    class="absolute bottom-10 left-0 top-0 flex w-10 cursor-ew-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
+                    (mousedown)="startDeviceViewportResize($event, 'left')"
+                    (touchstart)="startDeviceViewportResize($event, 'left')"
                   >
-                    <iframe
-                      #previewFrame
-                      class="origin-top-left bg-background-default-subtle"
-                      [class.h-full]="zoomLevel() === 100"
-                      [class.w-full]="zoomLevel() === 100"
-                      [style.height.%]="framePercentSize()"
-                      [style.width.%]="framePercentSize()"
-                      [style.transform]="frameTransform()"
-                      [src]="browserResourceUrl()"
-                      (load)="handleFrameLoad()"
-                    ></iframe>
-                  </div>
+                    <span class="h-12 w-1 rounded-full bg-current"></span>
+                  </button>
+                }
 
-                  @if (deviceToolbar()) {
-                    <button
-                      type="button"
-                      data-device-resize-corner
-                      class="absolute bottom-0 left-0 flex h-10 w-10 cursor-nesw-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
-                      (mousedown)="startDeviceViewportResize($event, 'corner')"
-                      (touchstart)="startDeviceViewportResize($event, 'corner')"
-                    >
-                      <i class="ri-drag-move-2-line text-lg"></i>
-                    </button>
-                    <button
-                      type="button"
-                      data-device-resize-height
-                      class="absolute bottom-0 left-10 right-0 flex h-10 cursor-ns-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
-                      (mousedown)="startDeviceViewportResize($event, 'bottom')"
-                      (touchstart)="startDeviceViewportResize($event, 'bottom')"
-                    >
-                      <span class="h-1 w-16 rounded-full bg-current"></span>
-                    </button>
-                  }
+                <div
+                  [attr.data-device-viewport]="deviceToolbar() ? '' : null"
+                  [class]="deviceToolbar() ? 'overflow-hidden bg-components-card-bg' : 'h-full w-full'"
+                  [style.width.px]="deviceToolbar() ? deviceViewportWidth() : null"
+                  [style.height.px]="deviceToolbar() ? deviceViewportHeight() : null"
+                >
+                  <iframe
+                    #previewFrame
+                    class="origin-top-left min-h-full bg-background-default-subtle"
+                    [class.h-full]="zoomLevel() === 100"
+                    [class.w-full]="zoomLevel() === 100"
+                    [style.height.%]="framePercentSize()"
+                    [style.width.%]="framePercentSize()"
+                    [style.transform]="frameTransform()"
+                    [src]="browserResourceUrl()"
+                    (load)="handleFrameLoad()"
+                  ></iframe>
                 </div>
+
+                @if (deviceToolbar()) {
+                  <button
+                    type="button"
+                    data-device-resize-corner
+                    class="absolute bottom-0 left-0 flex h-10 w-10 cursor-nesw-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
+                    (mousedown)="startDeviceViewportResize($event, 'corner')"
+                    (touchstart)="startDeviceViewportResize($event, 'corner')"
+                  >
+                    <i class="ri-drag-move-2-line text-lg"></i>
+                  </button>
+                  <button
+                    type="button"
+                    data-device-resize-height
+                    class="absolute bottom-0 left-10 right-0 flex h-10 cursor-ns-resize items-center justify-center text-components-card-bg/70 transition-colors hover:text-components-card-bg"
+                    (mousedown)="startDeviceViewportResize($event, 'bottom')"
+                    (touchstart)="startDeviceViewportResize($event, 'bottom')"
+                  >
+                    <span class="h-1 w-16 rounded-full bg-current"></span>
+                  </button>
+                }
               </div>
-            }
+            </div>
 
             @if (activeOverlay(); as overlay) {
               <div class="pointer-events-none absolute inset-0">
@@ -750,109 +693,20 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
               </div>
             }
           </div>
-        } @else if (!services().length) {
+        } @else {
           <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
             <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
             <div class="mt-4 text-base font-medium text-text-primary">
-              {{ 'PAC.Chat.ClawXpert.PreviewEmptyTitle' | translate: { Default: 'No managed services yet' } }}
+              {{ 'PAC.Chat.ClawXpert.BrowserEmptyTitle' | translate: { Default: 'No URL open' } }}
             </div>
             <div class="mt-2 max-w-md text-sm text-text-secondary">
               {{
-                'PAC.Chat.ClawXpert.PreviewEmptyDesc'
+                'PAC.Chat.ClawXpert.BrowserEmptyDesc'
                   | translate
                     : {
-                        Default:
-                          'Ask ClawXpert to start a sandbox service with sandbox_service_start, then browse it here.'
+                        Default: 'Enter a URL in the address bar or open a preview event to browse it here.'
                       }
               }}
-            </div>
-          </div>
-        } @else {
-          <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <div class="text-lg font-medium text-text-secondary">
-                {{ 'PAC.Chat.ClawXpert.LocalServices' | translate: { Default: 'Local' } }}
-              </div>
-              <button
-                type="button"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-                (click)="refreshServices()"
-              >
-                <i class="ri-filter-3-line text-lg"></i>
-              </button>
-            </div>
-
-            <div class="grid gap-3">
-              @for (service of services(); track service.id) {
-                <button
-                  type="button"
-                  [attr.data-local-service-card]="service.id"
-                  class="flex min-h-[6rem] w-full items-center gap-4 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 text-left transition-colors hover:bg-hover-bg"
-                  (click)="selectService(service.id ?? '')"
-                >
-                  <div
-                    class="flex h-16 w-24 shrink-0 flex-col justify-center rounded-xl border border-divider-regular bg-background-default-subtle px-3 text-xs text-text-tertiary"
-                  >
-                    <div class="mb-1 flex gap-1">
-                      <span class="h-1.5 w-1.5 rounded-full bg-text-destructive"></span>
-                      <span class="h-1.5 w-1.5 rounded-full bg-text-warning"></span>
-                      <span class="h-1.5 w-1.5 rounded-full bg-text-success"></span>
-                    </div>
-                    <div class="truncate font-medium text-text-secondary">{{ service.name }}</div>
-                    <div class="truncate">{{ formatServiceDisplayUrl(service) }}</div>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="truncate text-base font-semibold text-text-primary">{{ service.name }}</div>
-                    <div class="mt-1 truncate text-sm text-text-tertiary">{{ formatServiceDisplayUrl(service) }}</div>
-                  </div>
-                  <span class="h-3 w-3 shrink-0 rounded-full" [ngClass]="statusDotClasses(service.status)"></span>
-                </button>
-              } @empty {
-                <div
-                  class="flex min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                >
-                  <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
-                  <div class="mt-4 text-base font-medium text-text-primary">
-                    {{ 'PAC.Chat.ClawXpert.PreviewEmptyTitle' | translate: { Default: 'No managed services yet' } }}
-                  </div>
-                  <div class="mt-2 max-w-md text-sm text-text-secondary">
-                    {{
-                      'PAC.Chat.ClawXpert.PreviewEmptyDesc'
-                        | translate
-                          : {
-                              Default:
-                                'Ask ClawXpert to start a sandbox service with sandbox_service_start, then browse it here.'
-                            }
-                    }}
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        @if (showLogs()) {
-          <div class="grid max-h-[18rem] grid-cols-1 gap-3 border-t border-divider-regular px-4 py-3 lg:grid-cols-2">
-            <div class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
-              <div
-                class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary"
-              >
-                {{ 'PAC.Chat.ClawXpert.Stdout' | translate: { Default: 'Stdout' } }}
-              </div>
-              <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{
-                logs()?.stdout || ''
-              }}</pre>
-            </div>
-
-            <div class="min-h-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
-              <div
-                class="border-b border-divider-regular px-3 py-2 text-xs uppercase tracking-[0.16em] text-text-tertiary"
-              >
-                {{ 'PAC.Chat.ClawXpert.Stderr' | translate: { Default: 'Stderr' } }}
-              </div>
-              <pre class="max-h-[14rem] overflow-auto px-3 py-3 text-xs text-text-secondary">{{
-                logs()?.stderr || ''
-              }}</pre>
             </div>
           </div>
         }
@@ -887,21 +741,6 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
         <button type="button" z-menu-item (click)="clearCache()">
           {{ 'PAC.Chat.ClawXpert.ClearCache' | translate: { Default: 'Clear cache' } }}
         </button>
-        <button type="button" z-menu-item (click)="toggleLogs()">
-          @if (showLogs()) {
-            {{ 'PAC.Chat.ClawXpert.HideLogs' | translate: { Default: 'Hide logs' } }}
-          } @else {
-            {{ 'PAC.Chat.ClawXpert.ShowLogs' | translate: { Default: 'Show logs' } }}
-          }
-        </button>
-        @if (selectedService()) {
-          <button type="button" z-menu-item (click)="restartSelectedService()">
-            {{ 'PAC.KEY_WORDS.Restart' | translate: { Default: 'Restart' } }}
-          </button>
-          <button type="button" z-menu-item (click)="stopSelectedService()">
-            {{ 'PAC.KEY_WORDS.Stop' | translate: { Default: 'Stop' } }}
-          </button>
-        }
       </div>
     </ng-template>
 
@@ -929,7 +768,6 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
   `
 })
 export class ClawXpertConversationPreviewComponent implements OnDestroy {
-  readonly #sandboxService = inject(SandboxService)
   readonly #sanitizer = inject(DomSanitizer)
   readonly #apiBaseUrl = injectApiBaseUrl()
   readonly #toastr = injectToastr()
@@ -951,8 +789,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly browserStateChange = output<ClawXpertBrowserStateChange>()
   readonly frameRef = viewChild<ElementRef<HTMLIFrameElement>>('previewFrame')
 
-  readonly services = signal<ISandboxManagedService[]>([])
-  readonly selectedServiceId = signal<string | null>(null)
   readonly addressValue = signal('')
   readonly displayUrl = signal<string | null>(null)
   readonly externalUrl = signal<string | null>(null)
@@ -968,23 +804,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly cacheBustNonce = signal(0)
   readonly history = signal<string[]>([])
   readonly historyIndex = signal(-1)
-  readonly logs = signal<TSandboxManagedServiceLogs | null>(null)
-  readonly loading = signal(false)
-  readonly logsLoading = signal(false)
-  readonly error = signal<string | null>(null)
-  readonly previewSessionError = signal<string | null>(null)
-  readonly previewSessionLoading = signal(false)
   readonly mode = signal<'browse' | 'inspect'>('browse')
-  readonly showLogs = signal(false)
   readonly hoveredOverlay = signal<PreviewOverlay | null>(null)
   readonly selectedOverlay = signal<PreviewOverlay | null>(null)
-  readonly previewSessionKey = signal<string | null>(null)
-  readonly previewSessionUrl = signal<string | null>(null)
 
-  readonly selectedService = computed(() => {
-    const selectedServiceId = this.selectedServiceId()
-    return this.services().find((service) => service.id === selectedServiceId) ?? null
-  })
   readonly selectedDevicePreset = computed(() => {
     const selectedDevicePresetId = this.selectedDevicePresetId()
     return (
@@ -996,68 +819,29 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   )
   readonly selectedDevicePresetDefaultLabel = computed(() => this.selectedDevicePreset()?.defaultLabel ?? 'Responsive')
   readonly activeOverlay = computed(() => this.selectedOverlay() ?? this.hoveredOverlay())
-  readonly hasBrowserTarget = computed(() => {
-    const service = this.selectedService()
-    return !!this.externalUrl() || !!(service?.previewUrl && service.transportMode === 'http')
-  })
+  readonly hasBrowserTarget = computed(() => !!this.externalUrl())
   readonly canGoBack = computed(() => this.historyIndex() > 0)
   readonly canGoForward = computed(() => this.historyIndex() >= 0 && this.historyIndex() < this.history().length - 1)
   readonly framePercentSize = computed(() => 100 / (this.zoomLevel() / 100))
   readonly frameTransform = computed(() => `scale(${this.zoomLevel() / 100})`)
-  readonly previewResourceUrl = computed<SafeResourceUrl | null>(() => {
-    const rawUrl = this.previewSessionUrl()
-    const joinedUrl = rawUrl ? joinPreviewResourceUrl(rawUrl, this.#apiBaseUrl) : null
-    const previewUrl = joinedUrl ? appendBrowserCacheKey(joinedUrl, this.reloadNonce(), this.cacheBustNonce()) : null
-    return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
-  })
   readonly externalResourceUrl = computed<SafeResourceUrl | null>(() => {
     const externalUrl = this.externalUrl()
     const browserUrl = externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null
     const previewUrl = browserUrl ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce()) : null
     return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
-  readonly browserResourceUrl = computed(() => this.previewResourceUrl() ?? this.externalResourceUrl())
-  readonly openableUrl = computed(() => {
-    const externalUrl = this.externalUrl()
-    if (externalUrl) {
-      return externalUrl
-    }
-
-    const rawPreviewUrl = this.previewSessionUrl()
-    return rawPreviewUrl ? joinPreviewResourceUrl(rawPreviewUrl, this.#apiBaseUrl) : null
-  })
+  readonly browserResourceUrl = computed(() => this.externalResourceUrl())
+  readonly openableUrl = computed(() => this.externalUrl())
 
   constructor() {
-    effect((onCleanup) => {
-      const conversationId = this.conversationId()
+    effect(() => {
+      this.conversationId()
       this.resetFrameState()
-      this.services.set([])
-      this.selectedServiceId.set(null)
       this.externalUrl.set(null)
       this.displayUrl.set(null)
       this.addressValue.set('')
       this.history.set([])
       this.historyIndex.set(-1)
-      this.logs.set(null)
-      this.error.set(null)
-      this.previewSessionError.set(null)
-      this.previewSessionLoading.set(false)
-      this.previewSessionKey.set(null)
-      this.previewSessionUrl.set(null)
-
-      if (!conversationId) {
-        return
-      }
-
-      void this.refreshServices()
-
-      const intervalId = setInterval(() => {
-        void this.refreshServices(false)
-      }, SERVICE_REFRESH_INTERVAL_MS)
-
-      onCleanup(() => {
-        clearInterval(intervalId)
-      })
     })
 
     effect(() => {
@@ -1077,17 +861,9 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     })
 
     effect(() => {
-      const serviceId = this.serviceId()
+      this.conversationId()
       const url = this.url()
-      const services = this.services()
-
-      if (isNonEmptyString(serviceId) && services.some((service) => service.id === serviceId)) {
-        void this.selectService(serviceId, {
-          emitState: false,
-          pushHistory: false
-        })
-        return
-      }
+      this.serviceId()
 
       if (isNonEmptyString(url)) {
         void this.navigateToAddress(url, {
@@ -1096,14 +872,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
         })
       }
     })
-
-    effect(() => {
-      if (!this.showLogs() || !this.selectedServiceId()) {
-        return
-      }
-
-      void this.refreshLogs()
-    })
   }
 
   ngOnDestroy(): void {
@@ -1111,59 +879,14 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     this.destroyFrameListeners()
   }
 
-  async refreshServices(showLoading = true) {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
-      return
-    }
-
-    if (showLoading) {
-      this.loading.set(true)
-    }
-
-    try {
-      const services = await firstValueFrom(this.#sandboxService.listManagedServices(conversationId))
-      this.services.set(services)
-      this.syncSelectedService(services)
-      await this.ensurePreviewSessionForSelectedService()
-      this.error.set(null)
-    } catch (error) {
-      this.error.set(getErrorMessage(error) || 'Failed to load managed sandbox services.')
-    } finally {
-      if (showLoading) {
-        this.loading.set(false)
-      }
-    }
-  }
-
-  async selectService(serviceId: string, options: BrowserNavigationOptions = {}) {
-    const service = this.services().find((item) => item.id === serviceId)
-    if (!service?.id) {
-      this.selectedServiceId.set(null)
-      this.externalUrl.set(null)
-      this.displayUrl.set(null)
-      this.addressValue.set('')
-      this.previewSessionError.set(null)
-      this.previewSessionLoading.set(false)
-      this.previewSessionKey.set(null)
-      this.previewSessionUrl.set(null)
-      this.resetFrameState()
-      this.emitBrowserStateIfRequested(options)
-      return
-    }
-
-    const nextDisplayUrl = this.formatServiceDisplayUrl(service)
-    this.selectedServiceId.set(service.id)
-    this.externalUrl.set(null)
-    this.displayUrl.set(nextDisplayUrl)
-    this.addressValue.set(nextDisplayUrl)
-    this.resetFrameState()
-    this.pushBrowserHistoryIfRequested(nextDisplayUrl, options)
-    this.emitBrowserStateIfRequested(options)
-    await this.ensurePreviewSessionForSelectedService()
-    if (this.showLogs()) {
-      void this.refreshLogs()
-    }
+  createManagedServicesBrowserController(
+    sandboxService: ClawXpertManagedServicesSandboxApi,
+    options: Omit<ClawXpertManagedServicesBrowserControllerOptions, 'conversationId'> = {}
+  ) {
+    return createClawXpertManagedServicesBrowserController(sandboxService, {
+      conversationId: this.conversationId(),
+      ...options
+    })
   }
 
   async navigateFromAddressEvent(event: Event) {
@@ -1174,13 +897,11 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   async navigateToAddress(rawAddress: string, options: BrowserNavigationOptions = {}) {
     const address = rawAddress.trim()
     if (!address) {
-      await this.selectService('', options)
-      return
-    }
-
-    const matchedService = this.resolveServiceForAddress(address)
-    if (matchedService?.id) {
-      await this.selectService(matchedService.id, options)
+      this.externalUrl.set(null)
+      this.displayUrl.set(null)
+      this.addressValue.set('')
+      this.resetFrameState()
+      this.emitBrowserStateIfRequested(options)
       return
     }
 
@@ -1193,14 +914,17 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     }
 
     const nextDisplayUrl = formatBrowserDisplayUrl(normalizedUrl)
-    this.selectedServiceId.set(null)
+    if (this.externalUrl() === normalizedUrl) {
+      this.displayUrl.set(nextDisplayUrl)
+      this.addressValue.set(nextDisplayUrl)
+      this.pushBrowserHistoryIfRequested(nextDisplayUrl, options)
+      this.emitBrowserStateIfRequested(options)
+      return
+    }
+
     this.externalUrl.set(normalizedUrl)
     this.displayUrl.set(nextDisplayUrl)
     this.addressValue.set(nextDisplayUrl)
-    this.previewSessionError.set(null)
-    this.previewSessionLoading.set(false)
-    this.previewSessionKey.set(null)
-    this.previewSessionUrl.set(null)
     this.resetFrameState()
     this.pushBrowserHistoryIfRequested(nextDisplayUrl, options)
     this.emitBrowserStateIfRequested(options)
@@ -1396,49 +1120,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     this.handleFrameLoad()
   }
 
-  toggleLogs() {
-    this.showLogs.update((value) => !value)
-    if (this.showLogs()) {
-      void this.refreshLogs()
-    }
-  }
-
-  async restartSelectedService() {
-    const conversationId = this.conversationId()
-    const service = this.selectedService()
-    if (!conversationId || !service?.id) {
-      return
-    }
-
-    try {
-      await firstValueFrom(this.#sandboxService.restartManagedService(conversationId, service.id))
-      await this.refreshServices(false)
-      if (this.showLogs()) {
-        await this.refreshLogs()
-      }
-    } catch (error) {
-      this.#toastr.danger(getErrorMessage(error) || 'PAC.Chat.ClawXpert.ServiceRestartFailed')
-    }
-  }
-
-  async stopSelectedService() {
-    const conversationId = this.conversationId()
-    const service = this.selectedService()
-    if (!conversationId || !service?.id) {
-      return
-    }
-
-    try {
-      await firstValueFrom(this.#sandboxService.stopManagedService(conversationId, service.id))
-      await this.refreshServices(false)
-      if (this.showLogs()) {
-        await this.refreshLogs()
-      }
-    } catch (error) {
-      this.#toastr.danger(getErrorMessage(error) || 'PAC.Chat.ClawXpert.ServiceStopFailed')
-    }
-  }
-
   handleFrameLoad() {
     this.destroyFrameListeners()
     this.resetOverlayTargets()
@@ -1472,12 +1153,22 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
         this.clearHoveredTarget()
         return
       }
+      const overlay = this.buildOverlay(overlayTarget)
       this.#hoveredTarget = overlayTarget
-      this.hoveredOverlay.set(this.buildOverlayForTarget(overlayTarget))
+      if (overlay) {
+        this.hoveredOverlay.set(overlay)
+      } else if (!overlayTarget.element.isConnected) {
+        this.clearHoveredTarget()
+      }
       this.ensureOverlaySyncLoop(documentRef.defaultView)
     }
 
-    const clearHover = () => {
+    const clearHover = (event: MouseEvent) => {
+      const relatedTarget = readTargetElement(event.relatedTarget)
+      if (relatedTarget && documentRef.contains(relatedTarget)) {
+        return
+      }
+
       this.clearHoveredTarget()
     }
 
@@ -1502,6 +1193,8 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
       this.#selectedTarget = overlayTarget
       this.selectedOverlay.set(overlay)
+      this.clearHoveredTarget()
+      this.mode.set('browse')
       this.ensureOverlaySyncLoop(documentRef.defaultView)
       this.referenceRequest.emit(overlay.reference)
     }
@@ -1532,28 +1225,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       safelyRemoveFrameWindowEventListener(frameWindow, 'scroll', syncOverlays, true)
       safelyRemoveFrameWindowEventListener(frameWindow, 'resize', syncOverlays)
     }
-  }
-
-  statusDotClasses(status: TSandboxManagedServiceStatus) {
-    const classMap: Record<TSandboxManagedServiceStatus, string> = {
-      failed: 'bg-text-destructive',
-      lost: 'bg-text-tertiary',
-      running: 'bg-text-success',
-      starting: 'bg-text-warning',
-      stopped: 'bg-text-tertiary',
-      stopping: 'bg-text-warning'
-    }
-
-    return classMap[status] ?? 'bg-text-tertiary'
-  }
-
-  formatServiceDisplayUrl(service: ISandboxManagedService) {
-    const port = servicePort(service)
-    if (port !== null) {
-      return `localhost:${port}`
-    }
-
-    return service.previewUrl || service.name
   }
 
   private createOverlayTarget(context: ElementReferenceContext, element: Element): PreviewOverlayTarget | null {
@@ -1599,13 +1270,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   private buildElementReferenceContext(): ElementReferenceContext | null {
-    const service = this.selectedService()
-    if (service?.id) {
-      return {
-        serviceId: service.id
-      }
-    }
-
     const pageUrl = this.openableUrl()
     if (!pageUrl) {
       return null
@@ -1661,17 +1325,31 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   private refreshTrackedOverlays() {
-    const hoveredOverlay = this.buildOverlayForTarget(this.#hoveredTarget)
-    if (!hoveredOverlay) {
-      this.#hoveredTarget = null
+    const hoveredTarget = this.#hoveredTarget
+    if (!hoveredTarget) {
+      this.hoveredOverlay.set(null)
+    } else {
+      const hoveredOverlay = this.buildOverlay(hoveredTarget)
+      if (hoveredOverlay) {
+        this.hoveredOverlay.set(hoveredOverlay)
+      } else if (!hoveredTarget.element.isConnected) {
+        this.#hoveredTarget = null
+        this.hoveredOverlay.set(null)
+      }
     }
-    this.hoveredOverlay.set(hoveredOverlay)
 
-    const selectedOverlay = this.buildOverlayForTarget(this.#selectedTarget)
-    if (!selectedOverlay) {
-      this.#selectedTarget = null
+    const selectedTarget = this.#selectedTarget
+    if (!selectedTarget) {
+      this.selectedOverlay.set(null)
+    } else {
+      const selectedOverlay = this.buildOverlay(selectedTarget)
+      if (selectedOverlay) {
+        this.selectedOverlay.set(selectedOverlay)
+      } else if (!selectedTarget.element.isConnected) {
+        this.#selectedTarget = null
+        this.selectedOverlay.set(null)
+      }
     }
-    this.selectedOverlay.set(selectedOverlay)
 
     this.stopOverlaySyncLoopIfIdle()
   }
@@ -1704,30 +1382,6 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     this.resetOverlayTargets()
   }
 
-  private resolveServiceForAddress(address: string) {
-    const parsedUrl = parseAddressUrl(address)
-    if (!parsedUrl || !LOCAL_SERVICE_HOSTS.has(parsedUrl.hostname)) {
-      return null
-    }
-
-    const parsedPort = Number(parsedUrl.port)
-    if (!Number.isFinite(parsedPort)) {
-      return null
-    }
-
-    return (
-      this.services().find((service) => {
-        const port = servicePort(service)
-        return (
-          port === parsedPort &&
-          service.transportMode === 'http' &&
-          isNonEmptyString(service.previewUrl) &&
-          isNonEmptyString(service.id)
-        )
-      }) ?? null
-    )
-  }
-
   private pushBrowserHistoryIfRequested(address: string, options: BrowserNavigationOptions) {
     if (options.pushHistory === false) {
       return
@@ -1758,7 +1412,7 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       deviceToolbarVisible: this.deviceToolbar(),
       displayUrl,
       reloadKey: this.reloadNonce(),
-      serviceId: this.selectedServiceId(),
+      serviceId: null,
       url: this.externalUrl() ?? displayUrl,
       zoom: this.zoomLevel()
     })
@@ -1788,97 +1442,5 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   private stopDeviceViewportResize() {
     this.#deviceViewportResizeCleanup?.()
     this.#deviceViewportResizeCleanup = null
-  }
-
-  private buildPreviewSessionKey(service: ISandboxManagedService | null): string | null {
-    const conversationId = this.conversationId()
-    if (!conversationId || !service?.id || !service.previewUrl || service.transportMode !== 'http') {
-      return null
-    }
-
-    return `${conversationId}:${service.id}:${service.previewUrl}`
-  }
-
-  private async refreshLogs() {
-    const conversationId = this.conversationId()
-    const service = this.selectedService()
-    if (!conversationId || !service?.id) {
-      this.logs.set(null)
-      return
-    }
-
-    this.logsLoading.set(true)
-    try {
-      const logs = await firstValueFrom(this.#sandboxService.getManagedServiceLogs(conversationId, service.id, 200))
-      this.logs.set(logs)
-    } catch (error) {
-      this.#toastr.danger(getErrorMessage(error) || 'PAC.Chat.ClawXpert.ServiceLogsFailed')
-    } finally {
-      this.logsLoading.set(false)
-    }
-  }
-
-  private async ensurePreviewSessionForSelectedService() {
-    const conversationId = this.conversationId()
-    const service = this.selectedService()
-    const nextKey = this.buildPreviewSessionKey(service)
-
-    if (!conversationId || !service?.id || !nextKey) {
-      this.previewSessionError.set(null)
-      this.previewSessionLoading.set(false)
-      this.previewSessionKey.set(null)
-      this.previewSessionUrl.set(null)
-      return
-    }
-
-    if (this.previewSessionKey() === nextKey && this.previewSessionUrl()) {
-      return
-    }
-
-    this.previewSessionError.set(null)
-    this.previewSessionLoading.set(true)
-    this.previewSessionKey.set(null)
-    this.previewSessionUrl.set(null)
-
-    try {
-      const session = await firstValueFrom(
-        this.#sandboxService.createManagedServicePreviewSession(conversationId, service.id)
-      )
-      if (this.buildPreviewSessionKey(this.selectedService()) !== nextKey) {
-        return
-      }
-
-      this.previewSessionKey.set(nextKey)
-      this.previewSessionUrl.set(session.previewUrl)
-    } catch (error) {
-      if (this.buildPreviewSessionKey(this.selectedService()) !== nextKey) {
-        return
-      }
-
-      this.previewSessionError.set(getErrorMessage(error) || 'Failed to authorize sandbox preview.')
-    } finally {
-      if (this.buildPreviewSessionKey(this.selectedService()) === nextKey) {
-        this.previewSessionLoading.set(false)
-      }
-    }
-  }
-
-  private syncSelectedService(services: ISandboxManagedService[]) {
-    const currentId = this.selectedServiceId()
-    if (currentId && services.some((service) => service.id === currentId)) {
-      return
-    }
-
-    if (!currentId) {
-      return
-    }
-
-    this.selectedServiceId.set(null)
-    this.displayUrl.set(null)
-    this.addressValue.set('')
-    this.previewSessionKey.set(null)
-    this.previewSessionUrl.set(null)
-    this.previewSessionError.set(null)
-    this.previewSessionLoading.set(false)
   }
 }
