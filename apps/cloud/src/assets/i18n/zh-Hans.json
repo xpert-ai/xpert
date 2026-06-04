@@ -4615,6 +4615,8 @@
       "NoChatHistory": "暂无聊天记录",
       "ReleaseNewVersion": "发布为新版本",
       "Reset": "恢复",
+      "DiscardDraftRestorePublished": "丢弃草稿，恢复到已发布版本",
+      "DiscardDraftRestoreInitial": "丢弃草稿，恢复到初始草稿",
       "Draft": "草稿",
       "Latest": "最新",
       "LatestPublish": "最新发布",

@@ -1672,7 +1672,9 @@
       "ExportedTemplate": "已导出的模版",
       "DeleteExportedTemplate": "删除模版",
       "DeleteExportedTemplateConfirm": "删除已导出的模版‘{{value}}’？",
-      "ExportTemplateDeleted": "已删除导出的模版"
+      "ExportTemplateDeleted": "已删除导出的模版",
+      "DiscardDraftRestorePublished": "丢弃草稿，恢复到已发布版本",
+      "DiscardDraftRestoreInitial": "丢弃草稿，恢复到初始草稿"
     },
     "Feature": {
       "Features": {

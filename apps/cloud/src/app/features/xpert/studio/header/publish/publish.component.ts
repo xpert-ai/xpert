@@ -59,6 +59,7 @@ export class XpertPublishVersionComponent {
     }
     return null
   })
+  readonly canPublish = computed(() => (!this.version() || this.latest()) && !this.releaseNotesError())
 
   readonly environments = computed(() => {
     return this.studioService.environments()?.map((env) => {
@@ -131,6 +132,10 @@ export class XpertPublishVersionComponent {
   }
 
   publish() {
+    if (!this.canPublish()) {
+      return
+    }
+
     this.loading.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.studioService.unsaved() ? this.studioService.saveDraft() : of(true)

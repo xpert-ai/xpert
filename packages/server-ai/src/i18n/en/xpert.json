@@ -11,6 +11,7 @@
         "MultiNodeNotSupported": "Multi-node execution is not supported yet '{node}'",
         "NoChildNodeForLoop": "No child node found for loop",
         "NoChildAgentForSubflow": "Agent node for subflow '{key}' not found",
+        "PublishLatestOnly": "Only the latest version can be published. Set this version as latest before publishing.",
         "ForbiddenDeleteLatest": "You cannot delete the latest version directly, please delete other versions first",
         "XpertCopilotNotFound": "The ai model for the Digital Expert or Agent node is not configured",
         "XpertBasicModelNotFound": "The basic model for the Digital Expert is not configured",

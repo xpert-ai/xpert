@@ -127,7 +127,7 @@
   <button
     type="button"
     class="btn disabled:btn-disabled btn-medium flex flex-shrink-0 justify-center mt-4 btn-primary w-20 h-9 text-base"
-    [disabled]="releaseNotesError()"
+    [disabled]="!canPublish()"
     (click)="publish()"
   >
     {{ 'PAC.Xpert.Release' | translate: { Default: 'Release' } }}

@@ -292,6 +292,14 @@
           <button
             type="button"
             class="self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200 text-primary-600 hover:bg-primary-50 active:bg-primary-100"
+            [zTooltip]="
+              team()?.publishAt
+                ? ('PAC.Xpert.DiscardDraftRestorePublished'
+                  | translate: { Default: 'Discard draft and restore the published version' })
+                : ('PAC.Xpert.DiscardDraftRestoreInitial'
+                  | translate: { Default: 'Discard draft and restore the initial draft' })
+            "
+            zPosition="bottom"
             (click)="resume()"
           >
             {{ 'PAC.Xpert.Reset' | translate: { Default: 'Reset' } }}
@@ -311,7 +319,7 @@
 
       <button
         class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block bg-primary-500 shadow-zinc-900 text-white disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
-        [disabled]="!draft()"
+        [disabled]="!draft() || (!!version() && !latest())"
         (click)="publish()"
       >
         <span>{{ 'PAC.Xpert.Release' | translate: { Default: 'Release' } }}</span>

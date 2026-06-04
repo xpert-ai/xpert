@@ -644,7 +644,9 @@
       "PrivateWorkspace": "Private",
       "TenantSharedWorkspace": "Tenant shared workspace",
       "TenantSharedWorkspaceDesc": "Organization users in this tenant can read and run resources in this workspace, but cannot edit them",
-      "TenantSharedTenantOnly": "Only tenant-level workspaces can be shared across the tenant"
+      "TenantSharedTenantOnly": "Only tenant-level workspaces can be shared across the tenant",
+      "DiscardDraftRestorePublished": "Discard draft and restore the published version",
+      "DiscardDraftRestoreInitial": "Discard draft and restore the initial draft"
     },
     "UserGroup": {
       "Title": "User Groups",

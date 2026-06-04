@@ -3422,6 +3422,8 @@
       "NoChatHistory": "暫無聊天記錄",
       "ReleaseNewVersion": "發布為新版本",
       "Reset": "恢復",
+      "DiscardDraftRestorePublished": "放棄草稿，恢復到已發布版本",
+      "DiscardDraftRestoreInitial": "放棄草稿，恢復到初始草稿",
       "Draft": "草稿",
       "Latest": "最新",
       "LatestPublish": "最新發布",

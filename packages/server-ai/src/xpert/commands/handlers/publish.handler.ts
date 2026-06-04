@@ -59,6 +59,14 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
 
+        if (xpert.version && !xpert.latest) {
+            throw new BadRequestException(
+                await this.i18nService.translate('xpert.Error.PublishLatestOnly', {
+                    lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+                })
+            )
+        }
+
         const currentUserId = RequestContext.currentUserId()
         if (!xpert.userGroups?.length && xpert.createdById !== currentUserId) {
             throw new BadRequestException('Published xperts must be assigned to at least one user group.')
@@ -103,7 +111,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
-                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(xpert.workspaceId, commandProfile)
+                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(
+                    xpert.workspaceId,
+                    commandProfile
+                )
             }
         }
         this.check(draft)
