@@ -40,6 +40,9 @@
         </div>
         <div class="flex items-center text-xs leading-[18px] font-medium text-text-tertiary gap-1">
           <div class="shrink-0 px-1 border border-(--border) uppercase rounded-[5px] truncate">{{xpert()?.type}}</div>
+          @if (xpert()?.version) {
+            <div class="shrink-0 px-1 border border-(--border) rounded-[5px] truncate">v{{ xpert()?.version }}</div>
+          }
         </div>
       </div>
     }
