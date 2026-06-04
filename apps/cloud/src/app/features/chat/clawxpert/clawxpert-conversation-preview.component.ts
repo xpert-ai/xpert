@@ -34,8 +34,9 @@ type PreviewOverlay = {
 }
 
 type PreviewOverlayTarget = {
+  context: ElementReferenceContext
   element: Element
-  service: ISandboxManagedService
+  reference: TChatElementReference
 }
 
 export type ClawXpertBrowserStateChange = {
@@ -165,6 +166,11 @@ type BrowserNavigationOptions = {
   pushHistory?: boolean
 }
 
+type ElementReferenceContext = {
+  pageUrl?: string
+  serviceId: string
+}
+
 function joinPreviewResourceUrl(rawUrl: string, apiBaseUrl: string): string {
   const previewUrl = rawUrl.trim()
   const baseUrl = apiBaseUrl.trim()
@@ -178,6 +184,30 @@ function joinPreviewResourceUrl(rawUrl: string, apiBaseUrl: string): string {
   } catch {
     return `${baseUrl.replace(/\/+$/, '')}/${previewUrl.replace(/^\/+/, '')}`
   }
+}
+
+function sameOriginApiProxyUrl(rawUrl: string, apiBaseUrl: string): string {
+  if (!rawUrl || !apiBaseUrl) {
+    return rawUrl
+  }
+
+  try {
+    const url = new URL(rawUrl)
+    const apiUrl = new URL(apiBaseUrl)
+    const browserOrigin = globalThis.location?.origin
+    if (
+      url.origin === apiUrl.origin &&
+      url.pathname.startsWith('/api/') &&
+      browserOrigin &&
+      url.origin !== browserOrigin
+    ) {
+      return `${url.pathname}${url.search}${url.hash}`
+    }
+  } catch {
+    return rawUrl
+  }
+
+  return rawUrl
 }
 
 function clampZoomLevel(value: number | null | undefined) {
@@ -418,13 +448,13 @@ function buildElementLabel(element: Element, selector: string): string {
   return `${element.tagName.toLowerCase()} ${selector}`
 }
 
-function buildElementReference(service: ISandboxManagedService, element: Element): TChatElementReference | null {
-  if (!service.id) {
+function buildElementReference(context: ElementReferenceContext, element: Element): TChatElementReference | null {
+  if (!context.serviceId) {
     return null
   }
 
   const documentRef = element.ownerDocument
-  const pageUrl = documentRef.location?.href
+  const pageUrl = context.pageUrl ?? documentRef.location?.href
   if (!isNonEmptyString(pageUrl)) {
     return null
   }
@@ -444,7 +474,7 @@ function buildElementReference(service: ISandboxManagedService, element: Element
     pageUrl,
     role: element.getAttribute('role') || undefined,
     selector,
-    serviceId: service.id,
+    serviceId: context.serviceId,
     tagName: element.tagName.toLowerCase(),
     text: truncateValue(text || element.tagName.toLowerCase(), 1000),
     type: 'element'
@@ -618,23 +648,6 @@ function buildElementReference(service: ISandboxManagedService, element: Element
           >
             {{ error() }}
           </div>
-        } @else if (!services().length) {
-          <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
-            <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
-            <div class="mt-4 text-base font-medium text-text-primary">
-              {{ 'PAC.Chat.ClawXpert.PreviewEmptyTitle' | translate: { Default: 'No managed services yet' } }}
-            </div>
-            <div class="mt-2 max-w-md text-sm text-text-secondary">
-              {{
-                'PAC.Chat.ClawXpert.PreviewEmptyDesc'
-                  | translate
-                    : {
-                        Default:
-                          'Ask ClawXpert to start a sandbox service with sandbox_service_start, then browse it here.'
-                      }
-              }}
-            </div>
-          </div>
         } @else if (hasBrowserTarget()) {
           <div class="relative min-h-0 flex-1 overflow-hidden">
             @if (previewSessionLoading()) {
@@ -736,6 +749,23 @@ function buildElementReference(service: ISandboxManagedService, element: Element
                 </div>
               </div>
             }
+          </div>
+        } @else if (!services().length) {
+          <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
+            <i class="ri-layout-4-line text-3xl text-text-tertiary"></i>
+            <div class="mt-4 text-base font-medium text-text-primary">
+              {{ 'PAC.Chat.ClawXpert.PreviewEmptyTitle' | translate: { Default: 'No managed services yet' } }}
+            </div>
+            <div class="mt-2 max-w-md text-sm text-text-secondary">
+              {{
+                'PAC.Chat.ClawXpert.PreviewEmptyDesc'
+                  | translate
+                    : {
+                        Default:
+                          'Ask ClawXpert to start a sandbox service with sandbox_service_start, then browse it here.'
+                      }
+              }}
+            </div>
           </div>
         } @else {
           <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
@@ -982,9 +1012,8 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   })
   readonly externalResourceUrl = computed<SafeResourceUrl | null>(() => {
     const externalUrl = this.externalUrl()
-    const previewUrl = externalUrl
-      ? appendBrowserCacheKey(externalUrl, this.reloadNonce(), this.cacheBustNonce())
-      : null
+    const browserUrl = externalUrl ? sameOriginApiProxyUrl(externalUrl, this.#apiBaseUrl) : null
+    const previewUrl = browserUrl ? appendBrowserCacheKey(browserUrl, this.reloadNonce(), this.cacheBustNonce()) : null
     return previewUrl ? this.#sanitizer.bypassSecurityTrustResourceUrl(previewUrl) : null
   })
   readonly browserResourceUrl = computed(() => this.previewResourceUrl() ?? this.externalResourceUrl())
@@ -1361,7 +1390,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     this.mode.update((mode) => (mode === 'inspect' ? 'browse' : 'inspect'))
     if (this.mode() === 'browse') {
       this.resetOverlayTargets()
+      return
     }
+
+    this.handleFrameLoad()
   }
 
   toggleLogs() {
@@ -1411,12 +1443,15 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     this.destroyFrameListeners()
     this.resetOverlayTargets()
     const iframe = this.frameRef()?.nativeElement
-    const service = this.selectedService()
-    if (!iframe || !service) {
+    const context = this.buildElementReferenceContext()
+    if (!iframe || !context) {
       return
     }
 
-    const documentRef = iframe.contentDocument
+    let documentRef: Document | null = null
+    ignoreBlockedFrameAccess(() => {
+      documentRef = iframe.contentDocument
+    })
     if (!documentRef) {
       return
     }
@@ -1432,7 +1467,11 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
         return
       }
 
-      const overlayTarget = { element: target, service }
+      const overlayTarget = this.createOverlayTarget(context, target)
+      if (!overlayTarget) {
+        this.clearHoveredTarget()
+        return
+      }
       this.#hoveredTarget = overlayTarget
       this.hoveredOverlay.set(this.buildOverlayForTarget(overlayTarget))
       this.ensureOverlaySyncLoop(documentRef.defaultView)
@@ -1452,7 +1491,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
       event.stopPropagation()
       event.stopImmediatePropagation()
 
-      const overlayTarget = { element: target, service }
+      const overlayTarget = this.createOverlayTarget(context, target)
+      if (!overlayTarget) {
+        return
+      }
       const overlay = this.buildOverlayForTarget(overlayTarget)
       if (!overlay) {
         return
@@ -1470,7 +1512,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     const frameWindow = documentRef.defaultView
 
     documentRef.addEventListener('mousemove', updateHover, true)
+    documentRef.addEventListener('mouseover', updateHover, true)
+    documentRef.addEventListener('pointermove', updateHover, true)
     documentRef.addEventListener('mouseleave', clearHover, true)
+    documentRef.addEventListener('pointerleave', clearHover, true)
     documentRef.addEventListener('click', selectElement, true)
     documentRef.addEventListener('scroll', syncOverlays, true)
     safelyAddFrameWindowEventListener(frameWindow, 'scroll', syncOverlays, true)
@@ -1478,7 +1523,10 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
 
     this.#frameCleanup = () => {
       documentRef.removeEventListener('mousemove', updateHover, true)
+      documentRef.removeEventListener('mouseover', updateHover, true)
+      documentRef.removeEventListener('pointermove', updateHover, true)
       documentRef.removeEventListener('mouseleave', clearHover, true)
+      documentRef.removeEventListener('pointerleave', clearHover, true)
       documentRef.removeEventListener('click', selectElement, true)
       documentRef.removeEventListener('scroll', syncOverlays, true)
       safelyRemoveFrameWindowEventListener(frameWindow, 'scroll', syncOverlays, true)
@@ -1508,13 +1556,26 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
     return service.previewUrl || service.name
   }
 
-  private buildOverlay(service: ISandboxManagedService, element: Element): PreviewOverlay | null {
+  private createOverlayTarget(context: ElementReferenceContext, element: Element): PreviewOverlayTarget | null {
     if (!element.isConnected) {
       return null
     }
 
-    const reference = buildElementReference(service, element)
+    const reference = buildElementReference(context, element)
     if (!reference) {
+      return null
+    }
+
+    return {
+      context,
+      element,
+      reference
+    }
+  }
+
+  private buildOverlay(target: PreviewOverlayTarget): PreviewOverlay | null {
+    const { element, reference } = target
+    if (!element.isConnected) {
       return null
     }
 
@@ -1534,7 +1595,26 @@ export class ClawXpertConversationPreviewComponent implements OnDestroy {
   }
 
   private buildOverlayForTarget(target: PreviewOverlayTarget | null) {
-    return target ? this.buildOverlay(target.service, target.element) : null
+    return target ? this.buildOverlay(target) : null
+  }
+
+  private buildElementReferenceContext(): ElementReferenceContext | null {
+    const service = this.selectedService()
+    if (service?.id) {
+      return {
+        serviceId: service.id
+      }
+    }
+
+    const pageUrl = this.openableUrl()
+    if (!pageUrl) {
+      return null
+    }
+
+    return {
+      pageUrl,
+      serviceId: 'browser-url'
+    }
   }
 
   private clearHoveredTarget() {

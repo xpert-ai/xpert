@@ -151,6 +151,186 @@ describe('ClawXpertConversationPreviewComponent', () => {
     expect(iframe.src).toBe('http://localhost:3000/api/sandbox/conversations/conversation-1/services/service-1/proxy/')
   })
 
+  it('renders an external URL even when no managed services exist', async () => {
+    sandboxService.listManagedServices.mockReturnValueOnce(of([]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    expect(sandboxService.listManagedServices).toHaveBeenCalledWith('conversation-1')
+    expect(sandboxService.createManagedServicePreviewSession).not.toHaveBeenCalled()
+    expect(fixture.componentInstance.selectedServiceId()).toBe(null)
+    expect(fixture.componentInstance.externalUrl()).toBe(
+      'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1'
+    )
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.PreviewEmptyTitle')
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+    expect(iframe.src).toBe('http://localhost/api/xpert-sites/project-request-dashboard-2?v=1')
+  })
+
+  it('emits element references from an external URL preview in inspect mode', async () => {
+    sandboxService.listManagedServices.mockReturnValueOnce(of([]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+
+    const previewDocument = document
+    const button = previewDocument.createElement('button')
+    button.id = 'external-cta'
+    button.textContent = 'Open workspace'
+    Object.defineProperty(button, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 50,
+        height: 30,
+        left: 10,
+        right: 170,
+        toJSON: () => undefined,
+        top: 20,
+        width: 160,
+        x: 10,
+        y: 20
+      })
+    })
+    const previousTitle = previewDocument.title
+    try {
+      previewDocument.title = 'External Preview Page'
+      previewDocument.body.appendChild(button)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      const emitted: unknown[] = []
+      fixture.componentInstance.referenceRequest.subscribe((value) => {
+        emitted.push(value)
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+      fixture.componentInstance.handleFrameLoad()
+
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(emitted).toEqual([
+        expect.objectContaining({
+          label: 'button "Open workspace"',
+          pageTitle: 'External Preview Page',
+          pageUrl: 'http://localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1',
+          selector: '#external-cta',
+          serviceId: 'browser-url',
+          tagName: 'button',
+          text: 'Open workspace',
+          type: 'element'
+        })
+      ])
+      expect(fixture.componentInstance.activeOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "Open workspace"',
+          left: 10,
+          top: 20,
+          width: 160
+        })
+      )
+    } finally {
+      button.remove()
+      previewDocument.title = previousTitle
+    }
+  })
+
+  it('keeps hover inspection active after moving across external URL elements', async () => {
+    sandboxService.listManagedServices.mockReturnValueOnce(of([]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('url', 'localhost:3000/api/xpert-sites/project-request-dashboard-2?v=1')
+    await settle(fixture)
+
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement | null
+    expect(iframe).not.toBeNull()
+    if (!iframe) {
+      throw new Error('Expected preview iframe to be rendered for an external URL.')
+    }
+
+    const previewDocument = document
+    const first = previewDocument.createElement('button')
+    first.id = 'first-hover-target'
+    first.textContent = 'First'
+    Object.defineProperty(first, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 40,
+        height: 20,
+        left: 10,
+        right: 90,
+        toJSON: () => undefined,
+        top: 20,
+        width: 80,
+        x: 10,
+        y: 20
+      })
+    })
+    const second = previewDocument.createElement('button')
+    second.id = 'second-hover-target'
+    second.textContent = 'Second'
+    Object.defineProperty(second, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 90,
+        height: 30,
+        left: 30,
+        right: 150,
+        toJSON: () => undefined,
+        top: 60,
+        width: 120,
+        x: 30,
+        y: 60
+      })
+    })
+
+    try {
+      previewDocument.body.append(first, second)
+      Object.defineProperty(iframe, 'contentDocument', {
+        configurable: true,
+        value: previewDocument
+      })
+
+      fixture.componentInstance.toggleInspectMode()
+
+      first.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }))
+      second.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+      await nextAnimationFrame()
+      await nextAnimationFrame()
+
+      expect(fixture.componentInstance.hoveredOverlay()).toEqual(
+        expect.objectContaining({
+          label: 'button "Second"',
+          left: 30,
+          top: 60,
+          width: 120
+        })
+      )
+      expect(fixture.componentInstance.mode()).toBe('inspect')
+    } finally {
+      first.remove()
+      second.remove()
+    }
+  })
+
   it('updates front-end browser toolbar state', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationPreviewComponent)
     fixture.componentRef.setInput('conversationId', 'conversation-1')

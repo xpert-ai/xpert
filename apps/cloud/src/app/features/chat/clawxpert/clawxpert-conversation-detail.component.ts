@@ -47,6 +47,7 @@ const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
 const DEFAULT_FIXED_VIEW_ICON = {
   type: 'font',
   value: 'ri-layout-grid-line',
@@ -155,7 +156,7 @@ type ChatKitReferenceComposerControl = {
                     type="button"
                     [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                     [attr.data-tab-id]="tab.id"
-                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                     [active]="activeTabId() === tab.id"
                     (click)="selectTab(tab.id)"
                   >
@@ -594,6 +595,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
+  #unregisterBrowserOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
@@ -723,6 +725,23 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+    this.#unregisterBrowserOpenCommand = this.#clientCommands.register(WORKBENCH_BROWSER_OPEN_COMMAND, (payload) => {
+      const target = toWorkbenchBrowserPreviewTarget(payload)
+      if (!target) {
+        return {
+          success: false,
+          code: 'invalid_payload',
+          message: 'Workbench browser preview payload must include a URL.'
+        }
+      }
+
+      const tab = this.openBrowserTabFromSandboxEvent(target)
+      return {
+        success: true,
+        tabId: tab.id,
+        url: tab.url ?? tab.displayUrl
+      }
     })
 
     effect((onCleanup) => {
@@ -858,6 +877,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   ngOnDestroy() {
     this.#unregisterAssistantCommand?.()
     this.#unregisterAssistantCommand = null
+    this.#unregisterBrowserOpenCommand?.()
+    this.#unregisterBrowserOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
@@ -1322,6 +1343,43 @@ function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandbox
   return typeof targetUrl === 'string' && targetUrl.trim()
     ? tab.url === targetUrl || tab.displayUrl === targetUrl
     : false
+}
+
+function toWorkbenchBrowserPreviewTarget(payload: unknown): ClawXpertSandboxPreviewTarget | null {
+  if (typeof payload === 'string' && payload.trim()) {
+    const url = payload.trim()
+    return {
+      displayUrl: url,
+      url
+    }
+  }
+
+  if (!isPreviewPayloadRecord(payload)) {
+    return null
+  }
+
+  const url =
+    readPreviewPayloadString(payload, 'url') ??
+    readPreviewPayloadString(payload, 'displayUrl') ??
+    readPreviewPayloadString(payload, 'deploymentUrl') ??
+    readPreviewPayloadString(payload, 'previewUrl')
+  if (!url) {
+    return null
+  }
+
+  return {
+    displayUrl: readPreviewPayloadString(payload, 'displayUrl') ?? url,
+    url
+  }
+}
+
+function readPreviewPayloadString(payload: Record<string, unknown>, key: string) {
+  const value = payload[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function isPreviewPayloadRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
 function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
