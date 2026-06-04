@@ -53,7 +53,7 @@ import { OverlayAnimations } from '@xpert-ai/core'
     ZardSliderComponent,
     TranslateModule,
     NgmSpinComponent,
-    ChecklistComponent
+    ChecklistComponent,
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
