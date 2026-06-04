@@ -1899,6 +1899,7 @@
         "DEMO": "演示数据",
         "GENERATE_DEMO": "生成演示数据",
         "RegenerateDemo": "重新生成演示数据",
+        "OrganizationId": "组织 ID",
         "TotalEmployees": "总员工数",
         "BasicInfo": "基础信息",
         "OtherInfo": "其他信息",
