@@ -562,6 +562,33 @@ packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts
 - 引用来源使用 chunk 返回的 `anchor`。
 - 不让 Agent 直接构造对象存储路径读取原文件。
 
+### PDF 文字优先、图片按需查看最佳实践
+
+对于大部分内容是文字、只有少量插图的 PDF，应优先把解析出的 `page_text` chunk 作为主要信息来源。只有当用户明确询问视觉内容，或者文本检索定位到可能依赖图片的页面时，才查看渲染后的 `page_image` artifact。这样普通 PDF 问答可以保持低成本、低延迟，同时仍然能处理图表、截图、流程图和扫描页里的视觉细节。
+
+推荐 Agent 行为：
+
+- 普通文字问题先调用 `file_search`。
+- 检索到相关 chunk 后，如需更完整上下文，再调用 `file_read`。
+- 当用户问题涉及图表、截图、流程图、figure、视觉布局、OCR 或指定页面图片细节时，调用 `file_page_images(fileId, pageStart, pageEnd)`。
+- 如果用户没有指定页码，先用用户问题和视觉标记词一起检索，例如 `figure`、`chart`、`diagram`、`screenshot`、`图`、`见下图`、`流程图`，再根据返回 chunk 的 page anchor 调用 `file_page_images` 查看相关页面。
+
+可加入 Agent 提示词的策略片段：
+
+```text
+回答上传 PDF 的问题时，优先使用解析出的文本。
+先用 file_search 定位相关 page_text chunk，再用 file_read 读取精确文本。
+普通文字问题不要查看 PDF 页面图片。
+只有当用户询问视觉内容、页面布局、图表、截图、流程图、figure、OCR，
+或者文本检索结果指向 "figure"、"chart"、"diagram"、"screenshot"、
+"图"、"见下图"、"流程图" 等附近视觉材料时，才使用 file_page_images。
+如果用户没有提供页码，先检索用户问题和这些视觉标记词，
+用 chunk anchor 判断页码，然后只查看这些相关页面。
+回答时引用返回的 page、sheet、slide、path 或 chunk anchor。
+```
+
+`parseMode: deep` 当前只控制解析是否异步执行，不应描述为自动对整个 PDF 执行 OCR 或 VLM。如果后续需要让图片内容也能被检索，应只对相关页面或图片资产做选择性 OCR/VLM，并把结果保存为带 anchor 的文本 artifact，例如 `ocr_text`，不要只写入文件摘要。
+
 ### Workspace projection
 
 ChatKit 上传时会把当前 `xpertId` 发送给 `/contexts/file`。当消息提交并且文件绑定到 conversation 后，后端会把对象存储中的原文件投影到会话 workspace：
