@@ -53,7 +53,7 @@ describe('persisted follow-up helpers', () => {
         })
     })
 
-    it('collects only pending follow-ups for the same target execution', () => {
+    it('collects only the matched pending follow-up by client message id', () => {
         const collected = collectPendingFollowUpsByClientMessageId(
             [
                 {
@@ -106,17 +106,14 @@ describe('persisted follow-up helpers', () => {
             items: [
                 expect.objectContaining({
                     id: 'follow-up-1'
-                }),
-                expect.objectContaining({
-                    id: 'follow-up-2'
                 })
             ],
             mergedHumanInput: {
-                input: 'first\n\nsecond'
+                input: 'first'
             },
             targetExecutionId: 'run-1',
-            messageIds: ['follow-up-1', 'follow-up-2'],
-            clientMessageIds: ['client-1', 'client-2']
+            messageIds: ['follow-up-1'],
+            clientMessageIds: ['client-1']
         })
     })
 })

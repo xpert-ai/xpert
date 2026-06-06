@@ -52,7 +52,8 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                     }
                 }
 
-                const mergedHumanInput = hydrateHumanInput(mergePendingFollowUpHumans(pendingFollowUps))
+                const [nextFollowUp, ...remainingFollowUps] = pendingFollowUps
+                const mergedHumanInput = hydrateHumanInput(mergePendingFollowUpHumans([nextFollowUp]))
                 const humanState = {
                     ...state,
                     [STATE_VARIABLE_HUMAN]: mergedHumanInput
@@ -68,10 +69,10 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                 const rootAgentKey = configurable.rootAgentKey ?? agentKey
                 const primaryChannel = rootAgentKey ? channelName(rootAgentKey) : agentChannel
                 const visibleAt = new Date()
-                const messageIds = pendingFollowUps
+                const messageIds = [nextFollowUp]
                     .map((item) => item.messageId)
                     .filter((messageId): messageId is string => Boolean(messageId))
-                const clientMessageIds = pendingFollowUps
+                const clientMessageIds = [nextFollowUp]
                     .map((item) => item.clientMessageId ?? item.messageId)
                     .filter((messageId): messageId is string => Boolean(messageId))
 
@@ -110,7 +111,7 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                     messages: [humanMessage],
                     [STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
                     [STATE_VARIABLE_HUMAN]: mergedHumanInput,
-                    [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [],
+                    [STATE_VARIABLE_PENDING_FOLLOW_UPS]: remainingFollowUps,
                     [primaryChannel]: channelUpdate,
                     ...(agentChannel !== primaryChannel
                         ? {

@@ -32,6 +32,8 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { XpertChatCommand } from '../chat.command'
 import { XpertChatHandler } from './chat.handler'
 
+type XpertChatCommandOptions = NonNullable<ConstructorParameters<typeof XpertChatCommand>[1]>
+
 describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
     let assistantBindingService: {
@@ -1074,6 +1076,156 @@ describe('XpertChatHandler', () => {
         )
     })
 
+    it('targets steer follow-ups by ai message before a stale execution id', async () => {
+        const commands: unknown[] = []
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'busy',
+            operation: null,
+            messages: [
+                {
+                    id: 'ai-current',
+                    role: 'ai',
+                    content: 'Current answer',
+                    executionId: 'execution-current'
+                },
+                {
+                    id: 'ai-old',
+                    role: 'ai',
+                    content: 'Old answer',
+                    executionId: 'execution-old'
+                }
+            ]
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            if (command instanceof ChatMessageUpsertCommand) {
+                return command.entity
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'steer',
+                    target: {
+                        aiMessageId: 'ai-current',
+                        executionId: 'execution-old'
+                    },
+                    message: {
+                        clientMessageId: 'client-follow-up-1',
+                        input: {
+                            input: 'Run this before queued follow-ups'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } satisfies XpertChatCommandOptions
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const followUpCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand
+        ) as ChatMessageUpsertCommand
+        expect(followUpCommand.entity).toEqual(
+            expect.objectContaining({
+                parent: expect.objectContaining({ id: 'ai-current' }),
+                executionId: 'execution-current',
+                targetExecutionId: 'execution-current'
+            })
+        )
+    })
+
+    it('promotes an existing pending queue follow-up to steer by client message id', async () => {
+        const commands: unknown[] = []
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'busy',
+            operation: null,
+            messages: [
+                {
+                    id: 'ai-current',
+                    role: 'ai',
+                    content: 'Current answer',
+                    executionId: 'execution-current'
+                },
+                {
+                    id: 'queued-follow-up-1',
+                    role: 'human',
+                    content: 'Run this before queued follow-ups',
+                    followUpMode: 'queue',
+                    followUpStatus: 'pending',
+                    targetExecutionId: 'execution-current',
+                    thirdPartyMessage: {
+                        followUpClientMessageId: 'client-follow-up-1',
+                        followUpInput: {
+                            input: 'Run this before queued follow-ups'
+                        }
+                    }
+                }
+            ]
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            if (command instanceof ChatMessageUpsertCommand) {
+                return command.entity
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'steer',
+                    target: {
+                        aiMessageId: 'ai-current',
+                        executionId: 'execution-current'
+                    },
+                    message: {
+                        clientMessageId: 'client-follow-up-1',
+                        input: {
+                            input: 'Run this before queued follow-ups'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } satisfies XpertChatCommandOptions
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const followUpCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand
+        ) as ChatMessageUpsertCommand
+        expect(followUpCommand.entity).toEqual(
+            expect.objectContaining({
+                id: 'queued-follow-up-1',
+                parent: expect.objectContaining({ id: 'ai-current' }),
+                role: 'human',
+                followUpMode: 'steer',
+                followUpStatus: 'pending',
+                executionId: 'execution-current',
+                targetExecutionId: 'execution-current',
+                visibleAt: null,
+                thirdPartyMessage: expect.objectContaining({
+                    followUpClientMessageId: 'client-follow-up-1'
+                })
+            })
+        )
+    })
+
     it('rejects interrupted follow-ups when there is no waiting operation', async () => {
         queryBus.execute.mockResolvedValue({
             id: 'conversation-1',
@@ -1280,7 +1432,7 @@ describe('XpertChatHandler', () => {
         expect(humanCommands[0].entity.visibleAt).toBeInstanceOf(Date)
     })
 
-    it('merges queued pending follow-ups for the same target execution into one send turn', async () => {
+    it('consumes only the matched queued pending follow-up on each send turn', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -1430,16 +1582,24 @@ describe('XpertChatHandler', () => {
                 (command.entity.id === 'follow-up-1' || command.entity.id === 'follow-up-2')
         ) as ChatMessageUpsertCommand[]
 
-        expect(humanCommands).toHaveLength(2)
-        expect(humanCommands.map((command) => command.entity.id)).toEqual(['follow-up-1', 'follow-up-2'])
+        expect(humanCommands).toHaveLength(1)
+        expect(humanCommands.map((command) => command.entity.id)).toEqual(['follow-up-1'])
         expect(humanCommands.every((command) => command.entity.followUpStatus === 'consumed')).toBe(true)
         expect(humanCommands.every((command) => command.entity.visibleAt instanceof Date)).toBe(true)
+        expect(
+            commands.some(
+                (command) =>
+                    command instanceof ChatMessageUpsertCommand &&
+                    command.entity.id === 'follow-up-2' &&
+                    command.entity.followUpStatus === 'consumed'
+            )
+        ).toBe(false)
 
         const agentCommand = commands.find(
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.state.human).toEqual({
-            input: 'Please continue\n\nAnd add detail',
+            input: 'Please continue',
             references: [
                 {
                     type: 'quote',
@@ -1450,8 +1610,7 @@ describe('XpertChatHandler', () => {
                 {
                     id: 'file-1'
                 }
-            ],
-            custom: 'latest'
+            ]
         })
 
         const aiPlaceholderCommand = commands.find(
@@ -1462,7 +1621,7 @@ describe('XpertChatHandler', () => {
         ) as ChatMessageUpsertCommand
         expect(aiPlaceholderCommand.entity.parent).toEqual(
             expect.objectContaining({
-                id: 'follow-up-2'
+                id: 'follow-up-1'
             })
         )
 
@@ -1475,8 +1634,8 @@ describe('XpertChatHandler', () => {
                         data: expect.objectContaining({
                             type: 'follow_up_consumed',
                             mode: 'queue',
-                            clientMessageIds: ['client-1', 'client-2'],
-                            messageIds: ['follow-up-1', 'follow-up-2'],
+                            clientMessageIds: ['client-1'],
+                            messageIds: ['follow-up-1'],
                             executionId: 'execution-prev'
                         })
                     })
