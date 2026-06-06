@@ -29,6 +29,7 @@ import { LoadStorageFileCommand } from '../shared'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 function isCountableDocument(document: Pick<IKnowledgeDocument, 'sourceType' | 'metadata'> | null | undefined) {
     if (!document || document.sourceType === KDocumentSourceType.FOLDER) {
@@ -95,6 +96,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 document.type = 'html'
             }
         }
+        document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
 
         const doc = await this.create({
             ...document
@@ -118,6 +120,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (!documents?.length) {
             return []
         }
+        documents.forEach((document) => {
+            document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        })
         const knowledgebaseIds = uniq(compact(documents.map((document) => document.knowledgebaseId)))
         await Promise.all(
             knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))

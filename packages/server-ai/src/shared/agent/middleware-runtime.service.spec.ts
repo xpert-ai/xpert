@@ -63,6 +63,7 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
     AssistantTaskRuntimeCapability,
     FileRuntimeCapability,
+    KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
@@ -76,7 +77,14 @@ import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { GetFileAssetQuery } from '../../file-understanding'
-import { DeleteAgentKnowledgeChunksCommand, WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
+import {
+    CreateKnowledgebaseDocumentsCommand,
+    DeleteAgentKnowledgeChunksCommand,
+    DeleteKnowledgebaseDocumentsCommand,
+    ImportKnowledgebaseArchiveCommand,
+    UploadKnowledgebaseDocumentFileCommand,
+    WriteAgentKnowledgeChunkCommand
+} from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
@@ -565,6 +573,151 @@ describe('AgentMiddlewareRuntimeService', () => {
                 writeKeyPrefix: 'bom-product-profile:v2:root-1:'
             })
         )
+    })
+
+    it('exposes knowledgebase document upload through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof UploadKnowledgebaseDocumentFileCommand) {
+                return {
+                    name: 'reference.pdf',
+                    filePath: 'files/reference.pdf',
+                    fileUrl: 'https://files.example/reference.pdf',
+                    sourceHash: 'hash-1'
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability).uploadFile({
+            knowledgebaseId: 'kb-1',
+            file: {
+                buffer: Buffer.from('pdf'),
+                originalname: 'reference.pdf',
+                mimetype: 'application/pdf'
+            },
+            path: 'contract-reference-packages/25C13087'
+        })
+
+        expect(result?.sourceHash).toBe('hash-1')
+        const command = commandBus.execute.mock.calls[0][0] as UploadKnowledgebaseDocumentFileCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                knowledgebaseId: 'kb-1',
+                path: 'contract-reference-packages/25C13087',
+                file: expect.objectContaining({
+                    originalname: 'reference.pdf'
+                })
+            })
+        )
+    })
+
+    it('exposes knowledgebase archive import through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ImportKnowledgebaseArchiveCommand) {
+                return {
+                    archive: {
+                        name: 'reference.zip',
+                        filePath: 'files/reference.zip',
+                        fileUrl: 'https://files.example/reference.zip'
+                    },
+                    documents: [{ id: 'doc-1', name: 'spec.pdf', knowledgebaseId: 'kb-1' }],
+                    skipped: [],
+                    warnings: [],
+                    processingStarted: true
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(KnowledgebaseDocumentsRuntimeCapability).importArchive({
+            knowledgebaseId: 'kb-1',
+            file: {
+                buffer: Buffer.from('zip'),
+                originalname: 'reference.zip',
+                mimetype: 'application/zip'
+            },
+            packageCode: '25C13087',
+            process: true
+        })
+
+        expect(result?.documents[0]?.id).toBe('doc-1')
+        const command = commandBus.execute.mock.calls[0][0] as ImportKnowledgebaseArchiveCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                knowledgebaseId: 'kb-1',
+                packageCode: '25C13087',
+                process: true
+            })
+        )
+    })
+
+    it('exposes knowledgebase document creation through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateKnowledgebaseDocumentsCommand) {
+                return {
+                    documents: [{ id: 'doc-1', name: 'reference.pdf', knowledgebaseId: 'kb-1' }],
+                    processingStarted: true
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(KnowledgebaseDocumentsRuntimeCapability)
+            .createDocuments({
+                knowledgebaseId: 'kb-1',
+                documents: [
+                    {
+                        name: 'reference.pdf',
+                        filePath: 'files/reference.pdf',
+                        metadata: {
+                            documentType: 'contract-reference-source'
+                        }
+                    }
+                ],
+                process: true
+            })
+
+        expect(result?.processingStarted).toBe(true)
+        const command = commandBus.execute.mock.calls[0][0] as CreateKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                knowledgebaseId: 'kb-1',
+                process: true
+            })
+        )
+    })
+
+    it('exposes knowledgebase document deletion through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof DeleteKnowledgebaseDocumentsCommand) {
+                return {
+                    knowledgebaseId: 'kb-1',
+                    documentIds: ['doc-1'],
+                    deletedDocumentCount: 1,
+                    missingDocumentIds: []
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(KnowledgebaseDocumentsRuntimeCapability)
+            .deleteDocuments({
+                knowledgebaseId: 'kb-1',
+                documentIds: ['doc-1']
+            })
+
+        expect(result?.deletedDocumentCount).toBe(1)
+        const command = commandBus.execute.mock.calls[0][0] as DeleteKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual({
+            knowledgebaseId: 'kb-1',
+            documentIds: ['doc-1']
+        })
     })
 
     it('resolves file asset references through the runtime facade', async () => {

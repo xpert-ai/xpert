@@ -38,7 +38,7 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
         lang: { type: 'string', default: 'ch', description: '语言模型 (ch/en/...)' },
         apiUrl: { type: 'string', description: 'PaddleOCR 服务 API 地址' }
       }
-    },
+    }
   }
 
   async validateConfig(config: any): Promise<void> {
@@ -49,7 +49,7 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
 
   async understandImages(doc: IKnowledgeDocument<ChunkMetadata>, config: any): Promise<TImageUnderstandingResult> {
     const images = doc.metadata?.assets?.filter((asset) => asset.type === 'image')
-    const chunks = []
+    const chunks: Document[] = []
     for (const file of images) {
       const ocrText = await this.runPaddleOCR(file.filePath, config)
 
@@ -57,18 +57,17 @@ export class PaddleOCRStrategy implements IImageUnderstandingStrategy<any> {
         pageContent: ocrText,
         metadata: {
           chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          // parentChunkId: file.parentChunkId,
-          // imagePath: file.path,
-          // source: file.filename,
+          imagePath: file.filePath,
+          source: file.url,
           type: 'ocr',
           engine: 'paddleocr'
         }
       })
 
-      // results.push({ docs: [doc], metadata: { engine: 'paddleocr', } })
+      chunks.push(doc)
     }
 
-    return {chunks, metadata: { engine: 'paddleocr' }}
+    return { chunks, metadata: { engine: 'paddleocr' } }
   }
 
   private async runPaddleOCR(imagePath: string, config: any): Promise<string> {

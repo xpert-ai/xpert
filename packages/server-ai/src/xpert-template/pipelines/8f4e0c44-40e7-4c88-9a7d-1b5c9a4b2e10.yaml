@@ -1,0 +1,365 @@
+team:
+    name: 合同资料包解析流水线
+    type: knowledge
+    title: Contract Reference Package Pipeline
+    description: Parse contract reference packages with PDF text and page images, Office files, sheets, and standalone images.
+    avatar: null
+    starters: null
+    options:
+        position:
+            x: 0
+            y: 0
+        scale: 0.72
+    agentConfig: null
+    memory: null
+    summarize: null
+    features:
+        attachment:
+            enabled: true
+            maxNum: 20
+            fileTypes:
+                - document
+                - image
+                - others
+    version: '1'
+    agent:
+        key: ContractReferencePipelineAgent
+    copilotModel: null
+    knowledgebases: []
+    toolsets: []
+    tags:
+        - contract-reference
+        - bom
+        - pdf-visual
+nodes:
+    - key: Trigger_ContractReference
+      type: workflow
+      position:
+          x: 0
+          y: 320
+      entity:
+          key: Trigger_ContractReference
+          title: Trigger
+          type: trigger
+          from: chat
+    - key: Source_ContractReferenceFiles
+      type: workflow
+      position:
+          x: 300
+          y: 320
+      entity:
+          key: Source_ContractReferenceFiles
+          title: Contract Reference Files
+          type: source
+          provider: local-file
+          config:
+              fileExtensions:
+                  - pdf
+                  - doc
+                  - docx
+                  - pptx
+                  - xls
+                  - xlsx
+                  - csv
+                  - md
+                  - markdown
+                  - txt
+                  - png
+                  - jpg
+                  - jpeg
+                  - gif
+                  - webp
+                  - tiff
+    - key: ListOperator_PdfFiles
+      type: workflow
+      position:
+          x: 620
+          y: 80
+      entity:
+          key: ListOperator_PdfFiles
+          title: PDF Files
+          type: list-operator
+          input: source_contractreferencefiles_channel.documents
+          itemVarType: document
+          filterBy:
+              enabled: true
+              conditions:
+                  - id: pdf-files
+                    comparisonOperator: like
+                    variableSelector: extension
+                    value: pdf$|PDF$
+    - key: ListOperator_SheetFiles
+      type: workflow
+      position:
+          x: 620
+          y: 260
+      entity:
+          key: ListOperator_SheetFiles
+          title: Sheet Files
+          type: list-operator
+          input: source_contractreferencefiles_channel.documents
+          itemVarType: document
+          filterBy:
+              enabled: true
+              conditions:
+                  - id: sheet-files
+                    comparisonOperator: like
+                    variableSelector: extension
+                    value: csv$|CSV$|xls$|XLS$|xlsx$|XLSX$
+    - key: ListOperator_ImageFiles
+      type: workflow
+      position:
+          x: 620
+          y: 440
+      entity:
+          key: ListOperator_ImageFiles
+          title: Image Files
+          type: list-operator
+          input: source_contractreferencefiles_channel.documents
+          itemVarType: document
+          filterBy:
+              enabled: true
+              conditions:
+                  - id: image-files
+                    comparisonOperator: like
+                    variableSelector: extension
+                    value: png$|PNG$|jpg$|JPG$|jpeg$|JPEG$|gif$|GIF$|webp$|WEBP$|tif$|TIF$|tiff$|TIFF$
+    - key: ListOperator_OfficeTextFiles
+      type: workflow
+      position:
+          x: 620
+          y: 620
+      entity:
+          key: ListOperator_OfficeTextFiles
+          title: Office and Text Files
+          type: list-operator
+          input: source_contractreferencefiles_channel.documents
+          itemVarType: document
+          filterBy:
+              enabled: true
+              conditions:
+                  - id: office-text-files
+                    comparisonOperator: not-like
+                    variableSelector: extension
+                    value: pdf$|PDF$|csv$|CSV$|xls$|XLS$|xlsx$|XLSX$|png$|PNG$|jpg$|JPG$|jpeg$|JPEG$|gif$|GIF$|webp$|WEBP$|tif$|TIF$|tiff$|TIFF$
+    - key: Processor_PdfVisual
+      type: workflow
+      position:
+          x: 940
+          y: 80
+      entity:
+          key: Processor_PdfVisual
+          title: PDF Visual Processor
+          type: processor
+          provider: pdf-visual
+          config:
+              renderPageImages: true
+              maxPages: 300
+              renderScale: 2
+          input: listoperator_pdffiles_channel.result
+    - key: Processor_Sheets
+      type: workflow
+      position:
+          x: 940
+          y: 260
+      entity:
+          key: Processor_Sheets
+          title: Sheet Processor
+          type: processor
+          provider: default
+          input: listoperator_sheetfiles_channel.result
+    - key: Processor_Images
+      type: workflow
+      position:
+          x: 940
+          y: 440
+      entity:
+          key: Processor_Images
+          title: Image Processor
+          type: processor
+          provider: default
+          input: listoperator_imagefiles_channel.result
+    - key: Processor_OfficeText
+      type: workflow
+      position:
+          x: 940
+          y: 620
+      entity:
+          key: Processor_OfficeText
+          title: Office and Text Processor
+          type: processor
+          provider: default
+          input: listoperator_officetextfiles_channel.result
+    - key: Chunker_PdfMarkdown
+      type: workflow
+      position:
+          x: 1260
+          y: 80
+      entity:
+          key: Chunker_PdfMarkdown
+          title: PDF Markdown Chunker
+          type: chunker
+          provider: markdown-recursive
+          config:
+              addHeadersToChunk: true
+              headerToSplitOn: 3
+              stripHeader: false
+          input: processor_pdfvisual_channel.documents
+    - key: Chunker_Sheets
+      type: workflow
+      position:
+          x: 1260
+          y: 260
+      entity:
+          key: Chunker_Sheets
+          title: Sheet Chunker
+          type: chunker
+          provider: recursive-character
+          config:
+              chunkSize: 1000
+              chunkOverlap: 100
+              separators: "\n\n,\n, ,"
+          input: processor_sheets_channel.documents
+    - key: Chunker_OfficeText
+      type: workflow
+      position:
+          x: 1260
+          y: 620
+      entity:
+          key: Chunker_OfficeText
+          title: Office and Text Chunker
+          type: chunker
+          provider: markdown-recursive
+          config:
+              addHeadersToChunk: true
+              headerToSplitOn: 3
+              stripHeader: false
+          input: processor_officetext_channel.documents
+    - key: VariableAggregator_TextChunks
+      type: workflow
+      position:
+          x: 1580
+          y: 360
+      entity:
+          key: VariableAggregator_TextChunks
+          title: Text Chunk Aggregator
+          type: variable-aggregator
+          inputs:
+              - chunker_pdfmarkdown_channel.documents
+              - chunker_sheets_channel.documents
+              - chunker_officetext_channel.documents
+              - processor_images_channel.documents
+          outputType: array[document]
+    - key: Understanding_ContractImages
+      type: workflow
+      position:
+          x: 1900
+          y: 360
+      entity:
+          key: Understanding_ContractImages
+          title: Image Understanding
+          type: understanding
+          provider: vlm-default
+          visionModel: null
+          input: variableaggregator_textchunks_channel.result
+          config:
+              promptTemplate: 'You are reading contract reference material. Describe images, drawings, tables, charts, labels, dimensions, and technical constraints precisely. Include page or file context when present.'
+    - key: KnowledgeBase_ContractReference
+      type: workflow
+      position:
+          x: 2220
+          y: 360
+      entity:
+          key: KnowledgeBase_ContractReference
+          title: Knowledge Base
+          type: knowledgebase
+          structure: general
+          inputs:
+              - variableaggregator_textchunks_channel.result
+              - understanding_contractimages_channel.documents
+          copilotModel:
+              model: text-embedding-v4
+              modelType: text-embedding
+          rerankModel:
+              model: gte-rerank-v2
+              modelType: rerank
+          visionModel:
+              model: qwen-vl-plus
+              modelType: llm
+connections:
+    - type: edge
+      key: Trigger_ContractReference/Source_ContractReferenceFiles
+      from: Trigger_ContractReference
+      to: Source_ContractReferenceFiles
+    - type: edge
+      key: Source_ContractReferenceFiles/ListOperator_PdfFiles
+      from: Source_ContractReferenceFiles
+      to: ListOperator_PdfFiles
+    - type: edge
+      key: Source_ContractReferenceFiles/ListOperator_SheetFiles
+      from: Source_ContractReferenceFiles
+      to: ListOperator_SheetFiles
+    - type: edge
+      key: Source_ContractReferenceFiles/ListOperator_ImageFiles
+      from: Source_ContractReferenceFiles
+      to: ListOperator_ImageFiles
+    - type: edge
+      key: Source_ContractReferenceFiles/ListOperator_OfficeTextFiles
+      from: Source_ContractReferenceFiles
+      to: ListOperator_OfficeTextFiles
+    - type: edge
+      key: ListOperator_PdfFiles/Processor_PdfVisual
+      from: ListOperator_PdfFiles
+      to: Processor_PdfVisual
+    - type: edge
+      key: ListOperator_SheetFiles/Processor_Sheets
+      from: ListOperator_SheetFiles
+      to: Processor_Sheets
+    - type: edge
+      key: ListOperator_ImageFiles/Processor_Images
+      from: ListOperator_ImageFiles
+      to: Processor_Images
+    - type: edge
+      key: ListOperator_OfficeTextFiles/Processor_OfficeText
+      from: ListOperator_OfficeTextFiles
+      to: Processor_OfficeText
+    - type: edge
+      key: Processor_PdfVisual/Chunker_PdfMarkdown
+      from: Processor_PdfVisual
+      to: Chunker_PdfMarkdown
+    - type: edge
+      key: Processor_Sheets/Chunker_Sheets
+      from: Processor_Sheets
+      to: Chunker_Sheets
+    - type: edge
+      key: Processor_OfficeText/Chunker_OfficeText
+      from: Processor_OfficeText
+      to: Chunker_OfficeText
+    - type: edge
+      key: Chunker_PdfMarkdown/VariableAggregator_TextChunks
+      from: Chunker_PdfMarkdown
+      to: VariableAggregator_TextChunks
+    - type: edge
+      key: Chunker_Sheets/VariableAggregator_TextChunks
+      from: Chunker_Sheets
+      to: VariableAggregator_TextChunks
+    - type: edge
+      key: Chunker_OfficeText/VariableAggregator_TextChunks
+      from: Chunker_OfficeText
+      to: VariableAggregator_TextChunks
+    - type: edge
+      key: Processor_Images/VariableAggregator_TextChunks
+      from: Processor_Images
+      to: VariableAggregator_TextChunks
+    - type: edge
+      key: VariableAggregator_TextChunks/Understanding_ContractImages
+      from: VariableAggregator_TextChunks
+      to: Understanding_ContractImages
+    - type: edge
+      key: VariableAggregator_TextChunks/KnowledgeBase_ContractReference
+      from: VariableAggregator_TextChunks
+      to: KnowledgeBase_ContractReference
+    - type: edge
+      key: Understanding_ContractImages/KnowledgeBase_ContractReference
+      from: Understanding_ContractImages
+      to: KnowledgeBase_ContractReference

@@ -1351,9 +1351,15 @@ importers:
       mammoth:
         specifier: ^1.11.0
         version: 1.11.0
+      pdf-to-img:
+        specifier: ^6.1.0
+        version: 6.1.0
       turndown:
         specifier: ^7.2.2
         version: 7.2.2
+      xlsx:
+        specifier: ^0.18.5
+        version: 0.18.5
 
   packages/plugins/trigger-schedule:
     dependencies:

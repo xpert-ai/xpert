@@ -23,6 +23,7 @@ import fsPromises from 'fs/promises'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
+import * as XLSX from 'xlsx'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
 
 type TResolvedDocumentFile = {
@@ -315,8 +316,25 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
   }
 
   async processExcel(url: string): Promise<Document<Record<string, any>>[]> {
-    const loader = new PPTXLoader(url)
-    return await loader.load()
+    const workbook = XLSX.readFile(url)
+    const documents: Document<Record<string, any>>[] = []
+    workbook.SheetNames.forEach((sheetName) => {
+      const sheet = workbook.Sheets[sheetName]
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' })
+      rows.forEach((row, index) => {
+        documents.push(
+          new Document({
+            pageContent: JSON.stringify(row),
+            metadata: {
+              sheetName,
+              rowNumber: index + 1,
+              raw: row
+            }
+          })
+        )
+      })
+    })
+    return documents
   }
   async processOpenDocument(url: string): Promise<Document<Record<string, any>>[]> {
     const loader = new PPTXLoader(url)
