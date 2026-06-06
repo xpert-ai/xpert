@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { BadRequestException, Injectable } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { TextDecoder } from 'node:util'
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
     DocumentSourceProviderCategoryEnum,
@@ -15,7 +16,7 @@ import {
     AgentMiddlewareKnowledgebaseUploadedFile
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { RequestContext } from '@xpert-ai/server-core'
+import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import * as tar from 'tar'
 import { In } from 'typeorm'
 import unzipper from 'unzipper'
@@ -73,6 +74,7 @@ type KnowledgebaseDocumentHandlerDeps = {
     knowledgebaseService: KnowledgebaseService
     documentService: KnowledgeDocumentService
     knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+    commandBus: CommandBus
 }
 
 type ArchiveImportState = {
@@ -90,7 +92,8 @@ export class UploadKnowledgebaseDocumentFileHandler implements ICommandHandler<U
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
-        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
+        private readonly commandBus: CommandBus
     ) {}
 
     async execute(command: UploadKnowledgebaseDocumentFileCommand) {
@@ -98,7 +101,8 @@ export class UploadKnowledgebaseDocumentFileHandler implements ICommandHandler<U
             {
                 knowledgebaseService: this.knowledgebaseService,
                 documentService: this.documentService,
-                knowledgeWorkAreaResolver: this.knowledgeWorkAreaResolver
+                knowledgeWorkAreaResolver: this.knowledgeWorkAreaResolver,
+                commandBus: this.commandBus
             },
             command.input
         )
@@ -111,12 +115,13 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
-        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
+        private readonly commandBus: CommandBus
     ) {}
 
     async execute(command: ImportKnowledgebaseArchiveCommand) {
         const input = command.input
-        const fileName = normalizeUploadedFileName(input.file?.originalname)
+        const fileName = normalizeKnowledgebaseUploadedFileName(input.file?.originalname)
         const archiveExtension = getArchiveExtension(fileName)
         if (!archiveExtension) {
             throw new BadRequestException('Archive file extension is required')
@@ -126,7 +131,8 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
             {
                 knowledgebaseService: this.knowledgebaseService,
                 documentService: this.documentService,
-                knowledgeWorkAreaResolver: this.knowledgeWorkAreaResolver
+                knowledgeWorkAreaResolver: this.knowledgeWorkAreaResolver,
+                commandBus: this.commandBus
             },
             {
                 knowledgebaseId: input.knowledgebaseId,
@@ -158,11 +164,6 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
             DEFAULT_MAX_ARCHIVE_ENTRY_SIZE_BYTES
         )
         const maxDepth = normalizeNonNegativeInteger(input.maxDepth, DEFAULT_MAX_ARCHIVE_DEPTH)
-        const workArea = await this.knowledgeWorkAreaResolver.resolve({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            knowledgebaseId: input.knowledgebaseId
-        })
         const baseFolder = this.knowledgeWorkAreaResolver.getFilesPath(input.path ?? '')
         const state: ArchiveImportState = {
             drafts: [],
@@ -182,7 +183,7 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
             maxEntrySizeBytes,
             supportedExtensions,
             state,
-            workArea,
+            commandBus: this.commandBus,
             storageRoot: path.posix.join(baseFolder, stripExtension(fileName)),
             virtualPathPrefix: '',
             knowledgebaseId: input.knowledgebaseId,
@@ -364,25 +365,63 @@ async function uploadKnowledgebaseFile(
             .filter(Boolean)
             .join('/')
     }
-    const fileName = buildUniqueFileName(normalizeUploadedFileName(input.file.originalname))
-    const workArea = await deps.knowledgeWorkAreaResolver.resolve({
-        tenantId: RequestContext.currentTenantId(),
-        userId: RequestContext.currentUserId(),
-        knowledgebaseId: input.knowledgebaseId
-    })
+    const fileName = buildUniqueFileName(normalizeKnowledgebaseUploadedFileName(input.file.originalname))
     const folder = deps.knowledgeWorkAreaResolver.getFilesPath(path.posix.join(parentFolder, input.path ?? ''))
-    const filePath = path.posix.join(folder, fileName)
-    const absoluteFilePath = workArea.volume.path(filePath)
-    await fsPromises.mkdir(path.dirname(absoluteFilePath), { recursive: true })
-    await fsPromises.writeFile(absoluteFilePath, input.file.buffer)
+    return uploadKnowledgebaseBufferFile(deps.commandBus, {
+        knowledgebaseId: input.knowledgebaseId,
+        folder,
+        fileName,
+        originalName: input.file.originalname,
+        buffer: input.file.buffer,
+        mimeType: input.file.mimetype,
+        size: input.file.size ?? input.file.buffer.length
+    })
+}
+
+async function uploadKnowledgebaseBufferFile(
+    commandBus: CommandBus,
+    input: {
+        knowledgebaseId: string
+        folder: string
+        fileName: string
+        originalName: string
+        buffer: Buffer
+        mimeType?: string
+        size?: number
+    }
+): Promise<AgentMiddlewareKnowledgebaseUploadedFile> {
+    const asset = await commandBus.execute(
+        new UploadFileCommand({
+            source: {
+                kind: 'buffer',
+                buffer: input.buffer,
+                originalName: input.originalName,
+                mimeType: input.mimeType,
+                size: input.size ?? input.buffer.length
+            },
+            targets: [
+                {
+                    kind: 'volume',
+                    catalog: 'knowledges',
+                    knowledgeId: input.knowledgebaseId,
+                    folder: input.folder,
+                    fileName: input.fileName
+                }
+            ]
+        })
+    )
+    const destination = getFileAssetDestination(asset, 'volume')
+    if (!destination || destination.status !== 'success') {
+        throw new InternalServerErrorException(destination?.error || 'Failed to upload knowledgebase file')
+    }
 
     return {
-        name: fileName,
-        filePath,
-        fileUrl: workArea.volume.publicUrl(filePath),
-        mimeType: input.file.mimetype,
-        size: input.file.size ?? input.file.buffer.length,
-        sourceHash: createHash('sha256').update(input.file.buffer).digest('hex')
+        name: input.fileName,
+        filePath: destination.path,
+        fileUrl: destination.url,
+        mimeType: input.mimeType,
+        size: input.size ?? input.buffer.length,
+        sourceHash: createHash('sha256').update(input.buffer).digest('hex')
     }
 }
 
@@ -396,7 +435,7 @@ type ArchiveExtractionInput = {
     maxEntrySizeBytes: number
     supportedExtensions: Set<string>
     state: ArchiveImportState
-    workArea: Awaited<ReturnType<KnowledgeWorkAreaResolver['resolve']>>
+    commandBus: CommandBus
     storageRoot: string
     virtualPathPrefix: string
     knowledgebaseId: string
@@ -444,7 +483,7 @@ async function extractZipArchiveToKnowledgeDocumentDrafts(input: ArchiveExtracti
             continue
         }
         await processArchiveFileEntry(input, {
-            rawPath: entry.path,
+            rawPath: decodeZipEntryPath(entry),
             uncompressedSize: Number((entry as any).vars?.uncompressedSize ?? (entry as any).uncompressedSize ?? 0),
             loadBuffer: () => entry.buffer()
         })
@@ -572,10 +611,16 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
     }
     input.state.seenHashes.add(sourceHash)
 
-    const filePath = path.posix.join(input.storageRoot, virtualPath)
-    const absoluteFilePath = input.workArea.volume.path(filePath)
-    await fsPromises.mkdir(path.dirname(absoluteFilePath), { recursive: true })
-    await fsPromises.writeFile(absoluteFilePath, buffer)
+    const targetFilePath = path.posix.join(input.storageRoot, virtualPath)
+    const uploaded = await uploadKnowledgebaseBufferFile(input.commandBus, {
+        knowledgebaseId: input.knowledgebaseId,
+        folder: path.posix.dirname(targetFilePath),
+        fileName: path.posix.basename(targetFilePath),
+        originalName: path.posix.basename(virtualPath),
+        buffer,
+        mimeType: guessMimeType(type),
+        size: buffer.length
+    })
 
     const category = classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>)
     input.state.drafts.push({
@@ -585,9 +630,9 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
         name: path.posix.basename(virtualPath),
         type,
         category,
-        filePath,
-        fileUrl: input.workArea.volume.publicUrl(filePath),
-        mimeType: guessMimeType(type),
+        filePath: uploaded.filePath,
+        fileUrl: uploaded.fileUrl,
+        mimeType: uploaded.mimeType,
         size: String(buffer.length),
         parserConfig: resolveKnowledgeDocumentParserConfig({
             type,
@@ -690,9 +735,98 @@ function normalizeArchiveEntryPath(entryPath: string) {
     if (!segments.length || segments.some((segment) => segment === '__MACOSX' || segment.startsWith('.'))) {
         return null
     }
-    const fileName = normalizeUploadedFileName(segments.pop())
-    const folders = segments.map((segment) => sanitizePathSegment(segment)).filter(Boolean)
+    const fileName = normalizeKnowledgebaseUploadedFileName(segments.pop())
+    const folders = segments.map((segment) => sanitizePathSegment(repairUtf8Mojibake(segment))).filter(Boolean)
     return path.posix.join(...folders, fileName)
+}
+
+function normalizeKnowledgebaseUploadedFileName(fileName?: string) {
+    return repairUtf8Mojibake(normalizeUploadedFileName(fileName))
+}
+
+function decodeZipEntryPath(entry: { path?: string; vars?: any; props?: any }) {
+    const entryLike = entry as typeof entry & { pathBuffer?: unknown; isUnicode?: unknown; flags?: unknown }
+    const pathBuffer = Buffer.isBuffer(entryLike.pathBuffer)
+        ? entryLike.pathBuffer
+        : Buffer.isBuffer(entry.vars?.pathBuffer)
+          ? entry.vars.pathBuffer
+          : Buffer.isBuffer(entry.props?.pathBuffer)
+            ? entry.props.pathBuffer
+            : undefined
+    const isUnicode = Boolean(
+        entryLike.isUnicode ??
+        entry.vars?.isUnicode ??
+        entry.props?.flags?.isUnicode ??
+        (Number(entryLike.flags ?? entry.vars?.flags) || 0) & 0x800
+    )
+
+    if (!pathBuffer?.length) {
+        return repairUtf8Mojibake(entry.path ?? '')
+    }
+
+    const utf8 = decodeBuffer(pathBuffer, 'utf-8')
+    if (isUnicode || isUsableDecodedArchivePath(utf8)) {
+        return repairUtf8Mojibake(utf8)
+    }
+
+    const gb18030 = decodeBuffer(pathBuffer, 'gb18030')
+    if (isUsableDecodedArchivePath(gb18030)) {
+        return repairUtf8Mojibake(gb18030)
+    }
+
+    return repairUtf8Mojibake(entry.path ?? utf8)
+}
+
+function decodeBuffer(buffer: Buffer, encoding: string) {
+    try {
+        return new TextDecoder(encoding).decode(buffer)
+    } catch {
+        return buffer.toString('utf8')
+    }
+}
+
+function isUsableDecodedArchivePath(value: string) {
+    return Boolean(value?.trim()) && !value.includes('\uFFFD')
+}
+
+function repairUtf8Mojibake(value: string) {
+    if (!value) {
+        return value
+    }
+
+    try {
+        const candidate = Buffer.from(value, 'latin1').toString('utf8')
+        if (
+            candidate &&
+            candidate !== value &&
+            !candidate.includes('\uFFFD') &&
+            scoreFileName(candidate) > scoreFileName(value)
+        ) {
+            return candidate
+        }
+    } catch {
+        // Keep the original value when it is already decoded or cannot be repaired.
+    }
+
+    return value
+}
+
+function scoreFileName(value: string) {
+    let score = 0
+    for (const char of value) {
+        if (char === '\uFFFD') {
+            score -= 100
+        } else if (/[\u4e00-\u9fff]/u.test(char)) {
+            score += 3
+        } else if (/[\u0080-\u009f]/u.test(char)) {
+            score -= 4
+        } else if (/[ÃÂÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/u.test(char)) {
+            score -= 2
+        } else if (/[a-zA-Z0-9._/ -]/u.test(char)) {
+            score += 1
+        }
+    }
+    return score
 }
 
 function sanitizePathSegment(segment: string) {

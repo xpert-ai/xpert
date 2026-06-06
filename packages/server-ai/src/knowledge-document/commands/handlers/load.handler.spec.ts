@@ -2,6 +2,10 @@ import { Document } from '@langchain/core/documents'
 import { KnowledgeDocLoadHandler } from './load.handler'
 
 describe('KnowledgeDocLoadHandler', () => {
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
     it('uses the default text splitter when parserConfig is null', async () => {
         const handler = new KnowledgeDocLoadHandler({} as any, {} as any, {} as any)
         const chunks = [

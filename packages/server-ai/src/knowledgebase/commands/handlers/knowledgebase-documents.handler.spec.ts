@@ -1,9 +1,9 @@
 import archiver from 'archiver'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { PassThrough } from 'node:stream'
-import { RequestContext } from '@xpert-ai/server-core'
+import { crc32 } from 'node:zlib'
 import {
     DeleteKnowledgebaseDocumentsCommand,
     ImportKnowledgebaseArchiveCommand
@@ -24,8 +24,6 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
     it('recursively imports supported files from nested zip archives', async () => {
         const tempRoot = await mkdtemp(path.join(tmpdir(), 'kb-archive-import-'))
         tempDirs.push(tempRoot)
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
 
         const createdDrafts: any[] = []
         const knowledgebaseService = {
@@ -62,10 +60,12 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
             'attachments/nested.rar': Buffer.from('rar-content'),
             '__MACOSX/ignored.txt': 'ignored'
         })
+        const commandBus = createUploadCommandBus(tempRoot)
         const handler = new ImportKnowledgebaseArchiveHandler(
             knowledgebaseService as any,
             documentService as any,
-            workAreaResolver as any
+            workAreaResolver as any,
+            commandBus as any
         )
 
         const result = await handler.execute(
@@ -148,10 +148,9 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
     it('imports tar.gz archives and recursively expands nested zip files', async () => {
         const tempRoot = await mkdtemp(path.join(tmpdir(), 'kb-archive-import-'))
         tempDirs.push(tempRoot)
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
 
         const createdDrafts: any[] = []
+        const commandBus = createUploadCommandBus(tempRoot)
         const handler = new ImportKnowledgebaseArchiveHandler(
             {
                 assertNotRebuilding: jest.fn()
@@ -176,7 +175,8 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
                     }
                 })),
                 getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
-            } as any
+            } as any,
+            commandBus as any
         )
         const nestedZip = await createZipBuffer({
             'spec.pdf': 'nested-pdf'
@@ -211,6 +211,142 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
         await expect(
             readFile(path.join(tempRoot, 'files/reference/package/bundle/nested/spec.pdf'), 'utf8')
         ).resolves.toBe('nested-pdf')
+    })
+
+    it('imports zip entries with GB18030 encoded Chinese names', async () => {
+        const tempRoot = await mkdtemp(path.join(tmpdir(), 'kb-archive-import-'))
+        tempDirs.push(tempRoot)
+
+        const createdDrafts: any[] = []
+        const commandBus = createUploadCommandBus(tempRoot)
+        const handler = new ImportKnowledgebaseArchiveHandler(
+            {
+                assertNotRebuilding: jest.fn()
+            } as any,
+            {
+                createBulk: jest.fn(async (drafts: any[]) => {
+                    createdDrafts.push(...drafts)
+                    return drafts.map((draft, index) => ({
+                        ...draft,
+                        id: `doc-${index + 1}`,
+                        status: 'waiting'
+                    }))
+                }),
+                startProcessing: jest.fn(async () => []),
+                findAncestors: jest.fn()
+            } as any,
+            {
+                resolve: jest.fn(async () => ({
+                    volume: {
+                        path: (filePath: string) => path.join(tempRoot, filePath),
+                        publicUrl: (filePath: string) => `https://files.example/${filePath}`
+                    }
+                })),
+                getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
+            } as any,
+            commandBus as any
+        )
+        const archiveBuffer = createStoredZipBuffer([
+            {
+                rawPath: Buffer.from('c4bfc2bc2f3235433133303837bbaac9fdbacfcdac2e786c7378', 'hex'),
+                content: Buffer.from('sheet-content')
+            }
+        ])
+
+        await handler.execute(
+            new ImportKnowledgebaseArchiveCommand({
+                knowledgebaseId: 'kb-1',
+                file: {
+                    buffer: archiveBuffer,
+                    originalname: 'package.zip',
+                    mimetype: 'application/zip',
+                    size: archiveBuffer.length
+                },
+                path: 'reference',
+                packageCode: 'PKG-1'
+            })
+        )
+
+        expect(createdDrafts).toHaveLength(1)
+        expect(createdDrafts[0]).toEqual(
+            expect.objectContaining({
+                name: '25C13087华升合同.xlsx',
+                filePath: 'files/reference/package/目录/25C13087华升合同.xlsx',
+                metadata: expect.objectContaining({
+                    archiveEntryPath: '目录/25C13087华升合同.xlsx'
+                })
+            })
+        )
+        await expect(
+            readFile(path.join(tempRoot, 'files/reference/package/目录/25C13087华升合同.xlsx'), 'utf8')
+        ).resolves.toBe('sheet-content')
+    })
+
+    it('repairs mojibake uploaded archive names before building extracted file paths', async () => {
+        const tempRoot = await mkdtemp(path.join(tmpdir(), 'kb-archive-import-'))
+        tempDirs.push(tempRoot)
+
+        const createdDrafts: any[] = []
+        const commandBus = createUploadCommandBus(tempRoot)
+        const handler = new ImportKnowledgebaseArchiveHandler(
+            {
+                assertNotRebuilding: jest.fn()
+            } as any,
+            {
+                createBulk: jest.fn(async (drafts: any[]) => {
+                    createdDrafts.push(...drafts)
+                    return drafts.map((draft, index) => ({
+                        ...draft,
+                        id: `doc-${index + 1}`,
+                        status: 'waiting'
+                    }))
+                }),
+                startProcessing: jest.fn(async () => []),
+                findAncestors: jest.fn()
+            } as any,
+            {
+                resolve: jest.fn(async () => ({
+                    volume: {
+                        path: (filePath: string) => path.join(tempRoot, filePath),
+                        publicUrl: (filePath: string) => `https://files.example/${filePath}`
+                    }
+                })),
+                getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
+            } as any,
+            commandBus as any
+        )
+        const archiveBuffer = await createZipBuffer({
+            '25C13087华升合同.xlsx': 'sheet-content'
+        })
+
+        await handler.execute(
+            new ImportKnowledgebaseArchiveCommand({
+                knowledgebaseId: 'kb-1',
+                file: {
+                    buffer: archiveBuffer,
+                    originalname: '25C13087åè¥åååå.zip',
+                    mimetype: 'application/zip',
+                    size: archiveBuffer.length
+                },
+                path: 'contract-reference-packages/25C13087',
+                packageCode: '25C13087'
+            })
+        )
+
+        expect(createdDrafts).toHaveLength(1)
+        expect(createdDrafts[0].filePath).toBe(
+            'files/contract-reference-packages/25C13087/25C13087合肥华升合同/25C13087华升合同.xlsx'
+        )
+        expect(createdDrafts[0].filePath).not.toContain('å')
+        await expect(
+            readFile(
+                path.join(
+                    tempRoot,
+                    'files/contract-reference-packages/25C13087/25C13087合肥华升合同/25C13087华升合同.xlsx'
+                ),
+                'utf8'
+            )
+        ).resolves.toBe('sheet-content')
     })
 })
 
@@ -257,6 +393,51 @@ async function createZipBuffer(entries: Record<string, string | Buffer>) {
     return createArchiveBuffer('zip', entries, { zlib: { level: 9 } })
 }
 
+function createUploadCommandBus(tempRoot: string) {
+    return {
+        execute: jest.fn(async (command: any) => {
+            const input = command.input
+            const source = input.source
+            const target = input.targets[0]
+            const filePath = path.posix.join(target.folder || '', target.fileName || source.originalName)
+            const absolutePath = path.join(tempRoot, filePath)
+            await mkdir(path.dirname(absolutePath), { recursive: true })
+            await writeFile(absolutePath, source.buffer)
+            const fileUrl = `https://files.example/${filePath}`
+
+            return {
+                name: source.originalName,
+                originalName: source.originalName,
+                mimeType: source.mimeType,
+                size: source.size ?? source.buffer?.length,
+                status: 'success',
+                source: {
+                    kind: source.kind,
+                    name: source.originalName,
+                    originalName: source.originalName,
+                    mimeType: source.mimeType,
+                    size: source.size ?? source.buffer?.length
+                },
+                destinations: [
+                    {
+                        kind: 'volume',
+                        status: 'success',
+                        path: filePath,
+                        url: fileUrl,
+                        metadata: {
+                            catalog: target.catalog,
+                            filePath,
+                            fileUrl,
+                            absolutePath,
+                            mimeType: source.mimeType
+                        }
+                    }
+                ]
+            }
+        })
+    }
+}
+
 async function createArchiveBuffer(
     format: 'zip' | 'tar',
     entries: Record<string, string | Buffer>,
@@ -282,4 +463,49 @@ async function createArchiveBuffer(
     }
     await archive.finalize()
     return result
+}
+
+function createStoredZipBuffer(entries: Array<{ rawPath: Buffer; content: Buffer }>) {
+    const localParts: Buffer[] = []
+    const centralParts: Buffer[] = []
+    let offset = 0
+
+    for (const entry of entries) {
+        const crc = crc32(entry.content) >>> 0
+        const localHeader = Buffer.alloc(30)
+        localHeader.writeUInt32LE(0x04034b50, 0)
+        localHeader.writeUInt16LE(20, 4)
+        localHeader.writeUInt16LE(0, 6)
+        localHeader.writeUInt16LE(0, 8)
+        localHeader.writeUInt32LE(crc, 14)
+        localHeader.writeUInt32LE(entry.content.length, 18)
+        localHeader.writeUInt32LE(entry.content.length, 22)
+        localHeader.writeUInt16LE(entry.rawPath.length, 26)
+
+        const centralHeader = Buffer.alloc(46)
+        centralHeader.writeUInt32LE(0x02014b50, 0)
+        centralHeader.writeUInt16LE(20, 4)
+        centralHeader.writeUInt16LE(20, 6)
+        centralHeader.writeUInt16LE(0, 8)
+        centralHeader.writeUInt16LE(0, 10)
+        centralHeader.writeUInt32LE(crc, 16)
+        centralHeader.writeUInt32LE(entry.content.length, 20)
+        centralHeader.writeUInt32LE(entry.content.length, 24)
+        centralHeader.writeUInt16LE(entry.rawPath.length, 28)
+        centralHeader.writeUInt32LE(offset, 42)
+
+        localParts.push(localHeader, entry.rawPath, entry.content)
+        centralParts.push(centralHeader, entry.rawPath)
+        offset += localHeader.length + entry.rawPath.length + entry.content.length
+    }
+
+    const centralDirectory = Buffer.concat(centralParts)
+    const end = Buffer.alloc(22)
+    end.writeUInt32LE(0x06054b50, 0)
+    end.writeUInt16LE(entries.length, 8)
+    end.writeUInt16LE(entries.length, 10)
+    end.writeUInt32LE(centralDirectory.length, 12)
+    end.writeUInt32LE(offset, 16)
+
+    return Buffer.concat([...localParts, centralDirectory, end])
 }

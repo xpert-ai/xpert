@@ -74,6 +74,14 @@ describe('volume layout helpers', () => {
         )
     })
 
+    it('resolves relative sandbox volume config from the current process root', () => {
+        mockEnvironment.sandboxConfig.volume = 'tmp/sandbox'
+
+        expect(usesFlattenedSandboxVolumeLayout()).toBe(false)
+        expect(getApiContainerSandboxVolumeRootPath('tenant-1')).toBe(`${process.cwd()}/tmp/sandbox/tenant-1`)
+        expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe(`${process.cwd()}/tmp/sandbox/tenant-1`)
+    })
+
     it('uses the mounted sandbox path for dockerized development stacks', () => {
         mockEnvironment.sandboxConfig.volume = '/tmp/sandbox'
         mockEnvironment.env.IS_DOCKER = 'true'

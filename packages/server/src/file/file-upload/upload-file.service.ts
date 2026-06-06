@@ -74,7 +74,7 @@ export class UploadFileService {
 	}
 
 	private async resolveSource(source: TUploadFileSource): Promise<TResolvedUploadSource> {
-			switch (source.kind) {
+		switch (source.kind) {
 			case 'multipart': {
 				const originalName = decodeMultipartFileName(source.file.originalname)
 				return {
@@ -133,6 +133,25 @@ export class UploadFileService {
 						mimeType,
 						size: buffer.byteLength,
 						filePath: source.filePath
+					}
+				}
+			}
+			case 'buffer': {
+				const originalName = source.originalName
+				const mimeType = source.mimeType || this.lookupMimeType(originalName)
+				const size = source.size ?? source.buffer.byteLength
+				return {
+					name: originalName,
+					originalName,
+					mimeType,
+					size,
+					buffer: source.buffer,
+					source: {
+						kind: 'buffer',
+						name: originalName,
+						originalName,
+						mimeType,
+						size
 					}
 				}
 			}
