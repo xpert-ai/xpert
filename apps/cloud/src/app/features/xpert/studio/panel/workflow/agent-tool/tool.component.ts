@@ -4,14 +4,17 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  IWFNAgentTool,
+  IWFNAgentWorkflow,
   IWorkflowNode,
+  TAgentToolReturnSource,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
@@ -20,7 +23,15 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
+type TAgentToolReturnSourceType = TAgentToolReturnSource['type']
+
 @Component({
   selector: 'xpert-workflow-agent-tool',
   templateUrl: './tool.component.html',
@@ -34,9 +45,13 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     TranslateModule,
     NgmDensityDirective,
+    CopilotPromptEditorComponent,
     XpertOutputVariablesEditComponent,
+    StateVariableSelectComponent,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
     ZardSwitchComponent
-]
+  ]
 })
 export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
@@ -60,7 +75,7 @@ export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent 
 
   readonly toolEntity = linkedModel({
     initialValue: null,
-    compute: () => this.entity() as IWFNAgentTool,
+    compute: () => this.entity() as IWFNAgentWorkflow,
     update: (value) => {
       this.studioService.updateWorkflowNode(this.key(), (entity) => {
         return value
@@ -73,5 +88,51 @@ export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent 
   readonly toolDescription = attrModel(this.toolEntity, 'toolDescription')
   readonly parameters = attrModel(this.toolEntity, 'toolParameters')
   readonly isEnd = attrModel(this.toolEntity, 'isEnd')
+  readonly returnSource = attrModel(this.toolEntity, 'returnSource')
+  readonly returnSourceType = computed<TAgentToolReturnSourceType>(() => this.returnSource()?.type ?? 'last_message')
+  readonly returnVariable = computed(() => {
+    const source = this.returnSource()
+    return source?.type === 'variable' ? source.variableSelector : null
+  })
+  readonly returnTemplate = computed(() => {
+    const source = this.returnSource()
+    return source?.type === 'template' ? source.template : ''
+  })
   // readonly errorHandling = attrModel(this.toolEntity, 'errorHandling')
+
+  updateReturnSourceType(type: TAgentToolReturnSourceType) {
+    if (type === 'variable') {
+      this.returnSource.set({
+        type,
+        variableSelector: this.returnVariable() ?? ''
+      })
+      return
+    }
+
+    if (type === 'template') {
+      this.returnSource.set({
+        type,
+        template: this.returnTemplate() ?? ''
+      })
+      return
+    }
+
+    this.returnSource.set({
+      type: 'last_message'
+    })
+  }
+
+  updateReturnVariable(variableSelector: string) {
+    this.returnSource.set({
+      type: 'variable',
+      variableSelector
+    })
+  }
+
+  updateReturnTemplate(template: string) {
+    this.returnSource.set({
+      type: 'template',
+      template
+    })
+  }
 }

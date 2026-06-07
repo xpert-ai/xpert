@@ -1,11 +1,16 @@
 import { ICommand } from '@nestjs/cqrs'
 
-export class XpertExportDiagramCommand implements ICommand {
-	static readonly type = '[Xpert] Export Diagram'
+export interface XpertExportedDiagram {
+    contentType: string
+    data: Buffer
+}
 
-	constructor(
-		public readonly id: string,
-		public readonly isDraft: boolean,
-		public readonly agentKey?: string,
-	) {}
+export class XpertExportDiagramCommand implements ICommand {
+    static readonly type = '[Xpert] Export Diagram'
+
+    constructor(
+        public readonly id: string,
+        public readonly isDraft: boolean,
+        public readonly agentKey?: string
+    ) {}
 }

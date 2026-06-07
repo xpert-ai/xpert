@@ -92,7 +92,7 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
       this.strategies.get(orgKey)?.get(type) ??
       (orgKey === GLOBAL_ORGANIZATION_SCOPE ? undefined : this.strategies.get(GLOBAL_ORGANIZATION_SCOPE)?.get(type))
     if (!strategy) {
-      throw new Error(`No strategy found for type ${type}`)
+      throw new Error(`No strategy found for type '${type}' for strategy '${this.strategyKey}'`)
     }
     return strategy
   }

@@ -1,5 +1,10 @@
+import {
+    WorkflowAgentToolNodeStrategy,
+    WorkflowAgentWorkflowValidator,
+    WorkflowAgentWorkflowNodeStrategy
+} from './agent-tool'
 import { WorkflowAssignerNodeStrategy, WorkflowAssignerNodeValidator } from './assigner'
-import { WorkflowIteratorNodeStrategy } from './iterator'
+import { WorkflowIteratorNodeStrategy, WorkflowIteratorNodeValidator } from './iterator'
 import { WorkflowJSONParseNodeStrategy, WorkflowJSONParseNodeValidator } from './json-parse'
 import { WorkflowJSONStringifyNodeStrategy, WorkflowJSONStringifyNodeValidator } from './json-stringify'
 import { WorkflowListOperatorNodeStrategy, WorkflowListOperatorNodeValidator } from './list-operator'
@@ -9,23 +14,27 @@ import { WorkflowStartNodeStrategy } from './start'
 import { WorkflowVariableAggregatorNodeStrategy, WorkflowVariableAggregatorNodeValidator } from './variable-aggregator'
 
 export const Validators = [
-	WorkflowListOperatorNodeValidator,
-	WorkflowVariableAggregatorNodeValidator,
-	WorkflowAssignerNodeValidator,
-	WorkflowJSONStringifyNodeValidator,
-	WorkflowJSONParseNodeValidator,
-	WorkflowMiddlewareNodeValidator,
-	WorkflowSkillNodeValidator
+    WorkflowAgentWorkflowValidator,
+    WorkflowListOperatorNodeValidator,
+    WorkflowVariableAggregatorNodeValidator,
+    WorkflowAssignerNodeValidator,
+    WorkflowJSONStringifyNodeValidator,
+    WorkflowJSONParseNodeValidator,
+    WorkflowMiddlewareNodeValidator,
+    WorkflowSkillNodeValidator,
+    WorkflowIteratorNodeValidator
 ]
 
 export const Strategies = [
-	WorkflowStartNodeStrategy,
-	WorkflowIteratorNodeStrategy,
-	WorkflowListOperatorNodeStrategy,
-	WorkflowVariableAggregatorNodeStrategy,
-	WorkflowAssignerNodeStrategy,
-	WorkflowJSONStringifyNodeStrategy,
-	WorkflowJSONParseNodeStrategy,
-	WorkflowSkillNodeStrategy,
-	WorkflowMiddlewareNodeStrategy
+    WorkflowStartNodeStrategy,
+    WorkflowAgentWorkflowNodeStrategy,
+    WorkflowAgentToolNodeStrategy,
+    WorkflowIteratorNodeStrategy,
+    WorkflowListOperatorNodeStrategy,
+    WorkflowVariableAggregatorNodeStrategy,
+    WorkflowAssignerNodeStrategy,
+    WorkflowJSONStringifyNodeStrategy,
+    WorkflowJSONParseNodeStrategy,
+    WorkflowSkillNodeStrategy,
+    WorkflowMiddlewareNodeStrategy
 ]

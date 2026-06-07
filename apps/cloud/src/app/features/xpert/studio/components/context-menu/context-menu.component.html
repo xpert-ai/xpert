@@ -339,10 +339,10 @@
     <div
       cdkMenuItem
       class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowAgentTool(fromNode)"
+      (click)="addWorkflowAgentWorkflow(fromNode)"
     >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.AgentTool' | translate: { Default: 'Agent Tool' } }}</div>
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_WORKFLOW" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{ 'PAC.Workflow.AgentWorkflow' | translate }}</div>
     </div>
     <div
       cdkMenuItem

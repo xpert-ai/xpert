@@ -65,18 +65,19 @@ const VALID_NODE_TYPES = new Set(['agent', 'knowledge', 'toolset', 'xpert', 'wor
 const VALID_CONNECTION_TYPES = new Set(['edge', 'agent', 'knowledge', 'toolset', 'xpert', 'workflow'])
 const VALID_WORKFLOW_NODE_TYPES = new Set(Object.values(WorkflowNodeTypeEnum))
 const WORKFLOW_TOP_INPUT_TYPES = new Set([
+    WorkflowNodeTypeEnum.AGENT_WORKFLOW,
     WorkflowNodeTypeEnum.AGENT_TOOL,
     WorkflowNodeTypeEnum.MIDDLEWARE,
     WorkflowNodeTypeEnum.SKILL,
     WorkflowNodeTypeEnum.TASK
 ])
 
-type SkillNameResolution =
-    | {
-          status: 'missing' | 'ambiguous'
-          summary: string
-      }
+type SkillNameResolution = {
+    status: 'missing' | 'ambiguous'
+    summary: string
+}
 const WORKFLOW_EDGE_INPUT_DISABLED_TYPES = new Set([
+    WorkflowNodeTypeEnum.AGENT_WORKFLOW,
     WorkflowNodeTypeEnum.AGENT_TOOL,
     WorkflowNodeTypeEnum.MIDDLEWARE,
     WorkflowNodeTypeEnum.NOTE,
@@ -499,9 +500,12 @@ export class XpertAuthoringService {
         const skillId = payload?.skillId?.trim()
         const skillName = payload?.skillName?.trim()
         if (!skillId && !skillName) {
-            return this.buildRejectedResult(toolName, 'Missing skillId or skillName for workspace skill deletion.', null, [
-                this.createDiagnostic('request', 'Missing skillId or skillName for workspace skill deletion.')
-            ])
+            return this.buildRejectedResult(
+                toolName,
+                'Missing skillId or skillName for workspace skill deletion.',
+                null,
+                [this.createDiagnostic('request', 'Missing skillId or skillName for workspace skill deletion.')]
+            )
         }
 
         const resolvedSkill = skillId
@@ -838,7 +842,9 @@ export class XpertAuthoringService {
         }
     }
 
-    private buildPromptWorkflowMutationInput(payload: EditPromptWorkflowPayload): Partial<Omit<TPromptWorkflow, 'name'>> {
+    private buildPromptWorkflowMutationInput(
+        payload: EditPromptWorkflowPayload
+    ): Partial<Omit<TPromptWorkflow, 'name'>> {
         return compactObject<Partial<Omit<TPromptWorkflow, 'name'>>>({
             label: this.normalizeOptionalText(payload?.label),
             description: this.normalizeOptionalText(payload?.description),
@@ -963,16 +969,15 @@ export class XpertAuthoringService {
     }
 
     private skillSearchNames(skill: ISkillPackage) {
-        return [
-            skill.id,
-            skill.name,
-            skill.metadata?.name,
-            this.pickI18nText(skill.metadata?.displayName)
-        ].filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+        return [skill.id, skill.name, skill.metadata?.name, this.pickI18nText(skill.metadata?.displayName)].filter(
+            (item): item is string => typeof item === 'string' && Boolean(item.trim())
+        )
     }
 
     private skillLabel(skill: ISkillPackage) {
-        return this.pickI18nText(skill.metadata?.displayName) || skill.metadata?.name || skill.name || skill.id || 'Skill'
+        return (
+            this.pickI18nText(skill.metadata?.displayName) || skill.metadata?.name || skill.name || skill.id || 'Skill'
+        )
     }
 
     private async ensureClawXpertWorkspaceSkillPreference(workspaceId: string): Promise<string[]> {
@@ -1338,9 +1343,7 @@ export class XpertAuthoringService {
     }
 
     private normalizePromptWorkflowKey(value: unknown) {
-        return typeof value === 'string' && value.replace(/^\/+/, '').trim()
-            ? value.replace(/^\/+/, '').trim()
-            : null
+        return typeof value === 'string' && value.replace(/^\/+/, '').trim() ? value.replace(/^\/+/, '').trim() : null
     }
 
     private normalizeOptionalText(value: unknown) {
@@ -1352,9 +1355,7 @@ export class XpertAuthoringService {
             return undefined
         }
 
-        return Array.from(
-            new Set(value.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean))
-        )
+        return Array.from(new Set(value.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean)))
     }
 
     private didConfiguredModelSelectionsChange(currentModelSelections: string[], candidateModelSelections: string[]) {

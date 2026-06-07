@@ -6,8 +6,7 @@ import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertAPIService }
 
 type EventDetail<T> = T extends CustomEvent<infer Detail> ? Detail : never
 
-export type ChatKitEffectEvent =
-  Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0] &
+export type ChatKitEffectEvent = Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0] &
   EventDetail<ChatKitEvents['chatkit.effect']>
 
 export function getChatKitEffectData(event: ChatKitEffectEvent): Record<string, unknown> | null {
@@ -47,10 +46,7 @@ export function getChatKitPromptWorkflowEffect(event: ChatKitEffectEvent): ChatK
     workspaceId: workspaceId.trim(),
     workflowId: typeof workflowId === 'string' && workflowId.trim() ? workflowId.trim() : null,
     key: typeof key === 'string' && key.trim() ? key.trim() : null,
-    operation:
-      operation === 'created' || operation === 'updated' || operation === 'deleted'
-        ? operation
-        : null
+    operation: operation === 'created' || operation === 'updated' || operation === 'deleted' ? operation : null
   }
 }
 
@@ -90,7 +86,7 @@ export function injectGetXpertTeam() {
         'executors.agent',
         'executors.copilotModel',
         'copilotModel',
-        'knowledgebase',
+        'knowledgebase'
       ]
     })
   }
@@ -156,6 +152,13 @@ export function genXpertToolKey() {
   return letterStartSUID('Tool_')
 }
 
+export function genXpertAgentWorkflowKey() {
+  return letterStartSUID('AgentWorkflow_')
+}
+
+/**
+ * @deprecated use `genXpertAgentWorkflowKey` instead
+ */
 export function genXpertAgentToolKey() {
   return letterStartSUID('AgentTool_')
 }

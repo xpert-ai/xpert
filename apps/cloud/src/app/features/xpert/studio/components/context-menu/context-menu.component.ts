@@ -37,7 +37,8 @@ import {
   XpertToolsetCategoryEnum,
   IWFNAssigner,
   IWFNTask,
-  IWFNAgentTool,
+  IWFNAgentWorkflow,
+  isAgentWorkflowNodeType,
   TASK_DESCRIPTION_PREFIX,
   TASK_DESCRIPTION_SUFFIX,
   IWFNTrigger,
@@ -95,7 +96,7 @@ import {
   genXpertSubflowKey,
   genXpertTemplateKey,
   genXpertToolKey,
-  genXpertAgentToolKey,
+  genXpertAgentWorkflowKey,
   genXpertTaskKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
@@ -708,20 +709,17 @@ export class XpertStudioContextMenuComponent {
     this.reconnectAfterInsert(key)
   }
 
-  addWorkflowAgentTool(fromNode?: TXpertTeamNode) {
+  addWorkflowAgentWorkflow(fromNode?: TXpertTeamNode) {
     const length =
-      this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.AGENT_TOOL).length ??
-      0
-    const key = genXpertAgentToolKey()
+      this.nodes()?.filter((n) => n.type === 'workflow' && isAgentWorkflowNodeType(n.entity?.type)).length ?? 0
+    const key = genXpertAgentWorkflowKey()
     this.apiService.addBlock(
       this.root.contextMenuPosition,
       {
-        type: WorkflowNodeTypeEnum.AGENT_TOOL,
+        type: WorkflowNodeTypeEnum.AGENT_WORKFLOW,
         key,
-        title:
-          this.#translate.instant('PAC.Workflow.AgentTool', { Default: 'Agent Tool' }) +
-          (length ? ` ${length + 1}` : '')
-      } as IWFNAgentTool,
+        title: this.#translate.instant('PAC.Workflow.AgentWorkflow') + (length ? ` ${length + 1}` : '')
+      } as IWFNAgentWorkflow,
       fromNode
     )
     this.reconnectAfterInsert(key)

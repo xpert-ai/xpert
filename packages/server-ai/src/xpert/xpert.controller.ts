@@ -82,6 +82,7 @@ import {
     XpertDeleteExportedTemplateCommand,
     XpertExportCommand,
     XpertExportDiagramCommand,
+    type XpertExportedDiagram,
     XpertExportTemplateCommand,
     XpertImportCommand,
     XpertPublishIntegrationCommand
@@ -410,14 +411,14 @@ export class XpertController extends CrudController<Xpert> {
         @Query('agentKey') agentKey: string
     ) {
         try {
-            const imageData = await this.commandBus.execute<XpertExportDiagramCommand, Blob>(
+            const imageData = await this.commandBus.execute<XpertExportDiagramCommand, XpertExportedDiagram>(
                 new XpertExportDiagramCommand(id, isDraft === 'true', agentKey)
             )
-            res.setHeader('Content-Type', 'image/jpeg')
-            res.send(Buffer.from(await imageData.arrayBuffer()))
+            res.setHeader('Content-Type', imageData.contentType)
+            res.send(imageData.data)
         } catch (err) {
             console.error(err)
-            throw new InternalServerErrorException(err.message)
+            throw new InternalServerErrorException(err instanceof Error ? err.message : String(err))
         }
     }
 
@@ -1249,14 +1250,24 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-messages')
-    async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+    async getStatisticsXpertMessages(
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model: string,
+        @Query('userId') userId: string
+    ) {
         return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end, { model, userId }))
     }
 
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-tokens')
-    async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+    async getStatisticsXpertTokens(
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model: string,
+        @Query('userId') userId: string
+    ) {
         return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end, { model, userId }))
     }
 

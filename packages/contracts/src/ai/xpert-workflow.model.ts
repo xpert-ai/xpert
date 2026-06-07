@@ -1,13 +1,14 @@
-import { I18nObject, IconDefinition, letterStartSUID } from "../types"
-import { ICopilotModel } from "./copilot-model.model"
-import { TKBRecallParams } from "./knowledgebase.model"
-import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from "./types"
-import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from "./xpert.model"
+import { I18nObject, IconDefinition, letterStartSUID } from '../types'
+import { ICopilotModel } from './copilot-model.model'
+import { TKBRecallParams } from './knowledgebase.model'
+import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from './types'
+import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from './xpert.model'
 
 export type TWorkflowNodeMeta = {
   name: string
   label: I18nObject
   icon: IconDefinition
+  deprecated?: boolean
   configSchema: JsonSchemaObjectType
 }
 
@@ -38,6 +39,10 @@ export enum WorkflowNodeTypeEnum {
   HTTP = 'http',
   SUBFLOW = 'subflow',
   TOOL = 'tool',
+  AGENT_WORKFLOW = 'agent-workflow',
+  /**
+   * @deprecated use AGENT_WORKFLOW instead
+   */
   AGENT_TOOL = 'agent-tool',
   NOTE = 'note',
   /**
@@ -91,12 +96,12 @@ export enum WorkflowNodeTypeEnum {
    * Query data (SELECT)
    */
   DB_QUERY = 'db-query',
-  
+
   // ===============================
   // 🏆 Pro Nodes
   // ===============================
   MIDDLEWARE = 'middleware',
-  SKILL = 'skill',
+  SKILL = 'skill'
 }
 
 export interface IWorkflowNode {
@@ -133,7 +138,7 @@ export type TVariableAssigner = {
   /**
    * The message template to write to messages variable
    */
-  messages?: {role: string; content: string}[]
+  messages?: { role: string; content: string }[]
 }
 
 export interface IWFNAssigner extends IWorkflowNode {
@@ -328,7 +333,7 @@ export interface IWFNCode extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.CODE
   language: 'python' | 'javascript'
   code: string
-  inputs: {name: string; variable?: string}[]
+  inputs: { name: string; variable?: string }[]
   outputs: TXpertParameter[]
   /**
    * Retry on failure
@@ -341,14 +346,14 @@ export interface IWFNCode extends IWorkflowNode {
 }
 
 // Http workflow node
-export type BodyType = 'none' | 'form-data' | 'x-www-form-urlencoded' | 'json' | 'raw' | 'binary';
+export type BodyType = 'none' | 'form-data' | 'x-www-form-urlencoded' | 'json' | 'raw' | 'binary'
 interface HttpParam {
-  key: string;
-  value: string;
+  key: string
+  value: string
 }
 interface HttpHeader {
-  name: string;
-  value: string;
+  name: string
+  value: string
 }
 
 export type TWorkflowAuthorization = {
@@ -369,7 +374,7 @@ export interface IWFNHttp extends IWorkflowNode {
   params: HttpParam[]
   body: {
     type?: BodyType
-    body?: string; // 如果是 JSON 类型
+    body?: string // 如果是 JSON 类型
     encodedForm?: HttpParam[]
   }
   connectionTimeout?: number
@@ -398,10 +403,10 @@ export interface IWFNSubflow extends IWorkflowNode {
 }
 
 export interface IWFNTemplate extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.TEMPLATE,
+  type: WorkflowNodeTypeEnum.TEMPLATE
   inputParams?: TXpertRefParameter[]
   code: string
-  
+
   /**
    * Error handling
    */
@@ -429,10 +434,10 @@ export interface IWFNClassifier extends IWorkflowNode {
 }
 
 export interface IWFNTemplate extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.TEMPLATE,
+  type: WorkflowNodeTypeEnum.TEMPLATE
   inputParams?: TXpertRefParameter[]
   code: string
-  
+
   /**
    * Error handling
    */
@@ -440,7 +445,7 @@ export interface IWFNTemplate extends IWorkflowNode {
 }
 
 export interface IWFNTool extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.TOOL,
+  type: WorkflowNodeTypeEnum.TOOL
   toolsetId: string
   toolName: string
   /**
@@ -449,7 +454,7 @@ export interface IWFNTool extends IWorkflowNode {
   parameterVariable: string
   parameters?: any
   omitBlankValues?: boolean
-  
+
   /**
    * Error handling
    */
@@ -460,14 +465,40 @@ export interface IWFNNote extends IWorkflowNode {
   content: string
 }
 
-export interface IWFNAgentTool extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.AGENT_TOOL,
+export type TAgentToolReturnSource =
+  | {
+      type: 'last_message'
+    }
+  | {
+      type: 'variable'
+      variableSelector: string
+    }
+  | {
+      type: 'template'
+      template: string
+    }
+
+export type TAgentWorkflowNodeType = WorkflowNodeTypeEnum.AGENT_WORKFLOW | WorkflowNodeTypeEnum.AGENT_TOOL
+
+export function isAgentWorkflowNodeType(
+  type: WorkflowNodeTypeEnum | string | null | undefined
+): type is TAgentWorkflowNodeType {
+  return type === WorkflowNodeTypeEnum.AGENT_WORKFLOW || type === WorkflowNodeTypeEnum.AGENT_TOOL
+}
+
+export interface IWFNAgentWorkflow extends IWorkflowNode {
+  type: TAgentWorkflowNodeType
   // Tool name
   toolName: string
   // Tool description
   toolDescription?: string
   // Tool schema
   toolParameters?: TXpertParameter[]
+  /**
+   * Source used to build the ToolMessage returned to the caller agent.
+   * Empty means the last message in the workflow state, for backward compatibility.
+   */
+  returnSource?: TAgentToolReturnSource
 
   /**
    * End point tool
@@ -481,15 +512,23 @@ export interface IWFNAgentTool extends IWorkflowNode {
   errorHandling?: TErrorHandling
 }
 
+export function isAgentWorkflowNode(node: IWorkflowNode | null | undefined): node is IWFNAgentWorkflow {
+  return isAgentWorkflowNodeType(node?.type)
+}
+
+export interface IWFNAgentTool extends IWFNAgentWorkflow {
+  type: WorkflowNodeTypeEnum.AGENT_TOOL
+}
+
 export interface IWFNTrigger extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.TRIGGER,
+  type: WorkflowNodeTypeEnum.TRIGGER
   from: 'chat' | 'integration' | 'scheduler'
   parameters?: TXpertParameter[]
   config?: any
 }
 
 export interface IWFNTask extends IWorkflowNode {
-  type: WorkflowNodeTypeEnum.TASK,
+  type: WorkflowNodeTypeEnum.TASK
   descriptionPrefix?: string
   descriptionSuffix?: string
 }

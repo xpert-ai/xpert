@@ -36,7 +36,8 @@ import {
     getWorkflowTriggers,
     GRAPH_NODE_SUMMARIZE_CONVERSATION,
     isAgentKey,
-    IWFNAgentTool,
+    isAgentWorkflowNode,
+    isAgentWorkflowNodeType,
     IXpert,
     IXpertAgent,
     IXpertAgentExecution,
@@ -281,7 +282,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         /**
          * Collect Agent Tools
          */
-        const workflowTools = []
+        const workflowTools: TGraphTool[] = []
         const interruptBefore: string[] = []
         const toolsetVarirables: TStateVariable[] = []
         const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
@@ -615,23 +616,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 if (nodes[node.key]) {
                     return
                 }
-                const { workflowNode, navigator, nextNodes, channel, tool } = await this.commandBus.execute<
-                    CreateWorkflowNodeCommand,
-                    TWorkflowGraphNode
-                >(
-                    new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
-                        mute: options.mute,
-                        store: options.store,
-                        isDraft: options.isDraft,
-                        subscriber,
-                        environment,
-                        conversationId: options.conversationId,
-                        xpert: {
-                            ...team,
-                            workspaceId: team.workspaceId ?? xpert.workspaceId
-                        }
-                    })
-                )
+                const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset, variables } =
+                    await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
+                        new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+                            mute: options.mute,
+                            store: options.store,
+                            isDraft: options.isDraft,
+                            subscriber,
+                            environment,
+                            conversationId: options.conversationId,
+                            xpert: {
+                                ...team,
+                                workspaceId: team.workspaceId ?? xpert.workspaceId
+                            }
+                        })
+                    )
                 if (channel) {
                     channels.push(channel)
                 }
@@ -652,7 +651,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 // Tool
                 if (tool) {
-                    workflowTools.push({ tool, parentKey })
+                    workflowTools.push({
+                        tool,
+                        caller: caller ?? parentKey ?? agentKey,
+                        toolset: toolset ?? {
+                            provider: 'workflow',
+                            title: workflowNode.name ?? node.key
+                        },
+                        variables
+                    })
                     finalReturn = graphNodeName
                     if (parentKey) {
                         workflowNodeEnds.push(parentKey)
@@ -669,7 +676,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
 
                 if (!nextNodes.length) {
-                    if ((<IWFNAgentTool>node.entity).isEnd) {
+                    if (isAgentWorkflowNode(node.entity) && node.entity.isEnd) {
                         edges[graphNodeName] = END
                     } else if (finalReturn) {
                         edges[graphNodeName] = finalReturn
@@ -714,7 +721,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
         // Agent tools in workflow
         for await (const nextNode of next.filter(
-            (_) => _.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.AGENT_TOOL
+            (_) => _.type === 'workflow' && isAgentWorkflowNodeType(_.entity.type)
         )) {
             await createSubgraph(nextNode, agentKey)
         }
