@@ -234,7 +234,6 @@ describe('normalizeRunStreamMessage', () => {
                 data: {
                     id: 'execution-1',
                     agentKey: 'agent-1',
-                    title: 'Middleware Name',
                     status: 'error',
                     error: 'model failed',
                     elapsedTime: 123,
@@ -302,7 +301,6 @@ describe('normalizeRunStreamMessage', () => {
         expect(normalized.data.data).toEqual({
             id: 'execution-1',
             agentKey: 'agent-1',
-            title: 'Middleware Name',
             status: 'error',
             error: 'model failed',
             elapsedTime: 123,

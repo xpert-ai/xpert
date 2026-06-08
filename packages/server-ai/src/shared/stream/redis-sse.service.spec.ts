@@ -182,7 +182,6 @@ describe('RedisSseStreamService', () => {
             data: {
                 id: 'execution-1',
                 agentKey: 'agent-1',
-                title: 'Middleware Name',
                 status: 'success',
                 elapsedTime: 123,
                 tokens: 42,
@@ -220,7 +219,6 @@ describe('RedisSseStreamService', () => {
             data: {
                 id: 'execution-1',
                 agentKey: 'agent-1',
-                title: 'Middleware Name',
                 status: 'success',
                 elapsedTime: 123,
                 tokens: 42,

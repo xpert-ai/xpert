@@ -40,9 +40,6 @@ export class AgentEndStreamDTO {
     agentKey?: IXpertAgentExecution['agentKey']
 
     @Expose()
-    title?: IXpertAgentExecution['title']
-
-    @Expose()
     status?: IXpertAgentExecution['status']
 
     @Expose()
