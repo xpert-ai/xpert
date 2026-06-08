@@ -23,6 +23,21 @@ export type TSummaryJob = Record<
   }
 >
 
+export type TChatMessageAgentRun = {
+  id: string
+  parentId?: string
+  parentExecutionId?: string
+  category?: IXpertAgentExecution['category']
+  agentKey?: IXpertAgentExecution['agentKey']
+  title?: IXpertAgentExecution['title']
+  status?: IXpertAgentExecution['status']
+  error?: IXpertAgentExecution['error']
+  elapsedTime?: IXpertAgentExecution['elapsedTime']
+  inputs?: IXpertAgentExecution['inputs']
+  createdAt?: IXpertAgentExecution['createdAt']
+  updatedAt?: IXpertAgentExecution['updatedAt']
+}
+
 export type TChatElementAttribute = {
   name: string
   value: string
@@ -120,6 +135,7 @@ export interface IChatMessage
 
   executionId?: string
   execution?: IXpertAgentExecution
+  agentRuns?: TChatMessageAgentRun[]
   followUpMode?: 'queue' | 'steer'
   followUpStatus?: 'pending' | 'consumed' | 'canceled'
   targetExecutionId?: string | null
