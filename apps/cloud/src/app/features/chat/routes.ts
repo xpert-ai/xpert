@@ -11,6 +11,7 @@ import { ChatCommonAssistantComponent } from './common/common.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
+import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
 
 function redirectToDefaultChatEntry() {
   return () => {
@@ -77,10 +78,31 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'x/common/c',
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
+      },
+      {
         path: 'x/common',
         component: ChatCommonAssistantComponent,
         data: {
           title: 'Common Assistant'
+        }
+      },
+      {
+        path: 'x/:name/c',
+        component: ChatXpertWorkbenchComponent,
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        data: {
+          title: 'Chat Xpert Workbench'
+        }
+      },
+      {
+        path: 'x/:name/c/:threadId',
+        component: ChatXpertWorkbenchComponent,
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        data: {
+          title: 'Chat Xpert Workbench Conversation'
         }
       },
       {
@@ -95,13 +117,6 @@ export const routes: Routes = [
         component: ChatXpertComponent,
         data: {
           title: 'Chat Conversation'
-        }
-      },
-      {
-        path: 'x/:name/c/:id',
-        component: ChatXpertComponent,
-        data: {
-          title: 'Chat Xpert Conversation'
         }
       },
       {

@@ -18,7 +18,6 @@ import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/term
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
-  AssistantCode,
   AiThreadService,
   ChatConversationService,
   IChatConversation,
@@ -28,6 +27,7 @@ import {
 } from '../../../@core'
 import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -601,12 +601,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
 
-  readonly facade = inject(ClawXpertFacade)
+  readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
+  readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
-    identity: computed(() => (this.facade.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
-    assistantId: computed(() => this.facade.resolvedPreference()?.assistantId ?? null),
+    identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
+    assistantId: this.facade.assistantId,
     frameUrl: this.facade.chatkitFrameUrl,
     initialThread: this.facade.threadId,
     titleKey: this.facade.definition.titleKey,

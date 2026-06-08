@@ -51,6 +51,7 @@ import {
   XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING,
   XpertDraftTriggerEditorItem
 } from '../../xpert/draft/index'
+import { WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -90,7 +91,7 @@ const XPERT_TEAM_RELATIONS = [
 ]
 
 @Injectable()
-export class ClawXpertFacade {
+export class ClawXpertFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #preferenceLoadRequestId = 0
   #triggerDraftLoadRequestId = 0
@@ -147,6 +148,7 @@ export class ClawXpertFacade {
   readonly hasLoadedXperts = signal(false)
   readonly triggerDraftSource = signal<IXpert | null>(null)
   readonly triggerDraft = signal<TXpertTeamDraft | null>(null)
+  readonly identity = computed(() => AssistantCode.CLAWXPERT)
   readonly chatkitFrameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
   readonly toolPreferences = computed(
     () => normalizeAssistantBindingToolPreferences(this.userPreference()?.toolPreferences) ?? { version: 1 }
@@ -178,6 +180,7 @@ export class ClawXpertFacade {
     const assistantId = this.resolvedPreference()?.assistantId
     return assistantId ? (this.availableXperts().find((item) => item.id === assistantId) ?? null) : null
   })
+  readonly assistantId = computed(() => this.resolvedPreference()?.assistantId ?? null)
   readonly xpertId = computed(() => this.currentXpert()?.id ?? this.resolvedPreference()?.assistantId ?? null)
   readonly currentWorkspaceId = computed(() => {
     return this.triggerDraftSource()?.workspaceId ?? this.currentXpert()?.workspaceId ?? null
@@ -587,9 +590,7 @@ export class ClawXpertFacade {
         updatePayload.draft = nextTriggerDraft
       }
 
-      await firstValueFrom(
-        this.#xpertService.update(xpertId, updatePayload)
-      )
+      await firstValueFrom(this.#xpertService.update(xpertId, updatePayload))
 
       const refreshedXpert = (await firstValueFrom(
         this.#xpertService.getTeam(xpertId, { relations: [...XPERT_TEAM_RELATIONS] }).pipe(catchError(() => of(null)))
