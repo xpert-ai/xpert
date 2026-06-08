@@ -1755,10 +1755,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         configurable: {
                             ...config.configurable,
                             agentKey: agent.key,
+                            xpertName: agentLabel(agent),
                             executionId: _execution.id
                         },
                         metadata: {
                             agentKey: agent.key,
+                            xpertName: agentLabel(agent),
                             executionId: _execution.id,
                             parentExecutionId: executionId
                         }

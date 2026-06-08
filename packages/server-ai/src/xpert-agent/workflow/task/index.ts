@@ -4,6 +4,7 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
+    agentLabel,
     channelName,
     ChatMessageEventTypeEnum,
     IWFNTask,
@@ -203,6 +204,7 @@ ${taskEntity.descriptionSuffix ?? ''}`
                 )
             )
             const subgraph = compiled.graph
+            const xpertName = compiled.agent ? agentLabel(compiled.agent) : agentKey
 
             const lastMessage = await wrapAgentExecution(
                 async (execution) => {
@@ -217,11 +219,14 @@ ${taskEntity.descriptionSuffix ?? ''}`
                             ...config,
                             configurable: {
                                 ...config.configurable,
+                                agentKey,
+                                xpertName,
                                 executionId: execution.id
                             },
                             metadata: {
                                 ...(config.metadata ?? {}),
                                 agentKey,
+                                xpertName,
                                 executionId: execution.id,
                                 parentExecutionId: executionId
                             }

@@ -48,6 +48,15 @@ function readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value : undefined
 }
 
+function readAgentDisplayName(agent: IXpertAgent | undefined, agentKey?: string | null): string | undefined {
+    if (!agentKey || agent?.key !== agentKey) {
+        return undefined
+    }
+
+    const displayName = readString(agent?.title) ?? readString(agent?.name)
+    return displayName && displayName !== agent.key ? displayName : undefined
+}
+
 function readXpertMcpMetaArtifact(artifact: unknown): object | null {
     if (Array.isArray(artifact)) {
         for (const item of artifact) {
@@ -149,7 +158,8 @@ export function createMapStreamEvents(
         const nodeAgentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
         const agentKey = metadataAgentKey ?? nodeAgentKey
         const xpert = xperts?.find((_) => _.agent?.key === agentKey)
-        const xpertName = metadata.xpertName || xpert?.name
+        const xpertName =
+            readString(metadata.xpertName) ?? readString(xpert?.name) ?? readAgentDisplayName(agent, agentKey)
         const executionMeta = getExecutionStreamMetadata(metadata, rest, agentKey, xpertName)
 
         if (Logger.isLevelEnabled('debug')) {

@@ -67,6 +67,92 @@ describe('createMapStreamEvents', () => {
         })
     })
 
+    it('uses current agent title as xpertName when stream metadata only has the agent key', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            {
+                agent: {
+                    key: 'Agent_root',
+                    title: 'Readable Root Agent',
+                    name: 'root_agent'
+                } as unknown as IXpertAgent,
+                unmutes: []
+            }
+        )
+
+        const chunk = mapStreamEvent({
+            event: 'on_chat_model_stream',
+            tags: [],
+            data: {
+                chunk: {
+                    id: 'message-stream-1',
+                    content: 'Hello from root',
+                    tool_call_chunks: [],
+                    additional_kwargs: {}
+                }
+            },
+            metadata: {
+                agentKey: 'Agent_root',
+                executionId: 'root-execution'
+            },
+            run_id: 'langgraph-run-1'
+        })
+
+        expect(chunk).toMatchObject({
+            type: 'text',
+            id: 'message-stream-1',
+            text: 'Hello from root',
+            agentKey: 'Agent_root',
+            xpertName: 'Readable Root Agent',
+            executionId: 'root-execution',
+            runId: 'langgraph-run-1'
+        })
+    })
+
+    it('does not use current agent title for a different agent key', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            {
+                agent: { key: 'Agent_root', title: 'Root Agent' } as unknown as IXpertAgent,
+                unmutes: []
+            }
+        )
+
+        const chunk = mapStreamEvent({
+            event: 'on_chat_model_stream',
+            tags: [],
+            data: {
+                chunk: {
+                    id: 'message-stream-1',
+                    content: 'Hello from child',
+                    tool_call_chunks: [],
+                    additional_kwargs: {}
+                }
+            },
+            metadata: {
+                agentKey: 'Agent_child',
+                executionId: 'child-execution',
+                parentExecutionId: 'root-execution'
+            },
+            run_id: 'langgraph-run-1'
+        })
+
+        expect(chunk).toMatchObject({
+            type: 'text',
+            id: 'message-stream-1',
+            text: 'Hello from child',
+            agentKey: 'Agent_child',
+            executionId: 'child-execution',
+            parentExecutionId: 'root-execution',
+            runId: 'langgraph-run-1'
+        })
+        expect(chunk).not.toHaveProperty('xpertName')
+    })
+
     it('adds execution metadata to reasoning chunks', () => {
         const subscriber = { next: jest.fn() }
         const mapStreamEvent = createMapStreamEvents(
