@@ -8,7 +8,7 @@ import {
   input,
   signal
 } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -26,9 +26,11 @@ import { injectEditorTheme } from '../../../@core'
     '[class.pac-code-editor--readonly]': 'isReadonly()'
   }
 })
-export class CodeEditorComponent {
+export class CodeEditorComponent implements ControlValueAccessor {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly #cdr = inject(ChangeDetectorRef)
+  private onChange: (value: string | null) => void = () => {}
+  private onTouched: () => void = () => {}
 
   // Inputs
   readonly fileName = input<string>()
@@ -89,15 +91,33 @@ export class CodeEditorComponent {
     this.#editor.set(editor)
     editor.onDidBlurEditorWidget(() => {
       this.cva.markAsTouched()
+      this.onTouched()
     })
   }
 
   onEditorChange(event: string) {
     this.cva.value = event
+    this.onChange(event)
 
     if (this.cva.ngControl?.control?.pristine) {
       this.cva.ngControl.control.markAsDirty()
     }
+  }
+
+  writeValue(value: string | null): void {
+    this.cva.writeValue(value)
+  }
+
+  registerOnChange(fn: (value: string | null) => void): void {
+    this.onChange = fn
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.cva.setDisabledState(isDisabled)
   }
 
   onResized() {
