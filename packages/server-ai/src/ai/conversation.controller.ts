@@ -22,13 +22,12 @@ import {
     transformWhere,
     UUIDValidationPipe
 } from '@xpert-ai/server-core'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { CommandBus } from '@nestjs/cqrs'
 import { FindOptionsOrder, Like } from 'typeorm'
 import {
     IChatConversation,
     IChatMessage,
     IChatMessageFeedback,
-    IXpertAgentExecution,
     TThreadGoalPatchRequest,
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
@@ -38,14 +37,13 @@ import { ChatMessageFeedbackService } from '../chat-message-feedback/feedback.se
 import { ChatConversationUpsertCommand } from '../chat-conversation/commands'
 import { ChatMessageUpsertCommand } from '../chat-message/commands'
 import { ThreadDeleteCommand } from './commands'
-import { buildChatMessageAgentRuns, ChatMessageDTO, ChatMessageFeedbackDTO, ConversationDTO } from './dto'
+import { ChatMessageDTO, ChatMessageFeedbackDTO, ConversationDTO } from './dto'
 import { ChatConversation, ChatMessage, ChatMessageFeedback } from '../core/entities/internal'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
-import { FindAgentExecutionsQuery } from '../xpert-agent-execution/queries'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -81,8 +79,7 @@ export class ConversationsController {
         private readonly goalService: ChatConversationGoalService,
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
-        private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly commandBus: CommandBus
     ) {}
 
     @Post()
@@ -206,7 +203,7 @@ export class ConversationsController {
         })
         return {
             ...result,
-            items: await this.buildMessageDTOsWithAgentRuns(conversation, result.items)
+            items: result.items.map((item) => new ChatMessageDTO(item))
         }
     }
 
@@ -231,7 +228,7 @@ export class ConversationsController {
         })
         return {
             ...result,
-            items: await this.buildMessageDTOsWithAgentRuns(conversation, result.items)
+            items: result.items.map((item) => new ChatMessageDTO(item))
         }
     }
 
@@ -258,13 +255,12 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string
     ) {
-        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
             where: { conversationId },
             relations: ['attachments', 'fileAssets']
         })
-        const items = await this.buildMessageDTOsWithAgentRuns(conversation, [message])
-        return items[0]
+        return new ChatMessageDTO(message)
     }
 
     @Patch(':conversation_id/messages/:message_id')
@@ -414,28 +410,5 @@ export class ConversationsController {
     private async ensureMessage(conversationId: string, messageId: string) {
         await this.ensurePublicConversationAccess(conversationId)
         return this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
-    }
-
-    private async buildMessageDTOsWithAgentRuns(conversation: IChatConversation, messages: IChatMessage[]) {
-        const executionIds = messages.map((message) => message.executionId?.trim()).filter((id): id is string => !!id)
-        if (!conversation.threadId || !executionIds.length) {
-            return messages.map((message) => new ChatMessageDTO(message))
-        }
-
-        const result = await this.queryBus.execute<FindAgentExecutionsQuery, { items: IXpertAgentExecution[] }>(
-            new FindAgentExecutionsQuery({
-                where: { threadId: conversation.threadId },
-                order: { createdAt: 'ASC' }
-            })
-        )
-        const executions = result.items ?? []
-
-        return messages.map((message) => {
-            const agentRuns = buildChatMessageAgentRuns(executions, message.executionId)
-            return new ChatMessageDTO({
-                ...message,
-                ...(agentRuns.length ? { agentRuns } : {})
-            })
-        })
     }
 }
