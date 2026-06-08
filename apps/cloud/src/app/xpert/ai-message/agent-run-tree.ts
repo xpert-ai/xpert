@@ -1,5 +1,6 @@
 import {
   IXpertAgentExecution,
+  TChatMessageAgentRun,
   TChatMessageStep,
   TMessageContentComplex,
   TMessageContentComponent,
@@ -17,7 +18,7 @@ type ExecutionMetadata = {
   runId?: string
 }
 
-export type AgentRunInfo = IXpertAgentExecution & ExecutionMetadata
+export type AgentRunInfo = (IXpertAgentExecution | TChatMessageAgentRun) & ExecutionMetadata
 
 export type AgentRunEvent = TChatMessageStep &
   ExecutionMetadata & {
@@ -233,7 +234,7 @@ function createAgentRunNode(nodes: Map<string, AgentRunRenderNode>, id: string, 
   return node
 }
 
-function normalizeExecution(execution: IXpertAgentExecution): AgentRunInfo | null {
+function normalizeExecution(execution: IXpertAgentExecution | TChatMessageAgentRun): AgentRunInfo | null {
   if (!execution?.id) {
     return null
   }
@@ -364,7 +365,8 @@ function refreshAgentNodeOrder(node: AgentRunRenderNode): number {
 
 export function buildAgentRunRenderTree(message: TCopilotChatMessage | null | undefined) {
   const rootExecutionId = message?.executionId
-  const runs = (message?.executions ?? []).map(normalizeExecution).filter((item): item is AgentRunInfo => !!item)
+  const runSources = message?.agentRuns?.length ? message.agentRuns : (message?.executions ?? [])
+  const runs = runSources.map(normalizeExecution).filter((item): item is AgentRunInfo => !!item)
   const entries = normalizeEntries(message)
   const nodes = new Map<string, AgentRunRenderNode>()
   const rootEntries: AgentRunEntry[] = []
