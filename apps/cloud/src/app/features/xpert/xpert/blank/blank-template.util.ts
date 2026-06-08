@@ -39,10 +39,7 @@ export type BlankKnowledgeTemplateWizardState = {
   selections: Required<KnowledgeBlankWizardSelections>
 }
 
-type BlankAgentTemplateApplyOptions = Pick<
-  BlankXpertDraftBuildOptions,
-  'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'
->
+type BlankAgentTemplateApplyOptions = Pick<BlankXpertDraftBuildOptions, 'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'>
 
 const KNOWLEDGE_MANAGED_NODE_TYPES = new Set<WorkflowNodeTypeEnum>([
   WorkflowNodeTypeEnum.TRIGGER,
@@ -59,9 +56,7 @@ export function extractTemplateBasicInfo(draft: TXpertTeamDraft): BlankTemplateB
     description: draft.team?.description ?? undefined,
     avatar: cloneMaybe(draft.team?.avatar),
     copilotModel: cloneMaybe(
-      draft.team?.copilotModel ??
-        getPrimaryAgentNodeMaybe(draft)?.entity?.copilotModel ??
-        draft.team?.agent?.copilotModel
+      draft.team?.copilotModel ?? getPrimaryAgentNodeMaybe(draft)?.entity?.copilotModel ?? draft.team?.agent?.copilotModel
     )
   }
 }
@@ -230,9 +225,8 @@ function getPrimaryAgentNodeMaybe(draft: TXpertTeamDraft): TXpertTeamNode<'agent
   }
 
   return (
-    draft.nodes.find(
-      (node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey
-    ) ?? null
+    draft.nodes.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey) ??
+    null
   )
 }
 
@@ -310,9 +304,7 @@ function extractExplicitSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workf
   )
 }
 
-function extractRepositoryDefaultFromMiddlewares(
-  nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>
-) {
+function extractRepositoryDefaultFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
   for (const node of nodes) {
     if (node.entity.provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER) {
       continue
@@ -345,7 +337,9 @@ function readSkillsMiddlewareRepositoryDefault(options: unknown): BlankRepositor
   }
 
   const repositoryId =
-    'repositoryId' in candidate && typeof candidate.repositoryId === 'string' ? candidate.repositoryId.trim() : ''
+    'repositoryId' in candidate && typeof candidate.repositoryId === 'string'
+      ? candidate.repositoryId.trim()
+      : ''
   if (!repositoryId) {
     return null
   }
