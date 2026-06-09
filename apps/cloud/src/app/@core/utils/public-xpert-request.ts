@@ -30,3 +30,11 @@ export function isPublicXpertRequest(method: string, url: string): boolean {
     return false
   }
 }
+
+export function shouldSkipPublicXpertScopeHeaders(method: string, url: string, token?: string | null): boolean {
+  return !hasAuthToken(token) && isPublicXpertRequest(method, url)
+}
+
+function hasAuthToken(token?: string | null): boolean {
+  return typeof token === 'string' && token.trim().length > 0
+}

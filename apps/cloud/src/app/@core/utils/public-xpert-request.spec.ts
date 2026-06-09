@@ -1,4 +1,4 @@
-import { isPublicXpertRequest } from './public-xpert-request'
+import { isPublicXpertRequest, shouldSkipPublicXpertScopeHeaders } from './public-xpert-request'
 
 describe('isPublicXpertRequest', () => {
   it('matches the public app bootstrap route', () => {
@@ -21,5 +21,12 @@ describe('isPublicXpertRequest', () => {
     expect(isPublicXpertRequest('DELETE', '/api/xpert/demo/conversation/conv-1')).toBe(true)
     expect(isPublicXpertRequest('GET', '/api/xpert/demo/conversation/conv-1/feedbacks')).toBe(true)
     expect(isPublicXpertRequest('POST', '/api/xpert/demo/conversation/conv-1')).toBe(false)
+  })
+
+  it('skips scope headers only for anonymous public xpert requests', () => {
+    expect(shouldSkipPublicXpertScopeHeaders('POST', '/api/xpert/demo/chat-app', null)).toBe(true)
+    expect(shouldSkipPublicXpertScopeHeaders('POST', '/api/xpert/demo/chat-app', '')).toBe(true)
+    expect(shouldSkipPublicXpertScopeHeaders('POST', '/api/xpert/demo/chat-app', 'token-1')).toBe(false)
+    expect(shouldSkipPublicXpertScopeHeaders('POST', '/api/xpert/demo/chat', null)).toBe(false)
   })
 })

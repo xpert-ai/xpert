@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core'
 import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { Observable } from 'rxjs'
 import { RequestMethodEnum } from '../types'
-import { isPublicXpertRequest } from '../utils/public-xpert-request'
+import { shouldSkipPublicXpertScopeHeaders } from '../utils/public-xpert-request'
 import { Store } from './../services/store.service'
 
 const ANONYMOUS_AUTH_PATHS = new Set([
@@ -19,7 +19,10 @@ export class TenantInterceptor implements HttpInterceptor {
   constructor(private store: Store) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    if (isAnonymousAuthRequest(request.url) || isPublicXpertRequest(request.method, request.url)) {
+    if (
+      isAnonymousAuthRequest(request.url) ||
+      shouldSkipPublicXpertScopeHeaders(request.method, request.url, this.store.token)
+    ) {
       return next.handle(request)
     }
 
