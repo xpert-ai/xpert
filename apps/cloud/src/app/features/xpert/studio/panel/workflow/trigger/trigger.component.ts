@@ -7,7 +7,6 @@ import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  channelName,
   IWFNTrigger,
   IWorkflowNode,
   WorkflowNodeTypeEnum,
@@ -21,6 +20,7 @@ import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { createChatTriggerInputParameters } from '../../../../draft'
 
 @Component({
   selector: 'xpert-workflow-trigger',
@@ -78,23 +78,8 @@ export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
         }
       })
       if (from === 'chat') {
-        const hasParameters = !!value?.length
-        const groupName = triggerKey ? channelName(triggerKey) : null
-        this.studioService.agentConfig.update((state) => {
-          return {
-            ...(state ?? {}),
-            parameters:
-              hasParameters && groupName
-                ? [
-                    {
-                      type: XpertParameterTypeEnum.OBJECT,
-                      name: groupName,
-                      optional: true,
-                      item: value
-                    }
-                  ]
-                : null
-          }
+        this.studioService.updateXpertAgentConfig({
+          parameters: createChatTriggerInputParameters(triggerKey, value)
         })
       }
     }
