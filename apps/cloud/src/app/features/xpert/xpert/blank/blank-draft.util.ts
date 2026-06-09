@@ -140,6 +140,7 @@ export type BlankMiddlewareDefinition = {
 
 export type BlankXpertDraftBuildOptions = {
   defaultCopilotModel?: ICopilotModel | null
+  defaultSandboxProvider?: string | null
   middlewareDefinitions?: BlankMiddlewareDefinition[]
 }
 
@@ -199,7 +200,8 @@ export async function buildBlankXpertDraft(
   const teamFeatures = mergeBlankMiddlewareRequiredFeatures(
     xpert.features,
     normalized.middlewares,
-    options?.middlewareDefinitions ?? []
+    options?.middlewareDefinitions ?? [],
+    options?.defaultSandboxProvider ?? null
   )
   const { agents, ...team } = xpert
   const nodes = [...createXpertNodes(xpert, { x: 0, y: 0 }).nodes]
@@ -856,7 +858,8 @@ export function normalizeBlankMiddlewareSelections(
 export function mergeBlankMiddlewareRequiredFeatures(
   features: TXpertFeatures | null | undefined,
   middlewares: string[] | null | undefined,
-  middlewareDefinitions: BlankMiddlewareDefinition[]
+  middlewareDefinitions: BlankMiddlewareDefinition[],
+  defaultSandboxProvider?: string | null
 ): TXpertFeatures | undefined {
   const requiredFeatures = collectBlankMiddlewareRequiredFeatures(middlewares, middlewareDefinitions)
   if (!requiredFeatures.length) {
@@ -869,6 +872,16 @@ export function mergeBlankMiddlewareRequiredFeatures(
   >
 
   for (const feature of requiredFeatures) {
+    if (feature === 'sandbox') {
+      const sandbox = nextFeatures.sandbox
+      nextFeatures.sandbox = {
+        ...(sandbox ?? {}),
+        enabled: true,
+        ...(!sandbox?.provider && defaultSandboxProvider ? { provider: defaultSandboxProvider } : {})
+      }
+      continue
+    }
+
     mutableFeatures[feature] = {
       ...getBlankRequiredFeatureDefaults(feature),
       ...(nextFeatures[feature] ?? {}),

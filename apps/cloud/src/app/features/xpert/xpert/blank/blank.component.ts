@@ -816,11 +816,15 @@ export class XpertNewBlankComponent {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
     const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
+    const selectedMiddlewares = this.selectedMiddlewares()
+    const defaultSandboxProvider =
+      await this.getDefaultSandboxProviderForMiddlewareDefinitions(selectedMiddlewareDefinitions)
     const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
     const features = mergeBlankMiddlewareRequiredFeatures(
       undefined,
-      this.selectedMiddlewares(),
-      selectedMiddlewareDefinitions
+      selectedMiddlewares,
+      selectedMiddlewareDefinitions,
+      defaultSandboxProvider
     )
 
     const xpert = await firstValueFrom(
@@ -855,8 +859,9 @@ export class XpertNewBlankComponent {
     const mergedFeatures = features
       ? mergeBlankMiddlewareRequiredFeatures(
           hydratedXpert.features,
-          this.selectedMiddlewares(),
-          selectedMiddlewareDefinitions
+          selectedMiddlewares,
+          selectedMiddlewareDefinitions,
+          defaultSandboxProvider
         )
       : hydratedXpert.features
     const preparedXpert = await this.provisionKnowledgebaseIfNeeded({
@@ -873,8 +878,11 @@ export class XpertNewBlankComponent {
     }
 
     const primaryAgentPrompt = this.buildInitialPrimaryAgentPrompt()
+    const defaultSandboxProvider = await this.getDefaultSandboxProviderForMiddlewareDefinitions(
+      this.getSelectedMiddlewareDefinitions()
+    )
     const nextDraft = this.withInitialPrimaryAgentPromptInDraft(
-      this.buildTemplateImportDraft(draft),
+      this.buildTemplateImportDraft(draft, defaultSandboxProvider),
       primaryAgentPrompt
     )
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
@@ -1088,12 +1096,13 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private buildTemplateImportDraft(draft: TXpertTeamDraft) {
+  private buildTemplateImportDraft(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
     const selectedCopilotModel =
       this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
       ? applyAgentTemplateWizardState(draft, this.getSelections(), {
           defaultCopilotModel: selectedCopilotModel,
+          defaultSandboxProvider,
           middlewareDefinitions: this.getSelectedMiddlewareDefinitions()
         })
       : this.isKnowledgeType()
@@ -1103,7 +1112,8 @@ export class XpertNewBlankComponent {
       ? mergeBlankMiddlewareRequiredFeatures(
           finalDraft.team.features,
           this.selectedMiddlewares(),
-          this.getSelectedMiddlewareDefinitions()
+          this.getSelectedMiddlewareDefinitions(),
+          defaultSandboxProvider
         )
       : finalDraft.team.features
 
@@ -1255,9 +1265,13 @@ export class XpertNewBlankComponent {
 
     try {
       const team = await this.getDraftTeam(xpert)
+      const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
+      const defaultSandboxProvider =
+        await this.getDefaultSandboxProviderForMiddlewareDefinitions(selectedMiddlewareDefinitions)
       const draft = await buildBlankXpertDraft(team, this.getSelections(), {
         defaultCopilotModel: team.agent?.copilotModel ?? team.copilotModel ?? this.copilotModel() ?? null,
-        middlewareDefinitions: this.getSelectedMiddlewareDefinitions()
+        defaultSandboxProvider,
+        middlewareDefinitions: selectedMiddlewareDefinitions
       })
       const savedDraft = await firstValueFrom(this.xpertService.saveDraft(xpert.id, draft))
       return {
@@ -1461,6 +1475,18 @@ export class XpertNewBlankComponent {
         features: meta.features
       }))
       .filter((definition) => selected.has(definition.name))
+  }
+
+  private async getDefaultSandboxProviderForMiddlewareDefinitions(
+    middlewareDefinitions: BlankMiddlewareDefinition[]
+  ): Promise<string | null> {
+    const requiresSandbox = middlewareDefinitions.some((definition) => definition.features?.includes('sandbox'))
+    if (!requiresSandbox) {
+      return null
+    }
+
+    const providers = await firstValueFrom(this.xpertService.getSandboxProviders())
+    return providers[0]?.type ?? null
   }
 
   private getKnowledgeSelections() {
