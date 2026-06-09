@@ -5,7 +5,7 @@ import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
 import { injectLanguage } from '../providers'
-import { shouldSkipPublicXpertScopeHeaders } from '../utils/public-xpert-request'
+import { isPublicXpertRequest } from '../utils/public-xpert-request'
 import { createOptionalQueryParams } from './query-params'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
@@ -13,12 +13,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
   const auth = inject(AuthStrategy)
   const lang = injectLanguage()
 
-  return (
-    params:
-      | string
-      | { url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any> },
-    data?: T
-  ) => {
+  return (params: string | {url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any>}, data?: T) => {
     const url: string = typeof params === 'string' ? params : params.url
     const method = typeof params === 'object' && params.method ? params.method : 'POST'
     return new Observable<EventSourceMessage>((subscriber) => {
@@ -33,7 +28,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
         // Has retry request
         let haveTry = false
         const token = store.token
-        const shouldSkipScopeHeaders = shouldSkipPublicXpertScopeHeaders(method, url, token)
+        const shouldSkipScopeHeaders = isPublicXpertRequest(method, url)
         const headers = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
