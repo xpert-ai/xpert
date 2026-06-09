@@ -1,7 +1,7 @@
 {
     "templates": {
         "en-US": {
-            "categories": ["Agent", "Workflow", "HR", "Programming", "Writing", "Assistant", "Analysis"],
+            "categories": ["Agent", "Workflow", "HR", "Programming", "Writing", "Assistant", "Analysis", "Xpert"],
             "recommendedApps": [
                 {
                     "name": "Smart HR Assistant",
@@ -256,11 +256,41 @@
                     "category": "Assistant",
                     "copyright": null,
                     "privacyPolicy": null
+                },
+                {
+                    "name": "FileMemory Dreamer",
+                    "type": "agent",
+                    "title": "FileMemory Dreamer",
+                    "description": "Background memory maintenance agent for Xpert FileMemory. It reads Dream evidence, merges duplicate memories, resolves conflicts, and writes structured Dream reports.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "robot_face"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-filememory-dreamer",
+                    "category": "Xpert",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-v4-flash"
+                    }
                 }
             ]
         },
         "zh-Hans": {
-            "categories": ["Agent", "Workflow", "Claw", "HR", "Programming", "Writing", "Assistant", "Analysis"],
+            "categories": [
+                "Agent",
+                "Workflow",
+                "Claw",
+                "HR",
+                "Programming",
+                "Writing",
+                "Assistant",
+                "Analysis",
+                "Xpert"
+            ],
             "recommendedApps": [
                 {
                     "name": "Claw Xpert",
@@ -357,6 +387,26 @@
                     "category": "Assistant",
                     "copyright": null,
                     "privacyPolicy": null
+                },
+                {
+                    "name": "FileMemory Dreamer",
+                    "type": "agent",
+                    "title": "FileMemory Dreamer",
+                    "description": "用于 Xpert FileMemory 的后台记忆整理智能体，读取 Dream 证据、合并重复记忆、处理冲突，并输出结构化整理报告。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "robot_face"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-filememory-dreamer",
+                    "category": "Xpert",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-v4-flash"
+                    }
                 },
                 {
                     "name": "Demo - Workflow transform",

@@ -4198,7 +4198,7 @@
       "FileMemoryChanged": "变更",
       "FileMemoryIssues": "问题",
       "FileMemoryGate": "门控",
-      "FileMemoryElapsed": "耗时",
+      "FileMemoryElapsed": "距上次整理",
       "FileMemoryMinutes": "{{value}} 分钟",
       "FileMemoryPreflight": "预检",
       "FileMemoryDreamReport": "整理报告",
@@ -4207,7 +4207,6 @@
       "FileMemoryArtifacts": "产物",
       "FileMemorySelectDreamRun": "选择一个整理运行以查看报告。",
       "FileMemoryDreamQueued": "整理任务已入队：{{runId}}",
-      "FileMemoryDreamConfigSaved": "记忆整理器配置已保存",
       "FileMemoryDreamStatus": {
         "queued": "排队中",
         "running": "运行中",
