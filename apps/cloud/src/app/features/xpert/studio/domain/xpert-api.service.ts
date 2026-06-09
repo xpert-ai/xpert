@@ -64,7 +64,7 @@ import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHand
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
-import { buildEditableXpertDraft } from '../../draft/index'
+import { buildEditableXpertDraft, deriveChatTriggerInputParametersFromDraft } from '../../draft/index'
 
 const SaveDraftDebounceTime = 1 // s
 
@@ -300,10 +300,17 @@ export class XpertStudioApiService {
 
   public initRole(xpert: IXpert) {
     this.team.set(xpert)
+    const draft = buildEditableXpertDraft(xpert)
+    const chatTriggerParameters = deriveChatTriggerInputParametersFromDraft(draft)
+    const persistedAgentConfigParameters = xpert.draft?.team?.agentConfig?.parameters ?? xpert.agentConfig?.parameters
 
     this.store.update(() => ({
-      draft: buildEditableXpertDraft(xpert)
+      draft
     }))
+
+    if (chatTriggerParameters?.length && !isEqual(chatTriggerParameters, persistedAgentConfigParameters)) {
+      this.unsaved.set(true)
+    }
 
     this.#reload.next(EReloadReason.INIT)
   }
