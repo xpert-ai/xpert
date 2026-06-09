@@ -41,28 +41,20 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         const callback = message.payload?.callback
 
         if (!request) {
-            return {
-                status: 'dead',
-                reason: 'Missing request in agent chat dispatch payload'
-            }
+            return this.deadResult(message, callback, 'Missing request in agent chat dispatch payload')
         }
         if (!options?.xpertId) {
-            return {
-                status: 'dead',
-                reason: 'Missing xpertId in agent chat dispatch payload'
-            }
+            return this.deadResult(message, callback, 'Missing xpertId in agent chat dispatch payload')
         }
         if (!this.isRedisPubSubCallback(callback) && !callback?.messageType) {
-            return {
-                status: 'dead',
-                reason: 'Missing callback.messageType in agent chat dispatch payload'
-            }
+            return this.deadResult(message, callback, 'Missing callback.messageType in agent chat dispatch payload')
         }
         if (request.action === 'send' && !request.message?.input) {
-            return {
-                status: 'dead',
-                reason: 'Invalid send request in agent chat dispatch payload: message.input is required'
-            }
+            return this.deadResult(
+                message,
+                callback,
+                'Invalid send request in agent chat dispatch payload: message.input is required'
+            )
         }
 
         this.logger.debug(
@@ -71,16 +63,52 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             'and options:',
             options
         )
-        return this.runTaskWithRequestContext(message, async () => {
-            const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-                new XpertChatCommand(request, options)
-            )
+        try {
+            return await this.runTaskWithRequestContext(message, async () => {
+                const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
+                    new XpertChatCommand(request, options)
+                )
+                if (this.isRedisPubSubCallback(callback)) {
+                    await this.forwardRealtimeEvents(message, callback, observable, ctx)
+                } else {
+                    await this.forwardStreamEvents(message, callback, observable, ctx)
+                }
+                return { status: 'ok' }
+            })
+        } catch (error) {
             if (this.isRedisPubSubCallback(callback)) {
-                await this.forwardRealtimeEvents(message, callback, observable, ctx)
-            } else {
-                await this.forwardStreamEvents(message, callback, observable, ctx)
+                return this.deadResult(message, callback, this.getErrorMessage(error))
             }
-            return { status: 'ok' }
+            throw error
+        }
+    }
+
+    private async deadResult(
+        sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+        callback: AgentChatCallbackTarget | undefined,
+        reason: string
+    ): Promise<ProcessResult> {
+        if (this.isRedisPubSubCallback(callback)) {
+            await this.publishRealtimeError(sourceMessage, callback, reason)
+        }
+
+        return {
+            status: 'dead',
+            reason
+        }
+    }
+
+    private async publishRealtimeError(
+        sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+        callback: Extract<AgentChatCallbackTarget, { transport: 'redis-pubsub' }>,
+        error: string
+    ) {
+        await this.agentChatRealtime.publish(sourceMessage.id, {
+            kind: 'error',
+            sourceMessageId: sourceMessage.id,
+            sequence: 1,
+            error,
+            context: callback.context
         })
     }
 
