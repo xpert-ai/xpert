@@ -20,6 +20,7 @@ import {
   debounceTime,
   EMPTY,
   filter,
+  finalize,
   map,
   merge,
   Observable,
@@ -138,6 +139,8 @@ export class KnowledgeDocumentsComponent {
   expandedElement: any | null
 
   readonly isLoading = signal(false)
+  readonly downloadingOriginalFileIds = signal<Set<string>>(new Set())
+  readonly downloadingSelectedOriginalFiles = signal(false)
   isRateLimitReached = false
   readonly #data = signal<IKnowledgeDocument[]>([])
   readonly graphJobs = signal<KnowledgeGraphStatusResponse['jobs']>([])
@@ -213,12 +216,14 @@ export class KnowledgeDocumentsComponent {
                   'sourceType',
                   'type',
                   'category',
+                  'filePath',
                   'createdAt',
                   'updatedAt',
                   'processMsg',
                   'progress',
                   'sourceConfig',
-                  'folder'
+                  'folder',
+                  'metadata'
                 ],
                 where,
                 relations: ['storageFile'],
@@ -303,6 +308,83 @@ export class KnowledgeDocumentsComponent {
   refresh() {
     this.refresh$.next(true)
     this.refreshGraphJobs()
+  }
+
+  canDownloadOriginalFile(doc: IKnowledgeDocument) {
+    return (
+      doc.sourceType !== KDocumentSourceType.FOLDER &&
+      !isSystemManagedDocument(doc) &&
+      !!doc.filePath
+    )
+  }
+
+  isOriginalFileDownloading(id: string) {
+    return this.downloadingOriginalFileIds().has(id)
+  }
+
+  selectedDownloadableOriginalFileDocuments() {
+    return this.#data().filter((doc) => this.selectionModel.isSelected(doc.id) && this.canDownloadOriginalFile(doc))
+  }
+
+  hasSelectedDownloadableOriginalFiles() {
+    return this.selectedDownloadableOriginalFileDocuments().length > 0
+  }
+
+  downloadOriginalFile(doc: IKnowledgeDocument, event?: MouseEvent) {
+    event?.stopPropagation()
+    if (!this.canDownloadOriginalFile(doc) || this.isOriginalFileDownloading(doc.id)) {
+      return
+    }
+
+    this.markOriginalFileDownloading(doc.id, true)
+    this.knowledgeDocumentAPI
+      .downloadOriginalFile(doc.id)
+      .pipe(finalize(() => this.markOriginalFileDownloading(doc.id, false)))
+      .subscribe({
+        next: (blob) => {
+          triggerOriginalFileDownload(blob, getOriginalFileName(doc))
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  downloadSelectedOriginalFiles() {
+    const docs = this.selectedDownloadableOriginalFileDocuments()
+    if (!docs.length || this.downloadingSelectedOriginalFiles()) {
+      this.#toastr.warning(
+        this.#translate.instant('PAC.Knowledgebase.NoOriginalFilesToDownload', {
+          Default: 'No downloadable original files are available.'
+        })
+      )
+      return
+    }
+
+    this.downloadingSelectedOriginalFiles.set(true)
+    this.knowledgeDocumentAPI
+      .downloadOriginalFiles(docs.map((doc) => doc.id))
+      .pipe(finalize(() => this.downloadingSelectedOriginalFiles.set(false)))
+      .subscribe({
+        next: (blob) => {
+          triggerOriginalFileDownload(blob, getOriginalFilesZipName(this.knowledgebase()?.name))
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  private markOriginalFileDownloading(id: string, downloading: boolean) {
+    this.downloadingOriginalFileIds.update((ids) => {
+      const next = new Set(ids)
+      if (downloading) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
   }
 
   refreshGraphJobs() {
@@ -669,4 +751,29 @@ export class KnowledgeDocumentsComponent {
         }
       })
   }
+}
+
+function getOriginalFileName(doc: IKnowledgeDocument) {
+  return doc.name || `${doc.id}.${doc.type || 'download'}`
+}
+
+function getOriginalFilesZipName(knowledgebaseName?: string) {
+  const baseName = (knowledgebaseName || 'knowledge-documents').replace(/[\\/:*?"<>|]+/g, '_')
+  return `${baseName}-original-files.zip`
+}
+
+function isSystemManagedDocument(doc: IKnowledgeDocument) {
+  const metadata = doc.metadata
+  return !!metadata && typeof metadata === 'object' && metadata['systemManaged'] === true
+}
+
+function triggerOriginalFileDownload(blob: Blob, fileName: string) {
+  const anchor = document.createElement('a')
+  const objectUrl = URL.createObjectURL(blob)
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(objectUrl)
 }

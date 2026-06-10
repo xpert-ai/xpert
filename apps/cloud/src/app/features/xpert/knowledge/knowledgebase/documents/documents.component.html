@@ -175,7 +175,7 @@
         <th scope="col" class="px-6 py-3 w-48">
           {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
         </th>
-        <th scope="col" class="px-6 py-3 w-28">
+        <th scope="col" class="px-6 py-3 w-36">
           {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
         </th>
       </tr>
@@ -390,8 +390,8 @@
               </div>
             }
           </td>
-          <td class="px-6 py-2 w-28">
-            <div class="flex items-center">
+          <td class="px-6 py-2 w-36">
+            <div class="flex items-center gap-1">
               @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
                 <button
                   class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
@@ -400,10 +400,10 @@
                 >
                   <i class="ri-equalizer-2-line"></i>
                 </button>
-                <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
+                <div class="shrink-0 w-[1px] mx-1 bg-divider-deep !h-3"></div>
               }
               <button
-                class="w-6 h-6 shrink-0 mr-2 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
                 type="button"
                 [cdkMenuTriggerFor]="rowMenu"
                 [cdkMenuTriggerData]="{ doc: element }"
@@ -450,6 +450,19 @@
       >
         <i class="ri-reset-right-line mr-1"></i>
         <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large"
+        [disabled]="downloadingSelectedOriginalFiles() || !hasSelectedDownloadableOriginalFiles()"
+        (click)="downloadSelectedOriginalFiles()"
+      >
+        @if (downloadingSelectedOriginalFiles()) {
+          <i class="ri-loader-4-line mr-1 animate-spin"></i>
+        } @else {
+          <i class="ri-download-2-line mr-1"></i>
+        }
+        <span>{{ 'PAC.Knowledgebase.DownloadOriginalFiles' | translate: { Default: 'Download Originals' } }}</span>
       </button>
       <div class="shrink-0 w-[1px] mx-2 bg-divider-deep !h-3"></div>
       <button
@@ -516,6 +529,16 @@
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
     @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
+      @if (canDownloadOriginalFile(doc)) {
+        <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileDownloading(doc.id)" (click)="downloadOriginalFile(doc)">
+          @if (isOriginalFileDownloading(doc.id)) {
+            <i class="ri-loader-4-line mr-2 animate-spin"></i>
+          } @else {
+            <i class="ri-download-2-line mr-2"></i>
+          }
+          <span>{{ 'PAC.Knowledgebase.DownloadOriginalFile' | translate: { Default: 'Download original file' } }}</span>
+        </div>
+      }
       <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="reprocess([doc.id])">
         <i class="ri-reset-right-line mr-2"></i>
         <span>{{ 'PAC.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
