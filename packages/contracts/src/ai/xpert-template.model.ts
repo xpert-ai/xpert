@@ -3,7 +3,7 @@ import { IconDefinition, TAvatar } from '../types'
 import { TCopilotModel } from './copilot-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
-import { PluginTargetApp, PluginTargetAppMeta } from '../plugin'
+import { PluginTargetApp, PluginTargetAppMeta, XpertTemplatePluginDependencies } from '../plugin'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
   key: string
@@ -104,6 +104,7 @@ export type TTemplate = {
   startPrompts?: string[]
   releaseNotes?: string
   xpertName?: string
+  dependencies?: XpertTemplatePluginDependencies
 }
 
 export type TXpertTemplate = TTemplate & {

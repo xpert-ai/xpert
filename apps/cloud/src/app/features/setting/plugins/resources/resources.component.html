@@ -1,0 +1,393 @@
+<div class="relative w-[min(920px,94vw)] max-h-[82vh] overflow-auto rounded-2xl bg-components-card-bg">
+  <div class="sticky top-0 z-10 flex items-start justify-between bg-components-card-bg px-6 pb-3 pt-4">
+    <div>
+      <div class="text-2xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InitializeResources' | translate: { Default: 'Initialize plugin resources' } }}
+      </div>
+      <div class="pt-1 text-sm text-text-tertiary">
+        {{ plugin()?.meta?.displayName || plugin()?.name }}
+      </div>
+    </div>
+    <button
+      type="button"
+      class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center hover:text-text-destructive"
+      (click)="close()"
+    >
+      <i class="ri-close-line"></i>
+    </button>
+  </div>
+
+  <div class="flex flex-col gap-4 px-6 pb-6">
+    <div class="grid gap-4 lg:grid-cols-[1.05fr_1.3fr]">
+      <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-4">
+        <div class="text-sm font-medium text-text-primary">
+          {{ 'PAC.Plugin.InstallationTarget' | translate: { Default: 'Initialization target' } }}
+        </div>
+        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            class="rounded-xl border px-3 py-3 text-left transition-colors"
+            [class]="
+              installMode() === 'workspace'
+                ? 'border-primary-500 bg-primary-500/10 text-text-primary'
+                : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
+            "
+            (click)="installMode.set('workspace')"
+          >
+            <div class="text-sm font-medium">
+              {{ 'PAC.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{
+                'PAC.Plugin.InstallToWorkspaceDesc'
+                  | translate
+                    : {
+                        Default: 'Install Skills, MCP servers, and Apps into the selected workspace.'
+                      }
+              }}
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="rounded-xl border px-3 py-3 text-left transition-colors"
+            [class]="
+              installMode() === 'xpert'
+                ? 'border-primary-500 bg-primary-500/10 text-text-primary'
+                : 'border-divider-regular bg-components-card-bg text-text-secondary hover:border-divider-deep'
+            "
+            (click)="installMode.set('xpert')"
+          >
+            <div class="text-sm font-medium">
+              {{ 'PAC.Plugin.InstallToXpert' | translate: { Default: 'Install to existing Xpert' } }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{
+                'PAC.Plugin.InstallToXpertDesc'
+                  | translate
+                    : {
+                        Default: 'Install Hooks and attach them to a selected agent in an existing Xpert.'
+                      }
+              }}
+            </div>
+          </button>
+        </div>
+
+        <div class="mt-4">
+          <div class="text-sm font-medium text-text-primary">
+            {{ 'PAC.Plugin.TargetWorkspace' | translate: { Default: 'Target workspace' } }}
+          </div>
+          <div class="mt-2">
+            @if (workspaceLoading()) {
+              <div class="flex items-center gap-2 text-sm text-text-tertiary">
+                <ngm-spin small />
+                <span>{{ 'PAC.Plugin.LoadingWorkspaces' | translate: { Default: 'Loading workspaces...' } }}</span>
+              </div>
+            } @else if (workspaceError()) {
+              <div class="text-sm text-text-destructive">{{ workspaceError() }}</div>
+            } @else {
+              <select
+                class="w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-primary outline-none"
+                [(ngModel)]="selectedWorkspaceId"
+              >
+                @for (workspace of workspaces(); track workspace.id) {
+                  <option [value]="workspace.id">{{ workspaceLabel(workspace) }}</option>
+                }
+              </select>
+            }
+          </div>
+        </div>
+
+        @if (installMode() === 'xpert') {
+          <div class="mt-4">
+            <div class="text-sm font-medium text-text-primary">
+              {{ 'PAC.Plugin.TargetXpert' | translate: { Default: 'Target Xpert' } }}
+            </div>
+            <div class="mt-2">
+              @if (xpertLoading()) {
+                <div class="flex items-center gap-2 text-sm text-text-tertiary">
+                  <ngm-spin small />
+                  <span>{{ 'PAC.Plugin.LoadingXperts' | translate: { Default: 'Loading Xperts...' } }}</span>
+                </div>
+              } @else if (xpertError()) {
+                <div class="text-sm text-text-destructive">{{ xpertError() }}</div>
+              } @else if (!xperts().length) {
+                <div
+                  class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-3 text-sm text-text-tertiary"
+                >
+                  {{ 'PAC.Plugin.NoXpertsInWorkspace' | translate: { Default: 'No Xperts found in this workspace.' } }}
+                </div>
+              } @else {
+                <div class="grid gap-3">
+                  <select
+                    class="w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-primary outline-none"
+                    [(ngModel)]="selectedXpertId"
+                  >
+                    @for (xpert of xperts(); track xpert.id) {
+                      <option [value]="xpert.id">{{ xpertLabel(xpert) }}</option>
+                    }
+                  </select>
+
+                  <select
+                    class="w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-primary outline-none"
+                    [(ngModel)]="selectedAgentKey"
+                    [disabled]="!agentOptionsForSelectedXpert().length"
+                  >
+                    @for (agent of agentOptionsForSelectedXpert(); track agent.key) {
+                      <option [value]="agent.key">{{ agent.label }}</option>
+                    }
+                  </select>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-text-primary">
+              {{
+                (installMode() === 'workspace' ? 'PAC.Plugin.WorkspaceResources' : 'PAC.Plugin.AssistantResources')
+                  | translate
+                    : {
+                        Default: installMode() === 'workspace' ? 'Workspace resources' : 'Assistant resources'
+                      }
+              }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{
+                'PAC.Plugin.BundleResourcesDesc'
+                  | translate
+                    : {
+                        Default:
+                          'Live resource definitions are read from the installed plugin bundle before initialization.'
+                      }
+              }}
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center justify-end gap-2">
+            <button
+              type="button"
+              class="btn btn-secondary btn-small h-8 min-w-[5rem] whitespace-nowrap px-3"
+              [disabled]="!installableComponents().length"
+              (click)="selectAllInstallable()"
+            >
+              {{ 'PAC.ACTIONS.SelectAll' | translate: { Default: 'Select all' } }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-small h-8 whitespace-nowrap px-3"
+              [disabled]="!selectedKeys().length"
+              (click)="clearSelection()"
+            >
+              {{ 'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' } }}
+            </button>
+          </div>
+        </div>
+
+        @if (!componentsLoading() && componentStatesLoading()) {
+          <div
+            class="mt-3 flex items-center gap-2 rounded-xl border border-divider-regular bg-components-card-bg px-3 py-2 text-xs text-text-tertiary"
+          >
+            <ngm-spin small />
+            <span>{{
+              'PAC.Plugin.CheckingResourceState' | translate: { Default: 'Checking installed state...' }
+            }}</span>
+          </div>
+        } @else if (componentStatesError()) {
+          <div
+            class="mt-3 rounded-xl border border-state-warning-hover bg-state-warning-hover/10 px-3 py-2 text-xs text-text-warning"
+          >
+            {{
+              'PAC.Plugin.ResourceStateUnavailable'
+                | translate
+                  : {
+                      Default:
+                        'Installed state could not be loaded. Re-initializing a resource will update it in place.'
+                    }
+            }}
+          </div>
+        }
+
+        <div class="relative mt-4 min-h-[320px]">
+          @if (resourceLoading()) {
+            <div class="flex min-h-[260px] items-center justify-center">
+              <ngm-spin />
+            </div>
+          } @else if (resourceError()) {
+            <div
+              class="rounded-xl border border-state-destructive-hover bg-state-destructive-hover/10 p-4 text-sm text-text-destructive"
+            >
+              {{ resourceError() }}
+            </div>
+          } @else if (!components().length) {
+            <div class="rounded-xl border border-divider-regular bg-components-card-bg p-6 text-sm text-text-tertiary">
+              {{
+                'PAC.Plugin.NoPluginResourcesFound'
+                  | translate: { Default: 'This plugin does not expose any installable resources.' }
+              }}
+            </div>
+          } @else if (!targetComponents().length) {
+            <div class="rounded-xl border border-divider-regular bg-components-card-bg p-6 text-sm text-text-tertiary">
+              {{
+                (installMode() === 'workspace'
+                  ? 'PAC.Plugin.NoWorkspaceResourcesFound'
+                  : 'PAC.Plugin.NoAssistantResourcesFound'
+                )
+                  | translate
+                    : {
+                        Default:
+                          installMode() === 'workspace'
+                            ? 'This plugin does not expose workspace resources.'
+                            : 'This plugin does not expose assistant resources.'
+                      }
+              }}
+            </div>
+          } @else {
+            <div class="flex flex-col gap-4">
+              @for (group of groupedComponents(); track group.type) {
+                <div class="rounded-xl border border-divider-regular bg-components-card-bg p-3">
+                  <div class="mb-3 text-sm font-semibold text-text-primary">
+                    {{ group.labelKey | translate: { Default: group.defaultLabel } }}
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    @for (component of group.items; track component.componentType + ':' + component.componentKey) {
+                      <label
+                        class="rounded-xl border border-divider-regular px-3 py-3"
+                        [class]="
+                          isInstalledCurrent(component)
+                            ? 'bg-background-default-subtle opacity-75'
+                            : 'bg-components-card-bg'
+                        "
+                      >
+                        <div class="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            class="mt-1"
+                            [checked]="isSelected(component)"
+                            [disabled]="isInstalledCurrent(component)"
+                            (change)="onComponentCheckedChange(component, $event)"
+                          />
+                          <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                              <span
+                                class="rounded-full bg-components-input-bg-normal px-2 py-0.5 text-[11px] uppercase text-text-tertiary"
+                              >
+                                @if (componentTypeBadge(component); as badge) {
+                                  {{ badge.labelKey | translate: { Default: badge.defaultLabel } }}
+                                }
+                              </span>
+                              @if (isUpdateAvailable(component)) {
+                                <span
+                                  class="rounded-full bg-state-warning-hover/20 px-2 py-0.5 text-[11px] text-text-warning"
+                                >
+                                  {{
+                                    'PAC.Plugin.ResourceUpdateAvailable' | translate: { Default: 'Update available' }
+                                  }}
+                                </span>
+                              } @else if (isInstalled(component)) {
+                                <span
+                                  class="rounded-full bg-state-success-hover/20 px-2 py-0.5 text-[11px] text-text-success"
+                                >
+                                  {{ 'PAC.Plugin.ResourceInstalled' | translate: { Default: 'Installed' } }}
+                                </span>
+                              }
+                              @if (isPendingAuth(component)) {
+                                <span
+                                  class="rounded-full bg-state-warning-hover/20 px-2 py-0.5 text-[11px] text-text-warning"
+                                >
+                                  {{ 'PAC.Plugin.ResourcePendingAuth' | translate: { Default: 'Pending auth' } }}
+                                </span>
+                              }
+                              <div class="truncate text-sm font-medium text-text-primary">
+                                {{ component.componentKey }}
+                              </div>
+                            </div>
+
+                            <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
+                              <span class="font-mono">{{ component.componentKey }}</span>
+                              @if (component.sourcePath) {
+                                <span class="font-mono">{{ component.sourcePath }}</span>
+                              }
+                            </div>
+
+                            @if (component.componentType === 'hook') {
+                              <div
+                                class="mt-2 rounded-lg border border-divider-regular bg-background-default-subtle px-2.5 py-2 text-xs text-text-tertiary"
+                              >
+                                {{
+                                  'PAC.Plugin.HookTrustNotice'
+                                    | translate
+                                      : {
+                                          Default:
+                                            'Hooks are installed as profiles and executed through the plugin hooks middleware.'
+                                        }
+                                }}
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      </label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (submitting()) {
+            <ngm-spin
+              class="absolute inset-0 rounded-xl backdrop-blur-sm"
+              style="background-color: color-mix(in oklab, var(--background) 45%, transparent)"
+            />
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (actionError()) {
+      <div
+        class="rounded-xl border border-state-destructive-hover bg-state-destructive-hover/10 p-4 text-sm text-text-destructive"
+      >
+        {{ actionError() }}
+      </div>
+    }
+
+    @if (resultSummary(); as summary) {
+      <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-4">
+        <div class="text-sm font-medium text-text-primary">
+          {{ 'PAC.Plugin.InitializationResult' | translate: { Default: 'Initialization result' } }}
+        </div>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+          <span class="rounded-lg bg-components-card-bg px-3 py-1">
+            {{ summary.installations }}
+            {{ 'PAC.Plugin.ResourceInstallations' | translate: { Default: 'installations' } }}
+          </span>
+          @if (summary.pendingAuth) {
+            <span class="rounded-lg bg-state-warning-hover/20 px-3 py-1 text-text-warning">
+              {{ summary.pendingAuth }}
+              {{ 'PAC.Plugin.ResourcePendingAuthCount' | translate: { Default: 'pending auth' } }}
+            </span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="sticky bottom-0 z-10 flex items-center justify-end gap-2 bg-components-card-bg px-6 py-4">
+    <button type="button" class="btn btn-secondary btn-large" (click)="close()">
+      {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    </button>
+    <button type="button" class="btn btn-primary btn-large" [disabled]="!canSubmit()" (click)="submit()">
+      {{
+        (installMode() === 'workspace' ? 'PAC.Plugin.InstallToWorkspace' : 'PAC.Plugin.InstallToXpert')
+          | translate
+            : {
+                Default: installMode() === 'workspace' ? 'Install to workspace' : 'Install to existing Xpert'
+              }
+      }}
+    </button>
+  </div>
+</div>

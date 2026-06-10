@@ -53,6 +53,11 @@ import {
 import { DataSource } from 'typeorm'
 import { collectPluginOrmMetadata, registerPluginOrmMetadataInDataSource } from './plugin-orm-metadata'
 import { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } from './plugin-http-routes'
+import {
+	collectPluginBundleComponents,
+	readPluginBundleManifest,
+	resolveLoadedPluginBundleRoot
+} from './plugin-bundle-manifest'
 
 @Injectable()
 export class PluginManagementService {
@@ -423,6 +428,22 @@ export class PluginManagementService {
 			canManageSystemPlugins(currentOrganizationId)
 		this.assertNoSystemPlugins(names, allowSystemPlugins)
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names)
+	}
+
+	readLoadedPluginBundleComponents(plugin: LoadedPluginRecord) {
+		if (!plugin?.name) {
+			return []
+		}
+
+		const packageRoot = resolveLoadedPluginBundleRoot(plugin)
+		if (!packageRoot) {
+			return []
+		}
+		const manifestResult = readPluginBundleManifest(packageRoot)
+		if (!manifestResult) {
+			return []
+		}
+		return collectPluginBundleComponents(packageRoot, manifestResult.manifest)
 	}
 
 	private resolveUninstallOrganizationId(currentOrganizationId: string, targetOrganizationId?: string) {

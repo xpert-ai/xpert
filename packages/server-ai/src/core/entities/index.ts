@@ -44,6 +44,7 @@ import {
     SkillRepository,
     SkillRepositoryIndex,
     SkillPackage,
+    PluginResourceInstallation,
     AssistantBinding,
     AssistantBindingUserPreference
 } from './internal'
@@ -94,6 +95,7 @@ export const ALL_AI_ENTITIES = [
     SkillRepository,
     SkillRepositoryIndex,
     SkillPackage,
+    PluginResourceInstallation,
     AssistantBinding,
     AssistantBindingUserPreference
 ]

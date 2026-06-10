@@ -39,6 +39,7 @@ import { HandoffQueueModule } from './handoff/message-queue.module'
 import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repository'
 import { SkillPackageModule } from './skill-package'
 import { PromptWorkflowModule } from './prompt-workflow'
+import { PluginResourceModule } from './plugin-resource'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
 import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
@@ -88,6 +89,7 @@ import { MetricsModule } from './metrics'
         SkillRepositoryModule,
         SkillRepositoryIndexModule,
         SkillPackageModule,
+        PluginResourceModule,
         PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,

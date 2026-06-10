@@ -372,6 +372,15 @@
                             </div>
                           }
                           <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            @for (item of componentSummaryItems(plugin); track item.key) {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                              >
+                                <i class="shrink-0" [class]="item.icon"></i>
+                                <span>{{ item.label | translate: { Default: item.defaultLabel } }}</span>
+                                <span class="font-mono text-text-tertiary">{{ item.count }}</span>
+                              </div>
+                            }
                             @if (plugin.scopeRelation === 'overrides-global') {
                               <div
                                 class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
@@ -397,6 +406,20 @@
                           </div>
                         </div>
                         <div class="flex space-x-1">
+                          @if (plugin.loadStatus !== 'failed' && plugin.componentSummary?.total) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [zTooltip]="
+                                'PAC.Plugin.InitializeResourcesHint'
+                                  | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
+                              "
+                              zPosition="top"
+                              (click)="initializeResources(plugin)"
+                            >
+                              <i class="ri-magic-line"></i>
+                            </button>
+                          }
                           @if (plugin.canConfigure && plugin.configSchema) {
                             <button
                               type="button"
@@ -510,7 +533,10 @@
     <div class="font-semibold mb-2">
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
-    <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
+    <div cdkMenuItem class="" (click)="installNpm()">
+      <i class="ri-npmjs-line mr-1"></i>
+      {{ 'PAC.Plugin.NpmSource' | translate: { Default: 'NPM' } }}
+    </div>
     <div cdkMenuItem class="" (click)="installArchive()">
       <i class="ri-upload-cloud-2-line mr-1"></i>
       {{ 'PAC.Plugin.ArchiveSource' | translate: { Default: 'Archive file' } }}

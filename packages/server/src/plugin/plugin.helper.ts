@@ -184,6 +184,23 @@ function appendStageWorkspacePluginError(message: string, stageError?: string) {
 	return `${message} | stageWorkspacePlugin failed earlier: ${stageError}`
 }
 
+function resolveLoadedSourceConfig(
+	source: LoadedPluginRecord['source'] | undefined,
+	sourceConfig: PluginSourceConfig | null | undefined,
+	workspacePath: string | undefined
+): PluginSourceConfig | null {
+	if (source !== 'code') {
+		return sourceConfig ?? null
+	}
+
+	const loadedSourceConfig: PluginSourceConfig = sourceConfig ? { ...sourceConfig } : {}
+	if (workspacePath && !getCodeWorkspacePath(loadedSourceConfig)) {
+		loadedSourceConfig.workspacePath = workspacePath
+	}
+
+	return Object.keys(loadedSourceConfig).length ? loadedSourceConfig : null
+}
+
 export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
 	const pluginName = normalizePluginName(failure.pluginName)
 	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
@@ -463,6 +480,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				name: plugin.meta.name,
 				packageName: name,
 				source,
+				sourceConfig: resolveLoadedSourceConfig(source, sourceConfig, workspacePath),
 				level: resolvePluginLevel(plugin.meta?.level ?? level),
 				instance: plugin,
 				ctx,

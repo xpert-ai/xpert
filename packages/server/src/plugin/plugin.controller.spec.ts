@@ -13,6 +13,13 @@ jest.mock('@xpert-ai/contracts', () => ({
 		LOADED: 'loaded',
 		FAILED: 'failed'
 	},
+	PLUGIN_COMPONENT_TYPE: {
+		SKILL: 'skill',
+		MCP_SERVER: 'mcp_server',
+		APP: 'app',
+		HOOK: 'hook',
+		ASSET: 'asset'
+	},
 	PLUGIN_LEVEL: {
 		SYSTEM: 'system',
 		ORGANIZATION: 'organization'
@@ -84,7 +91,8 @@ describe('PluginController', () => {
 		findLoadedPlugin: jest.fn(),
 		installPlugin: jest.fn(),
 		refreshCodePlugin: jest.fn(),
-		uninstallByNamesWithGuard: jest.fn()
+		uninstallByNamesWithGuard: jest.fn(),
+		readLoadedPluginBundleComponents: jest.fn()
 	} as unknown as PluginManagementService
 
 	const pluginMarketplaceService = {
@@ -123,6 +131,7 @@ describe('PluginController', () => {
 		}))
 		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
 		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([])
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
@@ -154,6 +163,65 @@ describe('PluginController', () => {
 		expect((pluginManagementService as any).installPlugin).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-org-demo'
 		})
+	})
+
+	it('returns plugin-managed component definitions for a plugin', async () => {
+		const loadedPlugin = {
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		}
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue(loadedPlugin)
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'skill',
+				componentKey: 'review'
+			}
+		])
+
+		await expect(controller.getPluginComponents('@xpert-ai/plugin-bundle-demo')).resolves.toEqual({
+			items: [
+				expect.objectContaining({
+					componentType: 'skill',
+					componentKey: 'review'
+				})
+			]
+		})
+
+		expect(pluginManagementService.readLoadedPluginBundleComponents).toHaveBeenCalledWith(loadedPlugin)
+	})
+
+	it('reads loaded bundle components without persisted component rows', async () => {
+		const loadedPlugin = {
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-xpertai-browser-lab',
+			packageName: '@xpert-ai/plugin-xpertai-browser-lab',
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-xpertai-browser-lab'
+				}
+			},
+			baseDir: '/tmp/plugins/global/xpertai-browser-lab'
+		}
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue(loadedPlugin)
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'skill',
+				componentKey: 'browser-research'
+			}
+		])
+
+		await expect(controller.getPluginComponents('@xpert-ai/plugin-xpertai-browser-lab')).resolves.toEqual({
+			items: [
+				expect.objectContaining({
+					componentType: 'skill',
+					componentKey: 'browser-research'
+				})
+			]
+		})
+
+		expect(pluginManagementService.readLoadedPluginBundleComponents).toHaveBeenCalledWith(loadedPlugin)
 	})
 
 	it('returns merged configuration without validating when opening the configuration dialog', async () => {

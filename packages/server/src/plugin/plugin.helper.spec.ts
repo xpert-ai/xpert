@@ -110,7 +110,10 @@ describe('plugin helper registerPluginsAsync', () => {
 				organizationId: 'org-1',
 				name: '@xpert-ai/plugin-code-demo',
 				packageName: '@xpert-ai/plugin-code-demo',
-				source: 'code'
+				source: 'code',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-code-demo'
+				}
 			})
 		])
 	})
@@ -215,6 +218,15 @@ describe('plugin helper registerPluginsAsync', () => {
 			codeLoadMode: 'workspace-ts',
 			onCompatibilityWarnings: expect.any(Function)
 		})
+		expect(loaded).toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-trigger-schedule',
+				source: 'code',
+				sourceConfig: {
+					workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/)
+				}
+			})
+		])
 	})
 
 	it('loads code plugins from a runtime-specific staged directory without changing the logical package name', async () => {

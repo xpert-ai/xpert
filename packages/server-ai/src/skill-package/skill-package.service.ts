@@ -695,6 +695,35 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
         return this.findSharedSkillIndex(repository.id, input.sharedSkillId.trim())
     }
 
+    async syncPluginSkillBundle(
+        workspaceId: string,
+        input: {
+            pluginName: string
+            componentKey: string
+            bundleRootPath: string
+        },
+        options?: {
+            skipAccessCheck?: boolean
+            validateOnly?: boolean
+        }
+    ): Promise<TTemplateSkillBundleSyncResult> {
+        if (!input.pluginName?.trim()) {
+            throw new BadRequestException('pluginName is required')
+        }
+        if (!input.componentKey?.trim()) {
+            throw new BadRequestException('componentKey is required')
+        }
+
+        return this.syncTemplateSkillBundle(
+            workspaceId,
+            {
+                bundleRootPath: input.bundleRootPath,
+                sharedSkillId: `plugin:${input.pluginName.trim()}:skill:${input.componentKey.trim()}`
+            },
+            options
+        )
+    }
+
     async syncTemplateSkillBundle(
         workspaceId: string,
         input: {

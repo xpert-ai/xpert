@@ -5,7 +5,8 @@ import type {
 	IPluginUpdateResult,
 	PluginLevel,
 	PluginSdkCompatibilityWarning,
-	PluginSource
+	PluginSource,
+	PluginSourceConfig
 } from '@xpert-ai/contracts'
 
 // Expose a list of loaded plugins through a global provider for lifecycle control.
@@ -18,6 +19,7 @@ export interface LoadedPluginRecord {
 	ctx: any
 	packageName?: string
 	source?: PluginSource
+	sourceConfig?: PluginSourceConfig | null
 	baseDir?: string
 	level?: PluginLevel
 	sdkCompatibilityWarnings?: PluginSdkCompatibilityWarning[]

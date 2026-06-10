@@ -1,0 +1,5 @@
+export * from './plugin-hooks.middleware'
+export * from './plugin-resource-installation.entity'
+export * from './plugin-resource-installer.service'
+export * from './plugin-resource.module'
+export * from './commands/install-template.command'

@@ -228,30 +228,34 @@
                     </div>
                   </button>
 
-                  <button
-                    type="button"
-                    class="btn btn-ghost h-8 w-8 shrink-0 rounded-lg"
-                    [disabled]="isDownloadingSkill(skill.id)"
-                    [attr.aria-label]="
-                      'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
-                    "
-                    [title]="'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }"
-                    (click)="downloadSkillPackage(skill, $event)"
+                  <div
+                    class="absolute right-2 top-2 flex p-1 rounded-xl opacity-0 transition-opacity duration-200 group-hover/skill:opacity-100 bg-components-panel-bg"
                   >
-                    @if (isDownloadingSkill(skill.id)) {
-                      <i class="ri-loader-4-line animate-spin"></i>
-                    } @else {
-                      <i class="ri-download-2-line"></i>
-                    }
-                  </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost h-7 w-7 shrink-0 rounded-lg"
+                      [disabled]="isDownloadingSkill(skill.id)"
+                      [attr.aria-label]="
+                        'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
+                      "
+                      [title]="'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }"
+                      (click)="downloadSkillPackage(skill, $event)"
+                    >
+                      @if (isDownloadingSkill(skill.id)) {
+                        <i class="ri-loader-4-line animate-spin"></i>
+                      } @else {
+                        <i class="ri-download-2-line"></i>
+                      }
+                    </button>
 
-                  <button
-                    type="button"
-                    class="btn btn-ghost h-8 w-8 shrink-0 rounded-lg hover:text-text-destructive"
-                    (click)="deleteSkill(skill)"
-                  >
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost h-7 w-7 shrink-0 rounded-lg hover:text-text-destructive"
+                      (click)="deleteSkill(skill)"
+                    >
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
                 </div>
               </article>
             }

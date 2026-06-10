@@ -540,7 +540,8 @@ export class PluginsMarketplaceComponent {
 
 function normalizeMarketplacePlugin(item: unknown): TPluginWithDownloads {
   const record = readRecord(item) ?? {}
-  const name = readString(record.name) ?? readString(record.packageName) ?? ''
+  const packageName = readString(record.packageName)
+  const name = readString(record.name) ?? packageName ?? ''
   const sourceId = readString(record.sourceId)
   const sourceName = readString(record.sourceName)
   const source = normalizeSource(record.source)
@@ -548,6 +549,7 @@ function normalizeMarketplacePlugin(item: unknown): TPluginWithDownloads {
 
   return {
     name,
+    packageName: packageName ?? name,
     displayName: (record.displayName ?? name) as TPlugin['displayName'],
     description: (record.description ?? name) as TPlugin['description'],
     version: readString(record.version) ?? '',

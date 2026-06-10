@@ -5,7 +5,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, model, si
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Router, RouterModule } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
-import { parseYAML } from '@xpert-ai/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
@@ -15,14 +14,12 @@ import {
   injectToastr,
   OrderTypeEnum,
   TAvatar,
-  TXpertTeamDraft,
   TXpertTemplate,
-  XpertAPIService,
   XpertTemplateService,
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { XpertBasicFormComponent } from '@cloud/app/@shared/xpert'
-import { map, switchMap } from 'rxjs/operators'
+import { map } from 'rxjs/operators'
 
 @Component({
   standalone: true,
@@ -39,7 +36,8 @@ import { map, switchMap } from 'rxjs/operators'
   templateUrl: './install.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
+    class:
+      'flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
   }
 })
 export class ExploreAgentInstallComponent {
@@ -50,7 +48,6 @@ export class ExploreAgentInstallComponent {
 
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
-  readonly xpertService = inject(XpertAPIService)
   readonly selectedWorkspace = injectWorkspace()
   readonly #workspaceTouched = signal(false)
 
@@ -110,41 +107,31 @@ export class ExploreAgentInstallComponent {
   }
 
   create() {
-    const xpert = {
-      workspaceId: this.workspace(),
-      avatar: this.avatar(),
-      name: this.name(),
-      description: this.description(),
-      title: this.title(),
-      copilotModel: this.copilotModel()
-    }
-
     this.loading.set(true)
     this.templateService
-      .getTemplate(this.#data.id)
-      .pipe(
-        switchMap(async (data) => parseYAML<TXpertTeamDraft>(data.export_data)),
-        switchMap((draft) =>
-          this.xpertService.importDSL({
-            ...draft,
-            team: {
-              ...draft.team,
-              ...xpert
-            }
-          })
-        )
-      )
+      .installTemplate(this.#data.id, {
+        workspaceId: this.workspace(),
+        basic: {
+          avatar: this.avatar(),
+          name: this.name(),
+          description: this.description(),
+          title: this.title(),
+          copilotModel: this.copilotModel()
+        }
+      })
       .subscribe({
-        next: (xpert) => {
+        next: ({ xpert }) => {
           this.loading.set(false)
           this.close()
-          this.#router.navigate(['/xpert/x/', xpert.id])
+          if (xpert?.id) {
+            this.#router.navigate(['/xpert/x/', xpert.id])
+          }
         },
         error: (error) => {
           this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
-    })
+      })
   }
 }
 
