@@ -183,6 +183,27 @@ export class PluginMarketplaceDetailComponent {
     }
   }
 
+  contentTypeBadgeClass(type: string) {
+    switch (type) {
+      case 'app':
+        return 'h-5 border-primary/25 bg-primary/10 text-primary'
+      case 'skill':
+        return 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
+      case 'tool':
+        return 'h-5 border-accent/25 bg-accent/10 text-accent'
+      case 'hook':
+        return 'h-5 border-destructive/25 bg-destructive/10 text-destructive'
+      case 'assistant-template':
+        return 'h-5 border-state-warning-hover bg-state-warning-hover/20 text-text-warning'
+      case 'view':
+        return 'h-5 border-divider-regular bg-components-panel-bg text-text-secondary'
+      case 'feature':
+        return 'h-5 border-divider-regular bg-components-list-option-active-bg text-text-primary'
+      default:
+        return 'h-5 border-divider-regular bg-components-input-bg-normal text-text-secondary'
+    }
+  }
+
   operations(access: string): TPluginMarketplaceOperation[] {
     return (this.selectedApp()?.operations ?? []).filter((operation) => operation.access === access)
   }

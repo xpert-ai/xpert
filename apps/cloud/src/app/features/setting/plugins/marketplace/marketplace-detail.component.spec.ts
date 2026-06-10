@@ -110,6 +110,24 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(component.contentTypeIcon(content.type)).toBe('ri-robot-2-line')
   })
 
+  it('styles content type badges by contribution type', async () => {
+    const { fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+
+    const badges = Array.from(fixture.nativeElement.querySelectorAll<HTMLElement>('z-badge'))
+
+    expect(badges.some((badge) => badge.className.includes('bg-state-success-hover/20'))).toBe(true)
+  })
+
   it('does not initialize assistant templates before the plugin is installed', async () => {
     const { component, dialog } = await createComponent(createPlugin({ installed: false }))
 

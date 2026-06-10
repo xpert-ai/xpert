@@ -77,7 +77,7 @@
                     <span class="font-medium text-text-primary">
                       {{ content.displayName || content.name | i18n }}
                     </span>
-                    <z-badge>
+                    <z-badge zType="outline" [class]="contentTypeBadgeClass(content.type)">
                       {{ 'PAC.Plugin.MarketplaceContentType_' + content.type | translate: { Default: content.type } }}
                     </z-badge>
                     @if (content.operations?.length) {
