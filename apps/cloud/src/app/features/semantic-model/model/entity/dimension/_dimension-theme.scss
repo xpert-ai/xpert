@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -18,7 +18,7 @@
 
       &:hover,
       &:focus {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.05);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.05);
         color: themeCompat.m2-get-color-from-palette($primary);
 
         .ngm-display-behaviour__option-value {
@@ -27,13 +27,13 @@
       }
 
       .z-icon-rtl-mirror {
-        color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.3);
+        color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.3);
       }
     }
 
     z-tree.ngm-tree_selection {
       [data-slot='tree-node'].selected {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.2);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.2);
         color: themeCompat.m2-get-color-from-palette($primary);
       }
     }
@@ -48,4 +48,7 @@
       line-height: 12px;
     }
   }
+}
+
+@mixin typography($config-or-theme) {
 }

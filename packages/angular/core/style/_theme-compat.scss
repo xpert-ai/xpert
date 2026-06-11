@@ -168,6 +168,29 @@ $m2-dark-theme-foreground-palette: (
   divider: rgba(255, 255, 255, 0.12),
 ) !default;
 
+$xpert-material-typeface: var(
+  --font-xp-sans,
+  'PingFang SC',
+  'Hiragino Sans GB',
+  'Microsoft YaHei UI',
+  'Microsoft YaHei',
+  'Noto Sans CJK SC',
+  'Source Han Sans SC',
+  ui-sans-serif,
+  system-ui,
+  sans-serif
+) !default;
+$xpert-material-dark-status-bar: #151a30 !default;
+$xpert-material-dark-background: black !default;
+$xpert-material-dark-card: #16181c !default;
+$xpert-material-dark-secondary-text: rgba(white, 0.7) !default;
+$xpert-material-dark-disabled-text: rgba(white, 0.5) !default;
+$xpert-material-dark-divider: rgba(white, 0.12) !default;
+$xpert-material-dark-hover: rgba(white, 0.1) !default;
+$xpert-material-dark-disabled-button: rgba(white, 0.12) !default;
+$xpert-material-dark-disabled-button-text: rgba(white, 0.3) !default;
+$xpert-material-dark-foreground-base: white !default;
+
 @function _contrast-color($value) {
   @if meta.type-of($value) != 'color' {
     @return #ffffff;

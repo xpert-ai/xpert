@@ -2,19 +2,25 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { PacMenuComponent } from '@xpert-ai/cloud/auth'
 import { NgmFormlyModule, provideFormly, provideFormlyUi } from '@xpert-ai/formly'
-import { registerEChartsThemes } from '@xpert-ai/material-theme'
-import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
 import {
-  DensityDirective,
-  NgmAgentService,
-  OCAP_AGENT_TOKEN,
-  OCAP_DATASOURCE_TOKEN
-} from '@xpert-ai/ocap-angular/core'
+  NgmDrawerContentComponent,
+  NgmDrawerTriggerComponent,
+  NgmTableComponent,
+  ResizerModule
+} from '@xpert-ai/ocap-angular/common'
+import { DensityDirective, NgmAgentService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@xpert-ai/ocap-angular/core'
 import { NGM_WASM_AGENT_WORKER, WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import { DataSource, Type } from '@xpert-ai/ocap-core'
 import { NX_STORY_FEED, NX_STORY_MODEL, NX_STORY_STORE } from '@xpert-ai/story/core'
 import { environment } from '../../environments/environment'
-import { DirtyCheckGuard, LocalAgent, ServerAgent, ServerSocketAgent, provideLogger } from '../@core/index'
+import {
+  DirtyCheckGuard,
+  LocalAgent,
+  ServerAgent,
+  ServerSocketAgent,
+  provideLogger,
+  registerEChartsThemes
+} from '../@core/index'
 import { AssetsComponent } from '../@shared/assets/assets.component'
 import { NotificationComponent, TuneComponent } from '../@theme'
 import { HeaderUserComponent, ProjectSelectorComponent, WorkspaceSelectorComponent } from '../@theme/header'
@@ -144,7 +150,7 @@ registerEChartsThemes()
       useClass: StoryFeedService
     },
     provideDimensionMemberRetriever(),
-    provideCheckpointSaver(),
+    provideCheckpointSaver()
   ]
 })
 export class FeaturesModule {}

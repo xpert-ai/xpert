@@ -1,17 +1,7 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
 @reference "../../../../styles/tailwind-reference.css";
-$global-prefix: ngm;
-$prefix: (ngm, color);
-
-@include token-utils.use-tokens($prefix, (surface-container-high: null)) {
-  :host {
-    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
-    border-color: var(--mdc-outlined-card-outline-color);
-  }
-}
 
 :host {
   @apply border rounded-lg;
+  background-color: var(--surface-container-high);
+  border-color: var(--mdc-outlined-card-outline-color);
 }

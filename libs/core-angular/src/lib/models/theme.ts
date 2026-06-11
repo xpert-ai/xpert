@@ -20,9 +20,6 @@ export function normalizeTheme(theme?: string | null): ThemesEnum {
     case null:
     case undefined:
       return ThemesEnum.default
-    case 'thin':
-    case 'dark-green':
-      return ThemesEnum.dark
     default:
       return ThemesEnum.default
   }
@@ -45,7 +42,7 @@ export function prefersColorScheme() {
   return new Observable<ThemesEnum>((subscriber) => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       subscriber.next(ThemesEnum.light)
-      return
+      return () => undefined
     }
 
     const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')

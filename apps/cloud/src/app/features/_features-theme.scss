@@ -1,11 +1,10 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @use './setting/settings-theme' as settings;
 @use './story/story-theme' as story;
 @use './semantic-model/semantic-models' as semantic-models;
 @use './home/home-theme' as home;
-@use '../@core/variables';
 
 $shell-bar-height: 48px;
 $sidebar-width: 200px;
@@ -27,7 +26,7 @@ $sidebar-collapsed-width: 40px;
     // position: relative; // 使 z-index 生效的属性
     z-index: 2;
     height: $shell-bar-height;
-    padding: 0 .5rem;
+    padding: 0 0.5rem;
 
     .z-tab-link {
       height: $shell-bar-height;
@@ -61,7 +60,7 @@ $sidebar-collapsed-width: 40px;
 
   .pac__toolbar {
     padding: 0;
-    
+
     .z-tab-nav-bar {
       border-bottom: unset;
       max-width: 100%;
@@ -73,8 +72,34 @@ $sidebar-collapsed-width: 40px;
     }
   }
   .pac-toolbar__editor {
-    box-shadow: 0 0.3px 0.9px #0000001c, 0 1.6px 3.6px #0002;
+    box-shadow:
+      0 0.3px 0.9px var(--color-elevation-toolbar-shadow-1),
+      0 1.6px 3.6px var(--color-elevation-toolbar-shadow-2);
   }
+
+  // .pac-app__page-outlet z-drawer-content {
+  //   display: flex;
+  //   flex: 1;
+  //   // height: calc(100vh - #{$shell-bar-height} - #{$status-bar-height});
+  //   position: relative;
+  //   // overflow: auto;
+  //   overflow: hidden;
+
+  //   /* 所有的 toolbar 都不设置高度 */
+  //   .pac__toolbar {
+  //     height: unset;
+  //     font-size: 1rem;
+  //     min-height: var(--header-toolbar-height);
+  //   }
+
+  //   .pac-app__spinner {
+  //     position: absolute;
+  //     top: 0;
+  //     left: 0;
+  //     width: 100%;
+  //     height: 100%;
+  //   }
+  // }
 
   .cdk-overlay-container .ant-menu-submenu-popup > .ant-menu {
     background-color: themeCompat.m2-get-color-from-palette($primary, 900);
@@ -107,18 +132,18 @@ $sidebar-collapsed-width: 40px;
           & > * {
             opacity: 0;
           }
-      
+
           [z-button][data-icon-only][data-color='accent'],
           z-button[data-icon-only][data-color='accent'] {
             opacity: 1;
           }
         }
-      
+
         &:hover {
           .pac__table-actions {
             opacity: 1;
           }
-          
+
           .pac__table-actions > * {
             opacity: 1;
           }
@@ -132,8 +157,13 @@ $sidebar-collapsed-width: 40px;
     padding: 1px 5px;
     border-radius: 5px;
   }
-  
+
+  // 带 nav-bar 的 toolbar 组件样式
   .pac-nav-toolbar {
+    // &.ngm-density__compact {
+    //   padding: 0;
+    // }
+
     .z-tab-nav-bar,
     .z-tab-group__nav {
       border-bottom: unset;
@@ -153,8 +183,9 @@ $sidebar-collapsed-width: 40px;
         transition: all 300ms ease-in;
       }
 
+      // 导航菜单间隔符
       &::after {
-        content: "";
+        content: '';
         height: 15px;
         width: 2px;
         background-color: themeCompat.m2-get-color-from-palette($foreground, divider);
@@ -167,7 +198,7 @@ $sidebar-collapsed-width: 40px;
     .z-tab-nav-bar {
       .z-tab-link[data-active='true'] {
         .pac-nav-tab__close {
-          opacity: .5;
+          opacity: 0.5;
         }
       }
 
@@ -196,7 +227,7 @@ $sidebar-collapsed-width: 40px;
       height: 32px;
 
       &[data-color='accent'] {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($accent), $alpha: 0.1);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($accent), 0.1);
       }
     }
   }

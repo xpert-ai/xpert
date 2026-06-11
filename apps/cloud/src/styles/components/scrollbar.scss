@@ -14,7 +14,7 @@ body {
     }
 
     ::-webkit-scrollbar-thumb {
-      background-color: var(--ngm-scrollbar-color, var(--color-divider-deep));
+      background-color: var(--scrollbar-thumb-color, var(--ngm-color-outline-variant));
       background-clip: padding-box;
       border-radius: 6px;
       border: 2px solid transparent;
@@ -37,5 +37,5 @@ body {
  */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--ngm-scrollbar-color, var(--color-divider-deep)) transparent;
+  scrollbar-color: var(--scrollbar-thumb-color, var(--ngm-color-outline-variant)) transparent;
 }

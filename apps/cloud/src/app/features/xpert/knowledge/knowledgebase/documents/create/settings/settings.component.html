@@ -104,10 +104,7 @@
                   [(ngModel)]="transformerIntegrationId"
                 >
                   @if (transformerIntegrationId()) {
-                    <div
-                      icon
-                      class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 mr-1.5"
-                    ></div>
+                    <div icon class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"></div>
                   }
                 </xp-integration-select>
               </div>
@@ -321,9 +318,7 @@
                     [(ngModel)]="imageUnderstandingIntegrationId"
                   >
                     @if (imageUnderstandingIntegrationId()) {
-                      <div
-                        class="inline-block h-2 w-2 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 mr-1.5"
-                      ></div>
+                      <div class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"></div>
                     }
                   </xp-integration-select>
                 </div>

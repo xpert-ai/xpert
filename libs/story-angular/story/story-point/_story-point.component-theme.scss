@@ -1,6 +1,6 @@
-@use "sass:map";
+@use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin ngm-story-point($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -43,10 +43,10 @@
         left: 0 !important;
         transform: none !important;
         z-index: 1000 !important;
-        
+
         .ngm-story-widget__fab-menu {
           right: 0;
-          opacity: .2;
+          opacity: 0.2;
           &:hover {
             opacity: 1;
           }
@@ -60,10 +60,10 @@
           @extend %widget-editable;
         }
         &:hover.editable:not(.active) {
-          border-color: color.change(map.get($accent, 500), $alpha: 0.5);
+          border-color: themeCompat.alpha(map.get($accent, 500), 0.5);
         }
       }
-      
+
     }
   }
 
@@ -79,7 +79,7 @@
         border-color: map.get($foreground, divider);
       }
     }
-    
+
     .gridster-column {
       border-left: $grid-divider;
       border-right: $grid-divider;

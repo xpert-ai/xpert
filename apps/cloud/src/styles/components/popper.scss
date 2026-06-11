@@ -14,7 +14,7 @@
 
 float-ui-content {
   .float-ui-container {
-    @apply bg-components-card-bg border-divider-regular shadow-lg rounded-xl p-0 border-[0.5px] border-solid border-gray-200 dark:border-neutral-600 z-10;
+    @apply z-10 rounded-xl border-[0.5px] border-solid border-divider-regular bg-components-card-bg p-0 shadow-lg;
   }
 }
 

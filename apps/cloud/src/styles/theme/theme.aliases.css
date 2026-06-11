@@ -1,0 +1,69 @@
+:root[data-theme],
+[data-theme] {
+  --color-components-panel-bg: var(--sys-surface-overlay);
+  --color-components-card-bg: var(--sys-surface-elevated);
+  --color-components-button-primary-border: var(--sys-primary);
+  --color-components-button-primary-bg: var(--sys-primary);
+  --color-components-input-text-filled: var(--color-text-primary);
+  --color-components-input-text-placeholder: var(--color-text-tertiary);
+  --color-divider-regular: var(--sys-border);
+  --color-divider-deep: var(--sys-border-strong);
+  --color-divider-subtle: var(--sys-border);
+  --color-base-content: var(--sys-text-primary);
+  --color-text-primary: var(--sys-text-primary);
+  --color-text-secondary: var(--sys-text-secondary);
+  --color-fg-primary: var(--sys-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
+  --color-hover-bg: var(--sys-state-hover);
+  --color-button-ghost-active: var(--color-components-list-option-active-bg);
+  --color-state-destructive-hover: var(--color-danger-bg);
+  --color-state-success-solid: var(--sys-success);
+  --color-surface-l1: var(--color-components-card-bg);
+  --color-surface-neutral: var(--color-components-list-option-bg);
+
+  --ngm-color-surface: var(--sys-surface);
+  --ngm-color-surface-container-low: var(--sys-surface-subtle);
+  --ngm-color-surface-container: var(--sys-surface-page);
+  --ngm-color-surface-container-high: var(--sys-surface-elevated);
+  --ngm-color-surface-container-highest: var(--surface-container-highest);
+  --ngm-color-main-container-background: var(--sys-surface-page);
+  --ngm-color-on-surface: var(--sys-text-primary);
+  --ngm-color-on-surface-variant: var(--sys-text-secondary);
+  --ngm-color-outline: var(--sys-border);
+  --ngm-color-outline-variant: var(--sys-border-strong);
+  --ngm-color-border: var(--sys-border);
+  --ngm-color-primary: var(--sys-primary);
+  --ngm-color-secondary: var(--sys-accent);
+  --ngm-color-secondary-container: var(--sys-accent-subtle);
+  --ngm-color-error: var(--sys-danger);
+  --ngm-color-on-primary-container: var(--sys-on-primary-subtle);
+  --ngm-color-primary-container: var(--sys-primary-subtle);
+  --ngm-color-primary-container-variant: var(--sys-primary-subtle-hover);
+  --ngm-copilot-bg-color: var(--ngm-color-surface-container);
+  --main-surface-primary: var(--ngm-color-surface);
+
+  --background: var(--sys-surface-page);
+  --foreground: var(--sys-text-primary);
+  --card: var(--sys-surface-elevated);
+  --card-foreground: var(--sys-text-primary);
+  --popover: var(--sys-surface-overlay);
+  --popover-foreground: var(--sys-text-primary);
+  --primary: var(--sys-primary);
+  --primary-foreground: var(--color-components-button-primary-text);
+  --secondary-foreground: var(--sys-text-primary);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--sys-surface-subtle);
+  --accent-foreground: var(--sys-text-primary);
+}
+
+:root[data-theme='light'],
+[data-theme='light'] {
+  --color-components-button-primary-bg-hover: var(--sys-primary-hover);
+  --color-components-input-text-filled-disabled: var(--sys-text-secondary);
+}
+
+:root[data-theme='dark'],
+[data-theme='dark'] {
+  --color-components-button-primary-bg-hover: var(--sys-primary-hover);
+  --color-components-input-text-filled-disabled: var(--color-text-tertiary);
+}

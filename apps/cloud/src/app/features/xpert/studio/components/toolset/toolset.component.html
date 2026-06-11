@@ -14,7 +14,7 @@
       class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-components-card-bg"
       [zTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: { Default: 'Tools that to be run in a sandbox' }"
     >
-      <i class="ri-instance-line text-green-700"></i>
+      <i class="ri-instance-line text-text-success"></i>
     </div>
   }
 
@@ -66,7 +66,6 @@
                 | translate: { Default: 'Sensitive tools require user confirmation before execution' }
             "
             zPosition="top"
-            zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
           ></i>
         }
         <span class="truncate whitespace-nowrap" [title]="item.tool.description || item.tool.name">
@@ -108,14 +107,14 @@
               }
               @case ('fail') {
                 <div
-                  class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  class="xpert-status-indicator xpert-status-indicator--error"
                   [zTooltip]="execution.error"
                   zPosition="top"
                 ></div>
               }
               @case ('success') {
                 <div
-                  class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  class="xpert-status-indicator xpert-status-indicator--success"
                   [floatUi]="popperContent"
                   [appendTo]="'body'"
                   [showTrigger]="eNgxFloatUiTriggers.hover"

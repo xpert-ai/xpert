@@ -1,11 +1,11 @@
 const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind')
 const { join } = require('path')
-import { TailwindThemeVars } from './core/style/tailwind-theme-var-define'
+const { safeThemeVars, migratedThemeVars } = require('../../tailwind.theme.vars')
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [join(__dirname, '/**/!(*.stories|*.spec).{ts,html}'), ...createGlobPatternsForDependencies(__dirname)],
-  darkMode: 'class',
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
@@ -32,9 +32,10 @@ module.exports = {
           600: '#155eef',
           700: '#004eeb',
           800: '#0040c1',
-          900: '#00359e',
+          900: '#00359e'
         },
-        ...TailwindThemeVars
+        ...safeThemeVars,
+        ...migratedThemeVars
       }
     }
   },

@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -18,4 +18,7 @@
       }
     }
   }
+}
+
+@mixin typography($config-or-theme) {
 }

@@ -1,5 +1,5 @@
-@use "sass:map";
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'sass:map';
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @use 'story-point/story-point.component-theme';
 @use 'story-widget/story-widget.component-theme';
@@ -45,7 +45,7 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 
       .z-tab-group__content {
         flex: 1;
-        .z-tab-group__panel[data-active="true"] {
+        .z-tab-group__panel[data-active='true'] {
           overflow: hidden;
         }
       }
@@ -133,6 +133,9 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
       padding: 0.5rem;
     }
   }
+}
+
+@mixin typography($config-or-theme) {
 }
 
 @mixin theme($theme) {

@@ -2,7 +2,7 @@
 @import 'katex/dist/katex.min.css';
 
 // Override KaTeX styles for dark mode support
-.ngm-theme-dark {
+[data-theme='dark'] {
   .katex {
     color: inherit;
   }

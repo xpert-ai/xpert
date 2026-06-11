@@ -36,7 +36,6 @@
       "@xpert-ai/core": ["libs/core-angular/src/index.ts"],
       "@xpert-ai/formly": ["libs/formly/src/index.ts"],
       "@xpert-ai/formly/*": ["libs/formly/*/index.ts", "libs/formly/*"],
-      "@xpert-ai/material-theme": ["libs/material-theme/src/index.ts"],
       "@xpert-ai/ocap-angular": ["packages/angular/src/index.ts"],
       "@xpert-ai/ocap-angular/*": ["packages/angular/*/index.ts", "packages/angular/*"],
       "@xpert-ai/ocap-core": ["packages/core/src/index.ts"],

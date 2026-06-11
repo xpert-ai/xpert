@@ -2,7 +2,7 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @use './entity/entity-theme' as entity;
 @use './query-lab/query-lab-theme' as query-lab;
 @reference "tailwindcss";
@@ -22,7 +22,7 @@
       background-color: themeCompat.m2-get-color-from-palette($background, 'focused-button');
     }
     > li:hover {
-      background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+      background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.1);
       color: themeCompat.m2-get-color-from-palette($primary);
     }
 
@@ -43,7 +43,7 @@
         min-width: unset;
         border-radius: 0;
         &[data-color='accent'] {
-          background-color: color.change(themeCompat.m2-get-color-from-palette($accent), $alpha: 0.1);
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($accent), 0.1);
         }
       }
 
@@ -69,9 +69,9 @@
   // Style for DropList
   .pac-cdk-drop__list.cdk-drop-list {
     position: relative;
-    
+
     &::after {
-      content: "";
+      content: '';
       position: absolute;
       top: 0px;
       bottom: 0;
@@ -81,7 +81,7 @@
       opacity: 0;
       box-shadow: 0 0 themeCompat.m2-get-color-from-palette($accent) inset;
       pointer-events: none;
-      transition: all .2s;
+      transition: all 0.2s;
     }
 
     &.cdk-drop-list-receiving::after {
@@ -110,9 +110,10 @@
     display: flex;
     box-sizing: border-box;
     border-radius: 4px;
-    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-                0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                0 3px 14px 2px rgba(0, 0, 0, 0.12);
+    box-shadow:
+      0 5px 5px -3px var(--color-elevation-drag-shadow-1),
+      0 8px 10px 1px var(--color-elevation-drag-shadow-2),
+      0 3px 14px 2px var(--color-elevation-drag-shadow-3);
 
     > * {
       flex: 1;
@@ -174,7 +175,7 @@
       border-radius: 5px;
 
       &:hover {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.1);
         .pac-nav-tab__close {
           opacity: 1;
         }
@@ -193,15 +194,18 @@
           background: unset;
         }
         &.selected {
-          background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.05);
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.05);
         }
 
         [data-slot='tree-node'].selected {
-          background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.1);
         }
       }
     }
   }
+}
+
+@mixin typography($config-or-theme) {
 }
 
 @mixin density($config-or-theme) {

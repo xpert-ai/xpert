@@ -22,9 +22,9 @@
         </div>
       }
     }
-  
+
     <div class="flex justify-end items-center">
-      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-components-card-bg hover:bg-gray-200" (click)="toggleTag($event)">
+      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-components-card-bg hover:bg-hover-bg" (click)="toggleTag($event)">
         {{ 'IndicatorApp.TagEnum.' + tagType() | translate: {Default: IndicatorTagEnum[tagType()]} }}
       </div>
 
@@ -56,7 +56,7 @@
     <div class="pac-indicator-list" cdkDropList (cdkDropListDropped)="dropOrder($event)">
       <ng-container *cdkVirtualFor="let item of indicators$ | async; trackBy: trackById; templateCacheSize: 0">
         <div
-          class="pac-indicator-list__item relative flex min-h-[70px] cursor-pointer select-none items-center rounded-xl px-4 py-3 transition-all outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 active:scale-[0.99] active:bg-black/10 data-[selected=true]:bg-black/5 dark:hover:bg-white/10 dark:active:bg-white/15 dark:data-[selected=true]:bg-white/10"
+          class="pac-indicator-list__item relative flex min-h-[70px] cursor-pointer select-none items-center rounded-xl px-4 py-3 transition-all outline-none hover:bg-hover-bg focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 active:scale-[0.99] active:bg-components-list-option-active-bg data-[selected=true]:bg-components-list-option-active-bg"
           role="button"
           tabindex="0"
           [attr.aria-selected]="selected$() === item.id"
@@ -67,12 +67,12 @@
           cdkDrag [cdkDragStartDelay]="200"
         >
 
-          <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()" 
+          <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()"
             [tagType]="tagType()"
             [refresh]="refreshHandler()"
             (toggleTag)="toggleTag()"
             (dataChange)="onIndicatorChange($event)"
-          > 
+          >
             @if (item.favour) {
               <z-icon action class="shrink-0" color="accent" zSize="sm" zType="star"></z-icon>
             }
@@ -81,7 +81,7 @@
           <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>
         </div>
-        <z-divider class="mx-2 border-black/5 dark:border-white/5"></z-divider>
+        <z-divider class="mx-2 border-divider-subtle"></z-divider>
       </ng-container>
     </div>
   </cdk-virtual-scroll-viewport>
@@ -89,7 +89,7 @@
   @if (isEmpty()) {
     <div class="pac-indicator-market__empty">
       <div class="signal font-notoColorEmoji">🛒</div>
-      <span>{{ 'IndicatorApp.Empty' | translate: {Default: 'Empty'} }}, 
+      <span>{{ 'IndicatorApp.Empty' | translate: {Default: 'Empty'} }},
         {{ 'IndicatorApp.Goto' | translate: {Default: 'Please go to'} }}
         <a class="underline" [routerLink]="['/indicator/market']" >{{ 'IndicatorApp.IndicatorMarket' | translate: {Default: 'Indicator Market'} }}</a>
         {{ 'IndicatorApp.ApplyIndicatorPermission' | translate: {Default: 'apply indicator permission'} }}
