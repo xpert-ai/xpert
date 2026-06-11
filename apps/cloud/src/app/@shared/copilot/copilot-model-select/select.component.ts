@@ -363,12 +363,14 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     if (!this.cva.value$()) {
       this.initModel(this.copilotId(), this.selectedAiModel())
     }
+    const rule = this.modelParameterRules().find((item) => item.name === name)
+    const nextValue = rule ? this.normalizeParameterValue(value, rule) : value
 
     this.updateValue({
       ...this.cva.value$(),
       options: {
         ...(this.cva.value$().options ?? {}),
-        [name]: value
+        [name]: nextValue
       }
     })
   }
@@ -538,8 +540,11 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
       const value = options?.[rule.name]
       if (value !== undefined) {
-        nextOptions[rule.name] = value
-        hasRetainedRuleValue = true
+        const nextValue = this.normalizeParameterValue(value, rule)
+        if (nextValue !== undefined) {
+          nextOptions[rule.name] = nextValue
+          hasRetainedRuleValue = true
+        }
       }
     }
 
@@ -575,6 +580,57 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     }
     const keys = Object.keys(options).filter((key) => options[key] !== undefined)
     return keys.length === 0 || (keys.length === 1 && keys[0] === ModelPropertyKey.CONTEXT_SIZE)
+  }
+
+  private normalizeParameterValue(value: unknown, rule: ParameterRule) {
+    if (rule.type !== ParameterType.FLOAT && rule.type !== ParameterType.INT) {
+      return value
+    }
+
+    const numericValue = this.parseNumericParameterValue(value, rule.type)
+    if (numericValue === undefined) {
+      return undefined
+    }
+
+    return this.clampNumericParameterValue(numericValue, rule)
+  }
+
+  private parseNumericParameterValue(
+    value: unknown,
+    type: ParameterType.FLOAT | ParameterType.INT
+  ): number | undefined {
+    if (value === '' || value === null || value === undefined) {
+      return undefined
+    }
+
+    let parsed: number
+    if (typeof value === 'number') {
+      parsed = value
+    } else if (typeof value === 'string') {
+      parsed = type === ParameterType.INT ? Number.parseInt(value, 10) : Number.parseFloat(value)
+    } else {
+      return undefined
+    }
+
+    if (!Number.isFinite(parsed)) {
+      return undefined
+    }
+
+    return type === ParameterType.INT ? Math.trunc(parsed) : parsed
+  }
+
+  private clampNumericParameterValue(value: number, rule: ParameterRule) {
+    let nextValue = value
+
+    if (typeof rule.min === 'number' && Number.isFinite(rule.min) && nextValue < rule.min) {
+      nextValue = rule.min
+    }
+
+    if (typeof rule.max === 'number' && Number.isFinite(rule.max) && nextValue > rule.max) {
+      nextValue = rule.max
+    }
+
+    return rule.type === ParameterType.INT ? Math.trunc(nextValue) : nextValue
   }
 
   private getMenuRailBounds(containerWidth: number | null | undefined) {

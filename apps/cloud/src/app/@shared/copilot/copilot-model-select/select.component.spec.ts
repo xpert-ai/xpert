@@ -279,6 +279,66 @@ describe('CopilotModelSelectComponent', () => {
     })
   }))
 
+  it('clamps numeric parameter updates to the active rule range', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.setModel(copilot, glmModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    glmRules$.next([
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        min: 1,
+        max: 32768,
+        default: 8192
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    component.updateParameter('max_tokens', 655361234)
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options?.max_tokens).toBe(32768)
+  }))
+
+  it('clamps persisted numeric options when model parameter rules resolve', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.writeValue({
+      copilotId: copilot.id,
+      model: glmModel.model,
+      modelType: AiModelTypeEnum.LLM,
+      options: {
+        [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+        max_tokens: 655361234
+      }
+    })
+    fixture.detectChanges()
+
+    glmRules$.next([
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        min: 1,
+        max: 32768,
+        default: 8192
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options).toEqual({
+      [ModelPropertyKey.CONTEXT_SIZE]: 200000,
+      max_tokens: 32768
+    })
+  }))
+
   it('drops stale persisted model identity when switching to a different model', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()
