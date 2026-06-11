@@ -154,13 +154,24 @@ describe('chat routes', () => {
   })
 
   it('routes direct xpert workbench urls to the ChatKit workbench component', () => {
-    const entryRoute = children.find((item) => item.path === 'x/:name/c')
-    const threadRoute = children.find((item) => item.path === 'x/:name/c/:threadId')
+    const route = children.find((item) => item.matcher && item.component === ChatXpertWorkbenchComponent)
+    const entryMatch = route?.matcher?.(
+      [new UrlSegment('x', {}), new UrlSegment('sales', {}), new UrlSegment('c', {})],
+      new UrlSegmentGroup([], {}),
+      {} as Route
+    )
+    const threadMatch = route?.matcher?.(
+      [new UrlSegment('x', {}), new UrlSegment('sales', {}), new UrlSegment('c', {}), new UrlSegment('thread-1', {})],
+      new UrlSegmentGroup([], {}),
+      {} as Route
+    )
 
-    expect(entryRoute?.component).toBe(ChatXpertWorkbenchComponent)
-    expect(entryRoute?.canActivate).toHaveLength(1)
-    expect(threadRoute?.component).toBe(ChatXpertWorkbenchComponent)
-    expect(threadRoute?.canActivate).toHaveLength(1)
+    expect(route?.component).toBe(ChatXpertWorkbenchComponent)
+    expect(route?.canActivate).toHaveLength(1)
+    expect(entryMatch?.posParams?.['name']?.path).toBe('sales')
+    expect(entryMatch?.posParams?.['threadId']).toBeUndefined()
+    expect(threadMatch?.posParams?.['name']?.path).toBe('sales')
+    expect(threadMatch?.posParams?.['threadId']?.path).toBe('thread-1')
   })
 
   it('removes chat project routes from /chat', () => {

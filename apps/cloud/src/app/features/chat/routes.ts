@@ -90,15 +90,7 @@ export const routes: Routes = [
         }
       },
       {
-        path: 'x/:name/c',
-        component: ChatXpertWorkbenchComponent,
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
-        data: {
-          title: 'Chat Xpert Workbench'
-        }
-      },
-      {
-        path: 'x/:name/c/:threadId',
+        matcher: xpertWorkbenchConversationMatcher,
         component: ChatXpertWorkbenchComponent,
         canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
         data: {
@@ -188,6 +180,33 @@ function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | 
       consumed: segments,
       posParams: {
         threadId: segments[1]
+      }
+    }
+  }
+
+  return null
+}
+
+function xpertWorkbenchConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments[0]?.path !== 'x' || !segments[1]?.path || segments[2]?.path !== 'c') {
+    return null
+  }
+
+  if (segments.length === 3) {
+    return {
+      consumed: segments,
+      posParams: {
+        name: segments[1]
+      }
+    }
+  }
+
+  if (segments.length === 4) {
+    return {
+      consumed: segments,
+      posParams: {
+        name: segments[1],
+        threadId: segments[3]
       }
     }
   }
