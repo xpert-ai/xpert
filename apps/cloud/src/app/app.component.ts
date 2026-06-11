@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@
 import { Title } from '@angular/platform-browser'
 import { AppService } from './app.service'
 
-const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'thin', 'system', 'dark-green']
+const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'system']
 
 @Component({
   standalone: false,

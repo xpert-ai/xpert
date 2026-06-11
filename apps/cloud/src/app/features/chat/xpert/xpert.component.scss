@@ -3,7 +3,7 @@
   @apply max-w-full flex-1 w-full h-full flex flex-col items-start overflow-y-auto overflow-x-hidden;
 }
 
-xp-chat-input,
+chat-input,
 .header {
-  background-color: var(--ngm-shell-primary-container-bg-color);
+  background-color: var(--ngm-color-surface-container);
 }

@@ -1,12 +1,22 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  background-color: var(--ngm-color-surface-container);
+  --auth-card-shadow-color: color-mix(in oklab, var(--color-text-primary) 17.5%, transparent);
+  --auth-card-outline-color: color-mix(in oklab, var(--color-text-primary) 20%, transparent);
+  background-color: var(--background);
   @apply w-full max-w-full h-full flex flex-col justify-start items-center overflow-auto bg-cover text-text-primary;
+}
+
+:host-context([data-theme='dark']) {
+  --auth-card-shadow-color: color-mix(in oklab, var(--color-divider-deep) 70%, transparent);
+  --auth-card-outline-color: color-mix(in oklab, var(--color-components-button-primary-text) 40%, transparent);
 }
 
 .pac-auth-card {
   background-color: var(--ngm-color-surface);
-  @apply rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-border;
+  box-shadow:
+    0 32px 48px var(--auth-card-shadow-color),
+    0 0 1px var(--auth-card-outline-color);
+  @apply rounded-[36px] border-[0.5px] border-solid border-divider-regular;
 }
 
 .pac-auth__header {

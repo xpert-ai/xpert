@@ -2,7 +2,7 @@
 :host {
   --z-drawer-size: 16rem;
   --z-drawer-border-color: var(--color-divider-regular);
-  border-top-left-radius: var(--ngm-primary-container-rounded);
+  border-top-left-radius: var(--layout-shell-top-left-radius);
   @apply relative flex justify-start w-full h-full overflow-hidden;
 }
 

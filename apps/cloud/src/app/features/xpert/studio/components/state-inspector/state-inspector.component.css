@@ -47,7 +47,7 @@
 }
 
 :host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__trigger[data-state='completed'] {
-  border-color: var(--color-divider-deep);
+  border-color: var(--ngm-color-outline-variant);
 }
 
 :host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__content {

@@ -1,8 +1,8 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
   @apply flex-1 flex flex-col;
-  --ngm-property-select-container-bg-color: var(--ngm-color-surface-container-high);
-  --ngm-property-select-container-ring-offset-color: var(--ngm-color-surface-container);
+  --property-select-container-bg-color: var(--ngm-color-surface-container-low);
+  --property-select-container-ring-offset-color: var(--background);
 }
 
 .ngm-property-select__create-calculation {
@@ -10,9 +10,9 @@
 }
 
 .select-container {
-  background-color: var(--ngm-property-select-container-bg-color);
+  background-color: var(--property-select-container-bg-color);
   &:hover {
-    --tw-ring-offset-color: var(--ngm-property-select-container-ring-offset-color);
+    --tw-ring-offset-color: var(--property-select-container-ring-offset-color);
   }
 }
 

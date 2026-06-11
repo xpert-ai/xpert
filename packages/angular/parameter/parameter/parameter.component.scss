@@ -5,7 +5,7 @@
 
 .radio-item[aria-selected='true'] {
   input {
-    @apply text-blue-600;
+    color: var(--ngm-color-primary);
   }
 }
 

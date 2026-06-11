@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -12,15 +12,15 @@
       padding-right: 1rem;
 
       .z-icon-rtl-mirror {
-        color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.3);
+        color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.3);
       }
 
       &.selected {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.05);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.05);
       }
 
       &:hover {
-        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.1);
         color: themeCompat.m2-get-color-from-palette($primary);
       }
     }
@@ -35,7 +35,7 @@
       font-weight: 500;
       color: themeCompat.m2-get-color-from-palette($accent);
       text-align: center;
-      background-color: color.change(themeCompat.m2-get-color-from-palette($accent), $alpha: 0.1);
+      background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($accent), 0.1);
       border-radius: 3px;
       padding: 0 3px;
       max-width: 60px;

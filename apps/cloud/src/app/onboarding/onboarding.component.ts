@@ -37,8 +37,8 @@ import { injectLanguage } from '../@core'
 	display: flex;
 	width: 100%;
 	height: 100%;
-  background-color: var(--ngm-app-background-color);
-  color: var(--ngm-color-on-surface);
+  background-color: var(--background);
+  color: var(--foreground);
 }`],
 })
 export class OnboardingComponent {

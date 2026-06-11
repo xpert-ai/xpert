@@ -1,13 +1,18 @@
 markdown.ngm-copilot-markdown {
-  --ngm-copilot-table-radius: 0.375rem;
-  --ngm-copilot-link: hsl(214.6 60% 45%);
+  --markdown-table-radius: 0.375rem;
+  --markdown-link-color: var(--ngm-color-primary);
+  --markdown-code-bg: color-mix(in oklab, black 88%, var(--ngm-color-surface-container));
+  --markdown-table-head-bg: var(--color-background-default-subtle);
+  --markdown-table-border: var(--border-light);
+  --markdown-clipboard-bg: var(--color-background-default-subtle);
+  --markdown-clipboard-bg-hover: var(--color-hover-bg);
   --hot-pink: oklch(59.91% 0.239 8.14);
   --orange-red: oklch(63.32% 0.24 31.68);
   --red-to-orange-horizontal-gradient: linear-gradient(90deg, var(--hot-pink) 0%, var(--orange-red) 100%);
   --subtle-purple: color-mix(in srgb, var(--bright-blue) 5%, lightgrey 10%);
   --full-contrast: white;
   --bright-blue: color-mix(in srgb, oklch(51.01% 0.274 263.83), var(--full-contrast) 60%);
-  --code-font: "Geist Mono", monospace;
+  --code-font: 'Geist Mono', monospace;
   line-height: 2;
 
   > * {
@@ -61,7 +66,8 @@ markdown.ngm-copilot-markdown {
 
   :not(pre) > code[class*='language-'],
   pre[class*='language-'] {
-    @apply rounded-lg bg-gray-950;
+    @apply rounded-lg;
+    background-color: var(--markdown-code-bg);
     scrollbar-width: thin;
     scrollbar-color: hsla(0, 0%, 100%, 0.1) transparent;
 
@@ -139,7 +145,8 @@ markdown.ngm-copilot-markdown {
     }
 
     th {
-      @apply border-neutral-200 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-700;
+      background-color: var(--markdown-table-head-bg);
+      border-color: var(--markdown-table-border);
       border-top-width: 1px;
       border-right-width: 0;
       border-bottom-width: 1px;
@@ -147,11 +154,11 @@ markdown.ngm-copilot-markdown {
     }
 
     th:first-child {
-      border-top-left-radius: var(--ngm-copilot-table-radius);
+      border-top-left-radius: var(--markdown-table-radius);
     }
 
     th:last-child {
-      border-top-right-radius: var(--ngm-copilot-table-radius);
+      border-top-right-radius: var(--markdown-table-radius);
       border-right-width: 1px;
     }
 
@@ -162,7 +169,7 @@ markdown.ngm-copilot-markdown {
     }
 
     td {
-      @apply border-neutral-200 dark:border-neutral-600;
+      border-color: var(--markdown-table-border);
       border-bottom-width: 1px;
       border-left-width: 1px;
     }
@@ -173,17 +180,17 @@ markdown.ngm-copilot-markdown {
 
     tbody tr:last-child {
       td:first-child {
-        border-bottom-left-radius: var(--ngm-copilot-table-radius);
+        border-bottom-left-radius: var(--markdown-table-radius);
       }
 
       td:last-child {
-        border-bottom-right-radius: var(--ngm-copilot-table-radius);
+        border-bottom-right-radius: var(--markdown-table-radius);
       }
     }
   }
 
   a {
-    color: var(--ngm-copilot-link);
+    color: var(--markdown-link-color);
     font-weight: 500;
 
     &:hover {
@@ -192,6 +199,11 @@ markdown.ngm-copilot-markdown {
   }
 
   .markdown-clipboard-button {
-    @apply rounded-md bg-neutral-100 px-2 hover:bg-white;
+    @apply rounded-md px-2;
+    background-color: var(--markdown-clipboard-bg);
+
+    &:hover {
+      background-color: var(--markdown-clipboard-bg-hover);
+    }
   }
 }

@@ -3,23 +3,11 @@
     class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-background-default-subtle shadow-sm hover:shadow-md hover:bg-components-card-bg"
   >
     <div class="p-4 pb-3">
-      <div class="absolute right-0 top-0 flex pl-[13px]">
-        <svg
-          width="13"
-          height="18"
-          viewBox="0 0 13 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          class="-mr-[1px] text-components-input-bg-normal"
-        >
-          <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z" fill="currentColor"></path>
-        </svg>
         <div
-          class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-tertiary"
+        class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
         >
           {{ 'PAC.Plugin.Category_' + plugin.category | translate: { Default: plugin.category } }}
         </div>
-      </div>
       <div class="flex">
         <div class="relative flex">
           <xp-icon
@@ -36,7 +24,7 @@
           }
         </div>
 
-        <div class="ml-3 w-0 grow">
+        <div class="ml-3 w-0 grow pr-24">
           <div class="flex h-5 items-center">
             <div
               class="system-md-semibold truncate text-text-secondary"

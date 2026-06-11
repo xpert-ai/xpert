@@ -6,7 +6,7 @@
   flex-direction: row;
   max-width: 100%;
   overflow: auto;
-  border-top-left-radius: var(--ngm-primary-container-rounded);
+  border-top-left-radius: var(--layout-shell-top-left-radius);
 }
 
 .pac-nav__router {

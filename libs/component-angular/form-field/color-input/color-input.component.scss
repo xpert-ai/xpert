@@ -10,9 +10,9 @@
 }
 
 .ngm-color-input__trigger {
-  @apply inline-flex size-7 items-center justify-center rounded-full border border-dashed border-neutral-300 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+  @apply inline-flex size-7 items-center justify-center rounded-full border border-dashed border-divider-regular bg-components-input-bg-normal shadow-sm;
 }
 
 .ngm-color-input__swatch {
-  @apply block size-4 rounded-full border border-white/60 shadow-inner;
+  @apply block size-4 rounded-full border border-divider-subtle shadow-inner;
 }

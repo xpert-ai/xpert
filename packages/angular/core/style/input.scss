@@ -2,16 +2,19 @@
 .ngm-input {
     @apply font-normal rounded-lg bg-components-input-bg border border-solid border-transparent
     ring-offset-1 ring-offset-transparent ring-1 ring-transparent
-    focus:ring-blue-500 focus:z-10 focus:outline-none;
+    focus:z-10 focus:outline-none;
+  &:focus {
+    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+  }
     &.error {
-        @apply border-red-500;
+    border-color: var(--mdc-theme-error);
     }
 }
 
 .ngm-input-inline {
     @apply outline-none border border-solid border-transparent active:bg-components-input-bg focus:bg-components-input-bg;
     &.error {
-        @apply border-red-500;
+    border-color: var(--mdc-theme-error);
     }
 }
 

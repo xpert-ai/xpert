@@ -1,62 +1,41 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../../tailwind-workspace-reference.css";
-/* The prefix used to generate the fully qualified name for tokens in this file. */
-$prefix: (ngm, color);
-
-@function get-unthemable-tokens() {
-  @return (
-  );
-}
-
-@function get-color-tokens() {
-  @return (
-    surface-container-low: null,
-    surface-container: null,
-    surface-container-high: null,
-    surface: null,
-  );
-}
-
-@function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
-}
-
-@include token-utils.use-tokens($prefix, get-token-slots()) {
-  .ngm-input-element[z-input] {
-    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
-    &:hover:not(:disabled) {
-      --tw-ring-color: rgb(234 179 8 / 0.5); /* ring-yellow-500/50 */
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
-    }
-    &:focus {
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
-      background-color: var(#{token-utils.get-token-variable(surface)});
-      opacity: .8;
-    }
-    &:disabled {
-      background-color: var(#{token-utils.get-token-variable(surface-container-low)});
-    }
-  }
-}
 
 .ngm-input-element[z-input] {
   @apply min-w-[6rem] block box-border w-full max-w-full p-2 rounded-lg border border-solid border-transparent
-    text-gray-700 ring-offset-1 ring-offset-transparent ring-2 ring-transparent
-    focus:ring-yellow-500 focus:z-10 focus:outline-none
-    dark:placeholder-gray-400 dark:text-white
-    dark:focus:ring-yellow-500
-    disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed
-    placeholder:italic placeholder:text-slate-400/50 dark:placeholder:text-slate-500/50
-    dark:disabled:border-neutral-800;
+    ring-offset-1 ring-offset-transparent ring-2 ring-transparent
+    focus:z-10 focus:outline-none
+    disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed;
+
+  background-color: var(--surface-container-high);
+  color: var(--color-components-input-text-filled);
+
+  &:hover:not(:disabled) {
+    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    --tw-ring-offset-color: var(--ngm-color-surface);
+  }
+
+  &:focus {
+    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    --tw-ring-offset-color: var(--ngm-color-surface);
+    background-color: var(--ngm-color-surface);
+    opacity: 0.8;
+  }
+
+  &::placeholder {
+    color: var(--color-components-input-text-placeholder);
+    font-style: italic;
+  }
+
+  &:disabled {
+    background-color: var(--surface-container-low);
+    border-color: var(--color-divider-regular);
+    color: var(--color-components-input-text-filled-disabled);
+  }
 
   &.ngm-input__searching {
-    @apply focus:bg-white dark:focus:bg-gray-800;
+    &:focus {
+      background-color: var(--ngm-color-surface);
+    }
   }
 }
 

@@ -113,9 +113,9 @@
           >
             <div class="flex items-center gap-2 text-text-primary font-semibold text-sm leading-5">
               @if (tool.disabled ?? disableToolDefault()) {
-                <span class="inline-block w-2 h-2 rounded-full bg-components-list-option-active-bg shadow-md shadow-gray-100"> </span>
+                <span class="inline-block xpert-status-indicator xpert-status-indicator--neutral"> </span>
               } @else {
-                <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100"> </span>
+                <span class="inline-block xpert-status-indicator xpert-status-indicator--success"> </span>
               }
               {{ tool.name }}
             </div>

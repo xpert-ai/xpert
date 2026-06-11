@@ -20,5 +20,5 @@
 }
 
 .ngm-error {
-  color: var(--ngm-color-error, #ef4444);
+  color: var(--color-text-destructive, var(--mdc-theme-error, theme('colors.red.500')));
 }

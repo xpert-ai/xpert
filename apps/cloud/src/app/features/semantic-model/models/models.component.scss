@@ -1,7 +1,5 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 @reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $global-prefix: ngm;
@@ -9,34 +7,31 @@ $prefix: (ngm, models);
 $prefix-color: (#{$prefix}, color);
 
 @function get-unthemable-tokens() {
-  @return (
-    primary-container-rounded: var(--#{$global-prefix}-primary-container-rounded)
-  );
+  @return (primary-container-rounded: var(--layout-shell-top-left-radius));
 }
 
 @function get-color-tokens() {
-  @return (
-    color-surface: var(--#{$global-prefix}-color-surface),
-  );
+  @return (color-surface: var(--ngm-color-surface));
 }
 
 @function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
 }
 
 :host {
   @include token-utils.create-token-values($prefix, get-token-slots());
 
-  border-top-left-radius: var(--ngm-models-primary-container-rounded);// #{token-utils.get-token-variable(primary-container-rounded)});
-  background-color: var(--ngm-models-color-surface); // #{token-utils.get-token-variable(color-surface)});
-
   @apply flex flex-col w-full h-full overflow-auto;
 
   .pac-page__body {
     padding-top: 0;
+  }
+}
+
+@include token-utils.use-tokens($prefix, get-token-slots()) {
+  :host {
+    border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
+    background-color: var(#{token-utils.get-token-variable(color-surface)});
   }
 }
 

@@ -1,58 +1,31 @@
-@use "../input/_input.component.scss";
+@use '../input/_input.component.scss';
 
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../../tailwind-workspace-reference.css";
-/* The prefix used to generate the fully qualified name for tokens in this file. */
-$prefix: (ngm, color);
-
-@function get-unthemable-tokens() {
-  @return (
-  );
-}
-
-@function get-color-tokens() {
-  @return (
-    surface-container-low: null,
-    surface-container: null,
-    surface-container-high: null,
-    surface: null,
-  );
-}
-
-@function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
-}
-
-@include token-utils.use-tokens($prefix, get-token-slots()) {
-  .ngm-select-element {
-    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
-    &:hover {
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
-    }
-    &:enabled:focus {
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
-      background-color: var(#{token-utils.get-token-variable(surface)});
-    }
-    &:disabled {
-      background-color: var(#{token-utils.get-token-variable(surface-container-low)});
-    }
-  }
-}
 
 .ngm-select-element {
   @apply p-2 rounded-lg border border-solid border-transparent
-  text-gray-700 ring-offset-1 ring-offset-transparent ring-2 ring-transparent
-  focus:z-10 focus:outline-none enabled:hover:ring-yellow-500/50 enabled:focus:ring-yellow-500
-  dark:border-transparent dark:placeholder-gray-400 dark:text-white
-  dark:hover:ring-yellow-500/50 dark:focus:ring-yellow-500
-  disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed
-  dark:disabled:border-neutral-800;
+  ring-offset-1 ring-offset-transparent ring-2 ring-transparent
+  focus:z-10 focus:outline-none disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed;
+
+  background-color: var(--surface-container-high);
+  color: var(--color-components-input-text-filled);
+
+  &:hover {
+    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    --tw-ring-offset-color: var(--ngm-color-surface);
+  }
+
+  &:enabled:focus {
+    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    --tw-ring-offset-color: var(--ngm-color-surface);
+    background-color: var(--ngm-color-surface);
+  }
+
+  &:disabled {
+    background-color: var(--surface-container-low);
+    border-color: var(--color-divider-regular);
+    color: var(--color-components-input-text-filled-disabled);
+  }
 }
 
 .ngm-select-label {

@@ -1,8 +1,8 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, splitter);
@@ -13,16 +13,11 @@ $prefix: (ngm, splitter);
 }
 
 @function get-color-tokens() {
-  @return (
-    background-color: var(--ngm-color-outline-variant),
-  );
+  @return (background-color: var(--splitter-background-color, var(--ngm-color-outline-variant)));
 }
 
 @function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
 }
 
 @mixin color($config-or-theme) {
@@ -72,11 +67,11 @@ $prefix: (ngm, splitter);
     justify-content: center;
     align-items: center;
     z-index: 99;
-    opacity: .68;
-    transition: opacity .15s ease-out !important;
+    opacity: 0.68;
+    transition: opacity 0.15s ease-out !important;
 
     &:hover {
-      transition: all .25s ease-out;
+      transition: all 0.25s ease-out;
       opacity: 1;
     }
 
@@ -128,5 +123,7 @@ $prefix: (ngm, splitter);
       }
     }
   }
-  
+}
+
+@mixin typography($config-or-theme) {
 }

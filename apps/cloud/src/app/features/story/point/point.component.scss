@@ -1,30 +1,19 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 @reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
-$global-prefix: ngm;
 $prefix: (ngm, sps-viewer);
 
 @function get-unthemable-tokens() {
-  @return (
-    container-rounded: var(--#{$global-prefix}-primary-container-rounded)
-  );
+  @return (container-rounded: var(--layout-shell-top-left-radius));
 }
 
 @function get-color-tokens() {
-  @return (
-    color-surface: var(--#{$global-prefix}-color-surface),
-    color-surface-container: var(--#{$global-prefix}-color-surface-container),
-  );
+  @return (color-surface: var(--ngm-color-surface), color-surface-container: var(--background));
 }
 
 @function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
 }
 
 :host {

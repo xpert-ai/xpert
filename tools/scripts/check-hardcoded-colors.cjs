@@ -14,7 +14,12 @@ const scanRoots = [
   'packages/ui',
   'legacies/copilot-angular/src'
 ]
-const excludedFiles = new Set(['apps/cloud/src/styles/themes/base.scss'])
+const excludedFiles = new Set([
+  'apps/cloud/src/styles/themes/base.scss',
+  'apps/cloud/src/styles/theme/theme.tokens.css'
+])
+const excludedPathPrefixes = ['apps/cloud/src/app/@core/theme/echarts/']
+const excludedPathSuffixes = ['packages/angular/core/style/_theme-compat.scss']
 const fileExtensions = new Set(['.html', '.scss', '.css', '.ts', '.sass'])
 const maxReportedRegressions = 80
 const hardcodedColorFamilies = [
@@ -115,6 +120,14 @@ function hasHeadCommit() {
 
 function shouldExcludePath(relativeFile) {
   if (excludedFiles.has(relativeFile)) {
+    return true
+  }
+
+  if (excludedPathPrefixes.some((prefix) => relativeFile.startsWith(prefix))) {
+    return true
+  }
+
+  if (excludedPathSuffixes.some((suffix) => relativeFile === suffix)) {
     return true
   }
 
