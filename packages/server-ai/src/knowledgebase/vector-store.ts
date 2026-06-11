@@ -168,7 +168,7 @@ export class KnowledgeDocumentStore {
     }
 
     async deleteChunk(id: string) {
-        return await this.vStore.delete({ filter: { chunkId: id } })
+        return await this.vStore.delete({ ids: [this.createVectorId(id)] })
     }
 
     async updateChunk(id: string, chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>, document: IKnowledgeDocument) {
@@ -176,7 +176,7 @@ export class KnowledgeDocumentStore {
         await this.deleteChunk(id)
         chunk.pageContent ??= _chunk?.pageContent ?? ''
         chunk.metadata = { ...(_chunk?.metadata ?? {}), ...chunk.metadata }
-        chunk.metadata.chunkId = id
+        chunk.metadata.chunkId ??= id
         this.fillMetadata(chunk, document)
         await this.vStore.addDocuments([chunk], { ids: [this.createVectorId(id)] })
     }
