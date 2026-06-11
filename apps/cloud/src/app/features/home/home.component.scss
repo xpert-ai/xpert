@@ -1,27 +1,19 @@
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, home);
 
 @function get-unthemable-tokens() {
-  @return (
-    container-rounded: var(--ngm-primary-container-rounded)
-  );
+  @return (container-rounded: var(--layout-shell-top-left-radius));
 }
 
 @function get-color-tokens() {
-  @return (
-    background-color: var(--ngm-color-surface),
-    card-background-color: var(--ngm-color-surface-container-low),
-  );
+  @return (background-color: var(--ngm-color-surface), card-background-color: var(--ngm-color-surface-container-low));
 }
 
 @function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
 }
 
 :host {

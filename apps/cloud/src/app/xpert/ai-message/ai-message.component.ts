@@ -300,7 +300,7 @@ export class ChatAiMessageComponent {
   agentRunTitle(node: AgentRunRenderNode) {
     const key = node.info.agentKey
     const agent = key ? this.agents()[key] : null
-    return agent?.title || agent?.name || key || node.info.title || node.info.xpertName || 'Agent'
+    return agent?.title || agent?.name || node.info.title || node.info.xpertName || key || 'Agent'
   }
 
   agentRunDuration(node: AgentRunRenderNode) {

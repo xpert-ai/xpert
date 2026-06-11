@@ -1,6 +1,6 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  border-top-left-radius: var(--ngm-primary-container-rounded);
+  border-top-left-radius: var(--layout-shell-top-left-radius);
   @apply relative flex h-full flex-col;
 
   background-image: linear-gradient(

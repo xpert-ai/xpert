@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -35,7 +35,7 @@
     }
 
     .ngm-formly-cdk__drag-list.empty {
-      border: 1px dashed themeCompat.m2-get-color-from-palette($foreground, divider);;
+      border: 1px dashed themeCompat.m2-get-color-from-palette($foreground, divider);
       border-radius: 3px;
     }
   }
@@ -50,4 +50,7 @@
     background: themeCompat.m2-get-color-from-palette($background, hover);
     border: dotted 3px themeCompat.m2-get-color-from-palette($primary, 500);
   }
+}
+
+@mixin typography($config-or-theme) {
 }

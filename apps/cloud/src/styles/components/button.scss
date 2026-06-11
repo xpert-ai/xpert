@@ -2,11 +2,11 @@
 [data-theme='light'] {
   .ngm-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255 / 80%) 0%, rgb(254 0 0 / 80%) 50%, rgb(255 149 0 / 80%) 100%);
-    color: white;
-    --mdc-icon-button-icon-color: white;
-    
+    color: var(--color-components-button-primary-text);
+    --mdc-icon-button-icon-color: var(--color-components-button-primary-text);
+
     &[data-z-type='default'] {
-      color: white;
+      color: var(--color-components-button-primary-text);
     }
     &[disabled] {
       opacity: 0.5;
@@ -16,11 +16,11 @@
 [data-theme='dark'] {
   .ngm-copilot-command-button {
     background: linear-gradient(136deg, rgb(151 0 255) 0%, rgb(254 0 0) 50%, rgb(255 149 0) 100%);
-    color: white;
-    --mdc-icon-button-icon-color: white;
+    color: var(--color-components-button-primary-text);
+    --mdc-icon-button-icon-color: var(--color-components-button-primary-text);
 
     &[data-z-type='default'] {
-      color: white;
+      color: var(--color-components-button-primary-text);
     }
     &[disabled] {
       opacity: 0.5;
@@ -55,9 +55,9 @@
 
   .btn-medium {
     height: 2rem;
-    border-radius: .5rem;
-    padding-left: .875rem;
-    padding-right: .875rem;
+    border-radius: 0.5rem;
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
     font-size: 13px;
   }
   .btn-secondary {
@@ -81,14 +81,22 @@
   }
 
   .action-btn {
-    @apply inline-flex cursor-pointer items-center justify-center origin-bottom transition-transform 
+    @apply inline-flex cursor-pointer items-center justify-center origin-bottom transition-transform
       text-text-tertiary disabled:opacity-50 disabled:cursor-not-allowed;
-    
+
     &:not(:disabled) {
       @apply hover:bg-hover-bg hover:text-base-content active:scale-95;
 
       &.primary {
-        @apply hover:bg-primary-50 hover:text-primary-400 active:bg-primary-100 active:text-primary-500;
+        &:hover {
+          background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+          color: var(--primary);
+        }
+
+        &:active {
+          background-color: color-mix(in oklab, var(--primary) 15%, transparent);
+          color: var(--primary);
+        }
       }
 
       &.danger {
@@ -106,7 +114,8 @@
   }
 
   .action-btn-active {
-    @apply bg-primary-100 text-primary-500;
+    background-color: color-mix(in oklab, var(--primary) 15%, transparent);
+    color: var(--primary);
   }
 
   .pressable {
@@ -119,7 +128,7 @@
     }
 
     &.active {
-      @apply text-primary-500;
+      color: var(--primary);
     }
   }
 }

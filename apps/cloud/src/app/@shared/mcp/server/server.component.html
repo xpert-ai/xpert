@@ -334,13 +334,13 @@
       <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [ngmTimer]="timer()" [stopTime]="stopTime()"></div>
     }
     @if (loading()) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--running"></span>
       {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
     } @else if (tools()?.length) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--success"></span>
       {{ 'PAC.MCP.Connected' | translate: { Default: 'Connected' } }}
     } @else if (error()) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-red-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--error"></span>
       {{ 'PAC.MCP.Error' | translate: { Default: 'Error' } }}
     }
   </div>
@@ -433,7 +433,7 @@
   <div class="mt-3">
     @if (!pro && (types()[0] === 'stdio' || types()[0] === 'code')) {
       <div class="flex items-center px-4 mb-2">
-        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-text-warning"></i>
         <span class="text-sm text-text-secondary truncate">{{
           'PAC.Xpert.NeedSandboxToolsetTip'
             | translate

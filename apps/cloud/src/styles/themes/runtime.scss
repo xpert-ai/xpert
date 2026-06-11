@@ -1,0 +1,32 @@
+@use 'packages/angular/core/style/runtime-theme' as runtimeTheme;
+@use 'libs/formly/formly-theme' as formly;
+@use 'libs/story-angular/responsive/responsive-theme' as responsive;
+@use 'libs/story-angular/story/story-theme' as story;
+@use 'libs/story-angular/src/lib/story-theme' as story-designer;
+@use 'libs/story-angular/widgets/widgets-theme' as widgets;
+@use 'libs/apps/auth/src/lib/auth-theme' as auth;
+@use 'packages/angular/theming' as ocap;
+@use 'libs/apps/indicator-market/src/lib/indicator-market-theme' as indicator-market;
+@use '../../app/features/features-theme' as features;
+@use '../../app/@shared/components-theme' as shared;
+@use '../../app/public/public-theme' as public;
+
+@import '@angular/cdk/overlay-prebuilt.css';
+
+@include formly.theme(runtimeTheme.$theme);
+@include responsive.theme(runtimeTheme.$theme);
+@include story.theme(runtimeTheme.$theme);
+@include story-designer.theme(runtimeTheme.$theme);
+@include widgets.theme(runtimeTheme.$theme);
+@include ocap.core-theme(runtimeTheme.$theme);
+@include ocap.analytical-grid-theme(runtimeTheme.$theme);
+@include ocap.breadcrumb-theme(runtimeTheme.$theme);
+@include ocap.controls-theme(runtimeTheme.$theme);
+@include ocap.entity-theme(runtimeTheme.$theme);
+@include ocap.common-color(runtimeTheme.$theme);
+@include ocap.common-density(runtimeTheme.$theme);
+@include auth.theme(runtimeTheme.$theme);
+@include indicator-market.theme(runtimeTheme.$theme);
+@include features.theme(runtimeTheme.$theme);
+@include shared.theme(runtimeTheme.$theme);
+@include public.theme(runtimeTheme.$theme);

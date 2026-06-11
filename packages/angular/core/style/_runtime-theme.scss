@@ -1,0 +1,237 @@
+@use 'sass:color';
+@use 'sass:list';
+@use 'sass:map';
+@use 'sass:math';
+@use 'sass:meta';
+@use 'sass:string';
+@use './theme-compat' as legacy;
+
+@function _css-var($name) {
+  @return string.unquote('var(#{$name})');
+}
+
+@function _normalize-key($key) {
+  @return if(meta.type-of($key) == 'string', string.unquote($key), $key);
+}
+
+@function _map-get-any($source, $keys...) {
+  @for $index from 1 through list.length($keys) {
+    $key: list.nth($keys, $index);
+
+    @if map.has-key($source, $key) {
+      @return map.get($source, $key);
+    }
+  }
+
+  @return null;
+}
+
+@function alpha($value, $opacity) {
+  @if $value == null {
+    @return null;
+  }
+
+  @if meta.type-of($value) == 'color' {
+    @return color.change($value, $alpha: $opacity);
+  }
+
+  @if math.is-unitless($opacity) {
+    $opacity: math.percentage($opacity);
+  }
+
+  @return string.unquote('color-mix(in oklab, #{$value} #{$opacity}, transparent)');
+}
+
+@function mix($base, $overlay, $weight) {
+  @if meta.type-of($base) == 'color' and meta.type-of($overlay) == 'color' {
+    @return color.mix($overlay, $base, $weight: $weight);
+  }
+
+  @return string.unquote('color-mix(in oklab, #{$overlay} #{$weight}, #{$base})');
+}
+
+$primary-palette: (
+  100: _css-var(--sys-primary-100),
+  200: _css-var(--sys-primary-200),
+  300: _css-var(--sys-primary-300),
+  400: _css-var(--sys-primary-400),
+  500: _css-var(--sys-primary-500),
+  900: _css-var(--sys-primary-900),
+  default: _css-var(--sys-primary-500),
+  lighter: _css-var(--sys-primary-100),
+  darker: _css-var(--sys-primary-900),
+  text: _css-var(--sys-primary-500),
+  '100-contrast': _css-var(--sys-primary-100-contrast),
+  '200-contrast': _css-var(--sys-primary-200-contrast),
+  '500-contrast': _css-var(--sys-primary-500-contrast),
+  'darker-contrast': _css-var(--sys-primary-darker-contrast),
+  'default-contrast': _css-var(--sys-primary-500-contrast),
+  'lighter-contrast': _css-var(--sys-primary-100-contrast)
+);
+
+$accent-palette: (
+  100: _css-var(--sys-accent-100),
+  200: _css-var(--sys-accent-200),
+  300: _css-var(--sys-accent-300),
+  500: _css-var(--sys-accent-500),
+  900: _css-var(--sys-accent-900),
+  default: _css-var(--sys-accent-500),
+  lighter: _css-var(--sys-accent-100),
+  darker: _css-var(--sys-accent-900),
+  text: _css-var(--sys-accent-500),
+  '100-contrast': _css-var(--sys-accent-100-contrast),
+  'default-contrast': _css-var(--sys-accent-100-contrast),
+  'lighter-contrast': _css-var(--sys-accent-100-contrast)
+);
+
+$warn-palette: (
+  500: _css-var(--sys-warn-500),
+  default: _css-var(--sys-warn-500),
+  text: _css-var(--sys-warn-500),
+  '500-contrast': _css-var(--sys-warn-500-contrast),
+  'default-contrast': _css-var(--sys-warn-500-contrast)
+);
+
+$background-palette: (
+  background: _css-var(--sys-background-background),
+  hover: _css-var(--sys-background-hover),
+  'hover-soft': _css-var(--sys-background-hover-soft),
+  card: _css-var(--sys-background-card),
+  dialog: _css-var(--sys-background-dialog),
+  darker: _css-var(--sys-background-darker),
+  'focused-button': _css-var(--sys-background-focused-button)
+);
+
+$foreground-palette: (
+  base: _css-var(--sys-foreground-base),
+  divider: _css-var(--sys-foreground-divider),
+  dividers: _css-var(--sys-foreground-divider),
+  disabled: _css-var(--sys-foreground-disabled),
+  disabled-button: _css-var(--sys-foreground-disabled-button),
+  disabled-text: _css-var(--sys-foreground-disabled-text),
+  elevation: _css-var(--sys-foreground-elevation),
+  hint-text: _css-var(--sys-foreground-hint-text),
+  secondary-text: _css-var(--sys-foreground-secondary-text),
+  icon: _css-var(--sys-foreground-icon),
+  icons: _css-var(--sys-foreground-icons),
+  text: _css-var(--sys-foreground-text),
+  slider-min: _css-var(--sys-foreground-slider-min),
+  slider-off: _css-var(--sys-foreground-slider-off),
+  slider-off-active: _css-var(--sys-foreground-slider-off-active)
+);
+
+$theme: (
+  color: (
+    primary: $primary-palette,
+    accent: $accent-palette,
+    warn: $warn-palette,
+    background: $background-palette,
+    foreground: $foreground-palette
+  ),
+  density: -1,
+  typography: (
+    font-family: _css-var(--font-xp-sans)
+  )
+);
+
+@function m2-get-color-config($theme-or-color-config) {
+  @if meta.type-of($theme-or-color-config) != 'map' {
+    @return null;
+  }
+
+  @if map.has-key($theme-or-color-config, color) {
+    @return map.get($theme-or-color-config, color);
+  }
+
+  @return $theme-or-color-config;
+}
+
+@function m2-get-density-config($theme) {
+  @if meta.type-of($theme) != 'map' {
+    @return null;
+  }
+
+  @return map.get($theme, density);
+}
+
+@function m2-get-typography-config($theme) {
+  @if meta.type-of($theme) != 'map' {
+    @return null;
+  }
+
+  @return map.get($theme, typography);
+}
+
+@function m2-get-color-from-palette($palette, $hue: default, $opacity: null) {
+  @if $palette == null {
+    @return null;
+  }
+
+  $normalized-hue: _normalize-key($hue);
+  $value: _map-get-any(
+    $palette,
+    $normalized-hue,
+    if(meta.type-of($normalized-hue) == 'string', string.unquote($normalized-hue), $normalized-hue),
+    if(meta.type-of($normalized-hue) == 'number', '#{$normalized-hue}', $normalized-hue)
+  );
+
+  @if $value ==
+    null and
+    meta.type-of($normalized-hue) ==
+    'string' and
+    string.index($normalized-hue, '-contrast') ==
+    null
+  {
+    $value: _map-get-any($palette, '#{$normalized-hue}-contrast');
+  }
+
+  @if $value == null {
+    $value: _map-get-any($palette, default, 500, 400, 300);
+  }
+
+  @if $opacity != null {
+    @return alpha($value, $opacity);
+  }
+
+  @return $value;
+}
+
+@mixin core() {
+  @include legacy.core();
+}
+
+@mixin all-component-themes($theme) {
+  @include legacy.all-component-themes($theme);
+}
+
+@mixin all-component-colors($theme) {
+  @include legacy.all-component-colors($theme);
+}
+
+@mixin slider-density($config) {
+  @include legacy.slider-density($config);
+}
+
+@mixin icon-button-density($config) {
+  @include legacy.icon-button-density($config);
+}
+
+@mixin icon-density($config) {
+  @include legacy.icon-density($config);
+}
+
+@mixin form-field-density($config) {
+  @include legacy.form-field-density($config);
+}
+
+@mixin list-density($config) {
+  @include legacy.list-density($config);
+}
+
+@mixin button-toggle-typography($config) {
+  @include legacy.button-toggle-typography($config);
+}
+
+@mixin elevation($level) {
+  @include legacy.elevation($level);
+}

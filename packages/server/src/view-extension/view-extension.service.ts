@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { ViewExtensionProviderRegistry, XpertViewFileActionFile } from '@xpert-ai/plugin-sdk'
+import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import {
 	XpertExtensionViewManifest,
 	XpertRemoteComponentEntry,
@@ -12,6 +12,7 @@ import {
 	XpertViewQuery
 } from '@xpert-ai/contracts'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
+import { ViewExtensionFileActionFile } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
 import {
@@ -201,7 +202,7 @@ export class ViewExtensionService {
 		viewKey: string,
 		actionKey: string,
 		request: XpertViewActionRequest,
-		file: XpertViewFileActionFile
+		file: ViewExtensionFileActionFile
 	) {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
@@ -222,8 +223,13 @@ export class ViewExtensionService {
 			throw new NotFoundException(`File action '${actionKey}' is not supported for view '${viewKey}'`)
 		}
 
+		const hostDefinition = this.hostDefinitionRegistry.get(hostType)
+		const preparedRequest = hostDefinition?.prepareFileAction
+			? await Promise.resolve(hostDefinition.prepareFileAction(context, request, file))
+			: request
+
 		const result = await Promise.resolve(
-			resolved.provider.executeViewFileAction(context, resolved.manifestKey, actionKey, request, file)
+			resolved.provider.executeViewFileAction(context, resolved.manifestKey, actionKey, preparedRequest, file)
 		)
 
 		if (result.refresh) {

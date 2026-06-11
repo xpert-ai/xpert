@@ -2572,21 +2572,6 @@
       "count": 1
     },
     {
-      "file": "packages/angular/.storybook/peview.scss",
-      "match": "dark:bg-black",
-      "count": 1
-    },
-    {
-      "file": "packages/angular/.storybook/peview.scss",
-      "match": "dark:text-neutral-100;",
-      "count": 1
-    },
-    {
-      "file": "packages/angular/.storybook/peview.scss",
-      "match": "text-neutral-800",
-      "count": 1
-    },
-    {
       "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
       "match": "bg-gray-300/10",
       "count": 1

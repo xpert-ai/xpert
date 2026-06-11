@@ -1,7 +1,21 @@
-const vars = {
+const safeThemeVars = {
+  'surface-container': 'var(--background)',
+  'state-base-hover': 'var(--color-hover-bg)',
+  'background-default-hover': 'var(--color-hover-bg)',
+  'token-main-surface-primary': 'var(--sys-surface)',
+  'token-main-surface-secondary': 'var(--sys-surface-subtle)',
+  'token-main-surface-low': 'var(--surface-container-low)',
+  'token-text-secondary': 'var(--text-secondary)',
+  'token-border-medium': 'var(--border-medium)',
+  'token-border-light': 'var(--border-light)',
+  'components-card-option-selected-border': 'var(--components-card-option-selected-border)',
+  'button-ghost-hover': 'var(--color-hover-bg)',
+  'surface-container-bg': 'var(--background)'
+}
+
+const migratedThemeVars = {
   // https://daisyui.com/docs/colors/
   'base-content': 'var(--color-base-content)',
-  'surface-container': 'var(--ngm-color-surface-container)',
 
   // Custom colors
   'text-primary': 'var(--color-text-primary)',
@@ -11,45 +25,18 @@ const vars = {
   'text-destructive': 'var(--color-text-destructive)',
   'text-success': 'var(--color-text-success)',
   'text-warning': 'var(--color-text-warning)',
-  'text-destructive-secondary': 'var(--color-text-destructive-secondary)',
-  'text-success-secondary': 'var(--color-text-success-secondary)',
-  'text-warning-secondary': 'var(--color-text-warning-secondary)',
   'text-accent': 'var(--color-text-accent)',
-  'text-primary-on-surface': 'var(--color-text-primary-on-surface)',
-  'text-placeholder': 'var(--color-text-placeholder)',
-  'text-disabled': 'var(--color-text-disabled)',
   'text-accent-secondary': 'var(--color-text-accent-secondary)',
-  'text-accent-light-mode-only': 'var(--color-text-accent-light-mode-only)',
-  'text-text-selected': 'var(--color-text-text-selected)',
-  'text-secondary-on-surface': 'var(--color-text-secondary-on-surface)',
-  'text-logo-text': 'var(--color-text-logo-text)',
-  'text-empty-state-icon': 'var(--color-text-empty-state-icon)',
-  'text-inverted': 'var(--color-text-inverted)',
   'fg-primary': 'var(--color-fg-primary)',
   'fg-secondary': 'var(--color-fg-secondary)',
 
   'divider-subtle': 'var(--color-divider-subtle)',
   'divider-regular': 'var(--color-divider-regular)',
   'divider-deep': 'var(--color-divider-deep)',
-  'divider-burn': 'var(--color-divider-burn)',
-  'divider-intense': 'var(--color-divider-intense)',
-  'divider-solid': 'var(--color-divider-solid)',
-  'divider-solid-alt': 'var(--color-divider-solid-alt)',
-
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
-  'state-base-hover': 'var(--color-hover-bg)',
   'state-destructive-hover': 'var(--color-state-destructive-hover)',
   'state-success-solid': 'var(--color-state-success-solid)',
-  'background-default-hover': 'var(--color-hover-bg)',
-
-  'token-main-surface-primary': 'var(--main-surface-primary)',
-  'token-main-surface-secondary': 'var(--main-surface-secondary)',
-  'token-main-surface-low': 'var(--ngm-color-surface-container-low)',
-  'token-text-secondary': 'var(--text-secondary)',
-  'token-border-medium': 'var(--border-medium)',
-  'token-border-light': 'var(--border-light)',
-  'components-card-option-selected-border': 'var(--components-card-option-selected-border)',
   'components-card-bg': 'var(--color-components-card-bg)',
   'components-panel-bg': 'var(--color-components-panel-bg)',
   'components-panel-bg-blur': 'var(--color-components-panel-bg-blur)',
@@ -60,7 +47,6 @@ const vars = {
   'components-button-secondary-bg': 'var(--color-components-button-secondary-bg)',
   'components-button-secondary-bg-hover': 'var(--color-components-button-secondary-bg-hover)',
   'components-input-bg-disabled': 'var(--color-components-input-bg-disabled)',
-  'components-dropzone-bg': 'var(--color-components-dropzone-bg)',
   'components-input-bg': 'var(--color-components-input-bg)',
   'components-input-bg-normal': 'var(--color-components-input-bg-normal)',
   'components-input-bg-hover': 'var(--color-components-input-bg-hover)',
@@ -76,17 +62,31 @@ const vars = {
   'components-toggle-bg-unchecked': 'var(--color-components-toggle-bg-unchecked)',
   'components-toggle-knob': 'var(--color-components-toggle-knob)',
   'components-kbd-bg-white': 'var(--color-components-kbd-bg-white)',
-  'components-checkbox-bg': 'var(--color-components-checkbox-bg)',
-  'components-option-card-option-selected-border': 'var(--color-components-option-card-option-selected-border)',
-  'button-ghost-hover': 'var(--color-hover-bg)',
   'button-ghost-active': 'var(--color-button-ghost-active)',
   'background-default-subtle': 'var(--color-background-default-subtle)',
   'surface-l1': 'var(--color-surface-l1)',
   'surface-neutral': 'var(--color-surface-neutral)',
   'border-l2': 'var(--color-border-l2)',
   'input-border': 'var(--color-input-border)',
-  'surface-container-bg': 'var(--ngm-color-surface-container)',
-  'background-body': 'var(--color-background-body)'
+  'background-body': 'var(--color-background-body)',
+  'divider-burn': 'var(--color-divider-burn)',
+  'components-dropzone-bg': 'var(--color-components-dropzone-bg)',
+  'components-checkbox-bg': 'var(--color-components-checkbox-bg)',
+  'components-option-card-option-selected-border': 'var(--color-components-option-card-option-selected-border)'
 }
 
-module.exports = vars
+const legacyThemeVars = {
+  'text-primary-on-surface': 'var(--color-text-primary-on-surface)',
+  'text-text-selected': 'var(--color-text-text-selected)'
+}
+
+const themeVars = {
+  ...safeThemeVars,
+  ...migratedThemeVars,
+  ...legacyThemeVars
+}
+
+module.exports = themeVars
+module.exports.safeThemeVars = safeThemeVars
+module.exports.migratedThemeVars = migratedThemeVars
+module.exports.legacyThemeVars = legacyThemeVars

@@ -1,6 +1,6 @@
-@use "sass:map";
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
-@use 'libs/material-theme/src/styles/theme-compat' as theming;
+@use 'sass:map';
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as theming;
 @use 'breadcrumb-variables';
 
 @mixin _ngm-breadcrumb-height($height) {
@@ -125,6 +125,9 @@
   .ngm-breadcrumb-bar.ngm-density__compact {
     @include _ngm-breadcrumb-height(24px);
   }
+}
+
+@mixin typography($config-or-theme) {
 }
 
 @mixin theme($theme) {

@@ -77,9 +77,6 @@ export class XpertMemoryFilesComponent {
   readonly gateMinConversationCount = signal(1)
   readonly defaultDreamerXpertId = signal('')
   readonly defaultDreamerAgentKey = signal('')
-  readonly defaultGateMinIntervalMinutes = signal(30)
-  readonly defaultGateMinNewOrUpdatedMemories = signal(1)
-  readonly defaultGateMinConversationCount = signal(1)
   readonly dreamerOptions = signal<IXpert[]>([])
   readonly dreamRuns = signal<TFileMemoryDreamRunSummary[]>([])
   readonly selectedRunId = signal<string | null>(null)
@@ -91,6 +88,10 @@ export class XpertMemoryFilesComponent {
     () => this.selectedRun()?.summary ?? this.dreamRuns().find((run) => run.runId === this.selectedRunId())
   )
   #polling?: Subscription
+  #autoSaveTimer?: ReturnType<typeof setTimeout>
+  #configSaveInFlight = false
+  #configSaveDirty = false
+  #configSavePromise?: Promise<void>
 
   readonly loadMemoryFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const xpertId = this.xpertId()
@@ -137,11 +138,6 @@ export class XpertMemoryFilesComponent {
     return this.#fileMemoryAPI.deleteFile(xpertId, path)
   }
 
-  readonly effectiveFileSaver = computed<FileWorkbenchFileSaver | null>(() => {
-    const activePath = this.fileWorkbench()?.activeFilePath()
-    return isManagedMemoryIndexPath(activePath) ? null : this.saveMemoryFile
-  })
-
   readonly effectiveFileDeleter = computed<FileWorkbenchFileDeleter | null>(() => {
     const activePath = this.fileWorkbench()?.activeFilePath()
     return isManagedMemoryIndexPath(activePath) ? null : this.deleteMemoryFile
@@ -164,63 +160,98 @@ export class XpertMemoryFilesComponent {
       this.#polling = interval(5000).subscribe(() => {
         void this.loadDreamRuns(xpertId, true)
       })
-      onCleanup(() => this.#polling?.unsubscribe())
+      onCleanup(() => {
+        this.#polling?.unsubscribe()
+        this.clearDreamConfigAutoSave()
+      })
     })
   }
 
-  triggerDream() {
+  async triggerDream() {
     const xpertId = this.xpertId()
-    if (!xpertId || this.dreaming()) {
+    if (!xpertId || this.dreaming() || this.configSaving() || this.configLoading()) {
       return
     }
 
     this.dreaming.set(true)
-    this.#fileMemoryAPI.triggerDream(xpertId).subscribe({
-      next: (run) => {
-        this.#toastr.success('PAC.Xpert.FileMemoryDreamQueued', {
-          Default: `Dream queued: ${run.runId}`,
-          runId: run.runId
-        })
-        this.selectedRunId.set(run.runId)
-        void this.loadDreamRuns(xpertId)
-      },
-      error: (error) => {
-        this.dreaming.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      },
-      complete: () => {
-        this.dreaming.set(false)
-      }
-    })
-  }
-
-  async saveDreamConfig() {
-    const xpertId = this.xpertId()
-    if (!xpertId) {
-      return
-    }
-    this.configSaving.set(true)
     try {
-      const config = await firstValueFrom(
-        this.#fileMemoryAPI.saveDreamConfig(xpertId, {
-          dreamerXpertId: this.dreamerXpertId(),
-          dreamerAgentKey: this.dreamerAgentKey(),
-          gate: {
-            enabled: this.gateEnabled(),
-            minIntervalMinutes: this.gateMinIntervalMinutes(),
-            minNewOrUpdatedMemories: this.gateMinNewOrUpdatedMemories(),
-            minConversationCount: this.gateMinConversationCount()
-          }
-        })
-      )
-      this.applyDreamConfig(config)
-      this.#toastr.success('PAC.Xpert.FileMemoryDreamConfigSaved', {
-        Default: 'Dreamer config saved'
+      await this.persistDreamConfig(xpertId)
+      const run = await firstValueFrom(this.#fileMemoryAPI.triggerDream(xpertId))
+      this.#toastr.success('PAC.Xpert.FileMemoryDreamQueued', {
+        Default: `Dream queued: ${run.runId}`,
+        runId: run.runId
       })
+      this.selectedRunId.set(run.runId)
+      void this.loadDreamRuns(xpertId)
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
+      this.dreaming.set(false)
+    }
+  }
+
+  private async persistDreamConfig(xpertId: string) {
+    this.clearDreamConfigAutoSave()
+    if (this.#configSaveInFlight) {
+      this.#configSaveDirty = true
+      await this.#configSavePromise
+      return
+    }
+    this.#configSaveInFlight = true
+    this.configSaving.set(true)
+    const savePromise = this.runDreamConfigSave(xpertId)
+    this.#configSavePromise = savePromise
+    try {
+      await savePromise
+    } finally {
+      this.#configSaveInFlight = false
+      this.#configSavePromise = undefined
       this.configSaving.set(false)
+    }
+  }
+
+  private async runDreamConfigSave(xpertId: string) {
+    do {
+      this.#configSaveDirty = false
+      const config = await firstValueFrom(this.#fileMemoryAPI.saveDreamConfig(xpertId, this.buildDreamConfigInput()))
+      if (!this.#configSaveDirty && this.xpertId() === xpertId) {
+        this.applyDreamConfig(config)
+      }
+    } while (this.#configSaveDirty && this.xpertId() === xpertId)
+  }
+
+  private buildDreamConfigInput() {
+    return {
+      dreamerXpertId: this.dreamerXpertId(),
+      dreamerAgentKey: this.dreamerAgentKey(),
+      gate: {
+        enabled: this.gateEnabled(),
+        minIntervalMinutes: this.gateMinIntervalMinutes(),
+        minNewOrUpdatedMemories: this.gateMinNewOrUpdatedMemories(),
+        minConversationCount: this.gateMinConversationCount()
+      }
+    }
+  }
+
+  private scheduleDreamConfigAutoSave() {
+    const xpertId = this.xpertId()
+    if (!xpertId || this.configLoading()) {
+      return
+    }
+    this.#configSaveDirty = true
+    this.clearDreamConfigAutoSave()
+    this.#autoSaveTimer = setTimeout(() => {
+      this.#autoSaveTimer = undefined
+      void this.persistDreamConfig(xpertId).catch((error) => {
+        this.#toastr.error(getErrorMessage(error))
+      })
+    }, 600)
+  }
+
+  private clearDreamConfigAutoSave() {
+    if (this.#autoSaveTimer) {
+      clearTimeout(this.#autoSaveTimer)
+      this.#autoSaveTimer = undefined
     }
   }
 
@@ -233,22 +264,32 @@ export class XpertMemoryFilesComponent {
 
   updateDreamerXpertId(value: ZardSelectValue) {
     this.dreamerXpertId.set(selectValueToString(value))
+    this.scheduleDreamConfigAutoSave()
   }
 
   updateDreamerAgentKey(value: ZardSelectValue) {
     this.dreamerAgentKey.set(selectValueToString(value))
+    this.scheduleDreamConfigAutoSave()
+  }
+
+  updateGateEnabled(value: boolean) {
+    this.gateEnabled.set(value)
+    this.scheduleDreamConfigAutoSave()
   }
 
   updateGateMinIntervalMinutes(value: string | number | null) {
     this.gateMinIntervalMinutes.set(toNonNegativeNumber(value))
+    this.scheduleDreamConfigAutoSave()
   }
 
   updateGateMinNewOrUpdatedMemories(value: string | number | null) {
     this.gateMinNewOrUpdatedMemories.set(toNonNegativeNumber(value))
+    this.scheduleDreamConfigAutoSave()
   }
 
   updateGateMinConversationCount(value: string | number | null) {
     this.gateMinConversationCount.set(toNonNegativeNumber(value))
+    this.scheduleDreamConfigAutoSave()
   }
 
   async selectRun(runId: string) {
@@ -357,9 +398,6 @@ export class XpertMemoryFilesComponent {
       ...defaultGate,
       ...config.gate
     }
-    this.defaultGateMinIntervalMinutes.set(defaultGate.minIntervalMinutes)
-    this.defaultGateMinNewOrUpdatedMemories.set(defaultGate.minNewOrUpdatedMemories)
-    this.defaultGateMinConversationCount.set(defaultGate.minConversationCount)
     this.dreamerXpertId.set(config.dreamerXpertId || config.defaults.dreamerXpertId || '')
     this.dreamerAgentKey.set(config.dreamerAgentKey || config.defaults.dreamerAgentKey || 'FileMemoryDreamer')
     this.gateEnabled.set(gate.enabled)

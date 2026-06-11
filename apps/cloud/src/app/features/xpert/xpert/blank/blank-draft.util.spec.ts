@@ -246,6 +246,31 @@ describe('blank draft util', () => {
     })
   })
 
+  it('sets the default sandbox provider when required middleware enables sandbox without an existing provider', async () => {
+    const draft = await buildBlankXpertDraft(
+      createXpert(),
+      {
+        middlewares: ['FileMemorySystemMiddleware']
+      },
+      {
+        defaultSandboxProvider: 'local-shell-sandbox',
+        middlewareDefinitions: [
+          {
+            name: 'FileMemorySystemMiddleware',
+            features: ['sandbox']
+          }
+        ]
+      }
+    )
+
+    expect(draft.team.features).toEqual({
+      sandbox: {
+        enabled: true,
+        provider: 'local-shell-sandbox'
+      }
+    })
+  })
+
   it('stores repository defaults on skills middleware nodes without expanding them into options.skills', async () => {
     const draft = await buildBlankXpertDraft(createXpert(), {
       repositoryDefault: {

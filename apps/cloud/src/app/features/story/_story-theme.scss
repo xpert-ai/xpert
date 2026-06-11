@@ -1,7 +1,7 @@
 
 
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @reference "tailwindcss";
 $toolbar-height: 50px;
 $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);

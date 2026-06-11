@@ -36,7 +36,16 @@ describe('FileMemoryDreamService', () => {
             )
             await fsPromises.writeFile(
                 path.join(runRoot, 'output/dream-report.json'),
-                JSON.stringify({ dreamDiary: 'Dreamer finished.' }, null, 2),
+                JSON.stringify(
+                    {
+                        status: 'succeeded',
+                        changedFiles: [],
+                        unresolvedConflicts: [],
+                        dreamDiary: 'Dreamer finished.'
+                    },
+                    null,
+                    2
+                ),
                 'utf8'
             )
         })
@@ -94,6 +103,9 @@ describe('FileMemoryDreamService', () => {
         await expect(fsPromises.readFile(path.join(runRoot, 'output/dream-report.json'), 'utf8')).resolves.toContain(
             '"status": "succeeded"'
         )
+        await expect(fsPromises.readFile(path.join(runRoot, 'output/dream-report.json'), 'utf8')).resolves.toContain(
+            '"dreamDiary": "Dreamer finished."'
+        )
         await expect(fsPromises.readFile(path.join(runRoot, 'output/validation.json'), 'utf8')).resolves.toContain(
             '"ok": true'
         )
@@ -110,6 +122,149 @@ describe('FileMemoryDreamService', () => {
         expect(
             detail.artifacts.some((artifact) => artifact.path.endsWith('changed-files.json') && artifact.exists)
         ).toBe(true)
+    })
+
+    it('preserves dreamer report fields while adding host diff and validation results', async () => {
+        const created = await fileMemoryService.writeMemory(xpert, {
+            type: 'project',
+            title: 'Dream Report Merge',
+            summary: 'Dreamer report fields should survive host finalization.',
+            content: 'The Dreamer will update this topic and report why it changed.'
+        })
+        dreamerRun.mockImplementationOnce(async ({ memoryRoot, runRoot }) => {
+            await fsPromises.appendFile(
+                path.join(memoryRoot, created.relativePath),
+                '\nDreamer merged details.\n',
+                'utf8'
+            )
+            await fsPromises.writeFile(
+                path.join(runRoot, 'output/dream-report.json'),
+                JSON.stringify(
+                    {
+                        status: 'partial',
+                        changedFiles: [
+                            {
+                                path: created.relativePath,
+                                changeType: 'updated',
+                                reason: 'Merged duplicate project details into the existing topic.'
+                            }
+                        ],
+                        unresolvedConflicts: [
+                            {
+                                path: created.relativePath,
+                                reason: 'Two source snippets still disagree on the final project name.'
+                            }
+                        ],
+                        dreamDiary: 'Dreamer merged one topic and flagged one unresolved conflict.'
+                    },
+                    null,
+                    2
+                ),
+                'utf8'
+            )
+        })
+
+        const run = await dreamService.triggerDream(xpert, { reason: 'manual' })
+        await (dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots.get('tenant-1:xpert-1')?.current
+        const detail = await waitForRunStatus(run.runId, 'partial')
+
+        expect(detail.summary.unresolvedConflictCount).toBe(1)
+        expect(detail.report?.dreamDiary).toBe('Dreamer merged one topic and flagged one unresolved conflict.')
+        expect(detail.report?.changedFiles).toEqual([
+            expect.objectContaining({
+                path: created.relativePath,
+                changeType: 'updated',
+                reason: 'Merged duplicate project details into the existing topic.'
+            })
+        ])
+        expect(detail.report?.unresolvedConflicts).toEqual([
+            {
+                path: created.relativePath,
+                reason: 'Two source snippets still disagree on the final project name.'
+            }
+        ])
+    })
+
+    it('preserves skipped dreamer report when no memory files changed', async () => {
+        await fileMemoryService.writeMemory(xpert, {
+            type: 'project',
+            title: 'No Dream Changes',
+            summary: 'Dreamer should be able to report a no-op run.',
+            content: 'The Dreamer scans this topic but does not need to edit it.'
+        })
+        dreamerRun.mockImplementationOnce(async ({ runRoot }) => {
+            await fsPromises.writeFile(
+                path.join(runRoot, 'output/dream-report.json'),
+                JSON.stringify(
+                    {
+                        status: 'skipped',
+                        changedFiles: [],
+                        unresolvedConflicts: [],
+                        dreamDiary: 'Dreamer scanned the memory root and found no warranted memory edits.'
+                    },
+                    null,
+                    2
+                ),
+                'utf8'
+            )
+        })
+
+        const run = await dreamService.triggerDream(xpert, { reason: 'manual' })
+        await (dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots.get('tenant-1:xpert-1')?.current
+        const detail = await waitForRunStatus(run.runId, 'skipped')
+
+        expect(detail.summary.changedFileCount).toBe(0)
+        expect(detail.summary.unresolvedConflictCount).toBe(0)
+        expect(detail.report?.status).toBe('skipped')
+        expect(detail.report?.dreamDiary).toBe('Dreamer scanned the memory root and found no warranted memory edits.')
+    })
+
+    it('marks run partial when dreamer does not write the final report', async () => {
+        await fileMemoryService.writeMemory(xpert, {
+            type: 'project',
+            title: 'Missing Dream Report',
+            summary: 'A missing Dreamer report should not be treated as a successful run.',
+            content: 'The Dreamer runtime returns without writing output/dream-report.json.'
+        })
+        dreamerRun.mockImplementationOnce(async () => undefined)
+
+        const run = await dreamService.triggerDream(xpert, { reason: 'manual' })
+        await (dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots.get('tenant-1:xpert-1')?.current
+        const detail = await waitForRunStatus(run.runId, 'partial')
+
+        expect(detail.summary.changedFileCount).toBe(0)
+        expect(detail.summary.unresolvedConflictCount).toBe(1)
+        expect(detail.report?.status).toBe('partial')
+        expect(detail.report?.unresolvedConflicts).toEqual([
+            {
+                reason: 'Dreamer did not write output/dream-report.json.'
+            }
+        ])
+    })
+
+    it('marks run partial when dreamer writes an invalid final report shape', async () => {
+        await fileMemoryService.writeMemory(xpert, {
+            type: 'project',
+            title: 'Invalid Dream Report',
+            summary: 'An incomplete Dreamer report should not be treated as a successful run.',
+            content: 'The Dreamer runtime writes output/dream-report.json without required fields.'
+        })
+        dreamerRun.mockImplementationOnce(async ({ runRoot }) => {
+            await fsPromises.writeFile(path.join(runRoot, 'output/dream-report.json'), '{}\n', 'utf8')
+        })
+
+        const run = await dreamService.triggerDream(xpert, { reason: 'manual' })
+        await (dreamService as unknown as { slots: Map<string, TestDreamSlot> }).slots.get('tenant-1:xpert-1')?.current
+        const detail = await waitForRunStatus(run.runId, 'partial')
+
+        expect(detail.summary.changedFileCount).toBe(0)
+        expect(detail.summary.unresolvedConflictCount).toBe(1)
+        expect(detail.report?.status).toBe('partial')
+        expect(detail.report?.unresolvedConflicts).toEqual([
+            {
+                reason: 'Dreamer wrote output/dream-report.json, but status must be "succeeded", "partial", or "skipped".'
+            }
+        ])
     })
 
     it('coalesces a new trigger when a queued run already exists for the same xpert', async () => {

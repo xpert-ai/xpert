@@ -1,6 +1,6 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  background-color: var(--ngm-color-surface-container);
+  background-color: var(--background);
   @apply flex flex-col justify-start items-stretch;
 }
 
@@ -26,7 +26,7 @@
   background-color: var(--ngm-color-surface);
 }
 .surface-container {
-  background-color: var(--ngm-color-surface-container);
+  background-color: var(--background);
 }
 
 .add-dimension:hover {

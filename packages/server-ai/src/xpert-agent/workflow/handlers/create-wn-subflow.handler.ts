@@ -1,6 +1,7 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
+    agentLabel,
     channelName,
     IWFNSubflow,
     IXpert,
@@ -93,6 +94,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
         let subgraph = null
         // Execution for subagent
         const _execution: IXpertAgentExecution = {}
+        let subAgent: IXpertAgent = null
         const abortController = new AbortController()
         // Create graph by command
         if (extXpert) {
@@ -116,6 +118,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                 )
             )
             subgraph = compiled.graph
+            subAgent = compiled.agent
         } else {
             const compiled = await this.commandBus.execute<
                 XpertAgentSubgraphCommand,
@@ -141,7 +144,9 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                 )
             )
             subgraph = compiled.graph
+            subAgent = compiled.agent
         }
+        const xpertName = subAgent ? agentLabel(subAgent) : agentKey
 
         return {
             workflowNode: {
@@ -196,11 +201,14 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                                             signal: abortController.signal,
                                             configurable: {
                                                 ...config.configurable,
+                                                agentKey,
+                                                xpertName,
                                                 executionId: execution.id
                                             },
                                             metadata: {
                                                 ...(config.metadata ?? {}),
                                                 agentKey,
+                                                xpertName,
                                                 executionId: execution.id,
                                                 parentExecutionId: execution.parentId
                                             }

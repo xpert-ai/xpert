@@ -1,21 +1,26 @@
 @reference "../../../tailwind-workspace-reference.css";
 .ngm-analytical-grid {
-  --ngm-cdk-cell-selected-border-color: theme('colors.yellow.500');
-  --ngm-cdk-cell-selected-bg-color: theme('colors.gray.300');
+  --analytical-grid-row-hover-bg-color: var(--color-analytical-grid-row-hover-bg);
+  --analytical-grid-row-striped-bg-color: var(--color-analytical-grid-row-striped-bg);
+  --analytical-grid-selected-border-color: var(--color-analytical-grid-selection-border);
+  --analytical-grid-selected-bg-color: var(--color-analytical-grid-selection-bg);
+  --analytical-grid-selection-accent-color: var(--color-analytical-grid-selection-accent);
+  --analytical-grid-header-bg-color: var(--color-analytical-grid-header-bg);
 
   tr[z-table-row] {
     &:hover {
-      @apply bg-gray-300/20 dark:bg-gray-500/20;
+      background-color: var(--analytical-grid-row-hover-bg-color);
     }
 
     &.selected {
-      @apply bg-gray-300/50 dark:bg-gray-700/50;
+      background-color: var(--analytical-grid-selected-bg-color);
 
       [z-table-cell].ngm-analytical-grid__dimension.selected-member {
         @apply relative;
         &::before {
           content: '';
-          @apply absolute left-0.5 top-0 h-full w-0.5 block bg-black dark:bg-white;
+          @apply absolute left-0.5 top-0 h-full w-0.5 block;
+          background-color: var(--analytical-grid-selection-accent-color);
         }
       }
     }
@@ -26,43 +31,33 @@
 
     &::before {
       content: '';
-      @apply absolute left-0 bottom-0 h-0.5 w-full block bg-black dark:bg-white;
+      @apply absolute left-0 bottom-0 h-0.5 w-full block;
+      background-color: var(--analytical-grid-selection-accent-color);
     }
   }
   [z-table-cell].selected-cell,
   [z-table-head].selected {
-    background-color: var(--ngm-cdk-cell-selected-bg-color);
+    background-color: var(--analytical-grid-selected-bg-color);
   }
-  
+
   &.cdk-focused {
     tr[z-table-row].selected {
       [z-table-cell].ngm-analytical-grid__dimension.selected,
       [z-table-cell].selected-cell {
-        border-right: 1px solid var(--ngm-cdk-cell-selected-border-color);
-        border-bottom: 1px solid var(--ngm-cdk-cell-selected-border-color);
-        box-shadow: inset 1px 1px var(--ngm-cdk-cell-selected-border-color);
+        border-right: 1px solid var(--analytical-grid-selected-border-color);
+        border-bottom: 1px solid var(--analytical-grid-selected-border-color);
+        box-shadow: inset 1px 1px var(--analytical-grid-selected-border-color);
       }
     }
   }
 
   &.striped {
     tbody[z-table-body] tr[z-table-row]:nth-child(even):not(.selected):not(:hover) {
-      @apply bg-gray-300/10 dark:bg-gray-500/10;
+      background-color: var(--analytical-grid-row-striped-bg-color);
     }
   }
 
   thead[z-table-header] th[z-table-head] {
-    @apply bg-neutral-50;
-  }
-}
-
-.dark {
-  .ngm-analytical-grid {
-    --ngm-cdk-cell-selected-border-color: theme('colors.yellow.700');
-    --ngm-cdk-cell-selected-bg-color: theme('colors.gray.700');
-
-    thead[z-table-header] th[z-table-head] {
-      @apply bg-white/5;
-    }
+    background-color: var(--analytical-grid-header-bg-color);
   }
 }

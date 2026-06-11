@@ -1,4 +1,8 @@
 import { WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { VolumeHandle } from '../../shared/volume'
 import { AgentViewHostDefinition } from './agent-view-host.definition'
 
 describe('AgentViewHostDefinition', () => {
@@ -59,7 +63,12 @@ describe('AgentViewHostDefinition', () => {
                 }
             })
         }
-        const definition = new AgentViewHostDefinition(xpertService as any, {} as any, middlewareRegistry as any)
+        const definition = new AgentViewHostDefinition(
+            xpertService as any,
+            {} as any,
+            middlewareRegistry as any,
+            {} as any
+        )
 
         const resolved = await definition.resolve('agent-host-1')
 
@@ -86,5 +95,73 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect((resolved?.hostSnapshot as any).agent.key).toBe('Agent_BusinessAssistant')
+    })
+
+    it('uploads workspace file actions into the xpert workspace before provider execution', async () => {
+        const tempRoot = mkdtempSync(join(tmpdir(), 'xpert-view-host-'))
+        const volumeClient = {
+            resolve: jest.fn().mockReturnValue(
+                new VolumeHandle(
+                    {
+                        tenantId: 'tenant-1',
+                        catalog: 'xperts',
+                        xpertId: 'agent-host-1',
+                        isolateByUser: false
+                    },
+                    tempRoot,
+                    tempRoot,
+                    'http://files.example/xperts/agent-host-1'
+                )
+            )
+        }
+        const definition = new AgentViewHostDefinition({} as any, {} as any, {} as any, volumeClient as any)
+
+        try {
+            const expectedFileName = '\u552e\u540e\u6570\u636e\u5206\u6790\u5de5\u5177\u9700\u6c42v0.1.xlsx'
+            const rawMultipartFileName = Buffer.from(expectedFileName, 'utf8').toString('latin1')
+            const prepared = await definition.prepareFileAction(
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    hostType: 'agent',
+                    hostId: 'agent-host-1',
+                    slots: []
+                } as any,
+                {
+                    input: {
+                        workspaceUploadPath: 'fdd/documents',
+                        originalFileName: expectedFileName
+                    }
+                } as any,
+                {
+                    originalname: rawMultipartFileName,
+                    buffer: Buffer.from('xlsx-content'),
+                    mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    size: 12
+                } as any
+            )
+
+            expect(volumeClient.resolve).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                catalog: 'xperts',
+                xpertId: 'agent-host-1',
+                isolateByUser: false
+            })
+            expect(prepared.input).toMatchObject({
+                workspaceUploadPath: 'fdd/documents',
+                workspaceFile: {
+                    workspacePath: `fdd/documents/${expectedFileName}`,
+                    filePath: `fdd/documents/${expectedFileName}`,
+                    originalName: expectedFileName,
+                    name: expectedFileName,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    size: 12
+                }
+            })
+            expect(readFileSync(join(tempRoot, 'fdd/documents', expectedFileName), 'utf8')).toBe('xlsx-content')
+        } finally {
+            rmSync(tempRoot, { recursive: true, force: true })
+        }
     })
 })

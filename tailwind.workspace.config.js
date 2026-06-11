@@ -1,5 +1,5 @@
 const { join } = require('path')
-const tailwindThemeVarDefine = require('./tailwind.theme.vars')
+const tailwindThemeVars = require('./tailwind.theme.vars')
 
 const withOpacity = (variable) =>
   `color-mix(in oklab, var(${variable}) calc(<alpha-value> * 100%), transparent)`
@@ -105,7 +105,7 @@ module.exports = {
           border: withOpacity('--sidebar-border'),
           ring: withOpacity('--sidebar-ring')
         },
-        ...tailwindThemeVarDefine
+        ...tailwindThemeVars
       },
       opacity: {
         2: '0.02',

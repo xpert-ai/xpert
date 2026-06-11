@@ -1,44 +1,24 @@
-::ng-deep :root {
-  --background-element-color: rgba(0, 0, 0, 0.1);
-  --selection-area-color: rgba(100, 108, 255, 0.14);
-  --node-background-color: #ffffff;
+::ng-deep :root,
+::ng-deep [data-theme] {
+  --background-element-color: var(--color-flow-background-element);
+  --selection-area-color: var(--color-flow-selection-area);
+  --node-background-color: var(--color-flow-node-bg);
   --node-border-radius: 2px;
-  --node-border-color: rgba(60, 60, 67, 0.36);
-  --node-color: rgba(60, 60, 67, 0.78);
+  --node-border-color: var(--color-flow-node-border);
+  --node-color: var(--color-flow-node-text);
   --node-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --connection-color: rgba(60, 60, 67, 0.3);
-  --snap-connection-color: rgba(60, 60, 67, 0.38);
-  --connection-gradient-1: #915930;
-  --connection-gradient-2: #18794e;
-  --node-selected-border-color: #3451b2;
-  --outlet-color: #3451b2;
-  --input-output-color: rgba(60, 60, 67, 0.78);
-  --minimap-background-color: #ffffff;
-  --minimap-node-color: rgba(60, 60, 67);
-  --minimap-node-selected-color: #3451b2;
-  --minimap-view-color: rgba(100, 108, 255, 0.14);
-  --team-group-bg: rgba(142, 150, 170, .14);
-  &[data-theme=dark] {
-    --background-element-color: rgba(255, 255, 255, 0.1);
-    --selection-area-color: rgba(100, 108, 255, 0.16);
-    --node-background-color: #000000;
-    --node-border-radius: 2px;
-    --node-border-color: rgba(235, 235, 245, 0.38);
-    --node-selected-border-color: #a8b1ff;
-    --node-color: rgba(235, 235, 245, 0.6);
-    --node-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-    --connection-color: rgba(235, 235, 245, 0.38);
-    --snap-connection-color: rgba(235, 235, 245, 0.2);
-    --connection-gradient-1: #f9b44e;
-    --connection-gradient-2: #3dd68c;
-    --outlet-color: #a8b1ff;
-    --input-output-color: rgba(235, 235, 245, 0.6);
-    --minimap-background-color: #1b1b1f;
-    --minimap-node-color: rgba(255, 255, 245, 0.86);
-    --minimap-node-selected-color: #a8b1ff;
-    --minimap-view-color: rgba(100, 108, 255, 0.16);
-    --team-group-bg: rgba(101, 117, 133, 0.16);
-  }
+  --connection-color: var(--color-flow-connection);
+  --snap-connection-color: var(--color-flow-connection-snap);
+  --connection-gradient-1: var(--color-flow-connection-gradient-start);
+  --connection-gradient-2: var(--color-flow-connection-gradient-end);
+  --node-selected-border-color: var(--color-flow-node-selected-border);
+  --outlet-color: var(--color-flow-node-selected-border);
+  --input-output-color: var(--color-flow-node-text);
+  --minimap-background-color: var(--color-flow-minimap-bg);
+  --minimap-node-color: var(--color-flow-minimap-node);
+  --minimap-node-selected-color: var(--color-flow-minimap-node-selected);
+  --minimap-view-color: var(--color-flow-minimap-view);
+  --team-group-bg: var(--color-flow-team-group-bg);
 }
 @mixin connection {
   .f-connection {
@@ -71,7 +51,7 @@
 @mixin background {
   .f-background {
     line {
-      stroke: rgba(0, 0, 0, 0.6);
+      stroke: var(--color-flow-background-line);
     }
     circle {
       fill: var(--background-element-color);
@@ -126,7 +106,7 @@
     top: 20px;
   }
   &.right {
-    position: absolute;;
+    position: absolute;
     right: -8px;
     top: 50%;
     transform: translateY(-50%);

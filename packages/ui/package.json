@@ -2,7 +2,7 @@
   "name": "@xpert-ai/headless-ui",
   "version": "0.0.1",
   "private": true,
-  "description": "Shared UI primitives and design tokens for Xpert Angular apps",
+  "description": "Shared UI primitives and design tokens for Angular apps",
   "license": "AGPL-3.0",
   "peerDependencies": {
     "@angular/cdk": "^21.0.0",

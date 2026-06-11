@@ -15,7 +15,7 @@
           opacity: 1;
         }
       }
-      
+
       .searchable {
         @apply ml-2 ;
         [z-input] {
@@ -24,10 +24,10 @@
           overflow: hidden;
           text-align: left;
         }
-  
+
         &.searching {
-          @apply rounded-md bg-black/10 dark:bg-white/10;
-          
+          @apply rounded-md bg-components-list-option-active-bg;
+
           [z-input] {
             width: 100px;
             max-width: unset;

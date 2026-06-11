@@ -1,6 +1,7 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
+    agentLabel,
     channelName,
     IteratingIndexParameterName,
     IteratingItemParameterName,
@@ -93,6 +94,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
         }
 
         let subgraph = null
+        let subAgent: IXpertAgent = null
         const execution: IXpertAgentExecution = {}
         const abortController = new AbortController()
         // Create graph by command
@@ -117,6 +119,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                 )
             )
             subgraph = compiled.graph
+            subAgent = compiled.agent
         } else {
             const compiled = await this.commandBus.execute<
                 XpertAgentSubgraphCommand,
@@ -142,7 +145,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                 )
             )
             subgraph = compiled.graph
+            subAgent = compiled.agent
         }
+        const xpertName = subAgent ? agentLabel(subAgent) : agentKey
 
         return {
             workflowNode: {
@@ -205,11 +210,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                                                 signal: controller.signal,
                                                 configurable: {
                                                     ...config.configurable,
+                                                    agentKey,
+                                                    xpertName,
                                                     executionId: subAgentExecution.id
                                                 },
                                                 metadata: {
                                                     ...(config.metadata ?? {}),
                                                     agentKey,
+                                                    xpertName,
                                                     executionId: subAgentExecution.id,
                                                     parentExecutionId: itemExecution.id
                                                 }

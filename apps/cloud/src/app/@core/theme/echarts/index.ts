@@ -1,7 +1,7 @@
 import { registerTheme } from 'echarts/core'
-import { COSMIC_THEME } from '../styles/theme.cosmic'
-import { DARK_THEME } from '../styles/theme.dark'
-import { DEFAULT_THEME } from '../styles/theme.default'
+import { COSMIC_THEME } from './theme.cosmic'
+import { DARK_THEME } from './theme.dark'
+import { DEFAULT_THEME } from './theme.default'
 
 export function registerEChartsThemes() {
   registerTheme(DEFAULT_THEME.name, DEFAULT_THEME.chartTheme)

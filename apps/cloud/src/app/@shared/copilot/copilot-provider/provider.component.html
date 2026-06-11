@@ -76,7 +76,7 @@
       <div
         class="text-xs"
         [ngClass]="{
-          'text-yellow-500': usageWarn(),
+          'text-text-warning': usageWarn(),
           'text-red-500': usageError()
         }"
       >
@@ -99,9 +99,7 @@
         class="relative flex items-center justify-between mb-1 pt-1 pl-2 pr-[7px] h-5 text-sm font-medium text-text-tertiary"
       >
         API-KEY
-        <div
-          class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-        ></div>
+        <div class="xpert-status-indicator xpert-status-indicator--success"></div>
       </div>
 
       <div class="flex items-center gap-0.5">

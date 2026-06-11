@@ -1,9 +1,12 @@
 import {
+  channelName,
   IWFNTrigger,
+  TXpertParameter,
   TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
-  WorkflowNodeTypeEnum
+  WorkflowNodeTypeEnum,
+  XpertParameterTypeEnum
 } from '@xpert-ai/contracts'
 import { WorkflowTriggerProviderOption } from './workflow-trigger-provider-option'
 
@@ -28,7 +31,7 @@ export function readTriggerEditorItemsFromDraft(
     .filter(isWorkflowTriggerNode)
     .map((node) => {
       const trigger = node.entity as IWFNTrigger
-      const providerName = `${trigger.from ?? 'chat'}`.trim() || 'chat'
+      const providerName = getTriggerProviderName(trigger)
 
       return {
         node,
@@ -112,6 +115,92 @@ export function upsertTriggerEditorItemsIntoDraft(
   }
 }
 
+export function createChatTriggerInputParameters(
+  triggerKey: string | null | undefined,
+  parameters: TXpertParameter[] | null | undefined
+): TXpertParameter[] | null {
+  if (!triggerKey || !parameters?.length) {
+    return null
+  }
+
+  return [
+    {
+      type: XpertParameterTypeEnum.OBJECT,
+      name: channelName(triggerKey),
+      optional: true,
+      item: [...parameters]
+    }
+  ]
+}
+
+export function deriveChatTriggerInputParametersFromDraft(
+  draft: Pick<TXpertTeamDraft, 'nodes'> | null | undefined
+): TXpertParameter[] | null {
+  const chatTrigger = getChatTriggerFromDraft(draft)
+
+  return createChatTriggerInputParameters(chatTrigger?.key, chatTrigger?.parameters)
+}
+
+export function applyChatTriggerInputParametersToDraft(draft: TXpertTeamDraft): TXpertTeamDraft {
+  const chatTrigger = getChatTriggerFromDraft(draft)
+  const parameters = createChatTriggerInputParameters(chatTrigger?.key, chatTrigger?.parameters)
+
+  if (!parameters?.length) {
+    const currentParameters = draft.team.agentConfig?.parameters
+    const nextParameters = removeChatTriggerInputParameters(currentParameters, chatTrigger?.key)
+
+    if (nextParameters === currentParameters || (!currentParameters && !nextParameters)) {
+      return draft
+    }
+
+    return {
+      ...draft,
+      team: {
+        ...draft.team,
+        agentConfig: {
+          ...(draft.team.agentConfig ?? {}),
+          parameters: nextParameters
+        }
+      }
+    }
+  }
+
+  return {
+    ...draft,
+    team: {
+      ...draft.team,
+      agentConfig: {
+        ...(draft.team.agentConfig ?? {}),
+        parameters
+      }
+    }
+  }
+}
+
+function getChatTriggerFromDraft(draft: Pick<TXpertTeamDraft, 'nodes'> | null | undefined) {
+  return draft?.nodes.find(isChatTriggerNode)?.entity as IWFNTrigger | undefined
+}
+
+function removeChatTriggerInputParameters(
+  parameters: TXpertParameter[] | null | undefined,
+  triggerKey: string | null | undefined
+): TXpertParameter[] | null {
+  if (!parameters?.length) {
+    return null
+  }
+
+  if (!triggerKey) {
+    return parameters
+  }
+
+  const groupName = channelName(triggerKey)
+  const nextParameters = parameters.filter(
+    (parameter) => !(parameter.type === XpertParameterTypeEnum.OBJECT && parameter.name === groupName)
+  )
+
+  return nextParameters.length ? nextParameters : null
+}
+
 export function getPrimaryAgentNodeFromDraft(draft: TXpertTeamDraft): TXpertTeamNode<'agent'> | null {
   const primaryAgentKey = draft.team?.agent?.key
   if (!primaryAgentKey) {
@@ -127,6 +216,14 @@ export function getPrimaryAgentNodeFromDraft(draft: TXpertTeamDraft): TXpertTeam
 
 function isWorkflowTriggerNode(node: TXpertTeamNode): node is TXpertTeamNode<'workflow'> {
   return node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
+}
+
+function isChatTriggerNode(node: TXpertTeamNode): node is TXpertTeamNode<'workflow'> {
+  return isWorkflowTriggerNode(node) && getTriggerProviderName(node.entity as IWFNTrigger) === 'chat'
+}
+
+function getTriggerProviderName(trigger: IWFNTrigger) {
+  return `${trigger.from ?? 'chat'}`.trim() || 'chat'
 }
 
 function getNewTriggerNodePosition(

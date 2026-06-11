@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -14,7 +14,7 @@
     .pac-filter-tree__line {
       width: 0.5rem;
       min-width: 0.5rem;
-      margin-right: .5rem;
+      margin-right: 0.5rem;
       outline-style: none;
       border-radius: 0.25rem;
       cursor: pointer;
@@ -50,7 +50,7 @@
     }
 
     .pac-filter-tree__buttons {
-      margin-top: .5rem;
+      margin-top: 0.5rem;
     }
 
     .pac-filter-tree__expression-item {
@@ -62,19 +62,20 @@
       + .pac-filter-tree,
       + .pac-filter-tree__inputs,
       + .pac-filter-tree__expression-item {
-        margin-top: .5rem;
+        margin-top: 0.5rem;
       }
     }
 
-    .pac-filter-tree__expression-column, .pac-filter-tree__expression-condition {
-      margin-right: .5rem;
+    .pac-filter-tree__expression-column,
+    .pac-filter-tree__expression-condition {
+      margin-right: 0.5rem;
     }
 
     .pac-filter-legend__item {
       position: relative;
       display: inline-flex;
       align-items: center;
-      font-size: .75rem;
+      font-size: 0.75rem;
 
       &::before {
         content: '';
@@ -106,11 +107,11 @@
 @mixin density($config-or-theme) {
   .ngm-advanced-filter {
     .pac-filter-tree {
-      margin-top: .5rem;
+      margin-top: 0.5rem;
     }
 
     .pac-filter-tree__inputs-actions {
-      margin: 0 .5rem;
+      margin: 0 0.5rem;
     }
   }
 
