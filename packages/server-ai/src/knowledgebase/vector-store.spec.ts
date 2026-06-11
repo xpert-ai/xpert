@@ -1,5 +1,5 @@
 import { VectorStore } from '@langchain/core/vectorstores'
-import { IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import { IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
 import { TDocChunkMetadata } from '../knowledge-document/types'
 import { createCollectionScopedVectorId, KnowledgeDocumentStore } from './vector-store'
 
@@ -51,6 +51,68 @@ describe('KnowledgeDocumentStore vector ids', () => {
 			],
 			{
 				ids: [createCollectionScopedVectorId('pending-collection', chunk.id)]
+			}
+		)
+	})
+
+	it('updates existing vectors by physical vector id without rewriting logical chunk metadata', async () => {
+		const addDocuments = jest.fn()
+		const deleteDocuments = jest.fn()
+		const similaritySearch = jest.fn().mockResolvedValue([])
+		const collectionName = 'active-collection'
+		const chunkId = '066d9749-8c7b-4e83-9e2a-7d6cf2b8133d'
+		const logicalChunkId = 'source-parser-chunk-id'
+		const store = new KnowledgeDocumentStore(
+			{
+				id: 'knowledgebase-id',
+				name: 'Knowledgebase',
+				type: null
+			},
+			{
+				addDocuments,
+				delete: deleteDocuments,
+				similaritySearch
+			} as unknown as VectorStore,
+			undefined,
+			{
+				model: 'text-embedding-v1',
+				vectorIdCollectionName: collectionName
+			}
+		)
+
+		await store.updateChunk(
+			chunkId,
+			{
+				pageContent: 'updated content',
+				metadata: {
+					chunkId: logicalChunkId,
+					enabled: false
+				}
+			} as IKnowledgeDocumentChunk<TDocChunkMetadata>,
+			{
+				id: 'document-id',
+				parserId: 'default',
+				parserConfig: {},
+				type: 'txt',
+				name: 'document.txt',
+				filePath: '/tmp/document.txt'
+			} as IKnowledgeDocument
+		)
+
+		expect(deleteDocuments).toHaveBeenCalledWith({
+			ids: [createCollectionScopedVectorId(collectionName, chunkId)]
+		})
+		expect(addDocuments).toHaveBeenCalledWith(
+			[
+				expect.objectContaining({
+					metadata: expect.objectContaining({
+						chunkId: logicalChunkId,
+						model: 'text-embedding-v1'
+					})
+				})
+			],
+			{
+				ids: [createCollectionScopedVectorId(collectionName, chunkId)]
 			}
 		)
 	})
