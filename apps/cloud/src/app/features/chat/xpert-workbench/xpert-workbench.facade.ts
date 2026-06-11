@@ -25,11 +25,6 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #conversationEntryRequestId = 0
   #lastConversationEntryKey: string | null = null
-  #nullThreadChangeGuard: { threadId: string | null; expiresAt: number } = {
-    threadId: null,
-    expiresAt: 0
-  }
-
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #store = inject(Store)
@@ -258,12 +253,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
     if (threadId) {
       this.suppressAutoResume.set(false)
-      this.armNullThreadChangeGuard(threadId)
       this.navigateToThread(threadId)
-      return
-    }
-
-    if (this.shouldIgnoreNullThreadChange()) {
       return
     }
 
@@ -317,22 +307,6 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   private isConversationEntryRoute() {
     const slug = this.slug()
     return !!slug && this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c`
-  }
-
-  private armNullThreadChangeGuard(threadId: string) {
-    this.#nullThreadChangeGuard = {
-      threadId,
-      expiresAt: Date.now() + 1000
-    }
-  }
-
-  private shouldIgnoreNullThreadChange() {
-    const activeThreadId = this.threadId()
-    if (!activeThreadId) {
-      return false
-    }
-
-    return this.#nullThreadChangeGuard.threadId === activeThreadId && this.#nullThreadChangeGuard.expiresAt > Date.now()
   }
 }
 

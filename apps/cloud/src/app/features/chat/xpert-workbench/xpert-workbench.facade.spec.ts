@@ -1,7 +1,28 @@
+jest.mock('../../../@core', () => ({
+  AssistantBindingScope: {
+    USER: 'user'
+  },
+  AssistantCode: {
+    CLAWXPERT: 'clawxpert'
+  },
+  AssistantBindingService: class AssistantBindingService {},
+  ChatConversationService: class ChatConversationService {},
+  Store: class Store {},
+  OrderTypeEnum: {
+    DESC: 'DESC'
+  },
+  getErrorMessage: (error: { message?: string } | null | undefined) => error?.message ?? ''
+}))
+
+jest.mock('../../assistant/assistant-chatkit.runtime', () => ({
+  sanitizeAssistantFrameUrl: (url: string | null | undefined) => url ?? null
+}))
+
 import { NavigationEnd, Router } from '@angular/router'
 import { TestBed } from '@angular/core/testing'
 import { Subject, of } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
+import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../../@core'
 import { XpertWorkbenchFacade } from './xpert-workbench.facade'
 
@@ -125,10 +146,7 @@ describe('XpertWorkbenchFacade', () => {
       })
     )
     const facade = TestBed.inject(XpertWorkbenchFacade)
-    const control = {
-      focusComposer: jest.fn().mockResolvedValue(undefined),
-      setThreadId: jest.fn().mockResolvedValue(undefined)
-    } as any
+    const control = createMockChatKitControl()
 
     await settle()
     await facade.ensureConversationEntry(control)
@@ -145,10 +163,7 @@ describe('XpertWorkbenchFacade', () => {
 
   it('focuses the composer when no latest xpert thread exists', async () => {
     const facade = TestBed.inject(XpertWorkbenchFacade)
-    const control = {
-      focusComposer: jest.fn().mockResolvedValue(undefined),
-      setThreadId: jest.fn().mockResolvedValue(undefined)
-    } as any
+    const control = createMockChatKitControl()
 
     await settle()
     await facade.ensureConversationEntry(control)
@@ -161,7 +176,6 @@ describe('XpertWorkbenchFacade', () => {
     const facade = TestBed.inject(XpertWorkbenchFacade)
 
     await settle()
-    jest.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValue(3001)
     facade.onChatThreadChange('thread-2')
 
     expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'])
@@ -176,6 +190,19 @@ describe('XpertWorkbenchFacade', () => {
   function setRoute(url: string) {
     router.url = url
     routerEvents.next(new NavigationEnd(Date.now(), url, url))
+  }
+
+  function createMockChatKitControl() {
+    return {
+      element: null,
+      setOptions: jest.fn(),
+      focusComposer: jest.fn().mockResolvedValue(undefined),
+      setThreadId: jest.fn().mockResolvedValue(undefined),
+      sendUserMessage: jest.fn().mockResolvedValue(undefined),
+      setComposerValue: jest.fn().mockResolvedValue(undefined),
+      fetchUpdates: jest.fn().mockResolvedValue(undefined),
+      sendCustomAction: jest.fn().mockResolvedValue(undefined)
+    } satisfies ChatKitControl
   }
 })
 
