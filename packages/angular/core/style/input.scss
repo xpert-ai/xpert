@@ -1,21 +1,20 @@
 @reference "../../../tailwind-workspace-reference.css";
 .ngm-input {
-    @apply flex w-full rounded-md border border-inputbg-transparent px-2.5 py-1 text-sm font-normal text-foreground
+  @apply flex w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm font-normal text-foreground
     file:border-0 file:bg-transparent file:font-medium file:text-foreground placeholder:text-muted-foreground
-    outline-none focus-visible:border-ring focus
-    -visible:ring-ring/50 focus-visible:ring-[3px]
-    disabled:cursor-not-allowed disabled:opacity- 50;
-    &.error {
+    outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]
+    disabled:cursor-not-allowed disabled:opacity-50;
+  &.error {
     @apply border-destructive focus-visible:ring-destructive;
-    }
+  }
 }
 
 .ngm-input-inline {
-    @apply flex-1 border-0 bg-transparent px-0 py-0 font-normal text-foreground
+  @apply flex-1 border-0 bg-transparent px-0 py-0 font-normal text-foreground
     placeholder:text-muted-foreground outline-none focus-visible:ring-0 focus-visible:ring-offset-0;
-    &.error {
+  &.error {
     @apply border-destructive focus-visible:ring-destructive;
-    }
+  }
 }
 
 .ngm-input-sm {

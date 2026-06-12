@@ -1,4 +1,3 @@
-
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -29,6 +28,7 @@ import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   standalone: true,
   imports: [
@@ -39,9 +39,9 @@ import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xp
     NgmDensityDirective,
     NgmSpinComponent,
     JSONSchemaFormComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
     ZardInputDirective
-],
+  ],
   selector: 'mcp-toolset-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',
