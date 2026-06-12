@@ -1,7 +1,7 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
   @apply flex-1 flex flex-col;
-  --property-select-container-bg-color: var(--ngm-color-surface-container-low);
+  --property-select-container-bg-color: var(--sys-surface-subtle);
   --property-select-container-ring-offset-color: var(--background);
 }
 

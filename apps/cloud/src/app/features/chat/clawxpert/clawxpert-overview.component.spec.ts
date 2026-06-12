@@ -5,6 +5,6 @@ describe('ClawXpertOverviewComponent', () => {
     const legend = buildHeatmapLegend()
 
     expect(new Set(legend.map((cell) => cell.key)).size).toBe(legend.length)
-    expect(legend.filter((cell) => cell.background === 'var(--color-state-success-solid)')).toHaveLength(3)
+    expect(legend.filter((cell) => cell.background === 'var(--sys-success)')).toHaveLength(3)
   })
 })

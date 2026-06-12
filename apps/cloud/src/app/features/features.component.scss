@@ -11,8 +11,8 @@ $prefix: (ngm, shell);
 
 @function get-color-tokens() {
   @return (
-    bg-color: var(--ngm-color-surface-container),
-    primary-container-bg-color: var(--ngm-color-surface-container)
+    bg-color: var(--color-background-body),
+    primary-container-bg-color: var(--color-background-body)
   );
 }
 

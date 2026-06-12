@@ -70,7 +70,7 @@
       @for (param of outputParams(); track i; let i = $index) {
         <div class="group/item flex items-center space-x-1 px-1 py-0.5 hover:bg-hover-bg text-text-secondary">
           <div class="relative w-[120px]">
-            <input class="w-full py-1 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-2 rounded-lg system-sm-regular" 
+            <input class="xp-input w-full"
               [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
               [ngModel]="param.name"
               (ngModelChange)="updateOutput(i, 'name', $event)"

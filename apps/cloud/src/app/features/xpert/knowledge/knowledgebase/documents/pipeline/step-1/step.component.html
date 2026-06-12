@@ -71,7 +71,7 @@
             @if (integration(); as integration) {
               <div class="flex items-center gap-x-1 overflow-hidden">
                 <div class="grow overflow-hidden">
-                  <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-state-base-hover">
+                  <div class="flex cursor-pointer items-center gap-x-2 rounded-md p-1 pr-2 hover:bg-hover-bg">
                     <div class="flex grow items-center gap-x-1 overflow-hidden">
                       @if (selectedIntegration(); as selectedIntegration) {
                         <span class="system-md-semibold grow truncate text-text-secondary">{{
@@ -162,7 +162,7 @@
                   } @else if (documents()) {
                     @for (doc of documents(); track doc.id) {
                       <div
-                        class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-state-base-hover"
+                        class="relative flex cursor-pointer gap-x-2 rounded-lg p-2 group hover:bg-hover-bg"
                         (click)="selectedDocument.set(doc)"
                       >
                         <ngm-checkbox

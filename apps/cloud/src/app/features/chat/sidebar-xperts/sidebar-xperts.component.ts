@@ -34,7 +34,7 @@ type SidebarXpertState = {
             <button
               data-sidebar-xpert-avatar
               type="button"
-              class="group/sidebar-xpert relative flex shrink-0 overflow-hidden border border-transparent text-text-primary transition-[width,height,padding,border-color,background-color,box-shadow,transform] hover:bg-button-ghost-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              class="group/sidebar-xpert relative flex shrink-0 overflow-hidden border border-transparent text-text-primary transition-[width,height,padding,border-color,background-color,box-shadow,transform] hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               [attr.data-xpert-id]="xpert.id"
               [attr.data-active]="isActive(xpert)"
               [ngClass]="[

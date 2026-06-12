@@ -8,7 +8,7 @@
   >
     @for (option of FREQUENCY_OPTIONS; track option) {
       <button
-        class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-button-ghost-hover disabled:hover:bg-transparent border h-8 rounded-xl px-3 text-sm grow shrink"
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-hover-bg disabled:hover:bg-transparent border h-8 rounded-xl px-3 text-sm grow shrink"
         type="button"
         role="radio"
         [ngClass]="option.value === _frequency()[0] ? 'bg-components-card-bg text-text-primary border-input-border' : 'border-transparent text-text-secondary'"
@@ -20,11 +20,11 @@
   </div>
   <div class="flex gap-3 h-12">
     <div class="border border-input-border rounded-xl flex items-center pl-3 pr-1 grow justify-between stretch">
-      <h1 class="text-sm text-fg-secondary font-medium">{{ 'PAC.Xpert.Time' | translate: { Default: 'Time' } }}</h1>
+      <h1 class="text-sm text-text-secondary font-medium">{{ 'PAC.Xpert.Time' | translate: { Default: 'Time' } }}</h1>
 
       <div class="relative">
-        <input type="time" [(ngModel)]="time" class="inline-flex items-center justify-center gap-2 px-2 pr-9 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 text-sm rounded-lg" min="00:00" max="24:00" value="00:00" required/>
-        <i class="ri-time-line pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-fg-primary"></i>
+        <input type="time" [(ngModel)]="time" class="inline-flex items-center justify-center gap-2 px-2 pr-9 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 text-sm rounded-lg" min="00:00" max="24:00" value="00:00" required/>
+        <i class="ri-time-line pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-text-primary"></i>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
     }
 
     @if (frequency() === eTaskFrequency.Weekly) {
-      <button class="gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border-input-border text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent rounded-xl px-3.5 py-2 flex items-center justify-center h-full w-32 border" type="button"
+      <button class="gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border-input-border text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent rounded-xl px-3.5 py-2 flex items-center justify-center h-full w-32 border" type="button"
         [cdkMenuTriggerFor]="weeklyMenu"
       >{{ 'PAC.SHARED.Schedule.Weekly_' + dayLabel() | translate: {Default: dayLabel()} }}</button>
     }
@@ -44,7 +44,7 @@
       <div class="flex items-center gap-3 font-medium">
         <div class="flex flex-col">
           <label class="text-sm">{{ 'PAC.Xpert.DayinMonth' | translate: { Default: 'Day in month to run' } }}:</label>
-          <label class="text-xs text-fg-secondary">{{ 'PAC.Xpert.WillRunClosestDay' | translate: { Default: 'Will run on closest day' } }}</label>
+          <label class="text-xs text-text-secondary">{{ 'PAC.Xpert.WillRunClosestDay' | translate: { Default: 'Will run on closest day' } }}</label>
         </div>
         <input class="grow py-1 px-4 rounded-xl bg-transparent border border-input-border stretch h-full" min="1" max="31" 
           aria-label="Day in month to run:" type="number"

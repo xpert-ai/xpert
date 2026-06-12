@@ -21,7 +21,7 @@
         </div>
       } @else {
         @if (table(); as selectedTable) {
-          <div class="rounded-2xl border border-divider-regular bg-surface-neutral p-4 mt-2">
+          <div class="rounded-2xl border border-divider-regular bg-components-list-option-bg p-4 mt-2">
             <div class="flex items-start justify-between gap-4">
               <div class="flex items-start gap-3">
                 <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
@@ -101,7 +101,7 @@
               <div class="grid grid-cols-[minmax(120px,0.45fr)_1fr_auto] gap-2 border-b border-divider-subtle px-4 py-3 last:border-b-0">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
-                    <select class="w-full rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-1.5 text-sm text-text-primary"
+                    <select class="xp-input w-full border-divider-regular text-sm text-text-primary"
                       [ngModel]="entry[0]"
                       (ngModelChange)="changeColumnName(entry[0], $event)">
                       @for (option of tableColumns(); track option.name) {
@@ -180,7 +180,7 @@
   </div>
   @if (dbOutputExpand()) {
     <div class="px-4 mt-2">
-      <div class="rounded-2xl border border-divider-regular bg-surface-neutral p-4">
+      <div class="rounded-2xl border border-divider-regular bg-components-list-option-bg p-4">
         <div class="text-sm text-text-secondary">
           插入操作完成后，您可以选择将以下变量输出到后续节点：
         </div>

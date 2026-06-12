@@ -1,6 +1,6 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
-  --z-drawer-border-color: var(--ngm-color-outline-variant);
+  --z-drawer-border-color: var(--color-divider-deep);
 
   display: flex;
   flex-direction: row;

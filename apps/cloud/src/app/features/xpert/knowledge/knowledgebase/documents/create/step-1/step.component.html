@@ -47,7 +47,7 @@
         <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">
           {{ 'PAC.Knowledgebase.UploadTextFile' | translate: {Default: 'Upload text file'} }}
         </div>
-        <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-components-dropzone-border rounded-xl bg-background-default-subtle"
+        <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-divider-regular rounded-xl bg-background-default-subtle"
           ngmDnd (fileDropped)="onFileDropped($event)"
         >
           <div class="flex justify-center items-center min-h-5 text-sm leading-4 text-text-secondary">
@@ -109,7 +109,7 @@
           <ul class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="webTypes" [cdkListboxCompareWith]="webTypeCompareWith">
             @for (type of webTypeOptions; track type) {
               <button class="web-option flex items-center px-4 py-2 text-base font-medium rounded-md
-                bg-components-input-bg-normal text-text-secondary hover:bg-button-ghost-hover"
+                bg-components-input-bg-normal text-text-secondary hover:bg-hover-bg"
                 [class.active]="webTypes()[0]?.value === type.value"
                 [cdkOption]="type"
               >
@@ -155,10 +155,12 @@
           <div class="border border-solid border-divider-deep rounded-xl">
             <div class="p-4">
               <div class="flex items-end justify-between">
-                <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-components-input-bg-normal caret-primary-600 hover:bg-hover-bg focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-components-input-bg-active placeholder:text-components-input-text-placeholder"
-                  placeholder="https://xpertai.cn/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
+                <input class="xp-input flex h-9 grow text-sm leading-normal"
+                  placeholder="https://xpertai.cn/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)"
+                />
                 <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
-                  [disabled]="loadingWeb() || !webOptions()?.url || optionSchema.integrationProvider && !integration()"
+                  [disabled]="loadingWeb() || !webOptions()?.url || (optionSchema.integrationProvider && !integration())
+                  "
                   (click)="loadRagWebPages()">
                   {{ 'PAC.Knowledgebase.Load' | translate: {Default: 'Load'} }}
                 </button>
@@ -184,7 +186,7 @@
               @if (expand()) {
                 <div class="grid grid-cols-2 gap-2 mb-4">
                   @for (param of webParams(); track param.name) {
-                    <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2,}"
+                    <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2}"
                       [schema]="param"
                       [ngModel]="parametersValue()?.[param.name]"
                       (ngModelChange)="updateParamValue(param.name, $event)"
@@ -308,7 +310,7 @@
         {{ item.name }}
       </div>
     } @empty {
-      <div class="flex justify-center px-4 py-2 text-token-text-secondary">
+      <div class="flex justify-center px-4 py-2 text-text-secondary">
         <i class="ri-battery-line"></i>
         {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
       </div>

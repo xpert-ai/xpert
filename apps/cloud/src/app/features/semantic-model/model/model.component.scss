@@ -9,7 +9,7 @@ $prefix: (ngm, model);
 }
 
 @function get-color-tokens() {
-  @return (toolbar-background-color: var(--ngm-color-surface-container), color-surface: var(--ngm-color-surface));
+  @return (toolbar-background-color: var(--color-background-body), color-surface: var(--sys-surface));
 }
 
 @function get-token-slots() {

@@ -4,20 +4,20 @@
   <div class="flex justify-start items-center gap-4">
     <div
       type="button"
-      class="group flex-0 flex cursor-pointer items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold whitespace-nowrap bg-components-card-bg text-token-text-secondary hover:bg-token-main-surface-secondary"
+      class="group flex-0 flex cursor-pointer items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold whitespace-nowrap bg-components-card-bg text-text-secondary hover:bg-[var(--sys-surface-subtle)]"
       [cdkMenuTriggerFor]="workspaceMenu"
     >
-      <div class="max-w-[160px] truncate text-token-text-secondary">
+      <div class="max-w-[160px] truncate text-text-secondary">
         {{ workspace()?.name || ('PAC.Xpert.SelectWorkspace' | translate: { Default: 'Select a workspace' }) }}
       </div>
       @if (isTenantSharedWorkspace()) {
         <i
-          class="ri-building-2-line text-sm text-token-text-tertiary"
+          class="ri-building-2-line text-sm text-text-tertiary"
           [zTooltip]="'PAC.Xpert.TenantSharedWorkspace' | translate: { Default: 'Tenant shared workspace' }"
           zPosition="bottom"
         ></i>
       }
-      <i class="ri-arrow-down-s-line text-token-text-tertiary"></i>
+      <i class="ri-arrow-down-s-line text-text-tertiary"></i>
     </div>
 
     @if (workspace()) {
@@ -269,7 +269,7 @@
           <i class="ri-search-line"></i>
         </div>
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+          class="xp-input w-full pl-[26px]"
           [placeholder]="'PAC.Xpert.FilterWorkspace' | translate: { Default: 'Filter Workspace' }"
           [(ngModel)]="searchWorkspace"
         />
@@ -327,7 +327,7 @@
           }
         </div>
       } @empty {
-        <div class="flex justify-center p-4 text-token-text-secondary">
+        <div class="flex justify-center p-4 text-text-secondary">
           <i class="ri-battery-line"></i>
           {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
         </div>

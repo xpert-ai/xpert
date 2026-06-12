@@ -128,7 +128,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
               </span>
               <input
                 z-input
-                class="block h-10 w-full rounded-2xl border border-transparent bg-components-input-bg-normal px-3 text-sm text-text-primary outline-none transition-colors hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active"
+                class="block h-10 w-full rounded-2xl text-sm text-text-primary transition-colors"
                 [formControl]="searchControl"
                 type="text"
               />

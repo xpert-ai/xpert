@@ -89,7 +89,7 @@
   <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-background-default-subtle rounded-2xl border border-solid border-divider-deep shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold mb-4">{{ (table().id ? 'PAC.Workspace.EditTable' : 'PAC.Workspace.NewTable') | translate: {Default: table().id ? 'Edit Table' : 'New Table'} }}</h2>
-      <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-button-ghost-hover hover:text-text-destructive"
+      <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-hover-bg hover:text-text-destructive"
         (click)="closeTableDialog()">
         <i class="ri-close-line text-2xl"></i>
       </button>
@@ -113,9 +113,7 @@
       
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }} *</label>
-        <input
-          type="text"
-          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+        <input z-input type="text"
           [(ngModel)]="name"
         />
       </div>
@@ -123,21 +121,18 @@
 
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableDescription' | translate: {Default: 'Table Description'} }}</label>
-        <input
-          type="text"
-          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+        <input z-input type="text"
           [(ngModel)]="description"
         />
       </div>
 
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.QueryMode' | translate: {Default: 'Query Mode'} }}</label>
-        <select
-          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+        <z-select [zValue]="'single'"
         >
-          <option>{{ 'PAC.Workspace.SingleUserMode' | translate: {Default: 'Single User Mode'} }}</option>
-          <option>{{ 'PAC.Workspace.MultiUserMode' | translate: {Default: 'Multi User Mode'} }}</option>
-        </select>
+          <z-select-item zValue="single">{{ 'PAC.Workspace.SingleUserMode' | translate: {Default: 'Single User Mode'} }}</z-select-item>
+          <z-select-item zValue="multi">{{ 'PAC.Workspace.MultiUserMode' | translate: {Default: 'Multi User Mode'} }}</z-select-item>
+        </z-select>
       </div>
     </div>
 
@@ -145,9 +140,8 @@
     <div class="mt-6 bg-components-panel-bg p-4 rounded-lg border border-divider-deep">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-md font-semibold text-text-primary">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
-        <button
-          (click)="addColumn()"
-          class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition flex items-center gap-1"
+        <button z-button type="button" zSize="sm" (click)="addColumn()"
+          class=" gap-1"
         >
           <i class="ri-add-line"></i> {{ 'PAC.Workspace.AddField' | translate: {Default: 'Add Field'} }}
         </button>
@@ -155,7 +149,7 @@
 
       <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2 pl-4">
         @for (col of table().columns; track col; let i = $index) {
-          <div class="relative border border-divider-deep rounded-xl p-4 bg-surface-l1 hover:shadow-md hover:border-blue-300 transition-all ml-2">
+          <div class="relative border border-divider-deep rounded-xl p-4 bg-components-card-bg hover:shadow-md hover:border-components-button-primary-border transition-all ml-2">
             <!-- Field sequence number marker -->
             <div class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
               {{i + 1}}
@@ -164,47 +158,58 @@
             <!-- Main content area - use flex layout to ensure single line display -->
             <div class="flex items-start gap-3">
               <!-- Field Name -->
-              <div style="width: 160px;">
+              <div style="width: 160px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-text text-blue-500"></i> {{ 'PAC.Workspace.FieldName' | translate: {Default: 'Field Name'} }} <span class="text-red-500">*</span>
                 </label>
                 <input
+                  z-input
                   type="text"
-                  class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  zSize="sm"
                   [(ngModel)]="col.name"
                   [placeholder]="'PAC.Workspace.FieldNamePlaceholder' | translate: {Default: 'e.g. user_id'}"
                 />
               </div>
 
               <!-- Description -->
-              <div style="width: 180px;">
+              <div style="width: 180px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-file-text-line text-text-tertiary"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
                 </label>
                 <input
+                  z-input
                   type="text"
-                  class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  zSize="sm"
                   [(ngModel)]="col.label"
                   [placeholder]="'PAC.Workspace.FieldDescription' | translate: {Default: 'Field description'}"
                 />
               </div>
 
               <!-- Data Type -->
-              <div style="width: 140px;">
+              <div style="width: 140px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-code-box-line text-purple-500"></i> {{ 'PAC.Workspace.DataType' | translate: {Default: 'Data Type'} }} <span class="text-red-500">*</span>
                 </label>
-                <ngm-select class="text-sm" [selectOptions]="types()" [(ngModel)]="col.type" [nullable]="false" />
+                <z-select zSize="sm" [(ngModel)]="col.type">
+                  @for (option of types(); track option.value) {
+                    <z-select-item [zValue]="option.value">
+                      {{ option.label | i18n }}
+                    </z-select-item>
+                  }
+                </z-select>
               </div>
 
               <!-- Field Length (shown for CHAR, VARCHAR, and TEXT types) -->
               @if (col.type === 'char' || col.type === 'string' || col.type === 'text' || col.type === 'tinytext' || col.type === 'mediumtext' || col.type === 'longtext') {
-                <div style="width: 90px;">
+                <div style="width: 90px">
                   <label class="text-xs font-medium text-text-secondary block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
                   <input
+                    z-input
                     type="number"
-                    class="w-full border border-divider-deep rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    [(ngModel)]="col.length"
+                    zSize="sm"
+                    class=" text-center"
+                    [ngModel]="col.length"
+                    (ngModelChange)="col.length = $event === '' || $event === null ? undefined : +$event"
                     [placeholder]="'PAC.Workspace.Length' | translate: {Default: 'Length'}"
                   />
                 </div>
@@ -212,15 +217,16 @@
 
               <!-- Enum Values (for ENUM type) -->
               @if (col.type === 'enum') {
-                <div style="width: 200px;">
+                <div style="width: 200px">
                   <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                     <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.EnumValues' | translate: {Default: 'Enum Values'} }} <span class="text-red-500">*</span>
                   </label>
                   <input
+                    z-input
                     type="text"
-                    class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    [class.border-red-300]="col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0)"
-                    [class.border-divider-deep]="col.type === 'enum' && col.enumValues && col.enumValues.length > 0"
+                    zSize="sm"
+                    [zStatus]="col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0) ? 'error' : undefined
+                    "
                     [value]="col.enumValues?.join(', ') || ''"
                     (blur)="onEnumValuesChange(col, $event)"
                     [placeholder]="'PAC.Workspace.EnumValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
@@ -231,15 +237,16 @@
 
               <!-- Set Values (for SET type) -->
               @if (col.type === 'set') {
-                <div style="width: 200px;">
+                <div style="width: 200px">
                   <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                     <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.SetValues' | translate: {Default: 'Set Values'} }} <span class="text-red-500">*</span>
                   </label>
                   <input
+                    z-input
                     type="text"
-                    class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    [class.border-red-300]="col.type === 'set' && (!col.setValues || col.setValues.length === 0)"
-                    [class.border-divider-deep]="col.type === 'set' && col.setValues && col.setValues.length > 0"
+                    zSize="sm"
+                    [zStatus]="col.type === 'set' && (!col.setValues || col.setValues.length === 0) ? 'error' : undefined
+                    "
                     [value]="col.setValues?.join(', ') || ''"
                     (blur)="onSetValuesChange(col, $event)"
                     [placeholder]="'PAC.Workspace.SetValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
@@ -249,14 +256,17 @@
               }
 
               <!-- Constraints -->
-              <div style="width: 150px;">
+              <div style="width: 150px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-shield-line text-indigo-500"></i> {{ 'PAC.Workspace.Constraints' | translate: {Default: 'Constraints'} }}
                 </label>
                 <div class="relative">
                   <button
+                    z-button
                     type="button"
-                    class="w-full border border-divider-deep rounded-lg px-2.5 py-2 text-xs bg-components-panel-bg hover:bg-hover-bg hover:border-blue-400 flex items-center justify-between transition"
+                    zType="outline"
+                    zSize="sm"
+                    class="w-full justify-between"
                     [cdkMenuTriggerFor]="constraintMenu"
                   >
                     <div class="flex gap-1 flex-wrap">
@@ -287,7 +297,7 @@
                             <i class="ri-key-line text-yellow-600 text-base group-hover:scale-110 transition"></i>
                             <span class="font-medium">{{ 'PAC.Workspace.PrimaryKey' | translate: {Default: 'Primary Key'} }}</span>
                           </span>
-                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.isPrimaryKey" />
+                          <z-checkbox [(ngModel)]="col.isPrimaryKey" displayDensity="compact" />
                         </label>
                         <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group">
                           <span class="text-sm flex items-center gap-2">
@@ -295,7 +305,7 @@
                             <span class="font-medium">{{ 'PAC.Workspace.Required' | translate: {Default: 'Required'} }}</span>
                             <span class="text-xs text-text-tertiary">(NOT NULL)</span>
                           </span>
-                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.required" />
+                          <z-checkbox [(ngModel)]="col.required" displayDensity="compact" />
                         </label>
                         <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
                           [class.opacity-50]="col.isPrimaryKey">
@@ -303,7 +313,9 @@
                             <i class="ri-shield-check-line text-blue-600 text-base group-hover:scale-110 transition"></i>
                             <span class="font-medium">{{ 'PAC.Workspace.Unique' | translate: {Default: 'Unique'} }}</span>
                           </span>
-                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.isUnique" [disabled]="col.isPrimaryKey" />
+                          <z-checkbox [(ngModel)]="col.isUnique" [zDisabled]="col.isPrimaryKey"
+                            displayDensity="compact"
+                          />
                         </label>
                         <label class="flex items-center justify-between px-3 py-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition group"
                           [class.opacity-50]="!isIntegerType(col.type)">
@@ -311,9 +323,10 @@
                             <i class="ri-add-circle-line text-green-600 text-base group-hover:scale-110 transition"></i>
                             <span class="font-medium">{{ 'PAC.Workspace.AutoIncrement' | translate: {Default: 'Auto Increment'} }}</span>
                           </span>
-                          <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.autoIncrement" 
-                            [disabled]="!isIntegerType(col.type)" 
-                            (change)="onAutoIncrementChange(col)" />
+                          <z-checkbox [(ngModel)]="col.autoIncrement"
+                            [zDisabled]="!isIntegerType(col.type)"
+                            displayDensity="compact"
+                            (checkChange)="onAutoIncrementChange(col)" />
                         </label>
                       </div>
                     </div>
@@ -322,7 +335,7 @@
               </div>
 
               <!-- Default Value -->
-              <div style="width: 170px;">
+              <div style="width: 170px">
                 <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-layout-column-line text-teal-500"></i> {{ 'PAC.Workspace.DefaultValue' | translate: {Default: 'Default Value'} }}
                   @if (col.type === 'date' || col.type === 'time') {
@@ -330,27 +343,30 @@
                   }
                 </label>
                 @if (col.type === 'datetime' || col.type === 'timestamp') {
-                  <select
-                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-components-panel-bg disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
-                    [(ngModel)]="col.defaultValue"
-                    [disabled]="col.isPrimaryKey || col.autoIncrement"
+                  <z-select
+                    zSize="sm"
+                    [ngModel]="columnDefaultValueSelectValue(col)"
+                    (ngModelChange)="applyColumnDefaultValueSelection(col, $event)"
+                    [zDisabled]="col.isPrimaryKey || col.autoIncrement"
                   >
-                    <option [ngValue]="undefined">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
-                    <option value="CURRENT_TIMESTAMP">📅 {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</option>
-                  </select>
+                    <z-select-item [zValue]="columnDefaultValueNone">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</z-select-item>
+                    <z-select-item zValue="CURRENT_TIMESTAMP"> {{ 'PAC.Workspace.CurrentTimestamp' | translate: {Default: 'Current Timestamp'} }}</z-select-item>
+                  </z-select>
                 } @else if (isPostgreSQL() && col.type === 'uuid') {
-                  <select
-                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-components-panel-bg disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
-                    [(ngModel)]="col.defaultValue"
-                    [disabled]="col.isPrimaryKey || col.autoIncrement"
+                  <z-select
+                    zSize="sm"
+                    [ngModel]="columnDefaultValueSelectValue(col)"
+                    (ngModelChange)="applyColumnDefaultValueSelection(col, $event)"
+                    [zDisabled]="col.isPrimaryKey || col.autoIncrement"
                   >
-                    <option [ngValue]="undefined">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</option>
-                    <option value="uuid_generate_v4()">🔑 {{ 'PAC.Workspace.UuidGenerateV4' | translate: {Default: 'uuid_generate_v4()'} }}</option>
-                  </select>
+                    <z-select-item [zValue]="columnDefaultValueNone">{{ 'PAC.Workspace.NoDefault' | translate: {Default: 'None'} }}</z-select-item>
+                    <z-select-item zValue="uuid_generate_v4()"> {{ 'PAC.Workspace.UuidGenerateV4' | translate: {Default: 'uuid_generate_v4()'} }}</z-select-item>
+                  </z-select>
                 } @else {
                   <input
+                    z-input
                     type="text"
-                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
+                    zSize="sm"
                     [(ngModel)]="col.defaultValue"
                     [placeholder]="'PAC.Workspace.DefaultValue' | translate: {Default: 'Default value'}"
                     [disabled]="col.isPrimaryKey || col.autoIncrement"

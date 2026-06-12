@@ -1,5 +1,5 @@
 @if (editable()) {
-  <div class="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover mt-3.5 shrink-0">
+  <div class="flex h-4 w-4 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-divider-regular bg-components-input-bg-normal hover:bg-hover-bghover:border-components-input-border-active mt-3.5 shrink-0">
   </div>
 }
 <div class="min-w-0 grow">
@@ -22,10 +22,10 @@
       </div>
       <div class="flex items-center gap-1">
         @if (chunk().metadata.relevanceScore; as relevanceScore) {
-          <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
+          <div class="relative shrink-0 items-center overflow-hidden border border-divider-regular px-[5px] h-[20px] rounded-md">
             <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
                 border-text-accent bg-orange-100"
-              [ngStyle]="{width: (relevanceScore * 100) + '%'}"
+              [ngStyle]="{width:relevanceScore * 100 + '%'}"
             ></div>
             <div class="relative flex h-full items-center space-x-0.5">
               <div class="text-xs font-medium uppercase">
@@ -36,10 +36,10 @@
           </div>
         }
         @if (chunk().metadata.score; as score) {
-          <div class="relative shrink-0 items-center overflow-hidden border border-components-progress-bar-border px-[5px] h-[20px] rounded-md">
+          <div class="relative shrink-0 items-center overflow-hidden border border-divider-regular px-[5px] h-[20px] rounded-md">
             <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
                 border-primary-500 bg-primary-200/50"
-              [ngStyle]="{width: (score * 100) + '%'}"
+              [ngStyle]="{width:score * 100 + '%'}"
             ></div>
             <div class="relative flex h-full items-center space-x-0.5">
               <div class="text-xs font-medium uppercase">score</div>
@@ -100,14 +100,14 @@
                 @for (chunk of children; track chunk; let j = $index) {
                   <span class="group relative break-all">
                     <div class="inline-flex items-center">
-                      <span class="bg-state-base-hover-alt px-1 uppercase text-text-tertiary border border-components-progress-bar-border group-hover:bg-accent-500 group-hover:text-text-primary">
+                      <span class="bg-hover-bg-alt px-1 uppercase text-text-tertiary border border-divider-regular group-hover:bg-accent-500 group-hover:text-text-primary">
                         <span class="text-nowrap text-[10px] font-semibold align-bottom">C-{{j + 1}}</span>
                       </span>
                       @if (chunk.metadata.score; as score) {
-                        <div class="inline-block relative items-center overflow-hidden border border-components-progress-bar-border px-[5px] border-l-0">
+                        <div class="inline-block relative items-center overflow-hidden border border-divider-regular px-[5px] border-l-0">
                           <div class="absolute left-0 top-0 h-full border-r-[1.5px] 
                             border-primary-500 bg-primary-200/50"
-                            [ngStyle]="{width: (score * 100) + '%'}"></div>
+                            [ngStyle]="{width:score * 100 + '%'}"></div>
                           <div class="relative flex h-full items-center space-x-0.5 text-util-colors-blue-brand-blue-brand-700">+
                             <div class="system-2xs-medium-uppercase">score</div>
                             <div class="system-xs-semibold">{{score | number:'0.0-2'}}</div>
@@ -115,7 +115,7 @@
                         </div>
                       }
                     </div>
-                    <span class="py-[3px] whitespace-pre-line break-all bg-state-base-hover px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
+                    <span class="py-[3px] whitespace-pre-line break-all bg-hover-bg px-1 font-body group-hover:bg-state-accent-hover-alt group-hover:text-text-primary leading-6 text-text-secondary"
                       >{{chunk.pageContent}}</span>
 
                     @if (editable()) {  

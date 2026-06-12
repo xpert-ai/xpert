@@ -1,9 +1,9 @@
 <div class="p-0">
-  <h2 class="text-[var(--text-primary)] text-[18px] leading-[24px] font-semibold flex items-center"></h2>
+  <h2 class="text-text-primary text-[18px] leading-[24px] font-semibold flex items-center"></h2>
   <p id="radix-:r6s:"></p>
 </div>
 <header class="flex items-center pt-6 pr-6 pl-6 pb-2.5">
-  <h1 class="flex-1 text-[var(--text-primary)] text-lg font-semibold">
+  <h1 class="flex-1 text-text-primary text-lg font-semibold">
       {{ 'PAC.Chat.AllFilesInTask' | translate: {Default: 'All files in this task'} }}
   </h1>
   <div class="flex items-center gap-4">
@@ -32,8 +32,8 @@
             }
           }
           <div class="flex flex-col flex-1 min-w-0 max-w-[100%]">
-            <span class="text-base text-[var(--text-primary)] text-ellipsis overflow-hidden whitespace-nowrap">{{item.filePath}}</span>
-            <span class="text-sm text-[var(--text-tertiary)]">{{item.createdAt | relative}}</span>
+            <span class="text-base text-text-primary text-ellipsis overflow-hidden whitespace-nowrap">{{item.filePath}}</span>
+            <span class="text-sm text-text-tertiary">{{item.createdAt | relative}}</span>
           </div>
           <div
             class="flex items-center justify-center cursor-pointer rounded-md w-8 h-8 opacity-0 group-hover:opacity-100"

@@ -127,7 +127,7 @@
     <div>
       <input
         z-input
-        class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+        class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
         placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
         type="text"
         [ngModel]="name()"
@@ -140,7 +140,7 @@
   <!-- <div>
     <div class="leading-8 text-[13px] font-medium text-text-secondary">{{ 'PAC.Xpert.ParameterTitle' | translate: {Default: 'Parameter title'} }}</div>
     <div>
-      <input z-input class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+      <input z-input class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
         placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
         [ngModel]="title()"
         [ngModelOptions]="{standalone: true}"
@@ -156,7 +156,7 @@
     <div>
       <textarea
         z-input
-        class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+        class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
         placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
         type="text"
         [ngModel]="description()"
@@ -244,7 +244,7 @@
         <div class="flex justify-between items-center">
           <div>{{ 'PAC.Xpert.Item' | translate: { Default: 'Item' } }}</div>
           <div
-            class="flex items-center rounded-md h-7 px-3 space-x-1 cursor-pointer select-none text-text-secondary hover:bg-state-base-hover"
+            class="flex items-center rounded-md h-7 px-3 space-x-1 cursor-pointer select-none text-text-secondary hover:bg-hover-bg"
             cdkOverlayOrigin
             #parameterTypeTrigger="cdkOverlayOrigin"
             (click)="parameterTypeMenuOpen.set(!parameterTypeMenuOpen())"
@@ -309,7 +309,7 @@
                   z-input
                   placeholder="name"
                   maxlength="30"
-                  class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-text-primary placeholder:text-components-input-text-placeholder focus:outline-none bg-transparent hover:bg-components-input-bg-hover focus:bg-components-input-bg-active"
+                  class="h-6 leading-6 block w-full border-0 text-text-primary"
                   type="text"
                   [ngModel]="param.name"
                   [ngModelOptions]="{ standalone: true }"
@@ -382,7 +382,7 @@
               z-input
               max="256"
               min="1"
-              class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+              class="w-full text-sm leading-9 text-text-primary border-0 grow h-9 focus:ring-1 focus:ring-inset"
               type="number"
               [ngModel]="maximum()"
               [ngModelOptions]="{ standalone: true }"

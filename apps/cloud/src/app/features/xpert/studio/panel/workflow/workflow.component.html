@@ -20,13 +20,13 @@
     }
 
     <input
-      class="grow mr-2 px-1 h-6 text-base text-text-primary font-semibold rounded-lg border border-transparent appearance-none outline-none hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF] min-w-0"
+      class="xp-input grow mr-2 h-6 text-base text-text-primary font-semibold min-w-0"
       placeholder="{{ 'PAC.Xpert.AddTitle' | translate: { Default: 'Add title' } }}..."
       [(ngModel)]="title"
     />
     <div class="shrink-0 flex items-center text-text-tertiary">
       <div
-        class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-base-content hover:bg-hover-bg"
+        class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-text-primary hover:bg-hover-bg"
         [zTooltip]="'PAC.Xpert.TestWorkflowNode' | translate: { Default: 'Test Workflow Node' }"
         zPosition="top"
         (click)="openTest()"
@@ -34,7 +34,7 @@
         <i class="ri-play-large-line"></i>
       </div>
       <div
-        class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-base-content hover:bg-hover-bg"
+        class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-text-primary hover:bg-hover-bg"
         [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
         zPosition="top"
         (click)="moveToNode()"
@@ -68,7 +68,7 @@
     >
       <textarea
         rows="3"
-        class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
+        class="xp-input w-full text-sm text-text-primary leading-[18px] resize-none"
         placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
         [(ngModel)]="description"
       ></textarea>

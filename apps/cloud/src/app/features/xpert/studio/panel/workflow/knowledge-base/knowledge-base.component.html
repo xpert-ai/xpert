@@ -17,7 +17,7 @@
     </div>
   </div>
   <div
-    class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg"
+    class="group overflow-hidden rounded-xl border border-divider-subtle bg-gradient-to-br from-background-default-subtle to-components-card-bg"
   >
     <div class="relative flex rounded-t-xl p-2">
       <div class="mr-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
@@ -146,7 +146,7 @@
 
     <div class="space-y-1 pt-2">
       <div
-        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-indigo-50 to-components-card-bg cursor-pointer hover:shadow-xs
+        class="group overflow-hidden rounded-xl border border-divider-subtle bg-gradient-to-br from-background-default-subtle to-components-card-bg cursor-pointer hover:shadow-xs
           hover:from-indigo-100"
         [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.General"
         (click)="structure.set(eKnowledgeStructureEnum.General);trigger.close()"
@@ -168,7 +168,7 @@
         </div>
       </div>
       <div
-        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-green-50 to-components-card-bg cursor-pointer hover:shadow-xs
+        class="group overflow-hidden rounded-xl border border-divider-subtle bg-gradient-to-br from-background-default-subtle to-components-card-bg cursor-pointer hover:shadow-xs
           hover:from-green-100"
         [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.ParentChild"
         (click)="structure.set(eKnowledgeStructureEnum.ParentChild);trigger.close()"
@@ -190,7 +190,7 @@
         </div>
       </div>
       <div
-        class="group overflow-hidden rounded-xl border border-components-option-card-option-border bg-gradient-to-br from-sky-50 to-components-card-bg cursor-pointer hover:shadow-xs
+        class="group overflow-hidden rounded-xl border border-divider-subtle bg-gradient-to-br from-background-default-subtle to-components-card-bg cursor-pointer hover:shadow-xs
           hover:from-sky-100"
         [class.!border-primary-500]="structure() === eKnowledgeStructureEnum.QA"
         (click)="structure.set(eKnowledgeStructureEnum.QA);trigger.close()"

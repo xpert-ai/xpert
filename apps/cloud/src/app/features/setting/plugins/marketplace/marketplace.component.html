@@ -4,39 +4,39 @@
 <h2 class="body-md-regular flex shrink-0 items-center justify-center text-center text-text-tertiary">
   {{ 'PAC.Plugin.Discover' | translate: { Default: 'Discover' } }}
   <span
-    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">
       {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
     </span> </span
   >,
   <span
-    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}</span> </span
   >,
   <span
-    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">{{
       'PAC.Plugin.DocSources' | translate: { Default: 'Doc Sources' }
     }}</span> </span
   >,
   <span
-    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">{{
       'PAC.Plugin.Transformer' | translate: { Default: 'Transformer' }
     }}</span> </span
   >,
   <span
-    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">{{ 'PAC.Plugin.Integration' | translate: { Default: 'Integration' } }}</span>
   </span>
   {{ 'PAC.Plugin.And' | translate: { Default: 'and' } }}
   <span
-    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-text-selected after:content-['']"
+    class="body-md-medium relative z-[1] ml-1 mr-1 text-text-secondary after:absolute after:bottom-[1.5px] after:left-0 after:h-2 after:w-full after:bg-text-highlight-bg after:content-['']"
   >
     <span class="relative z-[2] lowercase">{{
       'PAC.Plugin.VectorStore' | translate: { Default: 'Vector Store' }
@@ -102,14 +102,14 @@
   [(ngModel)]="categories"
 >
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     [class.active]="categories().length === 0"
     (click)="categories.set([])"
   >
     {{ 'PAC.Plugin.All' | translate: { Default: 'All' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option1="cdkOption"
     [class.active]="option1.isSelected()"
     cdkOption="model"
@@ -118,7 +118,7 @@
     {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option2="cdkOption"
     [class.active]="option2.isSelected()"
     cdkOption="tools"
@@ -127,7 +127,7 @@
     {{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option3="cdkOption"
     [class.active]="option3.isSelected()"
     cdkOption="database"
@@ -136,7 +136,7 @@
     {{ 'PAC.Plugin.Database' | translate: { Default: 'Database' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option4="cdkOption"
     [class.active]="option4.isSelected()"
     cdkOption="middleware"
@@ -145,7 +145,7 @@
     {{ 'PAC.Plugin.Agent' | translate: { Default: 'Agent' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option5="cdkOption"
     [class.active]="option5.isSelected()"
     cdkOption="integration"
@@ -154,7 +154,7 @@
     {{ 'PAC.Plugin.Integration' | translate: { Default: 'Integrations' } }}
   </div>
   <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
     #option6="cdkOption"
     [class.active]="option6.isSelected()"
     cdkOption="vector-store"
@@ -301,7 +301,7 @@
         <div class="mt-2 grid grid-cols-4 gap-3">
           @for (plugin of marketplacePlugins(); track plugin.name) {
             <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              class="group relative rounded-xl hover:bg-hover-bg"
               [plugin]="plugin"
             />
           }
@@ -324,7 +324,7 @@
         <div class="mt-2 grid grid-cols-4 gap-3">
           @for (plugin of partnerPlugins(); track plugin.name) {
             <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              class="group relative rounded-xl hover:bg-hover-bg"
               [plugin]="plugin"
             />
           }
@@ -347,7 +347,7 @@
         <div class="mt-2 grid grid-cols-4 gap-3">
           @for (plugin of officialPlugins(); track plugin.name) {
             <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              class="group relative rounded-xl hover:bg-hover-bg"
               [plugin]="plugin"
             />
           }
@@ -370,7 +370,7 @@
         <div class="mt-2 grid grid-cols-4 gap-3">
           @for (plugin of communityPlugins(); track plugin.name) {
             <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+              class="group relative rounded-xl hover:bg-hover-bg"
               [plugin]="plugin"
             />
           }
@@ -414,7 +414,7 @@
             {{ 'PAC.Plugin.SourceType' | translate: { Default: 'Source type' } }}
           </span>
           <select
-            class="w-full rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            class="xp-input w-full text-sm"
             [(ngModel)]="sourceType"
           >
             <option value="github">{{ 'PAC.Plugin.SourceTypeGithub' | translate: { Default: 'Repository' } }}</option>
@@ -427,7 +427,7 @@
             {{ 'PAC.Plugin.SourceName' | translate: { Default: 'Name' } }}
           </span>
           <input
-            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            class="xp-input w-full text-sm"
             [placeholder]="'PAC.Plugin.SourceNamePlaceholder' | translate: { Default: 'XpertAI Plugin Registry' }"
             [(ngModel)]="sourceName"
           />
@@ -439,7 +439,7 @@
           {{ 'PAC.Plugin.SourceUrl' | translate: { Default: 'Source' } }}
         </span>
         <input
-          class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+          class="xp-input w-full text-sm"
           [placeholder]="
             'PAC.Plugin.SourceUrlPlaceholder'
               | translate: { Default: 'xpert-ai/plugin-registry or https://example.com/plugins/index.json' }
@@ -454,7 +454,7 @@
             {{ 'PAC.Plugin.SourceRef' | translate: { Default: 'Git ref' } }}
           </span>
           <input
-            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            class="xp-input w-full text-sm"
             [placeholder]="'PAC.Plugin.SourceRefPlaceholder' | translate: { Default: 'main' }"
             [(ngModel)]="sourceRef"
           />
@@ -464,7 +464,7 @@
             {{ 'PAC.Plugin.SourceSparsePath' | translate: { Default: 'Sparse path' } }}
           </span>
           <input
-            class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+            class="xp-input w-full text-sm"
             [placeholder]="'PAC.Plugin.SourceSparsePathPlaceholder' | translate: { Default: 'plugins/data-x' }"
             [(ngModel)]="sourceSparsePath"
           />
@@ -560,8 +560,8 @@
               @for (item of registryItems(); track item.id) {
                 <button
                   type="button"
-                  class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left hover:bg-state-base-hover"
-                  [class.bg-state-base-hover]="registryEditingId() === item.id"
+                  class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left hover:bg-hover-bg"
+                  [class.bg-hover-bg]="registryEditingId() === item.id"
                   (click)="editRegistryItem(item)"
                 >
                   <i class="ri-puzzle-2-line mt-0.5 text-base text-text-tertiary"></i>
@@ -644,7 +644,7 @@
                 {{ 'PAC.Plugin.PackageName' | translate: { Default: 'Package name' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && !registryPackageName().trim())"
                 [class.border-text-destructive]="registryFormSubmitted() && !registryPackageName().trim()"
                 aria-required="true"
@@ -657,7 +657,7 @@
                 {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled placeholder:text-components-input-text-placeholder outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 placeholder="latest"
                 [(ngModel)]="registryVersion"
               />
@@ -668,7 +668,7 @@
                 {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && !registryDisplayName().trim())"
                 [class.border-text-destructive]="registryFormSubmitted() && !registryDisplayName().trim()"
                 aria-required="true"
@@ -681,7 +681,7 @@
                 {{ 'PAC.Plugin.Author' | translate: { Default: 'Author' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && !registryAuthor().trim())"
                 [class.border-text-destructive]="registryFormSubmitted() && !registryAuthor().trim()"
                 aria-required="true"
@@ -694,7 +694,7 @@
                 {{ 'PAC.Plugin.Category' | translate: { Default: 'Category' } }}
               </span>
               <select
-                class="w-full rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && !registryCategory())"
                 [class.border-text-destructive]="registryFormSubmitted() && !registryCategory()"
                 aria-required="true"
@@ -712,7 +712,7 @@
                 {{ 'PAC.Plugin.RegistrySection' | translate: { Default: 'Section' } }}
               </span>
               <select
-                class="w-full rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [(ngModel)]="registrySection"
               >
                 @for (section of registrySectionOptions; track section) {
@@ -728,7 +728,7 @@
                 {{ 'PAC.Plugin.TargetApps' | translate: { Default: 'Target apps' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppsMissing())"
                 [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppsMissing()"
                 aria-required="true"
@@ -740,7 +740,7 @@
                 {{ 'PAC.Plugin.Keywords' | translate: { Default: 'Keywords' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [(ngModel)]="registryKeywords"
               />
             </label>
@@ -751,7 +751,7 @@
               </span>
               <textarea
                 rows="2"
-                class="w-full resize-none appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full resize-none text-sm"
                 [class.border-transparent]="!(registryFormSubmitted() && !registryDescription().trim())"
                 [class.border-text-destructive]="registryFormSubmitted() && !registryDescription().trim()"
                 aria-required="true"
@@ -763,7 +763,7 @@
                 {{ 'PAC.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [(ngModel)]="registryHomepage"
               />
             </label>
@@ -772,7 +772,7 @@
                 {{ 'PAC.Plugin.Repository' | translate: { Default: 'Repository' } }}
               </span>
               <input
-                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [(ngModel)]="registryRepositoryUrl"
               />
             </label>
@@ -782,7 +782,7 @@
               </span>
               <input
                 type="number"
-                class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal px-3 py-2 text-sm text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full text-sm"
                 [(ngModel)]="registryPriority"
               />
             </label>
@@ -796,7 +796,7 @@
               </span>
               <textarea
                 rows="10"
-                class="w-full resize-y appearance-none rounded-xl border bg-components-input-bg-normal px-3 py-2 font-mono text-xs text-components-input-text-filled outline-none hover:border-components-input-border-hover focus:border-components-input-border-active"
+                class="xp-input w-full resize-y font-mono text-xs"
                 [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppMetaInvalid())"
                 [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppMetaInvalid()"
                 [(ngModel)]="registryTargetAppMetaJson"
@@ -811,7 +811,7 @@
             </div>
           } @else if (registryFormInvalid()) {
             <div
-              class="mt-3 flex items-start gap-2 rounded-lg bg-state-destructive-hover/40 px-3 py-2 text-sm text-text-destructive"
+              class="mt-3 flex items-start gap-2 rounded-lg bg-status-error-bg/40 px-3 py-2 text-sm text-text-destructive"
             >
               <i class="ri-error-warning-line mt-0.5"></i>
               <span>

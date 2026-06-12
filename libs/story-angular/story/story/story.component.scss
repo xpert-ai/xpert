@@ -1,6 +1,6 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
-  background: var(--ngm-color-surface);
+  background: var(--sys-surface);
   @apply block relative w-full h-full overflow-hidden;
 
   .ngm-story--point-hidden {
@@ -86,7 +86,7 @@ z-drawer.ngm-story__filter-bar {
 .ngm-story__story-container.editable {
   .ngm-story-point {
     @apply border border-solid;
-    border-color: var(--ngm-color-outline-variant);
+    border-color: var(--color-divider-deep);
   }
 }
 

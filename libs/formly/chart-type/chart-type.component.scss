@@ -1,8 +1,8 @@
 @reference "../../../tailwind-workspace-reference.css";
 :host {
-  --chart-type-surface: var(--ngm-color-surface, theme('colors.white'));
-  --chart-type-surface-low: var(--surface-container-low, var(--chart-type-surface));
-  --chart-type-surface-high: var(--surface-container-high, var(--chart-type-surface));
+  --chart-type-surface: var(--sys-surface, theme('colors.white'));
+  --chart-type-surface-low: var(--color-background-default-subtle, var(--chart-type-surface));
+  --chart-type-surface-high: var(--sys-surface-subtle, var(--chart-type-surface));
   @apply flex-1 flex flex-col border border-transparent;
 }
 

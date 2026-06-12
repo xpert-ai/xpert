@@ -8,7 +8,7 @@
     />
     <div class="mx-1 w-[1px] h-3 bg-divider-regular"></div>
 
-    <div class="flex items-center p-1 rounded-md text-xs hover:bg-button-ghost-hover"
+    <div class="flex items-center p-1 rounded-md text-xs hover:bg-hover-bg"
       [cdkMenuTriggerFor]="opMenu"
     >
       <span class="grow mr-2">{{ operatorLabel() | i18n }}</span>
@@ -27,7 +27,7 @@
   }
 </div>
 
-<div class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-state-destructive-hover text-text-tertiary hover:text-text-destructive"
+<div class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-status-error-bg text-text-tertiary hover:text-text-destructive"
   (mouseenter)="hoverDelete.set(true)"
   (mouseleave)="hoverDelete.set(false)"
   (click)="deleted.emit()"

@@ -1,9 +1,9 @@
 markdown.ngm-copilot-markdown {
   --markdown-table-radius: 0.375rem;
-  --markdown-link-color: var(--ngm-color-primary);
-  --markdown-code-bg: color-mix(in oklab, black 88%, var(--ngm-color-surface-container));
+  --markdown-link-color: var(--sys-primary);
+  --markdown-code-bg: color-mix(in oklab, black 88%, var(--color-background-body));
   --markdown-table-head-bg: var(--color-background-default-subtle);
-  --markdown-table-border: var(--border-light);
+  --markdown-table-border: var(--color-divider-subtle);
   --markdown-clipboard-bg: var(--color-background-default-subtle);
   --markdown-clipboard-bg-hover: var(--color-hover-bg);
   --hot-pink: oklch(59.91% 0.239 8.14);

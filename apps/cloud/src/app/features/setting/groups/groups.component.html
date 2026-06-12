@@ -55,7 +55,7 @@
         <input
           z-input
           type="text"
-          class="w-full rounded-2xl border border-transparent bg-components-input-bg-normal px-4 py-3 text-sm text-components-input-text-filled outline-none transition placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="w-full rounded-2xl text-sm transition"
           [value]="groupQuery()"
           [placeholder]="'PAC.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
           (input)="updateGroupQuery($any($event.target).value)"
@@ -210,7 +210,7 @@
         <input
           z-input
           type="text"
-          class="w-full rounded-2xl border bg-components-input-bg-normal px-4 py-3 text-sm text-components-input-text-filled outline-none transition placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="w-full rounded-2xl text-sm transition"
           [class.border-text-destructive]="name.touched && !name.getRawValue().trim()"
           [class.border-transparent]="!(name.touched && !name.getRawValue().trim())"
           [formControl]="name"
@@ -230,7 +230,7 @@
         <textarea
           z-input
           rows="5"
-          class="w-full rounded-2xl border border-transparent bg-components-input-bg-normal px-4 py-3 text-sm text-components-input-text-filled outline-none transition placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="w-full rounded-2xl text-sm transition"
           [formControl]="description"
           [placeholder]="
             'PAC.UserGroup.DescriptionPlaceholder' | translate: { Default: 'Describe who should belong to this group' }
@@ -462,7 +462,7 @@
         <input
           z-input
           type="text"
-          class="w-full rounded-2xl border border-transparent bg-components-input-bg-normal px-4 py-3 text-sm text-components-input-text-filled outline-none transition placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="w-full rounded-2xl text-sm transition"
           [value]="memberQuery()"
           [placeholder]="'PAC.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
           (input)="updateMemberQuery($any($event.target).value)"

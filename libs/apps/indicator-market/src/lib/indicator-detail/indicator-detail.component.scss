@@ -3,7 +3,6 @@
 @reference "../../../../../../tailwind-workspace-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, indicator-content);
-$prefix-color: (ngm, color);
 
 @function get-unthemable-tokens() {
   @return (
@@ -11,7 +10,7 @@ $prefix-color: (ngm, color);
 }
 
 @function get-color-tokens() {
-  @return (background-color: var(--ngm-color-surface), container-rounded: var(--layout-shell-top-left-radius));
+  @return (background-color: var(--sys-surface), container-rounded: var(--layout-shell-top-left-radius));
 }
 
 @function get-token-slots() {
@@ -34,37 +33,25 @@ $prefix-color: (ngm, color);
 
 .pac-indicator-app__close {
   @apply bg-hover-bg;
-}
-
-@mixin _bg-surface-container() {
-  background-color: var(#{token-utils.get-token-variable(surface-container)});
-}
-
-@include token-utils.use-tokens($prefix-color, (surface-container: white, surface-container-low: #{theme('colors.neutral.100')})) {
-  .pac-indicator-app__business {
+}.pac-indicator-app__business {
     padding: 1rem;
     border-radius: 1rem;
-    background-color: var(#{token-utils.get-token-variable(surface-container-low)});
+    background-color: var(--color-background-default-subtle);
     
     .title {
       margin-bottom: 0.5rem;
     }
   }
   
-  .pac-indicator__comment-input {
-    @include _bg-surface-container();
-  }
-  .pac-indicator__comment-content {
-    @include _bg-surface-container();
-  }
-  .pac-indicator__comment-period {
-    @include _bg-surface-container();
+  .pac-indicator__comment-input,
+.pac-indicator__comment-content,
+.pac-indicator__comment-period,
+.pac-indicator-app__comment-remove {
+  background-color: var(--sys-surface);
   }
   .pac-indicator-app__comment-remove {
-    @include _bg-surface-container();
     @apply absolute top-0 right-0;
   }
-}
 
 ::ng-deep {
   .pac-indicator__period-tag {

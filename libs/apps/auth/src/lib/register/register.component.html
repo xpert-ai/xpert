@@ -25,7 +25,7 @@
         {{ 'AUTH.REGISTER.EMAIL' | translate: {Default: 'Email'} }}
       </label>
       <input type="email" name="email" id="email" formControlName="email"
-        class="w-full px-4 py-2 border border-divider-regular rounded-md bg-components-input-bg-normal text-text-primary focus:ring-2 focus:ring-components-input-border-active focus:border-components-input-border-active focus:outline-none"
+        class="xp-input w-full text-text-primary"
         [placeholder]="'AUTH.REGISTER.EMAIL' | translate: {Default: 'Email'}"
       >
     </div>
@@ -35,7 +35,7 @@
         {{ 'AUTH.REGISTER.PASSWORD' | translate: {Default: 'Password'} }}
       </label>
       <input type="password" name="password" id="password" formControlName="password"
-        class="w-full px-4 py-2 border border-divider-regular rounded-md bg-components-input-bg-normal text-text-primary focus:ring-2 focus:ring-components-input-border-active focus:border-components-input-border-active focus:outline-none"
+        class="xp-input w-full text-text-primary"
         [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
       >
       <div class="my-2 h-1 bg-background-default-subtle rounded-full overflow-hidden">
@@ -51,7 +51,7 @@
         {{ 'AUTH.REGISTER.CONFIRM_PASSWORD' | translate: {Default: 'Confirm Password'} }}
       </label>
       <input type="password" name="confirm_password" id="confirm_password" formControlName="confirm"
-        class="w-full px-4 py-2 border border-divider-regular rounded-md bg-components-input-bg-normal text-text-primary focus:ring-2 focus:ring-components-input-border-active focus:border-components-input-border-active focus:outline-none"
+        class="xp-input w-full text-text-primary"
         [placeholder]="'PAC.KEY_WORDS.ConfirmPassword' | translate: {Default: 'Confirm password'}"
       >
 
@@ -67,7 +67,7 @@
         {{ 'AUTH.REGISTER.SUBMIT' | translate: {Default: 'Submit'} }}
       </button>
 
-      <a class="text-[var(--ngm-color-primary)] hover:underline" routerLink="/auth/login">{{ 'AUTH.REGISTER.SIGN-IN' | translate: {Default: 'Sign-in'} }}</a>
+      <a class="text-[var(--sys-primary)] hover:underline" routerLink="/auth/login">{{ 'AUTH.REGISTER.SIGN-IN' | translate: {Default: 'Sign-in'} }}</a>
     </div>
   </div>
 

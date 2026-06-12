@@ -50,11 +50,11 @@
     &.f-selected {
       z-index: 1;
       .f-connection-path {
-        stroke: var(--components-card-option-selected-border);
+        stroke: var(--color-components-option-card-option-selected-border);
       }
       .connection-marker {
         circle, rect, path {
-          fill: var(--components-card-option-selected-border);
+          fill: var(--color-components-option-card-option-selected-border);
         }
       }
 
@@ -213,10 +213,10 @@ f-flow {
     border-color: var(--f-component-hover-border);
   }
   &.ngm-selected {
-    @apply border-components-card-option-selected-border shadow-md;
+    @apply border-components-option-card-option-selected-border shadow-md;
   }
   &.f-selected {
-    @apply border-components-card-option-selected-border shadow-md;
+    @apply border-components-option-card-option-selected-border shadow-md;
   }
 }
 .f-node {

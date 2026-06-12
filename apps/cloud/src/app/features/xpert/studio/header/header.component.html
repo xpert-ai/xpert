@@ -58,7 +58,7 @@
     [zTooltip]="'PAC.PromptWorkflow.Commands' | translate: { Default: 'Commands' }"
     (click)="toggleCommands()"
   >
-    <i class="ri-message-3-line text-lg text-components-button-secondary-text"></i>
+    <i class="ri-message-3-line text-lg text-text-secondary"></i>
   </button>
 
   <button
@@ -73,7 +73,7 @@
       viewBox="0 0 16 16"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      class="w-4 h-4 text-components-button-secondary-text"
+      class="w-4 h-4 text-text-secondary"
     >
       <g id="Icon L">
         <g id="Vector">
@@ -106,7 +106,7 @@
       viewBox="0 0 16 16"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      class="w-4 h-4 mr-1 text-components-button-secondary-text"
+      class="w-4 h-4 mr-1 text-text-secondary"
     >
       <g id="env">
         <g id="Vector">
@@ -215,7 +215,7 @@
 
   <button
     type="button"
-    class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium text-components-button-secondary-text"
+    class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium text-text-secondary"
     (click)="toggleFeatures()"
   >
     <svg
@@ -224,7 +224,7 @@
       width="24"
       height="24"
       fill="currentColor"
-      class="w-4 h-4 mr-1 text-components-button-secondary-text"
+      class="w-4 h-4 mr-1 text-text-secondary"
     >
       <path
         d="M2.5 7C2.5 9.48528 4.51472 11.5 7 11.5C9.48528 11.5 11.5 9.48528 11.5 7C11.5 4.51472 9.48528 2.5 7 2.5C4.51472 2.5 2.5 4.51472 2.5 7ZM2.5 17C2.5 19.4853 4.51472 21.5 7 21.5C9.48528 21.5 11.5 19.4853 11.5 17C11.5 14.5147 9.48528 12.5 7 12.5C4.51472 12.5 2.5 14.5147 2.5 17ZM12.5 17C12.5 19.4853 14.5147 21.5 17 21.5C19.4853 21.5 21.5 19.4853 21.5 17C21.5 14.5147 19.4853 12.5 17 12.5C14.5147 12.5 12.5 14.5147 12.5 17ZM9.5 7C9.5 8.38071 8.38071 9.5 7 9.5C5.61929 9.5 4.5 8.38071 4.5 7C4.5 5.61929 5.61929 4.5 7 4.5C8.38071 4.5 9.5 5.61929 9.5 7ZM9.5 17C9.5 18.3807 8.38071 19.5 7 19.5C5.61929 19.5 4.5 18.3807 4.5 17C4.5 15.6193 5.61929 14.5 7 14.5C8.38071 14.5 9.5 15.6193 9.5 17ZM19.5 17C19.5 18.3807 18.3807 19.5 17 19.5C15.6193 19.5 14.5 18.3807 14.5 17C14.5 15.6193 15.6193 14.5 17 14.5C18.3807 14.5 19.5 15.6193 19.5 17ZM16 11V8H13V6H16V3H18V6H21V8H18V11H16Z"
@@ -297,7 +297,7 @@
         @if (draft()) {
           <button
             type="button"
-            class="self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200 text-primary-600 hover:bg-primary-50 active:bg-primary-100"
+            class="self-center px-2 py-1 rounded-lg border border-divider-regular text-sm transition duration-200 text-primary-600 hover:bg-primary-50 active:bg-primary-100"
             (click)="resume()"
           >
             {{ 'PAC.Xpert.Reset' | translate: { Default: 'Reset' } }}
@@ -487,7 +487,7 @@
             min="1"
             max="100"
             step="1"
-            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-components-input-bg-normal text-text-primary placeholder:text-components-input-text-placeholder focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            class="xp-input block w-16 h-7 leading-7 border-0 pl-1 text-text-primary focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="maxConcurrency"
           />
@@ -524,7 +524,7 @@
             min="100"
             max="10000"
             step="100"
-            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-components-input-bg-normal text-text-primary placeholder:text-components-input-text-placeholder focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            class="xp-input block w-16 h-7 leading-7 border-0 pl-1 text-text-primary focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="recursionLimit"
           />

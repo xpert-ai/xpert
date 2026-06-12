@@ -3,38 +3,16 @@
 @reference "../../../tailwind-workspace-reference.css";
 
 .ngm-select-element {
-  @apply p-2 rounded-lg border border-solid border-transparent
-  ring-offset-1 ring-offset-transparent ring-2 ring-transparent
-  focus:z-10 focus:outline-none disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed;
-
-  background-color: var(--surface-container-high);
-  color: var(--color-components-input-text-filled);
-
-  &:hover {
-    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
-    --tw-ring-offset-color: var(--ngm-color-surface);
+  @apply relative inline-block w-full rounded-md;
   }
-
-  &:enabled:focus {
-    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
-    --tw-ring-offset-color: var(--ngm-color-surface);
-    background-color: var(--ngm-color-surface);
-  }
-
-  &:disabled {
-    background-color: var(--surface-container-low);
-    border-color: var(--color-divider-regular);
-    color: var(--color-components-input-text-filled-disabled);
-  }
-}
 
 .ngm-select-label {
   @apply p-1 text-ellipsis whitespace-nowrap overflow-hidden disabled:opacity-50;
 }
 
 .ngm-density__cosy {
-  .ngm-select-element {
-    @apply px-2 py-1 text-sm rounded;
+  .ngm-select-element [role='combobox'] {
+    @apply min-h-8 rounded-md px-2 py-1 text-sm;
   }
 }
 
@@ -42,8 +20,8 @@
   .ngm-select-label {
     @apply text-sm;
   }
-  .ngm-select-element {
-    @apply px-2 py-1 text-xs rounded;
+  .ngm-select-element [role='combobox'] {
+    @apply min-h-8 rounded-md px-2 py-1 text-xs;
   }
 
   .ngm-input-element__clear {

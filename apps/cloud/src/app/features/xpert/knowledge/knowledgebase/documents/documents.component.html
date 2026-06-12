@@ -101,7 +101,7 @@
       class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
     ></i>
     <input
-      class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+      class="xp-input w-full pl-[26px]"
       [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
       [(ngModel)]="search"
     />
@@ -394,7 +394,7 @@
             <div class="flex items-center gap-1">
               @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
                 <button
-                  class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                  class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg"
                   [disabled]="vectorMutationLocked()"
                   (click)="openChunkSettings(element)"
                 >
@@ -403,7 +403,7 @@
                 <div class="shrink-0 w-[1px] mx-1 bg-divider-deep !h-3"></div>
               }
               <button
-                class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-state-base-hover"
+                class="w-6 h-6 shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-hover-bg"
                 type="button"
                 [cdkMenuTriggerFor]="rowMenu"
                 [cdkMenuTriggerData]="{ doc: element }"
@@ -425,7 +425,7 @@
     >
       <div class="inline-flex items-center gap-x-2 py-1 pl-2 pr-3">
         <span
-          class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-text-primary-on-surface"
+          class="system-xs-medium flex h-5 w-5 items-center justify-center rounded-md bg-text-accent text-components-button-primary-text"
         >
           {{ selectionModel.selected.length }}
         </span>
@@ -596,7 +596,7 @@
     <div class="mt-3 space-y-1">
       @for (field of metadataSchema(); track i; let i = $index) {
         <div
-          class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg"
+          class="group/item cursor-pointer hover:shadow-xs rounded-md border border-divider-subtle bg-components-card-bg"
         >
           <div class="flex h-8 items-center justify-between px-2">
             <div class="flex-1 flex h-full items-center space-x-1 text-sm text-text-tertiary">
@@ -612,7 +612,7 @@
                 }
               }
               <input
-                class="system-sm-medium max-w-[250px] px-1 truncate text-text-primary outline-none rounded-sm focus:bg-components-input-bg"
+                class="xp-input system-sm-medium max-w-[250px] truncate text-text-primary rounded-sm"
                 [ngModel]="field.key"
                 (ngModelChange)="updateMetadataField(i, 'key', $event)"
               />
@@ -624,7 +624,7 @@
                 {{ field.type }}
               </div>
               <input
-                class="system-sm-medium grow px-1 truncate text-text-primary outline-none rounded-sm focus:bg-components-input-bg"
+                class="xp-input system-sm-medium grow truncate text-text-primary rounded-sm"
                 [placeholder]="'PAC.KEY_WORDS.Description' | translate: { Default: 'description' }"
                 [ngModel]="field.description"
                 (ngModelChange)="updateMetadataField(i, 'description', $event)"
@@ -649,7 +649,7 @@
         <div class="mt-2">{{ g.group | i18n }}</div>
         @for (field of g.fields; track i; let i = $index) {
           <div
-            class="group/item cursor-pointer hover:shadow-xs rounded-md border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg"
+            class="group/item cursor-pointer hover:shadow-xs rounded-md border border-divider-subtle bg-components-card-bg"
           >
             <div class="flex h-8 items-center justify-between px-2 text-sm">
               <div class="flex h-full items-center space-x-1 text-text-tertiary">

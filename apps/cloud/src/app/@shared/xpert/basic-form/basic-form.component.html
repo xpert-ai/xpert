@@ -6,10 +6,7 @@
     <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
     <div class="relative w-full">
       <input
-        class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
-            focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
-            placeholder:text-components-input-text-placeholder
-            appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular grow h-10"
+        class="xp-input w-full grow h-10"
         [placeholder]="'PAC.Xpert.GiveXpertID' | translate: {Default: 'Give the expert a ID, a-zA-Z0-9-_'}"
         [(ngModel)]="name"
       />
@@ -30,10 +27,7 @@
 
 <div class="pt-2">
   <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</div>
-  <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
-        focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
-        placeholder:text-components-input-text-placeholder
-        appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular grow h-10"
+  <input class="xp-input w-full grow h-10"
     [placeholder]="'PAC.Xpert.GiveXpertName' | translate: {Default: 'Give the expert a name'}"
     [(ngModel)]="title"
   />
@@ -51,7 +45,7 @@
 <div class="pt-2">
   <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
   <textarea z-input
-    class="w-full min-h-20 p-2 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular resize-none"
+    class="w-full min-h-20 resize-none"
     placeholder="{{ 'PAC.Xpert.InputXpertDescription' | translate: {Default: 'Input xpert description'} }}"
     [(ngModel)]="description"
     cdkTextareaAutosize

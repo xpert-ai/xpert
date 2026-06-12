@@ -182,11 +182,11 @@ gridster {
     @apply flex-1 min-w-[200px] text-2xl p-8 flex justify-center items-center cursor-pointer rounded-lg whitespace-nowrap border-2 border-dashed
       active:shadow-lg;
     @apply sm:p-16;
-    background-color: var(--ngm-color-surface);
-    border-color: var(--ngm-color-outline);
+    background-color: var(--sys-surface);
+    border-color: var(--color-divider-regular);
 
     &:hover {
-      background-color: var(--surface-container-high);
+      background-color: var(--sys-surface-subtle);
       font-weight: 600;
     }
   }

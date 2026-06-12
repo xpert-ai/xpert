@@ -10,7 +10,7 @@ $prefix: (ngm, story-viewer);
 }
 
 @function get-color-tokens() {
-  @return (color-surface: var(--ngm-color-surface), color-surface-container: var(--ngm-color-surface-container));
+  @return (color-surface: var(--sys-surface), color-background-body: var(--color-background-body));
 }
 
 @function get-token-slots() {
@@ -21,7 +21,7 @@ $prefix: (ngm, story-viewer);
   @include token-utils.create-token-values($prefix, get-token-slots());
   @apply relative h-full flex-1 max-w-full flex;
 
-  background-color: var(--ngm-color-surface-container);
+  background-color: var(--color-background-body);
   
   .pac-story-viewer__drawer {
     --z-drawer-bg: transparent;
@@ -39,7 +39,7 @@ $prefix: (ngm, story-viewer);
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
   .pac-story-bar {
-    background-color: var(#{token-utils.get-token-variable(color-surface-container)});
+    background-color: var(#{token-utils.get-token-variable(color-background-body)});
   }
   .ngm-story {
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});

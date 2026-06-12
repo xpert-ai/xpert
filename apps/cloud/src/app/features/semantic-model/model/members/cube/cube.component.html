@@ -171,7 +171,7 @@
       </thead>
       <tbody>
         @for (dimension of dimensions(); track dimension.name) {
-          <tr class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg">
+          <tr class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
             <td class="py-3 ps-4">
               <ngm-checkbox
                 [disabled]="loading() || dimension.semantics?.disableEmbeddingMembers"
@@ -210,7 +210,7 @@
           <!-- @if (dimension.expand) { -->
           @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
             <tr
-              class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg"
+              class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg"
             >
               <td class="py-3 ps-4">
                 <div class="flex items-center h-5">

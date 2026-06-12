@@ -166,7 +166,7 @@
                           </div>
                         } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
                           <div
-                            class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-state-destructive-hover text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+                            class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-status-error-bg text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
                             [zTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: { Default: 'Cancel dislike' }"
                             zPosition="top"
                             (click)="cancelFeedback(message, feedback.id)"
@@ -263,7 +263,7 @@
           >
             @for (starter of starters(); track starter) {
               <div
-                class="max-w-full px-2 py-1 border-light rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
+                class="max-w-full px-2 py-1 border-[0.5px] border-solid border-divider-deep rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
                 (click)="sendMessage(starter)"
               >
                 {{ starter }}
@@ -536,7 +536,7 @@
 
                 @if (loading() && !input() && !hasReferences()) {
                   <button
-                    class="flex h-8 w-8 items-center justify-center rounded-full border-light hover:shadow-md"
+                    class="flex h-8 w-8 items-center justify-center rounded-full border-[0.5px] border-solid border-divider-deep hover:shadow-md"
                     (click)="onStop()"
                   >
                     <i class="ri-stop-fill"></i>

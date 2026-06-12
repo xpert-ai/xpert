@@ -4,6 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
+  ZardCheckboxComponent,
   ZardComboboxComponent,
   ZardComboboxOptionTemplateDirective,
   ZardFormImports
@@ -19,6 +20,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
+    ZardCheckboxComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
     ...ZardFormImports
@@ -106,10 +108,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     }}
                   </div>
                 </div>
-                <label class="flex items-center gap-2 text-sm text-text-secondary">
-                  <input type="checkbox" formControlName="enabled" class="h-4 w-4" />
-                  <span>{{ 'PAC.Assistant.Enabled' | translate: { Default: 'Enabled' } }}</span>
-                </label>
+                <z-checkbox formControlName="enabled" displayDensity="cosy" class="text-text-secondary">{{ 'PAC.Assistant.Enabled' | translate: { Default: 'Enabled' } }}</z-checkbox>
               </div>
 
               <div class="mt-4 grid gap-4">

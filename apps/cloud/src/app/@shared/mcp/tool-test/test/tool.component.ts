@@ -28,7 +28,7 @@ import {
 import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -40,6 +40,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     JSONSchemaFormComponent,
     ZardSwitchComponent
+    ZardInputDirective
 ],
   selector: 'mcp-toolset-tool-test',
   templateUrl: './tool.component.html',

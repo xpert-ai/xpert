@@ -4,10 +4,10 @@
     border-divider-regular hover:border-divider-deep dark:border-neutral-800 dark:hover:border-neutral-500;
   background-color: var(--color-components-card-bg);
   color: var(--color-text-primary);
-  --tw-ring-offset-color: var(--ngm-color-surface);
+  --tw-ring-offset-color: var(--color-components-card-bg);
 
   &:focus {
-    --tw-ring-color: var(--components-card-option-selected-border);
+    --tw-ring-color: var(--color-components-option-card-option-selected-border);
   }
 
   &.pac-creation-card__upload {
@@ -17,8 +17,8 @@
 
 .pac-confirm-card {
   @apply border rounded-lg;
-  background-color: var(--ngm-color-surface-container-low);
-  border-color: var(--ngm-color-outline);
+  background-color: var(--sys-surface-subtle);
+  border-color: var(--color-divider-regular);
   color: var(--color-text-primary);
 
   &.pac-confirm-card__delete {
