@@ -6,9 +6,10 @@ import { ChatConversation } from '../conversation.entity'
  * Query chat conversation logs
  */
 export class ChatConversationLogsQuery implements IQuery {
-	static readonly type = '[Chat Conversation] Find conversation logs'
+    static readonly type = '[Chat Conversation] Find conversation logs'
 
-	constructor(
-		public readonly options: FindManyOptions<ChatConversation>,
-	) {}
+    constructor(
+        public readonly options: FindManyOptions<ChatConversation>,
+        public readonly search?: string
+    ) {}
 }

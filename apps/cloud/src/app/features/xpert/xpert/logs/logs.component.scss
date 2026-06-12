@@ -1,20 +1,42 @@
 @reference "../../../../../styles/tailwind-reference.css";
+
 :host {
-  @apply flex flex-col justify-start items-start h-full w-full px-4 py-2 bg-components-panel-bg;
+  @apply relative flex h-full w-full flex-col items-start bg-components-panel-bg px-4 py-3;
 }
 
-.row.selected {
-  @apply text-text-primary;
+[z-table-head],
+[z-table-cell] {
+  @apply whitespace-nowrap overflow-hidden;
 }
 
-tr th {
-  @apply whitespace-nowrap;
+.log-column-drag-list {
+  @apply flex flex-col gap-1;
 }
 
-tr td {
-  @apply whitespace-nowrap truncate;
+.log-column-item {
+  @apply flex min-h-9 items-center justify-between gap-2 rounded-md px-2 py-1.5;
 }
 
-tbody tr {
-  @apply hover:bg-hover-bg;
+.log-column-drag-handle {
+  @apply size-4 shrink-0 cursor-grab text-text-tertiary active:cursor-grabbing;
+}
+
+.log-column-placeholder {
+  @apply border border-dashed border-border bg-muted/40 opacity-100;
+}
+
+.cdk-drag-preview {
+  @apply box-border rounded-md border border-border bg-components-card-bg shadow-md;
+}
+
+.cdk-drag-placeholder {
+  @apply opacity-100;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.log-column-drag-list.cdk-drop-list-dragging .log-column-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
