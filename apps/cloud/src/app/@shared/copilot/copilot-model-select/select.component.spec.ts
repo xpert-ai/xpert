@@ -306,6 +306,52 @@ describe('CopilotModelSelectComponent', () => {
     expect(component['cva'].value$()?.options?.max_tokens).toBe(32768)
   }))
 
+  it('does not clamp parameter updates with stale rules while new model rules are loading', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    component.setModel(copilot, deepseekModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    deepseekRules$.next([
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        min: 1,
+        max: 2048,
+        default: 1024
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    component.setModel(copilot, glmModel)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    component.updateParameter('max_tokens', 32000)
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options?.max_tokens).toBe(32000)
+
+    glmRules$.next([
+      {
+        name: 'max_tokens',
+        type: ParameterType.INT,
+        min: 1,
+        max: 32768,
+        default: 8192
+      }
+    ])
+    tick()
+    fixture.detectChanges()
+
+    expect(component['cva'].value$()?.options?.max_tokens).toBe(32000)
+  }))
+
   it('clamps persisted numeric options when model parameter rules resolve', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()

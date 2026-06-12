@@ -363,7 +363,9 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     if (!this.cva.value$()) {
       this.initModel(this.copilotId(), this.selectedAiModel())
     }
-    const rule = this.modelParameterRules().find((item) => item.name === name)
+    const rule = this.hasResolvedCurrentModelParameterRules()
+      ? this.modelParameterRules().find((item) => item.name === name)
+      : null
     const nextValue = rule ? this.normalizeParameterValue(value, rule) : value
 
     this.updateValue({
