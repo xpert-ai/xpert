@@ -5,7 +5,7 @@
   <div>
     <div class="grid grid-cols-3 gap-2">
       @for (item of TypeOptions; track item.value) {
-        <div class="system-sm-regular flex h-8 items-center rounded-md border border-components-option-card-option-border bg-components-option-card-option-bg px-2 text-text-secondary cursor-pointer hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover hover:shadow-xs justify-center transition-colors"
+        <div class="system-sm-regular flex h-8 items-center rounded-md border border-divider-subtle bg-components-card-bg px-2 text-text-secondary cursor-pointer hover:border-components-input-border-hover hover:bg-hover-bghover:shadow-xs justify-center transition-colors"
           [class.border-primary-500]="item.value === type()"
           [class.bg-primary-50]="item.value === type()"
           (click)="selectType(item.value)"
@@ -26,7 +26,7 @@
       </div>
       <div class="flex h-8 items-center justify-between space-x-2">
         <input
-          class="block h-8 w-12 shrink-0 appearance-none rounded-lg bg-components-input-bg-normal pl-3 mr-8 text-[13px] text-components-input-text-filled outline-none"
+          class="xp-input block h-8 w-12 shrink-0 pl-3 mr-8 text-[13px]"
           min="1"
           max="10"
           step="1"
@@ -46,7 +46,7 @@
   <div>
     <div class="space-y-1">
       @for (item of fileTypeOptions; track item.value) {
-        <div class="cursor-pointer select-none rounded-lg border border-components-option-card-option-border bg-components-option-card-option-bg px-3 py-2 hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover"
+        <div class="cursor-pointer select-none rounded-lg border border-divider-subtle bg-components-card-bg px-3 py-2 hover:border-components-input-border-hover hover:bg-hover-bg"
           (click)="toggleFileType(item.key)">
           <div class="flex items-center">
             @switch (item.key) {
@@ -129,7 +129,7 @@
               </div>
             </div>
             
-            <div class="flex h-5 w-5 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover shrink-0 text-white"
+            <div class="flex h-5 w-5 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-divider-regular bg-components-input-bg-normal hover:bg-hover-bghover:border-components-input-border-active shrink-0 text-components-button-primary-text"
               [class.bg-components-checkbox-bg]="includeType(item.key)"
             >
               @if (includeType(item.key)) {

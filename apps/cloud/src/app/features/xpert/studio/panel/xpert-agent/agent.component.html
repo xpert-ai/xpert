@@ -11,7 +11,7 @@
       />
       <div class="flex flex-col items-start min-w-0 flex-1">
         <input
-          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-text-primary hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF]"
+          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 text-base field font-semibold text-text-primary"
           [placeholder]="'PAC.Xpert.EnterTitle' | translate: { Default: 'Enter title' }"
           [ngModel]="title()"
           (ngModelChange)="onTitleChange($event)"
@@ -23,7 +23,7 @@
 
       <div class="shrink-0 flex items-center">
         <div
-          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
           [zTooltip]="'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
           zPosition="top"
           (click)="openExecution()"
@@ -43,7 +43,7 @@
         </div>
 
         <div
-          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
           [zTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
           zPosition="top"
           #mt1="cdkMenuTriggerFor"
@@ -54,7 +54,7 @@
         </div>
 
         <div
-          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
           [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
           zPosition="top"
           (click)="moveToNode()"
@@ -75,7 +75,7 @@
             width="24"
             height="24"
             fill="currentColor"
-            class="w-4 h-4 text-text-tertiary hover:text-base-content"
+            class="w-4 h-4 text-text-tertiary hover:text-text-primary"
           >
             <path
               d="M13 21V23H11V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H9C10.1947 3 11.2671 3.52375 12 4.35418C12.7329 3.52375 13.8053 3 15 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H13ZM20 19V5H15C13.8954 5 13 5.89543 13 7V19H20ZM11 19V7C11 5.89543 10.1046 5 9 5H4V19H11Z"
@@ -84,7 +84,7 @@
         </a>
         <div class="inline-block">
           <div
-            class="float-menu-trigger flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+            class="float-menu-trigger flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
             [cdkMenuTriggerFor]="moreMenu"
           >
             <svg
@@ -105,7 +105,7 @@
         <div class="mx-3 w-[1px] h-3.5 bg-divider-regular"></div>
 
         <div
-          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+          class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-text-primary hover:bg-hover-bg"
           (click)="closePanel()"
         >
           <svg
@@ -128,7 +128,7 @@
   <div class="px-4 pb-4 space-y-4 mt-2 w-full">
     <div class="py-2 flex flex-col">
       <input
-        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm font-mono rounded-lg border border-transparent appearance-none outline-none hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF]"
+        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 text-sm font-mono"
         [ngClass]="{ 'ngm-error': nameError() }"
         [ngModel]="name()"
         (ngModelChange)="onNameChange($event)"
@@ -143,7 +143,7 @@
         class="group flex px-2 py-[5px] rounded-lg overflow-y-auto border border-transparent text-text-secondary hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs"
       >
         <textarea
-          class="rc-textarea w-full text-sm font-mono leading-[18px] bg-transparent appearance-none outline-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
+          class="rc-textarea w-full bg-transparent text-sm font-mono leading-[18px] placeholder:text-muted-foreground outline-none appearance-none"
           [placeholder]="('PAC.Xpert.AddDescription' | translate: { Default: 'Add description' }) + '...'"
           [ngModel]="xpertAgent().description"
           (ngModelChange)="onDescChange($event)"
@@ -451,7 +451,7 @@
           ></z-slider>
 
           <input
-            class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
+            class="xp-input shrink-0 block ml-4 pl-3 w-16 h-8 text-[13px] text-gra-900"
             [min]="1"
             [max]="10"
             [step]="1"
@@ -637,7 +637,7 @@
         (click)="openExecution(execution)"
       >
         {{ execution.updatedAt | relative }}
-        <span class="px-1 rounded-md border-light text-xs">{{ execution.elapsedTime | number }}ms</span>
+        <span class="px-1 rounded-md border-[0.5px] border-solid border-divider-deep text-xs">{{ execution.elapsedTime | number }}ms</span>
       </button>
     } @empty {
       <div class="text-text-secondary m-2">

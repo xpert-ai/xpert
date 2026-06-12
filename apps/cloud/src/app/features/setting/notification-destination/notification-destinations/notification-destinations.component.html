@@ -10,7 +10,7 @@
 <div>
   @for (destination of destinations$ | async; track destination) {
     <div fxFlex.xs="100" fxFlex="33" [ngClass]="routeAnimationsElements">
-      <z-card class="pac-sketch-card relative bg-[var(--ngm-color-surface-container-low)] active:scale-[0.98]">
+      <z-card class="pac-sketch-card relative bg-[var(--sys-surface-subtle)] active:scale-[0.98]">
         <z-card-header class="overflow-hidden" (click)="edit(destination)">
           <div z-card-avatar class="h-[50px] w-[50px] overflow-hidden">
             <img class="h-full w-full object-cover" src="{{IMG_ROOT}}/{{destination.type}}.png">
@@ -24,7 +24,7 @@
             </z-card-subtitle>
           </div>
         </z-card-header>
-        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-sketch-card__remove text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" (click)="remove(destination)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-sketch-card__remove text-text-destructive hover:bg-status-error-bg hover:text-text-destructive" (click)="remove(destination)">
           <z-icon zType="remove"></z-icon>
         </button>
       </z-card>

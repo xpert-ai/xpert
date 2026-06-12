@@ -109,7 +109,7 @@
         <div class="flex gap-1 items-center">
           @if (task.status !== eXpertTaskStatus.ARCHIVED) {
             <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-secondary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl hover:text-text-primary"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-secondary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl hover:text-text-primary"
               type="button"
               aria-label="Archive"
               [zTooltip]="'PAC.Xpert.Archive' | translate: { Default: 'Archive' }"
@@ -120,7 +120,7 @@
             </button>
           }
           <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
             type="button"
             aria-label="close task results"
             (click)="taskId.set(null)"
@@ -131,10 +131,10 @@
       </div>
       <div class="flex gap-4">
         <div class="grow flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1">
-          <h1 class="font-medium text-fg-secondary flex items-center gap-1">
+          <h1 class="font-medium text-text-secondary flex items-center gap-1">
             {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
           </h1>
-          <h1 class="text-sm text-fg-primary flex items-center gap-1">
+          <h1 class="text-sm text-text-primary flex items-center gap-1">
             <i class="ri-repeat-2-line"></i>
             <p class="flex items-center gap-1 text-sm font-mono">{{ task.scheduleDescription }}</p>
           </h1>
@@ -153,7 +153,7 @@
         [class.max-h-[20vh]]="!embeddedView"
         [class.max-h-[16rem]]="embeddedView"
       >
-        <h1 class="font-medium text-fg-secondary">
+        <h1 class="font-medium text-text-secondary">
           {{ 'PAC.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
         </h1>
         <p
@@ -166,7 +166,7 @@
       @if (task.status !== eXpertTaskStatus.ARCHIVED) {
         <div class="w-full flex flex-row gap-2 justify-between">
           <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
             type="button"
             (click)="editTask(task)"
           >
@@ -175,7 +175,7 @@
           </button>
           @if (task.status === eXpertTaskStatus.SCHEDULED) {
             <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
               type="button"
               (click)="pauseTask(task)"
             >
@@ -184,7 +184,7 @@
             </button>
           } @else {
             <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
               type="button"
               (click)="scheduleTask(task)"
             >
@@ -193,7 +193,7 @@
             </button>
           }
           <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
             type="button"
             (click)="runTask(task)"
           >
@@ -208,7 +208,7 @@
         </div>
         <div class="flex items-center gap-2">
           @if (historyConversations(); as conversations) {
-            <p class="text-sm text-fg-secondary">
+            <p class="text-sm text-text-secondary">
               {{ conversations.length }} {{ 'PAC.Xpert.Record' | translate: { Default: 'record' } }}
             </p>
           }
@@ -223,7 +223,7 @@
         <div class="relative no-scrollbar" style="opacity: 1; transform: none">
           @for (history of historyConversations(); track history.id) {
             <button
-              class="items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 px-3.5 text-sm w-full flex justify-between rounded-2xl relative py-8"
+              class="items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 px-3.5 text-sm w-full flex justify-between rounded-2xl relative py-8"
               type="button"
               [routerLink]="['/chat', 'c', history.id]"
             >
@@ -243,16 +243,16 @@
                   @if (history.status === 'error') {
                     <p class="text-sm text-text-destructive">{{ history.error }}</p>
                   } @else {
-                    <p class="text-sm text-fg-primary font-medium">{{ history.title }}</p>
+                    <p class="text-sm text-text-primary font-medium">{{ history.title }}</p>
                   }
-                  <p class="text-xs text-fg-secondary font-mono">{{ history.createdAt | relative }}</p>
+                  <p class="text-xs text-text-secondary font-mono">{{ history.createdAt | relative }}</p>
                 </div>
               </div>
             </button>
           } @empty {
             <div class="items-center flex justify-center self-stretch">
               <div style="opacity: 1">
-                <h1 class="text-fg-secondary font-semibold text-lg">
+                <h1 class="text-text-secondary font-semibold text-lg">
                   {{ 'PAC.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' } }}
                 </h1>
               </div>

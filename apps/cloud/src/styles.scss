@@ -17,7 +17,6 @@
 @include meta.load-css('../../../packages/angular/_index.scss');
 
 @include meta.load-css('styles/theme/theme.tokens.css');
-@include meta.load-css('styles/theme/theme.aliases.css');
 @include meta.load-css('styles/theme/theme.tailwind.css');
 @include meta.load-css('styles/themes/runtime');
 @include meta.load-css('styles/utilities');

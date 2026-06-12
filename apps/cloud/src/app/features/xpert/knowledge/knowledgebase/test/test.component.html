@@ -86,7 +86,7 @@
 
     <div class="rounded-b-xl bg-components-card-bg px-4 py-2 pb-11">
       <textarea
-        class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal font-body text-text-secondary caret-primary-600 placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
+        class="xp-input h-[160px] w-full resize-none border-none text-sm font-body text-text-secondary placeholder:font-normal focus-visible:outline-none"
         [placeholder]="
           'PAC.Knowledgebase.EnterQueryText'
             | translate: { Default: 'Please enter a text, a short declarative sentence is recommended.' }
@@ -135,7 +135,7 @@
       <tbody>
         @for (log of logs(); track log.id; let i = $index) {
           <tr
-            class="group h-10 cursor-pointer border-b border-divider-subtle hover:bg-background-default-hover"
+            class="group h-10 cursor-pointer border-b border-divider-subtle hover:bg-hover-bg"
             (click)="selectLog(log)"
           >
             <td class="w-[128px] pl-3">

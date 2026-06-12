@@ -66,7 +66,7 @@ export type BlankTemplateChoice = {
           ></i>
           <input
             [(ngModel)]="search"
-            class="w-full rounded-lg border border-components-input-border bg-components-input-bg-normal py-2 pl-9 pr-9 text-sm text-components-input-text-filled outline-none transition-colors placeholder:text-components-input-text-placeholder focus:border-components-input-border-active"
+            class="xp-input w-full border-input-border pl-9 pr-9 text-sm transition-colors"
             [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search templates' }"
           />
 

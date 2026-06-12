@@ -9,7 +9,7 @@
       />
       <div class="flex items-center gap-1">
         <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
           type="button"
           (click)="close()"
         >
@@ -47,12 +47,12 @@
   ></textarea>
 
   @if (isTrialUser()) {
-    <div class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-surface-l1 px-3 py-3">
+    <div class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-components-card-bg px-3 py-3">
       <div class="flex items-center gap-4">
-        <ngm-progress-spinner class="w-10 h-10 text-[var(--ngm-color-primary)]" [value]="total() / 10 * 100" />
+        <ngm-progress-spinner class="w-10 h-10 text-[var(--sys-primary)]" [value]="(total() / 10) * 100" />
         <div class="flex flex-col gap-0 -my-0.5">
-          <p class="text-sm font-semibold text-fg-primary -mb-[2px]">{{10 - total()}} {{'PAC.Xpert.TasksRemaining' | translate: {Default: 'tasks remaining'} }}</p>
-          <p class="text-sm font-medium text-fg-secondary -mt-[2px]">{{'PAC.Xpert.Current' | translate: {Default: 'Current'} }}: {{total()}} {{'PAC.Xpert.TasksActive' | translate: {Default: 'tasks active'} }}</p>
+          <p class="text-sm font-semibold text-text-primary -mb-[2px]">{{10 - total()}} {{'PAC.Xpert.TasksRemaining' | translate: {Default: 'tasks remaining'} }}</p>
+          <p class="text-sm font-medium text-text-secondary -mt-[2px]">{{'PAC.Xpert.Current' | translate: {Default: 'Current'} }}: {{total()}} {{'PAC.Xpert.TasksActive' | translate: {Default: 'tasks active'} }}</p>
         </div>
       </div>
     </div>

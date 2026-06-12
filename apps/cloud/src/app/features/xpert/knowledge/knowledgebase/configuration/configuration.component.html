@@ -21,7 +21,7 @@
       <emoji-avatar [(ngModel)]="avatar" editable class="w-12 h-12 shrink-0 shadow-sm rounded-lg overflow-hidden" />
       <div class="relative w-full">
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          class="xp-input w-full"
           [placeholder]="'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }"
           [(ngModel)]="name"
         />
@@ -37,7 +37,7 @@
     </div>
     <div class="grow">
       <textarea
-        class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular resize-none"
+        class="xp-input min-h-20 w-full resize-none"
         [(ngModel)]="description"
       ></textarea>
     </div>
@@ -66,7 +66,7 @@
       <div class="relative w-full">
         <label>{{ 'PAC.Knowledgebase.EmbeddingBatchSize' | translate: { Default: 'Embedding Batch Size' } }}</label>
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          class="xp-input w-full"
           type="number"
           [placeholder]="'PAC.Knowledgebase.EmbeddingBatchSize' | translate: { Default: 'Embedding Batch Size' }"
           [(ngModel)]="embeddingBatchSize"
@@ -75,7 +75,7 @@
       <div class="relative w-full">
         <label>{{ 'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' } }}</label>
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          class="xp-input w-full"
           type="number"
           [placeholder]="'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
           [(ngModel)]="chunkSize"
@@ -84,7 +84,7 @@
       <div class="relative w-full">
         <label>{{ 'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' } }}</label>
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+          class="xp-input w-full"
           type="number"
           [placeholder]="'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
           [(ngModel)]="chunkOverlap"

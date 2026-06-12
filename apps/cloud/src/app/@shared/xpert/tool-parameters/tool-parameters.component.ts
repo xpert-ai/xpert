@@ -3,6 +3,7 @@ import { booleanAttribute, Component, computed, inject, input } from '@angular/c
 import { FormsModule } from '@angular/forms'
 import { IXpertTool, JsonSchemaObjectType, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -22,6 +23,7 @@ import { JSONSchemaFormComponent } from '../../forms'
     NgmI18nPipe,
     JSONSchemaFormComponent,
     XpertVariableInputComponent
+    ZardInputDirective
 ],
   selector: 'xp-tool-parameters-form',
   templateUrl: 'tool-parameters.component.html',

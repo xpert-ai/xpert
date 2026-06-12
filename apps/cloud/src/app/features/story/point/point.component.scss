@@ -9,7 +9,7 @@ $prefix: (ngm, sps-viewer);
 }
 
 @function get-color-tokens() {
-  @return (color-surface: var(--ngm-color-surface), color-surface-container: var(--background));
+  @return (color-surface: var(--sys-surface), color-background-body: var(--background));
 }
 
 @function get-token-slots() {
@@ -32,7 +32,7 @@ $prefix: (ngm, sps-viewer);
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
   .pac-story-bar {
-    background-color: var(#{token-utils.get-token-variable(color-surface-container)});
+    background-color: var(#{token-utils.get-token-variable(color-background-body)});
   }
   .pac-single-page-story {
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});

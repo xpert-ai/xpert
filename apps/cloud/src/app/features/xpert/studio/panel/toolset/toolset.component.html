@@ -138,7 +138,7 @@
           class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono"
         >
           <textarea
-            class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
+            class="xp-input w-full text-sm text-text-primary leading-[18px]"
             placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
             [ngModel]="getToolDescription(item.tool.name, item.tool)"
             (ngModelChange)="updateToolDescription(item.tool.name, $event)"

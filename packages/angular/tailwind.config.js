@@ -1,6 +1,6 @@
 const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind')
 const { join } = require('path')
-const { safeThemeVars, migratedThemeVars } = require('../../tailwind.theme.vars')
+const { migratedThemeVars } = require('../../tailwind.theme.vars')
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -34,7 +34,6 @@ module.exports = {
           800: '#0040c1',
           900: '#00359e'
         },
-        ...safeThemeVars,
         ...migratedThemeVars
       }
     }

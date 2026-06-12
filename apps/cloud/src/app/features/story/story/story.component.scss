@@ -10,7 +10,7 @@ $prefix: (ngm, story-designer);
 }
 
 @function get-color-tokens() {
-  @return (color-surface: var(--ngm-color-surface), color-surface-container: var(--ngm-color-surface-container));
+  @return (color-surface: var(--sys-surface), color-background-body: var(--color-background-body));
 }
 
 @function get-token-slots() {
@@ -138,8 +138,8 @@ z-button[data-icon-only] {
     border-right: 1px solid;
     border-top: 2px solid;
 
-    background-color: var(--ngm-color-surface);
-    border-color: var(--ngm-color-outline);
+    background-color: var(--sys-surface);
+    border-color: var(--color-divider-regular);
 
     &:hover,
     &.hover {
@@ -163,12 +163,12 @@ z-drawer.ngm-story__designer-drawer[data-mode='side'][data-position='end'] {
     transition-opacity
     active:shadow-lg;
   @apply sm:p-16;
-  background-color: var(--ngm-color-surface-container-low);
-  border-color: var(--ngm-color-outline);
+  background-color: var(--sys-surface-subtle);
+  border-color: var(--color-divider-regular);
   opacity: 0.5;
 
   &:hover {
-    background-color: var(--ngm-color-surface-container-high);
+    background-color: var(--color-components-card-bg);
     font-weight: 600;
     opacity: 1;
   }

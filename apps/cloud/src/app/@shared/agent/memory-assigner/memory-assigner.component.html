@@ -15,9 +15,8 @@
   />
 
   @if (inputType() === 'constant') {
-    <input class="grow rounded-lg text-sm bg-components-input-bg-normal px-2 py-1 focus:bg-components-input-bg-active opacity-70 hover:opacity-100 focus:opacity-100"
-      [(ngModel)]="value"
-    >
+    <input class="xp-input grow text-sm opacity-70 hover:opacity-100 focus:opacity-100"
+      [(ngModel)]="value" />
   } @else if (inputType() === 'message') {
     <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small" [cdkMenuTriggerFor]="roleMenu">
       <i class="ri-add-line"></i>

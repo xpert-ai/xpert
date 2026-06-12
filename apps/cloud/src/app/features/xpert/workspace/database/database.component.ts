@@ -6,6 +6,12 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardInputDirective,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { OverlayAnimation1 } from '@xpert-ai/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { attrModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
@@ -23,6 +29,11 @@ import {
   XpertTableStatus
 } from '../../../../@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import {
+  COLUMN_DEFAULT_VALUE_NONE,
+  applyColumnDefaultValueSelection,
+  columnDefaultValueSelectValue
+} from './database-default-value'
 
 @Component({
   standalone: true,
@@ -33,6 +44,10 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+    ...ZardSelectImports,
     NgmSpinComponent,
     NgmSelectComponent,
     NgmI18nPipe
@@ -45,6 +60,10 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 })
 export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   eXpertTableStatus = XpertTableStatus
+
+  readonly columnDefaultValueNone = COLUMN_DEFAULT_VALUE_NONE
+  readonly columnDefaultValueSelectValue = columnDefaultValueSelectValue
+  readonly applyColumnDefaultValueSelection = applyColumnDefaultValueSelection
 
   readonly #translate = inject(TranslateService)
   readonly #cdr = inject(ChangeDetectorRef)
@@ -233,7 +252,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   ]
 
   // MySQL data types
-  readonly mysqlTypes: TSelectOption[] = [
+  readonly mysqlTypes: TSelectOption<string>[] = [
     // Numeric types - Integers
     {
       value: 'tinyint',
@@ -506,7 +525,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
   readonly #databaseTypeMap = signal<Map<string, string>>(new Map())
   
   // PostgreSQL data types
-  readonly postgresTypes: TSelectOption[] = [
+  readonly postgresTypes: TSelectOption<string>[] = [
     // Numeric types - Integers
     {
       value: 'smallint',
@@ -1078,4 +1097,3 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
     return normalizedType.includes('postgres') || normalizedType === 'pg'
   }
 }
-

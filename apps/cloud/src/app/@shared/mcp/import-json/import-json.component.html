@@ -23,14 +23,14 @@
   </div>
 
   <textarea
-    class="min-h-80 w-full resize-y rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-2 font-mono text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active"
+    class="xp-input min-h-80 w-full resize-y border-divider-regular font-mono text-sm text-text-primary"
     [ngModel]="value()"
     (ngModelChange)="updateValue($event)"
     spellcheck="false"
   ></textarea>
 
   @if (error()) {
-    <div class="mt-3 flex items-start gap-2 rounded-lg bg-state-destructive-hover px-3 py-2 text-sm text-text-destructive">
+    <div class="mt-3 flex items-start gap-2 rounded-lg bg-status-error-bg px-3 py-2 text-sm text-text-destructive">
       <i class="ri-error-warning-line mt-0.5"></i>
       <span>{{ error() }}</span>
     </div>

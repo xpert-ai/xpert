@@ -47,7 +47,7 @@
       <div class="relative w-full max-w-[320px] xl:min-w-[320px]">
         <i class="ri-search-2-line absolute left-3 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
         <input
-          class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-10 pr-10 text-sm text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="xp-input w-full pl-10 pr-10 text-sm"
           [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="search"
         />
@@ -99,7 +99,7 @@
                 | translate
                   : {
                       Default:
-                        "Content under \"Mine\" is loaded from the current user's default workspace. No default workspace is available for this account yet, so please open a workspace and finish initialization first."
+                        'Content under"Mine" is loaded from the current user\'s default workspace. No default workspace is available for this account yet, so please open a workspace and finish initialization first.'
                     }
             }}
           </p>

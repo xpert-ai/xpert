@@ -1,7 +1,9 @@
 
 import { Component, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
 import { TSandboxProvider } from '@cloud/app/@core'
+import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { attrModel } from '@xpert-ai/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,7 +16,11 @@ import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 @Component({
   selector: 'xp-studio-features-sandbox',
   standalone: true,
-  imports: [TranslateModule, NgmI18nPipe, IconComponent, ExtensionHostOutletComponent],
+  imports: [TranslateModule,
+    FormsModule,
+    NgmI18nPipe,
+    ZardCheckboxComponent,
+    IconComponent, ExtensionHostOutletComponent],
   templateUrl: './sandbox.component.html',
   styleUrl: './sandbox.component.scss'
 })

@@ -10,7 +10,7 @@ $prefix-color: (#{$prefix}, color);
 }
 
 @function get-color-tokens() {
-  @return (color-surface: var(--ngm-color-surface));
+  @return (color-surface: var(--sys-surface));
 }
 
 @function get-token-slots() {

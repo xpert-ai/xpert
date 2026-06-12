@@ -8,7 +8,7 @@
 
 .mdc-list-item {
   &:hover {
-    background-color: var(--ngm-color-primary-container-variant);
+    background-color: var(--color-components-list-option-hover-bg);
   }
 }
 
@@ -111,7 +111,7 @@
 }
 
 .pac-data-type-tag {
-  border-color: var(--ngm-color-outline);
+  border-color: var(--color-divider-regular);
   @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full overflow-hidden text-ellipsis border border-solid;
 }
 

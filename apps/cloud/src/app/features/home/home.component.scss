@@ -9,7 +9,7 @@ $prefix: (ngm, home);
 }
 
 @function get-color-tokens() {
-  @return (background-color: var(--ngm-color-surface), card-background-color: var(--ngm-color-surface-container-low));
+  @return (background-color: var(--sys-surface), card-background-color: var(--sys-surface-subtle));
 }
 
 @function get-token-slots() {

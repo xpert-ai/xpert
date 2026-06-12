@@ -8,7 +8,7 @@
     </button>
   }
 
-  @for (item of formArray.controls; track i; let i = $index;) {
+  @for (item of formArray.controls; track i; let i = $index) {
     <ngm-property-select class="group" cdkDragBoundary=".ngm-property-array__container" 
       [formControl]="$any(item)"
       [dataSettings]="dataSettings"
@@ -17,7 +17,7 @@
       [capacities]="capacities"
     >
       <i class="ri-draggable text-lg" ngmPrefix></i>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" displayDensity="compact" (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 text-text-destructive hover:bg-status-error-bg hover:text-text-destructive" displayDensity="compact" (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
         <z-icon zType="clear"></z-icon>
       </button>
     </ngm-property-select>

@@ -55,7 +55,7 @@
             </div>
             <div class="relative w-full">
               <input
-                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+                class="xp-input w-full"
                 [placeholder]="
                   'PAC.Knowledgebase.EnterExternalKnowledgebaseName'
                     | translate: { Default: 'Please enter external knowledgebase name' }
@@ -76,7 +76,7 @@
                   'PAC.Knowledgebase.DescribeKBContentOptional'
                     | translate: { Default: 'Describe the knowledge base content (optional)' }
                 "
-                class="flex h-20 items-start self-stretch rounded-lg bg-components-input-bg-normal p-3 py-2 text-components-input-text-placeholder system-sm-regular"
+                class="xp-input flex h-20 items-start self-stretch"
                 [(ngModel)]="description"
               ></textarea>
             </div>
@@ -156,7 +156,7 @@
           </div>
           <div class="relative w-full">
             <input
-              class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+              class="xp-input w-full"
               [placeholder]="
                 'PAC.Knowledgebase.EnterExtKBId' | translate: { Default: 'Please enter external knowledgebase ID' }
               "
@@ -187,7 +187,7 @@
                   <div class="flex">
                     <div class="relative w-full">
                       <input
-                        class="appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular no-spinner rounded-r-none w-52"
+                        class="xp-input no-spinner rounded-r-none w-52"
                         placeholder="Top K"
                         step="1"
                         max="10"
@@ -219,7 +219,7 @@
                   <div class="flex">
                     <div class="relative w-full">
                       <input
-                        class="appearance-none border py-[7px] caret-primary-600 outline-none bg-components-input-bg-normal placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular border-transparent bg-components-input-bg-disabled text-components-input-text-filled-disabled hover:border-transparent hover:bg-components-input-bg-disabled no-spinner rounded-r-none w-52"
+                        class="xp-input no-spinner rounded-r-none w-52"
                         [ngClass]="{
                           'cursor-pointer': enabledScore(),
                           'cursor-not-allowed': !enabledScore()
@@ -241,7 +241,7 @@
       </div>
       <div class="flex items-center justify-end gap-2 self-stretch py-2">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="goBack()">
-          <div class="system-sm-medium text-components-button-secondary-text">
+          <div class="system-sm-medium text-text-secondary">
             {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </div>
         </button>
@@ -266,7 +266,7 @@
   <div class="flex w-[360px] flex-col items-start pb-2 pr-8 pt-[108px]">
     <div class="flex w-full min-w-[240px] flex-col items-start gap-3 self-stretch rounded-xl bg-components-input-bg-normal p-6">
       <div
-        class="flex h-10 w-10 grow items-center justify-center gap-2 self-stretch rounded-lg border-[0.5px] border-components-card-border bg-components-card-bg p-1"
+        class="flex h-10 w-10 grow items-center justify-center gap-2 self-stretch rounded-lg border-[0.5px] border-divider-subtle bg-components-card-bg p-1"
       >
         <i class="ri-book-open-line text-text-accent"></i>
       </div>

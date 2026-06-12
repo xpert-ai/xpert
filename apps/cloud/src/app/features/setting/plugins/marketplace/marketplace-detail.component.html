@@ -4,7 +4,7 @@
   >
     <button
       type="button"
-      class="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-2xl hover:bg-state-base-hover"
+      class="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-2xl hover:bg-hover-bg"
       (click)="close()"
     >
       <i class="ri-close-line"></i>
@@ -59,7 +59,7 @@
           >
             @for (content of contents(); track content.type + ':' + content.name) {
               <div
-                class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-state-base-hover"
+                class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-hover-bg"
                 [class.bg-components-input-bg-normal]="selectedApp()?.name === content.name && content.type === 'app'"
                 [class.cursor-pointer]="content.type === 'app'"
                 [attr.role]="content.type === 'app' ? 'button' : null"

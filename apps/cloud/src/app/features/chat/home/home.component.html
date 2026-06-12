@@ -116,7 +116,7 @@
             @if (sidebarState() === 'expanded') {
               <button
                 data-clawxpert-settings
-                class="inline-flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-text-secondary transition-[width,min-width,margin-left,opacity,transform,color,background-color] duration-200 ease-out hover:bg-button-ghost-hover hover:text-text-primary cursor-pointer"
+                class="inline-flex h-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-text-secondary transition-[width,min-width,margin-left,opacity,transform,color,background-color] duration-200 ease-out hover:bg-hover-bg hover:text-text-primary cursor-pointer"
                 [ngClass]="
                   sidebarState() === 'expanded'
                     ? 'ml-2 w-9 min-w-[2.25rem] opacity-100 translate-x-0'
@@ -148,7 +148,7 @@
             [zDisabled]="sidebarState() === 'expanded'"
           >
             <button
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
               type="button"
               (click)="newConversation()"
             >
@@ -176,7 +176,7 @@
             [zDisabled]="sidebarState() === 'expanded'"
           >
             <button
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
               type="button"
               aria-label="Search"
               (click)="openConversations()"
@@ -214,7 +214,7 @@
             (mouseleave)="leaveMenuOverlay('task')"
           >
             <a
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg w-full p-[.5rem] text-text-primary hover:text-text-primary"
               data-sidebar="menu-button"
               tabindex="-1"
               routerLink="/chat/tasks"
@@ -247,7 +247,7 @@
             @if (sidebarState() === 'expanded') {
               <span class="absolute top-1/2 right-2 -translate-y-1/2">
                 <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-text-secondary hover:text-text-primary hover:bg-hover-bg disabled:hover:text-text-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-text-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
                   type="button"
                   aria-label="Create task"
                   (click)="newTask()"
@@ -276,7 +276,7 @@
           >
             <button
               aria-label="Projects"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
               tabindex="-1"
               routerLink="/project"
               routerLinkActive="bg-hover-bg"
@@ -316,7 +316,7 @@
             @if (sidebarState() === 'expanded') {
               <span class="absolute top-1/2 right-2 -translate-y-1/2">
                 <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-text-secondary hover:text-text-primary hover:bg-hover-bg disabled:hover:text-text-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-text-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
                   type="button"
                   aria-label="Create new project"
                   (click)="newProject()"
@@ -373,7 +373,7 @@
           >
             <button
               aria-label="History"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
               data-sidebar="menu-button"
               tabindex="-1"
               (click)="historyExpanded() ? historyExpanded.set(false) : historyExpanded.set(true)"
@@ -435,7 +435,7 @@
     <div data-sidebar="footer" class="flex flex-col gap-2 mt-auto relative shrink-0 h-[56px]">
       <div class="cursor-w-resize grow">
         <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-10 w-10 rounded-full absolute end-2 bottom-3"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-secondary hover:text-text-primary hover:bg-hover-bg disabled:hover:text-text-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-text-primary h-10 w-10 rounded-full absolute end-2 bottom-3"
           type="button"
           data-sidebar="trigger"
           (click)="toggleSidebar(); $event.stopPropagation()"
@@ -557,7 +557,7 @@
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
       @for (conv of taskConversations(); track conv.id) {
         <a
-          class="group/item flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active aria-expanded:bg-button-ghost-hover group/task-item pl-3 pr-4 py-1 w-full"
+          class="group/item flex flex-col overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg data-[active=true]:bg-components-list-option-active-bg aria-expanded:bg-hover-bg group/task-item pl-3 pr-4 py-1 w-full"
           [routerLink]="['/chat/c', conv.id]"
         >
           <span
@@ -608,7 +608,7 @@
 
             <div class="absolute right-1 flex items-center gap-1">
               <button
-                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                 type="button"
                 tabindex="-1"
                 [zTooltip]="'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
@@ -619,7 +619,7 @@
               </button>
 
               <button
-                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                 type="button"
                 tabindex="-1"
                 [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
@@ -633,7 +633,7 @@
         } @else {
           <div style="opacity: 1" class="relative group/conversation-item">
             <a
-              class="group/item flex flex-col overflow-hidden relative items-start rounded-xl text-left outline-none transition-[width,height,padding] focus-visible:ring-1 hover:text-primary text-sm border-transparent hover:bg-button-ghost-hover active:bg-button-ghost-active pl-3 pr-1 py-1 w-full"
+              class="group/item flex flex-col overflow-hidden relative items-start rounded-xl text-left outline-none transition-[width,height,padding] focus-visible:ring-1 hover:text-primary text-sm border-transparent hover:bg-hover-bg active:bg-components-list-option-active-bg pl-3 pr-1 py-1 w-full"
               [class.bg-hover-bg]="currentPage().type === 'conversation' && currentPage().id === conv.id"
               tabindex="-1"
               [routerLink]="['/chat/c', conv.id]"
@@ -667,7 +667,7 @@
 
             @if (sidebarState() === 'expanded') {
               <button
-                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-components-card-bg/60 hover:bg-components-card-bg"
+                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-components-card-bg/60 hover:bg-components-card-bg"
                 type="button"
                 #trigger="cdkMenuTriggerFor"
                 [cdkMenuTriggerFor]="conversationMenu"
@@ -687,7 +687,7 @@
     }
 
     <button
-      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
+      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary bg-transparent hover:text-text-secondary disabled:hover:text-text-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
       type="button"
       tabindex="-1"
       (click)="openConversations()"
@@ -714,7 +714,7 @@
 
           <div class="absolute right-1 flex items-center gap-1">
             <button
-              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
               type="button"
               tabindex="-1"
               [zTooltip]="'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
@@ -725,7 +725,7 @@
             </button>
 
             <button
-              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
               type="button"
               tabindex="-1"
               [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
@@ -739,7 +739,7 @@
       } @else {
         <div class="relative group/conversation-item">
           <a
-            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-text-primary"
+            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-hover-bg data-[state=open]:hover:bg-hover-bg active:bg-components-list-option-active-bg pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-text-primary"
             [class.bg-hover-bg]="currentPage().type === 'project' && currentPage().id === project.id"
             tabindex="-1"
             [routerLink]="['/project', project.id]"
@@ -771,7 +771,7 @@
     }
 
     <button
-      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
+      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary bg-transparent hover:text-text-secondary disabled:hover:text-text-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
       type="button"
       tabindex="-1"
       [routerLink]="['/project']"

@@ -28,7 +28,7 @@ import { effectAction } from '@xpert-ai/ocap-angular/core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { agentLabel, TWorkflowVarGroup } from '../../../@core'
+import { agentLabel, injectEditorTheme, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent/variable-panel/variable.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -99,8 +99,9 @@ export class CopilotPromptEditorComponent {
   private startHeight = 0
   readonly copied = signal(false)
 
+  readonly editorTheme = injectEditorTheme()
+
   readonly _defaultOptions = signal({
-    theme: 'vs',
     automaticLayout: true,
     lineNumbers: 'off',
     glyphMargin: 0,
@@ -113,6 +114,7 @@ export class CopilotPromptEditorComponent {
   readonly editorOptions = computed(() => {
     return {
       ...this._defaultOptions(),
+      theme: this.editorTheme(),
       language: this.language()
     }
   })

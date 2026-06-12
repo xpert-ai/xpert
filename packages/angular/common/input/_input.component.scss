@@ -1,40 +1,22 @@
 @reference "../../../tailwind-workspace-reference.css";
 
 .ngm-input-element[z-input] {
-  @apply min-w-[6rem] block box-border w-full max-w-full p-2 rounded-lg border border-solid border-transparent
-    ring-offset-1 ring-offset-transparent ring-2 ring-transparent
-    focus:z-10 focus:outline-none
-    disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed;
-
-  background-color: var(--surface-container-high);
-  color: var(--color-components-input-text-filled);
-
-  &:hover:not(:disabled) {
-    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
-    --tw-ring-offset-color: var(--ngm-color-surface);
-  }
+  @apply flex box-border w-full max-w-full min-w-[6rem] rounded-md border border-input bg-transparent px-2.5 py-1 text-sm
+    font-normal text-foreground file:border-0 file:bg-transparent file:font-medium file:text-foreground
+    placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-ring/50
+    focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50;
 
   &:focus {
-    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
-    --tw-ring-offset-color: var(--ngm-color-surface);
-    background-color: var(--ngm-color-surface);
-    opacity: 0.8;
-  }
-
-  &::placeholder {
-    color: var(--color-components-input-text-placeholder);
-    font-style: italic;
+    @apply z-10;
   }
 
   &:disabled {
-    background-color: var(--surface-container-low);
-    border-color: var(--color-divider-regular);
-    color: var(--color-components-input-text-filled-disabled);
+    @apply cursor-not-allowed opacity-50;
   }
 
   &.ngm-input__searching {
     &:focus {
-      background-color: var(--ngm-color-surface);
+      @apply bg-transparent;
     }
   }
 }
@@ -45,7 +27,7 @@
 
 .ngm-density__cosy {
   .ngm-input-element[z-input] {
-    @apply py-1 px-2 text-sm rounded;
+    @apply h-8 rounded-md px-2 py-1 text-sm;
   }
   .ngm-input__suffix {
     @apply absolute right-1;
@@ -64,7 +46,7 @@
     @apply text-sm;
   }
   .ngm-input-element[z-input] {
-    @apply py-1 px-2 text-xs rounded;
+    @apply h-8 rounded-md px-2 py-1 text-xs;
   }
   .ngm-input__suffix {
     @apply absolute right-0;
@@ -85,10 +67,10 @@
 
 .ngm-input-error {
   .ngm-input-element {
-    border-color: var(--mdc-theme-error);
+    border-color: var(--destructive);
   }
 }
 
 textarea.ngm-input-element {
-  @apply min-h-[50px];
+  @apply h-auto min-h-20 bg-background px-3 py-2 text-base;
 }

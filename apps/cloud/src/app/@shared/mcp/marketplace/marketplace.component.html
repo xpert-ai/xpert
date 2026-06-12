@@ -1,5 +1,5 @@
 <div class="pb-3 pt-6 px-1 sticky top-0 bg-background-body z-30">
-  <div class="text-lg font-semibold bg-gradient-to-r from-[var(--color-status-running-fg)] to-[var(--ngm-color-primary)] bg-clip-text text-transparent">
+  <div class="text-lg font-semibold bg-gradient-to-r from-[var(--color-status-running-fg)] to-[var(--sys-primary)] bg-clip-text text-transparent">
     {{ 'PAC.Xpert.MoreMCPFromMarketplace' | translate: {Default: 'More MCP Toolsets from Marketplace'} }}
   </div>
   <div class="text-sm flex items-center text-center gap-1 text-text-tertiary">
@@ -27,8 +27,8 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (template of templates(); track template) {
-    <div class="group relative cursor-pointer rounded-xl hover:bg-components-panel-on-panel-item-bg-hover">
-      <div class="relative rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-on-panel-item-bg p-4 pb-3 shadow-xs
+    <div class="group relative cursor-pointer rounded-xl hover:bg-hover-bg">
+      <div class="relative rounded-xl border-[0.5px] border-components-panel-border bg-components-card-bg p-4 pb-3 shadow-xs
             bg-components-card-bg">
         <div
           class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold uppercase leading-5 text-text-tertiary shadow-xs"

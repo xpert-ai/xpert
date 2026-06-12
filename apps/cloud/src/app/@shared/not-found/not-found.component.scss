@@ -1,6 +1,6 @@
 @reference "../../../styles/tailwind-reference.css";
 :host {
-  background-color: var(--ngm-color-surface);
+  background-color: var(--sys-surface);
   border-top-left-radius: var(--layout-shell-top-left-radius);
   @apply block w-full;
 }

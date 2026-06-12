@@ -1,23 +1,23 @@
 @reference "../../../tailwind-workspace-reference.css";
 .ngm-input {
-    @apply font-normal rounded-lg bg-components-input-bg border border-solid border-transparent
-    ring-offset-1 ring-offset-transparent ring-1 ring-transparent
-    focus:z-10 focus:outline-none;
-  &:focus {
-    --tw-ring-color: color-mix(in oklab, var(--ring) 50%, transparent);
-  }
+    @apply flex w-full rounded-md border border-inputbg-transparent px-2.5 py-1 text-sm font-normal text-foreground
+    file:border-0 file:bg-transparent file:font-medium file:text-foreground placeholder:text-muted-foreground
+    outline-none focus-visible:border-ring focus
+    -visible:ring-ring/50 focus-visible:ring-[3px]
+    disabled:cursor-not-allowed disabled:opacity- 50;
     &.error {
-    border-color: var(--mdc-theme-error);
+    @apply border-destructive focus-visible:ring-destructive;
     }
 }
 
 .ngm-input-inline {
-    @apply outline-none border border-solid border-transparent active:bg-components-input-bg focus:bg-components-input-bg;
+    @apply flex-1 border-0 bg-transparent px-0 py-0 font-normal text-foreground
+    placeholder:text-muted-foreground outline-none focus-visible:ring-0 focus-visible:ring-offset-0;
     &.error {
-    border-color: var(--mdc-theme-error);
+    @apply border-destructive focus-visible:ring-destructive;
     }
 }
 
 .ngm-input-sm {
-  @apply px-1 py-0.5 rounded-md;
+  @apply h-8 px-2 py-1 text-xs;
 }

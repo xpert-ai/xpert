@@ -3,7 +3,7 @@
   box="content-box"
   >
   @if (canWriteWorkspace()) {
-    <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-token-main-surface-low">
+    <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-[var(--sys-surface-subtle)]">
       <div class="grow rounded-t-xl p-2">
         <div class="px-6 pb-1 pt-2 text-sm font-medium leading-[18px] text-text-tertiary">
           {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: {Default: 'Create knowledgebase'} }}
@@ -38,14 +38,14 @@
   }
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-token-main-surface-low hover:bg-hover-bg"
+    <div class="ngm-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-[var(--sys-surface-subtle)] hover:bg-hover-bg"
       (click)="openKnowledgebase(item.id)">
       <div class="flex-1">
         <div class="flex items-start gap-2">
           <emoji-avatar [avatar]="item.avatar" class="shrink-0 rounded-md overflow-hidden shadow-sm" />
 
           <div class="flex flex-col items-start overflow-hidden">
-            <p class="text-xs flex items-center text-token-text-secondary opacity-80">
+            <p class="text-xs flex items-center text-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public) {
                 <i class="ri-earth-line mr-1"></i>
                 {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
@@ -87,14 +87,14 @@
       @if (canWriteWorkspace()) {
       <div class="absolute right-2 top-2 z-[5] hidden group-hover:block">
         <button type="button" class="group inline-flex items-center text-base font-medium hover:bg-components-button-secondary-bg-hover focus:outline-none w-9 h-9 cursor-pointer justify-center rounded-[10px] border-[0.5px]
-          border-components-actionbar-border bg-components-actionbar-bg p-0 shadow-lg shadow-shadow-shadow-5
-          ring-[2px] ring-inset ring-gray-100 hover:border-components-actionbar-border"
+          border-components-button-secondary-border bg-components-button-secondary-bg p-0 shadow-lg shadow-shadow-shadow-5
+          ring-[2px] ring-inset ring-divider-subtle hover:border-components-button-secondary-border-hover"
           #mt="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="menu"
           [cdkMenuTriggerData]="{item: item}"
           [class.active]="mt.isOpen()"
           (click)="$event.stopPropagation()">
-          <div class="flex w-8 h-8 items-center justify-center rounded-[10px] hover:bg-state-base-hover">
+          <div class="flex w-8 h-8 items-center justify-center rounded-[10px] hover:bg-hover-bg">
             <i class="ri-more-fill text-lg text-text-tertiary"></i>
           </div>
         </button>

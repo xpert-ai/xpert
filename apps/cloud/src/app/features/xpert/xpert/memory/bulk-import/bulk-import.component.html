@@ -8,7 +8,7 @@
   <div class="mt-6">
     <input id="fileUploader" #fileUploader accept=".csv" type="file" style="display: none" (change)="onFileSelected($event)" />
     <div>
-      <div class="dropzone system-sm-regular flex h-20 items-center rounded-xl border border-dashed border-components-dropzone-border bg-components-dropzone-bg"
+      <div class="dropzone system-sm-regular flex h-20 items-center rounded-xl border border-dashed border-divider-regular bg-components-dropzone-bg"
         ngmDnd (fileDropped)="onFileDropped($event)">
         <div class="flex w-full items-center justify-center space-x-2 px-2">
           <svg
@@ -86,7 +86,7 @@
                 </button>
                 <div class="w-[1px] h-4 bg-divider-deep mx-2"></div>
                 <button type="button" class="w-7 h-7 flex justify-center items-center rounded-lg hover:bg-hover-bg"
-                  (click)="file.set(null);fileUploader.value = null;">
+                  (click)="file.set(null);fileUploader.value = null">
                   <i class="ri-delete-back-2-line"></i>
                 </button>
               </div>

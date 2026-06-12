@@ -2,17 +2,17 @@
 
 :host {
   @apply rounded-lg shadow-lg overflow-hidden;
-  background-color: var(--surface-container-high);
+  background-color: var(--sys-surface-subtle);
 }
 
 .pac-story-card__button {
   &:hover {
-    color: var(--ngm-color-on-primary-container);
-    background-color: var(--ngm-color-primary-container);
+    color: var(--color-components-tag-primary-text);
+    background-color: var(--color-components-tag-primary-bg);
   }
 
   &:focus {
-    --tw-ring-color: var(--ngm-color-primary-container);
-    --tw-ring-offset-color: var(--surface-container-high);
+    --tw-ring-color: var(--color-components-tag-primary-bg);
+    --tw-ring-offset-color: var(--sys-surface-subtle);
   }
 }

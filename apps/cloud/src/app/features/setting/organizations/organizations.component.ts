@@ -436,7 +436,7 @@ export class OrganizationsComponent {
   organizationStatusTone(organization: IOrganization) {
     return organization?.isActive
       ? 'bg-state-success-hover/20 text-text-success'
-      : 'bg-state-destructive-hover/20 text-text-destructive'
+      : 'bg-status-error-bg/20 text-text-destructive'
   }
 
   governanceReadonlyHint() {
@@ -608,11 +608,10 @@ export class OrganizationsComponent {
       return currentSelectionId
     }
 
-    return (
+    return
       organizations.find((organization) => organization.isDefault)?.id ??
       organizations[0]?.id ??
       null
-    )
   }
 
   private sortOrganizations(organizations: IOrganization[]) {

@@ -35,8 +35,8 @@ export function buildHeatmapStyles(level: number, isFuture: boolean): ClawXpertH
   }
 
   return {
-    background: 'var(--color-state-success-solid)',
-    borderColor: 'var(--color-state-success-solid)',
+    background: 'var(--sys-success)',
+    borderColor: 'var(--sys-success)',
     opacity: Math.min(1, Math.max(0.24, Number((0.24 + level * 0.76).toFixed(3))))
   }
 }

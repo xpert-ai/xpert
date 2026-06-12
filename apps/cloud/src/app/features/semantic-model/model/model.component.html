@@ -118,7 +118,7 @@
           (cdkDropListDropped)="dropEntity($event)"
           [cdkDropListEnterPredicate]="entityPredicate"
           >
-          <div class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-(--ngm-color-surface-container)">
+          <div class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-background-body">
             <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-text-secondary" (click)="closeSidebar()">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -289,7 +289,7 @@
                 zShape="circle"
 
                 displayDensity="cosy"
-                class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+                class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
                 cdkDropList
                 [cdkDropListEnterPredicate]="tableRemovePredicate"
                 (cdkDropListDropped)="dropTable($event)"
@@ -623,7 +623,7 @@
 
         <button
           type="button"
-          class="btn disabled:btn-disabled btn-secondary btn-sm self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200"
+          class="btn disabled:btn-disabled btn-secondary btn-sm self-center px-2 py-1 rounded-lg border border-divider-regular text-sm transition duration-200"
           [disabled]="!canPublish()"
           (click)="resume()"
           >

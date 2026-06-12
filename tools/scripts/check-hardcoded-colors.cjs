@@ -22,6 +22,12 @@ const excludedPathPrefixes = ['apps/cloud/src/app/@core/theme/echarts/']
 const excludedPathSuffixes = ['packages/angular/core/style/_theme-compat.scss']
 const fileExtensions = new Set(['.html', '.scss', '.css', '.ts', '.sass'])
 const maxReportedRegressions = 80
+const explicitLegacyScanFiles = [
+  'tailwind.theme.vars.js',
+  'packages/angular/tailwind.config.js',
+  'apps/cloud/src/styles/theme/theme.aliases.css',
+  'apps/cloud/src/styles/theme/theme.tailwind.css'
+]
 const hardcodedColorFamilies = [
   'slate',
   'gray',
@@ -78,6 +84,27 @@ const colorLiteralPattern = new RegExp(
   String.raw`(^|[^A-Za-z0-9_-])(#[0-9A-Fa-f]{3,8}\b|rgba?\([^)\n]+\)|hsla?\([^)\n]+\))`,
   'g'
 )
+
+const legacyTokenPatterns = [
+  {
+    kind: 'legacy-ngm-token',
+    pattern: /--ngm-[A-Za-z0-9_-]+/g
+  },
+  {
+    kind: 'legacy-tailwind-token-utility',
+    pattern: new RegExp(String.raw`\b${variantPrefixPattern}(?:${escapedUtilityPrefixes})-token-[A-Za-z0-9_-]+\b`, 'g')
+  },
+  {
+    kind: 'legacy-tailwind-bridge-utility',
+    pattern:
+      /\b(?:state-base-hover|background-default-hover|button-ghost-hover|button-ghost-active|surface-container-bg|surface-container|surface-l1|surface-neutral|text-primary-on-surface|text-text-selected|fg-primary|fg-secondary|base-content|danger-bg|state-destructive-hover|state-success-solid|border-light|border-medium|components-card-option-selected-border|token-main-surface-[A-Za-z0-9_-]+|token-text-secondary|token-border-[A-Za-z0-9_-]+)\b/g
+  },
+  {
+    kind: 'legacy-bridge-token',
+    pattern:
+      /--(?:color-text-primary-on-surface|color-text-text-selected|components-card-option-selected-border|color-fg-primary|color-fg-secondary|color-base-content|color-surface-l1|color-surface-neutral|color-button-ghost-active|color-danger-bg|color-state-destructive-hover|color-state-success-solid|surface-container(?:-[A-Za-z0-9_-]+)?|border-light|border-medium|text-primary|text-secondary|text-tertiary|background-default(?:-subtle)?|fill-tsp-gray-[A-Za-z0-9_-]+)\b/g
+  }
+]
 
 const stagedMode = process.argv.includes('--staged')
 const writeMode = process.argv.includes('--write-baseline')
@@ -210,6 +237,22 @@ function getAllCandidateFiles() {
   return files.sort((left, right) => left.localeCompare(right))
 }
 
+function getLegacyScanFiles() {
+  const seen = new Set()
+  const files = []
+
+  for (const file of [...getAllCandidateFiles(), ...explicitLegacyScanFiles]) {
+    if (seen.has(file) || !fs.existsSync(path.join(repoRoot, file))) {
+      continue
+    }
+
+    seen.add(file)
+    files.push(file)
+  }
+
+  return files.sort((left, right) => left.localeCompare(right))
+}
+
 function parseDiffPath(line) {
   if (line === '+++ /dev/null') {
     return null
@@ -277,6 +320,10 @@ function readWorkingTreeFile(relativeFile) {
 
 function readStagedFile(relativeFile) {
   return runGit(['show', `:${relativeFile}`])
+}
+
+function readHeadFile(relativeFile) {
+  return runGit(['show', `HEAD:${relativeFile}`], { allowFailure: true, stdio: ['ignore', 'pipe', 'ignore'] }) || ''
 }
 
 function buildLineStarts(text) {
@@ -425,6 +472,34 @@ function collectOccurrences(relativeFile, content) {
   return [...utilityOccurrences, ...arbitraryOccurrences, ...literalOccurrences]
 }
 
+function collectLegacyTokenOccurrences(relativeFile, content) {
+  const lineStarts = buildLineStarts(content)
+  const occurrences = []
+
+  for (const { kind, pattern } of legacyTokenPatterns) {
+    pattern.lastIndex = 0
+    let match = pattern.exec(content)
+
+    while (match) {
+      const token = match[0]
+      const { line, column } = getLineAndColumn(lineStarts, match.index)
+      occurrences.push({
+        file: relativeFile,
+        kind,
+        token,
+        startIndex: match.index,
+        endIndex: match.index + token.length,
+        line,
+        column
+      })
+
+      match = pattern.exec(content)
+    }
+  }
+
+  return occurrences
+}
+
 function matchPattern(relativeFile, lineStarts, segment, pattern, kind) {
   const matches = []
   pattern.lastIndex = 0
@@ -478,6 +553,40 @@ function toEntryMap(occurrences) {
   }
 
   return counters
+}
+
+function occurrenceKey(occurrence) {
+  return `${occurrence.kind}::${occurrence.token}`
+}
+
+function toOccurrenceCountMap(occurrences) {
+  const counters = new Map()
+
+  for (const occurrence of occurrences) {
+    const key = occurrenceKey(occurrence)
+    counters.set(key, (counters.get(key) || 0) + 1)
+  }
+
+  return counters
+}
+
+function collectNewOccurrences(relativeFile, content) {
+  const baseCounts = toOccurrenceCountMap(collectOccurrences(relativeFile, readHeadFile(relativeFile)))
+  const newOccurrences = []
+
+  for (const occurrence of collectOccurrences(relativeFile, content)) {
+    const key = occurrenceKey(occurrence)
+    const baseCount = baseCounts.get(key) || 0
+
+    if (baseCount > 0) {
+      baseCounts.set(key, baseCount - 1)
+      continue
+    }
+
+    newOccurrences.push(occurrence)
+  }
+
+  return newOccurrences
 }
 
 function sortEntries(entries) {
@@ -540,25 +649,51 @@ const mode = stagedMode ? 'staged' : 'working-tree'
 const changedLinesByFile = collectChangedLines(mode)
 const files = [...changedLinesByFile.keys()].sort((left, right) => left.localeCompare(right))
 const regressions = []
+const legacyTokenRegressions = []
+
+for (const file of getLegacyScanFiles()) {
+  const content = readFileForMode(file, mode)
+  legacyTokenRegressions.push(...collectLegacyTokenOccurrences(file, content))
+}
 
 for (const file of files) {
   const content = readFileForMode(file, mode)
-  const changedLines = changedLinesByFile.get(file)
-  if (!changedLines || changedLines.size === 0) {
-    continue
-  }
-
-  const occurrences = collectOccurrences(file, content).filter((occurrence) =>
-    changedLines.has(occurrence.line)
-  )
+  const occurrences = collectNewOccurrences(file, content)
   regressions.push(...occurrences)
 }
 
 const regressionEntries = sortEntries([...toEntryMap(regressions).values()])
+const legacyTokenEntries = sortEntries([...toEntryMap(legacyTokenRegressions).values()])
+
+if (legacyTokenEntries.length > 0) {
+  console.error('Legacy theme token usage check failed.')
+  console.error('Old theme tokens and bridge utilities must not be reintroduced.')
+
+  let printed = 0
+  for (const regression of legacyTokenEntries) {
+    for (const occurrence of regression.occurrences) {
+      console.error(`- ${formatOccurrence(regression, occurrence)} count=${regression.count}`)
+      printed += 1
+      if (printed >= maxReportedRegressions) {
+        break
+      }
+    }
+
+    if (printed >= maxReportedRegressions) {
+      break
+    }
+  }
+
+  if (printed < legacyTokenRegressions.length) {
+    console.error(`- ... ${legacyTokenRegressions.length - printed} more old token occurrences`)
+  }
+
+  process.exit(1)
+}
 
 if (regressionEntries.length > 0) {
   console.error('Hardcoded color usage check failed.')
-  console.error(`Only added lines are checked. mode=${mode}`)
+  console.error(`Only occurrences added relative to HEAD are checked. mode=${mode}`)
 
   let printed = 0
   for (const regression of regressionEntries) {

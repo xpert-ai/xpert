@@ -16,7 +16,7 @@
       <emoji-avatar editable formControlName="avatar" class="shrink-0 rounded-lg overflow-hidden shadow-sm" />
   
       <input z-input
-        class="grow h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs"
+        class="grow h-10 text-sm hover:border focus:border"
         [value]="name"
         disabled
       >
@@ -25,13 +25,14 @@
   
   <div class="pt-2">
     <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Title' | translate: {Default: 'Title'} }}</div>
-    <input z-input [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs"
-      formControlName="title">
+    <input z-input [placeholder]="'PAC.Xpert.EnterTitle' | translate: {Default: 'Enter title'}" class="w-full h-10 text-sm hover:border focus:border"
+      formControlName="title"
+    />
   </div>
   
   <div class="pt-2">
     <div class="py-2 font-medium leading-[20px] text-text-primary">{{ 'PAC.Xpert.Description' | translate: {Default: 'Description'} }}</div>
-    <textarea z-input class="w-full px-3 py-2 text-sm font-normal bg-components-input-bg-normal rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-components-input-text-placeholder hover:bg-hover-bg hover:border hover:border-divider-deep focus:bg-components-input-bg-active focus:border focus:border-components-input-border-active focus:shadow-xs h-[80px] resize-none"
+    <textarea z-input class="w-full text-sm hover:border focus:border h-[80px] resize-none"
       [placeholder]="'PAC.Xpert.EnterXpertDesc' | translate: {Default: 'Enter xpert description'}"
       formControlName="description"
     ></textarea>

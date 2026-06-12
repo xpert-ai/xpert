@@ -37,7 +37,7 @@
 
     <z-accordion class="pac-model__accordion">
       @for (hierarchyGrant of hierarchyGrants$ | async; track trackByName($index, hierarchyGrant)) {
-        <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
+        <z-accordion-item hideToggle class="shadow-sm bg-[var(--sys-surface-subtle)]" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
           [disabled]="hierarchyGrant.access===Access.none"
           [expanded]="hierarchyGrant.access!==Access.none"
           (opened)="openedHierarchy(hierarchyGrant.hierarchy)"
@@ -88,7 +88,7 @@
                 <label>{{ 'PAC.MODEL.AccessControl.TopLevel' | translate: {Default: 'Top Level'} }}:</label>
                 @if (hierarchyGrant.topLevel) {
                   <div class="flex-1 flex justify-around items-center">
-                    <ngm-display-behaviour style="flex: 1;" [option]="{value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption}"></ngm-display-behaviour>
+                    <ngm-display-behaviour style="flex: 1" [option]="{value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption}"></ngm-display-behaviour>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeTopLevel(hierarchyGrant.hierarchy)">
                       <z-icon zType="cancel"></z-icon></button>
                     </div>
@@ -101,7 +101,7 @@
                   <label>{{ 'PAC.MODEL.AccessControl.BottomLevel' | translate: {Default: 'Bottom Level'} }}:</label>
                   @if (hierarchyGrant.bottomLevel) {
                     <div class="flex-1 flex justify-around items-center">
-                      <ngm-display-behaviour [option]="{value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption}" style="flex: 1;"></ngm-display-behaviour>
+                      <ngm-display-behaviour [option]="{value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption}" style="flex: 1"></ngm-display-behaviour>
                       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeBottomLevel(hierarchyGrant.hierarchy)">
                         <z-icon zType="cancel"></z-icon></button>
                       </div>

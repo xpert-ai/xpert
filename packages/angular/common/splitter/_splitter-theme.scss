@@ -13,7 +13,7 @@ $prefix: (ngm, splitter);
 }
 
 @function get-color-tokens() {
-  @return (background-color: var(--splitter-background-color, var(--ngm-color-outline-variant)));
+  @return (background-color: var(--splitter-background-color, var(--color-divider-deep)));
 }
 
 @function get-token-slots() {

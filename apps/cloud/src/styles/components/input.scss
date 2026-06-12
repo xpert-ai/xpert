@@ -1,0 +1,22 @@
+@reference "tailwindcss";
+
+@layer components {
+  input.input,
+  textarea.input,
+  input.xp-input,
+  textarea.xp-input {
+    @apply w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm font-normal text-foreground
+      placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-ring/50
+      focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  input.input,
+  input.xp-input {
+    @apply h-9 py-2;
+  }
+
+  textarea.input,
+  textarea.xp-input {
+    @apply h-auto min-h-20 px-3 py-2 text-base;
+  }
+}

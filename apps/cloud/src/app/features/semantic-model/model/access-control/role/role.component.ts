@@ -33,7 +33,7 @@ import { RoleStateService } from './role.service'
       }
       .ngm-list > li {
         &:hover {
-          background-color: var(--ngm-color-primary-container-variant);
+          background-color: var(--color-components-list-option-hover-bg);
         }
       }
     `
