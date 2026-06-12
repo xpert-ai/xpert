@@ -1,9 +1,9 @@
-
-
 @use '../../../@theme/flow-common';
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  @apply flex w-full h-full bg-components-input-bg-normal;
+  --xpert-studio-canvas-bg: var(--muted);
+  @apply flex w-full h-full;
+  background-color: var(--xpert-studio-canvas-bg);
   --output-size: 14px;
   --f-component-hover-border: theme('colors.primary.300');
   --f-component-fail-branch-hover: theme('colors.orange.300');
@@ -17,7 +17,9 @@
   @include flow-common.minimap;
   .f-connection {
     .connection-marker {
-      circle, rect, path {
+      circle,
+      rect,
+      path {
         fill: var(--connection-color);
       }
     }
@@ -28,16 +30,22 @@
         stroke: var(--f-component-hover-border);
         stroke-width: 3;
         // filter: drop-shadow(0 0 4px var(--f-component-hover-border));
-        transition: stroke-width 0.15s ease, filter 0.15s ease;
+        transition:
+          stroke-width 0.15s ease,
+          filter 0.15s ease;
       }
       .connection-marker {
-        circle, rect, path {
+        circle,
+        rect,
+        path {
           fill: var(--f-component-hover-border);
         }
       }
     }
     .f-connection-path {
-      transition: stroke-width 0.15s ease, filter 0.15s ease;
+      transition:
+        stroke-width 0.15s ease,
+        filter 0.15s ease;
     }
     &.connecting {
       stroke-dasharray: 4, 2;
@@ -53,7 +61,9 @@
         stroke: var(--color-components-option-card-option-selected-border);
       }
       .connection-marker {
-        circle, rect, path {
+        circle,
+        rect,
+        path {
           fill: var(--color-components-option-card-option-selected-border);
         }
       }
@@ -63,7 +73,9 @@
           stroke: var(--f-component-fail-branch);
         }
         .connection-marker {
-          circle, rect, path {
+          circle,
+          rect,
+          path {
             fill: var(--f-component-fail-branch);
           }
         }
@@ -75,7 +87,9 @@
         stroke: var(--f-component-hover-border);
       }
       .connection-marker {
-        circle, rect, path {
+        circle,
+        rect,
+        path {
           fill: var(--f-component-hover-border);
         }
       }
@@ -85,7 +99,9 @@
           stroke: var(--f-component-fail-branch-hover);
         }
         .connection-marker {
-          circle, rect, path {
+          circle,
+          rect,
+          path {
             fill: var(--f-component-fail-branch-hover);
           }
         }
@@ -103,7 +119,7 @@
       }
     }
   }
-  
+
   .f-node-input,
   .f-node-output {
     @apply flex justify-center items-center;
@@ -136,7 +152,7 @@
     border: none;
     @apply bg-blue-500;
   }
-  
+
   .f-component.f-node-input.edge {
     border-radius: 0;
     width: 3px;
@@ -151,9 +167,11 @@
     @apply bg-blue-500;
   }
 
-  .f-node.f-component, .f-group.f-component {
+  .f-node.f-component,
+  .f-group.f-component {
     .f-component.f-node-output {
-      svg, .ri-add-line {
+      svg,
+      .ri-add-line {
         visibility: hidden;
       }
 
@@ -174,7 +192,8 @@
           width: var(--output-size);
           height: var(--output-size);
           @apply rounded-full border-[0.5px] border-primary-300;
-          svg, .ri-add-line {
+          svg,
+          .ri-add-line {
             visibility: visible;
           }
           &:hover {
@@ -192,11 +211,14 @@
   }
 }
 
-.f-node.f-component, .f-group.f-component {
+.f-node.f-component,
+.f-group.f-component {
   .node-toolbar {
     @apply invisible;
   }
-  &:hover, &.ngm-selected, &.f-selected {
+  &:hover,
+  &.ngm-selected,
+  &.f-selected {
     .node-toolbar {
       @apply visible;
     }
