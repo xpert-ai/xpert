@@ -29,11 +29,6 @@
   --sys-border: #d9d9dd;
   --sys-border-strong: #93939f;
   --sys-border-control: #e5e7eb;
-  --sys-primary: #17171c;
-  --sys-primary-hover: #000000;
-  --sys-primary-subtle: #f2f2f2;
-  --sys-on-primary-subtle: #212121;
-  --sys-primary-subtle-hover: #eeece7;
   --sys-accent: #ff7759;
   --sys-success: #159f6a;
   --sys-warning: #b7791f;
@@ -44,7 +39,6 @@
   --color-components-panel-bg-blur: color-mix(in oklab, var(--sys-surface-overlay) 92%, transparent);
   --color-components-panel-border: var(--sys-border);
   --color-overlay-backdrop-strong: color-mix(in oklab, #17171c 18%, transparent);
-  --color-components-button-primary-text: white;
   --color-components-tag-primary-bg: var(--sys-primary-subtle);
   --color-components-tag-primary-text: var(--sys-on-primary-subtle);
   --color-components-button-secondary-border: var(--sys-border-control);
@@ -70,7 +64,7 @@
   --color-components-option-card-option-selected-border: var(--sys-primary);
   --color-components-accent-indicator-bg: var(--sys-accent);
   --color-divider-burn: color-mix(in oklab, var(--sys-border) 55%, transparent);
-  --color-text-highlight-bg:color-mix(in oklab, var(--sys-primary) 10%, transparent);
+  --color-text-highlight-bg: color-mix(in oklab, var(--sys-primary) 10%, transparent);
   --color-text-success: var(--sys-success);
   --color-text-tertiary: #75758a;
   --color-text-quaternary: #93939f;
@@ -142,11 +136,6 @@
   --sys-border: color-mix(in oklab, #ffffff 8%, transparent);
   --sys-border-strong: color-mix(in oklab, #ffffff 16%, transparent);
   --sys-border-control: color-mix(in oklab, #ffffff 12%, transparent);
-  --sys-primary: #ffffff;
-  --sys-primary-hover: #eeece7;
-  --sys-primary-subtle: color-mix(in oklab, #ffffff 10%, transparent);
-  --sys-on-primary-subtle: #ffffff;
-  --sys-primary-subtle-hover: color-mix(in oklab, #ffffff 16%, transparent);
   --sys-accent: #ff7759;
   --sys-success: #33b37c;
   --sys-warning: #e2aa43;
@@ -158,7 +147,6 @@
   --color-components-panel-bg-blur: color-mix(in oklab, var(--sys-surface-overlay) 90%, transparent);
   --color-components-panel-border: var(--sys-border);
   --color-overlay-backdrop-strong: color-mix(in oklab, #000000 72%, transparent);
-  --color-components-button-primary-text: #17171c;
   --color-components-tag-primary-bg: var(--sys-primary-subtle);
   --color-components-tag-primary-text: var(--sys-on-primary-subtle);
   --color-components-button-secondary-border: var(--sys-border-control);
@@ -245,17 +233,6 @@
 :root[data-theme],
 [data-theme] {
   --sys-on-accent-subtle: var(--sys-text-primary);
-
-  --sys-primary-100: color-mix(in oklab, var(--sys-primary) 18%, white);
-  --sys-primary-200: color-mix(in oklab, var(--sys-primary) 32%, white);
-  --sys-primary-300: color-mix(in oklab, var(--sys-primary) 48%, white);
-  --sys-primary-400: color-mix(in oklab, var(--sys-primary) 72%, white);
-  --sys-primary-500: var(--sys-primary);
-  --sys-primary-900: color-mix(in oklab, var(--sys-primary) 72%, black);
-  --sys-primary-100-contrast: var(--sys-on-primary-subtle);
-  --sys-primary-200-contrast: var(--sys-on-primary-subtle);
-  --sys-primary-500-contrast: var(--color-components-button-primary-text);
-  --sys-primary-darker-contrast: var(--color-components-button-primary-text);
 
   --sys-accent-100: color-mix(in oklab, var(--sys-accent) 22%, white);
   --sys-accent-200: color-mix(in oklab, var(--sys-accent) 38%, white);

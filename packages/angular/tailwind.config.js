@@ -2,6 +2,8 @@ const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind')
 const { join } = require('path')
 const { migratedThemeVars } = require('../../tailwind.theme.vars')
 
+const withOpacity = (variable) => `color-mix(in oklab, var(${variable}) calc(<alpha-value> * 100%), transparent)`
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [join(__dirname, '/**/!(*.stories|*.spec).{ts,html}'), ...createGlobPatternsForDependencies(__dirname)],
@@ -22,17 +24,19 @@ module.exports = {
           900: '#263238'
         },
         primary: {
-          25: '#f5f8ff',
-          50: '#eff4ff',
-          100: '#d1e0ff',
-          200: '#b2ccff',
-          300: '#84adff',
-          400: '#528bff',
-          500: '#2970ff',
-          600: '#155eef',
-          700: '#004eeb',
-          800: '#0040c1',
-          900: '#00359e'
+          DEFAULT: withOpacity('--primary'),
+          foreground: withOpacity('--primary-foreground'),
+          25: withOpacity('--sys-primary-25'),
+          50: withOpacity('--sys-primary-50'),
+          100: withOpacity('--sys-primary-100'),
+          200: withOpacity('--sys-primary-200'),
+          300: withOpacity('--sys-primary-300'),
+          400: withOpacity('--sys-primary-400'),
+          500: withOpacity('--sys-primary-500'),
+          600: withOpacity('--sys-primary-600'),
+          700: withOpacity('--sys-primary-700'),
+          800: withOpacity('--sys-primary-800'),
+          900: withOpacity('--sys-primary-900')
         },
         ...migratedThemeVars
       }
