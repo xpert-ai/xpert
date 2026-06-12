@@ -4,12 +4,18 @@ import { ChangeDetectionStrategy, Component, effect, inject, model, signal } fro
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
-import { AppearanceDirective, ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { ScreenshotService, TAvatar } from '../../../@core'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -27,7 +33,6 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, Zar
     ZardButtonComponent,
     ZardDialogModule,
     TranslateModule,
-    ButtonGroupDirective,
     AppearanceDirective,
     PickerComponent,
     EmojiComponent
@@ -70,17 +75,15 @@ export class EmojiAvatarEditorComponent {
   readonly imageUrl = signal<string>(null)
 
   constructor() {
-    effect(
-      () => {
-        if (this.avatar) {
-          this.type.set(this.avatar.url ? 'image' : 'emoji')
-          this.background.set(this.avatar.background)
-          this.emoji.set(this.avatar.emoji)
-          this.set.set(this.avatar.emoji?.set)
-          this.imageUrl.set(this.avatar.url)
-        }
+    effect(() => {
+      if (this.avatar) {
+        this.type.set(this.avatar.url ? 'image' : 'emoji')
+        this.background.set(this.avatar.background)
+        this.emoji.set(this.avatar.emoji)
+        this.set.set(this.avatar.emoji?.set)
+        this.imageUrl.set(this.avatar.url)
       }
-    )
+    })
   }
 
   async uploadAvatar(event) {
@@ -113,11 +116,15 @@ export class EmojiAvatarEditorComponent {
   }
 
   apply() {
-    this.#dialogRef.close(this.type() === 'image' ? {
-      url: this.imageUrl()
-    } : {
-      emoji: this.emoji(),
-      background: this.background(),
-    })
+    this.#dialogRef.close(
+      this.type() === 'image'
+        ? {
+            url: this.imageUrl()
+          }
+        : {
+            emoji: this.emoji(),
+            background: this.background()
+          }
+    )
   }
 }
