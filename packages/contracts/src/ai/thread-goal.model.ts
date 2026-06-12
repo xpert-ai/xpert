@@ -3,6 +3,17 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 
 export type { ThreadGoalStatus } from '@xpert-ai/chatkit-types'
 
+export type ThreadGoalSpec = {
+  originalObjective: string
+  executableGoal: string
+  successCriteria: string[]
+  constraints: string[]
+  verificationChecklist: string[]
+  recommendedStrategy: string
+  source: 'system' | 'llm'
+  generatedAt: string
+}
+
 export const THREAD_GOAL_STATUS_VALUES = [
   'active',
   'paused',
@@ -20,6 +31,7 @@ export interface IThreadGoal extends IBasePerTenantAndOrganizationEntityModel {
   conversationId: string
   threadId: string
   objective: string
+  goalSpec?: ThreadGoalSpec | null
   status: ThreadGoalStatus
   tokensUsed: number
   elapsedSeconds: number

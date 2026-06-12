@@ -59,6 +59,16 @@ describe('ChatConversationGoalService', () => {
         conversationId: 'conversation-1',
         threadId: 'thread-1',
         objective: 'ship feature',
+        goalSpec: {
+            originalObjective: 'ship feature',
+            executableGoal: 'Work toward this goal: ship feature',
+            successCriteria: ['The requested goal is complete: ship feature'],
+            constraints: ['Do not change unrelated behavior unless required by the goal.'],
+            verificationChecklist: ['Verify that the requested goal has been completed.'],
+            recommendedStrategy: 'act_then_verify',
+            source: 'system',
+            generatedAt: '2026-06-11T00:00:00.000Z'
+        },
         status: 'active',
         tokensUsed: 12,
         elapsedSeconds: 3,
@@ -112,6 +122,60 @@ describe('ChatConversationGoalService', () => {
 
         const removedBudgetField = 'token' + 'Budget'
         expect(repository.save.mock.calls[0]?.[0]).not.toHaveProperty(removedBudgetField)
+        expect(repository.save.mock.calls[0]?.[0]).toMatchObject({
+            objective: 'ship feature',
+            goalSpec: expect.objectContaining({
+                originalObjective: 'ship feature',
+                executableGoal: expect.stringContaining('ship feature'),
+                successCriteria: [expect.stringContaining('ship feature')],
+                constraints: expect.any(Array),
+                verificationChecklist: expect.any(Array),
+                recommendedStrategy: 'act_then_verify',
+                source: 'system',
+                generatedAt: expect.any(String)
+            })
+        })
+    })
+
+    it('regenerates the goal spec when the user edits the objective', async () => {
+        const goal = await service.patchGoalFromUser('conversation-1', {
+            objective: 'ship updated feature'
+        })
+
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'goal-1',
+                objective: 'ship updated feature',
+                goalSpec: expect.objectContaining({
+                    originalObjective: 'ship updated feature',
+                    executableGoal: expect.stringContaining('ship updated feature')
+                })
+            })
+        )
+        expect(goal).toMatchObject({
+            objective: 'ship updated feature',
+            goalSpec: expect.objectContaining({
+                originalObjective: 'ship updated feature'
+            })
+        })
+    })
+
+    it('preserves the goal spec when the user only changes status', async () => {
+        const goal = await service.patchGoalFromUser('conversation-1', {
+            status: 'paused'
+        })
+
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'goal-1',
+                status: 'paused'
+            })
+        )
+        expect(repository.save.mock.calls[0]?.[0]).not.toHaveProperty('goalSpec')
+        expect(goal).toMatchObject({
+            status: 'paused',
+            goalSpec: existingGoal.goalSpec
+        })
     })
 
     it('returns the full goal when the model updates the status', async () => {
@@ -128,6 +192,7 @@ describe('ChatConversationGoalService', () => {
             conversationId: 'conversation-1',
             threadId: 'thread-1',
             objective: 'ship feature',
+            goalSpec: existingGoal.goalSpec,
             status: 'complete',
             tokensUsed: 12,
             elapsedSeconds: 3,

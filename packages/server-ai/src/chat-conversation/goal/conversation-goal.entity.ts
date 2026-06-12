@@ -1,4 +1,4 @@
-import { IThreadGoal, ThreadGoalStatus } from '@xpert-ai/contracts'
+import { IThreadGoal, ThreadGoalSpec, ThreadGoalStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
@@ -31,6 +31,11 @@ export class ChatConversationGoal extends TenantOrganizationBaseEntity implement
     @IsString()
     @Column({ type: 'text' })
     objective: string
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true })
+    goalSpec?: ThreadGoalSpec | null
 
     @ApiProperty({ type: () => String })
     @IsString()
