@@ -24,6 +24,38 @@ describe('createMapStreamEvents', () => {
         jest.clearAllMocks()
     })
 
+    it('suppresses internal stream events', () => {
+        const subscriber = { next: jest.fn() }
+        const mapStreamEvent = createMapStreamEvents(
+            logger as unknown as Logger,
+            subscriber as unknown as Subscriber<MessageEvent>,
+            {
+                agent: { key: 'Agent_root' } as unknown as IXpertAgent,
+                unmutes: []
+            }
+        )
+
+        const chunk = mapStreamEvent({
+            event: 'on_chat_model_stream',
+            tags: [],
+            data: {
+                chunk: {
+                    id: 'message-stream-1',
+                    content: '{"outcome":"passed"}',
+                    tool_call_chunks: [],
+                    additional_kwargs: {}
+                }
+            },
+            metadata: {
+                internal: true
+            },
+            run_id: 'langgraph-run-1'
+        })
+
+        expect(chunk).toBeNull()
+        expect(subscriber.next).not.toHaveBeenCalled()
+    })
+
     it('adds execution metadata to streamed text chunks', () => {
         const subscriber = { next: jest.fn() }
         const mapStreamEvent = createMapStreamEvents(

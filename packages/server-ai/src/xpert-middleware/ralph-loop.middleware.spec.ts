@@ -10,7 +10,7 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
     dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
-import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
     CHAT_EVENT_TYPE_THREAD_GOAL_UPDATED,
@@ -30,6 +30,16 @@ type GoalRecord = {
     conversationId: string
     threadId: string
     objective: string
+    goalSpec?: {
+        originalObjective: string
+        executableGoal: string
+        successCriteria: string[]
+        constraints: string[]
+        verificationChecklist: string[]
+        recommendedStrategy: string
+        source: string
+        generatedAt: string
+    }
     status: ThreadGoalStatus
     tokensUsed: number
     elapsedSeconds: number
@@ -133,6 +143,8 @@ async function createRalphLoopAgentMiddleware(goalService = createGoalService())
 type MiddlewareResultSnapshot = {
     messages?: Array<{ content?: unknown }>
     threadGoalContinuationCount?: number
+    threadGoalPhase?: string
+    threadGoalVerificationRetryCount?: number
     threadGoalStatus?: string
     jumpTo?: string
 }
@@ -174,6 +186,20 @@ const activeGoal: GoalRecord = {
     continuationCount: 0
 }
 
+const activeGoalWithSpec: GoalRecord = {
+    ...activeGoal,
+    goalSpec: {
+        originalObjective: 'ship the feature',
+        executableGoal: 'Finish and verify the feature implementation.',
+        successCriteria: ['The feature is implemented.', 'Relevant verification passes.'],
+        constraints: ['Do not change unrelated behavior.'],
+        verificationChecklist: ['Confirm implementation exists.', 'Confirm verification evidence exists.'],
+        recommendedStrategy: 'act_then_verify',
+        source: 'llm',
+        generatedAt: '2026-06-11T00:00:00.000Z'
+    }
+}
+
 describe('RalphLoopMiddleware', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -199,31 +225,15 @@ describe('RalphLoopMiddleware', () => {
         expect(JSON.stringify(strategy.meta)).not.toContain('<promise>DONE</promise>')
     })
 
-    it('exposes only read and terminal update goal tools to the model', async () => {
+    it('exposes only the read goal tool to the model', async () => {
         const goalService = createGoalService(activeGoal)
         const strategy = new RalphLoopMiddleware(goalService as unknown as ChatConversationGoalService)
         const middleware = await Promise.resolve(strategy.createMiddleware({}, createContext()))
         const toolNames = middleware.tools?.map((tool) => tool.name)
 
-        expect(toolNames).toEqual(['get_goal', 'update_goal'])
+        expect(toolNames).toEqual(['get_goal'])
         expect(toolNames).not.toContain('create_goal')
-
-        const updateTool = middleware.tools?.find((tool) => tool.name === 'update_goal')
-        if (!updateTool) {
-            throw new Error('Expected update goal tool.')
-        }
-
-        await expect(updateTool.invoke({ status: 'paused' })).rejects.toThrow('complete or blocked')
-        await expect(updateTool.invoke({ status: 'complete' })).resolves.toMatchObject({
-            status: 'complete'
-        })
-        expect(dispatchCustomEvent).toHaveBeenCalledWith(
-            ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-            expect.objectContaining({
-                type: CHAT_EVENT_TYPE_THREAD_GOAL_UPDATED,
-                goal: expect.objectContaining({ status: 'complete' })
-            })
-        )
+        expect(toolNames).not.toContain('update_goal')
     })
 
     it('injects hidden goal context for active goals', async () => {
@@ -253,6 +263,34 @@ describe('RalphLoopMiddleware', () => {
         expect(String(request.systemMessage.content)).toContain('ship the feature')
         expect(String(request.systemMessage.content)).not.toContain('token_budget')
         expect(String(request.systemMessage.content)).toContain('get_goal')
+        expect(String(request.systemMessage.content)).not.toContain('update_goal')
+    })
+
+    it('injects GoalSpec details when available', async () => {
+        const middleware = await createRalphLoopAgentMiddleware(createGoalService(activeGoalWithSpec))
+        const wrapModelCall = getWrapModelCall(middleware)
+        const handler = jest.fn(async (request: { systemMessage: SystemMessage }) => {
+            void request
+            return new AIMessage('ok')
+        })
+
+        await wrapModelCall(
+            {
+                messages: [new HumanMessage('continue')],
+                systemMessage: new SystemMessage('You are helpful.'),
+                state: {},
+                tools: [],
+                runtime: {}
+            } as never,
+            handler as never
+        )
+
+        const request = handler.mock.calls[0]?.[0]
+        if (!request) {
+            throw new Error('Expected wrapModelCall handler request.')
+        }
+        expect(String(request.systemMessage.content)).toContain('Finish and verify the feature implementation.')
+        expect(String(request.systemMessage.content)).toContain('Confirm verification evidence exists.')
     })
 
     it('does not inject or continue when the goal is paused or the run is in plan mode', async () => {
@@ -279,8 +317,9 @@ describe('RalphLoopMiddleware', () => {
         ).resolves.toBeUndefined()
     })
 
-    it('automatically continues active goals without tool calls', async () => {
-        const middleware = await createRalphLoopAgentMiddleware(createGoalService(activeGoal))
+    it('moves from act to verify when active goals have no pending tool calls', async () => {
+        const goalService = createGoalService(activeGoal)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
         const afterModel = getAfterModelHook(middleware)
         const result = await afterModel(
             {
@@ -293,12 +332,13 @@ describe('RalphLoopMiddleware', () => {
         const snapshot = result as MiddlewareResultSnapshot
 
         expect(snapshot).toMatchObject({
-            threadGoalContinuationCount: 1,
+            threadGoalPhase: 'verify',
             threadGoalStatus: 'active',
             jumpTo: 'model'
         })
         expect(snapshot.messages?.[0]).toBeInstanceOf(HumanMessage)
-        expect(String(snapshot.messages?.[0]?.content)).toContain('Continue working toward the active goal')
+        expect(String(snapshot.messages?.[0]?.content)).toContain('Verify the active goal')
+        expect(goalService.incrementContinuation).not.toHaveBeenCalled()
         expect(dispatchCustomEvent).toHaveBeenCalledWith(
             ChatMessageEventTypeEnum.ON_CHAT_EVENT,
             expect.objectContaining({
@@ -308,7 +348,256 @@ describe('RalphLoopMiddleware', () => {
         )
     })
 
-    it('stops and marks budget_limited when max iterations are reached', async () => {
+    it('includes structured tool evidence in the verification request', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('continue'),
+                    new AIMessage('I wrote the memory and confirmed it.'),
+                    new ToolMessage({
+                        name: 'memory_search',
+                        content: '[]',
+                        tool_call_id: 'search-1'
+                    }),
+                    new ToolMessage({
+                        name: 'memory_get',
+                        content: JSON.stringify({ memoryId: 'mem-1', body: 'stored preference' }),
+                        tool_call_id: 'get-1'
+                    }),
+                    new AIMessage('All conditions are done.')
+                ],
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+        const verificationPrompt = String(snapshot.messages?.[0]?.content)
+
+        expect(verificationPrompt).toContain('<goal_evidence_json>')
+        expect(verificationPrompt).toContain('"name": "memory_search"')
+        expect(verificationPrompt).toContain('"emptyResult": true')
+        expect(verificationPrompt).toContain('"name": "memory_get"')
+        expect(verificationPrompt).toContain('Assistant summaries or claims are not sufficient evidence')
+        expect(verificationPrompt).toContain('do not treat a direct get/read by id as retrieval success')
+    })
+
+    it('converts a passed verification into a complete goal', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('verify'),
+                    new AIMessage(
+                        JSON.stringify({
+                            outcome: 'passed',
+                            evidence: ['Implementation exists.', 'Verification evidence exists.'],
+                            reason: 'The saved success criteria are satisfied.'
+                        })
+                    )
+                ],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+
+        expect(snapshot).toMatchObject({
+            threadGoalStatus: 'complete'
+        })
+        expect(snapshot.jumpTo).toBeUndefined()
+        expect(goalService.updateGoalFromModel).toHaveBeenCalledWith('conversation-1', 'complete')
+        expect(dispatchCustomEvent).toHaveBeenCalledWith(
+            ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+            expect.objectContaining({
+                type: CHAT_EVENT_TYPE_THREAD_GOAL_UPDATED,
+                goal: expect.objectContaining({ status: 'complete' })
+            })
+        )
+    })
+
+    it('converts a passed verification with unescaped evidence quotes into a complete goal', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('verify'),
+                    new AIMessage(`{
+  "outcome": "passed",
+  "evidence": [
+    "create_workspace_skill 返回 success，技能名称"请假申请整理助手"，包路径 skill-2，状态 applied",
+    "read_skill_file 成功读取 SKILL.md 完整内容，确认输出格式包含 6 项字段"
+  ],
+  "reason": "工作区技能"请假申请整理助手"已成功创建，SKILL.md 已通过 read_skill_file 读取确认。",
+  "nextAction": "none"
+}`)
+                ],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+
+        expect(snapshot).toMatchObject({
+            threadGoalStatus: 'complete'
+        })
+        expect(snapshot.jumpTo).toBeUndefined()
+        expect(goalService.updateGoalFromModel).toHaveBeenCalledWith('conversation-1', 'complete')
+    })
+
+    it('preserves a pending verify phase across the next agent entry', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const beforeAgent = getBeforeAgentHook(middleware)
+        const afterModel = getAfterModelHook(middleware)
+
+        const resumedState = await beforeAgent(
+            {
+                messages: [new HumanMessage('Continue working toward the active goal.')],
+                threadGoalPhase: 'verify',
+                threadGoalStatus: 'active',
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        expect(resumedState).toMatchObject({
+            threadGoalPhase: 'verify',
+            threadGoalStatus: 'active'
+        })
+
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('Continue working toward the active goal.'),
+                    new AIMessage(
+                        JSON.stringify({
+                            outcome: 'passed',
+                            evidence: ['The pending verification evidence satisfies the checklist.'],
+                            reason: 'The verifier completed after the previous act phase.'
+                        })
+                    )
+                ],
+                ...(resumedState as Record<string, unknown>)
+            },
+            {}
+        )
+
+        expect(result as MiddlewareResultSnapshot).toMatchObject({
+            threadGoalStatus: 'complete'
+        })
+        expect(goalService.updateGoalFromModel).toHaveBeenCalledWith('conversation-1', 'complete')
+    })
+
+    it('loops from failed verification with a next action back to act', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('verify'),
+                    new AIMessage(
+                        JSON.stringify({
+                            outcome: 'failed',
+                            evidence: ['Verification evidence is missing.'],
+                            reason: 'The checklist is not satisfied yet.',
+                            nextAction: 'Collect verification evidence.'
+                        })
+                    )
+                ],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+
+        expect(snapshot).toMatchObject({
+            threadGoalContinuationCount: 1,
+            threadGoalPhase: 'act',
+            threadGoalStatus: 'active',
+            jumpTo: 'model'
+        })
+        expect(String(snapshot.messages?.[0]?.content)).toContain('Collect verification evidence.')
+        expect(goalService.incrementContinuation).toHaveBeenCalledWith('conversation-1')
+        expect(goalService.updateGoalFromModel).not.toHaveBeenCalled()
+    })
+
+    it('converts failed verification without a next action into a blocked goal', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('verify'),
+                    new AIMessage(
+                        JSON.stringify({
+                            outcome: 'failed',
+                            evidence: ['No next action is available.'],
+                            reason: 'The verifier cannot identify concrete progress.'
+                        })
+                    )
+                ],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+
+        expect(snapshot).toMatchObject({
+            threadGoalStatus: 'blocked'
+        })
+        expect(snapshot.jumpTo).toBeUndefined()
+        expect(goalService.updateGoalFromModel).toHaveBeenCalledWith('conversation-1', 'blocked')
+    })
+
+    it('retries invalid verification once before blocking', async () => {
+        const goalService = createGoalService(activeGoalWithSpec)
+        const middleware = await createRalphLoopAgentMiddleware(goalService)
+        const afterModel = getAfterModelHook(middleware)
+
+        const retryResult = await afterModel(
+            {
+                messages: [new HumanMessage('verify'), new AIMessage('not json')],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0,
+                threadGoalVerificationRetryCount: 0
+            },
+            {}
+        )
+        expect(retryResult as MiddlewareResultSnapshot).toMatchObject({
+            threadGoalPhase: 'verify',
+            threadGoalVerificationRetryCount: 1,
+            threadGoalStatus: 'active',
+            jumpTo: 'model'
+        })
+
+        const blockedResult = await afterModel(
+            {
+                messages: [new HumanMessage('verify'), new AIMessage('still not json')],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 0,
+                threadGoalVerificationRetryCount: 1
+            },
+            {}
+        )
+        expect(blockedResult as MiddlewareResultSnapshot).toMatchObject({
+            threadGoalStatus: 'blocked'
+        })
+        expect(goalService.updateGoalFromModel).toHaveBeenCalledWith('conversation-1', 'blocked')
+    })
+
+    it('still verifies act output when max iterations are reached', async () => {
         const goalService = createGoalService(activeGoal)
         const strategy = new RalphLoopMiddleware(goalService as unknown as ChatConversationGoalService)
         const middleware = await Promise.resolve(strategy.createMiddleware({ maxIterations: 2 }, createContext()))
@@ -324,9 +613,44 @@ describe('RalphLoopMiddleware', () => {
         const snapshot = result as MiddlewareResultSnapshot
 
         expect(snapshot).toMatchObject({
+            threadGoalPhase: 'verify',
+            threadGoalStatus: 'active',
+            jumpTo: 'model'
+        })
+        expect(goalService.markBudgetLimited).not.toHaveBeenCalled()
+    })
+
+    it('stops and marks budget_limited when verify needs another act after max iterations', async () => {
+        const goalService = createGoalService(activeGoal)
+        const strategy = new RalphLoopMiddleware(goalService as unknown as ChatConversationGoalService)
+        const middleware = await Promise.resolve(strategy.createMiddleware({ maxIterations: 2 }, createContext()))
+        const afterModel = getAfterModelHook(middleware)
+
+        const result = await afterModel(
+            {
+                messages: [
+                    new HumanMessage('verify'),
+                    new AIMessage(
+                        JSON.stringify({
+                            outcome: 'failed',
+                            evidence: ['More work is still required.'],
+                            reason: 'The goal is not complete.',
+                            nextAction: 'Continue implementation.'
+                        })
+                    )
+                ],
+                threadGoalPhase: 'verify',
+                threadGoalContinuationCount: 2
+            },
+            {}
+        )
+        const snapshot = result as MiddlewareResultSnapshot
+
+        expect(snapshot).toMatchObject({
             threadGoalStatus: 'budget_limited'
         })
         expect(snapshot.jumpTo).toBeUndefined()
         expect(goalService.markBudgetLimited).toHaveBeenCalledWith('conversation-1')
+        expect(goalService.incrementContinuation).not.toHaveBeenCalled()
     })
 })

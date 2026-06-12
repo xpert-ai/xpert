@@ -4,7 +4,8 @@ import {
     HumanMessage,
     MessageContent,
     SystemMessage,
-    isAIMessage
+    isAIMessage,
+    isToolMessage
 } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -14,7 +15,6 @@ import {
     IThreadGoal,
     STATE_VARIABLE_HUMAN,
     TAgentMiddlewareMeta,
-    ThreadGoalModelStatus,
     ThreadGoalStatus,
     createThreadGoalUpdatedEvent,
     isRunnableThreadGoalStatus
@@ -37,12 +37,10 @@ export const conversationGoalStateSchema = z.object({
     threadGoalObjective: z.string().optional(),
     // usage_limited is reserved for future usage-quota enforcement; this middleware does not emit it yet.
     threadGoalStatus: z.enum(['active', 'paused', 'blocked', 'usage_limited', 'budget_limited', 'complete']).optional(),
+    threadGoalPhase: z.enum(['act', 'verify']).optional(),
     threadGoalContinuationCount: z.number().int().min(0).default(0),
+    threadGoalVerificationRetryCount: z.number().int().min(0).default(0),
     threadGoalTurnStartedAt: z.number().optional()
-})
-
-const updateGoalToolSchema = z.object({
-    status: z.string()
 })
 
 export type ConversationGoalMiddlewareConfig = InferInteropZodInput<typeof configSchema>
@@ -126,6 +124,14 @@ function hasToolCalls(message: AIMessage | undefined): boolean {
     return Array.isArray(message?.tool_calls) && message.tool_calls.length > 0
 }
 
+function readGoalPhase(state: unknown): 'act' | 'verify' {
+    if (!state || typeof state !== 'object') {
+        return 'act'
+    }
+    const value = Reflect.get(state, 'threadGoalPhase')
+    return value === 'verify' ? 'verify' : 'act'
+}
+
 function appendHiddenGoalContext(systemMessage: SystemMessage | undefined, goalContext: string): SystemMessage {
     const currentContent =
         typeof systemMessage?.content === 'string' ? systemMessage.content : getMessageText(systemMessage?.content)
@@ -141,35 +147,320 @@ function appendHiddenGoalContext(systemMessage: SystemMessage | undefined, goalC
 function buildGoalContext(goal: {
     objective: string
     status: string
+    goalSpec?: IThreadGoal['goalSpec']
     elapsedSeconds?: number
     continuationCount?: number
 }): string {
+    const goalSpec = goal.goalSpec
+    const executableGoal = goalSpec?.executableGoal?.trim()
+    const successCriteria = goalSpec?.successCriteria?.length
+        ? goalSpec.successCriteria.map((item) => `- ${item}`).join('\n')
+        : '- The user objective is complete.'
+    const constraints = goalSpec?.constraints?.length
+        ? goalSpec.constraints.map((item) => `- ${item}`).join('\n')
+        : '- None.'
+    const verificationChecklist = goalSpec?.verificationChecklist?.length
+        ? goalSpec.verificationChecklist.map((item) => `- ${item}`).join('\n')
+        : '- Verify the user objective is complete.'
+
     return `<goal_context>
 status: ${goal.status}
 objective: ${goal.objective}
+executable_goal: ${executableGoal || goal.objective}
+success_criteria:
+${successCriteria}
+constraints:
+${constraints}
+verification_checklist:
+${verificationChecklist}
 usage:
 - elapsed_seconds: ${goal.elapsedSeconds ?? 0}
 - continuation_count: ${goal.continuationCount ?? 0}
 instructions:
-- Keep working toward the objective until it is complete, blocked, or paused.
+- Act toward the executable goal until there is enough evidence to verify it.
+- Do not mark the goal complete or blocked from the act phase.
 - Use get_goal when you need the latest persisted goal state.
-- Use update_goal with status "complete" only when the objective is fully complete.
-- Use update_goal with status "blocked" only when you cannot make meaningful progress without user input or external changes.
 - Do not pause, resume, clear, or replace the goal; those actions are user-controlled.
 </goal_context>`
 }
 
-function createContinuationMessage(): HumanMessage {
+function createActMessage(nextAction?: string): HumanMessage {
+    const action = nextAction?.trim()
     return new HumanMessage(
-        'Continue working toward the active goal. If the goal is complete, call update_goal with status "complete". If you are blocked, call update_goal with status "blocked". Otherwise make concrete progress and continue.'
+        action
+            ? `Continue working toward the active goal. Next action: ${action}`
+            : 'Continue working toward the active goal. Make concrete progress toward the executable goal. Do not mark the goal complete or blocked from this act phase.'
     )
 }
 
-function normalizeModelStatus(value: string): ThreadGoalModelStatus {
-    if (value !== 'complete' && value !== 'blocked') {
-        throw new Error('update_goal only supports complete or blocked status.')
+type GoalEvidence = {
+    assistantOutputs: string[]
+    toolResults: Array<{
+        name: string
+        status?: string
+        emptyResult?: boolean
+        output: string
+    }>
+    errors: string[]
+}
+
+function truncateEvidenceText(text: string, maxLength = 1200): string {
+    const normalized = text.trim()
+    if (normalized.length <= maxLength) {
+        return normalized
     }
-    return value
+    return `${normalized.slice(0, maxLength)}... [truncated]`
+}
+
+function tryParseJson(value: string): unknown {
+    const trimmed = value.trim()
+    if (!trimmed) {
+        return undefined
+    }
+    try {
+        return JSON.parse(trimmed) as unknown
+    } catch {
+        return undefined
+    }
+}
+
+function isEmptyToolResult(value: unknown): boolean | undefined {
+    if (Array.isArray(value)) {
+        return value.length === 0
+    }
+    if (value && typeof value === 'object') {
+        const items = Reflect.get(value, 'items')
+        if (Array.isArray(items)) {
+            return items.length === 0
+        }
+        const results = Reflect.get(value, 'results')
+        if (Array.isArray(results)) {
+            return results.length === 0
+        }
+    }
+    return undefined
+}
+
+function buildGoalEvidence(messages: BaseMessage[]): GoalEvidence {
+    const evidence: GoalEvidence = {
+        assistantOutputs: [],
+        toolResults: [],
+        errors: []
+    }
+
+    messages.forEach((message) => {
+        if (isToolMessage(message)) {
+            const text = getMessageText(message.content)
+            const parsed = tryParseJson(text)
+            const status =
+                typeof Reflect.get(message, 'status') === 'string' ? Reflect.get(message, 'status') : undefined
+            const name = typeof Reflect.get(message, 'name') === 'string' ? Reflect.get(message, 'name') : 'tool'
+            evidence.toolResults.push({
+                name,
+                ...(status ? { status } : {}),
+                ...(isEmptyToolResult(parsed) !== undefined ? { emptyResult: isEmptyToolResult(parsed) } : {}),
+                output: truncateEvidenceText(text)
+            })
+            return
+        }
+
+        if (isAIMessage(message)) {
+            const text = getMessageText(message.content)
+            if (text) {
+                evidence.assistantOutputs.push(truncateEvidenceText(text, 800))
+            }
+            const error = typeof Reflect.get(message, 'error') === 'string' ? Reflect.get(message, 'error') : ''
+            if (error) {
+                evidence.errors.push(error)
+            }
+        }
+    })
+
+    return evidence
+}
+
+function createVerificationMessage(evidence?: GoalEvidence): HumanMessage {
+    const evidenceJson = evidence ? JSON.stringify(evidence, null, 2) : '{}'
+    return new HumanMessage({
+        content:
+            `Verify the active goal against the goal context. Do not do new work.\n` +
+            `Return only JSON with this shape: {"outcome":"passed"|"failed"|"blocked","evidence":["..."],"reason":"...","nextAction":"..."}.\n` +
+            `Do not wrap the JSON in Markdown. Do not use unescaped double quotes inside string values.\n` +
+            `Use "passed" only when concrete tool results, artifacts, or durable outputs satisfy the success criteria.\n` +
+            `Assistant summaries or claims are not sufficient evidence by themselves.\n` +
+            `If a success criterion requires search/retrieval confirmation and search results are empty, do not treat a direct get/read by id as retrieval success.\n` +
+            `Use "failed" when the goal is not complete and there is a concrete next action. Use "blocked" when progress cannot continue without user input or external changes.\n` +
+            `<goal_evidence_json>\n${evidenceJson}\n</goal_evidence_json>`,
+        additional_kwargs: {
+            hidden: true,
+            internal: true,
+            xpertInternalGoalVerify: true
+        }
+    })
+}
+
+type GoalVerification = {
+    outcome: 'passed' | 'failed' | 'blocked'
+    evidence: string[]
+    reason: string
+    nextAction?: string
+}
+
+function readStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
+function readString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : ''
+}
+
+function extractGoalVerificationJsonText(text: string): string | null {
+    const jsonText = text.startsWith('{') ? text : text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
+    if (!jsonText.startsWith('{') || !jsonText.endsWith('}')) {
+        return null
+    }
+
+    return jsonText
+}
+
+function findGoalVerificationValueStart(text: string, field: keyof GoalVerification): number {
+    const fieldIndex = text.indexOf(`"${field}"`)
+    if (fieldIndex < 0) {
+        return -1
+    }
+    const colonIndex = text.indexOf(':', fieldIndex)
+    if (colonIndex < 0) {
+        return -1
+    }
+
+    let index = colonIndex + 1
+    while (index < text.length && /\s/.test(text[index])) {
+        index += 1
+    }
+    return index
+}
+
+function findNextGoalVerificationField(text: string, startIndex: number): number {
+    const nextField = text.slice(startIndex).search(/\n\s*"(outcome|evidence|reason|nextAction)"\s*:/)
+    if (nextField >= 0) {
+        return startIndex + nextField
+    }
+
+    const objectEnd = text.slice(startIndex).search(/\n\s*}/)
+    if (objectEnd >= 0) {
+        return startIndex + objectEnd
+    }
+
+    return text.length
+}
+
+function trimLooseJsonString(value: string): string {
+    let text = value.trim()
+    if (text.endsWith(',')) {
+        text = text.slice(0, -1).trim()
+    }
+    if (text.startsWith('"')) {
+        text = text.slice(1)
+    }
+    if (text.endsWith('"')) {
+        text = text.slice(0, -1)
+    }
+    return text.replace(/\\"/g, '"').trim()
+}
+
+function readLooseStringField(text: string, field: keyof GoalVerification): string {
+    const valueStart = findGoalVerificationValueStart(text, field)
+    if (valueStart < 0 || text[valueStart] !== '"') {
+        return ''
+    }
+
+    const valueEnd = findNextGoalVerificationField(text, valueStart + 1)
+    return trimLooseJsonString(text.slice(valueStart, valueEnd))
+}
+
+function findLooseArrayEnd(text: string, startIndex: number): number {
+    const arrayEnd = text.slice(startIndex).search(/\n\s*]\s*,?/)
+    return arrayEnd >= 0 ? startIndex + arrayEnd : -1
+}
+
+function readLooseStringArrayField(text: string, field: keyof GoalVerification): string[] {
+    const valueStart = findGoalVerificationValueStart(text, field)
+    if (valueStart < 0 || text[valueStart] !== '[') {
+        return []
+    }
+
+    const arrayEnd = findLooseArrayEnd(text, valueStart + 1)
+    if (arrayEnd < 0) {
+        return []
+    }
+
+    return text
+        .slice(valueStart + 1, arrayEnd)
+        .split('\n')
+        .map((line) => trimLooseJsonString(line))
+        .filter((item) => item.length > 0)
+}
+
+function parseLooseGoalVerification(text: string): GoalVerification | null {
+    const outcome = readLooseStringField(text, 'outcome')
+    if (outcome !== 'passed' && outcome !== 'failed' && outcome !== 'blocked') {
+        return null
+    }
+
+    const evidence = readLooseStringArrayField(text, 'evidence')
+    const reason = readLooseStringField(text, 'reason')
+    if (!evidence.length || !reason) {
+        return null
+    }
+
+    const nextAction = readLooseStringField(text, 'nextAction')
+    return {
+        outcome,
+        evidence,
+        reason,
+        ...(nextAction ? { nextAction } : {})
+    }
+}
+
+function parseGoalVerification(content: MessageContent | unknown): GoalVerification | null {
+    const text = getMessageText(content).trim()
+    if (!text) {
+        return null
+    }
+    const jsonText = extractGoalVerificationJsonText(text)
+    if (!jsonText) {
+        return null
+    }
+
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(jsonText) as unknown
+    } catch {
+        return parseLooseGoalVerification(jsonText)
+    }
+    if (!parsed || typeof parsed !== 'object') {
+        return null
+    }
+
+    const outcome = Reflect.get(parsed, 'outcome')
+    if (outcome !== 'passed' && outcome !== 'failed' && outcome !== 'blocked') {
+        return null
+    }
+    const evidence = readStringArray(Reflect.get(parsed, 'evidence'))
+    const reason = readString(Reflect.get(parsed, 'reason'))
+    if (!evidence.length || !reason) {
+        return null
+    }
+    const nextAction = readString(Reflect.get(parsed, 'nextAction'))
+    return {
+        outcome,
+        evidence,
+        reason,
+        ...(nextAction ? { nextAction } : {})
+    }
 }
 
 async function dispatchGoalUpdated(goal: IThreadGoal | null | undefined) {
@@ -260,24 +551,6 @@ export function buildConversationGoalAgentMiddleware(
                     description: 'Read the current persisted conversation goal.',
                     schema: z.object({})
                 }
-            ),
-            tool(
-                async (input) => {
-                    if (!conversationId) {
-                        throw new Error('update_goal requires a conversationId.')
-                    }
-                    const goal = await goalService.updateGoalFromModel(
-                        conversationId,
-                        normalizeModelStatus(input.status)
-                    )
-                    await dispatchGoalUpdated(goal)
-                    return goal
-                },
-                {
-                    name: 'update_goal',
-                    description: 'Mark the current goal as complete or blocked. Only complete and blocked are allowed.',
-                    schema: updateGoalToolSchema
-                }
             )
         ],
         beforeAgent: {
@@ -293,11 +566,14 @@ export function buildConversationGoalAgentMiddleware(
                     }
                 }
 
+                const currentPhase = readGoalPhase(state)
                 return {
                     threadGoalId: goal.id,
                     threadGoalObjective: goal.objective,
                     threadGoalStatus: goal.status,
+                    threadGoalPhase: isRunnableThreadGoalStatus(goal.status) ? currentPhase : 'act',
                     threadGoalContinuationCount: 0,
+                    threadGoalVerificationRetryCount: 0,
                     ...(isRunnableThreadGoalStatus(goal.status) && !isPlanModeEnabled(state)
                         ? {
                               threadGoalTurnStartedAt: Date.now()
@@ -318,6 +594,7 @@ export function buildConversationGoalAgentMiddleware(
 
             return handler({
                 ...request,
+                ...(readGoalPhase(request.state) === 'verify' ? { tools: [] } : {}),
                 systemMessage: appendHiddenGoalContext(request.systemMessage, buildGoalContext(goal))
             })
         },
@@ -342,6 +619,7 @@ export function buildConversationGoalAgentMiddleware(
                 const latestAiMessage = findLatestAiMessage(messages)
                 if (hasToolCalls(latestAiMessage)) {
                     return {
+                        threadGoalPhase: readGoalPhase(state),
                         threadGoalStatus: goal.status as ThreadGoalStatus
                     }
                 }
@@ -360,20 +638,70 @@ export function buildConversationGoalAgentMiddleware(
                     await dispatchGoalUpdated(usageGoal)
                 }
 
-                const continuationCount = readFiniteNumber(state, 'threadGoalContinuationCount') ?? 0
-                if (continuationCount >= config.maxIterations) {
-                    const budgetGoal = await goalService.markBudgetLimited(conversationId)
-                    await dispatchGoalUpdated(budgetGoal)
+                const phase = readGoalPhase(state)
+                if (phase === 'verify') {
+                    const verification = parseGoalVerification(latestAiMessage?.content)
+                    if (!verification) {
+                        const retryCount = readFiniteNumber(state, 'threadGoalVerificationRetryCount') ?? 0
+                        if (retryCount < 1) {
+                            return {
+                                messages: [createVerificationMessage(buildGoalEvidence(messages))],
+                                threadGoalPhase: 'verify',
+                                threadGoalVerificationRetryCount: retryCount + 1,
+                                threadGoalStatus: 'active',
+                                jumpTo: 'model'
+                            }
+                        }
+                        const blockedGoal = await goalService.updateGoalFromModel(conversationId, 'blocked')
+                        await dispatchGoalUpdated(blockedGoal)
+                        return {
+                            threadGoalStatus: 'blocked'
+                        }
+                    }
+
+                    if (verification.outcome === 'passed') {
+                        const completeGoal = await goalService.updateGoalFromModel(conversationId, 'complete')
+                        await dispatchGoalUpdated(completeGoal)
+                        return {
+                            threadGoalStatus: 'complete'
+                        }
+                    }
+
+                    if (verification.outcome === 'blocked' || !verification.nextAction) {
+                        const blockedGoal = await goalService.updateGoalFromModel(conversationId, 'blocked')
+                        await dispatchGoalUpdated(blockedGoal)
+                        return {
+                            threadGoalStatus: 'blocked'
+                        }
+                    }
+
+                    const continuationCount = readFiniteNumber(state, 'threadGoalContinuationCount') ?? 0
+                    if (continuationCount >= config.maxIterations) {
+                        const budgetGoal = await goalService.markBudgetLimited(conversationId)
+                        await dispatchGoalUpdated(budgetGoal)
+                        return {
+                            threadGoalContinuationCount: continuationCount,
+                            threadGoalStatus: 'budget_limited'
+                        }
+                    }
+
+                    await goalService.incrementContinuation(conversationId)
                     return {
-                        threadGoalContinuationCount: continuationCount,
-                        threadGoalStatus: 'budget_limited'
+                        messages: [createActMessage(verification.nextAction)],
+                        threadGoalContinuationCount: continuationCount + 1,
+                        threadGoalPhase: 'act',
+                        threadGoalVerificationRetryCount: 0,
+                        threadGoalStatus: 'active',
+                        threadGoalTurnStartedAt: Date.now(),
+                        jumpTo: 'model'
                     }
                 }
 
-                await goalService.incrementContinuation(conversationId)
                 return {
-                    messages: [createContinuationMessage()],
-                    threadGoalContinuationCount: continuationCount + 1,
+                    messages: [createVerificationMessage(buildGoalEvidence(messages))],
+                    threadGoalContinuationCount: readFiniteNumber(state, 'threadGoalContinuationCount') ?? 0,
+                    threadGoalPhase: 'verify',
+                    threadGoalVerificationRetryCount: 0,
                     threadGoalStatus: 'active',
                     threadGoalTurnStartedAt: Date.now(),
                     jumpTo: 'model'

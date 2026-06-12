@@ -2,6 +2,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     IThreadGoal,
+    ThreadGoalSpec,
     ThreadGoalModelStatus,
     ThreadGoalUserStatus,
     TThreadGoalPatchRequest,
@@ -54,6 +55,7 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
             this.normalizeId(conversationId, 'conversationId')
         )
         const objective = this.normalizeObjective(request.objective)
+        const goalSpec = this.buildGoalSpec(objective)
         const existing = await this.getByConversationId(conversation.id)
         const now = new Date()
         const entity: DeepPartial<ChatConversationGoal> = {
@@ -61,6 +63,7 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
             conversationId: conversation.id,
             threadId: conversation.threadId,
             objective,
+            goalSpec,
             status: 'active',
             tokensUsed: 0,
             elapsedSeconds: 0,
@@ -78,12 +81,14 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
         const now = new Date()
         const status = request.status ? this.normalizeUserStatus(request.status) : goal.status
         const objective = request.objective === undefined ? goal.objective : this.normalizeObjective(request.objective)
+        const goalSpec = request.objective === undefined ? undefined : this.buildGoalSpec(objective)
         const completedAt = status !== goal.status ? null : (goal.completedAt ?? null)
         const blockedAt = status !== goal.status ? null : (goal.blockedAt ?? null)
         const patch: DeepPartial<ChatConversationGoal> = {
             id: goal.id,
             objective,
             status,
+            ...(goalSpec ? { goalSpec } : {}),
             ...(status !== goal.status
                 ? {
                       statusUpdatedAt: now,
@@ -98,6 +103,7 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
             ...goal,
             ...saved,
             objective,
+            ...(goalSpec ? { goalSpec } : {}),
             status,
             ...(status !== goal.status
                 ? {
@@ -236,6 +242,19 @@ export class ChatConversationGoalService extends TenantOrganizationAwareCrudServ
             return Math.floor(value)
         }
         return 0
+    }
+
+    private buildGoalSpec(objective: string): ThreadGoalSpec {
+        return {
+            originalObjective: objective,
+            executableGoal: `Work toward this goal: ${objective}`,
+            successCriteria: [`The requested goal is complete: ${objective}`],
+            constraints: ['Do not change unrelated behavior unless required by the goal.'],
+            verificationChecklist: ['Verify that the requested goal has been completed.'],
+            recommendedStrategy: 'act_then_verify',
+            source: 'system',
+            generatedAt: new Date().toISOString()
+        }
     }
 
     private normalizeUserStatus(status: ThreadGoalUserStatus): ThreadGoalUserStatus {

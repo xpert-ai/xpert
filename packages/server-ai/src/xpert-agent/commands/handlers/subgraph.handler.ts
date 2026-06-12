@@ -134,6 +134,7 @@ import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
+const GRAPH_JUMP_TO_STATE_KEY = '__xpertJumpTo'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -949,6 +950,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const workflowNodes = allChannels(graph, agent.key)
         // Collect channels used in the graph
         const SubgraphStateAnnotation = Annotation.Root({
+            [GRAPH_JUMP_TO_STATE_KEY]: Annotation<JumpToTarget | null>({
+                reducer: (a, b) => (b === undefined ? a : b),
+                default: () => null
+            }),
             // Temp parameters
             ...(variables?.reduce((state, schema) => {
                 state[schema.name] = Annotation(stateVariable(schema))
@@ -1155,6 +1160,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 (<string>config.metadata.langgraph_triggers[0])?.startsWith(START),
                 jsonSchema
             )
+            const channelState = getChannelState(state, agentChannel)
+            const isInternalGoalVerification = readGoalPhaseFromChannelState(channelState) === 'verify'
             // Disable history and new human request then remove history
             const deleteMessages =
                 !enableMessageHistory && humanMessages.length
@@ -1180,8 +1187,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 systemMessageContent = systemMsg.content
                 const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
                 const scopedSignal = createScopedAbortSignal()
+                const invokeConfig = isInternalGoalVerification
+                    ? {
+                          ...config,
+                          metadata: {
+                              ...(config?.metadata ?? {}),
+                              internal: true
+                          }
+                      }
+                    : config
                 const response = await model
-                    .invoke(finalMessages, { ...config, signal: scopedSignal.signal })
+                    .invoke(finalMessages, { ...invokeConfig, signal: scopedSignal.signal })
                     .finally(() => {
                         scopedSignal.cleanup()
                     })
@@ -1209,6 +1225,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const message: AIMessage | object = await wrappedModelHandler(baseRequest)
 
                 const nState: Record<string, any> = {
+                    [GRAPH_JUMP_TO_STATE_KEY]: null,
                     messages: [...humanMessages],
                     [channelName(agentKey)]: {
                         system: systemMessageContent,
@@ -1866,7 +1883,7 @@ function createAgentNavigator(
     jumpTargets?: Partial<Record<JumpToTarget, string>>
 ) {
     return (state: typeof AgentStateAnnotation.State, config) => {
-        const jumpTo = consumeJumpTo(config)
+        const jumpTo = consumeJumpTo(state, config)
         if (jumpTo === 'end') {
             return END
         }
@@ -1941,12 +1958,32 @@ function createAgentNavigator(
     }
 }
 
-function consumeJumpTo(config: RunnableConfig | undefined): JumpToTarget | undefined {
+function consumeJumpTo(state: unknown, config?: RunnableConfig): JumpToTarget | undefined {
+    const stateJumpTo = readStateJumpTo(state)
+    if (stateJumpTo) {
+        return stateJumpTo
+    }
     const jumpTo = (config as { jumpTo?: JumpToTarget } | undefined)?.jumpTo
     if (jumpTo) {
         delete (config as { jumpTo?: JumpToTarget }).jumpTo
     }
     return jumpTo
+}
+
+function readStateJumpTo(state: unknown): JumpToTarget | undefined {
+    if (!state || typeof state !== 'object') {
+        return undefined
+    }
+    const value = Reflect.get(state, GRAPH_JUMP_TO_STATE_KEY)
+    return value === 'model' || value === 'tools' || value === 'end' ? value : undefined
+}
+
+function readGoalPhaseFromChannelState(state: unknown): 'act' | 'verify' | undefined {
+    if (!state || typeof state !== 'object') {
+        return undefined
+    }
+    const value = Reflect.get(state, 'threadGoalPhase')
+    return value === 'act' || value === 'verify' ? value : undefined
 }
 
 function createAfterAgentNavigator(
@@ -2130,13 +2167,16 @@ function createBeforeModelNode(hook: BeforeModelHandler<typeof MessagesAnnotatio
                     ;(config as any).jumpTo = jumpTo
                 }
                 return {
+                    [GRAPH_JUMP_TO_STATE_KEY]: jumpTo ?? null,
                     [agentChannel]: {
                         ...middlewareState,
                         ...partial
                     }
                 }
             }
-            return null
+            return {
+                [GRAPH_JUMP_TO_STATE_KEY]: null
+            }
         }
     })
 }
@@ -2158,6 +2198,7 @@ function createAfterModelNode(
                 return state
             }
             let nextState: Record<string, any> = { ...channelState }
+            let nextJumpTo: JumpToTarget | undefined
             if (hook) {
                 const result = await hook(channelState, config)
                 if (result && typeof result === 'object') {
@@ -2169,13 +2210,19 @@ function createAfterModelNode(
                     if (jumpTo) {
                         ;(config as any) ??= {}
                         ;(config as any).jumpTo = jumpTo
+                        nextJumpTo = jumpTo
                     }
                 }
             }
-            if (isLast) {
-                return writeAgentMemories({ ...state, [agentChannel]: nextState }, memories)
+            const rootState = {
+                ...state,
+                ...(nextJumpTo ? { [GRAPH_JUMP_TO_STATE_KEY]: nextJumpTo } : {}),
+                [agentChannel]: nextState
             }
-            return { ...state, [agentChannel]: nextState }
+            if (isLast) {
+                return writeAgentMemories(rootState, memories)
+            }
+            return rootState
         }
     })
 }
@@ -2202,7 +2249,10 @@ function createAfterAgentNode(
                         ;(config as any) ??= {}
                         ;(config as any).jumpTo = jumpTo
                     }
-                    return partial
+                    return {
+                        ...partial,
+                        ...(jumpTo ? { [GRAPH_JUMP_TO_STATE_KEY]: jumpTo } : {})
+                    }
                 }
             }
             return null
