@@ -11,6 +11,7 @@ import { ChatCommonAssistantComponent } from './common/common.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
+import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
 
 function redirectToDefaultChatEntry() {
   return () => {
@@ -77,10 +78,23 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'x/common/c',
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
+      },
+      {
         path: 'x/common',
         component: ChatCommonAssistantComponent,
         data: {
           title: 'Common Assistant'
+        }
+      },
+      {
+        matcher: xpertWorkbenchConversationMatcher,
+        component: ChatXpertWorkbenchComponent,
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        data: {
+          title: 'Chat Xpert Workbench Conversation'
         }
       },
       {
@@ -95,13 +109,6 @@ export const routes: Routes = [
         component: ChatXpertComponent,
         data: {
           title: 'Chat Conversation'
-        }
-      },
-      {
-        path: 'x/:name/c/:id',
-        component: ChatXpertComponent,
-        data: {
-          title: 'Chat Xpert Conversation'
         }
       },
       {
@@ -173,6 +180,33 @@ function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | 
       consumed: segments,
       posParams: {
         threadId: segments[1]
+      }
+    }
+  }
+
+  return null
+}
+
+function xpertWorkbenchConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments[0]?.path !== 'x' || !segments[1]?.path || segments[2]?.path !== 'c') {
+    return null
+  }
+
+  if (segments.length === 3) {
+    return {
+      consumed: segments,
+      posParams: {
+        name: segments[1]
+      }
+    }
+  }
+
+  if (segments.length === 4) {
+    return {
+      consumed: segments,
+      posParams: {
+        name: segments[1],
+        threadId: segments[3]
       }
     }
   }

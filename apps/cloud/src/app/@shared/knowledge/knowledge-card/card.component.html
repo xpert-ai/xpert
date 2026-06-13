@@ -1,17 +1,12 @@
-<div class="absolute right-0 top-0 flex pl-[13px] ">
-  <svg width="13" height="20" viewBox="0 0 13 20" fill="none"
-    xmlns="http://www.w3.org/2000/svg" class="text-components-input-bg-normal"
-  >
-    <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
-      fill="currentColor"></path>
-  </svg>
-  <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-background-default-subtle pr-2 leading-6 text-text-tertiary"
-  >{{knowledgebase().type || eKnowledgebaseTypeEnum.Standard}}</div>
+<div
+  class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold uppercase leading-5 text-text-tertiary shadow-xs"
+>
+  {{knowledgebase().type || eKnowledgebaseTypeEnum.Standard}}
 </div>
 
 <div class="flex">
   <emoji-avatar [avatar]="knowledgebase().avatar" class="shrink-0 rounded-lg overflow-hidden shadow-sm" />
-  <div class="ml-3 w-0 grow">
+  <div class="ml-3 w-0 grow pr-20">
     <div class="flex h-5 items-center">
       <div class="font-semibold truncate text-zinc-700" [ngmHighlight]="searchText()" [content]="knowledgebase().name">
         {{knowledgebase().name}}

@@ -232,9 +232,15 @@ export class FileMemoryDreamService {
                 await this.writePreflightReport(xpert, run.runId, evidence)
                 await this.runDreamer(xpert, run.runId, dreamerConfig)
                 const validation = await this.validateMemoryRoot(xpert)
-                const status = validation.status
                 const changedFiles = await this.diffMemoryRootAgainstBackup(xpert)
-                const report = await this.writeDreamReport(xpert, run.runId, status, validation, changedFiles)
+                const report = await this.writeDreamReport(
+                    xpert,
+                    run.runId,
+                    validation.status,
+                    validation,
+                    changedFiles
+                )
+                const status = report.status
                 await this.writeJson(await this.getOutputPath(xpert, run.runId, 'validation.json'), validation)
                 await this.writeJson(await this.getOutputPath(xpert, run.runId, 'changed-files.json'), changedFiles)
                 await this.appendDreamDiary(xpert, report)
@@ -244,7 +250,7 @@ export class FileMemoryDreamService {
                     startedAt,
                     finishedAt: new Date().toISOString(),
                     changedFileCount: changedFiles.length,
-                    unresolvedConflictCount: validation.issues.length,
+                    unresolvedConflictCount: report.unresolvedConflicts.length,
                     gate
                 })
             } finally {
@@ -602,22 +608,76 @@ export class FileMemoryDreamService {
         validation: DreamValidationResult,
         changedFiles: FileMemoryDreamChangedFile[]
     ) {
+        const dreamerReportResult = await this.readDreamerReport(xpert, runId)
+        const dreamerReport = dreamerReportResult.report
+        const dreamerReportConflicts = dreamerReportResult.conflict ? [dreamerReportResult.conflict] : []
+        const unresolvedConflicts = mergeDreamConflicts(
+            [...dreamerReportConflicts, ...(dreamerReport?.unresolvedConflicts ?? [])],
+            validation.issues.map((issue) => ({
+                path: issue.path,
+                reason: issue.message
+            }))
+        )
+        const dreamerStatus = dreamerReport?.status
+        const mergedChangedFiles = mergeDreamChangedFiles(changedFiles, dreamerReport?.changedFiles ?? [])
+        const reportStatus =
+            status === 'succeeded' && (dreamerStatus === 'partial' || unresolvedConflicts.length > 0)
+                ? 'partial'
+                : status === 'succeeded' && dreamerStatus === 'skipped' && mergedChangedFiles.length === 0
+                  ? 'skipped'
+                  : status
+        const dreamerDiary = dreamerReport?.dreamDiary
         const report: FileMemoryDreamRunReport = {
             runId,
             xpertId: xpert.id,
-            status,
-            changedFiles,
-            unresolvedConflicts: validation.issues.map((issue) => ({
-                path: issue.path,
-                reason: issue.message
-            })),
+            status: reportStatus,
+            changedFiles: mergedChangedFiles,
+            unresolvedConflicts,
             dreamDiary:
-                validation.issues.length === 0
-                    ? `Dream scanned the memory root, prepared evidence, and found ${changedFiles.length} changed file(s).`
-                    : `Dream scanned the memory root, found ${changedFiles.length} changed file(s), and found ${validation.issues.length} issue(s) that need Dreamer or manual repair.`
+                dreamerDiary ??
+                (validation.issues.length === 0
+                    ? `Dream scanned the memory root, prepared evidence, and found ${mergedChangedFiles.length} changed file(s).`
+                    : `Dream scanned the memory root, found ${mergedChangedFiles.length} changed file(s), and found ${validation.issues.length} issue(s) that need Dreamer or manual repair.`)
         }
         await this.writeJson(await this.getOutputPath(xpert, runId, 'dream-report.json'), report)
         return report
+    }
+
+    private async readDreamerReport(
+        xpert: FileMemoryXpertScope,
+        runId: string
+    ): Promise<{
+        report?: ParsedDreamerReport
+        conflict?: FileMemoryDreamRunReport['unresolvedConflicts'][number]
+    }> {
+        const reportPath = await this.getOutputPath(xpert, runId, 'dream-report.json')
+        try {
+            const { report, issue } = parseDreamerReportDraft(await this.readJson<unknown>(reportPath))
+            if (issue) {
+                return {
+                    ...(report ? { report } : {}),
+                    conflict: {
+                        reason: issue
+                    }
+                }
+            }
+            return {
+                report
+            }
+        } catch (error) {
+            const errorCode = getErrorCode(error)
+            const reason =
+                errorCode === 'ENOENT'
+                    ? 'Dreamer did not write output/dream-report.json.'
+                    : `Dreamer did not write a valid output/dream-report.json: ${
+                          error instanceof Error ? error.message : String(error)
+                      }`
+            return {
+                conflict: {
+                    reason
+                }
+            }
+        }
     }
 
     private async appendDreamDiary(xpert: FileMemoryXpertScope, report: FileMemoryDreamRunReport) {
@@ -822,7 +882,17 @@ export class FileMemoryDreamService {
             ``,
             `Use scorecards.json as a prioritization hint, not as the source of truth.`,
             ``,
-            `Write output/preflight-report.md before editing files and output/dream-report.json after finishing.`
+            `## Required Reports`,
+            `- Write output/preflight-report.md before editing files. Include scanned topic/index files, duplicate candidates, conflict candidates, stale candidates, planned edits, and the reason if no edit is warranted.`,
+            `- Write output/dream-report.json after finishing. It must be valid JSON with this shape:`,
+            `  {`,
+            `    "runId": "<run id>",`,
+            `    "xpertId": "<target xpert id>",`,
+            `    "status": "succeeded|partial|skipped",`,
+            `    "changedFiles": [{ "path": "user/example.md", "changeType": "created|updated|archived", "reason": "why this file changed" }],`,
+            `    "unresolvedConflicts": [{ "path": "user/example.md", "reason": "what still conflicts or needs manual review" }],`,
+            `    "dreamDiary": "short human-readable summary"`,
+            `  }`
         ].join('\n')
     }
 
@@ -914,6 +984,184 @@ export class FileMemoryDreamService {
         await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
         await fsPromises.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
     }
+}
+
+type ParsedDreamerReport = {
+    status?: 'succeeded' | 'partial' | 'skipped'
+    changedFiles: FileMemoryDreamChangedFile[]
+    unresolvedConflicts: FileMemoryDreamRunReport['unresolvedConflicts']
+    dreamDiary?: string
+}
+
+type ParsedDreamerField<T> = {
+    value: T
+    issue?: string
+}
+
+function parseDreamerReportDraft(value: unknown): {
+    report?: ParsedDreamerReport
+    issue?: string
+} {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {
+            issue: 'Dreamer wrote output/dream-report.json, but it was not a JSON object.'
+        }
+    }
+
+    const status = parseDreamerFinalStatus(Reflect.get(value, 'status'))
+    const changedFiles = parseDreamerChangedFiles(Reflect.get(value, 'changedFiles'))
+    const unresolvedConflicts = parseDreamerConflicts(Reflect.get(value, 'unresolvedConflicts'))
+    const dreamDiary = optionalString(Reflect.get(value, 'dreamDiary'))
+    const report: ParsedDreamerReport = {
+        changedFiles: changedFiles.value,
+        unresolvedConflicts: unresolvedConflicts.value
+    }
+    if (status) {
+        report.status = status
+    }
+    if (dreamDiary) {
+        report.dreamDiary = dreamDiary
+    }
+
+    return {
+        report,
+        issue:
+            (!status
+                ? 'Dreamer wrote output/dream-report.json, but status must be "succeeded", "partial", or "skipped".'
+                : undefined) ??
+            changedFiles.issue ??
+            unresolvedConflicts.issue ??
+            (!dreamDiary
+                ? 'Dreamer wrote output/dream-report.json, but dreamDiary must be a non-empty string.'
+                : undefined)
+    }
+}
+
+function parseDreamerChangedFiles(value: unknown): ParsedDreamerField<FileMemoryDreamChangedFile[]> {
+    if (!Array.isArray(value)) {
+        return {
+            value: [],
+            issue: 'Dreamer wrote output/dream-report.json, but changedFiles must be an array.'
+        }
+    }
+
+    const files: FileMemoryDreamChangedFile[] = []
+    for (const [index, item] of value.entries()) {
+        const changedFile = parseDreamerChangedFile(item)
+        if (!changedFile) {
+            return {
+                value: files,
+                issue: `Dreamer wrote output/dream-report.json, but changedFiles[${index}] must include path, changeType, and reason.`
+            }
+        }
+        files.push(changedFile)
+    }
+    return { value: files }
+}
+
+function parseDreamerChangedFile(value: unknown): FileMemoryDreamChangedFile | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined
+    }
+    const path = optionalString(Reflect.get(value, 'path'))
+    const changeType = parseDreamChangedFileType(Reflect.get(value, 'changeType'))
+    const reason = optionalString(Reflect.get(value, 'reason'))
+    if (!path || !changeType || !reason) {
+        return undefined
+    }
+    return {
+        path,
+        changeType,
+        reason
+    }
+}
+
+function mergeDreamChangedFiles(
+    changedFiles: FileMemoryDreamChangedFile[],
+    dreamerChangedFiles: FileMemoryDreamChangedFile[]
+) {
+    return changedFiles.map((changedFile) => {
+        const dreamerMatch = dreamerChangedFiles.find(
+            (candidate) => candidate.path === changedFile.path && candidate.changeType === changedFile.changeType
+        )
+        return dreamerMatch ? { ...changedFile, reason: dreamerMatch.reason } : changedFile
+    })
+}
+
+function parseDreamerConflicts(value: unknown): ParsedDreamerField<FileMemoryDreamRunReport['unresolvedConflicts']> {
+    if (!Array.isArray(value)) {
+        return {
+            value: [],
+            issue: 'Dreamer wrote output/dream-report.json, but unresolvedConflicts must be an array.'
+        }
+    }
+
+    const conflicts: FileMemoryDreamRunReport['unresolvedConflicts'] = []
+    for (const [index, item] of value.entries()) {
+        const conflict = parseDreamerConflict(item)
+        if (!conflict) {
+            return {
+                value: conflicts,
+                issue: `Dreamer wrote output/dream-report.json, but unresolvedConflicts[${index}] must include reason.`
+            }
+        }
+        conflicts.push(conflict)
+    }
+    return { value: conflicts }
+}
+
+function parseDreamerConflict(value: unknown): FileMemoryDreamRunReport['unresolvedConflicts'][number] | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined
+    }
+    const reason = optionalString(Reflect.get(value, 'reason'))
+    if (!reason) {
+        return undefined
+    }
+    const path = optionalString(Reflect.get(value, 'path'))
+    return {
+        ...(path ? { path } : {}),
+        reason
+    }
+}
+
+function mergeDreamConflicts(
+    dreamerConflicts: FileMemoryDreamRunReport['unresolvedConflicts'],
+    validationConflicts: FileMemoryDreamRunReport['unresolvedConflicts']
+) {
+    const merged: FileMemoryDreamRunReport['unresolvedConflicts'] = []
+    for (const conflict of [...dreamerConflicts, ...validationConflicts]) {
+        const key = `${conflict.path ?? ''}\n${conflict.reason}`
+        if (!merged.some((existing) => `${existing.path ?? ''}\n${existing.reason}` === key)) {
+            merged.push(conflict)
+        }
+    }
+    return merged
+}
+
+function parseDreamChangedFileType(value: unknown): FileMemoryDreamChangedFile['changeType'] | undefined {
+    if (value === 'created' || value === 'updated' || value === 'archived') {
+        return value
+    }
+    return undefined
+}
+
+function parseDreamerFinalStatus(value: unknown): 'succeeded' | 'partial' | 'skipped' | undefined {
+    if (value === 'succeeded' || value === 'partial' || value === 'skipped') {
+        return value
+    }
+    return undefined
+}
+
+function optionalString(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function getErrorCode(error: unknown) {
+    if (!error || typeof error !== 'object' || !('code' in error)) {
+        return undefined
+    }
+    return typeof error.code === 'string' ? error.code : undefined
 }
 
 function createDreamKey(xpert: FileMemoryXpertScope) {

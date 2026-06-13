@@ -1,8 +1,7 @@
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 <div class="px-2 font-semibold">{{ 'PAC.Xpert.ToolDescription' | translate: {Default: 'Tool Description'} }}</div>
 <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono">
-  <textarea class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none
-  placeholder:text-components-input-text-placeholder caret-[#295EFF]" 
+  <textarea class="xp-input w-full text-sm text-text-primary leading-[18px]"
     placeholder="{{'PAC.Xpert.AddDescriptionPrefix' | translate: {Default: 'Add description prefix'} }}..."
     [(ngModel)]="descriptionPrefix"
   ></textarea>
@@ -13,8 +12,7 @@
 </div>
 
 <div class="group flex pl-2 py-[5px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0 font-mono">
-  <textarea class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none
-  placeholder:text-components-input-text-placeholder caret-[#295EFF]" 
+  <textarea class="xp-input w-full text-sm text-text-primary leading-[18px]"
     placeholder="{{'PAC.Xpert.AddDescriptionSuffix' | translate: {Default: 'Add description suffix'} }}..."
     [(ngModel)]="descriptionSuffix"
   ></textarea>

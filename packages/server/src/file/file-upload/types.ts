@@ -1,4 +1,10 @@
-import { IFileAsset, IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@xpert-ai/contracts'
+import {
+	IFileAsset,
+	IFileAssetDestination,
+	IFileAssetSource,
+	IStorageFile,
+	IUploadFileTarget
+} from '@xpert-ai/contracts'
 import { TResolvedFileUploadSource } from '@xpert-ai/plugin-sdk'
 import { UploadedFile } from '@xpert-ai/contracts'
 
@@ -16,6 +22,13 @@ export type TUploadFileSource =
 			filePath: string
 			originalName?: string
 			mimeType?: string
+	  }
+	| {
+			kind: 'buffer'
+			buffer: Buffer
+			originalName: string
+			mimeType?: string
+			size?: number
 	  }
 
 export type TUploadFileInput = {

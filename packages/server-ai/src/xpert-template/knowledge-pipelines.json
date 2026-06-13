@@ -1,44 +1,72 @@
 {
-	"en-US": {
-		"categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
-		"templates": [
-			
-		]
-	},
-	"zh-Hans": {
-		"categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
-		"templates": [
-			{
-				"name": "General Mode",
-				"title": "基础模式",
-				"description": "在这个模板中，文档内容被分成更小的段落，称为通用块，直接用于匹配用户查询和基本模式下的检索。",
-				"author": "XpertAI",
-				"id": "d4430e87-b2a2-4283-b388-6d0ad0067e90",
-				"category": "Pipeline",
-				"icon": {
-					"type": "svg",
-					"value": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" fill=\"none\"><path     fill=\"#FFFFFF\"  d=\"M0 128L128 128L128 0L0 0L0 128Z\"></path><rect  x=\"20\" y=\"24\" width=\"86.99998474121094\" height=\"18.749996185302734\" rx=\"0.8\"    fill=\"#EEF3FF\" ></rect><path   fill=\"rgba(198, 211, 255, 1.00)\"  d=\"M20.8 23.75L106.2 23.75C106.78 23.75 107.25 24.2201 107.25 24.8L107.25 41.95C107.25 42.5299 106.78 43 106.2 43L20.8 43C20.2201 43 19.75 42.5299 19.75 41.95L19.75 24.8C19.75 24.2201 20.2201 23.75 20.8 23.75ZM20.8 24.25C20.4962 24.25 20.25 24.4962 20.25 24.8L20.25 41.95C20.25 42.2538 20.4962 42.5 20.8 42.5L106.2 42.5C106.504 42.5 106.75 42.2538 106.75 41.95L106.75 24.8C106.75 24.4962 106.504 24.25 106.2 24.25L20.8 24.25Z\"></path><rect  x=\"20\" y=\"52.125022888183594\" width=\"86.99998474121094\" height=\"46.874961853027344\" rx=\"1\"    fill=\"#FBFBFD\" ></rect><path   fill=\"rgba(233, 235, 239, 1.00)\"  d=\"M21 51.825L106 51.825C106.718 51.825 107.3 52.4071 107.3 53.125L107.3 98C107.3 98.718 106.718 99.3 106 99.3L21 99.3C20.282 99.3 19.7 98.718 19.7 98L19.7 53.125C19.7 52.4071 20.282 51.825 21 51.825ZM21 52.425C20.6134 52.425 20.3 52.7384 20.3 53.125L20.3 98C20.3 98.3866 20.6134 98.7 21 98.7L106 98.7C106.387 98.7 106.7 98.3866 106.7 98L106.7 53.125C106.7 52.7384 106.387 52.425 106 52.425L21 52.425Z\"></path><path     fill=\"#000000\"  d=\"M20 66.1875L107 66.1875\"></path><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"0.5\"    d=\"M20 66.1875L107 66.1875\"></path><path     fill=\"#000000\"  d=\"M20 80.25L107 80.25\"></path><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"0.5\"    d=\"M20 80.25L107 80.25\"></path><rect  x=\"24.833341598510742\" y=\"56.81253433227539\" width=\"19.333322525024414\" height=\"9.374996185302734\" rx=\"0.4\"    fill=\"#F0F2F6\" ></rect><rect  x=\"49.000038146972656\" y=\"56.81253433227539\" width=\"53.166648864746094\" height=\"9.374996185302734\" rx=\"0.4\"    fill=\"#F0F2F6\" ></rect><g ><path     fill=\"#000000\"  d=\"M40.6 84.2L44.18 84.2L44.18 72.28L48.22 72.28L48.22 69.3L36.58 69.3L36.58 72.28L40.6 72.28L40.6 84.2ZM51.52 84.2L61.18 84.2L61.18 81.2L55.1 81.2L55.1 78.04L60.08 78.04L60.08 75.04L55.1 75.04L55.1 72.28L60.96 72.28L60.96 69.3L51.52 69.3L51.52 84.2ZM63.66 84.2L67.46 84.2L68.74 81.3C69.08 80.52 69.42 79.74 69.76 78.82L69.84 78.82C70.24 79.74 70.58 80.52 70.94 81.3L72.32 84.2L76.3 84.2L72.2 76.7L76.04 69.3L72.26 69.3L71.18 71.98C70.88 72.68 70.56 73.46 70.22 74.42L70.14 74.42C69.72 73.46 69.4 72.68 69.06 71.98L67.86 69.3L63.88 69.3L67.74 76.54L63.66 84.2ZM82.14 84.2L85.72 84.2L85.72 72.28L89.76 72.28L89.76 69.3L78.12 69.3L78.12 72.28L82.14 72.28L82.14 84.2Z\"></path></g></svg>"
-				},
-				"copyright": null,
-				"privacyPolicy": null,
-				"tags": ["basic", "markdown", "pdf", "word"]
-			},
-			{
-				"name": "Detailed PDF containing Images and Tables",
-				"title": "包含图片和表格的详细 PDF",
-				"description": "该知识管道从复杂的 PDF 文档中提取图像和表格以供下游处理。",
-				"author": "XpertAI",
-				"id": "7080d31b-63de-4ba3-8b11-04530d014cb3",
-				"category": "Pipeline",
-				"icon": {
-					"type": "svg",
-					"value": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" fill=\"none\"><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#F6F7F9\"  d=\"M94.3061 0L94.3061 32.6274L128 32.6274\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 9L57.12 9C58.7769 9 60.12 10.3431 60.12 12L60.12 38.76C60.12 40.4169 58.7769 41.76 57.12 41.76L15 41.76C13.3431 41.76 12 40.4169 12 38.76L12 12C12 10.3431 13.3431 9 15 9Z\"   fill=\"#EEF3FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 8.5L57.12 8.5C59.053 8.5 60.62 10.067 60.62 12L60.62 38.76C60.62 40.693 59.053 42.26 57.12 42.26L15 42.26C13.067 42.26 11.5 40.693 11.5 38.76L11.5 12C11.5 10.067 13.067 8.5 15 8.5ZM15 9.5C13.6193 9.5 12.5 10.6193 12.5 12L12.5 38.76C12.5 40.1407 13.6193 41.26 15 41.26L57.12 41.26C58.5007 41.26 59.62 40.1407 59.62 38.76L59.62 12C59.62 10.6193 58.5007 9.5 57.12 9.5L15 9.5Z\"   fill=\"#C6D3FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M16 41.6552L30.2187 22L44.4375 41.6552L16 41.6552Z\"   fill=\"#9BB7FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><ellipse cx=\"50.37499809265137\" cy=\"20.73781108856201\" rx=\"4.374998092651367\" ry=\"4.367815971374512\"   fill=\"#FFD594\" ></ellipse></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"12\" y=\"53.03448486328125\" width=\"104.99996185302734\" height=\"58.96551513671875\" rx=\"3\"    fill=\"#FBFBFD\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 52.5345L114 52.5345C115.933 52.5345 117.5 54.1015 117.5 56.0345L117.5 109C117.5 110.933 115.933 112.5 114 112.5L15 112.5C13.067 112.5 11.5 110.933 11.5 109L11.5 56.0345C11.5 54.1015 13.067 52.5345 15 52.5345ZM15 53.5345C13.6193 53.5345 12.5 54.6538 12.5 56.0345L12.5 109C12.5 110.381 13.6193 111.5 15 111.5L114 111.5C115.381 111.5 116.5 110.381 116.5 109L116.5 56.0345C116.5 54.6538 115.381 53.5345 114 53.5345L15 53.5345Z\"   fill=\"#E9EBEF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 66.9087L117 66.9087\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 66.9087L117 66.9087\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 82.5172L117 82.5172\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 82.5172L117 82.5172\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 98.1258L117 98.1258\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 98.1258L117 98.1258\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"58.2373046875\" width=\"10.937496185302734\" height=\"6.937122344970703\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"58.2373046875\" width=\"65.62496948242188\" height=\"6.937122344970703\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"73.84590148925781\" width=\"10.937496185302734\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"73.84590148925781\" width=\"65.62496948242188\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"89.45433807373047\" width=\"10.937496185302734\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"89.45433807373047\" width=\"65.62496948242188\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"39\" y=\"67\" width=\"50\" height=\"33\" rx=\"3\"    fill=\"#E53935\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M75.9565 67L89 67L89 80.4545L75.9565 67Z\"   fill=\"#C62828\" ></path></g><g  mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M54.1152 83.793L54.1152 87.1328L52.9902 87.1328L52.9902 78.6016L56.1367 78.6016C57.0703 78.6016 57.8018 78.8399 58.3311 79.3164C58.8604 79.7929 59.125 80.4238 59.125 81.209C59.125 82.0371 58.8662 82.6748 58.3486 83.1221C57.8311 83.5694 57.0899 83.793 56.125 83.793L54.1152 83.793ZM54.1152 82.873L56.1367 82.873C56.7383 82.873 57.1992 82.7314 57.5195 82.4482C57.8398 82.165 58 81.7558 58 81.2207C58 80.7129 57.8398 80.3067 57.5195 80.002C57.1992 79.6973 56.7598 79.539 56.2012 79.5273L54.1152 79.5273L54.1152 82.873ZM60.5605 87.1328L60.5605 78.6016L62.9688 78.6016C63.7109 78.6016 64.3672 78.7657 64.9375 79.0938C65.5078 79.4219 65.9483 79.8886 66.2588 80.4941C66.5693 81.0996 66.7266 81.7949 66.7305 82.5801L66.7305 83.125C66.7305 83.9297 66.5752 84.6347 66.2646 85.2402C65.9541 85.8457 65.5107 86.3105 64.9346 86.6348C64.3584 86.959 63.6875 87.125 62.9219 87.1328L60.5605 87.1328ZM61.6855 79.5273L61.6855 86.2129L62.8691 86.2129C63.7363 86.2129 64.4111 85.9434 64.8936 85.4043C65.376 84.8652 65.6172 84.0977 65.6172 83.1016L65.6172 82.6035C65.6172 81.6348 65.3897 80.8818 64.9346 80.3447C64.4795 79.8076 63.834 79.5352 62.998 79.5273L61.6855 79.5273ZM73.1348 83.3652L69.5547 83.3652L69.5547 87.1328L68.4297 87.1328L68.4297 78.6016L73.7148 78.6016L73.7148 79.5273L69.5547 79.5273L69.5547 82.4453L73.1348 82.4453L73.1348 83.3652Z\"   fill=\"#FFFFFF\" ></path></g><defs><mask id=\"mask-JQwRAAmYNZZHDG8pSeXNw\" style=\"mask-type:alpha\" maskUnits=\"userSpaceOnUse\"><path d=\"M0 128L128 128L128 0L0 0L0 128Z\"   fill=\"#FFFFFF\" ></path></mask></defs></svg>"
-				},
-				"copyright": null,
-				"privacyPolicy": null,
-				"tags": ["pdf", "image", "table", "mineru"]
-			}
-			
-		]
-	}
+    "en-US": {
+        "categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
+        "templates": [
+            {
+                "name": "Contract Reference Package Pipeline",
+                "title": "Contract Reference Package Pipeline",
+                "description": "Parse reusable contract reference packages with PDF text and page images, Office files, sheets, and standalone images for long-term Knowledgebase storage.",
+                "author": "XpertAI",
+                "id": "8f4e0c44-40e7-4c88-9a7d-1b5c9a4b2e10",
+                "category": "Pipeline",
+                "icon": {
+                    "type": "svg",
+                    "value": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" fill=\"none\"><rect x=\"18\" y=\"16\" width=\"92\" height=\"96\" rx=\"8\" fill=\"#EEF3FF\"/><path d=\"M34 38h60M34 58h60M34 78h36\" stroke=\"#2563EB\" stroke-width=\"8\" stroke-linecap=\"round\"/><path d=\"M82 76l18 18M100 76L82 94\" stroke=\"#14B8A6\" stroke-width=\"8\" stroke-linecap=\"round\"/></svg>"
+                },
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": ["contract-reference", "bom", "pdf", "image", "sheet", "knowledgebase"]
+            }
+        ]
+    },
+    "zh-Hans": {
+        "categories": ["Agent", "Workflow", "Browser", "Programming", "Thinking", "Assistant", "Utils", "Analysis"],
+        "templates": [
+            {
+                "name": "General Mode",
+                "title": "基础模式",
+                "description": "在这个模板中，文档内容被分成更小的段落，称为通用块，直接用于匹配用户查询和基本模式下的检索。",
+                "author": "XpertAI",
+                "id": "d4430e87-b2a2-4283-b388-6d0ad0067e90",
+                "category": "Pipeline",
+                "icon": {
+                    "type": "svg",
+                    "value": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" fill=\"none\"><path     fill=\"#FFFFFF\"  d=\"M0 128L128 128L128 0L0 0L0 128Z\"></path><rect  x=\"20\" y=\"24\" width=\"86.99998474121094\" height=\"18.749996185302734\" rx=\"0.8\"    fill=\"#EEF3FF\" ></rect><path   fill=\"rgba(198, 211, 255, 1.00)\"  d=\"M20.8 23.75L106.2 23.75C106.78 23.75 107.25 24.2201 107.25 24.8L107.25 41.95C107.25 42.5299 106.78 43 106.2 43L20.8 43C20.2201 43 19.75 42.5299 19.75 41.95L19.75 24.8C19.75 24.2201 20.2201 23.75 20.8 23.75ZM20.8 24.25C20.4962 24.25 20.25 24.4962 20.25 24.8L20.25 41.95C20.25 42.2538 20.4962 42.5 20.8 42.5L106.2 42.5C106.504 42.5 106.75 42.2538 106.75 41.95L106.75 24.8C106.75 24.4962 106.504 24.25 106.2 24.25L20.8 24.25Z\"></path><rect  x=\"20\" y=\"52.125022888183594\" width=\"86.99998474121094\" height=\"46.874961853027344\" rx=\"1\"    fill=\"#FBFBFD\" ></rect><path   fill=\"rgba(233, 235, 239, 1.00)\"  d=\"M21 51.825L106 51.825C106.718 51.825 107.3 52.4071 107.3 53.125L107.3 98C107.3 98.718 106.718 99.3 106 99.3L21 99.3C20.282 99.3 19.7 98.718 19.7 98L19.7 53.125C19.7 52.4071 20.282 51.825 21 51.825ZM21 52.425C20.6134 52.425 20.3 52.7384 20.3 53.125L20.3 98C20.3 98.3866 20.6134 98.7 21 98.7L106 98.7C106.387 98.7 106.7 98.3866 106.7 98L106.7 53.125C106.7 52.7384 106.387 52.425 106 52.425L21 52.425Z\"></path><path     fill=\"#000000\"  d=\"M20 66.1875L107 66.1875\"></path><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"0.5\"    d=\"M20 66.1875L107 66.1875\"></path><path     fill=\"#000000\"  d=\"M20 80.25L107 80.25\"></path><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"0.5\"    d=\"M20 80.25L107 80.25\"></path><rect  x=\"24.833341598510742\" y=\"56.81253433227539\" width=\"19.333322525024414\" height=\"9.374996185302734\" rx=\"0.4\"    fill=\"#F0F2F6\" ></rect><rect  x=\"49.000038146972656\" y=\"56.81253433227539\" width=\"53.166648864746094\" height=\"9.374996185302734\" rx=\"0.4\"    fill=\"#F0F2F6\" ></rect><g ><path     fill=\"#000000\"  d=\"M40.6 84.2L44.18 84.2L44.18 72.28L48.22 72.28L48.22 69.3L36.58 69.3L36.58 72.28L40.6 72.28L40.6 84.2ZM51.52 84.2L61.18 84.2L61.18 81.2L55.1 81.2L55.1 78.04L60.08 78.04L60.08 75.04L55.1 75.04L55.1 72.28L60.96 72.28L60.96 69.3L51.52 69.3L51.52 84.2ZM63.66 84.2L67.46 84.2L68.74 81.3C69.08 80.52 69.42 79.74 69.76 78.82L69.84 78.82C70.24 79.74 70.58 80.52 70.94 81.3L72.32 84.2L76.3 84.2L72.2 76.7L76.04 69.3L72.26 69.3L71.18 71.98C70.88 72.68 70.56 73.46 70.22 74.42L70.14 74.42C69.72 73.46 69.4 72.68 69.06 71.98L67.86 69.3L63.88 69.3L67.74 76.54L63.66 84.2ZM82.14 84.2L85.72 84.2L85.72 72.28L89.76 72.28L89.76 69.3L78.12 69.3L78.12 72.28L82.14 72.28L82.14 84.2Z\"></path></g></svg>"
+                },
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": ["basic", "markdown", "pdf", "word"]
+            },
+            {
+                "name": "Detailed PDF containing Images and Tables",
+                "title": "包含图片和表格的详细 PDF",
+                "description": "该知识管道从复杂的 PDF 文档中提取图像和表格以供下游处理。",
+                "author": "XpertAI",
+                "id": "7080d31b-63de-4ba3-8b11-04530d014cb3",
+                "category": "Pipeline",
+                "icon": {
+                    "type": "svg",
+                    "value": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" fill=\"none\"><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#F6F7F9\"  d=\"M94.3061 0L94.3061 32.6274L128 32.6274\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 9L57.12 9C58.7769 9 60.12 10.3431 60.12 12L60.12 38.76C60.12 40.4169 58.7769 41.76 57.12 41.76L15 41.76C13.3431 41.76 12 40.4169 12 38.76L12 12C12 10.3431 13.3431 9 15 9Z\"   fill=\"#EEF3FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 8.5L57.12 8.5C59.053 8.5 60.62 10.067 60.62 12L60.62 38.76C60.62 40.693 59.053 42.26 57.12 42.26L15 42.26C13.067 42.26 11.5 40.693 11.5 38.76L11.5 12C11.5 10.067 13.067 8.5 15 8.5ZM15 9.5C13.6193 9.5 12.5 10.6193 12.5 12L12.5 38.76C12.5 40.1407 13.6193 41.26 15 41.26L57.12 41.26C58.5007 41.26 59.62 40.1407 59.62 38.76L59.62 12C59.62 10.6193 58.5007 9.5 57.12 9.5L15 9.5Z\"   fill=\"#C6D3FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M16 41.6552L30.2187 22L44.4375 41.6552L16 41.6552Z\"   fill=\"#9BB7FF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><ellipse cx=\"50.37499809265137\" cy=\"20.73781108856201\" rx=\"4.374998092651367\" ry=\"4.367815971374512\"   fill=\"#FFD594\" ></ellipse></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"12\" y=\"53.03448486328125\" width=\"104.99996185302734\" height=\"58.96551513671875\" rx=\"3\"    fill=\"#FBFBFD\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M15 52.5345L114 52.5345C115.933 52.5345 117.5 54.1015 117.5 56.0345L117.5 109C117.5 110.933 115.933 112.5 114 112.5L15 112.5C13.067 112.5 11.5 110.933 11.5 109L11.5 56.0345C11.5 54.1015 13.067 52.5345 15 52.5345ZM15 53.5345C13.6193 53.5345 12.5 54.6538 12.5 56.0345L12.5 109C12.5 110.381 13.6193 111.5 15 111.5L114 111.5C115.381 111.5 116.5 110.381 116.5 109L116.5 56.0345C116.5 54.6538 115.381 53.5345 114 53.5345L15 53.5345Z\"   fill=\"#E9EBEF\" ></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 66.9087L117 66.9087\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 66.9087L117 66.9087\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 82.5172L117 82.5172\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 82.5172L117 82.5172\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path     fill=\"#FFFFFF\"  d=\"M12 98.1258L117 98.1258\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path    stroke=\"rgba(233, 235, 239, 1.00)\" stroke-width=\"1\"    d=\"M12 98.1258L117 98.1258\"></path></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"58.2373046875\" width=\"10.937496185302734\" height=\"6.937122344970703\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"58.2373046875\" width=\"65.62496948242188\" height=\"6.937122344970703\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"73.84590148925781\" width=\"10.937496185302734\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"73.84590148925781\" width=\"65.62496948242188\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"16.375\" y=\"89.45433807373047\" width=\"10.937496185302734\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"31.6875\" y=\"89.45433807373047\" width=\"65.62496948242188\" height=\"6.9371185302734375\" rx=\"1\"    fill=\"#F0F2F6\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><rect  x=\"39\" y=\"67\" width=\"50\" height=\"33\" rx=\"3\"    fill=\"#E53935\" ></rect></g><g mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M75.9565 67L89 67L89 80.4545L75.9565 67Z\"   fill=\"#C62828\" ></path></g><g  mask=\"url(#mask-JQwRAAmYNZZHDG8pSeXNw)\"><path d=\"M54.1152 83.793L54.1152 87.1328L52.9902 87.1328L52.9902 78.6016L56.1367 78.6016C57.0703 78.6016 57.8018 78.8399 58.3311 79.3164C58.8604 79.7929 59.125 80.4238 59.125 81.209C59.125 82.0371 58.8662 82.6748 58.3486 83.1221C57.8311 83.5694 57.0899 83.793 56.125 83.793L54.1152 83.793ZM54.1152 82.873L56.1367 82.873C56.7383 82.873 57.1992 82.7314 57.5195 82.4482C57.8398 82.165 58 81.7558 58 81.2207C58 80.7129 57.8398 80.3067 57.5195 80.002C57.1992 79.6973 56.7598 79.539 56.2012 79.5273L54.1152 79.5273L54.1152 82.873ZM60.5605 87.1328L60.5605 78.6016L62.9688 78.6016C63.7109 78.6016 64.3672 78.7657 64.9375 79.0938C65.5078 79.4219 65.9483 79.8886 66.2588 80.4941C66.5693 81.0996 66.7266 81.7949 66.7305 82.5801L66.7305 83.125C66.7305 83.9297 66.5752 84.6347 66.2646 85.2402C65.9541 85.8457 65.5107 86.3105 64.9346 86.6348C64.3584 86.959 63.6875 87.125 62.9219 87.1328L60.5605 87.1328ZM61.6855 79.5273L61.6855 86.2129L62.8691 86.2129C63.7363 86.2129 64.4111 85.9434 64.8936 85.4043C65.376 84.8652 65.6172 84.0977 65.6172 83.1016L65.6172 82.6035C65.6172 81.6348 65.3897 80.8818 64.9346 80.3447C64.4795 79.8076 63.834 79.5352 62.998 79.5273L61.6855 79.5273ZM73.1348 83.3652L69.5547 83.3652L69.5547 87.1328L68.4297 87.1328L68.4297 78.6016L73.7148 78.6016L73.7148 79.5273L69.5547 79.5273L69.5547 82.4453L73.1348 82.4453L73.1348 83.3652Z\"   fill=\"#FFFFFF\" ></path></g><defs><mask id=\"mask-JQwRAAmYNZZHDG8pSeXNw\" style=\"mask-type:alpha\" maskUnits=\"userSpaceOnUse\"><path d=\"M0 128L128 128L128 0L0 0L0 128Z\"   fill=\"#FFFFFF\" ></path></mask></defs></svg>"
+                },
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": ["pdf", "image", "table", "mineru"]
+            },
+            {
+                "name": "Contract Reference Package Pipeline",
+                "title": "合同资料包解析流水线",
+                "description": "解析可长期复用的合同资料包，支持 PDF 文字和页图、Office 文档、表格和图片，并写入知识库用于合同处理和 BOM 搭建。",
+                "author": "XpertAI",
+                "id": "8f4e0c44-40e7-4c88-9a7d-1b5c9a4b2e10",
+                "category": "Pipeline",
+                "icon": {
+                    "type": "svg",
+                    "value": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" fill=\"none\"><rect x=\"18\" y=\"16\" width=\"92\" height=\"96\" rx=\"8\" fill=\"#EEF3FF\"/><path d=\"M34 38h60M34 58h60M34 78h36\" stroke=\"#2563EB\" stroke-width=\"8\" stroke-linecap=\"round\"/><path d=\"M82 76l18 18M100 76L82 94\" stroke=\"#14B8A6\" stroke-width=\"8\" stroke-linecap=\"round\"/></svg>"
+                },
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": ["contract-reference", "bom", "pdf", "image", "sheet", "knowledgebase"]
+            }
+        ]
+    }
 }

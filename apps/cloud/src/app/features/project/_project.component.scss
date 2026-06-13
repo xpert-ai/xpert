@@ -2,12 +2,12 @@
 .pac-creation-card {
   @apply flex flex-col justify-center items-center rounded-xl border cursor-pointer ring-2 ring-transparent ring-offset-2 ring-offset-transparent
     border-divider-regular hover:border-divider-deep dark:border-neutral-800 dark:hover:border-neutral-500;
-  background-color: var(--ngm-card-bg-color);
+  background-color: var(--color-components-card-bg);
   color: var(--color-text-primary);
-  --tw-ring-offset-color: var(--ngm-color-surface);
+  --tw-ring-offset-color: var(--color-components-card-bg);
 
   &:focus {
-    --tw-ring-color: var(--ngm-color-primary-container);
+    --tw-ring-color: var(--color-components-option-card-option-selected-border);
   }
 
   &.pac-creation-card__upload {
@@ -17,8 +17,8 @@
 
 .pac-confirm-card {
   @apply border rounded-lg;
-  background-color: var(--ngm-color-surface-container-high);
-  border-color: var(--ngm-card-border-color);
+  background-color: var(--sys-surface-subtle);
+  border-color: var(--color-divider-regular);
   color: var(--color-text-primary);
 
   &.pac-confirm-card__delete {

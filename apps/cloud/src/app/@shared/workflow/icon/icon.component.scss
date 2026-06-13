@@ -2,3 +2,92 @@
 :host {
   @apply block;
 }
+
+.workflow-icon {
+  @apply flex h-full w-full shrink-0 items-center justify-center rounded-lg border-[0.5px] shadow-sm;
+
+  border-color: color-mix(in oklab, theme('colors.white') 20%, transparent);
+  color: theme('colors.white');
+}
+
+:host(.start) .workflow-icon,
+:host(.trigger) .workflow-icon {
+  background-color: theme('colors.blue.500');
+}
+
+:host(.assigner) .workflow-icon,
+:host(.if-else) .workflow-icon,
+:host(.list-operator) .workflow-icon,
+:host(.variable-aggregator) .workflow-icon,
+:host(.iterating) .workflow-icon,
+:host(.iterator) .workflow-icon,
+:host(.subflow) .workflow-icon,
+:host(.tool) .workflow-icon {
+  background-color: theme('colors.teal.500');
+}
+
+:host(.answer) .workflow-icon {
+  background-color: theme('colors.lime.500');
+}
+
+:host(.note) .workflow-icon {
+  background-color: theme('colors.orange.500');
+}
+
+:host(.classifier) .workflow-icon,
+:host(.knowledge) .workflow-icon,
+:host(.code) .workflow-icon,
+:host(.json-stringify) .workflow-icon,
+:host(.json-parse) .workflow-icon,
+:host(.template) .workflow-icon {
+  background-color: theme('colors.blue.400');
+}
+
+:host(.http) .workflow-icon {
+  background-color: theme('colors.teal.400');
+}
+
+:host(.agent-workflow) .workflow-icon {
+  border-color: var(--color-divider-subtle);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+:host(.agent-tool) .workflow-icon,
+:host(.task) .workflow-icon,
+:host(.chat) .workflow-icon {
+  background-color: theme('colors.fuchsia.500');
+}
+
+:host(.source) .workflow-icon {
+  background-color: theme('colors.pink.600');
+}
+
+:host(.processor) .workflow-icon {
+  background-color: theme('colors.blue.600');
+}
+
+:host(.chunker) .workflow-icon {
+  background-color: theme('colors.emerald.600');
+}
+
+:host(.understanding) .workflow-icon {
+  background-color: theme('colors.accent.600');
+}
+
+:host(.knowledgebase) .workflow-icon {
+  background-color: theme('colors.green.600');
+}
+
+:host(.db-sql) .workflow-icon,
+:host(.db-insert) .workflow-icon,
+:host(.db-update) .workflow-icon,
+:host(.db-delete) .workflow-icon,
+:host(.skill) .workflow-icon,
+:host(.database) .workflow-icon {
+  background-color: theme('colors.cyan.500');
+}
+
+:host(.middleware) .workflow-icon {
+  background-color: theme('colors.indigo.500');
+}

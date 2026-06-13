@@ -31,6 +31,10 @@ jest.mock('./xpert/xpert.component', () => ({
   ChatXpertComponent: class ChatXpertComponent {}
 }))
 
+jest.mock('./xpert-workbench/xpert-workbench.component', () => ({
+  ChatXpertWorkbenchComponent: class ChatXpertWorkbenchComponent {}
+}))
+
 jest.mock('./clawxpert/clawxpert.component', () => ({
   ClawXpertComponent: class ClawXpertComponent {}
 }))
@@ -62,6 +66,7 @@ import { Observable, firstValueFrom, of } from 'rxjs'
 import { CurrentUserHydrationService } from '@xpert-ai/cloud/state'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
+import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
@@ -146,6 +151,27 @@ describe('chat routes', () => {
     const route = children.find((item) => item.path === 'c/:id')
 
     expect(route?.component).toBe(ChatXpertComponent)
+  })
+
+  it('routes direct xpert workbench urls to the ChatKit workbench component', () => {
+    const route = children.find((item) => item.matcher && item.component === ChatXpertWorkbenchComponent)
+    const entryMatch = route?.matcher?.(
+      [new UrlSegment('x', {}), new UrlSegment('sales', {}), new UrlSegment('c', {})],
+      new UrlSegmentGroup([], {}),
+      {} as Route
+    )
+    const threadMatch = route?.matcher?.(
+      [new UrlSegment('x', {}), new UrlSegment('sales', {}), new UrlSegment('c', {}), new UrlSegment('thread-1', {})],
+      new UrlSegmentGroup([], {}),
+      {} as Route
+    )
+
+    expect(route?.component).toBe(ChatXpertWorkbenchComponent)
+    expect(route?.canActivate).toHaveLength(1)
+    expect(entryMatch?.posParams?.['name']?.path).toBe('sales')
+    expect(entryMatch?.posParams?.['threadId']).toBeUndefined()
+    expect(threadMatch?.posParams?.['name']?.path).toBe('sales')
+    expect(threadMatch?.posParams?.['threadId']?.path).toBe('thread-1')
   })
 
   it('removes chat project routes from /chat', () => {

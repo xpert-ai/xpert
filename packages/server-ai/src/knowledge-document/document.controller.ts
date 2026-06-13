@@ -20,6 +20,7 @@ import {
 	Post,
 	Put,
 	Query,
+	Res,
 	UseInterceptors
 } from '@nestjs/common'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -29,6 +30,8 @@ import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
+import type { Response } from 'express'
+import archiver from 'archiver'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocLoadCommand } from './commands'
@@ -108,6 +111,45 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	@Get('preview-file/:id')
 	async previewFile(@Param('id') id: string): Promise<Document[]> {
 		return await this.service.previewFile(id)
+	}
+
+	@Get(':id/original-file/download')
+	async downloadOriginalFile(@Param('id') id: string, @Res() res: Response) {
+		const file = await this.service.getOriginalFileDownload(id)
+		const encodedFilename = encodeURIComponent(file.fileName)
+		res.setHeader('Content-Type', file.mimeType)
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+		)
+		res.send(file.content)
+	}
+
+	@Post('original-files/download')
+	async downloadOriginalFiles(@Body('ids') ids: string[], @Res() res: Response) {
+		const files = await this.service.getOriginalFileDownloads(ids)
+		if (!files.length) {
+			throw new BadRequestException('No original files are available for download')
+		}
+
+		const encodedFilename = encodeURIComponent('knowledge-original-files.zip')
+		res.setHeader('Content-Type', 'application/zip')
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+		)
+
+		const archive = archiver('zip', { zlib: { level: 9 } })
+		archive.on('error', (error) => {
+			res.destroy(error)
+		})
+		archive.pipe(res)
+
+		for (const file of files) {
+			archive.append(file.content, { name: file.fileName })
+		}
+
+		await archive.finalize()
 	}
 
 	@Post('estimate')

@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($theme) {
   $config: themeCompat.m2-get-color-config($theme);
@@ -13,7 +13,7 @@
   .pac-model-cube-structure {
     .pac-cube__join-table-container {
       .join-table {
-        background-color: rgba(80, 127, 242, 0.08);
+        background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary-palette), 0.08);
 
         &::before {
           background-color: themeCompat.m2-get-color-from-palette($primary-palette, 300);

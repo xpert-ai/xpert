@@ -10,7 +10,7 @@
     <div class="space-y-1">
       @for (item of providers(); track item.type) {
         <div
-          class="cursor-pointer select-none rounded-lg border border-components-option-card-option-border bg-components-option-card-option-bg px-3 py-2 hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover"
+          class="cursor-pointer select-none rounded-lg border border-divider-subtle bg-components-card-bg px-3 py-2 hover:border-components-input-border-hover hover:bg-hover-bg"
           [class.border-primary-500]="isSelected(item.type)"
           [class.bg-primary-50]="isSelected(item.type)"
           (click)="selectProvider(item.type)"
@@ -25,16 +25,12 @@
                 {{ item.meta?.description | i18n }}
               </div>
             </div>
-            <div
-              class="flex h-5 w-5 cursor-pointer items-center justify-center rounded-[4px] shadow-xs shadow-shadow-shadow-3 border border-components-checkbox-border bg-components-checkbox-bg-unchecked hover:bg-components-checkbox-bg-unchecked-hover hover:border-components-checkbox-border-hover shrink-0 text-white"
-              [class.bg-components-checkbox-bg]="isSelected(item.type)"
-            >
-              @if (isSelected(item.type)) {
-                <i class="ri-check-line"></i>
-              }
+            <z-checkbox
+              class=" shrink-0"
+              [ngModel]="isSelected(item.type)" (ngModelChange)="selectProvider(item.type)"
+              (click)="$event.stopPropagation()"/>
             </div>
           </div>
-        </div>
       }
     </div>
   }

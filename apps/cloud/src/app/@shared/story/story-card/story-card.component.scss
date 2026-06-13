@@ -1,26 +1,18 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
 @reference "../../../../styles/tailwind-reference.css";
-$global-prefix: ngm;
-$prefix: (ngm, color);
-
-@include token-utils.use-tokens($prefix, (surface-container-high: null, primary-container: null, on-primary-container: null,)) {
-  :host {
-    background-color: var(#{token-utils.get-token-variable(surface-container-high)});
-  }
-  .pac-story-card__button {
-    &:hover {
-      color: var(#{token-utils.get-token-variable(on-primary-container)});
-      background-color: var(#{token-utils.get-token-variable(primary-container)});
-    }
-    &:focus {
-      --tw-ring-color: var(#{token-utils.get-token-variable(primary-container)});
-      --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface-container-high)});
-    }
-  }
-}
 
 :host {
   @apply rounded-lg shadow-lg overflow-hidden;
+  background-color: var(--sys-surface-subtle);
+}
+
+.pac-story-card__button {
+  &:hover {
+    color: var(--color-components-tag-primary-text);
+    background-color: var(--color-components-tag-primary-bg);
+  }
+
+  &:focus {
+    --tw-ring-color: var(--color-components-tag-primary-bg);
+    --tw-ring-offset-color: var(--sys-surface-subtle);
+  }
 }

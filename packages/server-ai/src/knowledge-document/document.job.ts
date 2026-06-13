@@ -212,7 +212,7 @@ export class KnowledgeDocumentConsumer {
                     processDuration,
                     processDuation: processDuration
                 })
-                throw err
+                this.logger.warn(`[Job: entity '${job.id}'] Document '${document.id}' failed: ${getErrorMessage(err)}`)
             }
         }
 

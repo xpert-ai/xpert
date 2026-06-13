@@ -14,6 +14,7 @@ import {
     TAvatar,
     TKnowledgePipelineTemplate,
     TXpertExportedTemplate,
+    XpertTemplatePluginDependencies,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
@@ -69,6 +70,7 @@ type TXpertTemplateDescriptor = {
     startPrompts?: string[]
     releaseNotes?: string
     xpertName?: string
+    dependencies?: XpertTemplatePluginDependencies
 }
 
 type TXpertTemplateGroup = {
@@ -808,6 +810,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             source: 'plugin',
             pluginName,
             pluginDisplayName: this.normalizeTemplateString(plugin.instance?.meta?.displayName ?? pluginName),
+            dependencies: contribution.dependencies,
             order: typeof contribution.order === 'number' ? contribution.order : Number.MAX_SAFE_INTEGER
         }
     }

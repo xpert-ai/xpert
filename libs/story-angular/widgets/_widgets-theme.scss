@@ -2,7 +2,7 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @use './swiper/swiper-theme' as swiper;
 @use './tab-group/tabgroup-theme' as tabgroup;
 @use './financial/accounting-statement/accounting-statement-theme' as statement;
@@ -45,7 +45,7 @@
       width: 24px;
       height: 24px;
       line-height: 24px;
-      opacity: .1;
+      opacity: 0.1;
 
       .z-icon {
         font-size: 20px;
@@ -80,7 +80,7 @@
   }
 
   .ngm-story-widget__placeholder-title {
-    opacity: .5;
+    opacity: 0.5;
   }
 }
 
@@ -88,6 +88,9 @@
   @include filter-bar.density($config-or-theme);
   @include kpi.density($config-or-theme);
   @include statement.density($config-or-theme);
+}
+
+@mixin typography($config-or-theme) {
 }
 
 @mixin theme($theme) {

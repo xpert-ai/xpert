@@ -3,7 +3,7 @@ import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  IWFNAgentTool,
+  IWFNAgentWorkflow,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -36,7 +36,7 @@ export class XpertWorkflowNodeAgentToolComponent {
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly toolEntity = computed(() => this.entity() as IWFNAgentTool)
+  readonly toolEntity = computed(() => this.entity() as IWFNAgentWorkflow)
 
   readonly toolName = computed(() => this.toolEntity().toolName)
   readonly toolDescription = computed(() => this.toolEntity().toolDescription)

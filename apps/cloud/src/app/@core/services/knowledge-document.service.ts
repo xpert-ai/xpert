@@ -53,6 +53,22 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.get<DocumentInterface[]>(this.apiBaseUrl + `/preview-file/${id}`)
   }
 
+  downloadOriginalFile(id: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/original-file/download`, {
+      responseType: 'blob'
+    })
+  }
+
+  downloadOriginalFiles(ids: string[]) {
+    return this.httpClient.post(
+      this.apiBaseUrl + '/original-files/download',
+      { ids },
+      {
+        responseType: 'blob'
+      }
+    )
+  }
+
   estimate(doc: Partial<IKnowledgeDocument>) {
     return this.httpClient.post<IKnowledgeDocumentChunk[]>(this.apiBaseUrl + `/estimate`, doc)
   }

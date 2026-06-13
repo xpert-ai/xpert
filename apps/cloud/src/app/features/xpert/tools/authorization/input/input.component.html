@@ -2,7 +2,7 @@
   {{ 'PAC.Xpert.AuthorizationMethod' | translate: {Default: 'Authorization Method'} }}
 </div>
 <div class="flex items-center h-9 justify-between px-2.5 rounded-lg cursor-pointer
-          bg-components-input-bg-normal hover:bg-button-ghost-hover"
+          bg-components-input-bg-normal hover:bg-hover-bg"
   (click)="openAuth()">
   <div class="text-sm font-normal text-text-primary">{{'PAC.Xpert.Auth_' + (credentials().auth_type ?? 'none') | translate: {Default: credentials().auth_type ?? 'None'} }}</div>
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"

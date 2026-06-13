@@ -1,9 +1,5 @@
 @reference "tailwindcss";
 @layer utilities {
-  .border-light {
-    @apply border-[0.5px] border-solid border-divider-deep;
-  }
-
   .system-sm-semibold-uppercase {
     @apply text-sm font-semibold uppercase;
   }
@@ -47,7 +43,7 @@
     line-height: 1.5
   }
 
-  [class*=code-] {
+  [class*='code-'] {
     font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace
   }
 

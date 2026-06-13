@@ -107,7 +107,7 @@
       <div class="grow">
         <div class="relative w-full">
           <input
-            class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            class="xp-input w-full"
             [(ngModel)]="url"
           />
         </div>
@@ -133,7 +133,7 @@
           <div class="col-span-1">
             <input
               #input1
-              class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              class="xp-input w-full"
               [ngModel]="row[0]"
               (blur)="updateHeaderName(row[0], input1.value)"
             />
@@ -168,7 +168,7 @@
       <div class="grow">
         <div class="relative w-full">
           <input
-            class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            class="xp-input w-full"
             [(ngModel)]="command"
             [disabled]="isCode()"
           />
@@ -233,7 +233,7 @@
             <div class="col-span-1">
               <input
                 #input1
-                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+                class="xp-input w-full"
                 [ngModel]="row[0]"
                 (blur)="updateEnvName(row[0], input1.value)"
               />
@@ -274,7 +274,7 @@
     @if (reconnectEnabled()) {
       <div class="flex items-center gap-2">
         <input
-          class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          class="xp-input grow"
           type="number"
           [placeholder]="
             'PAC.MCP.ReconnectMaxAttempts' | translate: { Default: 'Maximum number of connection attempts' }
@@ -283,7 +283,7 @@
         />
 
         <input
-          class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          class="xp-input grow"
           type="number"
           [placeholder]="
             'PAC.MCP.ReconnectDelayMs' | translate: { Default: 'Delay in milliseconds between restart attempts' }
@@ -302,7 +302,7 @@
     <div class="grow">
       <div class="relative w-full">
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          class="xp-input w-full"
           [(ngModel)]="toolNamePrefix"
         />
       </div>
@@ -334,13 +334,13 @@
       <div class="font-mono text-sm text-text-secondary mr-2 -ml-8" [ngmTimer]="timer()" [stopTime]="stopTime()"></div>
     }
     @if (loading()) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--running"></span>
       {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
     } @else if (tools()?.length) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--success"></span>
       {{ 'PAC.MCP.Connected' | translate: { Default: 'Connected' } }}
     } @else if (error()) {
-      <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-red-500 flex"></span>
+      <span class="mr-1 xpert-status-indicator xpert-status-indicator--error"></span>
       {{ 'PAC.MCP.Error' | translate: { Default: 'Error' } }}
     }
   </div>
@@ -433,7 +433,7 @@
   <div class="mt-3">
     @if (!pro && (types()[0] === 'stdio' || types()[0] === 'code')) {
       <div class="flex items-center px-4 mb-2">
-        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-text-warning"></i>
         <span class="text-sm text-text-secondary truncate">{{
           'PAC.Xpert.NeedSandboxToolsetTip'
             | translate

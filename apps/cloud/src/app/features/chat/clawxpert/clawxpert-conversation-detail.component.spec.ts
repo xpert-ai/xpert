@@ -325,6 +325,8 @@ function buildFixedViewManifest(
 describe('ClawXpertConversationDetailComponent', () => {
   let facade: {
     definition: { titleKey: string; defaultTitle: string }
+    identity: ReturnType<typeof signal<string | null>>
+    assistantId: ReturnType<typeof signal<string | null>>
     loading: ReturnType<typeof signal<boolean>>
     loadingUserPreference: ReturnType<typeof signal<boolean>>
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
@@ -360,6 +362,8 @@ describe('ClawXpertConversationDetailComponent', () => {
         titleKey: 'PAC.Chat.ClawXpert.DetailTitle',
         defaultTitle: 'ClawXpert'
       },
+      identity: signal('clawxpert'),
+      assistantId: signal('assistant-1'),
       loading: signal(false),
       loadingUserPreference: signal(false),
       viewState: signal('ready'),

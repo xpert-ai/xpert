@@ -1,4 +1,4 @@
-@use "sass:map";
+@use 'sass:map';
 @reference "../../../tailwind-workspace-reference.css";
 
 $dialog-size-configs: (
@@ -96,7 +96,7 @@ z-dialog {
 .cdk-overlay-backdrop.xp-overlay-share-sheet {
   pointer-events: auto;
   backdrop-filter: blur(4px);
-  background-color: rgba(249, 249, 249, 0.8);
+  background-color: var(--color-overlay-backdrop-strong);
 }
 
 .cdk-overlay-pane.xp-overlay-pane-share-sheet {
@@ -128,10 +128,12 @@ z-dialog.xp-overlay-pane-share-sheet {
 
 .cdk-overlay-pane.xp-overlay-pane-card {
   .cdk-dialog-container {
-    @apply overflow-hidden rounded-3xl border-[0.5px] border-solid border-neutral-300 text-text-primary bg-components-card-bg shadow-lg;
+    @apply overflow-hidden rounded-3xl border-[0.5px] border-solid text-text-primary bg-components-card-bg shadow-lg;
+    border-color: var(--color-divider-regular);
   }
 }
 
 z-dialog.xp-overlay-pane-card {
-  @apply overflow-hidden rounded-3xl border-[0.5px] border-solid border-neutral-300 bg-components-card-bg text-text-primary shadow-lg;
+  @apply overflow-hidden rounded-3xl border-[0.5px] border-solid bg-components-card-bg text-text-primary shadow-lg;
+  border-color: var(--color-divider-regular);
 }

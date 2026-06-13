@@ -10,7 +10,7 @@
     <div class="grow">
       <div class="relative w-full">
         <input
-          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          class="xp-input w-full"
           [ngModel]="parameters()[parameter.name]"
           (ngModelChange)="updateParameter(parameter.name, $event)"
         />

@@ -1,5 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { JsonSchemaObjectType } from './ai/types'
+import type { IXpert } from './ai/xpert.model'
+import type { JSONValue } from './core.model'
 import { IconDefinition, I18nObject } from './types'
 
 export type PluginName = string
@@ -28,6 +30,46 @@ export const PLUGIN_LOAD_STATUS = {
   FAILED: 'failed'
 } as const
 
+export const PLUGIN_COMPONENT_TYPE = {
+  SKILL: 'skill',
+  MCP_SERVER: 'mcp_server',
+  APP: 'app',
+  HOOK: 'hook',
+  ASSET: 'asset'
+} as const
+
+export const PLUGIN_MARKETPLACE_INSTALLATION_POLICY = {
+  AVAILABLE: 'AVAILABLE',
+  INSTALLED_BY_DEFAULT: 'INSTALLED_BY_DEFAULT',
+  NOT_AVAILABLE: 'NOT_AVAILABLE'
+} as const
+
+export const PLUGIN_MARKETPLACE_AUTHENTICATION_POLICY = {
+  ON_INSTALL: 'ON_INSTALL',
+  ON_FIRST_USE: 'ON_FIRST_USE',
+  NONE: 'NONE'
+} as const
+
+export const PLUGIN_MCP_TOOL_APPROVAL_MODE = {
+  PROMPT: 'prompt',
+  APPROVE: 'approve',
+  DENY: 'deny'
+} as const
+
+export const PLUGIN_RESOURCE_RUNTIME_TYPE = {
+  SKILL_PACKAGE: 'skill_package',
+  TOOLSET: 'toolset',
+  HOOK_PROFILE: 'hook_profile',
+  APP_CONNECTOR: 'app_connector'
+} as const
+
+export const PLUGIN_RESOURCE_INSTALLATION_STATUS = {
+  READY: 'ready',
+  PENDING_AUTH: 'pending_auth',
+  BLOCKED: 'blocked',
+  FAILED: 'failed'
+} as const
+
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
@@ -37,6 +79,16 @@ export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
 export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
 export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
 export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
+export type PluginComponentType = (typeof PLUGIN_COMPONENT_TYPE)[keyof typeof PLUGIN_COMPONENT_TYPE]
+export type PluginMarketplaceInstallationPolicy =
+  (typeof PLUGIN_MARKETPLACE_INSTALLATION_POLICY)[keyof typeof PLUGIN_MARKETPLACE_INSTALLATION_POLICY]
+export type PluginMarketplaceAuthenticationPolicy =
+  (typeof PLUGIN_MARKETPLACE_AUTHENTICATION_POLICY)[keyof typeof PLUGIN_MARKETPLACE_AUTHENTICATION_POLICY]
+export type PluginMcpToolApprovalMode =
+  (typeof PLUGIN_MCP_TOOL_APPROVAL_MODE)[keyof typeof PLUGIN_MCP_TOOL_APPROVAL_MODE]
+export type PluginResourceRuntimeType = (typeof PLUGIN_RESOURCE_RUNTIME_TYPE)[keyof typeof PLUGIN_RESOURCE_RUNTIME_TYPE]
+export type PluginResourceInstallationStatus =
+  (typeof PLUGIN_RESOURCE_INSTALLATION_STATUS)[keyof typeof PLUGIN_RESOURCE_INSTALLATION_STATUS]
 export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
 export type PluginTargetApp = 'xpert' | 'data-xpert' | (string & {})
 export type PluginSdkCompatibilityWarningCode =
@@ -59,6 +111,110 @@ export interface PluginMarketplaceOperation {
   description?: string | I18nObject
   access?: PluginMarketplaceOperationAccess
   tags?: string[]
+}
+
+export interface XpertPluginMarketplacePolicy {
+  installation?: PluginMarketplaceInstallationPolicy
+  authentication?: PluginMarketplaceAuthenticationPolicy
+  pluginSharing?: boolean
+}
+
+export interface XpertPluginMarketplaceSource {
+  source?: 'local' | 'url' | 'git-subdir' | 'github' | 'git' | 'npm' | 'marketplace' | (string & {})
+  path?: string
+  url?: string
+  ref?: string
+  sha?: string
+  sparsePath?: string
+  packageName?: string
+}
+
+export interface XpertPluginInstallInterface {
+  displayName?: string
+  shortDescription?: string
+  longDescription?: string
+  developerName?: string
+  category?: string
+  capabilities?: string[]
+  websiteURL?: string
+  privacyPolicyURL?: string
+  termsOfServiceURL?: string
+  defaultPrompt?: string[]
+  brandColor?: string
+  composerIcon?: string
+  logo?: string
+  screenshots?: string[]
+}
+
+export interface XpertPluginMcpServerPolicy {
+  enabled?: boolean
+  defaultToolsApprovalMode?: PluginMcpToolApprovalMode
+  enabledTools?: string[]
+  tools?: {
+    [toolName: string]: {
+      approvalMode?: PluginMcpToolApprovalMode
+    }
+  }
+}
+
+export interface XpertPluginBundleManifest {
+  name: string
+  version?: string
+  description?: string
+  author?: string
+  homepage?: string
+  repository?: JSONValue
+  license?: string
+  keywords?: string[]
+  skills?: string | string[]
+  mcpServers?: string | string[] | JSONValue
+  apps?: string | string[] | JSONValue
+  connectors?: string | string[] | JSONValue
+  hooks?: string | string[] | JSONValue | JSONValue[]
+  interface?: XpertPluginInstallInterface
+  policy?: XpertPluginMarketplacePolicy
+  source?: XpertPluginMarketplaceSource
+  assets?: {
+    composerIcon?: string
+    logo?: string
+    screenshots?: string[]
+  }
+  targetApps?: PluginTargetApp[]
+  targetAppMeta?: PluginTargetAppMeta
+}
+
+export interface XpertTemplatePluginSkillDependency {
+  pluginName?: PluginName
+  componentKey: string
+  targetAgentKey?: string
+}
+
+export interface XpertTemplatePluginMcpServerDependency {
+  pluginName?: PluginName
+  componentKey: string
+  targetAgentKey?: string
+  policyOverrides?: XpertPluginMcpServerPolicy
+}
+
+export interface XpertTemplatePluginHookDependency {
+  pluginName?: PluginName
+  componentKey: string
+  targetAgentKey?: string
+  events?: string[]
+}
+
+export interface XpertTemplatePluginAppDependency {
+  pluginName?: PluginName
+  componentKey: string
+  auth?: 'on_install' | 'on_first_use'
+}
+
+export interface XpertTemplatePluginDependencies {
+  plugins?: PluginName[]
+  skills?: XpertTemplatePluginSkillDependency[]
+  mcpServers?: XpertTemplatePluginMcpServerDependency[]
+  hooks?: XpertTemplatePluginHookDependency[]
+  apps?: XpertTemplatePluginAppDependency[]
 }
 
 export interface PluginMarketplaceContribution {
@@ -223,6 +379,7 @@ export interface IPluginDescriptor {
   loadError?: string | null
   effectiveInCurrentScope: boolean
   scopeRelation?: PluginScopeRelation
+  componentSummary?: PluginComponentSummary
 }
 
 export interface IPluginLatestVersionStatus {
@@ -239,4 +396,86 @@ export interface IPluginConfiguration<TConfig extends Record<string, any> = Reco
   configSchema?: JsonSchemaObjectType
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null
+}
+
+export interface PluginComponentSummary {
+  total: number
+  skills: number
+  mcpServers: number
+  apps: number
+  hooks: number
+}
+
+export interface IPluginComponentDefinition {
+  componentType: PluginComponentType
+  componentKey: string
+  sourcePath?: string | null
+  config?: JSONValue | null
+  metadata?: JSONValue | null
+  definitionHash: string
+}
+
+export interface IPluginResourceComponentState {
+  componentType: PluginComponentType
+  componentKey: string
+  installed: boolean
+  staleDefinition: boolean
+  runtimeType?: PluginResourceRuntimeType | null
+  runtimeId?: string | null
+  status?: PluginResourceInstallationStatus | null
+  installation?: IPluginResourceInstallation | null
+}
+
+export interface PluginResourceComponentSelector {
+  componentType?: PluginComponentType
+  componentKey: string
+  pluginName?: PluginName
+  targetAgentKey?: string
+  policyOverrides?: XpertPluginMcpServerPolicy
+  events?: string[]
+  auth?: 'on_install' | 'on_first_use'
+}
+
+export interface IPluginResourceInstallation extends IBasePerTenantAndOrganizationEntityModel {
+  pluginName: PluginName
+  componentType: PluginComponentType
+  componentKey: string
+  workspaceId: string
+  xpertId?: string | null
+  agentKey?: string | null
+  runtimeType: PluginResourceRuntimeType
+  runtimeId?: string | null
+  runtimeNodeKey?: string | null
+  definitionHash: string
+  status: PluginResourceInstallationStatus
+  config?: JSONValue | null
+  enabled: boolean
+}
+
+export interface IPluginResourceInstallResult {
+  installations: IPluginResourceInstallation[]
+  pendingAuth: IPluginResourceInstallation[]
+  xpert?: IXpert
+}
+
+export interface PluginResourceInstallWorkspaceInput {
+  workspaceId: string
+  components?: PluginResourceComponentSelector[]
+}
+
+export interface PluginResourceInstallXpertInput {
+  xpertId: string
+  components?: PluginResourceComponentSelector[]
+  agentKey?: string
+}
+
+export interface XpertTemplateInstallInput {
+  workspaceId: string
+  basic?: {
+    name?: string
+    title?: string
+    description?: string
+    avatar?: JSONValue | null
+    copilotModel?: JSONValue | null
+  }
 }

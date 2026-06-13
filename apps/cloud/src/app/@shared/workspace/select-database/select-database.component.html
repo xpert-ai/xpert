@@ -10,7 +10,7 @@
           <i class="ri-search-2-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-quaternary"></i>
           <input
             type="search"
-            class="w-full rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-9 pr-3 text-sm text-text-secondary shadow-inner outline-none transition focus:border-primary-200 focus:bg-components-input-bg-active focus:ring-2 focus:ring-primary-100"
+            class="xp-input w-full pl-9 pr-3 text-sm text-text-secondary shadow-inner transition focus:ring-2 focus:ring-primary-100"
             placeholder="{{ 'PAC.Workspace.SelectDB.Search' | translate: {Default: 'Search'} }}"
             [value]="searchTerm()"
             (input)="updateSearch($any($event.target).value)"
@@ -32,14 +32,14 @@
           <button
             type="button"
             class="group flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-hover-bg"
-            [class.bg-surface-l1]="selectedNav() === item.value"
+            [class.bg-components-card-bg]="selectedNav() === item.value"
             [class.shadow-sm]="selectedNav() === item.value"
             [class.text-text-primary]="selectedNav() === item.value"
             [class.text-text-tertiary]="selectedNav() !== item.value"
             (click)="selectNav(item.value)"
           >
             <span
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-l1 text-lg text-text-secondary shadow-sm group-hover:text-primary-500"
+              class="flex h-10 w-10 items-center justify-center rounded-xl bg-components-card-bg text-lg text-text-secondary shadow-sm group-hover:text-primary-500"
               [class.bg-primary-50]="selectedNav() === item.value"
               [class.text-primary-500]="selectedNav() === item.value"
             >

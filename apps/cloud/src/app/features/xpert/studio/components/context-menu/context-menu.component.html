@@ -188,7 +188,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       [cdkMenuTriggerFor]="triggerMenu"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="w-6 h-6 shrink-0 mr-2" />
@@ -199,7 +199,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowRouter(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.IF_ELSE" class="w-6 h-6 shrink-0 mr-2" />
@@ -210,7 +210,7 @@
 
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowIterator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ITERATOR" class="w-6 h-6 shrink-0 mr-2" />
@@ -218,7 +218,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowSubflow(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SUBFLOW" class="w-6 h-6 shrink-0 mr-2" />
@@ -226,7 +226,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowListOperator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.LIST_OPERATOR" class="w-6 h-6 shrink-0 mr-2" />
@@ -234,7 +234,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowVariableAggregator(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR" class="w-6 h-6 shrink-0 mr-2" />
@@ -244,7 +244,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowVariableAssigner(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
@@ -258,7 +258,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowQuestionClassifier(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CLASSIFIER" class="w-6 h-6 shrink-0 mr-2" />
@@ -268,7 +268,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowKnowledgeRetrieval(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.KNOWLEDGE" class="w-6 h-6 shrink-0 mr-2" />
@@ -278,7 +278,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowCode(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.CODE" class="w-6 h-6 shrink-0 mr-2" />
@@ -286,7 +286,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowTemplate(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
@@ -294,7 +294,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowJSONStringify(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_STRINGIFY" class="w-6 h-6 shrink-0 mr-2" />
@@ -302,7 +302,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowJSONParse(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.JSON_PARSE" class="w-6 h-6 shrink-0 mr-2" />
@@ -310,7 +310,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowAnswer(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ANSWER" class="w-6 h-6 shrink-0 mr-2" />
@@ -322,7 +322,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowHttp(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.HTTP" class="w-6 h-6 shrink-0 mr-2" />
@@ -330,7 +330,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowTool(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TOOL" class="w-6 h-6 shrink-0 mr-2" />
@@ -338,21 +338,21 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
-      (click)="addWorkflowAgentTool(fromNode)"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
+      (click)="addWorkflowAgentWorkflow(fromNode)"
     >
-      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_TOOL" class="w-6 h-6 shrink-0 mr-2" />
-      <div class="text-text-primary">{{ 'PAC.Workflow.AgentTool' | translate: { Default: 'Agent Tool' } }}</div>
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.AGENT_WORKFLOW" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{ 'PAC.Workflow.AgentWorkflow' | translate }}</div>
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowTask(fromNode)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TASK" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{ 'PAC.Workflow.TaskHandover' | translate: { Default: 'Task Handover' } }}</div>
     </div>
-    <!-- <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+    <!-- <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addSkill()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.SKILL" class="w-6 h-6 shrink-0 mr-2" />
@@ -364,7 +364,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       [cdkMenuTriggerFor]="databaseMenu"
     >
       <xpert-workflow-icon type="database" class="w-6 h-6 shrink-0 mr-2" />
@@ -396,7 +396,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowTrigger('chat')"
     >
       <xpert-workflow-icon [type]="'chat'" class="w-6 h-6 shrink-0 mr-2" />
@@ -408,7 +408,7 @@
     @for (provider of triggerProviders(); track provider.name) {
       <div
         cdkMenuItem
-        class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+        class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
         (click)="addWorkflowTrigger(provider)"
       >
         @if (provider.icon) {
@@ -433,7 +433,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_SQL)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_SQL" class="w-6 h-6 shrink-0 mr-2" />
@@ -443,7 +443,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_INSERT)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_INSERT" class="w-6 h-6 shrink-0 mr-2" />
@@ -453,7 +453,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_UPDATE)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_UPDATE" class="w-6 h-6 shrink-0 mr-2" />
@@ -463,7 +463,7 @@
     </div>
     <div
       cdkMenuItem
-      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="addWorkflowDatabase(eWorkflowNodeTypeEnum.DB_DELETE)"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.DB_DELETE" class="w-6 h-6 shrink-0 mr-2" />
@@ -514,7 +514,7 @@
         @case ('source') {
           @for (provider of dataSources$ | async; track provider.meta.name) {
             <div
-              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
               (click)="addPipelineSource(provider.meta); ref.close()"
             >
               @if (provider.meta.icon) {
@@ -530,7 +530,7 @@
         @case ('processor') {
           @for (provider of transformers$ | async; track provider.meta.name) {
             <div
-              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
               (click)="addPipelineProcessor(provider.meta); ref.close()"
             >
               @if (provider.meta.icon) {
@@ -546,7 +546,7 @@
         @case ('chunker') {
           @for (provider of textSplitters$ | async; track provider.name) {
             <div
-              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
               (click)="addPipelineChunker(provider); ref.close()"
             >
               @if (provider.icon) {
@@ -562,7 +562,7 @@
         @case ('understanding') {
           @for (provider of imageUnderstandings$ | async; track provider.name) {
             <div
-              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer text-text-secondary hover:text-text-primary"
+              class="flex items-center px-2 w-full h-9 rounded-lg hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
               (click)="addPipelineUnderstanding(provider); ref.close()"
             >
               @if (provider.icon) {
@@ -592,7 +592,7 @@
           class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
         ></i>
         <input
-          class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-background-default-subtle px-3 radius-md system-sm-regular pl-[26px]"
+          class="xp-input w-full pl-[26px]"
           [placeholder]="'PAC.ACTIONS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchMiddlewares"
         />
@@ -607,7 +607,7 @@
     @for (middleware of filteredAgentMiddlewares(); track middleware.meta?.name) {
       <div
         cdkMenuItem
-        class="group/item flex items-center gap-2 px-4 w-full min-h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+        class="group/item flex items-center gap-2 px-4 w-full min-h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
         [cdkMenuItemDisabled]="!middleware.meta?.name"
         (click)="addMiddleware(middleware.meta?.name); closeMiddlewareDetail()"
         (mouseenter)="openMiddlewareDetail(middleware, overlayTrigger)"

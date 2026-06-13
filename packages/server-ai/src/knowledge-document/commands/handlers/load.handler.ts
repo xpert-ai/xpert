@@ -30,6 +30,7 @@ import { KnowledgeDocLoadCommand } from '../load.command'
 import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 import { TDocChunkMetadata } from '../../types'
 import { KnowledgeDocumentService } from '../../document.service'
+import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -59,6 +60,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
     public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
         const { doc, stage } = command.input
+        const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
 
         let visionModel: BaseChatModel = null
         if (!doc.knowledgebaseId) {
@@ -74,7 +76,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         const volumeClient = workArea.volume
 
         if (doc.category === KBDocumentCategoryEnum.Sheet) {
-            const parserConfig = doc.parserConfig as DocumentSheetParserConfig
+            const parserConfig = docParserConfig as DocumentSheetParserConfig
             // const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
             const data = await this.loadSheet(doc, volumeClient)
             const documents: Document[] = []
@@ -102,26 +104,26 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
         if (doc.filePath || doc.fileUrl) {
             // let docs: Document[]
-            const transformerType = doc.parserConfig?.transformerType || 'default'
+            const transformerType = docParserConfig.transformerType || 'default'
             const transformer = this.transformerRegistry.get(transformerType)
             if (transformer) {
                 const permissions = await this.commandBus.execute(
                     new PluginPermissionsCommand(transformer.permissions, {
                         knowledgebaseId: doc.knowledgebaseId,
-                        integrationId: doc.parserConfig?.transformerIntegration
+                        integrationId: docParserConfig.transformerIntegration
                         // folder: stage === 'test' ? 'temp/' : `/`
                     })
                 )
                 const cacheConfig = {
                     document: omit(doc, 'parserConfig'),
-                    parserConfig: pick(doc.parserConfig, ['transformerType', 'transformerIntegration', 'transformer']),
+                    parserConfig: pick(docParserConfig, ['transformerType', 'transformerIntegration', 'transformer']),
                     stage
                 }
                 const cacheKey = 'knowledges:transformer:' + computeObjectHash(cacheConfig)
                 let transformed: Partial<IKnowledgeDocument<ChunkMetadata>>[] = await this.cacheManager.get(cacheKey)
                 if (!transformed) {
                     transformed = await transformer.transformDocuments([doc], {
-                        ...(doc.parserConfig?.transformer ?? {}),
+                        ...(docParserConfig.transformer ?? {}),
                         stage,
                         tempDir: workArea.tmpPath.serverPath,
                         permissions
@@ -140,7 +142,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     // Chunker with caching
                     const chunkerCacheConfig = {
                         document: transItem,
-                        parserConfig: pick(doc.parserConfig, ['textSplitterType', 'textSplitter']),
+                        parserConfig: pick(docParserConfig, ['textSplitterType', 'textSplitter']),
                         stage
                     }
                     const cacheKey = 'knowledges:chunker:' + computeObjectHash(chunkerCacheConfig)
@@ -162,10 +164,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
                     // Image understanding
                     const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
-                    if (images?.length && doc.parserConfig?.imageUnderstandingType) {
+                    if (images?.length && docParserConfig.imageUnderstandingType) {
                         const imageCacheConfig = {
                             document: { ...transItem, chunks: splitted.chunks },
-                            parserConfig: pick(doc.parserConfig, [
+                            parserConfig: pick(docParserConfig, [
                                 'imageUnderstandingType',
                                 'imageUnderstandingIntegration',
                                 'imageUnderstanding'
@@ -178,16 +180,16 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             if (!visionModel) {
                                 visionModel = await this.knowledgebaseService.getVisionModel(
                                     doc.knowledgebaseId,
-                                    doc.parserConfig.imageUnderstandingModel
+                                    docParserConfig.imageUnderstandingModel
                                 )
                             }
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(
-                                doc.parserConfig.imageUnderstandingType
+                                docParserConfig.imageUnderstandingType
                             )
                             const permissions = await this.commandBus.execute(
                                 new PluginPermissionsCommand(imageUnderstanding.permissions, {
                                     knowledgebaseId: doc.knowledgebaseId,
-                                    integrationId: doc.parserConfig?.imageUnderstandingIntegration
+                                    integrationId: docParserConfig.imageUnderstandingIntegration
                                     // folder: stage === 'test' ? 'temp/' : `/`
                                 })
                             )
@@ -197,7 +199,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                                     chunks: splitted.chunks
                                 } as IKnowledgeDocument<ChunkMetadata>,
                                 {
-                                    ...(doc.parserConfig.imageUnderstanding ?? {}),
+                                    ...(docParserConfig.imageUnderstanding ?? {}),
                                     stage,
                                     visionModel,
                                     permissions
@@ -258,13 +260,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
         parserConfig?: DocumentTextParserConfig
     ) {
+        const documentParserConfig = resolveKnowledgeDocumentParserConfig(document)
         // Text Preprocessing
-        if (document.parserConfig?.replaceWhitespace) {
+        if (documentParserConfig.replaceWhitespace) {
             chunks.forEach((doc) => {
                 doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
             })
         }
-        if (document.parserConfig?.removeSensitive) {
+        if (documentParserConfig.removeSensitive) {
             const imageRegex = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
             const urlRegex = /https?:\/\/[^\s]+/g
             const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
@@ -296,9 +299,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
         // Process the document in chunks
         let chunkSize: number, chunkOverlap: number
-        if (document.parserConfig?.chunkSize) {
-            chunkSize = Number(document.parserConfig.chunkSize)
-            chunkOverlap = Number(document.parserConfig.chunkOverlap ?? chunkSize / 10)
+        if (documentParserConfig.chunkSize) {
+            chunkSize = Number(documentParserConfig.chunkSize)
+            chunkOverlap = Number(documentParserConfig.chunkOverlap ?? chunkSize / 10)
         } else if (parserConfig?.chunkSize) {
             chunkSize = Number(parserConfig.chunkSize)
             chunkOverlap = Number(parserConfig.chunkOverlap ?? chunkSize / 10)
@@ -306,22 +309,21 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             chunkSize = 1000
             chunkOverlap = 100
         }
-        const delimiter = document.parserConfig?.delimiter || parserConfig?.delimiter
+        const delimiter = documentParserConfig.delimiter || parserConfig?.delimiter
+        const textSplitterType =
+            documentParserConfig.textSplitterType || parserConfig?.textSplitterType || 'recursive-character'
 
-        const textSplitter = this.textSplitterRegistry.get(
-            document.parserConfig.textSplitterType || 'recursive-character'
-        )
+        const textSplitter = this.textSplitterRegistry.get(textSplitterType)
         if (!textSplitter) {
-            throw new Error(
-                `Text Splitter not found: ${document.parserConfig.textSplitterType || 'recursive-character'}`
-            )
+            throw new Error(`Text Splitter not found: ${textSplitterType}`)
         }
         if (textSplitter) {
             const result = await textSplitter.splitDocuments(chunks, {
                 chunkSize,
                 chunkOverlap,
                 separators: delimiter?.split(' '),
-                ...(document.parserConfig.textSplitter || {})
+                ...(parserConfig?.textSplitter ?? {}),
+                ...(documentParserConfig.textSplitter ?? {})
             })
 
             return result

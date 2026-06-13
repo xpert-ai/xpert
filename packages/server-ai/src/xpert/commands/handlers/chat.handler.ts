@@ -52,7 +52,10 @@ import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
 import { hydrateHumanInput, hydrateSendRequestHumanInput, normalizeReferences } from '../../../shared/agent/human-input'
 import { hasExplicitPlanModeFlag, isPlanModeEnabledFromState } from '../../../shared/agent/plan-mode'
-import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
+import {
+    collectPendingFollowUpsByClientMessageId,
+    findPendingFollowUpByClientMessageId
+} from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import {
     getRuntimeCapabilitiesFromState,
@@ -202,18 +205,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Follow-up input is required')
             }
 
+            const targetMessage = resolveFollowUpTargetMessage(request, conversation.messages)
             const targetExecutionId =
-                request.target?.executionId ??
-                options?.execution?.id ??
-                [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
-                null
+                targetMessage?.executionId ?? request.target?.executionId ?? options?.execution?.id ?? null
+            const existingPendingFollowUp = findPendingFollowUpByClientMessageId(
+                conversation.messages,
+                request.message.clientMessageId
+            )
 
             const followUpFileAssets = toFileAssetReferences(followUpInput.files)
             const followUpLegacyAttachments = toLegacyStorageFileAttachments(followUpInput.files)
 
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
-                    parent: conversation.messages?.[conversation.messages.length - 1] ?? null,
+                    ...(existingPendingFollowUp?.id ? { id: existingPendingFollowUp.id } : {}),
+                    parent: targetMessage ?? conversation.messages?.[conversation.messages.length - 1] ?? null,
                     role: 'human',
                     content: followUpInput.input,
                     conversationId: conversation.id,
@@ -1421,6 +1427,16 @@ function resolveRetryMessage(request: TXpertChatRetryRequest, messages?: IChatMe
 function resolveResumeTargetMessage(request: TXpertChatResumeRequest, messages?: IChatMessage[] | null) {
     if (request.target.aiMessageId) {
         return messages.find((message) => message.id === request.target.aiMessageId) ?? null
+    }
+    return findLastAiMessage(messages) ?? null
+}
+
+function resolveFollowUpTargetMessage(
+    request: Extract<TChatRequest, { action: 'follow_up' }>,
+    messages?: IChatMessage[] | null
+) {
+    if (request.target?.aiMessageId) {
+        return messages?.find((message) => message.id === request.target?.aiMessageId) ?? null
     }
     return findLastAiMessage(messages) ?? null
 }

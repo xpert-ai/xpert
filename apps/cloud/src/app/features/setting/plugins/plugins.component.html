@@ -77,7 +77,7 @@
     }
     <button
       type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-components-button-secondary-text"
+      class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-text-secondary"
       [cdkMenuTriggerFor]="installMenu"
     >
       <i class="ri-add-line"></i>
@@ -85,7 +85,7 @@
     </button>
     <!-- <button
       type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium group p-2 text-components-button-secondary-text"
+      class="btn disabled:btn-disabled btn-secondary btn-medium group p-2 text-text-secondary"
     >
       <i class="ri-equalizer-2-line"></i>
     </button> -->
@@ -116,7 +116,7 @@
       <div class="relative flex w-[200px] items-center rounded-lg">
         <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
         <input
-          class="w-full appearance-none border border-transparent py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px] bg-components-input-bg-normal"
+          class="xp-input w-full pl-[26px]"
           [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchText"
         />
@@ -180,59 +180,27 @@
                   class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
                 >
                   @if (plugin.loadStatus === 'failed') {
-                    <div class="absolute right-0 top-0 flex pl-[13px]">
-                      <svg
-                        width="13"
-                        height="18"
-                        viewBox="0 0 13 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="-mr-[1px] text-components-input-bg-normal"
-                      >
-                        <path
-                          id="Shape"
-                          d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
-                          fill="currentColor"
-                        ></path>
-                      </svg>
                       <div
-                        class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-destructive"
+                        class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-destructive shadow-xs"
                       >
                         {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
                       </div>
-                    </div>
                   } @else {
-                    <div class="absolute right-0 top-0 flex pl-[13px]">
-                      <svg
-                        width="13"
-                        height="18"
-                        viewBox="0 0 13 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="-mr-[1px] text-components-input-bg-normal"
-                      >
-                        <path
-                          id="Shape"
-                          d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
-                          fill="currentColor"
-                        ></path>
-                      </svg>
                       <div
-                        class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-tertiary"
+                        class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
                       >
                         {{
                           'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category }
                         }}
                       </div>
-                    </div>
                   }
                   <div class="flex">
                     <xp-icon
                       [icon]="plugin.meta.icon"
                       size="24"
-                      class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"
+                      class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-divider-subtle"
                     />
-                    <div class="ml-3 w-0 grow">
+                    <div class="ml-3 w-0 grow pr-24">
                       <div class="flex h-5 items-center">
                         <button
                           type="button"
@@ -315,7 +283,7 @@
                           </div>
                           @if (plugin.loadStatus === 'failed') {
                             <div
-                              class="mt-2 rounded-lg border border-state-destructive-hover bg-state-destructive-hover/10 p-2"
+                              class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2"
                             >
                               <div class="flex items-start gap-2">
                                 <i class="ri-error-warning-line mt-0.5 text-text-destructive"></i>
@@ -372,6 +340,15 @@
                             </div>
                           }
                           <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            @for (item of componentSummaryItems(plugin); track item.key) {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                              >
+                                <i class="shrink-0" [class]="item.icon"></i>
+                                <span>{{ item.label | translate: { Default: item.defaultLabel } }}</span>
+                                <span class="font-mono text-text-tertiary">{{ item.count }}</span>
+                              </div>
+                            }
                             @if (plugin.scopeRelation === 'overrides-global') {
                               <div
                                 class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
@@ -397,6 +374,20 @@
                           </div>
                         </div>
                         <div class="flex space-x-1">
+                          @if (plugin.loadStatus !== 'failed' && plugin.componentSummary?.total) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [zTooltip]="
+                                'PAC.Plugin.InitializeResourcesHint'
+                                  | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
+                              "
+                              zPosition="top"
+                              (click)="initializeResources(plugin)"
+                            >
+                              <i class="ri-magic-line"></i>
+                            </button>
+                          }
                           @if (plugin.canConfigure && plugin.configSchema) {
                             <button
                               type="button"
@@ -445,7 +436,7 @@
                           @if (plugin.canUninstall) {
                             <button
                               type="button"
-                              class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive flex items-center justify-center"
                               [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
                               zPosition="top"
                               (click)="uninstall(plugin)"
@@ -510,7 +501,10 @@
     <div class="font-semibold mb-2">
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
-    <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
+    <div cdkMenuItem class="" (click)="installNpm()">
+      <i class="ri-npmjs-line mr-1"></i>
+      {{ 'PAC.Plugin.NpmSource' | translate: { Default: 'NPM' } }}
+    </div>
     <div cdkMenuItem class="" (click)="installArchive()">
       <i class="ri-upload-cloud-2-line mr-1"></i>
       {{ 'PAC.Plugin.ArchiveSource' | translate: { Default: 'Archive file' } }}
@@ -544,7 +538,7 @@
           {{ 'PAC.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
         </label>
         <input
-          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="xp-input w-full"
           [placeholder]="'PAC.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
           [(ngModel)]="npmPackageName"
         />
@@ -554,7 +548,7 @@
           {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
         </label>
         <input
-          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="xp-input w-full"
           [placeholder]="'PAC.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
           [(ngModel)]="npmPackageVersion"
         />
@@ -716,7 +710,7 @@
           {{ 'PAC.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
         </label>
         <input
-          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="xp-input w-full"
           [placeholder]="'PAC.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
           [(ngModel)]="localPluginName"
         />
@@ -726,7 +720,7 @@
           {{ 'PAC.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
         </label>
         <input
-          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          class="xp-input w-full"
           [placeholder]="
             'PAC.Plugin.InputLocalWorkspacePath'
               | translate: { Default: '/Users/.../xpert-plugins/xpertai/integrations/lark' }

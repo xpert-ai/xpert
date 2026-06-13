@@ -24,9 +24,9 @@
       @for (option of availableMembers(); track option.key; let i = $index) {
         <li role="listitem" class="radio-item w-full flex items-center px-2 py-1.5 rounded-lg cursor-pointer hover:bg-hover-bg" [cdkOption]="option.key">
           <input id="default-radio-{{i}}" name="parameter-radio" type="radio" [checked]="option.key === valueList()?.[0]"
-            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            class="h-4 w-4 border border-divider-regular bg-components-input-bg-normal text-[var(--sys-primary)] focus:ring-2 focus:ring-components-input-border-active"
           >
-          <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{ option.caption }}</label>
+          <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-text-primary">{{ option.caption }}</label>
         </li>
       }
     </ul>

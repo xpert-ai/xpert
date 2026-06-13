@@ -1,7 +1,5 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 @reference "../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, shell);
@@ -13,25 +11,18 @@ $prefix: (ngm, shell);
 
 @function get-color-tokens() {
   @return (
-    bg-color: var(--ngm-color-surface-container),
-    primary-container-bg-color: var(--ngm-color-surface-container),
-    copilot-bg-color: var(--ngm-color-surface),
+    bg-color: var(--color-background-body),
+    primary-container-bg-color: var(--color-background-body)
   );
 }
 
 @function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
   .pac__shell-bar {
     background-color: var(#{token-utils.get-token-variable(bg-color)});
-  }
-  :host {
-    --ngm-copilot-bg-color: var(#{token-utils.get-token-variable(copilot-bg-color)});
   }
 
   .pac-features__sidenav {

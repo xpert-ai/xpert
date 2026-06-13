@@ -1441,6 +1441,9 @@
       "ModelConfigurationManagedInSettings": "对话模型、嵌入模型、视觉模型和重排模型请在知识库配置页统一设置。",
       "ChatModel": "对话模型",
       "OpenConfiguration": "打开配置页",
+      "DownloadOriginalFile": "下载原文件",
+      "DownloadOriginalFiles": "下载原文件",
+      "NoOriginalFilesToDownload": "没有可下载的原文件",
       "Status_RebuildRequired": "待重建向量",
       "Status_Rebuilding": "向量重建中",
       "Status_RebuildFailed": "向量重建失败",
@@ -1672,7 +1675,21 @@
       "ExportedTemplate": "已导出的模版",
       "DeleteExportedTemplate": "删除模版",
       "DeleteExportedTemplateConfirm": "删除已导出的模版‘{{value}}’？",
-      "ExportTemplateDeleted": "已删除导出的模版"
+      "ExportTemplateDeleted": "已删除导出的模版",
+      "ToolParameters": "工具参数",
+      "ToolName": "工具名称",
+      "ToolDescription": "工具描述",
+      "AgentToolReturnContent": "返回内容",
+      "AgentToolReturnContentTooltip": "选择作为工具结果返回给调用智能体的值。",
+      "AgentToolReturnLastMessage": "最后消息",
+      "AgentToolReturnVariable": "变量",
+      "AgentToolReturnTemplate": "模版",
+      "AgentToolReturnTemplateTooltip": "编写工具结果的 Mustache 模版，并通过变量选择器插入工作流变量。",
+      "End": "终点",
+      "EndTool": "终点工具，完成时对话运行结束"
+    },
+    "Workflow": {
+      "AgentWorkflow": "智能体工作流"
     },
     "Feature": {
       "Features": {

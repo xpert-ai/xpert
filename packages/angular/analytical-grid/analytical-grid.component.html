@@ -34,7 +34,7 @@
         <i class="ri-filter-line"></i>
         @if (slicers?.length) {
           <span
-            class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"
+            class="absolute right-0 top-0 mr-1 flex h-2 w-2 rounded-[2.5px] bg-primary-500 shadow-md ng-star-inserted"
           ></span>
         }
       </button>
@@ -636,7 +636,7 @@
   }
 
   <ng-template #filtersMenu let-trigger="trigger">
-    <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
+    <div class="relative p-4 rounded-2xl border-[0.5px] border-solid border-divider-deep shadow-md bg-components-card-bg">
       <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
       <ngm-slicers
         class="overflow-hidden"

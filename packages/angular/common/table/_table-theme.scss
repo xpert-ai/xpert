@@ -1,7 +1,7 @@
 
 
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -18,7 +18,7 @@
   table[z-table] {
     &.striped {
       tr[z-table-row]:nth-child(even) {
-        background-color: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
+        background-color: themeCompat.m2-get-color-from-palette($background, 'hover-soft');
       }
 
       tr[z-table-row] {
@@ -85,4 +85,7 @@
       }
     }
   }
+}
+
+@mixin typography($config-or-theme) {
 }

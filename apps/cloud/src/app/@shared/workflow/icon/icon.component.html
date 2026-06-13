@@ -1,248 +1,211 @@
 @switch (type()) {
   @case (eWorkflowNodeTypeEnum.START) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-home-3-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-play-circle-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.ASSIGNER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-equal-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5">
-        <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
+        <g id="icons/if-else">
+          <path
+            id="Vector (Stroke)"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z"
+            fill="currentColor"
+          ></path>
+        </g>
       </svg>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.LIST_OPERATOR) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-filter-2-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.VARIABLE_AGGREGATOR) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-brackets-line"></i>
     </div>
   }
   <!-- @case (eWorkflowNodeTypeEnum.SPLITTER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-scissors-cut-fill"></i>
     </div>
   } -->
   @case (eWorkflowNodeTypeEnum.ITERATING) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-repeat-2-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.ITERATOR) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-repeat-2-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.ANSWER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-lime-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-chat-ai-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-sticky-note-add-line"></i>
     </div>
   }
-   @case (eWorkflowNodeTypeEnum.CLASSIFIER) {
-    <div class="shrink-0 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm">
+  @case (eWorkflowNodeTypeEnum.CLASSIFIER) {
+    <div class="workflow-icon">
       <i class="ri-list-radio"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.KNOWLEDGE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-book-shelf-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.CODE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-code-s-slash-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <svg xmlns="www.w3.org" viewBox="0 0 24 24" width="24" height="24">
         <title>JSON Stringify (Object to String)</title>
         <!-- Object symbol (curly braces) on the left -->
-        <path d="M7 3h10v2h-10zM7 19h10v2h-10zM5 5v14h2v-14zM17 5v14h2v-14z" fill="currentColor"/>
+        <path d="M7 3h10v2h-10zM7 19h10v2h-10zM5 5v14h2v-14zM17 5v14h2v-14z" fill="currentColor" />
         <!-- Arrow pointing right -->
-        <path d="M12 11h7v2h-7v4l-5-5 5-5z" fill="currentColor"/>
+        <path d="M12 11h7v2h-7v4l-5-5 5-5z" fill="currentColor" />
         <!-- String symbol (quotes) on the right -->
-        <path d="M21 7h2v10h-2zM21 7h-2v10h2z" fill="currentColor"/>
+        <path d="M21 7h2v10h-2zM21 7h-2v10h2z" fill="currentColor" />
       </svg>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.JSON_PARSE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <svg xmlns="www.w3.org" viewBox="0 0 24 24" width="24" height="24">
         <title>JSON Parse (String to Object)</title>
         <!-- String symbol (quotes) on the left -->
-        <path d="M3 7h2v10h-2zM3 7h-2v10h2z" fill="currentColor"/>
+        <path d="M3 7h2v10h-2zM3 7h-2v10h2z" fill="currentColor" />
         <!-- Arrow pointing left -->
-        <path d="M12 11h-7v2h7v4l5-5-5-5z" fill="currentColor"/>
+        <path d="M12 11h-7v2h7v4l5-5-5-5z" fill="currentColor" />
         <!-- Object symbol (curly braces) on the right -->
-        <path d="M17 3h-10v2h10zM17 19h-10v2h10zM19 5v14h-2v-14zM7 5v14h2v-14z" fill="currentColor"/>
+        <path d="M17 3h-10v2h10zM17 19h-10v2h10zM19 5v14h-2v-14zM7 5v14h2v-14z" fill="currentColor" />
       </svg>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.HTTP) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-radar-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.SUBFLOW) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-exchange-2-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.TEMPLATE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
-      w-full h-full rounded-lg shadow-sm
-      shrink-0">
+    <div class="workflow-icon">
       <i class="ri-font-sans-serif"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.TOOL) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-hammer-fill"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.AGENT_WORKFLOW) {
+    <div class="workflow-icon">
+      <i class="ri-route-line"></i>
+    </div>
+  }
   @case (eWorkflowNodeTypeEnum.AGENT_TOOL) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
-      <i class="ri-tools-fill"></i>
+    <div class="workflow-icon">
+      <i class="ri-route-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.TASK) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-p2p-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.SOURCE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-pink-600
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-database-2-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.PROCESSOR) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-600
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-swap-2-line"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.CHUNKER) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-emerald-600
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-split-cells-horizontal"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.UNDERSTANDING) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-accent-600
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-image-ai-fill"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.KNOWLEDGE_BASE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-600
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-book-shelf-line text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.DB_SQL) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-database-2-line text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.DB_INSERT) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-insert-row-bottom text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.DB_UPDATE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-edit-circle-line text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.DB_DELETE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-delete-bin-line text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.MIDDLEWARE) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-stack-line text-lg"></i>
     </div>
   }
   @case (eWorkflowNodeTypeEnum.SKILL) {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-pencil-ruler-line text-lg"></i>
     </div>
   }
   @case ('chat') {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-message-3-fill"></i>
     </div>
   }
   @case ('database') {
-    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-500
-      w-full h-full rounded-lg shadow-sm shrink-0">
+    <div class="workflow-icon">
       <i class="ri-database-2-line"></i>
     </div>
   }
   @default {
-    <div>Unimplement type ({{type()}})</div>
+    <div>Unimplement type ({{ type() }})</div>
   }
 }

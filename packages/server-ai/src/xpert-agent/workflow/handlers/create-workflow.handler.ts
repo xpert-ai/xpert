@@ -1,5 +1,12 @@
 import { Annotation, END } from '@langchain/langgraph'
-import { channelName, IXpert, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import {
+    channelName,
+    IXpert,
+    TXpertGraph,
+    TXpertTeamConnection,
+    TXpertTeamNode,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { WorkflowNodeRegistry } from '@xpert-ai/plugin-sdk'
@@ -12,7 +19,6 @@ import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
-import { createAgentToolNode } from '../agent-tool'
 import { createTriggerNode } from '../trigger'
 import { createCodeNode, WorkflowCodeValidator } from '../code/index'
 import { AgentStateAnnotation, nextWorkflowNodes, TStateChannel, TWorkflowGraphNode } from '../../../shared'
@@ -212,17 +218,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
                 })
                 break
             }
-            case WorkflowNodeTypeEnum.AGENT_TOOL: {
-                workflow = createAgentToolNode(graph, node, {
-                    leaderKey: command.leaderKey,
-                    commandBus: this.commandBus,
-                    queryBus: this.queryBus,
-                    xpertId,
-                    environment: options.environment,
-                    conversationId: options.conversationId
-                })
-                break
-            }
             default:
                 try {
                     const creator = this.nodeRegistry.get(node.entity.type)
@@ -232,7 +227,9 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
                         node,
                         xpertId,
                         environment: options.environment,
-                        isDraft: options.isDraft
+                        isDraft: options.isDraft,
+                        leaderKey: command.leaderKey,
+                        conversationId: options.conversationId
                     })
 
                     workflow = {
@@ -253,7 +250,11 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
                                 }
 
                                 return nextWorkflowNodes(graph, node.key, state)
-                            })
+                            }),
+                        caller: result.caller,
+                        toolset: result.toolset,
+                        tool: result.tool,
+                        variables: result.variables
                     }
                     if (result.channel !== undefined) {
                         workflow.channel = result.channel
@@ -268,11 +269,32 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
         return {
             channel,
             ...workflow,
-            nextNodes: graph.connections
-                .filter((_) => _.type === 'edge' && _.from.startsWith(node.key))
-                .map((conn) =>
-                    graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to)
-                )
+            nextNodes: getWorkflowNextNodes(graph, node)
         } as TWorkflowGraphNode
     }
+}
+
+function isRuntimeNode(node: TXpertTeamNode): node is TXpertTeamNode<'agent' | 'workflow'> {
+    return node.type === 'agent' || node.type === 'workflow'
+}
+
+function isWorkflowNodeSource(from: string, nodeKey: string) {
+    return from === nodeKey || from.startsWith(`${nodeKey}/`)
+}
+
+function isInternalContainerEdge(connection: TXpertTeamConnection, childNodeKeys: Set<string>) {
+    return childNodeKeys.has(connection.to)
+}
+
+export function getWorkflowNextNodes(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {
+    const childNodeKeys = new Set(
+        graph.nodes.filter((item) => item.parentId === node.key && isRuntimeNode(item)).map((item) => item.key)
+    )
+
+    return graph.connections
+        .filter((connection) => connection.type === 'edge')
+        .filter((connection) => isWorkflowNodeSource(connection.from, node.key))
+        .filter((connection) => !isInternalContainerEdge(connection, childNodeKeys))
+        .map((connection) => graph.nodes.find((item) => isRuntimeNode(item) && item.key === connection.to))
+        .filter((item): item is TXpertTeamNode<'agent' | 'workflow'> => !!item)
 }

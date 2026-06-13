@@ -1,5 +1,6 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import {
+    agentLabel,
     channelName,
     getVariableSchema,
     IEnvironment,
@@ -54,6 +55,27 @@ export function iteratingOutputVariables(iterating: IWFNIterator) {
             }
         }
     ]
+}
+
+export function getIteratorSubgraphAgentMetadata(
+    graph: TXpertGraph,
+    startNodes: string[]
+): { agentKey?: string; xpertName?: string } {
+    if (startNodes.length !== 1) {
+        return {}
+    }
+
+    const agentNode = graph.nodes.find(
+        (node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === startNodes[0]
+    )
+    if (!agentNode) {
+        return {}
+    }
+
+    return {
+        agentKey: agentNode.entity.key || agentNode.key,
+        xpertName: agentLabel(agentNode.entity)
+    }
 }
 
 @Injectable()
@@ -138,6 +160,7 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
             nodes: [...subgraphNodes, ...referencedNodes],
             connections: subgraphConnections
         }
+        const subgraphAgentMetadata = getIteratorSubgraphAgentMetadata(subgraphGraph, startNodes)
 
         const inputVariable = entity.inputVariable
         const outputParams = entity.outputParams
@@ -227,11 +250,18 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
                                             signal: controller.signal,
                                             configurable: {
                                                 ...config.configurable,
+                                                agentKey: subgraphAgentMetadata.agentKey ?? node.key,
+                                                ...(subgraphAgentMetadata.xpertName
+                                                    ? { xpertName: subgraphAgentMetadata.xpertName }
+                                                    : {}),
                                                 executionId: subAgentExecution.id
                                             },
                                             metadata: {
                                                 ...(config.metadata ?? {}),
-                                                agentKey: node.key,
+                                                agentKey: subgraphAgentMetadata.agentKey ?? node.key,
+                                                ...(subgraphAgentMetadata.xpertName
+                                                    ? { xpertName: subgraphAgentMetadata.xpertName }
+                                                    : {}),
                                                 executionId: subAgentExecution.id,
                                                 parentExecutionId: itemExecution.id
                                             }

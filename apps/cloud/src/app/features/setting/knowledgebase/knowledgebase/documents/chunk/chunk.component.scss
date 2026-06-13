@@ -1,18 +1,15 @@
-
-
-@use 'libs/material-theme/src/styles/token-utils' as token-utils;
-@use 'libs/material-theme/src/styles/sass-utils';
+@use 'packages/angular/core/style/token-utils' as token-utils;
+@use 'packages/angular/core/style/sass-utils';
 @reference "../../../../../../../styles/tailwind-reference.css";
-$global-prefix: ngm;
 $prefix: (ngm, document-chunk);
 $prefix-color: (#{$prefix}, color);
 
 @function get-unthemable-tokens() {
-  @return (primary-container-rounded: var(--#{$global-prefix}-primary-container-rounded));
+  @return (primary-container-rounded: var(--layout-shell-top-left-radius));
 }
 
 @function get-color-tokens() {
-  @return (color-surface: var(--#{$global-prefix}-color-surface));
+  @return (color-surface: var(--sys-surface));
 }
 
 @function get-token-slots() {

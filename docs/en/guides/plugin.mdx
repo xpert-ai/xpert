@@ -158,6 +158,44 @@ The data-xpert plugin center only shows plugins that satisfy both conditions:
 
 Do not put data-xpert business metadata in a top-level `dataXpert` field for new plugins. That old shape is only read as a migration fallback; new plugins should use `targetAppMeta["data-xpert"]`.
 
+## Codex-style plugin resources
+
+Plugins can ship Codex-style bundle resources such as `.xpertai-plugin/plugin.json`, `skills/`, `.mcp.json`, `.app.json`, `hooks/`, and `assets/`. Installing the plugin itself only persists `PluginInstance` and loads the plugin code. Resource definitions are not copied into a component instance table; the host computes them live from the real bundle through `readPluginBundleManifest()` and `collectPluginBundleComponents()`.
+
+Resource initialization has two target types:
+
+| Target    | Installable resources | Runtime                                                                                   |
+| --------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| workspace | Skills / MCP / Apps   | `SkillPackage`, workspace-scoped plugin-managed `XpertToolset`, app connector requirement |
+| Xpert     | Hooks                 | The target agent's `PluginHooksMiddleware`                                                |
+
+Assistant templates can also declare `dependencies`. When a template is installed, the server creates the Xpert first and then binds the declared Skills / MCP / Apps / Hooks to the target agent. Role-specific Codex plugins use this path to pre-bind all role skills to a single-agent template.
+
+Runtime resource state is stored only in `PluginResourceInstallation`:
+
+- `workspaceId` is the owning workspace
+- `xpertId` / `agentKey` identify the bound Xpert and agent; both are `null` for workspace-target installs
+- `runtimeType` / `runtimeId` point to the `SkillPackage`, `XpertToolset`, hook profile, or app connector requirement
+- `runtimeNodeKey` records the Xpert draft graph node that was created or reused; app requirements usually keep it `null`
+- `definitionHash` is compared with the live bundle definition to report `staleDefinition`
+- `status` uses `ready`, `pending_auth`, `blocked`, or `failed`
+
+`PluginResourceAttachment` is not used. The new system does not need legacy compatibility, and installation rows now capture both instantiation and binding state so resource state does not drift across two tables.
+
+`.app.json` supports the upstream map shape:
+
+```json
+{
+  "apps": {
+    "salesforce": {
+      "name": "REPLACE_WITH_SALESFORCE_CONNECTOR_ID"
+    }
+  }
+}
+```
+
+The host expands each map key into a separate `APP` component. `REPLACE_WITH_*` placeholders are not treated as usable connectors; installation records them as `blocked` until the workspace provides explicit connector overrides in `PluginInstance.config`.
+
 ## Related guides
 
 - [Unified File Upload Architecture](/en/guides/file-upload-architecture)

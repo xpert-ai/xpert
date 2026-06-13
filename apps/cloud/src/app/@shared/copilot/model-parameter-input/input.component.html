@@ -13,7 +13,7 @@
 
       <input
         z-input
-        class="shrink-0 block ml-4 pl-3 w-24 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
+        class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
         [max]="parameter.max"
         [min]="parameter.min"
         [step]="0.1"
@@ -35,7 +35,7 @@
 
       <input
         z-input
-        class="shrink-0 block ml-4 pl-3 w-24 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
+        class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
         [max]="parameter.max"
         [min]="parameter.min"
         [step]="1"
@@ -53,7 +53,7 @@
     @default {
       @if (parameter.options) {
         <select
-          class="w-36 h-full rounded-lg border-0 bg-components-input-bg-normal py-1.5 pl-3 pr-4 sm:text-sm sm:leading-6 focus-visible:outline-none focus-visible:bg-components-list-option-active-bg group-hover:bg-button-ghost-hover cursor-pointer"
+          class="xp-input w-36 h-full border-0 pl-3 pr-4 sm:text-sm sm:leading-6 focus-visible:outline-none focus-visible:bg-components-list-option-active-bg group-hover:bg-hover-bg cursor-pointer"
           [(ngModel)]="value$"
           [ngModelOptions]="{ standalone: true }"
         >
@@ -64,7 +64,7 @@
       } @else {
         <input
           z-input
-          class="w-full ml-4 flex items-center px-3 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
+          class="w-full ml-4 flex items-center h-8 text-[13px] text-gra-900"
           [(ngModel)]="value$"
           [ngModelOptions]="{ standalone: true }"
         />

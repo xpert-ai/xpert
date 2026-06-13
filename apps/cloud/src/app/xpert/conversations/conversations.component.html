@@ -3,7 +3,7 @@
     <i class="ri-search-2-line text-lg text-text-secondary"></i>
     <input
       [placeholder]="'PAC.Chat.SearchChats' | translate: {Default: 'Search chats...'}"
-      class="flex-grow w-full bg-transparent placeholder:text-components-input-text-placeholder focus-visible:outline-none"
+      class="xp-input flex-grow w-full focus-visible:outline-none"
       role="combobox"
       type="text"
       [formControl]="searchControl"
@@ -121,7 +121,7 @@
                     @if (editingConversation() === item.id) {
                       <div class="absolute right-1 flex items-center gap-1">
                         <button
-                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
                           [zTooltip]="'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
@@ -132,7 +132,7 @@
                         </button>
 
                         <button
-                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
                           [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
@@ -145,7 +145,7 @@
                     } @else {
                       <div class="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100">
                         <button
-                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-hover-bg flex items-center gap-3 rounded-lg"
                           type="button"
                           tabindex="-1"
                           [zTooltip]="'PAC.ACTIONS.OpenInNewTab' | translate: { Default: 'Open in new tab' }"
@@ -174,7 +174,7 @@
                           </svg>
                         </button>
                         <button
-                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
+                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-hover-bg flex items-center gap-3 size-8 rounded-md"
                           type="button"
                           tabindex="-1"
                           [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' }"
@@ -197,7 +197,7 @@
                           </svg>
                         </button>
                         <button
-                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-text-destructive hover:!border-text-destructive hover:!bg-state-destructive-hover hover:!text-text-destructive flex items-center gap-3 size-8 rounded-md"
+                          class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-text-destructive hover:!border-text-destructive hover:!bg-status-error-bg hover:!text-text-destructive flex items-center gap-3 size-8 rounded-md"
                           type="button"
                           tabindex="-1"
                           [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"

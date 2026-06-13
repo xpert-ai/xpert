@@ -118,8 +118,8 @@
           (cdkDropListDropped)="dropEntity($event)"
           [cdkDropListEnterPredicate]="entityPredicate"
           >
-          <div class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-(--ngm-shell-primary-container-bg-color)">
-            <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-neutral-600" (click)="closeSidebar()">
+          <div class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-background-body">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-text-secondary" (click)="closeSidebar()">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="18"
@@ -141,7 +141,7 @@
 
             <span class="flex-1"></span>
 
-            <!-- <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+            <!-- <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-components-button-primary-text opacity-80 hover:opacity-100 bg-components-button-primary-bg"
             [zTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " zPosition="top"
             (click)="aiCreateEntity()"
             >
@@ -289,7 +289,7 @@
                 zShape="circle"
 
                 displayDensity="cosy"
-                class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+                class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
                 cdkDropList
                 [cdkDropListEnterPredicate]="tableRemovePredicate"
                 (cdkDropListDropped)="dropTable($event)"
@@ -623,7 +623,7 @@
 
         <button
           type="button"
-          class="btn disabled:btn-disabled btn-secondary btn-sm self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200"
+          class="btn disabled:btn-disabled btn-secondary btn-sm self-center px-2 py-1 rounded-lg border border-divider-regular text-sm transition duration-200"
           [disabled]="!canPublish()"
           (click)="resume()"
           >
@@ -640,13 +640,13 @@
         <div class="flex items-center gap-1">
           <span>{{ 'PAC.MODEL.PublishUpdate' | translate: { Default: 'Publish Update' } }}</span>
           <div class="flex gap-0.5">
-            <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface"
+            <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary"
               >⌘</span
               >
-              <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface"
+              <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary"
                 >⇧</span
                 >
-                <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface"
+                <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary"
                   >P</span
                   >
                 </div>

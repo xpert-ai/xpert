@@ -5,6 +5,6 @@
 
 :host::ng-deep {
   .monaco-editor:not(.focused) {
-    --ngm-monaco-editor-bg: theme(colors.neutral.50);
+    --editor-monaco-bg: theme(colors.neutral.50);
   }
 }

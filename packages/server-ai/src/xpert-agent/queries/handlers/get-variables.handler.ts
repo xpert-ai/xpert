@@ -26,7 +26,6 @@ import { EnvironmentService } from '../../../environment'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
-    agentToolOutputVariables,
     answerOutputVariables,
     classifierOutputVariables,
     codeOutputVariables,
@@ -457,11 +456,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         }
                         case WorkflowNodeTypeEnum.ANSWER: {
                             variables.push(...answerOutputVariables(entity))
-                            varGroups.push(varGroup)
-                            break
-                        }
-                        case WorkflowNodeTypeEnum.AGENT_TOOL: {
-                            variables.push(...agentToolOutputVariables(entity))
                             varGroups.push(varGroup)
                             break
                         }

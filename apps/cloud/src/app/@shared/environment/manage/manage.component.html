@@ -16,7 +16,7 @@
           <div class="absolute right-2">
             @if (env.isDefault) {
               <i
-                class="ri-checkbox-circle-fill text-xl text-green-700"
+                class="ri-checkbox-circle-fill text-xl text-text-success"
                 [zTooltip]="'PAC.Environment.IsDefault' | translate: { Default: 'Is Default' }"
               ></i>
             } @else {
@@ -111,7 +111,7 @@
                 <div class="flex items-center border-b border-divider-subtle">
                   <div class="flex w-[204px] shrink-0 items-center py-2">
                     <input
-                      class="block h-9 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm text-components-input-text-filled caret-primary-600 outline-none placeholder:text-sm placeholder:text-text-tertiary hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+                      class="xp-input block h-9 w-full text-sm"
                       [placeholder]="
                         'PAC.Environment.KeepUniqueInEnv'
                           | translate: { Default: 'Keep it unique within the environment' }
@@ -132,7 +132,7 @@
                   </div>
                   <div class="flex grow items-center">
                     <input
-                      class="block h-9 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm text-components-input-text-filled caret-primary-600 outline-none placeholder:text-sm placeholder:text-text-tertiary hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+                      class="xp-input block h-9 w-full text-sm"
                       [type]="item.type === 'secret' ? 'password' : 'text'"
                       [ngModel]="item.value"
                       (ngModelChange)="updateVar(i, { value: $event })"

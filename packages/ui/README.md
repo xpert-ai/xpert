@@ -1,13 +1,15 @@
 # @xpert-ai/headless-ui
 
-Shared UI package for Angular applications in this workspace.
+Shared UI package for Angular applications.
 
 ## What lives here
 
-- Design tokens and theme CSS in `src/styles.css`
+- Default design tokens and theme CSS in `src/styles.css`
 - Reusable standalone components in `src/lib/components`
 - Shared utilities in `src/lib/utils`
 - Public exports from `src/public-api.ts`
+
+The package ships with an independent default theme. Host applications may override the CSS token contract after importing the package styles.
 
 ## Tailwind and ZardUI
 

@@ -13,8 +13,8 @@
     </div>
 
     <textarea formControlName="description"
-      class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular
-        bg-background-default-subtle focus-within:bg-components-input-bg-normal"
+      class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular
+        bg-background-default-subtle"
       [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: {Default: 'Enter toolset description'} "
     ></textarea>
   </div>
@@ -58,7 +58,7 @@
                 [(ngModel)]="url" [ngModelOptions]="{standalone: true}" >
               <button type="button" class="btn disabled:btn-disabled btn-primary btn-small text-sm absolute top-3 right-3"
                 [disabled]="!url()"
-                (click)="urlMenuTrigger.close(); getMetadata();">{{ 'PAC.Xpert.Ok' | translate: {Default: 'Ok'} }}</button>
+                (click)="urlMenuTrigger.close(); getMetadata()">{{ 'PAC.Xpert.Ok' | translate: {Default: 'Ok'} }}</button>
             </div>
           </ng-template>
         </div>
@@ -87,8 +87,8 @@
         </div>
       </div>
     </div>
-    <textarea class="ngm-input w-full h-[240px] px-3 py-2 leading-5 text-sm font-normal rounded-lg overflow-y-auto
-        text-text-primary bg-components-input-bg-normal"
+    <textarea class="ngm-input w-full h-[240px] leading-5 text-sm overflow-y-auto
+        text-text-primary"
       [placeholder]="'PAC.Xpert.EnterYourOpenAPISchema' | translate: {Default: 'Enter your OpenAPI schema here'}"
       formControlName="schema"
       [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
@@ -98,7 +98,7 @@
       <div class="py-2 leading-5 text-sm font-medium text-text-primary">
         {{'PAC.Xpert.BaseUrl' | translate: {Default: 'Base Url'} }}
       </div>
-      <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
+      <input z-input class="w-full h-10 text-sm grow"
         [placeholder]=" 'PAC.Xpert.EnterBaseUrl' | translate: {Default: 'Please enter base url'} "
         formControlName="baseUrl"
         >
@@ -166,7 +166,7 @@
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.PrivacyPolicy' | translate: {Default: 'Privacy Policy'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
+    <input z-input class="w-full h-10 text-sm grow"
       [placeholder]=" 'PAC.Xpert.EnterPrivacyPolicy' | translate: {Default: 'Please enter privacy policy'} "
       formControlName="privacyPolicy"
       >
@@ -175,7 +175,7 @@
     <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.CustomDisclaimer' | translate: {Default: 'Custom Disclaimer'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
+    <input z-input class="w-full h-10 text-sm grow"
       [placeholder]=" 'PAC.Xpert.EnterCustomDisclaimer' | translate: {Default: 'Please enter custom disclaimer'} "
       formControlName="customDisclaimer"
       >

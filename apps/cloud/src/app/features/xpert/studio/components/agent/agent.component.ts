@@ -90,6 +90,7 @@ export class XpertStudioNodeAgentComponent {
           !(
             _.type === 'workflow' &&
             ![
+              WorkflowNodeTypeEnum.AGENT_WORKFLOW,
               WorkflowNodeTypeEnum.AGENT_TOOL,
               WorkflowNodeTypeEnum.TASK,
               WorkflowNodeTypeEnum.MIDDLEWARE,

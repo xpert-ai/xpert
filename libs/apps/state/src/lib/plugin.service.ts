@@ -4,11 +4,17 @@ import { API_PREFIX } from './constants'
 import {
   IPlugin,
   IPluginConfiguration,
+  IPluginComponentDefinition,
+  IPluginResourceComponentState,
+  IPluginResourceInstallResult,
   IPluginDescriptor,
   IPluginInstallInput,
   IPluginInstallResult,
   IPluginLatestVersionStatus,
-  IPluginUpdateResult
+  IPluginUpdateResult,
+  PluginResourceInstallWorkspaceInput,
+  PluginResourceInstallXpertInput,
+  PluginComponentType
 } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 
@@ -105,6 +111,51 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
 
   getPlugins() {
     return this.httpClient.get<IPluginDescriptor[]>(this.apiBaseUrl)
+  }
+
+  getPluginComponents(pluginName: string) {
+    return this.httpClient.get<{ items: IPluginComponentDefinition[] }>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/components`
+    )
+  }
+
+  getPluginResourceStates(
+    pluginName: string,
+    params:
+      | { target: 'workspace'; workspaceId: string }
+      | { target: 'xpert'; workspaceId?: string; xpertId: string; agentKey?: string }
+  ) {
+    let httpParams = new HttpParams().set('target', params.target)
+    if (params.workspaceId) {
+      httpParams = httpParams.set('workspaceId', params.workspaceId)
+    }
+    if (params.target === 'xpert') {
+      httpParams = httpParams.set('xpertId', params.xpertId)
+      if (params.agentKey) {
+        httpParams = httpParams.set('agentKey', params.agentKey)
+      }
+    }
+
+    return this.httpClient.get<{ items: IPluginResourceComponentState[] }>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/state`,
+      {
+        params: httpParams
+      }
+    )
+  }
+
+  installResourcesToWorkspace(pluginName: string, input: PluginResourceInstallWorkspaceInput) {
+    return this.httpClient.post<IPluginResourceInstallResult>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/install-workspace`,
+      input
+    )
+  }
+
+  installResourcesToXpert(pluginName: string, input: PluginResourceInstallXpertInput) {
+    return this.httpClient.post<IPluginResourceInstallResult>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/install-xpert`,
+      input
+    )
   }
 
   getMarketplace(params?: { targetApp?: string; sourceId?: string; search?: string }) {

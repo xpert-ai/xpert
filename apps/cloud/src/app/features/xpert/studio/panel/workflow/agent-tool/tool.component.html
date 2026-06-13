@@ -1,12 +1,12 @@
 <div class="space-y-2">
   <div class="">
     <div class="system-sm-semibold leading-8 text-text-secondary">
-      {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+      {{ 'PAC.KEY_WORDS.Name' | translate }}
     </div>
     <div class="relative w-full">
       <input
-        class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular font-mono"
-        [placeholder]="'PAC.Xpert.ToolName' | translate: { Default: 'Tool Name' }"
+        class="xp-input w-full font-mono"
+        [placeholder]="'PAC.Xpert.ToolName' | translate"
         [(ngModel)]="toolName"
       />
     </div>
@@ -14,23 +14,64 @@
 
   <div class="">
     <div class="system-sm-semibold leading-8 text-text-secondary">
-      {{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
+      {{ 'PAC.KEY_WORDS.Description' | translate }}
     </div>
     <div>
       <textarea
-        class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular font-mono"
-        [placeholder]="'PAC.Xpert.ToolDescription' | translate: { Default: 'Tool Description' }"
+        class="xp-input min-h-20 w-full font-mono"
+        [placeholder]="'PAC.Xpert.ToolDescription' | translate"
         [(ngModel)]="toolDescription"
       ></textarea>
     </div>
   </div>
 </div>
 
-<xpert-output-variables-edit
-  class=""
-  [title]="'PAC.Xpert.ToolParameters' | translate: { Default: 'Tool Parameters' }"
-  [(ngModel)]="parameters"
-/>
+<xpert-output-variables-edit class="" [title]="'PAC.Xpert.ToolParameters' | translate" [(ngModel)]="parameters" />
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="space-y-3">
+  <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center gap-1 system-sm-semibold-uppercase text-text-secondary">
+      <span>{{ 'PAC.Xpert.AgentToolReturnContent' | translate }}</span>
+      <i
+        class="ri-question-line text-text-quaternary hover:text-text-tertiary"
+        [zTooltip]="'PAC.Xpert.AgentToolReturnContentTooltip' | translate"
+        zPosition="top"
+      ></i>
+    </div>
+  </div>
+
+  <z-segmented [ngModel]="returnSourceType()" (ngModelChange)="updateReturnSourceType($event)">
+    <z-segmented-item value="last_message" [label]="'PAC.Xpert.AgentToolReturnLastMessage' | translate" />
+    <z-segmented-item value="variable" [label]="'PAC.Xpert.AgentToolReturnVariable' | translate" />
+    <z-segmented-item value="template" [label]="'PAC.Xpert.AgentToolReturnTemplate' | translate" />
+  </z-segmented>
+
+  @switch (returnSourceType()) {
+    @case ('variable') {
+      <div class="rounded-lg bg-components-input-bg-normal px-1 py-0.5">
+        <xpert-state-variable-select
+          class="w-full"
+          [variables]="variables()"
+          [ngModel]="returnVariable()"
+          (ngModelChange)="updateReturnVariable($event)"
+        />
+      </div>
+    }
+    @case ('template') {
+      <copilot-prompt-editor
+        class="relative shadow-md ngm-card-border-gradient self-stretch"
+        [tooltip]="'PAC.Xpert.AgentToolReturnTemplateTooltip' | translate"
+        [role]="'ai'"
+        [variables]="variables()"
+        [initHeight]="180"
+        [prompt]="returnTemplate()"
+        (promptChange)="updateReturnTemplate($event)"
+      />
+    }
+  }
+</div>
 
 <div class="w-full h-[0.5px] bg-divider-subtle"></div>
 
@@ -38,12 +79,10 @@
   <z-switch
     [(ngModel)]="isEnd"
     labelPosition="before"
-    [zTooltip]="
-      'PAC.Xpert.EndTool' | translate: { Default: 'End point tool, the conversation ends when tool completed' }
-    "
+    [zTooltip]="'PAC.Xpert.EndTool' | translate"
     zPosition="left"
     zSize="sm"
-    >{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</z-switch
+    >{{ 'PAC.Xpert.End' | translate }}</z-switch
   >
 </div>
 

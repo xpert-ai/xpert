@@ -31,6 +31,15 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
 import { RolesEnum } from '@xpert-ai/contracts'
+import { PluginResourcesComponent } from './resources/resources.component'
+
+type TPluginComponentSummaryItem = {
+  key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
+  count: number
+  icon: string
+  label: string
+  defaultLabel: string
+}
 
 @Component({
   standalone: true,
@@ -247,6 +256,46 @@ export class PluginsComponent {
     )
   }
 
+  componentSummaryItems(plugin: TInstalledPlugin): TPluginComponentSummaryItem[] {
+    const summary = plugin.componentSummary
+    if (!summary?.total) {
+      return []
+    }
+
+    const items: TPluginComponentSummaryItem[] = [
+      {
+        key: 'skills',
+        count: summary.skills,
+        icon: 'ri-book-open-line',
+        label: 'PAC.Plugin.ComponentSkills',
+        defaultLabel: 'Skills'
+      },
+      {
+        key: 'mcpServers',
+        count: summary.mcpServers,
+        icon: 'ri-server-line',
+        label: 'PAC.Plugin.ComponentMcpServers',
+        defaultLabel: 'MCP servers'
+      },
+      {
+        key: 'apps',
+        count: summary.apps,
+        icon: 'ri-apps-2-line',
+        label: 'PAC.Plugin.ComponentApps',
+        defaultLabel: 'Apps'
+      },
+      {
+        key: 'hooks',
+        count: summary.hooks,
+        icon: 'ri-terminal-box-line',
+        label: 'PAC.Plugin.ComponentHooks',
+        defaultLabel: 'Hooks'
+      }
+    ]
+
+    return items.filter((item) => item.count > 0)
+  }
+
   reload() {
     this.reloadInstalledPlugins()
   }
@@ -280,6 +329,16 @@ export class PluginsComponent {
     this.#dialog.open(PluginMarketplaceDetailComponent, {
       data: {
         plugin: toPluginMarketplaceDetails(plugin)
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
+  }
+
+  initializeResources(plugin: TInstalledPlugin) {
+    this.#dialog.open(PluginResourcesComponent, {
+      data: {
+        plugin,
+        reload: this.reload.bind(this)
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
@@ -565,6 +624,7 @@ function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownlo
   const contributions = getInstalledPluginMarketplaceContributions(plugin)
   return {
     name: plugin.packageName ?? plugin.name,
+    packageName: plugin.packageName ?? plugin.name,
     displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
     description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
     version: plugin.currentVersion ?? plugin.meta.version ?? '',

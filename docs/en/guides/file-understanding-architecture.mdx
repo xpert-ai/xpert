@@ -381,6 +381,35 @@ Tools:
 
 Agents should search first, then read exact chunks when more context is needed. `file_preview` returns a compact preview with business file fields, a short summary, artifact indexes, and chunk anchors; it does not return tenant, organization, audit fields, artifact full text, chunk full text, or raw parser metadata. If a file card or `workspace_list` includes `workspacePath`, Agents with `sandbox_file` or shell tools may read the original file by that path. `workspace_read` resolves by `fileId` or `workspacePath`, but reads parsed chunks rather than binary file bytes. Citations should use the returned anchors.
 
+### PDF text-first and image-on-demand best practice
+
+For PDFs that are mostly text with a small number of illustrations, use parsed `page_text` chunks as the primary source of truth. Inspect rendered `page_image` artifacts only when the user asks about visual content or when text search points to a page that likely depends on an image. This keeps normal PDF questions cheap and fast while still preserving access to charts, screenshots, diagrams, and scanned visual details.
+
+Recommended Agent behavior:
+
+- Use `file_search` first for normal text questions.
+- Use `file_read` after search when exact surrounding text is needed.
+- Use `file_page_images(fileId, pageStart, pageEnd)` when the user asks about charts, screenshots, diagrams, figures, visual layout, OCR, or page-specific image details.
+- If the user does not specify a page, search for the user query plus visual-marker terms such as `figure`, `chart`, `diagram`, `screenshot`, `图`, `见下图`, and `流程图`; then inspect the returned page anchors with `file_page_images`.
+
+Prompt snippet for Agents:
+
+```text
+When answering questions about uploaded PDFs, prefer parsed text first.
+Use file_search to locate relevant page_text chunks, then file_read for exact text.
+Do not inspect PDF page images for ordinary text questions.
+Use file_page_images only when the user asks about visual content, page layout,
+charts, screenshots, diagrams, figures, OCR, or when text search returns a page
+that references nearby visual material such as "figure", "chart", "diagram",
+"screenshot", "图", "见下图", or "流程图".
+When the user does not provide a page number, search for the question and these
+visual-marker terms, use the chunk anchors to identify pages, then inspect only
+those pages with file_page_images.
+Always cite the returned page, sheet, slide, path, or chunk anchors.
+```
+
+`parseMode: deep` currently controls whether parsing runs asynchronously. Do not present it as automatic full-PDF OCR or VLM processing. If image content must become searchable in a future implementation, run selective OCR or VLM only on relevant pages or image assets and store the result as anchored text artifacts such as `ocr_text`, not only as file summaries.
+
 Workspace projection:
 
 ChatKit sends the current `xpertId` during `/contexts/file` upload. When the message is submitted and the file is attached to a conversation, the backend projects the stored original file into:

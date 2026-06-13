@@ -1,27 +1,23 @@
-$trend-up: rgb(49, 199, 90);
-$trend-down: rgb(254, 60, 46);
-$background-color: #090909;
-
 .Trend-Up {
-  color: $trend-up;
+  color: var(--color-trend-up);
 }
 
 .Trend-Down {
-  color: $trend-down;
+  color: var(--color-trend-down);
 }
 
 .reverse-semantic-color {
   [data-slot='card'] {
     .Trend-Up {
-      color: $trend-down;
+      color: var(--color-trend-down);
     }
 
     .Trend-Down {
-      color: $trend-up;
+      color: var(--color-trend-up);
     }
   }
 }
 
 .indicator-market-app {
-  
+
 }

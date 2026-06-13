@@ -1,0 +1,251 @@
+# UI Token 使用指南
+
+## 目标
+
+这份文档用于后续新页面、新组件、页面改版时选择 UI token。它不是 token 对照表。
+
+写页面时先判断 UI 区域和组件语义，再从现有 token 里选择。原则上不新增 token，不按视觉截图硬编码颜色，不绕过 zard 组件系统。
+
+## 选择优先级
+
+1. zard/ui 组件和 zard core token。
+2. Cloud/Xpert 业务域 token。
+
+zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 zard 没覆盖的业务状态、数据可视化、flow、分析网格、应用 shell 等场景。
+
+## 主要来源
+
+- `packages/ui/src/styles.css`: zard/ui token 合约。
+- `packages/ui/src/lib/components/**`: zard 组件 variant 的真实语义。
+- `apps/cloud/src/styles/theme/theme.tokens.css`: Cloud 业务域和主题 token。
+- `apps/cloud/src/styles/theme/theme.primary.css`: 从 zard `--primary` 派生 Cloud/Tailwind 兼容色阶。
+- `apps/cloud/src/styles/theme/theme.tailwind.css`: Cloud token 的 Tailwind v4 输出。
+- `tailwind.theme.vars.js`: Workspace Tailwind utility 注册源。
+
+## 基础规则
+
+新页面优先使用 zard 组件：
+
+- 按钮使用 `z-button`。
+- 表单使用 `z-form`、`z-input`、`z-select`、`z-checkbox`、`z-radio`、`z-switch`。
+- 卡片使用 `z-card`。
+- 弹层、菜单、popover、tooltip 使用 zard 对应组件。
+- badge、tabs、segmented、table、tree、pagination 等优先使用 zard 已有组件。
+
+只有 zard 没有合适组件，或当前模块已有稳定封装时，才直接写 Tailwind token class。
+
+## zard Core Tokens
+
+这些 token 是新页面默认选择。
+
+| 场景                     | Token / class                                              | 使用说明                                                  |
+| ------------------------ | ---------------------------------------------------------- | --------------------------------------------------------- |
+| 页面基础背景             | `bg-background` / `--background`                           | 页面根容器、普通内容区背景                                |
+| 页面默认文字             | `text-foreground` / `--foreground`                         | 正文、标题、普通图标                                      |
+| 卡片背景                 | `bg-card` / `--card`                                       | zard card 或 card-like surface                            |
+| 卡片文字                 | `text-card-foreground` / `--card-foreground`               | card 内默认文字                                           |
+| 弹层背景                 | `bg-popover` / `--popover`                                 | menu、select panel、popover、dialog surface               |
+| 弹层文字                 | `text-popover-foreground` / `--popover-foreground`         | 弹层内默认文字                                            |
+| 主操作                   | `bg-primary`, `text-primary` / `--primary`                 | primary button、link variant、主操作强调                  |
+| 主操作文字               | `text-primary-foreground` / `--primary-foreground`         | primary surface 上的文字                                  |
+| 次级操作背景             | `bg-secondary` / `--secondary`                             | secondary button、轻量 action surface                     |
+| 次级操作文字             | `text-secondary-foreground` / `--secondary-foreground`     | secondary surface 上的文字                                |
+| 弱背景                   | `bg-muted` / `--muted`                                     | ghost hover、说明块、弱化区域                             |
+| 弱文本                   | `text-muted-foreground` / `--muted-foreground`             | 描述、meta、placeholder-like 文案                         |
+| item hover/selected      | `bg-accent` / `--accent`                                   | menu/select item hover 或 selected                        |
+| item hover/selected 文字 | `text-accent-foreground` / `--accent-foreground`           | accent surface 前景                                       |
+| 破坏性操作               | `bg-destructive`, `text-destructive` / `--destructive`     | 删除、危险动作、错误控件状态                              |
+| 破坏性操作文字           | `text-destructive-foreground` / `--destructive-foreground` | destructive surface 前景                                  |
+| 普通边框                 | `border-border` / `--border`                               | card、panel、列表、分割线等普通 UI 边框                   |
+| 输入控件边框             | `border-input` / `--input`                                 | input、select、textarea、control 边框                     |
+| focus ring               | `ring-ring`, `border-ring` / `--ring`                      | focus-visible、active control                             |
+| 圆角基准                 | `--radius`                                                 | zard radius 系统，优先用组件默认或 Tailwind rounded token |
+
+不要把 `text-primary` 当作普通正文主色。普通正文使用 `text-foreground`。
+
+## 页面和布局
+
+| 区域            | 推荐 token                                   | 说明                                                        |
+| --------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| 页面根容器      | `bg-background text-foreground`              | 新页面默认组合                                              |
+| 页面标题        | `text-foreground`                            | 不要用 `text-primary` 表示标题                              |
+| 副标题/说明     | `text-muted-foreground`                      | 页面描述、帮助说明、meta                                    |
+| 普通分割线      | `border-border`                              | 页面区块之间的普通边框                                      |
+| 空状态背景      | `bg-muted` 或组件默认                        | zard empty/card 优先组件样式                                |
+| 页面级浅底区块  | `bg-muted` / `bg-secondary`                  | 普通弱化背景；业务特定浅底再看 Cloud token                  |
+| 应用 shell/body | `bg-background`，必要时 `bg-background-body` | 普通新页面用 zard；Cloud shell 级背景才用 `background-body` |
+
+页面 section 不要为了获得背景而硬套 card token。只有真正的卡片、重复项、工具面板才用 card。
+
+## 卡片、面板、弹层
+
+| 场景                       | 推荐 token                                               | 说明                                                |
+| -------------------------- | -------------------------------------------------------- | --------------------------------------------------- |
+| zard card                  | `z-card` 或 `bg-card text-card-foreground border-border` | 新页面卡片默认选择                                  |
+| repeated item card         | `bg-card text-card-foreground border-border`             | 列表卡片、资源卡片、配置卡片                        |
+| menu/select/popover/dialog | `bg-popover text-popover-foreground border-border`       | 弹层 surface 统一走 popover                         |
+| 工具栏/轻 panel            | `bg-background border-border` 或 `bg-muted`              | 先判断是否真的需要 panel                            |
+| Cloud 业务 panel           | `bg-components-panel-bg border-components-panel-border`  | 只用于 zard surface 不足以表达的 Cloud 业务面板     |
+| Cloud 业务 card 背景       | `bg-components-card-bg`                                  | 只用于明确的业务视觉要求，不作为新 zard card 默认值 |
+
+如果一个区域是 menu、select content、popover、dialog，不要使用 `components-panel-bg`，优先用 `popover`。
+
+## 文字和图标
+
+| 场景                                  | 推荐 token                                | 说明                                     |
+| ------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| 主标题、正文、主要图标                | `text-foreground`                         | zard 新页面默认前景                      |
+| 次级说明、meta、placeholder-like 文案 | `text-muted-foreground`                   | 通用弱文本                               |
+| card 内默认文本                       | `text-card-foreground`                    | card surface 内                          |
+| popover 内默认文本                    | `text-popover-foreground`                 | 弹层内                                   |
+| 链接或 link button                    | `text-primary` 或 `z-button zType="link"` | 只表达 action/link，不表达普通正文       |
+| destructive 文本                      | `text-destructive`                        | 删除、危险动作、错误文案                 |
+| success 文本                          | `text-text-success`                       | zard 没有 success；使用 Cloud 业务 token |
+| warning 文本                          | `text-text-warning`                       | zard 没有 warning；使用 Cloud 业务 token |
+| Cloud 品牌/业务强调                   | `text-text-accent`                        | 不等于 zard item hover 的 `accent`       |
+| 高亮背景                              | `bg-text-highlight-bg`                    | 文本命中、高亮片段                       |
+
+`text-text-primary` 是 Cloud 业务文本 token，不是 zard 新页面的默认正文 token。新页面默认正文使用 `text-foreground`。
+
+## 按钮和操作
+
+优先使用 `z-button` 的 `zType`，不要手写按钮颜色。
+
+| 场景           | 推荐用法                       | 说明                                      |
+| -------------- | ------------------------------ | ----------------------------------------- |
+| 页面主操作     | `z-button zType="default"`     | 对应 `bg-primary text-primary-foreground` |
+| 次级操作       | `z-button zType="secondary"`   | 对应 secondary 语义                       |
+| 低强调操作     | `z-button zType="ghost"`       | hover 使用 zard muted/accent 体系         |
+| 外框按钮       | `z-button zType="outline"`     | 边框和 hover 走 zard variant              |
+| 危险操作       | `z-button zType="destructive"` | 删除、移除、危险动作                      |
+| 文本链接操作   | `z-button zType="link"`        | link action，不要当普通文本               |
+| icon-only 操作 | `z-button zSize="icon"`        | 不手写图标按钮尺寸和颜色                  |
+
+不要在新页面直接使用 `components-button-*`，除非是非 zard 自定义按钮或明确的 Cloud 业务组件视觉。
+
+## 表单和输入控件
+
+表单优先使用 `z-form` 系统和 zard form controls。
+
+| 场景                      | 推荐 token / class                                           | 说明                      |
+| ------------------------- | ------------------------------------------------------------ | ------------------------- |
+| input/select 默认边框     | `border-input`                                               | zard input/select 默认    |
+| focus 状态                | `border-ring ring-ring`                                      | 不新增独立 focus 色       |
+| placeholder               | `placeholder:text-muted-foreground`                          | zard input 默认           |
+| disabled                  | 组件 disabled variant                                        | 不手写 disabled 色        |
+| invalid/error             | `border-destructive`, `ring-destructive`, `text-destructive` | zard 错误控件状态         |
+| help text                 | `text-muted-foreground`                                      | 表单说明                  |
+| success/warning help text | `text-text-success` / `text-text-warning`                    | zard 没覆盖的业务校验状态 |
+
+不要在 zard input/select 上直接使用 `components-input-*`。这些 token 只用于非 zard 自定义控件或明确的 Cloud 业务组件视觉。
+
+## 列表、菜单和选择项
+
+| 场景                | 推荐 token                                     | 说明                      |
+| ------------------- | ---------------------------------------------- | ------------------------- |
+| menu/select content | `bg-popover text-popover-foreground`           | 弹层容器                  |
+| item 默认文本       | `text-popover-foreground` 或 `text-foreground` | 根据容器 surface          |
+| item hover          | `bg-accent text-accent-foreground`             | zard menu/select 默认语义 |
+| item selected       | `bg-accent text-accent-foreground`             | zard selected 语义        |
+| item disabled       | zard disabled variant                          | 不手写 disabled 色        |
+| list 普通边框       | `border-border`                                | 通用边框                  |
+| list meta 文本      | `text-muted-foreground`                        | 时间、说明、弱信息        |
+
+不要把 Cloud 的 `components-list-option-*` 当作新页面 list/menu 默认值。只有非 zard 自定义列表控件需要明确业务视觉时再用。
+
+## Badge、状态和标签
+
+zard 的 badge 覆盖 default、secondary、destructive、outline。业务状态需要 Cloud status token。
+
+| 场景              | 推荐 token / 组件                         | 说明                                    |
+| ----------------- | ----------------------------------------- | --------------------------------------- |
+| 普通 badge        | `z-badge` default/secondary/outline       | 用 zard variant                         |
+| destructive badge | `z-badge zType="destructive"`             | 危险/错误 badge                         |
+| running 状态      | `--color-status-running-*`                | 运行中状态，包含 bg/fg/indicator/border |
+| success 状态      | `--color-status-success-*`                | 成功状态                                |
+| warning 状态      | `--color-status-warning-*`                | 警告状态                                |
+| error 状态        | `--color-status-error-*`                  | 错误状态                                |
+| neutral 状态      | `--color-status-neutral-*`                | 中性状态                                |
+| trend up/down     | `--color-trend-up` / `--color-trend-down` | 趋势色                                  |
+
+destructive action 和 status error 不是同一个语义。删除按钮用 zard destructive，状态标签错误背景用 Cloud status error。
+
+## 表格、数据网格和分析视图
+
+zard 普通 table 优先走 zard/table 组件和 core token。分析网格、BI 表格、数据选择状态使用 Cloud data token。
+
+| 场景                        | 推荐 token                                 | 说明             |
+| --------------------------- | ------------------------------------------ | ---------------- |
+| 普通表格背景                | `bg-background` 或组件默认                 | zard 普通 table  |
+| 普通表格边框                | `border-border`                            | 通用边框         |
+| 表头弱背景                  | `bg-muted`                                 | 普通弱化表头     |
+| 行 hover                    | zard table 默认或 `bg-muted`               | 普通 table       |
+| analytical row hover        | `--color-analytical-grid-row-hover-bg`     | 分析网格专用     |
+| analytical striped row      | `--color-analytical-grid-row-striped-bg`   | 分析网格专用     |
+| analytical selection bg     | `--color-analytical-grid-selection-bg`     | 分析网格选中     |
+| analytical selection border | `--color-analytical-grid-selection-border` | 分析网格选中边框 |
+| analytical header           | `--color-analytical-grid-header-bg`        | 分析网格表头     |
+
+## Flow / 节点画布
+
+Flow、agent graph、node canvas 不是 zard core 覆盖的 UI primitive，应使用现有 Cloud flow token。
+
+| 场景             | Token                                    |
+| ---------------- | ---------------------------------------- |
+| 画布背景元素     | `--color-flow-background-element`        |
+| 画布网格/线      | `--color-flow-background-line`           |
+| selection area   | `--color-flow-selection-area`            |
+| 节点背景         | `--color-flow-node-bg`                   |
+| 节点边框         | `--color-flow-node-border`               |
+| 节点文字         | `--color-flow-node-text`                 |
+| 连接线           | `--color-flow-connection`                |
+| snap 连接线      | `--color-flow-connection-snap`           |
+| 连接渐变开始     | `--color-flow-connection-gradient-start` |
+| 连接渐变结束     | `--color-flow-connection-gradient-end`   |
+| 选中节点边框     | `--color-flow-node-selected-border`      |
+| minimap 背景     | `--color-flow-minimap-bg`                |
+| minimap 节点     | `--color-flow-minimap-node`              |
+| minimap 选中节点 | `--color-flow-minimap-node-selected`     |
+| minimap viewport | `--color-flow-minimap-view`              |
+| team group 背景  | `--color-flow-team-group-bg`             |
+
+## Cloud Shell 和业务面板
+
+新页面普通内容区优先使用 zard token。下面这些 token 只用于 Cloud 应用 shell、业务面板、非 zard 自定义组件或明确业务域。
+
+| 场景                        | 推荐 token                                             |
+| --------------------------- | ------------------------------------------------------ |
+| Cloud app body/shell        | `bg-background-body`                                   |
+| Cloud 业务浅底              | `bg-background-default-subtle`                         |
+| Cloud panel 背景            | `bg-components-panel-bg`                               |
+| Cloud panel 透明/blur 背景  | `bg-components-panel-bg-blur`                          |
+| Cloud panel 边框            | `border-components-panel-border`                       |
+| Cloud dropzone 背景         | `bg-components-dropzone-bg`                            |
+| option card selected border | `border-components-option-card-option-selected-border` |
+| kbd 背景                    | `bg-components-kbd-bg-white`                           |
+
+使用这些 token 前先确认：这个区域不是 zard card、popover、menu、select、dialog、button、input 的职责。
+
+## 新页面检查清单
+
+提交新页面前检查：
+
+- 页面根容器是否使用 `bg-background text-foreground` 或继承现有 shell。
+- 普通正文是否使用 `text-foreground`，而不是 `text-primary`。
+- 弱文本是否使用 `text-muted-foreground`。
+- zard card/popover/menu/select/dialog 是否使用 zard 组件或 zard core token。
+- 按钮是否使用 `z-button` variant，而不是手写 `components-button-*`。
+- 表单是否使用 `z-form` 和 zard input/select/checkbox/radio/switch。
+- focus 是否走 `ring-ring` / `border-ring`。
+- destructive action 是否走 zard `destructive`。
+- status/running/success/warning/error 是否走 Cloud `status-*`。
+- flow、analytical grid、trend 是否走对应 Cloud 业务 token。
+- 没有新增硬编码颜色、没有新增 token、没有绕过 zard 已有组件语义。
+
+## 结论
+
+新页面 token 选择边界：
+
+- zard token 负责通用组件和 UI primitive。
+- Cloud token 负责 Xpert 业务域、数据状态、分析网格、flow、应用 shell。
+- 选择 token 时按页面区域和组件语义判断，不按颜色相似度判断。

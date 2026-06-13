@@ -7,16 +7,25 @@ import {
     normalizeMiddlewareProvider,
     type TXpertTeamNode,
     TXpertFeatures,
+    XpertResolvedViewHostContext,
+    XpertViewActionRequest,
     XpertTypeEnum,
     XpertViewHostCapabilities,
     XpertViewHostState,
     XpertViewSlot
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
-import { RequestContext, ViewHostDefinition, ViewHostDefinitionContract } from '@xpert-ai/server-core'
-import { Injectable } from '@nestjs/common'
+import {
+    RequestContext,
+    ViewExtensionFileActionFile,
+    ViewHostDefinition,
+    ViewHostDefinitionContract
+} from '@xpert-ai/server-core'
+import { normalizeUploadedFileName } from '@xpert-ai/server-common'
+import { Inject, Injectable } from '@nestjs/common'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
 
 export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
 export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
@@ -34,7 +43,9 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     constructor(
         private readonly xpertService: XpertService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: VolumeClient
     ) {}
 
     async resolve(hostId: string) {
@@ -79,6 +90,64 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         } catch {
             return false
         }
+    }
+
+    async prepareFileAction(
+        context: XpertResolvedViewHostContext,
+        request: XpertViewActionRequest,
+        file: ViewExtensionFileActionFile
+    ): Promise<XpertViewActionRequest> {
+        const input = isRecord(request.input) ? request.input : {}
+        const workspaceUploadPath = getNonEmptyString(input.workspaceUploadPath)
+        if (!workspaceUploadPath) {
+            return request
+        }
+
+        const uploadFileName =
+            normalizeWorkspaceUploadFileName(
+                getNonEmptyString(input.originalFileName) ??
+                    getNonEmptyString(input.fileName) ??
+                    getNonEmptyString(input.name) ??
+                    file.originalname
+            ) ?? 'upload'
+        const uploaded = await this.createWorkspaceVolumeClient(context.tenantId, context.hostId).uploadFile(
+            '',
+            workspaceUploadPath,
+            normalizeWorkspaceUploadFile(file, uploadFileName)
+        )
+        const uploadedFileName = normalizeWorkspaceUploadedFileName(uploaded.filePath, uploadFileName)
+
+        return {
+            ...request,
+            input: {
+                ...input,
+                workspaceFile: {
+                    ...uploaded,
+                    workspacePath: uploaded.filePath,
+                    filePath: uploaded.filePath,
+                    fileUrl: uploaded.fileUrl ?? uploaded.url,
+                    url: uploaded.fileUrl ?? uploaded.url,
+                    originalName: uploadedFileName,
+                    name: uploadedFileName,
+                    mimeType: uploaded.mimeType ?? file.mimetype,
+                    size: uploaded.size ?? file.size
+                }
+            }
+        }
+    }
+
+    private createWorkspaceVolumeClient(tenantId: string, xpertId: string) {
+        return new VolumeSubtreeClient(
+            this.volumeClient.resolve({
+                tenantId,
+                catalog: 'xperts',
+                xpertId,
+                isolateByUser: false
+            }),
+            {
+                allowRootWorkspace: true
+            }
+        )
     }
 
     private resolveAgentContext(xpert: IXpert): {
@@ -154,4 +223,46 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         const agentNode = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
         return agentNode?.key ?? agentNode?.entity?.key ?? null
     }
+}
+
+function normalizeWorkspaceUploadFile(file: ViewExtensionFileActionFile, fileName: string) {
+    return {
+        originalname: fileName,
+        buffer: file.buffer,
+        mimetype: file.mimetype
+    }
+}
+
+function normalizeWorkspaceUploadedFileName(filePath?: string, fallback?: string) {
+    const fileName = getFileNameFromPath(filePath)
+    if (fileName) {
+        return normalizeWorkspaceUploadFileName(fileName) ?? fileName
+    }
+    return normalizeWorkspaceUploadFileName(fallback) ?? 'upload'
+}
+
+function normalizeWorkspaceUploadFileName(fileName?: string) {
+    try {
+        return normalizeUploadedFileName(fileName)
+    } catch {
+        return getNonEmptyString(fileName)
+    }
+}
+
+function getFileNameFromPath(filePath?: string) {
+    const value = getNonEmptyString(filePath)
+    if (!value) {
+        return undefined
+    }
+    const clean = value.split('?')[0].split('#')[0]
+    const segments = clean.split('/').filter(Boolean)
+    return getNonEmptyString(segments[segments.length - 1])
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function getNonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }

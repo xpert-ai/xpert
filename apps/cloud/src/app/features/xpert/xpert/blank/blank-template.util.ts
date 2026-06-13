@@ -39,7 +39,7 @@ export type BlankKnowledgeTemplateWizardState = {
   selections: Required<KnowledgeBlankWizardSelections>
 }
 
-type BlankAgentTemplateApplyOptions = Pick<BlankXpertDraftBuildOptions, 'defaultCopilotModel' | 'middlewareDefinitions'>
+type BlankAgentTemplateApplyOptions = Pick<BlankXpertDraftBuildOptions, 'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'>
 
 const KNOWLEDGE_MANAGED_NODE_TYPES = new Set<WorkflowNodeTypeEnum>([
   WorkflowNodeTypeEnum.TRIGGER,

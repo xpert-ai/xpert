@@ -352,8 +352,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   // Conversations
-  getConversations(id: string, options: PaginationParams<IChatConversation>, timeRange: string[]) {
-    const params = toHttpParams(options)
+  getConversations(id: string, options: PaginationParams<IChatConversation>, timeRange: string[], search?: string) {
+    let params = toHttpParams(options)
+    const trimmedSearch = search?.trim()
+    if (trimmedSearch) {
+      params = params.set('search', trimmedSearch)
+    }
 
     return this.httpClient.get<{ items: TChatConversationLog[]; total: number }>(
       this.apiBaseUrl + `/${id}/conversations`,

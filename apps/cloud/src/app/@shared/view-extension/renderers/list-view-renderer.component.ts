@@ -14,7 +14,7 @@ import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
       @if (schema().search?.enabled) {
         <div class="flex items-center gap-2">
           <input
-            class="flex-1 rounded-full border border-divider-regular bg-components-input-bg px-4 py-2 text-sm text-text-primary focus:outline-none"
+            class="xp-input flex-1 rounded-full border-divider-regular text-sm text-text-primary"
             [(ngModel)]="searchText"
             [placeholder]="(schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })"
             (keyup.enter)="applySearch.emit(searchText.trim())"

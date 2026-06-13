@@ -15,7 +15,8 @@ function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
         return null
     }
 
-    return path.join(configuredRoot, tenantId ?? '')
+    const root = path.isAbsolute(configuredRoot) ? configuredRoot : path.resolve(process.cwd(), configuredRoot)
+    return path.join(root, tenantId ?? '')
 }
 
 export function hasConfiguredSandboxVolume() {

@@ -177,6 +177,7 @@ jest.mock('../clawxpert/clawxpert.facade', () => ({
 }))
 
 jest.mock('../../../@core', () => {
+  class AssistantBindingService {}
   class ChatConversationService {}
   class Store {}
 
@@ -188,9 +189,14 @@ jest.mock('../../../@core', () => {
       FEATURE_XPERT_CODEXPERT: 'FEATURE_XPERT_CODEXPERT',
       FEATURE_XPERT_DEEP_RESEARCH: 'FEATURE_XPERT_DEEP_RESEARCH'
     },
-    AssistantCode: {
-      CHAT_COMMON: 'chat_common'
+    AssistantBindingScope: {
+      USER: 'user'
     },
+    AssistantCode: {
+      CHAT_COMMON: 'chat_common',
+      CLAWXPERT: 'clawxpert'
+    },
+    AssistantBindingService,
     ChatConversationService,
     Store,
     OrderTypeEnum: {
@@ -211,7 +217,8 @@ jest.mock('@cloud/app/@shared/chat/task-dialog/task-dialog.component', () => ({
   XpertTaskDialogComponent: class XpertTaskDialogComponent {}
 }))
 
-const { ChatConversationService, Store } = jest.requireMock('../../../@core') as {
+const { AssistantBindingService, ChatConversationService, Store } = jest.requireMock('../../../@core') as {
+  AssistantBindingService: new (...args: any[]) => unknown
   ChatConversationService: new (...args: any[]) => unknown
   Store: new (...args: any[]) => unknown
 }
@@ -239,6 +246,9 @@ describe('ChatHomeComponent', () => {
     getMyInOrg: jest.Mock
     delete: jest.Mock
   }
+  let assistantBindingService: {
+    getAvailableXperts: jest.Mock
+  }
   let store: {
     featureOrganizations$: Observable<unknown[]>
     featureTenant$: Observable<unknown[]>
@@ -247,6 +257,8 @@ describe('ChatHomeComponent', () => {
     featureContextHydrationLoading$: Observable<boolean>
     featureContextHydrationLoading: boolean
     hasFeatureEnabled: jest.Mock
+    organizationId: string | null
+    selectOrganizationId: jest.Mock
   }
   let dialog: {
     open: jest.Mock
@@ -278,6 +290,9 @@ describe('ChatHomeComponent', () => {
       getMyInOrg: jest.fn(() => of({ items: [], total: 0 })),
       delete: jest.fn(() => of({}))
     }
+    assistantBindingService = {
+      getAvailableXperts: jest.fn(() => of([]))
+    }
     store = {
       featureOrganizations$: of([]),
       featureTenant$: of([]),
@@ -285,6 +300,8 @@ describe('ChatHomeComponent', () => {
       featureContextHydrated: true,
       featureContextHydrationLoading$: of(false),
       featureContextHydrationLoading: false,
+      organizationId: 'org-1',
+      selectOrganizationId: jest.fn(() => of('org-1')),
       hasFeatureEnabled: jest.fn((feature: string) =>
         ['FEATURE_XPERT', 'FEATURE_XPERT_CLAWXPERT', 'FEATURE_XPERT_CHATBI'].includes(feature)
       )
@@ -334,6 +351,10 @@ describe('ChatHomeComponent', () => {
         {
           provide: ChatConversationService,
           useValue: conversationService
+        },
+        {
+          provide: AssistantBindingService,
+          useValue: assistantBindingService
         },
         {
           provide: Store,
@@ -454,6 +475,78 @@ describe('ChatHomeComponent', () => {
     fixture.nativeElement.querySelector('[data-clawxpert-open]').click()
 
     expect(navigateSpy).toHaveBeenCalledWith('/chat/clawxpert')
+  })
+
+  it('renders accessible xpert avatars below the ClawXpert card and opens the workbench route', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'xpert-1',
+          slug: 'sales',
+          title: 'Sales Xpert',
+          description: 'Revenue assistant',
+          latest: true
+        }
+      ])
+    )
+    clawxpertFacade.currentXpert.set({ title: '扣子' })
+    clawxpertFacade.viewState.set('ready')
+    clawxpertFacade.sidebarStatus.set('idle')
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+    homeService.conversationId.set('conversation-1')
+    homeService.conversation.set({ id: 'conversation-1' })
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const sidebar = fixture.nativeElement.querySelector('[data-chat-sidebar-xperts]')
+    const avatar = fixture.nativeElement.querySelector('[data-sidebar-xpert-avatar]')
+
+    expect(sidebar).not.toBeNull()
+    expect(sidebar.getAttribute('data-state')).toBe('expanded')
+    expect(avatar.getAttribute('data-xpert-id')).toBe('xpert-1')
+    expect(fixture.nativeElement.querySelector('[data-sidebar-xpert-title]').textContent).toContain('Sales Xpert')
+    expect(fixture.nativeElement.querySelector('[data-sidebar-xpert-description]').textContent).toContain(
+      'Revenue assistant'
+    )
+
+    avatar.click()
+
+    expect(homeService.conversationId()).toBeNull()
+    expect(homeService.conversation()).toBeNull()
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'sales', 'c'])
+  })
+
+  it('keeps accessible xpert avatars visible when the sidebar is collapsed', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'xpert-1',
+          slug: 'sales',
+          title: 'Sales Xpert',
+          latest: true
+        }
+      ])
+    )
+
+    const fixture = TestBed.createComponent(ChatHomeComponent)
+    fixture.componentInstance.sidebarState.set('closed')
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const sidebar = fixture.nativeElement.querySelector('[data-chat-sidebar-xperts]')
+    const avatar = fixture.nativeElement.querySelector('[data-sidebar-xpert-avatar]')
+
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(avatar).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-sidebar-xpert-title]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-sidebar-xpert-description]')).toBeNull()
   })
 
   it('redirects away from ClawXpert when the feature is disabled after hydration', async () => {

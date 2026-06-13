@@ -1,0 +1,53 @@
+
+
+@theme inline {
+  --color-text-primary: var(--sys-text-primary);
+  --color-text-secondary: var(--sys-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-quaternary: var(--color-text-quaternary);
+  --color-text-destructive: var(--color-text-destructive);
+  --color-text-success: var(--color-text-success);
+  --color-text-warning: var(--color-text-warning);
+  --color-text-accent: var(--color-text-accent);
+  --color-text-accent-secondary: var(--color-text-accent-secondary);
+  --color-text-highlight-bg: var(--color-text-highlight-bg);
+  --color-divider-subtle: var(--sys-border);
+  --color-divider-regular: var(--sys-border);
+  --color-divider-deep: var(--sys-border-strong);
+  --color-hover-bg: var(--sys-state-hover);
+  --color-status-error-bg: var(--color-status-error-bg);
+  --color-components-card-bg: var(--sys-surface-elevated);
+  --color-components-panel-bg: var(--sys-surface-overlay);
+  --color-components-panel-bg-blur: var(--color-components-panel-bg-blur);
+  --color-components-panel-border: var(--color-components-panel-border);
+  --color-components-button-primary-text: var(--color-components-button-primary-text);
+  --color-components-button-primary-border: var(--sys-primary);
+  --color-components-button-primary-bg: var(--sys-primary);
+  --color-components-button-secondary-border: var(--sys-border
+  -control);
+  --color-components-button-secondary-border-hover: var(--sys-border
+  -strong);
+  --color-components-button-secondary-bg: var(--color-components-button-secondary-bg);
+  --color-components-button-secondary-bg-hover: var(--color-components-button-secondary-bg-hover);
+  --color-components-input-bg-disabled: var(--sys-surface-field);
+  --color-components-input-bg-normal: var(--color-components-input-bg-normal);
+  --color-components-input-bg-hover: var(--color-components-input-bg-hover);
+  --color-components-input-bg-active: var(--color-components-input-bg-active);
+  --color-components-input-border-hover: var(--color-components-input-border-hover);
+  --color-components-input-border-active: var(--ring);
+  --color-components-input-text-filled: var(--sys-text-primary);
+  --color-components-input-text-filled-disabled: var(--color-components-input-text-filled-disabled);
+  --color-components-input-text-placeholder: var(--color-components-input-text-placeholder);
+  --color-components-list-option-bg: var(--color-components-list-option-bg);
+  --color-components-list-option-active-bg: var(--color-components-list-option-active-bg);
+  --color-components-toggle-bg: var(--color-components-toggle-bg);
+  --color-components-kbd-bg-white: var(--color-components-kbd-bg-white);
+  --color-background-default-subtle: var(--color-background-default-subtle);
+  --color-border-l2: var(--sys-border-control);
+  --color-input-border: var(--color-input-border);
+  --color-background-body: var(--color-background-body);
+  --color-divider-burn: var(--color-divider-burn);
+  --color-components-dropzone-bg: var(--sys-surface-subtle);
+  --color-components-checkbox-bg: var(--sys-primary);
+  --color-components-option-card-option-selected-border: var(--color-components-option-card-option-selected-border);
+}

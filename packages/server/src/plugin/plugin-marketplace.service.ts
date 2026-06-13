@@ -1176,12 +1176,23 @@ export class PluginMarketplaceService {
 	}
 
 	private mergePackageJsonPlugin(packageJson: JsonRecord, plugin: JsonRecord): JsonRecord {
+		const pluginInterface = readRecord(plugin.interface) ?? readRecord(packageJson.interface) ?? {}
 		return {
 			name: plugin.name ?? packageJson.name,
 			version: plugin.version ?? packageJson.version,
-			displayName: plugin.displayName ?? plugin.title ?? packageJson.displayName ?? packageJson.name,
-			description: plugin.description ?? packageJson.description ?? '',
-			category: plugin.category ?? 'integration',
+			displayName:
+				plugin.displayName ??
+				plugin.title ??
+				pluginInterface.displayName ??
+				packageJson.displayName ??
+				packageJson.name,
+			description:
+				plugin.description ??
+				packageJson.description ??
+				pluginInterface.shortDescription ??
+				pluginInterface.longDescription ??
+				'',
+			category: plugin.category ?? pluginInterface.category ?? 'integration',
 			author: plugin.author ?? packageJson.author,
 			homepage: plugin.homepage ?? packageJson.homepage,
 			repository: plugin.repository ?? packageJson.repository,
@@ -1198,15 +1209,17 @@ export class PluginMarketplaceService {
 		if (!name) {
 			return null
 		}
+		const pluginInterface = readRecord(input.interface) ?? {}
+		const entrySource = this.normalizeMarketplacePluginSource(input.source, source)
 
 		const item: MarketplaceRegistryPlugin = {
 			...input,
 			name,
 			packageName: this.normalizeOptionalString(input.packageName) ?? name,
 			version: this.normalizeOptionalString(input.version) ?? null,
-			displayName: input.displayName ?? input.title ?? name,
-			description: input.description ?? '',
-			category: input.category ?? 'integration',
+			displayName: input.displayName ?? input.title ?? pluginInterface.displayName ?? name,
+			description: input.description ?? pluginInterface.shortDescription ?? pluginInterface.longDescription ?? '',
+			category: input.category ?? pluginInterface.category ?? 'integration',
 			keywords: Array.isArray(input.keywords) ? input.keywords.filter((value) => typeof value === 'string') : [],
 			targetApps: Array.isArray(input.targetApps)
 				? input.targetApps.filter((value) => typeof value === 'string')
@@ -1214,14 +1227,40 @@ export class PluginMarketplaceService {
 			targetAppMeta: readRecord(input.targetAppMeta) ?? {},
 			sourceId: source.id,
 			sourceName: source.name,
-			source: readRecord(input.source) ?? {
-				type: source.builtin ? 'marketplace' : source.type,
-				url: source.url
-			},
+			source: entrySource,
+			policy: readRecord(input.policy) ?? undefined,
+			interface: Object.keys(pluginInterface).length ? pluginInterface : undefined,
+			defaultPrompt: this.readStringArray(pluginInterface.defaultPrompt),
 			_marketplaceIndex: index
 		}
 
 		return item
+	}
+
+	private normalizeMarketplacePluginSource(value: unknown, source: MarketplaceSourceRecord) {
+		const sourceRecord = readRecord(value)
+		if (sourceRecord) {
+			const kind = this.normalizeOptionalString(sourceRecord.source ?? sourceRecord.type)
+			return {
+				...sourceRecord,
+				...(kind ? { type: kind, source: kind } : {})
+			}
+		}
+
+		const pathSource = this.normalizeOptionalString(value)
+		if (pathSource) {
+			return {
+				type: 'local',
+				source: 'local',
+				path: pathSource
+			}
+		}
+
+		return {
+			type: source.builtin ? 'marketplace' : source.type,
+			source: source.builtin ? 'marketplace' : source.type,
+			url: source.url
+		}
 	}
 
 	private async enrichCatalogWithNpmDownloads(
@@ -1636,13 +1675,15 @@ export class PluginMarketplaceService {
 	private buildCandidatePaths(sparsePath?: string | null) {
 		const base = this.normalizePath(sparsePath)
 		const candidates = [
+			'.agents/plugins/marketplace.json',
+			'.claude-plugin/marketplace.json',
 			'plugins/index.json',
 			'plugin-marketplace.json',
 			'marketplace.json',
 			'index.json',
 			'.xpert/marketplace.json',
 			'.xpert/plugin-marketplace.json',
-			'.xpert-plugin/plugin.json',
+			'.xpertai-plugin/plugin.json',
 			'plugin.json',
 			'package.json'
 		]

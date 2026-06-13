@@ -49,6 +49,8 @@
       "MODIFY": "Modify",
       "NEW": "New",
       "NAME": "Name",
+      "Name": "Name",
+      "Description": "Description",
       "NOTIFICATION_DESTINATION": "Notification Destination",
       "Role&Permissions": "Role & Permissions",
       "SEMANTIC_MODEL": "Semantic Model",
@@ -331,6 +333,22 @@
         "account": "Account",
         "general": "General"
       }
+    },
+    "Workflow": {
+      "AgentWorkflow": "Agent Workflow"
+    },
+    "Xpert": {
+      "ToolParameters": "Tool Parameters",
+      "ToolName": "Tool Name",
+      "ToolDescription": "Tool Description",
+      "AgentToolReturnContent": "Return Content",
+      "AgentToolReturnContentTooltip": "Choose the value returned to the calling agent as the tool result.",
+      "AgentToolReturnLastMessage": "Last message",
+      "AgentToolReturnVariable": "Variable",
+      "AgentToolReturnTemplate": "Template",
+      "AgentToolReturnTemplateTooltip": "Write a Mustache template for the tool result. Use the variable picker to insert workflow values.",
+      "End": "End",
+      "EndTool": "End point tool. The conversation ends when the tool completes."
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
@@ -710,6 +728,9 @@
       "ChunkMetadata": "Chunk Metadata",
       "NoMetadata": "No metadata",
       "MetadataJson": "Metadata JSON",
+      "DownloadOriginalFile": "Download original file",
+      "DownloadOriginalFiles": "Download originals",
+      "NoOriginalFilesToDownload": "No downloadable original files are available.",
       "ModelConfiguration": "Model Configuration",
       "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
       "ModelConfigurationManagedInSettings": "Chat, embedding, vision, and rerank models are configured on the knowledgebase configuration page.",

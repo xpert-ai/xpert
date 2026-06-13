@@ -1,164 +1,56 @@
-import { ToolMessage } from '@langchain/core/messages'
-import { RunnableLambda } from '@langchain/core/runnables'
-import { tool } from '@langchain/core/tools'
-import { Annotation } from '@langchain/langgraph'
-import {
-	channelName,
-	IEnvironment,
-	IWFNAgentTool,
-	IWorkflowNode,
-	IXpertAgentExecution,
-	TAgentRunnableConfigurable,
-	TToolCall,
-	TXpertGraph,
-	TXpertTeamNode,
-	WorkflowNodeTypeEnum
-} from '@xpert-ai/contracts'
+import { IEnvironment, IWorkflowNode, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { z } from 'zod'
-import { AgentStateAnnotation, createParameters, nextWorkflowNodes, TWorkflowGraphNode } from '../../../shared'
-import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { TWorkflowGraphNode } from '../../../shared'
+import {
+    agentToolOutputVariables as pluginAgentToolOutputVariables,
+    createWorkflowAgentToolNode,
+    WORKFLOW_AGENT_TOOL_ARGS_CHANNEL
+} from '../../plugins/agent-tool'
+import type { TWorkflowAgentToolState } from '../../plugins/agent-tool'
 
+export { WORKFLOW_AGENT_TOOL_ARGS_CHANNEL }
+export type { TWorkflowAgentToolState }
 
-export const WORKFLOW_AGENT_TOOL_ARGS_CHANNEL = 'args'
-export type TWorkflowAgentToolState = {
-	[WORKFLOW_AGENT_TOOL_ARGS_CHANNEL]: Record<string, any>
-	toolCall: TToolCall
-}
-
+/**
+ * @deprecated Use WorkflowAgentWorkflowNodeStrategy from xpert-agent/plugins/agent-tool instead.
+ */
 export function createAgentToolNode(
-	graph: TXpertGraph,
-	node: TXpertTeamNode & { type: 'workflow' },
-	params: {
-		leaderKey: string
-		commandBus: CommandBus
-		queryBus: QueryBus
-		xpertId: string
-		environment: IEnvironment
-		conversationId: string
-	}
+    graph: TXpertGraph,
+    node: TXpertTeamNode & { type: 'workflow' },
+    params: {
+        leaderKey: string
+        commandBus: CommandBus
+        queryBus: QueryBus
+        xpertId: string
+        environment: IEnvironment
+        conversationId: string
+    }
 ) {
-	const { commandBus, queryBus, leaderKey, xpertId, environment, conversationId } = params
-	const entity = node.entity as IWFNAgentTool
-
-	const toolName = entity.toolName || entity.key
-	const zodSchema = z.object({
-		...createParameters(entity.toolParameters)
-	})
-
-	return {
-		workflowNode: {
-			name: toolName,
-			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
-				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId, projectId, agentKey } =
-					configurable
-
-				const toolCall = state.toolCall
-				const args = toolCall?.args
-
-				if (!toolCall) {
-					const messages = state.messages
-					const lastMessage = messages[messages.length - 1]
-					const toolCall = (<TWorkflowAgentToolState>state[channelName(node.key)]).toolCall
-					return {
-						[channelName(leaderKey)]: {
-							messages: [
-								new ToolMessage({
-									tool_call_id: toolCall?.id,
-									content: lastMessage.content
-								})
-							]
-						},
-						messages: [
-							new ToolMessage({
-								tool_call_id: toolCall?.id,
-								content: lastMessage.content
-							})
-						],
-						[channelName(node.key)]: {
-							toolCall: null
-						}
-					}
-				}
-
-				const execution: IXpertAgentExecution = {
-					category: 'workflow',
-					type: WorkflowNodeTypeEnum.AGENT_TOOL,
-					inputs: args,
-					parentId: executionId,
-					threadId: thread_id,
-					checkpointNs: checkpoint_ns,
-					checkpointId: checkpoint_id,
-					agentKey: node.key,
-					title: entity.title
-				}
-				return await wrapAgentExecution(
-					async () => {
-						return {
-							state: {
-								[channelName(node.key)]: {
-									toolCall,
-									[WORKFLOW_AGENT_TOOL_ARGS_CHANNEL]: args
-								}
-							}
-						}
-					},
-					{
-						commandBus: commandBus,
-						queryBus: queryBus,
-						subscriber: subscriber,
-						execution
-					}
-				)()
-			}),
-			ends: []
-		},
-		channel: {
-			name: channelName(node.key),
-			annotation: Annotation<Record<string, unknown>>({
-				reducer: (a, b) => {
-					return b
-						? {
-								...a,
-								...b
-							}
-						: a
-				},
-				default: () => ({})
-			})
-		},
-		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			const toolCall = (<TWorkflowAgentToolState>state[channelName(node.key)])?.toolCall
-			if (!toolCall) {
-				return leaderKey
-			}
-			return nextWorkflowNodes(graph, node.key, state)
-		},
-		caller: leaderKey,
-		toolset: {
-			provider: 'workflow_agent_tool',
-			title: entity.title
-		},
-		tool: tool(
-			() => {
-				//
-			},
-			{
-				name: toolName,
-				description: entity.toolDescription,
-				schema: zodSchema
-			}
-		)
-	} as TWorkflowGraphNode
+    const result = createWorkflowAgentToolNode(graph, node, {
+        leaderKey: params.leaderKey,
+        commandBus: params.commandBus,
+        queryBus: params.queryBus,
+        environment: params.environment
+    })
+    const workflowNode: TWorkflowGraphNode = {
+        workflowNode: {
+            name: result.name,
+            graph: result.graph,
+            ends: result.ends
+        },
+        channel: result.channel,
+        navigator: result.navigator,
+        caller: result.caller,
+        toolset: result.toolset,
+        tool: result.tool,
+        variables: result.variables
+    }
+    return workflowNode
 }
 
+/**
+ * @deprecated Use WorkflowAgentWorkflowNodeStrategy.outputVariables from xpert-agent/plugins/agent-tool instead.
+ */
 export function agentToolOutputVariables(entity: IWorkflowNode) {
-	const agentTool = entity as IWFNAgentTool
-	return [
-		...(agentTool.toolParameters ?? []).map((param) => ({
-			...param,
-			name: WORKFLOW_AGENT_TOOL_ARGS_CHANNEL + '.' + param.name
-		}))
-	]
+    return pluginAgentToolOutputVariables(entity)
 }

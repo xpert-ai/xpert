@@ -167,18 +167,9 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             } as any
         )
 
-        const expectedMessageContent = [
-            'steer input 1',
-            '',
-            'steer input 2',
-            '',
-            'Referenced content:',
-            '[Quoted text]',
-            '> ref-1',
-            '',
-            '[Quoted text]',
-            '> ref-2'
-        ].join('\n')
+        const expectedMessageContent = ['steer input 1', '', 'Referenced content:', '[Quoted text]', '> ref-1'].join(
+            '\n'
+        )
         const getMessageContent = (message: unknown) => {
             if (!message || typeof message !== 'object') {
                 return undefined
@@ -205,30 +196,28 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
 
         expect(result).toEqual(
             expect.objectContaining({
-                input: 'steer input 1\n\nsteer input 2',
+                input: 'steer input 1',
                 [STATE_VARIABLE_HUMAN]: {
-                    input: 'steer input 1\n\nsteer input 2',
+                    input: 'steer input 1',
                     files: [
                         expect.objectContaining({
                             id: 'file-1'
-                        }),
-                        expect.objectContaining({
-                            id: 'file-2'
                         })
                     ],
                     references: [
                         expect.objectContaining({
                             type: 'quote',
                             text: 'ref-1'
-                        }),
-                        expect.objectContaining({
-                            type: 'quote',
-                            text: 'ref-2'
                         })
                     ],
-                    custom: 'late'
+                    custom: 'early'
                 },
-                [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
+                [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
+                    expect.objectContaining({
+                        messageId: 'db-message-2',
+                        clientMessageId: 'client-message-2'
+                    })
+                ]
             })
         )
         expect(getMessageContent(result.messages[0])).toBe(expectedMessageContent)
@@ -238,10 +227,6 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             expect.arrayContaining([
                 expect.objectContaining({
                     id: 'db-message-1',
-                    followUpStatus: 'consumed'
-                }),
-                expect.objectContaining({
-                    id: 'db-message-2',
                     followUpStatus: 'consumed'
                 })
             ])
@@ -255,7 +240,8 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
                         type: 'follow_up_consumed',
                         mode: 'steer',
                         executionId: 'execution-1',
-                        clientMessageIds: ['client-message-1', 'client-message-2']
+                        clientMessageIds: ['client-message-1'],
+                        messageIds: ['db-message-1']
                     })
                 })
             })

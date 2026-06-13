@@ -1,4 +1,4 @@
-<div class="flex items-center py-1 -mx-[1px] sticky top-12 z-10 bg-surface-container">
+<div class="flex items-center py-1 -mx-[1px] sticky top-12 z-10 bg-background-body">
   <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="avatar()" />
   <div class="truncate text-text-secondary">{{ title() }}</div>
 </div>
@@ -45,7 +45,7 @@
   @if (reasoning()) {
     <chat-thought
       [message]="message()"
-      class="border-2 border-divider-subtle rounded-3xl mb-4 overflow-clip bg-surface-container"
+      class="border-2 border-divider-subtle rounded-3xl mb-4 overflow-clip bg-background-body"
       [class.reasoning]="status() === 'reasoning'"
     />
   }
@@ -60,7 +60,7 @@
       @if (!isContextCompressionContent(submessage)) {
         <chat-message-avatar
           #avatar
-          class="group sticky top-14 z-10 bg-surface-container"
+          class="group sticky top-14 z-10 bg-background-body"
           [prevContent]="contents()[i - 1]"
           [message]="message()"
           [content]="submessage"
@@ -101,7 +101,7 @@
           @if (depth === 0 && !isContextCompressionContent(contentValue)) {
             <chat-message-avatar
               #avatar
-              class="group sticky top-14 z-10 bg-surface-container"
+              class="group sticky top-14 z-10 bg-background-body"
               [prevContent]="previousEntryContent(units, i)"
               [message]="message()"
               [content]="contentValue"
@@ -122,13 +122,13 @@
           <chat-thought
             [message]="message()"
             [content]="reasoningEntry(entry)"
-            class="block overflow-clip rounded-2xl border border-divider-subtle bg-surface-container"
+            class="block overflow-clip rounded-2xl border border-divider-subtle bg-background-body"
           />
         } @else {
           @let event = agentEvent(entry);
           <div
             class="flex items-start gap-2 rounded-md px-2 py-1.5 text-xs leading-5"
-            [class.bg-state-destructive-hover]="isAgentEventError(event)"
+            [class.bg-status-error-bg]="isAgentEventError(event)"
             [class.text-text-destructive]="isAgentEventError(event)"
             [class.bg-components-card-bg]="!isAgentEventError(event)"
             [class.text-text-secondary]="!isAgentEventError(event)"
@@ -210,7 +210,7 @@
             <div class="mt-2 space-y-3">
               @if (agentRunError(node); as error) {
                 <pre
-                  class="rounded-md bg-state-destructive-hover px-2 py-2 text-xs text-text-destructive whitespace-pre-wrap break-words"
+                  class="rounded-md bg-status-error-bg px-2 py-2 text-xs text-text-destructive whitespace-pre-wrap break-words"
                   >{{ error }}</pre
                 >
               }
@@ -231,7 +231,7 @@
     }
     @if (lastStep(); as event) {
       <div
-        class="px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary truncate bg-components-card-bg hover:bg-hover-bg"
+        class="px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-text-secondary truncate bg-components-card-bg hover:bg-hover-bg"
         [zTooltip]="message().error"
         zPosition="top"
       >
@@ -247,7 +247,7 @@
   @if (lastStep(); as step) {
     <div class="relative group flex-1 min-w-0 mt-2 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
-        class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
+        class="rounded-xl flex flex-col gap-1 p-1 border border-divider-subtle bg-components-card-bg max-w-full clickable hover:bg-hover-bg dark:hover:bg-hover-bg"
       >
         @for (step of steps(); track $index) {
           <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-hover-bg" >
@@ -255,14 +255,14 @@
               [step]="{category: step.category}"
             />
             <div class="flex-1 h-full min-w-0 flex">
-              <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
+              <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-text-secondary max-w-[100%]">
                 <div
                   class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px] group-hover/item:text-text-primary"
                   [title]="step.message || step.title"
                 >
                   <div class="flex items-center">
                     <span
-                      class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
+                      class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-text-tertiary"
                       >
                       {{ step.message || step.title }}
                     </span>

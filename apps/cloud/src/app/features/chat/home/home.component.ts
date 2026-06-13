@@ -47,6 +47,7 @@ import { AppService } from '../../../app.service'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
+import { ChatSidebarXpertsComponent } from '../sidebar-xperts/sidebar-xperts.component'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -64,6 +65,7 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
     ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    ChatSidebarXpertsComponent,
     NgmI18nPipe
   ],
   selector: 'pac-chat-home',
@@ -127,7 +129,7 @@ export class ChatHomeComponent {
   })
   readonly showLegacyHistory = computed(() => {
     const url = this.currentUrl()
-    return !isClawXpertRoute(url)
+    return !isWorkbenchChatRoute(url)
   })
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
@@ -470,4 +472,12 @@ function normalizeChatRoute(url: string) {
 
 function isClawXpertRoute(url: string) {
   return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatRoute(url))
+}
+
+function isXpertWorkbenchRoute(url: string) {
+  return /^\/chat\/x\/[^/]+\/c(?:\/|$)/.test(normalizeChatRoute(url))
+}
+
+function isWorkbenchChatRoute(url: string) {
+  return isClawXpertRoute(url) || isXpertWorkbenchRoute(url)
 }

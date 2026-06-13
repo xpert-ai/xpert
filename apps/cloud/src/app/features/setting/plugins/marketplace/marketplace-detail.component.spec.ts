@@ -6,6 +6,7 @@ import { of } from 'rxjs'
 import { XpertTypeEnum } from '@cloud/app/@core'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { TPluginWithDownloads } from '../types'
+import { PluginResourcesComponent } from '../resources/resources.component'
 import { PluginMarketplaceDetailComponent } from './marketplace-detail.component'
 
 function createPlugin(overrides: Partial<TPluginWithDownloads> = {}): TPluginWithDownloads {
@@ -109,6 +110,24 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(component.contentTypeIcon(content.type)).toBe('ri-robot-2-line')
   })
 
+  it('styles content type badges by contribution type', async () => {
+    const { fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+
+    const badges = Array.from(fixture.nativeElement.querySelectorAll<HTMLElement>('z-badge'))
+
+    expect(badges.some((badge) => badge.className.includes('bg-state-success-hover/20'))).toBe(true)
+  })
+
   it('does not initialize assistant templates before the plugin is installed', async () => {
     const { component, dialog } = await createComponent(createPlugin({ installed: false }))
 
@@ -164,6 +183,84 @@ describe('PluginMarketplaceDetailComponent', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           initialTemplateId: '@acme/plugin-crm:crm-business-assistant'
+        })
+      })
+    )
+  })
+
+  it('opens plugin resource initialization for skill contributions', async () => {
+    const { component, dialog } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+
+    const resource = component.resourceContribution(component.contents()[0])
+    expect(resource?.componentType).toBe('skill')
+
+    if (!resource) {
+      throw new Error('Expected resource contribution')
+    }
+    component.initializeResource(resource)
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      PluginResourcesComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          plugin: expect.objectContaining({
+            name: '@xpert-ai/plugin-salesclaw',
+            loadStatus: 'loaded'
+          }),
+          initialComponents: [
+            {
+              componentType: 'skill',
+              componentKey: 'browser-research'
+            }
+          ],
+          initialInstallMode: 'workspace'
+        })
+      })
+    )
+  })
+
+  it('opens plugin resource initialization in Xpert mode for hook contributions', async () => {
+    const { component, dialog } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'hook',
+            name: 'hooks',
+            displayName: 'Browser Safety Hooks'
+          }
+        ]
+      })
+    )
+
+    const resource = component.resourceContribution(component.contents()[0])
+    expect(resource?.componentType).toBe('hook')
+
+    if (!resource) {
+      throw new Error('Expected resource contribution')
+    }
+    component.initializeResource(resource)
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      PluginResourcesComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          initialComponents: [
+            {
+              componentType: 'hook',
+              componentKey: 'hooks'
+            }
+          ],
+          initialInstallMode: 'xpert'
         })
       })
     )

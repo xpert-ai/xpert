@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -35,7 +35,7 @@
     &.editable {
       padding-top: var(--header-size);
       border: 2px solid themeCompat.m2-get-color-from-palette($primary, 200);
-      transition: all .1s ease-in;
+      transition: all 0.1s ease-in;
       border-radius: 5px;
 
       .ngm-responsive__fab-menu {
@@ -88,22 +88,24 @@
         position: absolute;
         top: 0;
         right: 0;
-        opacity: .2;
+        opacity: 0.2;
         &:hover {
           opacity: 1;
         }
       }
     }
-    
+
   }
-  
+
 }
 
 @mixin density($config-or-theme) {
 }
 
-@mixin theme($theme) {
+@mixin typography($config-or-theme) {
+}
 
+@mixin theme($theme) {
   $density: themeCompat.m2-get-density-config($theme);
 
   $color-config: themeCompat.m2-get-color-config($theme);
@@ -115,7 +117,7 @@
   @if $typography-config != null {
     @include typography($theme);
   }
-  
+
   @if $density != null {
     @include density($density);
   }

@@ -30,7 +30,7 @@
   </ngm-card-create>
 
   @for (toolset of toolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-token-main-surface-low"
+    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-[var(--sys-surface-subtle)]"
       [highlight]="searchText()"
       [toolset]="toolset"
       (click)="openToolset(toolset)"

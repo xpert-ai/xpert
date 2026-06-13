@@ -15,7 +15,7 @@
             zShape="circle"
 
             displayDensity="cosy"
-            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
             cdkDropList
             [cdkDropListEnterPredicate]="levelRemovePredicate"
             (cdkDropListDropped)="removeLevel($event)"
@@ -69,7 +69,7 @@
             zShape="circle"
 
             displayDensity="cosy"
-            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
             cdkDropList
             [cdkDropListEnterPredicate]="tableRemovePredicate"
             (cdkDropListDropped)="removeTable($event)"
@@ -115,7 +115,7 @@
                 [zTooltip]="'PAC.KEY_WORDS.Limit' | translate: { Default: 'Limit' }"
               ></i>
               <input
-                class="w-full appearance-none border border-transparent py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+                class="xp-input w-full pl-[26px]"
                 type="number"
                 [placeholder]="'PAC.MODEL.Limit' | translate: { Default: 'Limit' }"
                 [(ngModel)]="limit"

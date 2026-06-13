@@ -6,11 +6,11 @@
 
 .ngm-resizer-bar {
   opacity: 0;
-  background-color: var(--ngm-accent-color, theme('colors.amber.400'));
+  background-color: var(--resizer-accent-color, var(--color-components-accent-indicator-bg, theme('colors.amber.400')));
   transition: opacity 0.1s ease-in-out;
 }
 .ngm-resizer-bar:hover,
 .ngm-resizer-bar.cdk-drag-dragging {
   opacity: 1;
-  transition: opacity 0.1s ease-in-out .5s;
+  transition: opacity 0.1s ease-in-out 0.5s;
 }

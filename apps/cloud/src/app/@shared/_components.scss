@@ -1,46 +1,114 @@
 @reference "tailwindcss";
+:root {
+  --xpert-status-indicator-shadow:
+    0 0 5px -3px color-mix(in oklab, var(--color-status-success-indicator-border) 10%, transparent),
+    0.5px 0.5px 3px color-mix(in oklab, var(--color-status-success-indicator-border) 30%, transparent),
+    inset 1.5px 1.5px 0 color-mix(in oklab, var(--color-components-button-primary-text) 20%, transparent);
+}
+
 .xpert-execution-status {
   .container {
-    @apply bg-neutral-200/20;
+    background-color: var(--color-status-neutral-bg);
   }
   .indicator-container {
-    @apply text-neutral-500;
+    color: var(--color-status-neutral-fg);
   }
   .indicator {
-    @apply bg-neutral-600 border-neutral-700 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)];
+    @apply h-2 w-2 shrink-0 rounded-[3px] border border-solid;
+    box-shadow: var(--xpert-status-indicator-shadow);
+    background-color: var(--color-status-neutral-indicator-bg);
+    border-color: var(--color-status-neutral-indicator-border);
   }
-  
+
   &.running {
     .container {
-      @apply bg-blue-200/20;
+      background-color: var(--color-status-running-bg);
     }
     .indicator-container {
-      @apply text-blue-500;
+      color: var(--color-status-running-fg);
     }
     .indicator {
-      @apply bg-blue-500 border-blue-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)];
+      background-color: var(--color-status-running-indicator-bg);
+      border-color: var(--color-status-running-indicator-border);
     }
   }
   &.success {
     .container {
-      @apply bg-green-200/20;
+      background-color: var(--color-status-success-bg);
     }
     .indicator-container {
-      @apply text-green-500;
+      color: var(--color-status-success-fg);
     }
     .indicator {
-      @apply bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)];
+      background-color: var(--color-status-success-indicator-bg);
+      border-color: var(--color-status-success-indicator-border);
     }
   }
-  &.error {
+  &.error,
+  &.fail {
     .container {
-      @apply bg-red-200/20;
+      background-color: var(--color-status-error-bg);
     }
     .indicator-container {
-      @apply text-red-600;
+      color: var(--color-status-error-fg);
     }
     .indicator {
-      @apply bg-red-400 border-red-500 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)];
+      background-color: var(--color-status-error-indicator-bg);
+      border-color: var(--color-status-error-indicator-border);
     }
   }
+}
+
+.xpert-status-indicator {
+  @apply h-2 w-2 shrink-0 rounded-[3px] border border-solid;
+  box-shadow: var(--xpert-status-indicator-shadow);
+}
+
+.xpert-status-indicator--md {
+  @apply h-2.5 w-2.5;
+}
+
+.xpert-status-indicator--neutral {
+  background-color: var(--color-status-neutral-indicator-bg);
+  border-color: var(--color-status-neutral-indicator-border);
+}
+
+.xpert-status-indicator--running {
+  background-color: var(--color-status-running-indicator-bg);
+  border-color: var(--color-status-running-indicator-border);
+}
+
+.xpert-status-indicator--warning {
+  background-color: var(--color-status-warning-indicator-bg);
+  border-color: var(--color-status-warning-indicator-border);
+}
+
+.xpert-status-indicator--success {
+  background-color: var(--color-status-success-indicator-bg);
+  border-color: var(--color-status-success-indicator-border);
+}
+
+.xpert-status-indicator--error {
+  background-color: var(--color-status-error-indicator-bg);
+  border-color: var(--color-status-error-indicator-border);
+}
+
+.xpert-status-text--neutral {
+  color: var(--color-status-neutral-fg);
+}
+
+.xpert-status-text--running {
+  color: var(--color-status-running-fg);
+}
+
+.xpert-status-text--warning {
+  color: var(--color-status-warning-fg);
+}
+
+.xpert-status-text--success {
+  color: var(--color-status-success-fg);
+}
+
+.xpert-status-text--error {
+  color: var(--color-status-error-fg);
 }

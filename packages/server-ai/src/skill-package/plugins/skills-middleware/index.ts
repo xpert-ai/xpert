@@ -46,8 +46,7 @@ import { SKILLS_MIDDLEWARE_NAME } from '../../types'
 import { SandboxAcquireBackendCommand, SandboxCopyTreeCommand } from '../../../sandbox'
 import type { WorkspaceBinding } from '../../../shared'
 import { SkillRepositoryIndexService } from '../../../skill-repository/repository-index/skill-repository-index.service'
-import { getWorkspaceRoot } from '../../../xpert-workspace'
-import { XpertWorkspace } from '../../../xpert-workspace/workspace.entity'
+import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-workspace'
 
 export interface ISkillsMiddlewareOptions {
     /**
@@ -228,8 +227,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
     constructor(
         @InjectRepository(SkillPackage)
         private readonly skillPackageRepository: Repository<SkillPackage>,
-        @InjectRepository(XpertWorkspace)
-        private readonly workspaceRepository: Repository<XpertWorkspace>,
+        private readonly workspaceAccessService: XpertWorkspaceAccessService,
         private readonly skillPackageService: SkillPackageService,
         private readonly skillIndexService: SkillRepositoryIndexService
     ) {}
@@ -1300,15 +1298,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             return false
         }
 
-        const workspace = await this.workspaceRepository
-            .createQueryBuilder('workspace')
-            .leftJoin('workspace.members', 'member')
-            .where('workspace.id = :id', { id: workspaceId })
-            .andWhere('workspace.tenantId = :tenantId', { tenantId })
-            // .andWhere('(workspace.ownerId = :userId OR member.id = :userId)', { userId })
-            .getOne()
-
-        return !!workspace
+        await this.workspaceAccessService.assertCanRun(workspaceId)
+        return true
     }
 
     private async loadSkillMetadata(

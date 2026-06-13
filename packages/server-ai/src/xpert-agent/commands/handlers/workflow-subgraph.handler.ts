@@ -10,6 +10,7 @@ import {
     StateGraph
 } from '@langchain/langgraph'
 import {
+    agentLabel,
     channelName,
     IXpert,
     IXpertAgentExecution,
@@ -162,6 +163,7 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
                     graph: subGraph
                 } as any)
             )
+            const xpertName = compiled.agent ? agentLabel(compiled.agent) : node.key
 
             const { nextNodes, failNode } = getAgentWorkflowEdges(subGraph, node.key)
             nodes[node.key] = {
@@ -175,11 +177,14 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
                                 ...config,
                                 configurable: {
                                     ...config.configurable,
+                                    agentKey: node.key,
+                                    xpertName,
                                     executionId: execution.id
                                 },
                                 metadata: {
                                     ...(config.metadata ?? {}),
                                     agentKey: node.key,
+                                    xpertName,
                                     executionId: execution.id,
                                     parentExecutionId: executionId
                                 }

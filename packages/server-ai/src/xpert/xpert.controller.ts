@@ -32,7 +32,8 @@ import {
     Public,
     SecretTokenService,
     TimeZone,
-    UserService
+    UserService,
+    transformWhere
 } from '@xpert-ai/server-core'
 import {
     Body,
@@ -82,6 +83,7 @@ import {
     XpertDeleteExportedTemplateCommand,
     XpertExportCommand,
     XpertExportDiagramCommand,
+    type XpertExportedDiagram,
     XpertExportTemplateCommand,
     XpertImportCommand,
     XpertPublishIntegrationCommand
@@ -410,14 +412,14 @@ export class XpertController extends CrudController<Xpert> {
         @Query('agentKey') agentKey: string
     ) {
         try {
-            const imageData = await this.commandBus.execute<XpertExportDiagramCommand, Blob>(
+            const imageData = await this.commandBus.execute<XpertExportDiagramCommand, XpertExportedDiagram>(
                 new XpertExportDiagramCommand(id, isDraft === 'true', agentKey)
             )
-            res.setHeader('Content-Type', 'image/jpeg')
-            res.send(Buffer.from(await imageData.arrayBuffer()))
+            res.setHeader('Content-Type', imageData.contentType)
+            res.send(imageData.data)
         } catch (err) {
             console.error(err)
-            throw new InternalServerErrorException(err.message)
+            throw new InternalServerErrorException(err instanceof Error ? err.message : String(err))
         }
     }
 
@@ -688,23 +690,53 @@ export class XpertController extends CrudController<Xpert> {
                 codepage: 65001 // UTF-8 codepage
             })
 
+            type MemoryCsvRow = {
+                question?: unknown
+                问题?: unknown
+                問題?: unknown
+                answer?: unknown
+                答案?: unknown
+                profile?: unknown
+                档案?: unknown
+                檔案?: unknown
+                context?: unknown
+                上下文?: unknown
+            }
+
+            const readCsvText = (...values: unknown[]) => {
+                for (const value of values) {
+                    if (typeof value === 'string') {
+                        return value
+                    }
+
+                    if (typeof value === 'number' || typeof value === 'boolean') {
+                        return String(value)
+                    }
+                }
+
+                return ''
+            }
+
             const sheet = workbook.Sheets[workbook.SheetNames[0]]
-            const jsonData = XLSX.utils.sheet_to_json(sheet) as any[]
+            const jsonData = XLSX.utils.sheet_to_json<MemoryCsvRow>(sheet)
 
             // Map to memory format based on type
-            const memories: Array<TMemoryQA | TMemoryUserProfile> = jsonData.map((row: any) => {
+            const memories: Array<TMemoryQA | TMemoryUserProfile> = jsonData.map((row) => {
                 if (type === LongTermMemoryTypeEnum.QA) {
                     return {
-                        question: row.question || row.问题 || row.問題,
-                        answer: row.answer || row.答案
-                    } as TMemoryQA
-                } else if (type === LongTermMemoryTypeEnum.PROFILE) {
-                    return {
-                        profile: row.profile || row.档案 || row.檔案,
-                        context: row.context || row.上下文
-                    } as TMemoryUserProfile
+                        question: readCsvText(row.question, row.问题, row.問題),
+                        answer: readCsvText(row.answer, row.答案)
+                    }
                 }
-                return row
+
+                if (type === LongTermMemoryTypeEnum.PROFILE) {
+                    return {
+                        profile: readCsvText(row.profile, row.档案, row.檔案),
+                        context: readCsvText(row.context, row.上下文)
+                    }
+                }
+
+                throw new BadRequestException(`Unsupported memory type: ${type}`)
             })
 
             // Clean up temporary file
@@ -901,18 +933,22 @@ export class XpertController extends CrudController<Xpert> {
         @Param('id') id: string,
         @Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>,
         @Query('start') start: string,
-        @Query('end') end: string
+        @Query('end') end: string,
+        @Query('search') search?: string
     ) {
         const { where } = data
         const result = await this.queryBus.execute(
-            new ChatConversationLogsQuery({
-                ...data,
-                where: {
-                    ...(where ?? {}),
-                    xpertId: id,
-                    createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
-                }
-            })
+            new ChatConversationLogsQuery(
+                {
+                    ...data,
+                    where: {
+                        ...(transformWhere(where ?? {}) ?? {}),
+                        xpertId: id,
+                        createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
+                    }
+                },
+                search
+            )
         )
         return {
             ...result,
@@ -1249,14 +1285,24 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-messages')
-    async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+    async getStatisticsXpertMessages(
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model: string,
+        @Query('userId') userId: string
+    ) {
         return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end, { model, userId }))
     }
 
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-tokens')
-    async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string, @Query('model') model: string, @Query('userId') userId: string) {
+    async getStatisticsXpertTokens(
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('model') model: string,
+        @Query('userId') userId: string
+    ) {
         return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end, { model, userId }))
     }
 

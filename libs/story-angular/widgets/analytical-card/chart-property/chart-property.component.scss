@@ -1,6 +1,6 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  --ngm-chart-property-card-bg-color: var(--ngm-color-surface, #fff);
+  --chart-property-card-bg-color: var(--sys-surface, theme('colors.white'));
   @apply flex-1 flex;
 
   .ngm-property-select {
@@ -19,7 +19,7 @@
 }
 
 .ngm-chart-property__card {
-  background-color: var(--ngm-chart-property-card-bg-color);
+  background-color: var(--chart-property-card-bg-color);
   @apply p-2 flex flex-col rounded-lg;
 }
 .ngm-chart-property__card-title {

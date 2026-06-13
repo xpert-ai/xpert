@@ -25,7 +25,7 @@ import { firstValueFrom } from 'rxjs'
           </span>
           <input
             type="text"
-            class="w-full rounded-lg border border-divider-regular bg-background px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary focus:border-components-input-border-active"
+            class="xp-input w-full border-divider-regular bg-background text-sm text-text-primary"
             [formControl]="urlControl"
             [placeholder]="
               'PAC.Skill.GithubRepositoryUrlPlaceholder'

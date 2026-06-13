@@ -4,7 +4,7 @@
 }
 
 .cdk-drop-list.ngm-property-modeling__empty {
-  border: 1px dashed var(--ngm-color-outline);
+  border: 1px dashed var(--color-divider-regular);
 }
 .cdk-drop-list.ngm-property-modeling__empty {
   min-height: 50px;
@@ -42,11 +42,11 @@
 
 .ngm-analytical-grid {
   @apply border border-solid;
-  border-color: var(--ngm-color-outline-variant);
+  border-color: var(--color-divider-deep);
 }
 
 :host ::ng-deep {
   th[z-table-head].sticky {
-    background-color: var(--ngm-color-surface);
+    background-color: var(--sys-surface);
   }
 }

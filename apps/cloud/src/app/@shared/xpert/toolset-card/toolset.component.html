@@ -2,7 +2,7 @@
   <div class="relative shrink-0">
     <emoji-avatar [avatar]="toolset().avatar" large class="rounded-xl shadow-sm overflow-hidden" />
   </div>
-  <div class="grow w-0 py-[1px]">
+  <div class="grow w-0 py-[1px] pr-24">
     <div class="flex items-center text-base leading-5 font-semibold text-text-primary">
       <div class="truncate" [title]="toolset().name"
         [ngmHighlight]="highlight()"
@@ -59,15 +59,10 @@
   </div>
 }
 
-<div class="absolute right-0 top-0 flex pl-[13px] ">
-  <svg width="13" height="20" viewBox="0 0 13 20" fill="none"
-    xmlns="http://www.w3.org/2000/svg" class="text-components-input-bg-normal"
-  >
-    <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
-      fill="currentColor"></path>
-  </svg>
-  <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-background-default-subtle pr-2 leading-6 text-text-tertiary"
-  >{{eXpertToolsetCategoryEnum.MCP == toolset().category ? 'MCP/' + toolset().type : (toolset().category || 'Tool')}}</div>
+<div
+  class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold uppercase leading-5 text-text-tertiary shadow-xs"
+>
+  {{eXpertToolsetCategoryEnum.MCP == toolset().category ? 'MCP/' + toolset().type : (toolset().category || 'Tool')}}
 </div>
 
 <div class="absolute right-3 bottom-3 flex items-center gap-2">

@@ -67,7 +67,7 @@
       >
         <div class="flex flex-col px-2">
           <button
-            class="mb-1 flex w-full cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+            class="mb-1 flex w-full cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
             [cdkMenuTriggerFor]="builtinMenu"
             (click)="$event.stopPropagation()"
           >
@@ -121,7 +121,7 @@
     <div class="w-[200px] p-2 sticky top-0 z-10 bg-components-card-bg">
       <i class="ri-search-line absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 flex justify-center items-center"></i>
       <input
-        class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        class="xp-input w-full pl-[26px]"
         placeholder="{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
         [(ngModel)]="search"
       />

@@ -51,7 +51,7 @@
       <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
 
       @if (loading()) {
-        <button class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
+        <button class="w-8 h-8 flex justify-center items-center rounded-full border-[0.5px] border-solid border-divider-deep hover:shadow-md"
           (click)="stop()">
           <i class="ri-stop-fill"></i>
         </button>
@@ -95,7 +95,7 @@
                 <div class="system-xs-semibold mb-1 text-text-primary">
                   {{ 'PAC.Xpert.Question' | translate: {Default: 'Question'} }}
                 </div>
-                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                <textarea class="xp-input min-h-20 w-full"
                   placeholder="{{ 'PAC.Xpert.EnterQuestion' | translate: {Default: 'Enter question'} }}"
                   [(ngModel)]="question"
                 ></textarea>
@@ -109,7 +109,7 @@
                 <div class="system-xs-semibold mb-1 text-text-primary">
                   {{ 'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}
                 </div>
-                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                <textarea class="xp-input min-h-20 w-full"
                   placeholder="{{ 'PAC.Xpert.EnterAnswer' | translate: {Default: 'Enter answer'} }}"
                   [(ngModel)]="answer"
                 ></textarea>
@@ -126,7 +126,7 @@
                 <div class="system-xs-semibold mb-1 text-text-primary">
                   {{ 'PAC.Xpert.Context' | translate: {Default: 'Context'} }}
                 </div>
-                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                <textarea class="xp-input min-h-20 w-full"
                   placeholder="{{ 'PAC.Xpert.EnterContext' | translate: {Default: 'Enter context'} }}"
                   [(ngModel)]="context"
                 ></textarea>
@@ -140,7 +140,7 @@
                 <div class="system-xs-semibold mb-1 text-text-primary">
                   {{ 'PAC.Xpert.Profile' | translate: {Default: 'Profile'} }}
                 </div>
-                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                <textarea class="xp-input min-h-20 w-full"
                   placeholder="{{ 'PAC.Xpert.EnterProfile' | translate: {Default: 'Enter profile'} }}"
                   [(ngModel)]="profile"
                 ></textarea>

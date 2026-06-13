@@ -1,4 +1,3 @@
-import { WorkflowAgentToolValidator } from './agent-tool/index'
 import { WorkflowCodeValidator } from './code/index'
 import { WorkflowTriggerValidator } from './trigger/index'
 
@@ -17,8 +16,4 @@ export * from './template'
 export * from './tool/index'
 export * from './trigger/index'
 
-export const Validators = [
-    WorkflowCodeValidator,
-    WorkflowTriggerValidator,
-    WorkflowAgentToolValidator,
-]
+export const Validators = [WorkflowCodeValidator, WorkflowTriggerValidator]

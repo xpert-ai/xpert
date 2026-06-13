@@ -1,6 +1,6 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  background: linear-gradient(var(--ngm-color-main-container-background) 0%, rgba(249, 250, 251, 0) 100%);
+  background: linear-gradient(var(--color-background-body) 0%, var(--color-hero-gradient-transparent) 100%);
   @apply flex-wrap p-2 pl-4;
 }
 

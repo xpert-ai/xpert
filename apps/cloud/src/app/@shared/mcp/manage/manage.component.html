@@ -1,4 +1,4 @@
-<div class="shrink-0 flex w-[44px] flex-col border-r border-divider-burn sm:w-[324px]">
+<div class="shrink-0 flex w-[44px] flex-col border-r border-divider-burn bg-components-panel-bg sm:w-[324px]">
   <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
     {{ 'PAC.Xpert.Toolset' | translate: { Default: 'Toolset' } }}
   </div>
@@ -18,7 +18,7 @@
       </div>
 
       <textarea
-        class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle focus-within:bg-components-input-bg-normal"
+        class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle"
         [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
         [(ngModel)]="description"
       ></textarea>
@@ -33,7 +33,7 @@
           {{ 'PAC.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
         </div>
         <input
-          class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
+          class="xp-input w-full h-10 text-sm grow"
           [placeholder]="'PAC.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
           [(ngModel)]="privacyPolicy"
         />
@@ -43,7 +43,7 @@
           {{ 'PAC.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
         </div>
         <input
-          class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
+          class="xp-input w-full h-10 text-sm grow"
           [placeholder]="'PAC.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
           [(ngModel)]="customDisclaimer"
         />
@@ -113,9 +113,9 @@
           >
             <div class="flex items-center gap-2 text-text-primary font-semibold text-sm leading-5">
               @if (tool.disabled ?? disableToolDefault()) {
-                <span class="inline-block w-2 h-2 rounded-full bg-components-list-option-active-bg shadow-md shadow-gray-100"> </span>
+                <span class="inline-block xpert-status-indicator xpert-status-indicator--neutral"> </span>
               } @else {
-                <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100"> </span>
+                <span class="inline-block xpert-status-indicator xpert-status-indicator--success"> </span>
               }
               {{ tool.name }}
             </div>
@@ -203,7 +203,7 @@
             {{ 'PAC.Xpert.Description' | translate: { Default: 'Description' } }}
           </div>
           <textarea
-            class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular text-text-tertiary bg-background-default-subtle focus-within:bg-components-input-bg-normal"
+            class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular text-text-tertiary bg-background-default-subtle"
             [placeholder]="'PAC.Xpert.EnterToolDescription' | translate: { Default: 'Please enter tool description' }"
             [ngModel]="tool.description"
             (ngModelChange)="updateTool({ description: $event })"

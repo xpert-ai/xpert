@@ -1,10 +1,20 @@
 import { z } from 'zod'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { PluginInstanceService } from './plugin-instance.service'
 
 jest.mock('@xpert-ai/contracts', () => ({
 	PLUGIN_CONFIGURATION_STATUS: {
 		VALID: 'valid',
 		INVALID: 'invalid'
+	},
+	PLUGIN_COMPONENT_TYPE: {
+		SKILL: 'skill',
+		MCP_SERVER: 'mcp_server',
+		APP: 'app',
+		HOOK: 'hook',
+		ASSET: 'asset'
 	},
 	PLUGIN_LEVEL: {
 		SYSTEM: 'system',
@@ -314,6 +324,60 @@ describe('PluginManagementService', () => {
 			lazyLoader.load.mock.invocationCallOrder[0]
 		)
 		expect(dataSource.synchronize).not.toHaveBeenCalled()
+	})
+
+	it('reads bundle components from a code plugin workspace path when the staged base dir has no manifest', () => {
+		const workspacePath = mkdtempSync(join(tmpdir(), 'xpert-code-plugin-bundle-'))
+		try {
+			mkdirSync(join(workspacePath, '.xpertai-plugin'), { recursive: true })
+			mkdirSync(join(workspacePath, 'skills', 'browser-research'), { recursive: true })
+			writeFileSync(
+				join(workspacePath, '.xpertai-plugin', 'plugin.json'),
+				JSON.stringify(
+					{
+						name: '@xpert-ai/plugin-xpertai-browser-lab',
+						version: '0.1.0',
+						skills: './skills'
+					},
+					null,
+					2
+				)
+			)
+			writeFileSync(
+				join(workspacePath, 'skills', 'browser-research', 'SKILL.md'),
+				[
+					'---',
+					'name: browser-research',
+					'description: Browser research.',
+					'---',
+					'',
+					'Use browser evidence.'
+				].join('\n')
+			)
+
+			const components = service.readLoadedPluginBundleComponents({
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-xpertai-browser-lab',
+				packageName: '@xpert-ai/plugin-xpertai-browser-lab',
+				baseDir: '/tmp/staged-plugin-without-manifest',
+				source: 'code',
+				sourceConfig: {
+					workspacePath
+				},
+				instance: {},
+				ctx: {}
+			})
+
+			expect(components).toEqual([
+				expect.objectContaining({
+					componentType: 'skill',
+					componentKey: 'browser-research',
+					sourcePath: './skills/browser-research/SKILL.md'
+				})
+			])
+		} finally {
+			rmSync(workspacePath, { recursive: true, force: true })
+		}
 	})
 
 	it('uses isolated runtime directories for code plugins from local workspaces', async () => {

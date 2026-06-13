@@ -1,6 +1,6 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
-  background-color: var(--ngm-color-surface);
+  background-color: var(--sys-surface);
   display: flex;
   @apply overflow-auto;
 }

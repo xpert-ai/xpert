@@ -1,0 +1,24 @@
+:root[data-theme],
+[data-theme] {
+  --sys-primary: var(--primary);
+  --sys-primary-25: color-mix(in oklab, var(--primary) 4%, var(--background));
+  --sys-primary-50: color-mix(in oklab, var(--primary) 7%, var(--background));
+  --sys-primary-100: color-mix(in oklab, var(--primary) 12%, var(--background));
+  --sys-primary-200: color-mix(in oklab, var(--primary) 22%, var(--background));
+  --sys-primary-300: color-mix(in oklab, var(--primary) 38%, var(--background));
+  --sys-primary-400: color-mix(in oklab, var(--primary) 64%, var(--background));
+  --sys-primary-500: var(--primary);
+  --sys-primary-600: color-mix(in oklab, var(--primary) 88%, var(--foreground));
+  --sys-primary-700: color-mix(in oklab, var(--primary) 76%, var(--foreground));
+  --sys-primary-800: color-mix(in oklab, var(--primary) 64%, var(--foreground));
+  --sys-primary-900: color-mix(in oklab, var(--primary) 52%, var(--foreground));
+  --sys-primary-hover: var(--sys-primary-600);
+  --sys-primary-subtle: var(--sys-primary-100);
+  --sys-on-primary-subtle: var(--sys-primary-700);
+  --sys-primary-subtle-hover: var(--sys-primary-200);
+  --sys-primary-100-contrast: var(--sys-on-primary-subtle);
+  --sys-primary-200-contrast: var(--sys-on-primary-subtle);
+  --sys-primary-500-contrast: var(--primary-foreground);
+  --sys-primary-darker-contrast: var(--primary-foreground);
+  --color-components-button-primary-text: var(--primary-foreground);
+}

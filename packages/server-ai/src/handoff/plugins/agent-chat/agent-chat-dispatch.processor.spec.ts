@@ -196,6 +196,44 @@ describe('AgentChatDispatchHandoffProcessor', () => {
         ])
         expect(agentChatRealtime.publish.mock.calls.map(([, payload]) => payload.sequence)).toEqual([1, 2, 3])
     })
+
+    it('publishes redis pubsub error when command dispatch fails before stream starts', async () => {
+        const commandBus = { execute: jest.fn() }
+        const handoffQueueService = { enqueue: jest.fn() }
+        const agentChatRealtime = { publish: jest.fn().mockResolvedValue(undefined) }
+        const processor = new AgentChatDispatchHandoffProcessor(
+            commandBus as any,
+            handoffQueueService as any,
+            agentChatRealtime as any
+        )
+
+        commandBus.execute.mockRejectedValue(new Error('Access denied to workspace'))
+
+        const result = await processor.process(
+            createMessage({
+                request: { input: { input: 'hello world' } },
+                options: { xpertId: 'xpert-id' },
+                callback: {
+                    transport: 'redis-pubsub',
+                    context: { requestId: 'request-id' }
+                }
+            }) as any,
+            createContext() as any
+        )
+
+        expect(result).toEqual({
+            status: 'dead',
+            reason: 'Access denied to workspace'
+        })
+        expect(handoffQueueService.enqueue).not.toHaveBeenCalled()
+        expect(agentChatRealtime.publish).toHaveBeenCalledWith('message-id', {
+            kind: 'error',
+            sourceMessageId: 'message-id',
+            sequence: 1,
+            error: 'Access denied to workspace',
+            context: { requestId: 'request-id' }
+        })
+    })
 })
 
 describe('AgentChatCallbackNoopHandoffProcessor', () => {

@@ -127,6 +127,7 @@ export class XpertStudioNodeWorkflowComponent {
     WorkflowNodeTypeEnum.NOTE,
     WorkflowNodeTypeEnum.TRIGGER,
     WorkflowNodeTypeEnum.TASK,
+    WorkflowNodeTypeEnum.AGENT_WORKFLOW,
     WorkflowNodeTypeEnum.AGENT_TOOL,
     WorkflowNodeTypeEnum.MIDDLEWARE
   ]

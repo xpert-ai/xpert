@@ -27,9 +27,20 @@ import {
     AgentMiddlewareKnowledgebaseDocument,
     AgentMiddlewareKnowledgebaseDeleteChunksInput,
     AgentMiddlewareKnowledgebaseDeleteChunksResult,
+    AgentMiddlewareKnowledgebaseCreateDocumentsInput,
+    AgentMiddlewareKnowledgebaseCreateDocumentsResult,
+    AgentMiddlewareKnowledgebaseDeleteDocumentsInput,
+    AgentMiddlewareKnowledgebaseDeleteDocumentsResult,
+    AgentMiddlewareKnowledgebaseDocumentStatusInput,
+    AgentMiddlewareKnowledgebaseDocumentStatusResult,
+    AgentMiddlewareKnowledgebaseImportArchiveInput,
+    AgentMiddlewareKnowledgebaseImportArchiveResult,
     AgentMiddlewareKnowledgebaseListInput,
     AgentMiddlewareKnowledgebaseListItem,
     AgentMiddlewareKnowledgebaseSearchInput,
+    AgentMiddlewareKnowledgebaseStartProcessingInput,
+    AgentMiddlewareKnowledgebaseUploadFileInput,
+    AgentMiddlewareKnowledgebaseUploadedFile,
     AgentMiddlewareKnowledgebaseWriteChunkInput,
     AgentMiddlewareKnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
@@ -40,6 +51,7 @@ import {
     AssistantTaskRuntimeCapability,
     DefaultAgentMiddlewareRuntimeCapabilityRegistry,
     FileRuntimeCapability,
+    KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
@@ -54,7 +66,16 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { CopilotModelNotFoundException, ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { ensureCopilotModelContextSize } from '../../copilot-model/utils/context-size'
-import { DeleteAgentKnowledgeChunksCommand, WriteAgentKnowledgeChunkCommand } from '../../knowledgebase/commands'
+import {
+    CreateKnowledgebaseDocumentsCommand,
+    DeleteAgentKnowledgeChunksCommand,
+    DeleteKnowledgebaseDocumentsCommand,
+    GetKnowledgebaseDocumentStatusCommand,
+    ImportKnowledgebaseArchiveCommand,
+    StartKnowledgebaseDocumentsProcessingCommand,
+    UploadKnowledgebaseDocumentFileCommand,
+    WriteAgentKnowledgeChunkCommand
+} from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
@@ -72,6 +93,17 @@ export class AgentMiddlewareRuntimeService {
                 search: (input) => this.searchKnowledgebase(input),
                 writeChunk: (input) => this.writeKnowledgeChunk(input),
                 deleteChunks: (input) => this.deleteKnowledgeChunks(input)
+            }
+        ],
+        [
+            KnowledgebaseDocumentsRuntimeCapability,
+            {
+                uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
+                importArchive: (input) => this.importKnowledgebaseArchive(input),
+                createDocuments: (input) => this.createKnowledgebaseDocuments(input),
+                startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
+                getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
+                deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
             }
         ],
         [
@@ -260,6 +292,42 @@ export class AgentMiddlewareRuntimeService {
         input: AgentMiddlewareKnowledgebaseDeleteChunksInput
     ): Promise<AgentMiddlewareKnowledgebaseDeleteChunksResult> {
         return this.commandBus.execute(new DeleteAgentKnowledgeChunksCommand(input))
+    }
+
+    async uploadKnowledgebaseDocumentFile(
+        input: AgentMiddlewareKnowledgebaseUploadFileInput
+    ): Promise<AgentMiddlewareKnowledgebaseUploadedFile> {
+        return this.commandBus.execute(new UploadKnowledgebaseDocumentFileCommand(input))
+    }
+
+    async importKnowledgebaseArchive(
+        input: AgentMiddlewareKnowledgebaseImportArchiveInput
+    ): Promise<AgentMiddlewareKnowledgebaseImportArchiveResult> {
+        return this.commandBus.execute(new ImportKnowledgebaseArchiveCommand(input))
+    }
+
+    async createKnowledgebaseDocuments(
+        input: AgentMiddlewareKnowledgebaseCreateDocumentsInput
+    ): Promise<AgentMiddlewareKnowledgebaseCreateDocumentsResult> {
+        return this.commandBus.execute(new CreateKnowledgebaseDocumentsCommand(input))
+    }
+
+    async startKnowledgebaseDocumentsProcessing(
+        input: AgentMiddlewareKnowledgebaseStartProcessingInput
+    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+        return this.commandBus.execute(new StartKnowledgebaseDocumentsProcessingCommand(input))
+    }
+
+    async getKnowledgebaseDocumentStatus(
+        input: AgentMiddlewareKnowledgebaseDocumentStatusInput
+    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+        return this.commandBus.execute(new GetKnowledgebaseDocumentStatusCommand(input))
+    }
+
+    async deleteKnowledgebaseDocuments(
+        input: AgentMiddlewareKnowledgebaseDeleteDocumentsInput
+    ): Promise<AgentMiddlewareKnowledgebaseDeleteDocumentsResult> {
+        return this.commandBus.execute(new DeleteKnowledgebaseDocumentsCommand(input))
     }
 
     async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {

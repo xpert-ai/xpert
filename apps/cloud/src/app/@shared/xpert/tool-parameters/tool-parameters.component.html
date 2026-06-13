@@ -21,7 +21,9 @@
             (ngModelChange)="onParameter(parameter.name, $event)"
           />
         } @else {
-          <input class="ngm-input-inline ngm-input-sm w-full" [type]="parameter.type || 'text' "
+          <input
+            z-input
+            class=" w-full" [type]="parameter.type || 'text' "
             [ngModel]="parameters()?.[parameter.name]"
             (ngModelChange)="onParameter(parameter.name, $event)">
         }

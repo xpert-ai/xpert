@@ -146,7 +146,7 @@
 
   <div class="p-3 pt-2">
     <div
-      class="relative w-full flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-components-panel-border px-3 hover:bg-state-base-hover"
+      class="relative w-full flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-components-panel-border px-3 hover:bg-hover-bg"
       [cdkMenuTriggerFor]="serviceApiMenu"
     >
       <svg
@@ -170,12 +170,12 @@
       }
       @if (apiEnabled()) {
         <div
-          class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 shrink-0"
+          class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--success"
           [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
         ></div>
       } @else {
         <div
-          class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-background-default-subtle border-neutral-600 shadow-neutral-300 shrink-0"
+          class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--neutral"
           [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
         ></div>
       }
@@ -243,14 +243,14 @@
         <div class="flex items-center gap-x-1">
           @if (apiEnabled()) {
             <div
-              class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 shrink-0"
+              class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--success"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-success">
               {{ 'PAC.Knowledgebase.InService' | translate: { Default: 'In Service' } }}
             </div>
           } @else {
             <div
-              class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-background-default-subtle border-neutral-600 shadow-neutral-300 shrink-0"
+              class="shrink-0 xpert-status-indicator xpert-status-indicator--md xpert-status-indicator--neutral"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-secondary">
               {{ 'PAC.Knowledgebase.OutofService' | translate: { Default: 'Out of Service' } }}

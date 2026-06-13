@@ -101,7 +101,7 @@
     @if (webhookUrl()) {
       <div>
         <p>{{ 'PAC.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
-        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm dark:bg-white/10">{{
+        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
           webhookUrl()
         }}</pre>
       </div>
@@ -110,7 +110,7 @@
     @if (callbackUrl()) {
       <div class="flex flex-col gap-2">
         <p>{{ 'PAC.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
-        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm dark:bg-white/10">{{
+        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
           callbackUrl()
         }}</pre>
       </div>
@@ -154,7 +154,7 @@
     @if (longConnectionProbe(); as probe) {
       <div class="flex flex-col gap-2">
         <p>{{ 'PAC.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
-        <div class="flex flex-col gap-1 rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-white/10">
+        <div class="flex flex-col gap-1 rounded-md bg-background-default-subtle px-3 py-2 text-sm">
           <div>
             <span class="font-medium">{{ 'PAC.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
             {{ probe.connected === true ? 'Yes' : probe.connected === false ? 'No' : '-' }}

@@ -42,7 +42,7 @@
         <div class="h-3 w-px bg-divider-regular"></div>
         <div>
           <div
-            class="w-7 h-7 flex justify-center items-center cursor-pointer select-none rounded-md p-1 hover:bg-state-base-hover"
+            class="w-7 h-7 flex justify-center items-center cursor-pointer select-none rounded-md p-1 hover:bg-hover-bg"
             (click)="select()"
           >
             <i class="ri-add-line"></i>
@@ -54,7 +54,7 @@
       <div class="space-y-1">
         @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
           <div
-            class="group/dataset-item flex h-10 cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-components-panel-border-subtle px-2 bg-components-panel-bg hover:bg-hover-bg"
+            class="group/dataset-item flex h-10 cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-divider-subtle px-2 bg-components-panel-bg hover:bg-hover-bg"
           >
             @if (item.kb) {
               <div class="flex w-0 grow items-center space-x-1.5">

@@ -4,7 +4,7 @@
       <div class="flex flex-row items-center gap-0.5 start-3">
         <!--
         <a
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-button-ghost-hover h-10 w-10 rounded-full text-text-secondary hover:text-text-primary"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-10 w-10 rounded-full text-text-secondary hover:text-text-primary"
           type="button"
           [zTooltip]="('PAC.Chat.NewChat' | translate: { Default: 'New Chat' }) + ' ⌘J'"
           (click)="newXpertConv()"
@@ -70,7 +70,7 @@
             @for (statement of starters(); track statement) {
               @if (statement) {
                 <button
-                  class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light bg-components-card-bg px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition hover:bg-hover-bg"
+                  class="relative flex w-40 flex-col gap-2 rounded-2xl border border-divider-subtle bg-components-card-bg px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition hover:bg-hover-bg"
                   (click)="chatInput.ask(statement)"
                 >
                   <div class="line-clamp-3 max-w-full text-balance font-light text-text-secondary break-word">

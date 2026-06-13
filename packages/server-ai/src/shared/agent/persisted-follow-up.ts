@@ -4,7 +4,6 @@ type TFollowUpMessageLike = {
     id?: string | null
     role?: string | null
     content?: unknown
-    createdAt?: Date | string | null
     references?: unknown
     attachments?: unknown
     fileAssets?: unknown
@@ -31,50 +30,8 @@ function normalizeString(value: unknown): string | null {
     return normalized || null
 }
 
-function normalizeMessageTimestamp(value: unknown): number | null {
-    if (!value) {
-        return null
-    }
-
-    if (value instanceof Date) {
-        return Number.isFinite(value.getTime()) ? value.getTime() : null
-    }
-
-    if (typeof value === 'string') {
-        const parsed = Date.parse(value)
-        return Number.isFinite(parsed) ? parsed : null
-    }
-
-    return null
-}
-
 function isPendingFollowUpMessage<T extends TFollowUpMessageLike>(message: T | null | undefined): message is T {
     return message?.role === 'human' && message.followUpStatus === 'pending'
-}
-
-function sortPendingFollowUps<T extends TFollowUpMessageLike>(messages: T[] | null | undefined): T[] {
-    return [...(messages ?? [])]
-        .map((message, index) => ({
-            message,
-            index,
-            timestamp: normalizeMessageTimestamp(message?.createdAt)
-        }))
-        .sort((left, right) => {
-            if (left.timestamp != null && right.timestamp != null && left.timestamp !== right.timestamp) {
-                return left.timestamp - right.timestamp
-            }
-
-            if (left.timestamp != null && right.timestamp == null) {
-                return -1
-            }
-
-            if (left.timestamp == null && right.timestamp != null) {
-                return 1
-            }
-
-            return left.index - right.index
-        })
-        .map(({ message }) => message)
 }
 
 function mergeInputText(previousInput: unknown, nextInput: unknown): string | undefined {
@@ -224,24 +181,17 @@ export function collectPendingFollowUpsByClientMessageId<T extends TFollowUpMess
         return null
     }
 
-    const normalizedTargetExecutionId = normalizeString(matched.targetExecutionId)
-    const pendingMessages = sortPendingFollowUps(messages).filter(isPendingFollowUpMessage)
-    const items =
-        normalizedTargetExecutionId != null
-            ? pendingMessages.filter(
-                  (message) => normalizeString(message.targetExecutionId) === normalizedTargetExecutionId
-              )
-            : [matched]
+    const items = [matched]
 
     return {
         matched,
-        items: items.length ? items : [matched],
-        mergedHumanInput: mergeFollowUpHumanInputs((items.length ? items : [matched]).map(readPersistedFollowUpInput)),
-        targetExecutionId: normalizedTargetExecutionId,
-        messageIds: (items.length ? items : [matched])
+        items,
+        mergedHumanInput: mergeFollowUpHumanInputs(items.map(readPersistedFollowUpInput)),
+        targetExecutionId: normalizeString(matched.targetExecutionId),
+        messageIds: items
             .map((message) => normalizeString(message.id))
             .filter((messageId): messageId is string => Boolean(messageId)),
-        clientMessageIds: (items.length ? items : [matched])
+        clientMessageIds: items
             .map((message) => readFollowUpClientMessageId(message) ?? normalizeString(message.id))
             .filter((messageId): messageId is string => Boolean(messageId))
     }

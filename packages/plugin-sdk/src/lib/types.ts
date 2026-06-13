@@ -5,6 +5,7 @@ import {
   PluginTargetApp,
   PluginTargetAppMeta,
   TAvatar,
+  XpertTemplatePluginDependencies,
   XpertTypeEnum
 } from '@xpert-ai/contracts'
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common'
@@ -78,6 +79,7 @@ export interface XpertTemplateContribution {
   startPrompts?: string[]
   releaseNotes?: string
   xpertName?: string
+  dependencies?: XpertTemplatePluginDependencies
   [key: string]: unknown
 }
 

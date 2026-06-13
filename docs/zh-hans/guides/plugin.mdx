@@ -158,6 +158,44 @@ data-xpert 插件中心只展示同时满足以下条件的插件：
 
 不要把 data-xpert 业务属性写成顶层 `dataXpert` 字段。旧字段仅作为过渡兼容读取，新插件应统一使用 `targetAppMeta["data-xpert"]`。
 
+## Codex-style 插件资源
+
+插件可以把 Codex-style bundle 资源随包声明出来，例如 `.xpertai-plugin/plugin.json`、`skills/`、`.mcp.json`、`.app.json`、`hooks/` 和 `assets/`。插件安装本身只保存 `PluginInstance` 并加载插件代码；资源定义不会写入独立组件实例表，而是由宿主通过 `readPluginBundleManifest()` / `collectPluginBundleComponents()` 从真实 bundle 实时计算。
+
+资源初始化分两类目标：
+
+| Target    | 可安装资源          | 运行态                                                                                    |
+| --------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| workspace | Skills / MCP / Apps | `SkillPackage`、workspace-scoped plugin-managed `XpertToolset`、app connector requirement |
+| Xpert     | Hooks               | 目标 agent 的 `PluginHooksMiddleware`                                                     |
+
+Assistant template 也可以声明 `dependencies`。通过 template 安装 Xpert 时，服务端会先创建 Xpert，再把模板声明的 Skills / MCP / Apps / Hooks 绑定到目标 agent。Role-specific XpertAI 插件主要使用这种方式把全部 skills 预绑定到单 agent template。
+
+资源安装状态统一记录在 `PluginResourceInstallation`：
+
+- `workspaceId` 表示资源所属 workspace
+- `xpertId` / `agentKey` 表示资源绑定到的 Xpert 和 agent；workspace target 下二者为 `null`
+- `runtimeType` / `runtimeId` 指向 `SkillPackage`、`XpertToolset`、hook profile 或 app connector requirement
+- `runtimeNodeKey` 记录 Xpert draft 中创建或复用的 graph node key；app requirement 通常为 `null`
+- `definitionHash` 用于和实时 bundle definition 对比，判断 `staleDefinition`
+- `status` 使用 `ready`、`pending_auth`、`blocked`、`failed`
+
+`PluginResourceAttachment` 不再使用。新系统不需要兼容旧数据，installation 已经能够表达实例化和绑定状态，避免两张表之间的状态不同步。
+
+`.app.json` 支持上游常见的 map 形状：
+
+```json
+{
+  "apps": {
+    "salesforce": {
+      "name": "REPLACE_WITH_SALESFORCE_CONNECTOR_ID"
+    }
+  }
+}
+```
+
+宿主会把 map key 展开为独立 `APP` component。`REPLACE_WITH_*` 这类 placeholder 不会被视为可用 connector；安装时状态为 `blocked`，需要 workspace 在 `PluginInstance.config` 中提供明确的 connector 覆盖配置后再使用。
+
 ## 插件管理能力字段
 
 插件列表接口会返回 `IPluginDescriptor`，其中下面几个字段用于控制前端是否展示“配置 / 卸载 / 更新”按钮，以及是否显示“可更新”状态：

@@ -1,6 +1,6 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  background-color: var(--ngm-color-surface);
+  background-color: var(--sys-surface);
   @apply flex-1 flex flex-col;
 }
 

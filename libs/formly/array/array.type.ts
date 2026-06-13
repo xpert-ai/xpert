@@ -53,7 +53,7 @@ import { FieldArrayType } from '@ngx-formly/core'
               zType="ghost"
               zSize="icon"
               zShape="circle"
-              class="ngm-formly__remove text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+              class="ngm-formly__remove text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
 
               displayDensity="compact"
               (click)="remove(i)"

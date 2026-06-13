@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
-import { RequestContext, UserService } from '@xpert-ai/server-core'
+import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
 import { EventEmitter } from 'events'
 import type { Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
@@ -9,7 +9,11 @@ import { EMPTY, Observable } from 'rxjs'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import type { EnvironmentService } from '../environment'
 import type { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import type { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
+import type { HandoffQueueService } from '../handoff/message-queue.service'
+import type { PromptWorkflowService } from '../prompt-workflow'
 import { XpertController } from './xpert.controller'
+import type { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import type { XpertService } from './xpert.service'
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -44,7 +48,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     UploadedFileStorage: () => () => undefined,
     UseValidationPipe: () => () => undefined,
     UserService: class {},
-    UUIDValidationPipe: class {}
+    UUIDValidationPipe: class {},
+    transformWhere: jest.fn((where: unknown) => where)
 }))
 
 jest.mock('nestjs-i18n', () => ({
@@ -105,7 +110,12 @@ jest.mock('./dto', () => ({
 
 jest.mock('../chat-conversation', () => ({
     ChatConversationDeleteCommand: class {},
-    ChatConversationLogsQuery: class {},
+    ChatConversationLogsQuery: class {
+        constructor(
+            public readonly options: unknown,
+            public readonly search?: string
+        ) {}
+    },
     ChatConversationUpsertCommand: class {},
     FindChatConversationQuery: class {},
     GetChatConversationQuery: class {},
@@ -194,19 +204,20 @@ describe('XpertController', () => {
         queryBus = {
             execute: jest.fn()
         }
+        jest.mocked(transformWhere).mockImplementation((where: unknown) => where)
 
         controller = new XpertController(
             xpertService as unknown as XpertService,
             {} as unknown as CopilotStoreService,
             environmentService as unknown as EnvironmentService,
             {} as unknown as UserService,
-            {} as any,
+            {} as unknown as SecretTokenService,
             {} as unknown as I18nService,
-            {} as any,
+            {} as unknown as PromptWorkflowService,
             runtimeCapabilitiesService as unknown as RuntimeCapabilitiesService,
-            handoffQueue as any,
-            agentChatRealtime as any,
-            {} as never,
+            handoffQueue as unknown as HandoffQueueService,
+            agentChatRealtime as unknown as AgentChatRealtimeService,
+            {} as unknown as XpertFrequentQuestionsService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )
@@ -223,6 +234,62 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('loads conversation logs with transformed filters and search text', async () => {
+        jest.mocked(transformWhere).mockReturnValue({
+            status: 'transformed-status',
+            from: 'transformed-from'
+        })
+        queryBus.execute.mockResolvedValue({
+            items: [{ id: 'conversation-1' }],
+            total: 1
+        })
+
+        await controller.getConversations(
+            'xpert-1',
+            {
+                where: {
+                    status: { $in: ['busy', 'error'] },
+                    from: { $in: ['api'] }
+                },
+                relations: ['createdBy'],
+                order: {},
+                take: 20,
+                skip: 0,
+                withDeleted: false
+            },
+            '2026-06-01T00:00:00.000Z',
+            '2026-06-12T00:00:00.000Z',
+            'admin'
+        )
+
+        expect(transformWhere).toHaveBeenCalledWith({
+            status: { $in: ['busy', 'error'] },
+            from: { $in: ['api'] }
+        })
+
+        const query = queryBus.execute.mock.calls[0][0] as {
+            options: {
+                where: {
+                    status?: unknown
+                    from?: unknown
+                    xpertId?: string
+                    createdAt?: unknown
+                }
+            }
+            search?: string
+        }
+
+        expect(query.search).toBe('admin')
+        expect(query.options.where).toEqual(
+            expect.objectContaining({
+                status: 'transformed-status',
+                from: 'transformed-from',
+                xpertId: 'xpert-1'
+            })
+        )
+        expect(query.options.where.createdAt).toBeDefined()
     })
 
     it('enriches public chat-app requests with resolved xpert context before enqueueing', async () => {

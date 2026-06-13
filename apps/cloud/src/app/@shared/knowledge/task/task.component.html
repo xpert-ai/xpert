@@ -3,7 +3,7 @@
     <span class="font-semibold text-xl">
       {{ 'PAC.Knowledgebase.TaskStatus' | translate: {Default: 'Task Status'} }}
     </span>
-    <button type="button" class="w-8 h-8 flex justify-center items-center rounded-full text-sm text-text-tertiary hover:text-text-secondary hover:bg-state-base-hover"
+    <button type="button" class="w-8 h-8 flex justify-center items-center rounded-full text-sm text-text-tertiary hover:text-text-secondary hover:bg-hover-bg"
       (click)="onClose()">
       <i class="ri-close-large-line"></i>
     </button>
@@ -33,26 +33,26 @@
             <span class="mr-2">{{ 'PAC.Knowledgebase.Status' | translate: {Default: 'Status'} }}: </span>
             @switch (task.status) {
               @case ('success') {
-                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-green-500 border-green-600 shadow shadow-green-300 mr-2"></div>
-                <span class="text-sm text-green-600">
+                <div class="inline-block mr-2 xpert-status-indicator xpert-status-indicator--success"></div>
+                <span class="text-sm xpert-status-text--success">
                   {{ 'PAC.Knowledgebase.Success' | translate: {Default: 'Success'} }}
                 </span>
               }
               @case ('pending') {
-                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-yellow-500 border-yellow-600 shadow shadow-yellow-300 mr-2"></div>
-                <span class="text-sm text-yellow-600">{{ 'PAC.Knowledgebase.Pending' | translate: {Default: 'Pending'} }}</span>
+                <div class="inline-block mr-2 xpert-status-indicator xpert-status-indicator--warning"></div>
+                <span class="text-sm xpert-status-text--warning">{{ 'PAC.Knowledgebase.Pending' | translate: {Default: 'Pending'} }}</span>
               }
               @case ('running') {
-                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-blue-500 border-blue-600 shadow shadow-blue-300 mr-2"></div>
-                <span class="text-sm text-blue-600">{{ 'PAC.Knowledgebase.Running' | translate: {Default: 'Running'} }}</span>
+                <div class="inline-block mr-2 xpert-status-indicator xpert-status-indicator--running"></div>
+                <span class="text-sm xpert-status-text--running">{{ 'PAC.Knowledgebase.Running' | translate: {Default: 'Running'} }}</span>
               }
               @case ('failed') {
-                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-red-500 border-red-600 shadow shadow-red-300 mr-2"></div>
-                <span class="text-sm text-red-600">{{ 'PAC.Knowledgebase.Failed' | translate: {Default: 'Failed'} }}</span>
+                <div class="inline-block mr-2 xpert-status-indicator xpert-status-indicator--error"></div>
+                <span class="text-sm xpert-status-text--error">{{ 'PAC.Knowledgebase.Failed' | translate: {Default: 'Failed'} }}</span>
               }
               @default {
-                <div class="inline-block h-[8px] w-[8px] rounded-[3px] border border-solid bg-components-card-bg mr-2"></div>
-                <span class="text-sm text-text-secondary">{{ 'PAC.Knowledgebase.Unknown' | translate: {Default: 'Unknown'} }}</span>
+                <div class="inline-block mr-2 xpert-status-indicator xpert-status-indicator--neutral"></div>
+                <span class="text-sm xpert-status-text--neutral">{{ 'PAC.Knowledgebase.Unknown' | translate: {Default: 'Unknown'} }}</span>
               }
             }
           </div>

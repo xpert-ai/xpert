@@ -1,4 +1,4 @@
-import { IPluginDescriptor } from '@xpert-ai/cloud/state'
+import { IPluginDescriptor, PluginComponentType } from '@xpert-ai/cloud/state'
 import { TPlugin } from '@cloud/app/@shared/plugins'
 import { I18nObject, IconDefinition } from '@cloud/app/@core'
 
@@ -12,7 +12,7 @@ export type TPluginMarketplaceOperation = {
 
 export type TPluginMarketplaceContribution = {
   id?: string
-  type: 'app' | 'view' | 'feature' | 'tool' | 'assistant-template' | string
+  type: 'app' | 'view' | 'feature' | 'tool' | 'assistant-template' | 'skill' | 'hook' | string
   name: string
   displayName?: I18nObject | string
   description?: I18nObject | string
@@ -22,7 +22,13 @@ export type TPluginMarketplaceContribution = {
   metadata?: Record<string, unknown>
 }
 
+export type TPluginResourceContribution = TPluginMarketplaceContribution & {
+  type: 'skill' | 'tool' | 'app' | 'hook'
+  componentType: PluginComponentType
+}
+
 export type TPluginWithDownloads = TPlugin & {
+  packageName?: string | null
   downloads?: {
     lastWeek?: number
     lastMonth?: number

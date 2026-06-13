@@ -5,6 +5,7 @@ import {
 	Delete,
 	Get,
 	Inject,
+	NotFoundException,
 	Param,
 	Post,
 	Put,
@@ -20,10 +21,14 @@ import {
 	IPluginConfiguration,
 	IPluginDescriptor,
 	IPluginLatestVersionStatus,
+	PLUGIN_COMPONENT_TYPE,
 	PLUGIN_CONFIGURATION_STATUS,
 	PLUGIN_LOAD_STATUS,
 	PLUGIN_LEVEL,
-	PluginScopeRelation
+	PluginComponentSummary,
+	PluginComponentType,
+	PluginScopeRelation,
+	RolesEnum
 } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
@@ -50,6 +55,10 @@ type LoadedPluginScopeState = {
 	hasLoadedOrganization: boolean
 }
 
+type ParsedJsonObject = {
+	[key: string]: unknown
+}
+
 @ApiTags('Plugin')
 // @UseGuards(OrganizationPermissionGuard)
 @Controller('plugin')
@@ -67,6 +76,21 @@ export class PluginController {
 	@Get()
 	async getPlugins(): Promise<IPluginDescriptor[]> {
 		return this.listVisiblePlugins()
+	}
+
+	@Get(':name/components')
+	async getPluginComponents(@Param('name') name: string) {
+		if (!name?.trim()) {
+			throw new BadRequestException('plugin name is required')
+		}
+		const organizationId = this.getCurrentOrganizationId()
+		const loadedPlugin = this.pluginManagementService.findLoadedPlugin(name, organizationId)
+		if (!loadedPlugin) {
+			throw new NotFoundException('plugin was not found')
+		}
+		return {
+			items: this.pluginManagementService.readLoadedPluginBundleComponents(loadedPlugin)
+		}
 	}
 
 	@Post('configuration')
@@ -218,16 +242,13 @@ export class PluginController {
 	@Post('archive')
 	@ApiConsumes('multipart/form-data')
 	@UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
-	async installPluginArchive(
-		@UploadedFile() file: UploadedPluginArchiveFile | undefined,
-		@Body() body: Record<string, unknown>
-	) {
+	async installPluginArchive(@UploadedFile() file: UploadedPluginArchiveFile | undefined, @Body() body: unknown) {
 		if (!file?.buffer?.length) {
 			throw new BadRequestException('file is required')
 		}
 
 		return this.pluginManagementService.installArchivePlugin(file, {
-			config: parseOptionalObject(body?.config, 'config') ?? undefined
+			config: parseOptionalObject(readParsedJsonObjectProperty(body, 'config'), 'config') ?? undefined
 		})
 	}
 
@@ -275,7 +296,7 @@ export class PluginController {
 
 	private async listVisiblePlugins(names?: string[]) {
 		const organizationId = this.getCurrentOrganizationId()
-		// const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
 		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
 
 		const visiblePlugins = this.loadedPlugins
@@ -283,7 +304,7 @@ export class PluginController {
 				(plugin) =>
 					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
 			)
-			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			.filter((plugin) => isSuperAdmin || !this.isSystemLevel(plugin.level ?? plugin.instance?.meta?.level))
 			.filter(
 				(plugin) =>
 					!normalizedNames ||
@@ -300,7 +321,7 @@ export class PluginController {
 		)
 		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
 		const failedDescriptors = pluginInstances
-			// .filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			.filter((plugin) => isSuperAdmin || !this.isSystemLevel(plugin.level))
 			.filter(
 				(plugin) =>
 					!normalizedNames || this.matchesNames(normalizedNames, plugin.pluginName, plugin.packageName)
@@ -316,6 +337,10 @@ export class PluginController {
 			.map((plugin) => this.toFailedPluginDescriptor(plugin, organizationId, loadedScopeStates))
 
 		return [...loadedDescriptors, ...failedDescriptors]
+	}
+
+	private isSystemLevel(level?: string | null) {
+		return level === PLUGIN_LEVEL.SYSTEM || resolvePluginLevel(level) === PLUGIN_LEVEL.SYSTEM
 	}
 
 	private async toPluginDescriptor(
@@ -343,6 +368,9 @@ export class PluginController {
 			organizationId,
 			loadedScopeStates
 		)
+		const componentSummary = summarizePluginComponents(
+			this.pluginManagementService.readLoadedPluginBundleComponents(plugin)
+		)
 
 		return {
 			organizationId: scope,
@@ -366,7 +394,8 @@ export class PluginController {
 			loadStatus: PLUGIN_LOAD_STATUS.LOADED,
 			loadError: null,
 			effectiveInCurrentScope: scopeSemantics.effectiveInCurrentScope,
-			scopeRelation: scopeSemantics.scopeRelation
+			scopeRelation: scopeSemantics.scopeRelation,
+			componentSummary
 		}
 	}
 
@@ -565,17 +594,41 @@ export class PluginController {
 	}
 }
 
-function parseOptionalObject(value: unknown, fieldName: string): Record<string, unknown> | undefined {
+function summarizePluginComponents(components: Array<{ componentType: PluginComponentType }>) {
+	const summary: PluginComponentSummary = {
+		total: 0,
+		skills: 0,
+		mcpServers: 0,
+		apps: 0,
+		hooks: 0
+	}
+
+	for (const component of components) {
+		if (component.componentType === PLUGIN_COMPONENT_TYPE.SKILL) {
+			summary.skills += 1
+		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
+			summary.mcpServers += 1
+		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
+			summary.apps += 1
+		} else if (component.componentType === PLUGIN_COMPONENT_TYPE.HOOK) {
+			summary.hooks += 1
+		}
+	}
+	summary.total = summary.skills + summary.mcpServers + summary.apps + summary.hooks
+	return summary
+}
+
+function parseOptionalObject(value: unknown, fieldName: string): ParsedJsonObject | undefined {
 	if (value === undefined || value === null || value === '') {
 		return undefined
 	}
 
 	const parsed = typeof value === 'string' ? parseJson(value, fieldName) : value
-	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+	if (!isParsedJsonObject(parsed)) {
 		throw new BadRequestException(`${fieldName} must be a JSON object`)
 	}
 
-	return parsed as Record<string, unknown>
+	return parsed
 }
 
 function parseJson(value: string, fieldName: string): unknown {
@@ -584,4 +637,12 @@ function parseJson(value: string, fieldName: string): unknown {
 	} catch {
 		throw new BadRequestException(`${fieldName} must be valid JSON`)
 	}
+}
+
+function isParsedJsonObject(value: unknown): value is ParsedJsonObject {
+	return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function readParsedJsonObjectProperty(value: unknown, key: string): unknown {
+	return isParsedJsonObject(value) ? value[key] : undefined
 }

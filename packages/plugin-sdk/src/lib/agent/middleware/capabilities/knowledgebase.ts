@@ -27,6 +27,7 @@ export type AgentMiddlewareKnowledgebaseSearchInput = {
 }
 
 export type AgentMiddlewareKnowledgebaseDocument = {
+  id?: string
   pageContent: string
   metadata?: Record<string, unknown>
 }

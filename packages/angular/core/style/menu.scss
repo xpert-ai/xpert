@@ -9,7 +9,7 @@
 [z-menu-content] {
   .cdk-menu-item.active,
   [z-menu-item].active {
-    color: var(--ngm-color-primary);
+    color: var(--sys-primary);
     @apply font-bold bg-black/5 dark:bg-white/10;
   }
 
@@ -72,7 +72,7 @@ button[z-menu].active,
 .cdk-menu {
   @apply mt-2 inline-flex flex-col rounded-xl shadow-lg overflow-auto border border-solid 
     border-neutral-200 dark:border-neutral-700 dark:shadow-neutral-800;
-  background-color: var(--ngm-color-surface);
+  background-color: var(--sys-surface);
 
   .cdk-menu-item[role='menuitemradio'][aria-checked='true'] {
     @apply bg-slate-100 font-semibold;

@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -31,8 +31,9 @@
         cursor: pointer;
         font-size: 0.75rem;
 
-        &:hover, &:focus {
-          background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.1);
+        &:hover,
+        &:focus {
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.1);
           color: themeCompat.m2-get-color-from-palette($primary);
 
           .ngm-display-behaviour--option-value {
@@ -41,7 +42,7 @@
         }
 
         &.selected {
-          background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.2);
+          background-color: themeCompat.alpha(themeCompat.m2-get-color-from-palette($primary), 0.2);
           color: themeCompat.m2-get-color-from-palette($primary);
         }
 
@@ -50,7 +51,7 @@
         }
 
         .ngm-display-behaviour--option-value {
-          opacity: .5;
+          opacity: 0.5;
           transition: opacity 100ms ease-in;
         }
       }
@@ -97,5 +98,7 @@
 }
 
 @mixin density($config-or-theme) {
+}
 
+@mixin typography($config-or-theme) {
 }

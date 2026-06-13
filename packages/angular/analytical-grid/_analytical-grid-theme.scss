@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
+@use 'packages/angular/core/style/runtime-theme' as themeCompat;
 
 @mixin color($config-or-theme) {
   $config: themeCompat.m2-get-color-config($config-or-theme);
@@ -12,12 +12,13 @@
   .ngm-analytical-grid {
     /* For analytical grid in dashboard styles */
     table[z-table] {
-      thead, tfoot {
-        background: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
+      thead,
+      tfoot {
+        background: themeCompat.m2-get-color-from-palette($background, 'hover-soft');
       }
     }
     z-paginator {
-      background: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
+      background: themeCompat.m2-get-color-from-palette($background, 'hover-soft');
     }
 
     .ngm-analytical-grid__want-order {
@@ -27,7 +28,7 @@
         opacity: 1;
       }
     }
-  
+
     .ngm-analytical-grid__cell-bar {
       height: 100%;
       position: absolute;
@@ -45,26 +46,26 @@
         background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
     }
-    
+
     [z-table-cell], [z-table-head] {
       padding: 0 5px;
       cursor: pointer;
     }
 
     [z-table-cell].ngm-semantic--negative--background {
-      background-color: #ff000038;
+      background-color: var(--color-status-error-bg);
     }
 
     [z-table-cell].ngm-semantic--negative--color {
-      color: #ff000038;
+      color: var(--color-text-destructive);
     }
 
     tr[z-table-row].selected {
       [z-table-cell].ngm-semantic--negative--background.selected {
-        background-color: #ff000080;
+        background-color: color-mix(in oklab, var(--color-text-destructive) 20%, transparent);
       }
       [z-table-cell].ngm-semantic--negative--color.selected {
-        color: #ff000080;
+        color: var(--color-text-destructive);
       }
     }
 
