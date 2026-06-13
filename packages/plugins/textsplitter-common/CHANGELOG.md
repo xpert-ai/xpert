@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-textsplitter-common
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [d92d0f2]
+  - @xpert-ai/plugin-sdk@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes

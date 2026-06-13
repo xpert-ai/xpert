@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 4.0.0
+
+### Minor Changes
+
+- d92d0f2: upgrade zard ui
+
+### Patch Changes
+
+- Updated dependencies [d92d0f2]
+  - @xpert-ai/contracts@3.11.0
+
 ## 3.11.0
 
 ### Minor Changes
