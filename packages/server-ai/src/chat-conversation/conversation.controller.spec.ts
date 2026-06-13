@@ -1,4 +1,5 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { Logger } from '@nestjs/common'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { ChatConversationController } from './conversation.controller'
 import { ChatConversationService } from './conversation.service'
@@ -14,8 +15,10 @@ describe('ChatConversationController goal routes', () => {
         setGoalFromUser: jest.Mock
     }
     let organizationScopeService: { run: jest.Mock }
+    let loggerWarn: jest.SpyInstance
 
     beforeEach(() => {
+        loggerWarn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
         service = {
             findOneInOrganizationOrTenant: jest.fn().mockResolvedValue({
                 id: 'scoped-conversation-1',
@@ -41,12 +44,23 @@ describe('ChatConversationController goal routes', () => {
         )
     })
 
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
     it('resolves the scoped conversation before reading a goal', async () => {
         await controller.getGoal('requested-conversation-1', 'org-1')
 
         expect(organizationScopeService.run).toHaveBeenCalledWith('org-1', expect.any(Function))
         expect(service.findOneInOrganizationOrTenant).toHaveBeenCalledWith('requested-conversation-1')
         expect(goalService.getByConversationId).toHaveBeenCalledWith('scoped-conversation-1')
+    })
+
+    it('resolves the scoped conversation before setting a goal', async () => {
+        await controller.setGoal('requested-conversation-1', { objective: 'ship feature' }, 'org-1')
+
+        expect(service.findOneInOrganizationOrTenant).toHaveBeenCalledWith('requested-conversation-1')
+        expect(goalService.setGoalFromUser).toHaveBeenCalledWith('scoped-conversation-1', { objective: 'ship feature' })
     })
 
     it('resolves the scoped conversation before patching a goal', async () => {
@@ -61,5 +75,14 @@ describe('ChatConversationController goal routes', () => {
 
         expect(service.findOneInOrganizationOrTenant).toHaveBeenCalledWith('requested-conversation-1')
         expect(goalService.clearGoalFromUser).toHaveBeenCalledWith('scoped-conversation-1')
+    })
+
+    it('warns when the deprecated goal route is used', async () => {
+        await controller.getGoal('requested-conversation-1', 'org-1')
+
+        expect(loggerWarn).toHaveBeenCalledWith(
+            expect.stringContaining('Deprecated GET /chat-conversation/:id/goal route used')
+        )
+        expect(loggerWarn).toHaveBeenCalledWith(expect.stringContaining('organizationId=org-1'))
     })
 })
