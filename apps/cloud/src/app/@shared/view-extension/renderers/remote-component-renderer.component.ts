@@ -47,7 +47,7 @@ type RemoteComponentMessage = {
         [style.height.px]="height()"
         [attr.title]="manifest().title.en_US"
         [src]="entryUrl() | safe: 'resourceUrl'"
-        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-scripts"
+        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
         (load)="handleFrameLoad()"
       ></iframe>
     }
