@@ -141,7 +141,14 @@ async function createRalphLoopAgentMiddleware(goalService = createGoalService())
 }
 
 type MiddlewareResultSnapshot = {
-    messages?: Array<{ content?: unknown }>
+    messages?: Array<{
+        content?: unknown
+        additional_kwargs?: {
+            internal?: unknown
+            xpertInternalGoalAct?: unknown
+            xpertInternalGoalVerify?: unknown
+        }
+    }>
     threadGoalContinuationCount?: number
     threadGoalPhase?: string
     threadGoalVerificationRetryCount?: number
@@ -338,6 +345,10 @@ describe('RalphLoopMiddleware', () => {
         })
         expect(snapshot.messages?.[0]).toBeInstanceOf(HumanMessage)
         expect(String(snapshot.messages?.[0]?.content)).toContain('Verify the active goal')
+        expect(snapshot.messages?.[0]?.additional_kwargs).toMatchObject({
+            internal: true,
+            xpertInternalGoalVerify: true
+        })
         expect(goalService.incrementContinuation).not.toHaveBeenCalled()
         expect(dispatchCustomEvent).toHaveBeenCalledWith(
             ChatMessageEventTypeEnum.ON_CHAT_EVENT,
@@ -527,6 +538,10 @@ describe('RalphLoopMiddleware', () => {
             jumpTo: 'model'
         })
         expect(String(snapshot.messages?.[0]?.content)).toContain('Collect verification evidence.')
+        expect(snapshot.messages?.[0]?.additional_kwargs).toMatchObject({
+            internal: true,
+            xpertInternalGoalAct: true
+        })
         expect(goalService.incrementContinuation).toHaveBeenCalledWith('conversation-1')
         expect(goalService.updateGoalFromModel).not.toHaveBeenCalled()
     })

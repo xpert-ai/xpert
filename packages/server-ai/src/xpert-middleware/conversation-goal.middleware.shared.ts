@@ -186,11 +186,16 @@ instructions:
 
 function createActMessage(nextAction?: string): HumanMessage {
     const action = nextAction?.trim()
-    return new HumanMessage(
-        action
+    return new HumanMessage({
+        content: action
             ? `Continue working toward the active goal. Next action: ${action}`
-            : 'Continue working toward the active goal. Make concrete progress toward the executable goal. Do not mark the goal complete or blocked from this act phase.'
-    )
+            : 'Continue working toward the active goal. Make concrete progress toward the executable goal. Do not mark the goal complete or blocked from this act phase.',
+        additional_kwargs: {
+            hidden: true,
+            internal: true,
+            xpertInternalGoalAct: true
+        }
+    })
 }
 
 type GoalEvidence = {
