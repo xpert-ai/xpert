@@ -46,7 +46,7 @@ export const redirectLegacyPublicChatkitRoute: RedirectFunction = ({ params, que
   const router = inject(Router)
   const name = typeof params['name'] === 'string' ? params['name'] : ''
   const id = typeof params['id'] === 'string' ? params['id'] : null
-  const commands = id ? ['/chatkit', 'x', name, 'c', id] : ['/chatkit', 'x', name]
+  const commands = id ? ['/x-chatkit', 'x', name, 'c', id] : ['/x-chatkit', 'x', name]
 
   return router.createUrlTree(commands, {
     queryParams,

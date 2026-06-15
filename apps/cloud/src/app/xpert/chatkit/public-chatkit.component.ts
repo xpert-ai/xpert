@@ -140,7 +140,7 @@ export class PublicChatkitComponent {
       return
     }
 
-    const baseUrl = `/chatkit/x/${encodeURIComponent(slug)}`
+    const baseUrl = `/x-chatkit/x/${encodeURIComponent(slug)}`
     const targetUrl = threadId ? `${baseUrl}/c/${encodeURIComponent(threadId)}` : baseUrl
 
     if (this.#location.path() !== targetUrl) {

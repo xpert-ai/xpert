@@ -105,7 +105,7 @@ describe('PublicChatkitComponent', () => {
     }
     location = {
       replaceState: jest.fn(),
-      path: jest.fn(() => '/chatkit/x/sales/c/thread-1')
+      path: jest.fn(() => '/x-chatkit/x/sales/c/thread-1')
     }
     store = {
       token: 'user-token-1',
@@ -252,7 +252,7 @@ describe('PublicChatkitComponent', () => {
     mockRuntimeInput?.onThreadChange?.({ threadId: 'thread-2' })
     mockRuntimeInput?.onThreadChange?.({ threadId: null })
 
-    expect(location.replaceState).toHaveBeenNthCalledWith(1, '/chatkit/x/sales/c/thread-2')
-    expect(location.replaceState).toHaveBeenNthCalledWith(2, '/chatkit/x/sales')
+    expect(location.replaceState).toHaveBeenNthCalledWith(1, '/x-chatkit/x/sales/c/thread-2')
+    expect(location.replaceState).toHaveBeenNthCalledWith(2, '/x-chatkit/x/sales')
   })
 })

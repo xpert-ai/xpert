@@ -58,7 +58,7 @@ describe('public xpert routes', () => {
     )
 
     expect(result).toBe(urlTree)
-    expect(createUrlTree).toHaveBeenCalledWith(['/chatkit', 'x', 'sales', 'c', 'thread-1'], {
+    expect(createUrlTree).toHaveBeenCalledWith(['/x-chatkit', 'x', 'sales', 'c', 'thread-1'], {
       queryParams: {
         source: 'qr'
       },
