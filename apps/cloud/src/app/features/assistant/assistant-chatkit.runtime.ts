@@ -27,7 +27,9 @@ type AssistantHostedClientSecret =
   | string
   | {
       secret: string
-      organizationId: string
+      organizationId?: string
+      xpertId?: string
+      assistantId?: string
     }
 type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> &
   AssistantChatKitEventHandlers & {
@@ -65,11 +67,14 @@ type AssistantHostedRuntimeInput = {
   identity: Signal<string | null>
   assistantId: Signal<string | null>
   frameUrl: Signal<string | null>
+  getClientSecret?: AssistantHostedChatKitOptions['api']['getClientSecret']
   requestContext?: Signal<Record<string, unknown> | null>
   displayMode?: AssistantHostedChatKitOptions['displayMode']
   history?: AssistantHostedChatKitOptions['history']
   initialThread?: Signal<string | null>
   pet?: AssistantHostedChatKitOptions['pet']
+  startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
+  title?: Signal<string | null>
   titleKey: string
   titleDefault: string
   onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
@@ -265,6 +270,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const currentOrganizationId = organizationId()
     const initialThread = input.initialThread?.() ?? null
     const requestContext = input.requestContext?.() ?? null
+    const startScreen = input.startScreen?.() ?? undefined
+    const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
 
     if (!key || !assistantId || !frameUrl) {
       activeRuntimeKey.set(null)
@@ -277,7 +284,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       api: {
         apiUrl: fixedApiUrl,
         xpertId: assistantId,
-        getClientSecret: async () => buildAssistantClientSecret(currentToken, currentOrganizationId)
+        getClientSecret: async (currentClientSecret) =>
+          input.getClientSecret
+            ? input.getClientSecret(currentClientSecret)
+            : buildAssistantClientSecret(currentToken, currentOrganizationId)
       },
       locale: currentLocale,
       theme: currentTheme,
@@ -286,10 +296,11 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       initialThread,
       header: {
         title: {
-          text: translate.instant(input.titleKey, { Default: input.titleDefault })
+          text: title
         }
       },
       history: input.history,
+      startScreen,
       composer: {
         attachments: {
           enabled: true,
