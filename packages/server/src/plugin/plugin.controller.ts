@@ -296,7 +296,6 @@ export class PluginController {
 
 	private async listVisiblePlugins(names?: string[]) {
 		const organizationId = this.getCurrentOrganizationId()
-		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
 		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
 
 		const visiblePlugins = this.loadedPlugins
@@ -304,7 +303,6 @@ export class PluginController {
 				(plugin) =>
 					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
 			)
-			.filter((plugin) => isSuperAdmin || !this.isSystemLevel(plugin.level ?? plugin.instance?.meta?.level))
 			.filter(
 				(plugin) =>
 					!normalizedNames ||
@@ -321,7 +319,6 @@ export class PluginController {
 		)
 		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
 		const failedDescriptors = pluginInstances
-			.filter((plugin) => isSuperAdmin || !this.isSystemLevel(plugin.level))
 			.filter(
 				(plugin) =>
 					!normalizedNames || this.matchesNames(normalizedNames, plugin.pluginName, plugin.packageName)
@@ -337,10 +334,6 @@ export class PluginController {
 			.map((plugin) => this.toFailedPluginDescriptor(plugin, organizationId, loadedScopeStates))
 
 		return [...loadedDescriptors, ...failedDescriptors]
-	}
-
-	private isSystemLevel(level?: string | null) {
-		return level === PLUGIN_LEVEL.SYSTEM || resolvePluginLevel(level) === PLUGIN_LEVEL.SYSTEM
 	}
 
 	private async toPluginDescriptor(
