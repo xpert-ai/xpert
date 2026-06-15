@@ -1,7 +1,7 @@
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AnalyticsPermissionsEnum, authGuard } from '../@core'
+import { AIPermissionsEnum, AnalyticsPermissionsEnum, authGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
 import { AppService } from '../app.service'
@@ -76,6 +76,19 @@ export const routes: Routes = [
         data: {
           title: 'Xpert Agent',
           scopeContext: 'dual-scope'
+        }
+      },
+      {
+        path: 'plugins',
+        loadComponent: () => import('./setting/plugins/plugins.component').then((m) => m.PluginsComponent),
+        canActivate: [authGuard, NgxPermissionsGuard],
+        data: {
+          title: 'Plugins',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.XPERT_EDIT],
+            redirectTo
+          }
         }
       },
 

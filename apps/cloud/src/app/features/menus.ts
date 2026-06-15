@@ -195,15 +195,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
-      path: 'plugins',
-      label: 'Plugins',
-      icon: 'extension',
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
-      }
-    },
-    {
       path: 'tenant',
       label: 'Tenant',
       icon: 'storage',
@@ -410,6 +401,18 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'Settings',
         featureKey: FeatureEnum.FEATURE_SETTING
+      }
+    },
+    {
+      title: 'Plugins',
+      icon: 'ri-puzzle-2-line',
+      link: '/plugins',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Plugins',
+        featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
       }
     }
   ]
