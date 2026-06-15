@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core'
-import { routeAnimations } from '../../../@core'
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@core'
 
 @Component({
   standalone: false,
@@ -19,4 +20,17 @@ import { routeAnimations } from '../../../@core'
     `
   ]
 })
-export class PACTenantComponent {}
+export class PACTenantComponent {
+  private readonly store = inject(Store)
+  readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
+    initialValue: this.store.featureContextHydrated
+  })
+  readonly canViewCustomSmtp = computed(() => {
+    const featureContextHydrated = this.featureContextHydrated()
+
+    return (
+      this.store.hasPermission(PermissionsEnum.CUSTOM_SMTP_VIEW) &&
+      (!featureContextHydrated || this.store.hasFeatureEnabled(FeatureEnum.FEATURE_SMTP))
+    )
+  })
+}

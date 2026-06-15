@@ -166,16 +166,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
-      path: 'custom-smtp',
-      label: 'Custom SMTP',
-      icon: 'alternate_email',
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [PermissionsEnum.CUSTOM_SMTP_VIEW],
-        featureKey: FeatureEnum.FEATURE_SMTP
-      }
-    },
-    {
       path: scopeLevel === RequestScopeLevel.TENANT ? 'features/tenant' : 'features/organization',
       label: 'Feature',
       icon: 'widgets',

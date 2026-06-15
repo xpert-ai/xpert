@@ -1,35 +1,64 @@
 <div class="pac-page-header">
-  <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_TENANT' | translate: {Default: "Manage Tenant"} }}</div>
-    
-  <nav z-tab-nav-bar class="pac-tab-nav-bar" color="accent" alignTabs="start" stretchTabs="false" disableRipple
+  <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_TENANT' | translate: { Default: 'Manage Tenant' } }}</div>
+
+  <nav
+    z-tab-nav-bar
+    class="pac-tab-nav-bar"
+    color="accent"
+    alignTabs="start"
+    stretchTabs="false"
+    disableRipple
     [tabPanel]="tabPanel"
   >
-    <span z-tab-link [routerLink]="['./settings']"
-      routerLinkActive #rla="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['./settings']"
+      routerLinkActive
+      #rla="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rla.isActive"
     >
       <z-icon nxDensity="cosy" zType="room_preferences"></z-icon>
-      {{ 'PAC.MENU.TENANT.SETTINGS' | translate: {Default: "Settings"} }}
+      {{ 'PAC.MENU.TENANT.SETTINGS' | translate: { Default: 'Settings' } }}
     </span>
 
-    <span z-tab-link [routerLink]="['./skills']"
-      routerLinkActive #rlaSkills="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['./skills']"
+      routerLinkActive
+      #rlaSkills="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rlaSkills.isActive"
     >
       <z-icon zType="auto_awesome"></z-icon>
-      {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: "Skills"} }}
+      {{ 'PAC.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
     </span>
 
-    <span z-tab-link [routerLink]="['./tags']"
-      routerLinkActive #rla2="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['./tags']"
+      routerLinkActive
+      #rla2="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rla2.isActive"
     >
       <z-icon zType="sell"></z-icon>
-      {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: "Tags"} }}
+      {{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
     </span>
+
+    @if (canViewCustomSmtp()) {
+      <span
+        z-tab-link
+        [routerLink]="['./smtp']"
+        routerLinkActive
+        #rlaSmtp="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rlaSmtp.isActive"
+      >
+        <z-icon zType="alternate_email"></z-icon>
+        {{ 'PAC.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
+      </span>
+    }
 
     <!-- <span z-tab-link [routerLink]="['./demo']"
       routerLinkActive #rla2="routerLinkActive"
@@ -42,7 +71,10 @@
   </nav>
 </div>
 
-<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+<z-tab-nav-panel
+  #tabPanel
+  class="pac-page-body flex flex-col items-center"
+  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+>
   <router-outlet #o="outlet"></router-outlet>
 </z-tab-nav-panel>
