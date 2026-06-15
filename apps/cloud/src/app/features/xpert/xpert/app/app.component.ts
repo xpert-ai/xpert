@@ -59,7 +59,7 @@ export class XpertAppComponent {
   readonly xpert = this.xpertComponent.latestXpert
 
   readonly avatar = computed(() => this.xpert()?.avatar)
-  readonly appUrl = computed(() => window.location.origin + '/x/' + this.xpert()?.slug)
+  readonly appUrl = computed(() => window.location.origin + '/x-chatkit/x/' + this.xpert()?.slug)
   readonly app = computed(() => this.xpert()?.app)
   readonly published = computed(() => !!this.xpert()?.publishAt)
   readonly enabledApp = computed(() => this.app()?.enabled)
