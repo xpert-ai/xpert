@@ -8,6 +8,7 @@ import { TenantRoutingModule } from './tenant-routing.module'
 import { PACTenantComponent } from './tenant.component'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
+import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
 
 @NgModule({
   imports: [
@@ -15,6 +16,7 @@ import { SharedModule } from '../../../@shared/shared.module'
     SharedUiModule,
     RouterModule,
     TenantRoutingModule,
+    SMTPComponent,
     OcapCoreModule,
     NgmCommonModule,
     NgmTableComponent

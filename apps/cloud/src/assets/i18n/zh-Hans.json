@@ -612,6 +612,8 @@
       "Conversation": "会话",
       "Currency": "币种",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
+      "Deprecated": "已废弃",
+      "DeprecatedSuffix": "（已废弃）",
       "Owner": "所有者",
       "Query": "查询",
       "Story": "故事",
@@ -3684,6 +3686,39 @@
     "Feature": {
       "EnableFeature": "启用功能",
       "DisableFeature": "禁用功能",
+      "Enabled": "已启用",
+      "Disabled": "已禁用",
+      "SearchPlaceholder": "搜索模块...",
+      "EmptyTitle": "没有匹配的模块",
+      "EmptyDescription": "调整关键词、状态或分类筛选。",
+      "Filters": {
+        "Status": "状态",
+        "Category": "分类",
+        "AllStatus": "全部状态",
+        "Enabled": "已启用",
+        "Disabled": "已禁用",
+        "AllGroups": "全部分类"
+      },
+      "Summary": {
+        "Enabled": "已启用模块",
+        "Disabled": "已禁用模块",
+        "Groups": "功能分组",
+        "Items": "功能项"
+      },
+      "Groups": {
+        "Organization": "组织与权限",
+        "OrganizationDescription": "租户组织、用户、角色和基础设置。",
+        "Ai": "AI 能力",
+        "AiDescription": "模型提供商、对话和数字专家体验。",
+        "Data": "数据与分析",
+        "DataDescription": "语义模型、故事、指标和业务域。",
+        "Integration": "系统集成",
+        "IntegrationDescription": "外部连接、存储、邮件和 SMTP 服务。",
+        "Project": "项目协作",
+        "ProjectDescription": "项目工作空间和协作交付模块。",
+        "Other": "其他模块",
+        "OtherDescription": "未归入主要分类的其他功能模块。"
+      },
       "Features": {
         "FEATURE_HOME": {
           "Name": "首页",
@@ -4191,6 +4226,8 @@
       "RejectReasonPlaceholder": "解释为什么此工具调用不应运行",
       "HITLNoChanges": "批准且不做更改",
       "HITLEmpty": "当前没有需要审批的操作。",
+      "ClientToolWaiting": "正在交给宿主页面处理",
+      "ClientToolWaitingDesc": "客户端工具调用已提交给宿主页面。这不是人工审批操作，无需点击发送。",
       "AllowedDecisions": "允许的决策",
       "AgentMiddlewares": "智能体中间件",
       "UnknownMiddleware": "未知中间件",

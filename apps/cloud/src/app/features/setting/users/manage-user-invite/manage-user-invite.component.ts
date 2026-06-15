@@ -3,22 +3,43 @@ import { Component, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 import { InviteService, Store, ToastrService } from '@xpert-ai/cloud/state'
-import { type IInvite, type IOrganization, type IRole, InvitationExpirationEnum, InvitationTypeEnum, InviteStatusEnum } from '@xpert-ai/contracts'
-import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
-import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import {
+  type IInvite,
+  type IOrganization,
+  type IRole,
+  InvitationExpirationEnum,
+  InvitationTypeEnum,
+  InviteStatusEnum
+} from '@xpert-ai/contracts'
+import { injectConfirmDelete } from '@xpert-ai/ocap-angular/common'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { formatDistanceToNow, isAfter } from 'date-fns'
 import { BehaviorSubject, combineLatestWith, map, switchMap, withLatestFrom } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTableImports,
+  type ZardTableSortDirection,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 
 type InviteDisplayStatus = InviteStatusEnum | 'EXPIRED'
-type InviteRow = IInvite & {
+type InviteSortColumn = 'email' | 'role' | 'invitedBy' | 'createdAt' | 'expireDate' | 'status'
+type InviteSortState = {
+  active: InviteSortColumn
+  direction: ZardTableSortDirection
+}
+type InviteRow = Omit<IInvite, 'createdAt' | 'expireDate'> & {
   createdAt: string | null
-  expireDate: string | number
+  expireDate: string | InvitationExpirationEnum.NEVER
+  createdAtTime: number
+  expireDateTime: number
   displayStatus: InviteDisplayStatus
   statusText: string
 }
@@ -30,16 +51,13 @@ type InviteRow = IInvite & {
   styleUrls: ['./manage-user-invite.component.scss'],
   imports: [
     CommonModule,
+    ZardBadgeComponent,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardTableImports,
     ...ZardTooltipImports,
     TranslateModule,
-    // Standard components
-    ButtonGroupDirective,
-    // OCAP Modules
-    OcapCoreModule,
-    UserProfileInlineComponent,
-    NgmTableComponent
+    UserProfileInlineComponent
   ]
 })
 export class ManageUserInviteComponent extends TranslationBaseComponent {
@@ -52,6 +70,10 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
   private readonly usersComponent = inject(PACUsersComponent)
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
+  private readonly sortState$ = new BehaviorSubject<InviteSortState>({
+    active: 'createdAt',
+    direction: 'desc'
+  })
 
   public readonly invites$ = this.store.selectedOrganization$.pipe(
     map((org) => org?.id),
@@ -63,19 +85,9 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
         tenantId
       })
     }),
-    map(({ items }) =>
-      items.map((invite) => ({
-        ...invite,
-        createdAt: new DatePipe(this.locale).transform(new Date(invite.createdAt)),
-        expireDate: invite.expireDate
-          ? formatDistanceToNow(new Date(invite.expireDate))
-          : InvitationExpirationEnum.NEVER,
-        displayStatus: this.getDisplayStatus(invite),
-        statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${this.getDisplayStatus(invite)}`, {
-          Default: this.getDisplayStatus(invite)
-        })
-      } as InviteRow))
-    )
+    map(({ items }) => items.map((invite) => this.toInviteRow(invite))),
+    combineLatestWith(this.sortState$),
+    map(([rows, sortState]) => this.sortInviteRows(rows, sortState))
   )
 
   private invitedSub = this.usersComponent.invitedEvent.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -90,9 +102,21 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     this.refresh$.next()
   }
 
+  onSortChange(columnName: InviteSortColumn, direction: ZardTableSortDirection) {
+    this.sortState$.next({
+      active: columnName,
+      direction: direction || 'asc'
+    })
+  }
+
+  sortDirection(columnName: InviteSortColumn): ZardTableSortDirection {
+    const sortState = this.sortState$.value
+    return sortState.active === columnName ? sortState.direction : ''
+  }
+
   async resendInvite(
-    id: string,
-    email: string,
+    id: string | null | undefined,
+    email: string | null | undefined,
     role: IRole | null | undefined,
     organization: IOrganization | null | undefined,
     displayStatus: InviteDisplayStatus
@@ -131,15 +155,20 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     }
   }
 
-  async deleteInvite(id: string, email: string) {
+  async deleteInvite(id: string | null | undefined, email: string | null | undefined) {
     if (!id || !email) {
       return
     }
 
-    this.confirmDelete({
-      value: email,
-      information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {Default: 'After deletion, the invited user will no longer be able to confirm the invitation'})
-    }, this.inviteService.delete(id)).subscribe({
+    this.confirmDelete(
+      {
+        value: email,
+        information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {
+          Default: 'After deletion, the invited user will no longer be able to confirm the invitation'
+        })
+      },
+      this.inviteService.delete(id)
+    ).subscribe({
       next: () => {
         this.toastrService.success('TOASTR.MESSAGE.INVITES_DELETE', {
           email: email,
@@ -178,5 +207,70 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     }
 
     return invite.status as InviteStatusEnum
+  }
+
+  private toInviteRow(invite: IInvite): InviteRow {
+    const createdAtDate = invite.createdAt ? new Date(invite.createdAt) : null
+    const expireDate = invite.expireDate ? new Date(invite.expireDate) : null
+    const createdAtTime = this.validDateTime(createdAtDate)
+    const expireDateTime = this.validDateTime(expireDate)
+    const displayStatus = this.getDisplayStatus(invite)
+
+    return {
+      ...invite,
+      createdAt: createdAtTime ? new DatePipe(this.locale).transform(createdAtDate) : null,
+      expireDate: expireDate && expireDateTime ? formatDistanceToNow(expireDate) : InvitationExpirationEnum.NEVER,
+      createdAtTime,
+      expireDateTime: expireDateTime || Number.MAX_SAFE_INTEGER,
+      displayStatus,
+      statusText: this.getTranslation(`PAC.INVITE_PAGE.STATUS.${displayStatus}`, {
+        Default: displayStatus
+      })
+    }
+  }
+
+  private sortInviteRows(rows: InviteRow[], sortState: InviteSortState) {
+    if (!sortState.direction) {
+      return rows
+    }
+
+    return [...rows].sort((left, right) => {
+      const result = this.compareSortValues(
+        this.getInviteSortValue(left, sortState.active),
+        this.getInviteSortValue(right, sortState.active)
+      )
+
+      return sortState.direction === 'asc' ? result : -result
+    })
+  }
+
+  private getInviteSortValue(row: InviteRow, columnName: InviteSortColumn): string | number {
+    switch (columnName) {
+      case 'role':
+        return row.role?.name ?? ''
+      case 'invitedBy':
+        return row.invitedBy ? userLabel(row.invitedBy) : ''
+      case 'createdAt':
+        return row.createdAtTime
+      case 'expireDate':
+        return row.expireDateTime
+      case 'status':
+        return row.statusText
+      default:
+        return row.email ?? ''
+    }
+  }
+
+  private compareSortValues(left: string | number, right: string | number) {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left - right
+    }
+
+    return `${left}`.localeCompare(`${right}`)
+  }
+
+  private validDateTime(date: Date | null) {
+    const time = date?.getTime() ?? 0
+    return Number.isNaN(time) ? 0 : time
   }
 }
