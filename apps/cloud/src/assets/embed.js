@@ -65,7 +65,7 @@
 
   // Create iframe
   var iframe = document.createElement('iframe');
-  iframe.src = window.xpertConfig.baseUrl + '/x/' + window.xpertConfig.token;
+  iframe.src = window.xpertConfig.baseUrl + '/chatkit/x/' + window.xpertConfig.token;
   iframe.style.width = '100%';
   iframe.style.height = '100%';
   iframe.style.border = 'none';
