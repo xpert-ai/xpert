@@ -17,10 +17,6 @@ const routes: Routes = [
   },
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {
-    path: 'chatkit',
-    loadChildren: () => import('./xpert/chatkit/routes').then((m) => m.routes)
-  },
-  {
     path: 'x',
     loadChildren: () => import('./xpert/routes').then((m) => m.routes),
   },

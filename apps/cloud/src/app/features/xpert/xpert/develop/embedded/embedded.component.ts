@@ -52,7 +52,7 @@ export class XpertDevelopEmbeddedComponent {
   readonly selectedType = signal<EmbeddedType>('iframe')
   readonly xpert = signal(this.#data.xpert)
   readonly baseUrl = signal(window.location.origin)
-  readonly appUrl = computed(() => this.baseUrl() + '/chatkit/x/' + this.xpert()?.slug)
+  readonly appUrl = computed(() => this.baseUrl() + '/x/' + this.xpert()?.slug)
 
   readonly app = computed(() => {
     const type = this.selectedType()
