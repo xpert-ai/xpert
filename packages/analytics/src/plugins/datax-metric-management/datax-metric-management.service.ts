@@ -9,15 +9,21 @@ import {
 	ChatDashboardMessageType,
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
+	ChecklistItem,
 	CONTEXT_VARIABLE_CURRENTSTATE,
 	getToolCallIdFromConfig,
 	IBusinessArea,
+	ICertification,
 	IIndicator,
+	IPermissionApproval,
+	ITag,
 	IProject,
 	ISemanticModel,
 	IUser,
 	IndicatorStatusEnum,
 	IndicatorType,
+	PermissionApprovalStatus,
+	PermissionApprovalStatusTypesEnum,
 	TIndicatorDraft,
 	TInterruptMessage,
 	TMessageComponent,
@@ -47,14 +53,18 @@ import { t } from 'i18next'
 import { groupBy } from 'lodash'
 import { firstValueFrom, switchMap } from 'rxjs'
 import { FindOptionsOrder, ILike, In } from 'typeorm'
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { GetBIContextQuery } from '../../ai/queries'
 import { TBIContext } from '../../ai/types'
 import { updateOcapIndicators } from '../../ai/toolset/builtin/bi-toolset'
 import { markdownIndicators, markdownModelCubes, tryFixFormula } from '../../ai/toolset/types'
 import { BusinessAreaMyCommand } from '../../business-area/commands/business-area.my.command'
+import { CertificationService } from '../../certification'
 import { applyIndicatorDraft, createIndicatorNamespace, IndicatorService } from '../../indicator'
 import { Indicator } from '../../indicator/indicator.entity'
 import { RetrieveMembersCommand } from '../../model-member'
+import { PermissionApprovalStatusCommand } from '../../permission-approval/commands'
+import { ApprovalsByProjectQuery } from '../../permission-approval/queries'
 import { CreateProjectStoreCommand, ProjectGetQuery, ProjectMyQuery } from '../../project'
 import {
 	BasicIndicatorInput,
@@ -96,14 +106,75 @@ export type MetricRow = {
 	modelName?: string
 	businessAreaId?: string
 	businessAreaName?: string
+	certificationId?: string
+	certificationName?: string
 	entity?: string
 	business?: string
 	unit?: string
+	principal?: string
+	validity?: string
+	isApplication?: boolean
 	embeddingStatus?: string
+	error?: string
 	visible?: boolean
+	createdAt?: Date
+	publishedAt?: Date
 	updatedAt?: Date
+	checklist?: ChecklistItem[]
+	tags?: MetricTagRow[]
 	draft?: unknown
 	options?: unknown
+}
+
+export type MetricTagRow = {
+	id?: string
+	name?: string
+	description?: string
+	color?: string
+}
+
+export type MetricApprovalRow = {
+	id: string
+	status?: number
+	statusLabel?: string
+	permissionType?: string
+	permissionId?: string
+	approvalPolicyId?: string
+	approvalPolicyName?: string
+	indicatorId?: string
+	indicatorCode?: string
+	indicatorName?: string
+	indicatorGroupId?: string
+	indicatorGroupName?: string
+	createdByName?: string
+	createdAt?: Date
+	userApprovals?: MetricApprovalUserRow[]
+}
+
+export type MetricApprovalUserRow = {
+	id?: string
+	userId?: string
+	name?: string
+	email?: string
+	status?: number
+}
+
+export type MetricExportResult = {
+	fileName: string
+	content: string
+	mimeType: string
+	count: number
+}
+
+export type MetricImportResult = {
+	created: MetricRow[]
+	failures: Array<{
+		index: number
+		code?: string
+		message: string
+	}>
+	resultFileName: string
+	resultContent: string
 }
 
 type ModelOptionSource = {
@@ -119,6 +190,11 @@ type BusinessAreaOptionSource = {
 	name?: string
 }
 
+type CertificationOptionSource = {
+	id?: string
+	name?: string
+}
+
 @Injectable()
 export class DataXMetricManagementService {
 	private readonly logger = new Logger(DataXMetricManagementService.name)
@@ -126,7 +202,8 @@ export class DataXMetricManagementService {
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly indicatorService: IndicatorService
+		private readonly indicatorService: IndicatorService,
+		private readonly certificationService: CertificationService
 	) {}
 
 	createSession(context: IAgentMiddlewareContext) {
@@ -167,6 +244,38 @@ export class DataXMetricManagementService {
 		return areas.filter((area) => area.id && projectAreaIds.has(area.id))
 	}
 
+	async loadCertifications(): Promise<ICertification[]> {
+		const result = await this.certificationService.findAll({
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		return result.items
+	}
+
+	async loadMetricTags(projectId?: string): Promise<MetricTagRow[]> {
+		if (!projectId) {
+			return []
+		}
+
+		const result = await this.indicatorService.findMy({
+			where: {
+				projectId
+			},
+			relations: ['tags']
+		})
+		const tagById = new Map<string, MetricTagRow>()
+		for (const indicator of result.items) {
+			for (const tag of indicator.tags ?? []) {
+				const key = tag.id ?? tag.name
+				if (key && !tagById.has(key)) {
+					tagById.set(key, toMetricTagRow(tag))
+				}
+			}
+		}
+		return Array.from(tagById.values()).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+	}
+
 	async getViewData(
 		query: XpertViewQuery
 	): Promise<{ items: MetricRow[]; total: number; meta?: Record<string, unknown> }> {
@@ -185,7 +294,7 @@ export class DataXMetricManagementService {
 		const pageSize = query.pageSize ?? 20
 		const result = await this.indicatorService.findMy({
 			where: buildIndicatorWhere(scope),
-			relations: ['model', 'businessArea'],
+			relations: ['model', 'businessArea', 'certification', 'tags'],
 			take: pageSize,
 			skip: (page - 1) * pageSize,
 			order: buildIndicatorOrder(query.sortBy, query.sortDirection)
@@ -197,6 +306,45 @@ export class DataXMetricManagementService {
 			meta: {
 				metricScope: scope,
 				scopeSummary: summarizeMetricScope(scope)
+			}
+		}
+	}
+
+	async getApprovalsViewData(
+		query: XpertViewQuery
+	): Promise<{ items: MetricApprovalRow[]; total: number; meta?: Record<string, unknown> }> {
+		const projectId = getStringInput(query.parameters, 'projectId')
+		if (!projectId) {
+			return {
+				items: [],
+				total: 0,
+				meta: {
+					reason: 'project_required'
+				}
+			}
+		}
+
+		const result = await this.queryBus.execute<
+			ApprovalsByProjectQuery,
+			{ items: IPermissionApproval[]; total: number }
+		>(
+			new ApprovalsByProjectQuery({
+				projectId,
+				options: {
+					relations: ['indicator', 'userApprovals', 'userApprovals.user'],
+					order: buildApprovalOrder(query.sortBy, query.sortDirection)
+				}
+			})
+		)
+		const search = query.search?.trim().toLowerCase()
+		const rows = result.items.map(toApprovalRow).filter((row) => approvalRowMatches(row, search))
+		const page = query.page ?? 1
+		const pageSize = query.pageSize ?? 20
+		return {
+			items: rows.slice((page - 1) * pageSize, page * pageSize),
+			total: rows.length,
+			meta: {
+				projectId
 			}
 		}
 	}
@@ -227,6 +375,147 @@ export class DataXMetricManagementService {
 
 	async deleteIndicatorById(id: string) {
 		return this.indicatorService.deleteById(id)
+	}
+
+	async duplicateIndicator(id: string, projectId?: string) {
+		const indicator = await this.indicatorService.findOne(id)
+		const draft = toDraftFromIndicator(indicator)
+		const targetProjectId = projectId ?? indicator.projectId
+		const baseCode = draft.code?.trim() ? `${draft.code}_copy` : 'metric_copy'
+		const code = await this.generateUniqueCode(baseCode, targetProjectId)
+		const name = draft.name?.trim() ? `${draft.name} Copy` : code
+		const duplicated = await this.indicatorService.createDraft(
+			{
+				...draft,
+				code,
+				name
+			},
+			targetProjectId
+		)
+		return toMetricRow(duplicated)
+	}
+
+	async bulkDeleteIndicators(ids: string[]) {
+		const deleted: string[] = []
+		const failures: Array<{ id: string; message: string }> = []
+		for (const id of ids) {
+			try {
+				await this.indicatorService.deleteById(id)
+				deleted.push(id)
+			} catch (error) {
+				failures.push({
+					id,
+					message: getErrorMessage(error)
+				})
+			}
+		}
+		return {
+			deleted,
+			failures
+		}
+	}
+
+	async exportIndicators(query: XpertViewQuery, ids: string[] = []): Promise<MetricExportResult> {
+		const scope = metricScopeFromViewQuery(query)
+		if (!scope.projectId && !ids.length) {
+			throw new Error('Project is required before exporting metrics')
+		}
+
+		const where = ids.length ? { id: In(ids) } : buildIndicatorWhere(scope)
+		const result = await this.indicatorService.findMy({
+			where,
+			relations: ['tags'],
+			order: {
+				updatedAt: 'DESC'
+			}
+		})
+		const items = result.items.map(toExportIndicator)
+		return {
+			fileName: 'Indicators.yaml',
+			content: stringifyYaml(items),
+			mimeType: 'application/x-yaml',
+			count: items.length
+		}
+	}
+
+	async importIndicators(projectId: string, content: string): Promise<MetricImportResult> {
+		const inputs = normalizeImportPayload(parseYaml(content))
+		const created: MetricRow[] = []
+		const failures: MetricImportResult['failures'] = []
+
+		for (let index = 0; index < inputs.length; index += 1) {
+			const input = inputs[index]
+			const code = getOptionalString(input, 'code')
+			try {
+				const indicator = await this.createViewDraft(projectId, input)
+				created.push(toMetricRow(indicator))
+			} catch (error) {
+				failures.push({
+					index,
+					code,
+					message: getErrorMessage(error)
+				})
+			}
+		}
+
+		return {
+			created,
+			failures,
+			resultFileName: 'Indicator_Import_Results.yaml',
+			resultContent: stringifyYaml({
+				created: created.map((item) => ({
+					id: item.id,
+					code: item.code,
+					name: item.name
+				})),
+				failures
+			})
+		}
+	}
+
+	async startEmbeddingProject(projectId: string) {
+		await this.indicatorService.startEmbedding(projectId)
+		return {
+			projectId
+		}
+	}
+
+	async refreshEmbeddingStatuses(query: XpertViewQuery) {
+		const result = await this.getViewData(query)
+		return {
+			items: result.items.map((item) => ({
+				id: item.id,
+				code: item.code,
+				name: item.name,
+				embeddingStatus: item.embeddingStatus,
+				error: item.error
+			})),
+			total: result.total
+		}
+	}
+
+	async approvePermissionApproval(id: string) {
+		const approval = await this.commandBus.execute<PermissionApprovalStatusCommand, IPermissionApproval>(
+			new PermissionApprovalStatusCommand(id, PermissionApprovalStatus.APPROVED)
+		)
+		return toApprovalRow(approval)
+	}
+
+	async refusePermissionApproval(id: string) {
+		const approval = await this.commandBus.execute<PermissionApprovalStatusCommand, IPermissionApproval>(
+			new PermissionApprovalStatusCommand(id, PermissionApprovalStatus.REFUSED)
+		)
+		return toApprovalRow(approval)
+	}
+
+	private async generateUniqueCode(baseCode: string, projectId: string) {
+		let candidate = baseCode
+		let index = 2
+		while (!(await this.indicatorService.checkCodeUnique(candidate, projectId))) {
+			candidate = `${baseCode}_${index}`
+			index += 1
+		}
+		return candidate
 	}
 }
 
@@ -1236,29 +1525,133 @@ export class DataXMetricManagementSession {
 export function toMetricRow(indicator: IIndicator): MetricRow {
 	const model = indicator.model as ModelOptionSource | undefined
 	const businessArea = indicator.businessArea as BusinessAreaOptionSource | undefined
+	const certification = indicator.certification as CertificationOptionSource | undefined
 	const draft = indicator.draft ?? {}
-	const options = (draft as TIndicatorDraft).options ?? indicator.options
-	const businessAreaId = (draft as TIndicatorDraft).businessAreaId ?? indicator.businessAreaId
+	const draftIndicator = draft as TIndicatorDraft
+	const options = draftIndicator.options ?? indicator.options
+	const businessAreaId = draftIndicator.businessAreaId ?? indicator.businessAreaId
+	const certificationId = draftIndicator.certificationId ?? indicator.certificationId
 
 	return {
 		id: indicator.id,
-		code: (draft as TIndicatorDraft).code ?? indicator.code,
-		name: (draft as TIndicatorDraft).name ?? indicator.name,
-		type: (draft as TIndicatorDraft).type ?? indicator.type,
+		code: draftIndicator.code ?? indicator.code,
+		name: draftIndicator.name ?? indicator.name,
+		type: draftIndicator.type ?? indicator.type,
 		status: indicator.status,
-		modelId: (draft as TIndicatorDraft).modelId ?? indicator.modelId,
-		modelName: model?.name ?? model?.title ?? (draft as TIndicatorDraft).modelId ?? indicator.modelId,
+		modelId: draftIndicator.modelId ?? indicator.modelId,
+		modelName: model?.name ?? model?.title ?? draftIndicator.modelId ?? indicator.modelId,
 		businessAreaId,
 		businessAreaName: businessArea?.name ?? businessAreaId,
-		entity: (draft as TIndicatorDraft).entity ?? indicator.entity,
-		business: (draft as TIndicatorDraft).business ?? indicator.business,
-		unit: (draft as TIndicatorDraft).unit ?? indicator.unit,
+		certificationId,
+		certificationName: certification?.name ?? certificationId,
+		entity: draftIndicator.entity ?? indicator.entity,
+		business: draftIndicator.business ?? indicator.business,
+		unit: draftIndicator.unit ?? indicator.unit,
+		principal: draftIndicator.principal ?? indicator.principal,
+		validity: draftIndicator.validity ?? indicator.validity,
+		isApplication: draftIndicator.isApplication ?? indicator.isApplication,
 		embeddingStatus: indicator.embeddingStatus,
-		visible: (draft as TIndicatorDraft).visible ?? indicator.visible,
+		error: indicator.error,
+		visible: draftIndicator.visible ?? indicator.visible,
+		createdAt: indicator.createdAt,
+		publishedAt: indicator.publishedAt,
 		updatedAt: indicator.updatedAt,
+		checklist: draftIndicator.checklist,
+		tags: indicator.tags?.map(toMetricTagRow),
 		draft: indicator.draft,
 		options
 	}
+}
+
+export function toMetricTagRow(tag: ITag): MetricTagRow {
+	return {
+		id: tag.id,
+		name: tag.name,
+		description: tag.description,
+		color: tag.color
+	}
+}
+
+function toApprovalRow(approval: IPermissionApproval): MetricApprovalRow {
+	const indicator = approval.indicator
+	const indicatorGroup = getMappedBusinessArea(approval)
+	return {
+		id: approval.id,
+		status: approval.status,
+		statusLabel: permissionApprovalStatusLabel(approval.status),
+		permissionType: approval.permissionType,
+		permissionId: approval.permissionId,
+		approvalPolicyId: approval.approvalPolicyId,
+		approvalPolicyName: approval.approvalPolicy?.name,
+		indicatorId: approval.indicatorId,
+		indicatorCode: indicator?.code,
+		indicatorName: indicator?.name,
+		indicatorGroupId: indicatorGroup?.id,
+		indicatorGroupName: indicatorGroup?.name,
+		createdByName: getApprovalCreatedByName(approval) ?? approval.createdByName,
+		createdAt: approval.createdAt,
+		userApprovals: approval.userApprovals?.map((item) => ({
+			id: item.id,
+			userId: item.userId,
+			name: item.user?.name ?? item.user?.fullName ?? item.user?.email ?? item.userId,
+			email: item.user?.email,
+			status: item.status
+		}))
+	}
+}
+
+function approvalRowMatches(row: MetricApprovalRow, search: string | undefined) {
+	if (!search) {
+		return true
+	}
+	return [
+		row.permissionType,
+		row.approvalPolicyName,
+		row.indicatorCode,
+		row.indicatorName,
+		row.indicatorGroupName,
+		row.createdByName,
+		...(row.userApprovals?.map((item) => item.name ?? item.email ?? item.userId) ?? [])
+	]
+		.filter(Boolean)
+		.some((value) => value?.toLowerCase().includes(search))
+}
+
+function permissionApprovalStatusLabel(status: number | undefined) {
+	if (status === PermissionApprovalStatusTypesEnum.REQUESTED) {
+		return 'REQUESTED'
+	}
+	if (status === PermissionApprovalStatusTypesEnum.APPROVED) {
+		return 'APPROVED'
+	}
+	if (status === PermissionApprovalStatusTypesEnum.REFUSED) {
+		return 'REFUSED'
+	}
+	return undefined
+}
+
+function getMappedBusinessArea(approval: IPermissionApproval): IBusinessArea | undefined {
+	if (!('indicatorGroup' in approval)) {
+		return undefined
+	}
+	const value = approval.indicatorGroup
+	return isBusinessAreaLike(value) ? value : undefined
+}
+
+function getApprovalCreatedByName(approval: IPermissionApproval) {
+	if (!('createdBy' in approval)) {
+		return undefined
+	}
+	const value = approval.createdBy
+	return isUserLike(value) ? (value.name ?? value.fullName ?? value.email) : undefined
+}
+
+function isBusinessAreaLike(value: unknown): value is IBusinessArea {
+	return Boolean(value && typeof value === 'object' && 'id' in value)
+}
+
+function isUserLike(value: unknown): value is IUser {
+	return Boolean(value && typeof value === 'object' && ('name' in value || 'email' in value || 'fullName' in value))
 }
 
 export function toModelOption(model: unknown) {
@@ -1277,6 +1670,14 @@ export function toBusinessAreaOption(area: unknown) {
 	}
 }
 
+export function toCertificationOption(certification: unknown) {
+	const source = certification as CertificationOptionSource
+	return {
+		value: source.id ?? '',
+		label: source.name ?? source.id ?? ''
+	}
+}
+
 export function getStringInput(parameters: Record<string, unknown> | undefined, key: string) {
 	const value = parameters?.[key]
 	const normalized = Array.isArray(value) ? value[0] : value
@@ -1289,6 +1690,9 @@ export function buildIndicatorBaseWhere(scope: MetricScope) {
 		...toWhereList('modelId', scope.modelIds),
 		...toWhereList('businessAreaId', scope.businessAreaIds),
 		...toWhereList('entity', scope.entities),
+		...toWhereList('certificationId', scope.certificationIds),
+		...toTagWhere(scope.tagIds),
+		...(typeof scope.isApplication === 'boolean' ? { isApplication: scope.isApplication } : {}),
 		...(scope.status ? { status: scope.status } : {}),
 		...(scope.type ? { type: scope.type } : {})
 	}
@@ -1319,6 +1723,17 @@ function toWhereList(key: string, values: string[] | undefined) {
 	}
 }
 
+function toTagWhere(values: string[] | undefined) {
+	if (!values?.length) {
+		return {}
+	}
+	return {
+		tags: {
+			id: values.length === 1 ? values[0] : In(values)
+		}
+	}
+}
+
 function buildIndicatorOrder(sortBy?: string, sortDirection?: string): FindOptionsOrder<Indicator> {
 	const direction = sortDirection === 'asc' ? 'ASC' : 'DESC'
 	if (
@@ -1327,6 +1742,8 @@ function buildIndicatorOrder(sortBy?: string, sortDirection?: string): FindOptio
 		sortBy === 'type' ||
 		sortBy === 'status' ||
 		sortBy === 'embeddingStatus' ||
+		sortBy === 'createdAt' ||
+		sortBy === 'publishedAt' ||
 		sortBy === 'updatedAt'
 	) {
 		return { [sortBy]: direction } as FindOptionsOrder<Indicator>
@@ -1335,19 +1752,88 @@ function buildIndicatorOrder(sortBy?: string, sortDirection?: string): FindOptio
 	return { updatedAt: 'DESC' }
 }
 
+function buildApprovalOrder(sortBy?: string, sortDirection?: string): FindOptionsOrder<IPermissionApproval> {
+	const direction: 'ASC' | 'DESC' = sortDirection === 'asc' ? 'ASC' : 'DESC'
+	if (sortBy === 'createdAt' || sortBy === 'status') {
+		return { [sortBy]: direction } as FindOptionsOrder<IPermissionApproval>
+	}
+	return { createdAt: 'DESC' }
+}
+
+function toDraftFromIndicator(indicator: IIndicator): TIndicatorDraft {
+	return {
+		code: indicator.draft?.code ?? indicator.code,
+		name: indicator.draft?.name ?? indicator.name,
+		type: indicator.draft?.type ?? indicator.type,
+		visible: indicator.draft?.visible ?? indicator.visible,
+		isApplication: indicator.draft?.isApplication ?? indicator.isApplication,
+		modelId: indicator.draft?.modelId ?? indicator.modelId,
+		entity: indicator.draft?.entity ?? indicator.entity,
+		unit: indicator.draft?.unit ?? indicator.unit,
+		principal: indicator.draft?.principal ?? indicator.principal,
+		certificationId: indicator.draft?.certificationId ?? indicator.certificationId,
+		validity: indicator.draft?.validity ?? indicator.validity,
+		business: indicator.draft?.business ?? indicator.business,
+		businessAreaId: indicator.draft?.businessAreaId ?? indicator.businessAreaId,
+		options: indicator.draft?.options ?? indicator.options
+	}
+}
+
+function toExportIndicator(indicator: IIndicator) {
+	const draft = toDraftFromIndicator(indicator)
+	return {
+		name: draft.name,
+		code: draft.code,
+		isApplication: draft.isApplication,
+		visible: draft.visible,
+		businessAreaId: draft.businessAreaId,
+		certificationId: draft.certificationId,
+		business: draft.business,
+		principal: draft.principal,
+		validity: draft.validity,
+		type: draft.type,
+		modelId: draft.modelId,
+		entity: draft.entity,
+		options: draft.options,
+		unit: draft.unit,
+		tags: indicator.tags?.map((tag) => ({
+			name: tag.name,
+			description: tag.description,
+			category: tag.category,
+			color: tag.color
+		}))
+	}
+}
+
+function normalizeImportPayload(value: unknown): Array<{ [key: string]: unknown }> {
+	const inputs = Array.isArray(value) ? value : [value]
+	return inputs.filter(isStringKeyedObject)
+}
+
+function isStringKeyedObject(value: unknown): value is { [key: string]: unknown } {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
 export function toIndicatorDraft(input: Record<string, unknown> | null | undefined): TIndicatorDraft {
 	const source = input ?? {}
+	const optionSource = getObjectInput(source, 'options')
 	const type = getIndicatorType(source)
 	const cube = getOptionalString(source, 'cube') ?? getOptionalString(source, 'entity')
 	const description = getOptionalString(source, 'description') ?? getOptionalString(source, 'business')
-	const calendar = getOptionalString(source, 'calendar')
-	const measure = getOptionalString(source, 'measure')
-	const formula = getOptionalString(source, 'formula')
+	const calendar = getOptionalString(source, 'calendar') ?? getOptionalString(optionSource, 'calendar')
+	const measure = getOptionalString(source, 'measure') ?? getOptionalString(optionSource, 'measure')
+	const formula = getOptionalString(source, 'formula') ?? getOptionalString(optionSource, 'formula')
+	const aggregator = getOptionalString(source, 'aggregator') ?? getOptionalString(optionSource, 'aggregator')
+	const dimensions =
+		getOptionalStringArray(source, 'dimensions') ?? getOptionalStringArray(optionSource, 'dimensions')
+	const filters = getArrayInput(source, 'filters') ?? getArrayInput(optionSource, 'filters')
 	const options = {
 		...(calendar ? { calendar } : {}),
 		...(measure ? { measure } : {}),
 		...(formula ? { formula } : {}),
-		...toViewFilters(source)
+		...(aggregator ? { aggregator } : {}),
+		...(dimensions ? { dimensions } : {}),
+		...toViewFilters(filters)
 	}
 
 	return {
@@ -1358,6 +1844,9 @@ export function toIndicatorDraft(input: Record<string, unknown> | null | undefin
 		entity: cube,
 		business: description,
 		businessAreaId: getOptionalString(source, 'businessAreaId'),
+		certificationId: getOptionalString(source, 'certificationId'),
+		principal: getOptionalString(source, 'principal'),
+		validity: getOptionalString(source, 'validity'),
 		unit: getOptionalString(source, 'unit'),
 		visible: getOptionalBoolean(source, 'visible') ?? true,
 		isApplication: getOptionalBoolean(source, 'isApplication') ?? false,
@@ -1365,23 +1854,21 @@ export function toIndicatorDraft(input: Record<string, unknown> | null | undefin
 	}
 }
 
-function toViewFilters(source: Record<string, unknown>) {
-	const filters = Array.isArray(source.filters) ? source.filters : []
-	const normalized = filters
+function toViewFilters(filters: unknown[] | undefined) {
+	const normalized = (filters ?? [])
 		.map((filter) => {
-			if (!filter || typeof filter !== 'object') {
+			if (!isStringKeyedObject(filter)) {
 				return null
 			}
-			const value = filter as Record<string, unknown>
-			const dimension = getOptionalString(value, 'dimension')
-			const member = getOptionalString(value, 'member')
+			const dimension = getOptionalString(filter, 'dimension')
+			const member = getOptionalString(filter, 'member')
 			if (!dimension || !member) {
 				return null
 			}
 			return {
 				dimension: {
 					dimension,
-					hierarchy: getOptionalString(value, 'hierarchy') ?? null
+					hierarchy: getOptionalString(filter, 'hierarchy') ?? null
 				},
 				members: [{ key: member }]
 			}
@@ -1395,9 +1882,27 @@ function getOptionalString(source: Record<string, unknown>, key: string) {
 	return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
+function getOptionalStringArray(source: Record<string, unknown>, key: string) {
+	const value = source[key]
+	if (!Array.isArray(value)) {
+		return undefined
+	}
+	return normalizeStringList(value)
+}
+
 function getOptionalBoolean(source: Record<string, unknown>, key: string) {
 	const value = source[key]
 	return typeof value === 'boolean' ? value : undefined
+}
+
+function getObjectInput(source: Record<string, unknown>, key: string): Record<string, unknown> {
+	const value = source[key]
+	return isStringKeyedObject(value) ? value : {}
+}
+
+function getArrayInput(source: Record<string, unknown>, key: string) {
+	const value = source[key]
+	return Array.isArray(value) ? value : undefined
 }
 
 function getIndicatorType(source: Record<string, unknown>) {
@@ -1413,6 +1918,9 @@ function metricScopeFromViewQuery(query: XpertViewQuery): MetricScope {
 		projectId: getStringInput(query.parameters, 'projectId'),
 		modelIds: getStringListInput(query.parameters, 'modelId'),
 		businessAreaIds: getStringListInput(query.parameters, 'businessAreaId'),
+		certificationIds: getStringListInput(query.parameters, 'certificationId'),
+		tagIds: getStringListInput(query.parameters, 'tagId'),
+		isApplication: getBooleanInput(query.parameters, 'isApplication'),
 		status: getStringInput(query.parameters, 'status') as IndicatorStatusEnum | undefined,
 		type: getStringInput(query.parameters, 'type') as IndicatorType | undefined,
 		search: query.search
@@ -1431,6 +1939,9 @@ export function normalizeMetricScopeInput(input: Partial<MetricScopeInput> | und
 			source.business_area_id
 		),
 		entities: firstStringList(source.entities, source.entity, source.cubeName, source.cube_name),
+		certificationIds: firstStringList(source.certificationIds, source.certificationId),
+		tagIds: firstStringList(source.tagIds, source.tagId),
+		isApplication: source.isApplication ?? undefined,
 		status: source.status ?? undefined,
 		type: source.type ?? undefined,
 		search: firstString(source.search)
@@ -1443,6 +1954,9 @@ export function normalizeMetricScope(scope: MetricScope | undefined | null): Met
 		modelIds: normalizeStringList(scope?.modelIds),
 		businessAreaIds: normalizeStringList(scope?.businessAreaIds),
 		entities: normalizeStringList(scope?.entities),
+		certificationIds: normalizeStringList(scope?.certificationIds),
+		tagIds: normalizeStringList(scope?.tagIds),
+		isApplication: scope?.isApplication,
 		status: scope?.status ?? undefined,
 		type: scope?.type ?? undefined,
 		search: normalizeString(scope?.search)
@@ -1455,6 +1969,9 @@ function mergeMetricScope(base: MetricScope, patch: MetricScope): MetricScope {
 		modelIds: patch.modelIds ?? base.modelIds,
 		businessAreaIds: patch.businessAreaIds ?? base.businessAreaIds,
 		entities: patch.entities ?? base.entities,
+		certificationIds: patch.certificationIds ?? base.certificationIds,
+		tagIds: patch.tagIds ?? base.tagIds,
+		isApplication: patch.isApplication ?? base.isApplication,
 		status: patch.status ?? base.status,
 		type: patch.type ?? base.type,
 		search: patch.search ?? base.search
@@ -1463,6 +1980,8 @@ function mergeMetricScope(base: MetricScope, patch: MetricScope): MetricScope {
 		next.modelIds = patch.modelIds
 		next.businessAreaIds = patch.businessAreaIds
 		next.entities = patch.entities
+		next.certificationIds = patch.certificationIds
+		next.tagIds = patch.tagIds
 	}
 	return next
 }
@@ -1473,6 +1992,9 @@ export function summarizeMetricScope(scope: MetricScope) {
 		scope.modelIds?.length ? `models=${scope.modelIds.join(',')}` : null,
 		scope.businessAreaIds?.length ? `businessAreas=${scope.businessAreaIds.join(',')}` : null,
 		scope.entities?.length ? `entities=${scope.entities.join(',')}` : null,
+		scope.certificationIds?.length ? `certifications=${scope.certificationIds.join(',')}` : null,
+		scope.tagIds?.length ? `tags=${scope.tagIds.join(',')}` : null,
+		typeof scope.isApplication === 'boolean' ? `isApplication=${scope.isApplication}` : null,
 		scope.status ? `status=${scope.status}` : null,
 		scope.type ? `type=${scope.type}` : null,
 		scope.search ? `search=${scope.search}` : null
@@ -1507,6 +2029,21 @@ function getStringListInput(parameters: Record<string, unknown> | undefined, key
 	}
 	const normalized = normalizeString(value)
 	return normalized ? [normalized] : undefined
+}
+
+function getBooleanInput(parameters: Record<string, unknown> | undefined, key: string) {
+	const value = parameters?.[key]
+	const normalized = Array.isArray(value) ? value[0] : value
+	if (typeof normalized === 'boolean') {
+		return normalized
+	}
+	if (normalized === 'true') {
+		return true
+	}
+	if (normalized === 'false') {
+		return false
+	}
+	return undefined
 }
 
 function firstString(...values: unknown[]) {

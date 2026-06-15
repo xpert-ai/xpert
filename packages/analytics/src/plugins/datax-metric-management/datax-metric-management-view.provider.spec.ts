@@ -24,6 +24,9 @@ jest.mock('../../ai/toolset/builtin/bi-toolset', () => ({
 	},
 	updateOcapIndicators: jest.fn()
 }))
+jest.mock('../../certification', () => ({
+	CertificationService: class CertificationService {}
+}))
 jest.mock('../../indicator', () => ({
 	IndicatorService: class IndicatorService {},
 	applyIndicatorDraft: (indicator: unknown) => indicator,
@@ -55,6 +58,7 @@ jest.mock('../../project', () => ({
 import {
 	AGENT_WORKBENCH_FIXED_SLOT,
 	AGENT_WORKBENCH_MAIN_SLOT,
+	DATA_X_METRIC_APPROVALS_VIEW_KEY,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
 	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
@@ -96,9 +100,46 @@ describe('DataXMetricManagementViewProvider', () => {
 				cube: expect.anything(),
 				measure: expect.anything(),
 				formula: expect.anything(),
-				filters: expect.anything()
+				filters: expect.anything(),
+				certificationId: expect.anything(),
+				principal: expect.anything(),
+				validity: expect.anything(),
+				aggregator: expect.anything(),
+				dimensions: expect.anything(),
+				isApplication: expect.anything()
 			})
 		)
+		expect(manifest.actions?.map((action) => action.key)).toEqual(
+			expect.arrayContaining([
+				'duplicate',
+				'bulk_delete',
+				'export',
+				'import',
+				'start_embedding_project',
+				'refresh_embedding_status'
+			])
+		)
+		expect(manifest.actions?.find((action) => action.key === 'import')?.transport).toBe('file')
+	})
+
+	it('returns an approvals manifest from the same remote component provider', () => {
+		const provider = createProvider()
+		const manifests = provider.getViewManifests(context, AGENT_WORKBENCH_MAIN_SLOT)
+		const manifest = manifests.find((item) => item.key === DATA_X_METRIC_APPROVALS_VIEW_KEY)
+
+		expect(manifest).toEqual(
+			expect.objectContaining({
+				key: DATA_X_METRIC_APPROVALS_VIEW_KEY,
+				view: expect.objectContaining({
+					type: 'remote_component',
+					component: {
+						isolation: 'iframe',
+						entry: DATA_X_METRIC_REMOTE_ENTRY_KEY
+					}
+				})
+			})
+		)
+		expect(manifest?.actions?.map((action) => action.key)).toEqual(expect.arrayContaining(['approve', 'refuse']))
 	})
 
 	it('declares fixed workbench metadata behind the metric management feature', () => {
@@ -178,6 +219,25 @@ describe('DataXMetricManagementViewProvider', () => {
 		})
 	})
 
+	it('loads approval view data through the metric management service', async () => {
+		const service = createService()
+		const provider = createProvider(service)
+
+		await provider.getViewData(context, DATA_X_METRIC_APPROVALS_VIEW_KEY, {
+			parameters: {
+				projectId: 'project-1'
+			}
+		})
+
+		expect(service.getApprovalsViewData).toHaveBeenCalledWith(
+			expect.objectContaining({
+				parameters: {
+					projectId: 'project-1'
+				}
+			})
+		)
+	})
+
 	it('loads project and model parameter options from the service', async () => {
 		const provider = createProvider()
 
@@ -193,9 +253,21 @@ describe('DataXMetricManagementViewProvider', () => {
 		).resolves.toEqual({
 			items: [{ value: 'model-1', label: 'Sales Model' }]
 		})
+		await expect(
+			provider.getViewParameterOptions(context, DATA_X_METRIC_VIEW_KEY, 'certificationId', {})
+		).resolves.toEqual({
+			items: [{ value: 'cert-1', label: 'Gold' }]
+		})
+		await expect(
+			provider.getViewParameterOptions(context, DATA_X_METRIC_VIEW_KEY, 'tagId', {
+				parameters: { projectId: 'project-1' }
+			})
+		).resolves.toEqual({
+			items: [{ value: 'tag-1', label: 'Finance' }]
+		})
 	})
 
-	it('executes create, edit, publish, embedding, and delete actions through the service', async () => {
+	it('executes create, edit, duplicate, publish, embedding, and delete actions through the service', async () => {
 		const service = createService()
 		const provider = createProvider(service)
 
@@ -207,15 +279,77 @@ describe('DataXMetricManagementViewProvider', () => {
 			targetId: 'metric-1',
 			input: { code: 'GMV', name: 'GMV Updated', type: 'DERIVE', formula: '[Measures].[Sales]' }
 		})
+		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'duplicate', {
+			targetId: 'metric-1',
+			parameters: { projectId: 'project-1' }
+		})
 		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'publish', { targetId: 'metric-1' })
 		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'embedding', { targetId: 'metric-1' })
 		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'delete', { targetId: 'metric-1' })
 
 		expect(service.createViewDraft).toHaveBeenCalledWith('project-1', expect.objectContaining({ code: 'GMV' }))
 		expect(service.updateViewDraft).toHaveBeenCalledWith('metric-1', expect.objectContaining({ code: 'GMV' }))
+		expect(service.duplicateIndicator).toHaveBeenCalledWith('metric-1', 'project-1')
 		expect(service.publishIndicator).toHaveBeenCalledWith('metric-1')
 		expect(service.embeddingIndicator).toHaveBeenCalledWith('metric-1')
 		expect(service.deleteIndicatorById).toHaveBeenCalledWith('metric-1')
+	})
+
+	it('executes bulk, export, project embedding, refresh, and file import actions', async () => {
+		const service = createService()
+		const provider = createProvider(service)
+
+		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'bulk_delete', {
+			input: { ids: ['metric-1', 'metric-2'] }
+		})
+		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'export', {
+			parameters: { projectId: 'project-1' },
+			input: { ids: ['metric-1'] }
+		})
+		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'start_embedding_project', {
+			parameters: { projectId: 'project-1' }
+		})
+		await provider.executeViewAction(context, DATA_X_METRIC_VIEW_KEY, 'refresh_embedding_status', {
+			parameters: { projectId: 'project-1' }
+		})
+		await provider.executeViewFileAction(
+			context,
+			DATA_X_METRIC_VIEW_KEY,
+			'import',
+			{ parameters: { projectId: 'project-1' } },
+			{
+				buffer: Buffer.from('[]'),
+				originalname: 'Indicators.yaml',
+				mimetype: 'application/x-yaml',
+				size: 2
+			}
+		)
+
+		expect(service.bulkDeleteIndicators).toHaveBeenCalledWith(['metric-1', 'metric-2'])
+		expect(service.exportIndicators).toHaveBeenCalledWith(
+			expect.objectContaining({ parameters: { projectId: 'project-1' } }),
+			['metric-1']
+		)
+		expect(service.startEmbeddingProject).toHaveBeenCalledWith('project-1')
+		expect(service.refreshEmbeddingStatuses).toHaveBeenCalledWith(
+			expect.objectContaining({ parameters: { projectId: 'project-1' } })
+		)
+		expect(service.importIndicators).toHaveBeenCalledWith('project-1', '[]')
+	})
+
+	it('executes approval actions through the service', async () => {
+		const service = createService()
+		const provider = createProvider(service)
+
+		await provider.executeViewAction(context, DATA_X_METRIC_APPROVALS_VIEW_KEY, 'approve', {
+			targetId: 'approval-1'
+		})
+		await provider.executeViewAction(context, DATA_X_METRIC_APPROVALS_VIEW_KEY, 'refuse', {
+			targetId: 'approval-1'
+		})
+
+		expect(service.approvePermissionApproval).toHaveBeenCalledWith('approval-1')
+		expect(service.refusePermissionApproval).toHaveBeenCalledWith('approval-1')
 	})
 })
 
@@ -229,6 +363,10 @@ function createService() {
 			items: [{ id: 'metric-1', code: 'GMV' }],
 			total: 1
 		})),
+		getApprovalsViewData: jest.fn(async () => ({
+			items: [{ id: 'approval-1', indicatorCode: 'GMV' }],
+			total: 1
+		})),
 		loadProjects: jest.fn(async () => [
 			{
 				id: 'project-1',
@@ -236,10 +374,31 @@ function createService() {
 				models: [{ id: 'model-1', name: 'Sales Model' }]
 			}
 		]),
+		loadBusinessAreas: jest.fn(async () => [{ id: 'area-1', name: 'Sales Area' }]),
+		loadCertifications: jest.fn(async () => [{ id: 'cert-1', name: 'Gold' }]),
+		loadMetricTags: jest.fn(async () => [{ id: 'tag-1', name: 'Finance' }]),
 		createViewDraft: jest.fn(async () => ({ id: 'metric-1' })),
 		updateViewDraft: jest.fn(async () => ({ id: 'metric-1' })),
+		duplicateIndicator: jest.fn(async () => ({ id: 'metric-2' })),
 		publishIndicator: jest.fn(async () => ({ id: 'metric-1' })),
 		embeddingIndicator: jest.fn(async () => ({ id: 'metric-1' })),
-		deleteIndicatorById: jest.fn(async () => undefined)
+		deleteIndicatorById: jest.fn(async () => undefined),
+		bulkDeleteIndicators: jest.fn(async () => ({ deleted: ['metric-1', 'metric-2'], failures: [] })),
+		exportIndicators: jest.fn(async () => ({
+			fileName: 'Indicators.yaml',
+			content: '[]',
+			mimeType: 'application/x-yaml',
+			count: 0
+		})),
+		importIndicators: jest.fn(async () => ({
+			created: [],
+			failures: [],
+			resultFileName: 'Indicator_Import_Results.yaml',
+			resultContent: '[]'
+		})),
+		startEmbeddingProject: jest.fn(async () => ({ projectId: 'project-1' })),
+		refreshEmbeddingStatuses: jest.fn(async () => ({ items: [], total: 0 })),
+		approvePermissionApproval: jest.fn(async () => ({ id: 'approval-1' })),
+		refusePermissionApproval: jest.fn(async () => ({ id: 'approval-1' }))
 	} as unknown as DataXMetricManagementService & Record<string, jest.Mock>
 }

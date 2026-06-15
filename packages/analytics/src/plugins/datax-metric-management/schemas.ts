@@ -7,7 +7,7 @@ import { DataXMetricManagementToolName } from './constants'
 export const TOOL_INDICATORS_PROMPTS_DEFAULT =
 	`1. Before performing metric operations, use 'indicator_scope_get' to inspect the active project/model/business-area scope.\n` +
 	`2. If 'indicator_scope_get' says no scope/project is selected, do NOT call 'list_indicators', 'indicator_retriever', create/edit/delete tools, cube context, or member retriever. First call 'indicator_scope_options' to list selectable projects, then call 'indicator_scope_set' with projectId. After calling 'indicator_scope_set', wait for that tool result before calling metric operation tools; never emit scope selection and metric operation tools in the same tool-call batch.\n` +
-	`3. Use 'indicator_scope_set' to narrow metric operations by BI project, semantic model, business area, cube/entity, status, type, or search text. Mutating tools inherit a single selected model/business area/cube from the active scope; if multiple values are selected, pass the exact value explicitly.\n` +
+	`3. Use 'indicator_scope_set' to narrow metric operations by BI project, semantic model, business area, cube/entity, certification, tag, app availability, status, type, or search text. Mutating tools inherit a single selected model/business area/cube from the active scope; if multiple values are selected, pass the exact value explicitly.\n` +
 	`4. 'indicator_retriever' tool can retrieve published indicators. For indicators in draft state, please use 'list_indicators' tool to list detailed indicators after the scope is selected.\n` +
 	`## Cube Context
   Before creating an indicator or call 'dimension_member_retriever', you need to call the 'get_indicator_cube_context' tool to get the Context of the Cube to be used.
@@ -54,6 +54,11 @@ export const MetricScopeSchema = z.object({
 	cubeName: OptionalString.describe('Single cube/entity name'),
 	entity: OptionalString.describe('Single cube/entity name'),
 	entities: OptionalStringArray.describe('Cube/entity names'),
+	certificationId: OptionalString.describe('Single certification ID'),
+	certificationIds: OptionalStringArray.describe('Certification IDs'),
+	tagId: OptionalString.describe('Single indicator tag ID'),
+	tagIds: OptionalStringArray.describe('Indicator tag IDs'),
+	isApplication: z.boolean().optional().nullable().describe('Filter indicators available in applications'),
 	status: z.nativeEnum(IndicatorStatusEnum).optional().nullable().describe('Indicator status filter'),
 	type: z.nativeEnum(IndicatorType).optional().nullable().describe('Indicator type filter'),
 	search: OptionalString.describe('Text search for indicator code, name, or business definition')
@@ -66,6 +71,9 @@ export type MetricScope = {
 	modelIds?: string[]
 	businessAreaIds?: string[]
 	entities?: string[]
+	certificationIds?: string[]
+	tagIds?: string[]
+	isApplication?: boolean
 	status?: IndicatorStatusEnum
 	type?: IndicatorType
 	search?: string

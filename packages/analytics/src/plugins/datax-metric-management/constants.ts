@@ -1,7 +1,9 @@
 export const DATA_X_METRIC_PLUGIN_NAME = 'analytics:datax-metric-management'
 export const DATA_X_METRIC_PROVIDER_KEY = 'datax_metric_management'
 export const DATA_X_METRIC_VIEW_KEY = 'metrics'
+export const DATA_X_METRIC_APPROVALS_VIEW_KEY = 'approvals'
 export const DATA_X_METRIC_PUBLIC_VIEW_KEY = `${DATA_X_METRIC_PROVIDER_KEY}__${DATA_X_METRIC_VIEW_KEY}`
+export const DATA_X_METRIC_APPROVALS_PUBLIC_VIEW_KEY = `${DATA_X_METRIC_PROVIDER_KEY}__${DATA_X_METRIC_APPROVALS_VIEW_KEY}`
 export const DATA_X_METRIC_REMOTE_ENTRY_KEY = 'metric-management'
 export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
 export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'

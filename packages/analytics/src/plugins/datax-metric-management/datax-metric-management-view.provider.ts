@@ -19,10 +19,16 @@ import {
 	XpertViewParameterOptionsResult,
 	XpertViewQuery
 } from '@xpert-ai/contracts'
-import { IXpertViewExtensionProvider, renderRemoteReactIframeHtml, ViewExtensionProvider } from '@xpert-ai/plugin-sdk'
+import {
+	IXpertViewExtensionProvider,
+	renderRemoteReactIframeHtml,
+	ViewExtensionProvider,
+	XpertViewFileActionFile
+} from '@xpert-ai/plugin-sdk'
 import {
 	AGENT_WORKBENCH_FIXED_SLOT,
 	AGENT_WORKBENCH_MAIN_SLOT,
+	DATA_X_METRIC_APPROVALS_VIEW_KEY,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
 	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_PLUGIN_NAME,
@@ -34,10 +40,12 @@ import {
 	DataXMetricManagementService,
 	getStringInput,
 	toBusinessAreaOption,
+	toCertificationOption,
 	toModelOption
 } from './datax-metric-management.service'
 
 const requireFromHere = createRequire(__filename)
+const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024
 
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
 const DATA_X_METRIC_VIEW_ICON = {
@@ -233,10 +241,38 @@ const createIndicatorInputSchema = {
 			type: 'string',
 			title: text('Unit', '单位')
 		},
+		certificationId: {
+			type: 'string',
+			title: text('Certification', '认证')
+		},
+		principal: {
+			type: 'string',
+			title: text('Principal', '负责人')
+		},
+		validity: {
+			type: 'string',
+			title: text('Validity', '有效期')
+		},
+		aggregator: {
+			type: 'string',
+			title: text('SQL Aggregator', 'SQL 聚合器')
+		},
+		dimensions: {
+			type: 'array',
+			title: text('Free Dimensions', '自由维度'),
+			items: {
+				type: 'string'
+			}
+		},
 		visible: {
 			type: 'boolean',
 			title: text('Visible', '可见'),
 			default: true
+		},
+		isApplication: {
+			type: 'boolean',
+			title: text('Available In Apps', '应用可用'),
+			default: false
 		}
 	},
 	required: ['code', 'name']
@@ -348,6 +384,36 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 							mode: 'provider',
 							preload: true
 						}
+					},
+					{
+						key: 'certificationId',
+						label: text('Certification', '认证'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true
+						}
+					},
+					{
+						key: 'tagId',
+						label: text('Tag', '标签'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['projectId']
+						}
+					},
+					{
+						key: 'isApplication',
+						label: text('App Available', '应用可用'),
+						type: 'boolean',
+						optionSource: {
+							mode: 'provider',
+							preload: true
+						}
 					}
 				],
 				view: {
@@ -418,6 +484,13 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 						inputSchema: editIndicatorInputSchema
 					},
 					{
+						key: 'duplicate',
+						label: text('Duplicate', '复制'),
+						icon: 'ri-file-copy-line',
+						placement: 'row',
+						actionType: 'invoke'
+					},
+					{
 						key: 'publish',
 						label: text('Publish', '发布'),
 						icon: 'ri-send-plane-line',
@@ -440,6 +513,167 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 						confirm: {
 							message: text('Delete this metric?', '确认删除该指标？')
 						}
+					},
+					{
+						key: 'bulk_delete',
+						label: text('Delete Selected', '删除选中'),
+						icon: 'ri-delete-bin-2-line',
+						placement: 'toolbar',
+						actionType: 'invoke',
+						inputSchema: {
+							type: 'object',
+							properties: {
+								ids: {
+									type: 'array',
+									title: text('Metric IDs', '指标 ID'),
+									items: {
+										type: 'string'
+									}
+								}
+							},
+							required: ['ids']
+						},
+						confirm: {
+							message: text('Delete selected metrics?', '确认删除选中的指标？')
+						}
+					},
+					{
+						key: 'export',
+						label: text('Export', '导出'),
+						icon: 'ri-download-line',
+						placement: 'toolbar',
+						actionType: 'invoke',
+						inputSchema: {
+							type: 'object',
+							properties: {
+								ids: {
+									type: 'array',
+									title: text('Metric IDs', '指标 ID'),
+									items: {
+										type: 'string'
+									}
+								}
+							}
+						}
+					},
+					{
+						key: 'import',
+						label: text('Import YAML', '导入 YAML'),
+						icon: 'ri-upload-line',
+						placement: 'toolbar',
+						actionType: 'invoke',
+						transport: 'file'
+					},
+					{
+						key: 'start_embedding_project',
+						label: text('Embed Project', '全量向量化'),
+						icon: 'ri-cpu-line',
+						placement: 'toolbar',
+						actionType: 'invoke'
+					},
+					{
+						key: 'refresh_embedding_status',
+						label: text('Refresh Embedding', '刷新向量状态'),
+						icon: 'ri-refresh-line',
+						placement: 'toolbar',
+						actionType: 'invoke'
+					}
+				]
+			},
+			{
+				key: DATA_X_METRIC_APPROVALS_VIEW_KEY,
+				title: text('Metric Approvals', '指标审批'),
+				description: text(
+					'Review and process Data X metric governance approvals in the workbench.',
+					'在 Workbench 中查看并处理 Data X 指标治理审批。'
+				),
+				hostType: 'agent',
+				slot,
+				order: 20,
+				refreshable: true,
+				activation: {
+					requiredFeatures: [DATA_X_METRIC_MANAGEMENT_FEATURE]
+				},
+				...(isFixedWorkbenchView
+					? {
+							workbench: {
+								fixed: true,
+								menu: {
+									enabled: true,
+									label: text('Metric Approvals', '指标审批'),
+									order: 20,
+									icon: DATA_X_METRIC_VIEW_ICON
+								}
+							}
+						}
+					: {}),
+				source: {
+					provider: DATA_X_METRIC_PROVIDER_KEY,
+					plugin: DATA_X_METRIC_PLUGIN_NAME
+				},
+				parameters: [
+					{
+						key: 'projectId',
+						label: text('Project', '项目'),
+						required: true,
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true
+						}
+					}
+				],
+				view: {
+					type: 'remote_component',
+					runtime: 'react',
+					protocolVersion: 1,
+					component: {
+						isolation: 'iframe',
+						entry: DATA_X_METRIC_REMOTE_ENTRY_KEY
+					},
+					dataSource: {
+						mode: 'platform'
+					}
+				},
+				dataSource: {
+					mode: 'platform',
+					querySchema: {
+						supportsPagination: true,
+						supportsSearch: true,
+						supportsSort: true,
+						supportsFilter: true,
+						supportsParameters: true,
+						defaultPageSize: 20
+					},
+					cache: {
+						enabled: false
+					}
+				},
+				actions: [
+					{
+						key: 'refresh',
+						label: text('Refresh', '刷新'),
+						icon: 'ri-refresh-line',
+						placement: 'toolbar',
+						actionType: 'refresh'
+					},
+					{
+						key: 'approve',
+						label: text('Approve', '通过'),
+						icon: 'ri-checkbox-circle-line',
+						placement: 'row',
+						actionType: 'invoke'
+					},
+					{
+						key: 'refuse',
+						label: text('Refuse', '拒绝'),
+						icon: 'ri-close-circle-line',
+						placement: 'row',
+						actionType: 'invoke',
+						confirm: {
+							message: text('Refuse this approval?', '确认拒绝该审批？')
+						}
 					}
 				]
 			}
@@ -451,7 +685,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		viewKey: string,
 		component: XpertRemoteComponentViewSchema['component']
 	): Promise<XpertRemoteComponentEntry> {
-		if (viewKey !== DATA_X_METRIC_VIEW_KEY || component.entry !== DATA_X_METRIC_REMOTE_ENTRY_KEY) {
+		if (!isSupportedViewKey(viewKey) || component.entry !== DATA_X_METRIC_REMOTE_ENTRY_KEY) {
 			return {
 				html: '<!doctype html><html><body>Unsupported remote component entry.</body></html>',
 				contentType: 'text/html; charset=utf-8'
@@ -483,11 +717,19 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		viewKey: string,
 		query: XpertViewQuery
 	): Promise<XpertViewDataResult> {
-		if (viewKey !== DATA_X_METRIC_VIEW_KEY) {
+		if (viewKey === DATA_X_METRIC_VIEW_KEY) {
+			return this.metricManagementService.getViewData(query)
+		}
+
+		if (viewKey === DATA_X_METRIC_APPROVALS_VIEW_KEY) {
+			return this.metricManagementService.getApprovalsViewData(query)
+		}
+
+		if (!isSupportedViewKey(viewKey)) {
 			return {}
 		}
 
-		return this.metricManagementService.getViewData(query)
+		return {}
 	}
 
 	async getViewParameterOptions(
@@ -496,14 +738,14 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		parameterKey: string,
 		query: XpertViewParameterOptionsQuery
 	): Promise<XpertViewParameterOptionsResult> {
-		if (viewKey !== DATA_X_METRIC_VIEW_KEY) {
+		if (!isSupportedViewKey(viewKey)) {
 			return { items: [] }
 		}
 
-		const projects = await this.metricManagementService.loadProjects()
 		const search = query.search?.trim().toLowerCase() ?? ''
 
 		if (parameterKey === 'projectId') {
+			const projects = await this.metricManagementService.loadProjects()
 			return {
 				items: projects
 					.filter((project) => !search || project.name?.toLowerCase().includes(search))
@@ -514,7 +756,12 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			}
 		}
 
+		if (viewKey !== DATA_X_METRIC_VIEW_KEY) {
+			return { items: [] }
+		}
+
 		if (parameterKey === 'modelId') {
+			const projects = await this.metricManagementService.loadProjects()
 			const projectId = getStringInput(query.parameters, 'projectId')
 			const project = projects.find((item) => item.id === projectId)
 			const models = Array.isArray(project?.models) ? project.models : []
@@ -553,6 +800,37 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			}
 		}
 
+		if (parameterKey === 'certificationId') {
+			const certifications = await this.metricManagementService.loadCertifications()
+			return {
+				items: certifications
+					.map((certification) => toCertificationOption(certification))
+					.filter((certification) => !search || certification.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'tagId') {
+			const projectId = getStringInput(query.parameters, 'projectId')
+			const tags = await this.metricManagementService.loadMetricTags(projectId)
+			return {
+				items: tags
+					.map((tag) => ({
+						value: tag.id ?? tag.name ?? '',
+						label: tag.name ?? tag.id ?? ''
+					}))
+					.filter((tag) => tag.value && (!search || tag.label.toLowerCase().includes(search)))
+			}
+		}
+
+		if (parameterKey === 'isApplication') {
+			return {
+				items: [
+					{ value: true, label: 'true' },
+					{ value: false, label: 'false' }
+				].filter((item) => !search || item.label.includes(search))
+			}
+		}
+
 		return { items: [] }
 	}
 
@@ -562,6 +840,10 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 		actionKey: string,
 		request: XpertViewActionRequest
 	): Promise<XpertViewActionResult> {
+		if (viewKey === DATA_X_METRIC_APPROVALS_VIEW_KEY) {
+			return this.executeApprovalsAction(actionKey, request)
+		}
+
 		if (viewKey !== DATA_X_METRIC_VIEW_KEY) {
 			return failure('Unsupported view', '不支持的视图')
 		}
@@ -582,6 +864,45 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			return success('Metric created', '指标已创建')
 		}
 
+		if (actionKey === 'bulk_delete') {
+			const ids = getStringArrayInput(request.input, 'ids')
+			if (!ids.length) {
+				return failure('Select at least one metric', '请先选择至少一个指标')
+			}
+			const result = await this.metricManagementService.bulkDeleteIndicators(ids)
+			return {
+				success: result.failures.length === 0,
+				message: text(
+					`Deleted ${result.deleted.length} metric(s), ${result.failures.length} failed.`,
+					`已删除 ${result.deleted.length} 个指标，失败 ${result.failures.length} 个。`
+				),
+				data: result,
+				refresh: result.deleted.length > 0
+			}
+		}
+
+		if (actionKey === 'export') {
+			const result = await this.metricManagementService.exportIndicators(
+				actionQuery(request),
+				getStringArrayInput(request.input, 'ids')
+			)
+			return successData('Metrics exported', '指标已导出', result, false)
+		}
+
+		if (actionKey === 'start_embedding_project') {
+			const projectId = getStringInput(request.parameters, 'projectId')
+			if (!projectId) {
+				return failure('Project is required', '请先选择项目')
+			}
+			const result = await this.metricManagementService.startEmbeddingProject(projectId)
+			return successData('Project embedding started', '项目指标向量化已启动', result)
+		}
+
+		if (actionKey === 'refresh_embedding_status') {
+			const result = await this.metricManagementService.refreshEmbeddingStatuses(actionQuery(request))
+			return successData('Embedding status refreshed', '向量状态已刷新', result, false)
+		}
+
 		const targetId = request.targetId?.trim()
 		if (!targetId) {
 			return failure('Target metric is required', '缺少目标指标')
@@ -593,6 +914,12 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				withScopeDefaults(request.input, request.parameters)
 			)
 			return success('Metric updated', '指标已更新')
+		}
+
+		if (actionKey === 'duplicate') {
+			const projectId = getStringInput(request.parameters, 'projectId')
+			const row = await this.metricManagementService.duplicateIndicator(targetId, projectId)
+			return successData('Metric duplicated', '指标已复制', row)
 		}
 
 		if (actionKey === 'publish') {
@@ -612,6 +939,66 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 
 		return failure('Unsupported action', '不支持的操作')
 	}
+
+	async executeViewFileAction(
+		_context: XpertResolvedViewHostContext,
+		viewKey: string,
+		actionKey: string,
+		request: XpertViewActionRequest,
+		file: XpertViewFileActionFile
+	): Promise<XpertViewActionResult> {
+		if (viewKey !== DATA_X_METRIC_VIEW_KEY || actionKey !== 'import') {
+			return failure('Unsupported file action', '不支持的文件操作')
+		}
+
+		const projectId = getStringInput(request.parameters, 'projectId')
+		if (!projectId) {
+			return failure('Project is required', '请先选择项目')
+		}
+		if ((file.size ?? file.buffer.length) > MAX_IMPORT_FILE_BYTES) {
+			return failure('Import file is too large', '导入文件过大')
+		}
+		if (!isSupportedImportFile(file)) {
+			return failure('Only YAML files are supported', '仅支持 YAML 文件')
+		}
+
+		const result = await this.metricManagementService.importIndicators(projectId, file.buffer.toString('utf8'))
+		return {
+			success: result.failures.length === 0,
+			message: text(
+				`Imported ${result.created.length} metric(s), ${result.failures.length} failed.`,
+				`已导入 ${result.created.length} 个指标，失败 ${result.failures.length} 个。`
+			),
+			data: result,
+			refresh: result.created.length > 0
+		}
+	}
+
+	private async executeApprovalsAction(
+		actionKey: string,
+		request: XpertViewActionRequest
+	): Promise<XpertViewActionResult> {
+		if (actionKey === 'refresh') {
+			return success('Approvals refreshed', '审批视图已刷新')
+		}
+
+		const targetId = request.targetId?.trim()
+		if (!targetId) {
+			return failure('Target approval is required', '缺少目标审批')
+		}
+
+		if (actionKey === 'approve') {
+			const row = await this.metricManagementService.approvePermissionApproval(targetId)
+			return successData('Approval approved', '审批已通过', row)
+		}
+
+		if (actionKey === 'refuse') {
+			const row = await this.metricManagementService.refusePermissionApproval(targetId)
+			return successData('Approval refused', '审批已拒绝', row)
+		}
+
+		return failure('Unsupported action', '不支持的操作')
+	}
 }
 
 async function readPackageFile(packageName: string, relativePath: string) {
@@ -627,11 +1014,38 @@ function success(en_US: string, zh_Hans: string): XpertViewActionResult {
 	}
 }
 
+function successData<TData>(en_US: string, zh_Hans: string, data: TData, refresh = true): XpertViewActionResult<TData> {
+	return {
+		success: true,
+		message: text(en_US, zh_Hans),
+		data,
+		refresh
+	}
+}
+
 function failure(en_US: string, zh_Hans: string): XpertViewActionResult {
 	return {
 		success: false,
 		message: text(en_US, zh_Hans)
 	}
+}
+
+function isSupportedViewKey(viewKey: string) {
+	return viewKey === DATA_X_METRIC_VIEW_KEY || viewKey === DATA_X_METRIC_APPROVALS_VIEW_KEY
+}
+
+function isSupportedImportFile(file: XpertViewFileActionFile) {
+	const name = file.originalname?.toLowerCase() ?? ''
+	const mimetype = file.mimetype?.toLowerCase() ?? ''
+	return (
+		name.endsWith('.yaml') ||
+		name.endsWith('.yml') ||
+		name.endsWith('.txt') ||
+		mimetype === 'application/x-yaml' ||
+		mimetype === 'application/yaml' ||
+		mimetype === 'text/yaml' ||
+		mimetype === 'text/plain'
+	)
 }
 
 function withScopeDefaults(
@@ -641,10 +1055,43 @@ function withScopeDefaults(
 	return {
 		...(input ?? {}),
 		...defaultIfMissing(input, 'modelId', getStringInput(parameters, 'modelId')),
-		...defaultIfMissing(input, 'businessAreaId', getStringInput(parameters, 'businessAreaId'))
+		...defaultIfMissing(input, 'businessAreaId', getStringInput(parameters, 'businessAreaId')),
+		...defaultIfMissing(input, 'certificationId', getStringInput(parameters, 'certificationId'))
 	}
 }
 
 function defaultIfMissing(input: Record<string, unknown> | null | undefined, key: string, value: string | undefined) {
 	return value && !(input && typeof input[key] === 'string' && input[key]) ? { [key]: value } : {}
+}
+
+function getStringArrayInput(input: Record<string, unknown> | null | undefined, key: string) {
+	const value = input?.[key]
+	if (!Array.isArray(value)) {
+		return []
+	}
+	const seen = new Set<string>()
+	const result: string[] = []
+	for (const item of value) {
+		if (typeof item === 'string' && item.trim() && !seen.has(item.trim())) {
+			seen.add(item.trim())
+			result.push(item.trim())
+		}
+	}
+	return result
+}
+
+function getNumberInput(input: Record<string, unknown> | null | undefined, key: string) {
+	const value = input?.[key]
+	return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function actionQuery(request: XpertViewActionRequest): XpertViewQuery {
+	return {
+		parameters: request.parameters,
+		page: getNumberInput(request.input, 'page'),
+		pageSize: getNumberInput(request.input, 'pageSize'),
+		search: getStringInput(request.input, 'search'),
+		sortBy: getStringInput(request.input, 'sortBy'),
+		sortDirection: getStringInput(request.input, 'sortDirection') === 'asc' ? 'asc' : 'desc'
+	}
 }
