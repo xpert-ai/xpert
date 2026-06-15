@@ -26,6 +26,7 @@ export interface SettingsMenuItem {
   path: string
   label: string
   icon: string
+  deprecated?: boolean
   admin?: boolean
   pathMatch?: 'full' | 'prefix'
   scopeContext?: MenuScope
@@ -82,6 +83,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'chatbi',
       label: 'Chat BI',
       icon: 'try',
+      deprecated: true,
       scopeContext: 'dual-scope',
       data: {
         permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
@@ -92,6 +94,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'business-area',
       label: 'Business Area',
       icon: 'business_center',
+      deprecated: true,
       pathMatch: 'prefix',
       scopeContext: 'organization-only',
       data: {
@@ -103,6 +106,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'certification',
       label: 'Certification',
       icon: 'verified_user',
+      deprecated: true,
       pathMatch: 'prefix',
       scopeContext: 'organization-only',
       data: {
