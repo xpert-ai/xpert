@@ -61,13 +61,51 @@
       "Skills": "Skills",
       "You": "You",
       "EnterPassword": "Enter password",
-      "ConfirmPassword": "Confirm password"
+      "ConfirmPassword": "Confirm password",
+      "Refresh": "Refresh"
     },
     "Common": {
       "Tools": "Tools",
       "Loading": "Loading...",
       "Enabled": "Enabled",
       "NoTools": "No tools"
+    },
+    "Feature": {
+      "EnableFeature": "Enable feature",
+      "DisableFeature": "Disable feature",
+      "Enabled": "Enabled",
+      "Disabled": "Disabled",
+      "SearchPlaceholder": "Search modules...",
+      "EmptyTitle": "No matching modules",
+      "EmptyDescription": "Adjust the keyword, status, or category filter.",
+      "Filters": {
+        "Status": "Status",
+        "Category": "Category",
+        "AllStatus": "All status",
+        "Enabled": "Enabled",
+        "Disabled": "Disabled",
+        "AllGroups": "All categories"
+      },
+      "Summary": {
+        "Enabled": "Enabled modules",
+        "Disabled": "Disabled modules",
+        "Groups": "Feature groups",
+        "Items": "Feature items"
+      },
+      "Groups": {
+        "Organization": "Organization & permissions",
+        "OrganizationDescription": "Tenant structure, users, roles and baseline settings.",
+        "Ai": "AI capabilities",
+        "AiDescription": "Model providers, chat and digital expert experiences.",
+        "Data": "Data & analytics",
+        "DataDescription": "Semantic models, stories, indicators and business areas.",
+        "Integration": "System integration",
+        "IntegrationDescription": "External connections, storage, email and SMTP services.",
+        "Project": "Project collaboration",
+        "ProjectDescription": "Project workspaces and collaborative delivery modules.",
+        "Other": "Other modules",
+        "OtherDescription": "Additional feature modules not assigned to a primary group."
+      }
     },
     "MCP": {
       "CreateFromJson": "Create from JSON",
@@ -167,6 +205,7 @@
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",
+      "MANAGE_FEATURES": "Manage Feature Modules",
       "Roles": {
         "Administration": "Administration",
         "General": "General"

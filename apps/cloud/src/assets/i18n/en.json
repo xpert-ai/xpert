@@ -113,6 +113,8 @@
       "Custom": "Custom",
       "Default": "Default",
       "Description": "Description",
+      "Deprecated": "Deprecated",
+      "DeprecatedSuffix": " (Deprecated)",
       "Disabled": "Disabled",
       "EDIT": "Edit",
       "Email": "Email",
@@ -130,6 +132,7 @@
       "Role": "Role",
       "Saving": "Saving...",
       "Search": "Search",
+      "Refresh": "Refresh",
       "Selected": "Selected",
       "Status": "Status",
       "Tags": "Tags",
@@ -150,6 +153,43 @@
       "NoTools": "No tools",
       "Reset": "Reset"
     },
+    "Feature": {
+      "EnableFeature": "Enable feature",
+      "DisableFeature": "Disable feature",
+      "Enabled": "Enabled",
+      "Disabled": "Disabled",
+      "SearchPlaceholder": "Search modules...",
+      "EmptyTitle": "No matching modules",
+      "EmptyDescription": "Adjust the keyword, status, or category filter.",
+      "Filters": {
+        "Status": "Status",
+        "Category": "Category",
+        "AllStatus": "All status",
+        "Enabled": "Enabled",
+        "Disabled": "Disabled",
+        "AllGroups": "All categories"
+      },
+      "Summary": {
+        "Enabled": "Enabled modules",
+        "Disabled": "Disabled modules",
+        "Groups": "Feature groups",
+        "Items": "Feature items"
+      },
+      "Groups": {
+        "Organization": "Organization & permissions",
+        "OrganizationDescription": "Tenant structure, users, roles and baseline settings.",
+        "Ai": "AI capabilities",
+        "AiDescription": "Model providers, chat and digital expert experiences.",
+        "Data": "Data & analytics",
+        "DataDescription": "Semantic models, stories, indicators and business areas.",
+        "Integration": "System integration",
+        "IntegrationDescription": "External connections, storage, email and SMTP services.",
+        "Project": "Project collaboration",
+        "ProjectDescription": "Project workspaces and collaborative delivery modules.",
+        "Other": "Other modules",
+        "OtherDescription": "Additional feature modules not assigned to a primary group."
+      }
+    },
     "MCP": {
       "CreateFromJson": "Create from JSON",
       "PasteMCPJson": "Paste an MCP JSON config to create a toolset.",
@@ -159,6 +199,7 @@
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",
+      "MANAGE_FEATURES": "Manage Feature Modules",
       "MANAGE_USERS": "Manage Users",
       "ManageUsers": "Manage Users",
       "Roles": {

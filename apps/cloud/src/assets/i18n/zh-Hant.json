@@ -165,6 +165,8 @@
       "Conversation": "會話",
       "Currency": "幣種",
       "DigitalAssetCertificationTypes": "數字資產認證類型",
+      "Deprecated": "已廢棄",
+      "DeprecatedSuffix": "（已廢棄）",
       "Owner": "所有者",
       "Query": "查詢",
       "Story": "故事",
@@ -2663,6 +2665,41 @@
       "NoInviteOrganization": "請先切換到組織範圍再發起邀請。"
     },
     "Feature": {
+      "EnableFeature": "啟用功能",
+      "DisableFeature": "禁用功能",
+      "Enabled": "已啟用",
+      "Disabled": "已禁用",
+      "SearchPlaceholder": "搜索模塊...",
+      "EmptyTitle": "沒有匹配的模塊",
+      "EmptyDescription": "調整關鍵詞、狀態或分類篩選。",
+      "Filters": {
+        "Status": "狀態",
+        "Category": "分類",
+        "AllStatus": "全部狀態",
+        "Enabled": "已啟用",
+        "Disabled": "已禁用",
+        "AllGroups": "全部分類"
+      },
+      "Summary": {
+        "Enabled": "已啟用模塊",
+        "Disabled": "已禁用模塊",
+        "Groups": "功能分組",
+        "Items": "功能項"
+      },
+      "Groups": {
+        "Organization": "組織與權限",
+        "OrganizationDescription": "租戶組織、用戶、角色和基礎設置。",
+        "Ai": "AI 能力",
+        "AiDescription": "模型提供商、對話和數字專家體驗。",
+        "Data": "數據與分析",
+        "DataDescription": "語義模型、故事、指標和業務域。",
+        "Integration": "系統集成",
+        "IntegrationDescription": "外部連接、存儲、郵件和 SMTP 服務。",
+        "Project": "項目協作",
+        "ProjectDescription": "項目工作空間和協作交付模塊。",
+        "Other": "其他模塊",
+        "OtherDescription": "未歸入主要分類的其他功能模塊。"
+      },
       "Features": {
         "FEATURE_HOME": {
           "Name": "首頁",
