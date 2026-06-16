@@ -3,7 +3,8 @@ import { PluginMarketplaceItem } from '@xpert-ai/contracts'
 import { resolvePluginMarketplaceGrouping } from './plugin-marketplace-categories'
 import {
   buildMarketplacePluginMetadataLookup,
-  enrichInstalledPluginWithMarketplaceMetadata
+  enrichInstalledPluginWithMarketplaceMetadata,
+  mergeMarketplaceContributions
 } from './plugin-marketplace-metadata'
 
 function installedPlugin(
@@ -101,5 +102,61 @@ describe('plugin marketplace metadata', () => {
       category: 'communication',
       subcategory: undefined
     })
+  })
+
+  it('dedupes assistant template contributions by their effective template id', () => {
+    const contributions = mergeMarketplaceContributions(
+      [
+        {
+          type: 'assistant-template',
+          name: 'docx-editor-assistant',
+          displayName: 'DOCX Editor Assistant Template'
+        }
+      ],
+      [
+        {
+          type: 'assistant-template',
+          name: 'docx-editor-assistant-template',
+          displayName: 'DOCX Editor Assistant',
+          metadata: {
+            templateId: 'docx-editor-assistant'
+          }
+        }
+      ]
+    )
+
+    expect(contributions).toHaveLength(1)
+    expect(contributions[0]).toMatchObject({
+      type: 'assistant-template',
+      name: 'docx-editor-assistant-template',
+      displayName: 'DOCX Editor Assistant'
+    })
+  })
+
+  it('dedupes repeated target app content by type and name', () => {
+    const contributions = mergeMarketplaceContributions(
+      [
+        {
+          type: 'assistant-template',
+          name: 'docx-editor-assistant',
+          displayName: 'DOCX Editor Assistant Template'
+        }
+      ],
+      [
+        {
+          type: 'assistant-template',
+          name: 'docx-editor-assistant',
+          displayName: 'DOCX Editor Assistant'
+        }
+      ]
+    )
+
+    expect(contributions).toEqual([
+      {
+        type: 'assistant-template',
+        name: 'docx-editor-assistant',
+        displayName: 'DOCX Editor Assistant'
+      }
+    ])
   })
 })

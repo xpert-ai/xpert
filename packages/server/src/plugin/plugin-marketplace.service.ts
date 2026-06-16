@@ -1523,15 +1523,31 @@ export class PluginMarketplaceService {
 				if (!isRecord(item) || typeof item.name !== 'string' || typeof item.type !== 'string') {
 					continue
 				}
-				const key = `${item.type}:${item.id ?? item.name}`
+				const contribution = item as PluginMarketplaceContribution
+				const key = this.getContributionKey(contribution)
+				if (!key) {
+					continue
+				}
 				byKey.set(key, {
 					...(byKey.get(key) ?? {}),
-					...(item as PluginMarketplaceContribution)
+					...contribution
 				})
 			}
 		}
 
 		return Array.from(byKey.values())
+	}
+
+	private getContributionKey(contribution: PluginMarketplaceContribution) {
+		const type = this.normalizeOptionalString(contribution.type)
+		const identity =
+			type === 'assistant-template'
+				? (this.normalizeOptionalString(readRecord(contribution.metadata)?.templateId) ??
+					this.normalizeOptionalString(contribution.id) ??
+					this.normalizeOptionalString(contribution.name))
+				: (this.normalizeOptionalString(contribution.id) ?? this.normalizeOptionalString(contribution.name))
+
+		return type && identity ? `${type}:${identity}` : null
 	}
 
 	private toMarketplaceItem(
@@ -1555,13 +1571,15 @@ export class PluginMarketplaceService {
 
 	private getMarketplaceContributions(plugin: MarketplaceRegistryPlugin, targetApp?: string) {
 		if (!targetApp) {
-			return Object.values(readRecord(plugin.targetAppMeta) ?? {}).flatMap((metadata) =>
-				this.getContributionList(readRecord(metadata)?.marketplace)
+			return this.mergeContributions(
+				...Object.values(readRecord(plugin.targetAppMeta) ?? {}).map((metadata) =>
+					this.getContributionList(readRecord(metadata)?.marketplace)
+				)
 			)
 		}
 
 		const targetMetadata = readRecord(readRecord(plugin.targetAppMeta)?.[targetApp])
-		return this.getContributionList(targetMetadata?.marketplace)
+		return this.mergeContributions(this.getContributionList(targetMetadata?.marketplace))
 	}
 
 	private getContributionList(value: unknown): PluginMarketplaceContribution[] {

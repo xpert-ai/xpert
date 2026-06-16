@@ -140,7 +140,7 @@ function mergeInstalledPluginMarketplaceMetadata(
   return Object.keys(merged).length ? merged : undefined
 }
 
-function mergeMarketplaceContributions(
+export function mergeMarketplaceContributions(
   ...groups: Array<readonly PluginMarketplaceContribution[] | undefined>
 ): PluginMarketplaceContribution[] {
   const byKey = new Map<string, PluginMarketplaceContribution>()
@@ -151,7 +151,7 @@ function mergeMarketplaceContributions(
     }
 
     for (const contribution of group) {
-      const key = `${contribution.type}:${contribution.id ?? contribution.name}`
+      const key = getMarketplaceContributionKey(contribution)
       byKey.set(key, {
         ...(byKey.get(key) ?? {}),
         ...contribution
@@ -160,6 +160,26 @@ function mergeMarketplaceContributions(
   }
 
   return Array.from(byKey.values())
+}
+
+function getMarketplaceContributionKey(contribution: PluginMarketplaceContribution) {
+  const type = readRequiredString(contribution.type)
+  const identity =
+    type === 'assistant-template'
+      ? (readString(contribution.metadata?.templateId) ??
+        readString(contribution.id) ??
+        readRequiredString(contribution.name))
+      : (readString(contribution.id) ?? readRequiredString(contribution.name))
+
+  return `${type}:${identity}`
+}
+
+function readRequiredString(value: string) {
+  return value.trim() || value
+}
+
+function readString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function uniqueStrings(values: readonly string[]) {

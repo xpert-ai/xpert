@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite, injectToastr } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
-import { injectPluginAPI, injectScopeLevel } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI, injectScopeLevel } from '@xpert-ai/cloud/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
@@ -22,6 +22,7 @@ export class PluginInstallComponent {
   readonly #data = inject<{ plugin: TPlugin; reload: () => void; refreshStrategies?: () => void }>(DIALOG_DATA)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
   readonly pluginAPI = injectPluginAPI()
+  readonly #activeScope = injectActiveScope()
   readonly scopeLevel = injectScopeLevel()
   readonly #toastr = injectToastr()
 
@@ -30,6 +31,7 @@ export class PluginInstallComponent {
   readonly #installedPlugin = myRxResource({
     request: () => {
       return {
+        scope: this.#activeScope(),
         name: this.pluginName()
       }
     },

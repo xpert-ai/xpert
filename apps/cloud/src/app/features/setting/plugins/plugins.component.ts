@@ -17,7 +17,7 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { injectPluginAPI } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
@@ -41,7 +41,8 @@ import {
 } from './plugin-marketplace-categories'
 import {
   buildMarketplacePluginMetadataLookup,
-  enrichInstalledPluginWithMarketplaceMetadata
+  enrichInstalledPluginWithMarketplaceMetadata,
+  mergeMarketplaceContributions
 } from './plugin-marketplace-metadata'
 
 type TPluginComponentSummaryItem = {
@@ -81,6 +82,7 @@ export class PluginsComponent {
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
+  readonly #activeScope = injectActiveScope()
   readonly currentUser = injectUser()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
@@ -104,12 +106,16 @@ export class PluginsComponent {
   })
 
   readonly #plugins = myRxResource({
-    request: () => ({}),
+    request: () => ({
+      scope: this.#activeScope()
+    }),
     loader: () => this.pluginAPI.getPlugins()
   })
 
   readonly #installedMarketplace = myRxResource({
-    request: () => ({}),
+    request: () => ({
+      scope: this.#activeScope()
+    }),
     loader: () => this.pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP })
   })
 
@@ -249,6 +255,17 @@ export class PluginsComponent {
   // }
 
   constructor() {
+    effect(
+      () => {
+        this.#activeScope()
+        this.#latestVersionsRequestId += 1
+        this.removing.set('')
+        this.updating.set('')
+        this.refreshing.set('')
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
@@ -719,9 +736,9 @@ function getInstalledPluginMarketplaceContributions(plugin: TInstalledPlugin): T
     return []
   }
 
-  return Object.values(targetAppMeta)
-    .flatMap((metadata) => metadata?.marketplace?.contents ?? [])
-    .filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
+  return mergeMarketplaceContributions(
+    ...Object.values(targetAppMeta).map((metadata) => metadata?.marketplace?.contents)
+  ).filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
 }
 
 function countMarketplaceOperations(

@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import {
+  injectActiveScope,
   IPluginMarketplaceRegistryItem,
   IPluginMarketplaceRegistrySection,
   PluginAPIService
@@ -34,6 +35,7 @@ import {
   normalizePluginMarketplaceCategory,
   PLUGIN_MARKETPLACE_TARGET_APP
 } from '../plugin-marketplace-categories'
+import { mergeMarketplaceContributions } from '../plugin-marketplace-metadata'
 
 type MarketplaceSourceType = 'url' | 'github' | 'git'
 const DEFAULT_REGISTRY_TARGET_APP_META = `{
@@ -56,6 +58,7 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
 })
 export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
+  readonly #activeScope = injectActiveScope()
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
@@ -70,6 +73,7 @@ export class PluginsMarketplaceComponent {
 
   readonly #marketplace = myRxResource({
     request: () => ({
+      scope: this.#activeScope(),
       sourceId: this.selectedSourceId()
     }),
     loader: ({ request }) =>
@@ -563,7 +567,7 @@ function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDow
     sourceName,
     sourceNameI18nKey: item.sourceNameI18nKey ?? getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
     installed: item.installed,
-    contributions: item.contributions ?? [],
+    contributions: mergeMarketplaceContributions(item.contributions),
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }
