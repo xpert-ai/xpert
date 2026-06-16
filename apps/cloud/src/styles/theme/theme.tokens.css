@@ -50,7 +50,7 @@
   --color-components-input-bg-active: #ffffff;
   --color-components-input-text-filled-disabled: var(--sys-text-secondary);
   --color-components-input-border-hover: var(--sys-border);
-  --color-components-list-option-bg: #f2f2f2;
+  --color-components-list-option-bg: var(--color-background-default-subtle);
   --color-components-list-option-hover-bg: var(--sys-primary-subtle-hover);
   --color-components-list-option-active-bg: #f1f5ff;
   --color-components-toggle-bg: var(--sys-primary);
@@ -116,7 +116,7 @@
   --color-flow-minimap-node-selected: var(--sys-primary);
   --color-flow-minimap-view: color-mix(in oklab, var(--sys-primary) 14%, transparent);
   --color-flow-team-group-bg: #edfce9;
-  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-background-default-subtle: var(--sys-surface-subtle);
   --color-hero-gradient-solid: #ffffff;
   --color-hero-gradient-transparent: rgb(255 255 255 / 0);
   --color-input-border: var(--sys-border);
@@ -158,7 +158,7 @@
   --color-components-input-bg-active: color-mix(in oklab, var(--foreground) 6%, var(--sys-surface-field));
   --color-components-input-text-filled-disabled: var(--color-text-tertiary);
   --color-components-input-border-hover: var(--sys-border-control);
-  --color-components-list-option-bg: var(--sys-surface-subtle);
+  --color-components-list-option-bg: var(--color-background-default-subtle);
   --color-components-list-option-hover-bg: var(--sys-primary-subtle-hover);
   --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 8%, var(--sys-surface-subtle));
   --color-components-toggle-bg: var(--sys-primary);
@@ -224,7 +224,7 @@
   --color-flow-minimap-node-selected: var(--sys-primary-hover);
   --color-flow-minimap-view: color-mix(in oklab, var(--sys-primary) 18%, transparent);
   --color-flow-team-group-bg: color-mix(in oklab, var(--sys-primary) 12%, transparent);
-  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-background-default-subtle: var(--sys-surface-subtle);
   --color-hero-gradient-solid: var(--sys-surface-page);
   --color-hero-gradient-transparent: color-mix(in oklab, var(--sys-surface-page) 0%, transparent);
   --color-input-border: var(--sys-border-strong);

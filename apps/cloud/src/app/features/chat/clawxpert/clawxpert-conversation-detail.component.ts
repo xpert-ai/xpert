@@ -311,7 +311,7 @@ type ChatKitReferenceComposerControl = {
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div class="min-h-0 flex-1 p-2 pr-0">
+              <div class="min-h-0 flex-1 p-0">
                 @if (!activeTab()) {
                   <div
                     data-empty-workspace-placeholder
