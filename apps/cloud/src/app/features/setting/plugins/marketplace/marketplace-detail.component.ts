@@ -225,22 +225,13 @@ export class PluginMarketplaceDetailComponent {
       return templateKey
     }
     const plugin = this.plugin()
-    const pluginName =
-      readString(plugin?.marketplacePlugin?.['packageName']) ??
-      readString(plugin?.marketplacePlugin?.['name']) ??
-      readString(plugin?.packageName) ??
-      readString(plugin?.name)
+    const pluginName = readString(plugin?.packageName) ?? readString(plugin?.name)
     return pluginName ? `${pluginName}:${templateKey}` : templateKey
   }
 
   private resolveInstalledPluginName() {
     const plugin = this.plugin()
-    return (
-      readString(plugin?.marketplacePlugin?.['packageName']) ??
-      readString(plugin?.marketplacePlugin?.['name']) ??
-      readString(plugin?.packageName) ??
-      readString(plugin?.name)
-    )
+    return readString(plugin?.packageName) ?? readString(plugin?.name)
   }
 
   private installModeForResource(content: TPluginResourceContribution) {

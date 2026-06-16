@@ -229,8 +229,26 @@ export interface PluginMarketplaceContribution {
   metadata?: Record<string, unknown>
 }
 
+export type PluginMarketplaceCategory =
+  | 'featured'
+  | 'business-operations'
+  | 'communication'
+  | 'creativity'
+  | 'data-analytics'
+  | 'developer-tools'
+  | 'education-research'
+  | 'finance'
+  | 'productivity'
+  | 'research'
+  | 'security'
+  | 'travel'
+  | 'sales'
+  | 'other'
+
 export interface PluginTargetAppMarketplaceMetadata {
   contents?: PluginMarketplaceContribution[]
+  category?: PluginMarketplaceCategory
+  subcategory?: string
   featured?: boolean
   screenshots?: string[]
   readme?: string
@@ -320,6 +338,156 @@ export interface PluginMeta {
   keywords?: string[]
   author: string
   homepage?: string
+}
+
+export type PluginMarketplaceSourceType = 'url' | 'github' | 'git'
+export type PluginMarketplaceSourceResponseType = PluginMarketplaceSourceType | 'platform'
+export type PluginMarketplaceRegistrySection = 'marketplace' | 'official' | 'partner' | 'community'
+export type PluginMarketplaceRegistryDownloadStatus = 'idle' | 'success' | 'failed'
+export type PluginMarketplaceItemSourceType =
+  | 'marketplace'
+  | 'github'
+  | 'git'
+  | 'url'
+  | 'npm'
+  | 'website'
+  | 'other'
+  | (string & {})
+
+export interface PluginMarketplaceSourceInput {
+  name?: string
+  type?: PluginMarketplaceSourceType
+  url?: string
+  ref?: string | null
+  sparsePath?: string | null
+  enabled?: boolean
+  priority?: number
+}
+
+export interface PluginMarketplaceSourceResponse {
+  id: string
+  name: string
+  type: PluginMarketplaceSourceResponseType
+  url: string
+  ref?: string | null
+  sparsePath?: string | null
+  enabled: boolean
+  priority: number
+  lastIndexStatus?: string | null
+  lastIndexedAt?: Date | string | null
+  lastIndexError?: string | null
+  builtin?: boolean
+}
+
+export interface PluginMarketplaceRegistryItem {
+  id: string
+  packageName: string
+  version?: string | null
+  displayName: string
+  description: string
+  category: string
+  author: string
+  icon?: IconDefinition | null
+  keywords: string[]
+  homepage?: string | null
+  repository?: JSONValue | null
+  targetApps: PluginTargetApp[]
+  targetAppMeta: PluginTargetAppMeta
+  enabled: boolean
+  priority: number
+  section: PluginMarketplaceRegistrySection
+  downloads?: PluginMarketplaceDownloads | null
+  downloadsStatus?: PluginMarketplaceRegistryDownloadStatus | string | null
+  downloadsUpdatedAt?: Date | string | null
+  downloadsError?: string | null
+  createdAt?: Date | string | null
+  updatedAt?: Date | string | null
+}
+
+export type PluginMarketplaceRegistryItemResponse = PluginMarketplaceRegistryItem
+
+export interface PluginMarketplaceRegistryItemInput {
+  packageName?: string
+  version?: string | null
+  displayName?: string
+  description?: string
+  category?: string
+  author?: string
+  icon?: IconDefinition | null
+  keywords?: string[]
+  homepage?: string | null
+  repository?: JSONValue | null
+  targetApps?: PluginTargetApp[]
+  targetAppMeta?: PluginTargetAppMeta | null
+  enabled?: boolean
+  priority?: number
+  section?: PluginMarketplaceRegistrySection
+}
+
+export interface PluginMarketplaceAuthor {
+  name?: string | null
+  displayName?: string | null
+  url?: string | null
+  homepage?: string | null
+}
+
+export interface PluginMarketplaceDownloads {
+  lastWeek?: number
+  lastMonth?: number
+  lastYear?: number
+  [key: string]: JSONValue | undefined
+}
+
+export interface PluginMarketplaceOperationSummary {
+  total: number
+  read: number
+  write: number
+  admin: number
+}
+
+export interface PluginMarketplaceItemSource {
+  type?: PluginMarketplaceItemSourceType
+  url?: string | null
+  path?: string | null
+  ref?: string | null
+  packageName?: string | null
+}
+
+export interface PluginMarketplaceItem {
+  name: string
+  packageName?: string | null
+  displayName?: I18nObject | string
+  description?: I18nObject | string
+  version?: string | null
+  deprecated?: boolean
+  deprecationMessage?: I18nObject | string | null
+  category?: PluginMeta['category'] | string
+  icon?: IconDefinition | null
+  author?: PluginMarketplaceAuthor | string | null
+  source?: PluginMarketplaceItemSource | null
+  keywords?: string[]
+  downloads?: PluginMarketplaceDownloads | null
+  sourceId?: string | null
+  sourceName?: string | null
+  sourceNameI18nKey?: string | null
+  installed?: boolean
+  contributions?: PluginMarketplaceContribution[]
+  operationSummary?: PluginMarketplaceOperationSummary
+  targetApps?: PluginTargetApp[]
+  targetAppMeta?: PluginTargetAppMeta | null
+  marketplacePlugin?: JSONValue | null
+  section?: PluginMarketplaceRegistrySection | string
+}
+
+export interface PluginMarketplaceResponse {
+  updatedAt: string | null
+  total: number
+  items: PluginMarketplaceItem[]
+  sources: PluginMarketplaceSourceResponse[]
+  official?: string[]
+  partner?: string[]
+  community?: string[]
+  errors?: Array<{ sourceId: string; sourceName: string; message: string }>
 }
 
 export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {

@@ -30,8 +30,19 @@ import { PluginsMarketplaceComponent } from './marketplace/marketplace.component
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
-import { RolesEnum } from '@xpert-ai/contracts'
+import { PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
 import { PluginResourcesComponent } from './resources/resources.component'
+import {
+  marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
+  developerToolSubcategoryOptionsFor,
+  groupPluginsByMarketplaceCategory,
+  matchesPluginMarketplaceCategoryFilters,
+  PLUGIN_MARKETPLACE_TARGET_APP
+} from './plugin-marketplace-categories'
+import {
+  buildMarketplacePluginMetadataLookup,
+  enrichInstalledPluginWithMarketplaceMetadata
+} from './plugin-marketplace-metadata'
 
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
@@ -97,18 +108,32 @@ export class PluginsComponent {
     loader: () => this.pluginAPI.getPlugins()
   })
 
+  readonly #installedMarketplace = myRxResource({
+    request: () => ({}),
+    loader: () => this.pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP })
+  })
+
   readonly pluginsLoading = computed(() => this.#plugins.status() === 'loading')
   readonly pluginsError = computed(() => {
     const error = this.#plugins.error()
     return error ? getErrorMessage(error) : null
   })
 
-  readonly #basePlugins = computed(() =>
-    (this.#plugins.value() ?? []).map((plugin, index) => ({
-      ...plugin,
-      __trackId: this.buildPluginTrackId(plugin, index)
-    }))
+  readonly #marketplacePluginsByName = computed(() =>
+    buildMarketplacePluginMetadataLookup(this.#installedMarketplace.value()?.items ?? [])
   )
+
+  readonly #basePlugins = computed(() => {
+    const marketplacePluginsByName = this.#marketplacePluginsByName()
+    return (this.#plugins.value() ?? []).map((plugin, index) => {
+      const enrichedPlugin = enrichInstalledPluginWithMarketplaceMetadata(plugin, marketplacePluginsByName)
+
+      return {
+        ...enrichedPlugin,
+        __trackId: this.buildPluginTrackId(plugin, index)
+      }
+    })
+  })
   readonly plugins = signal<Array<TInstalledPlugin>>([])
   readonly removing = signal('')
   readonly updating = signal('')
@@ -128,17 +153,30 @@ export class PluginsComponent {
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
 
-  readonly categories = model<string[]>([])
+  readonly marketplaceCategories = model<PluginMarketplaceCategory[]>([])
+  readonly developerToolSubcategories = model<string[]>([])
   readonly keywords = model<string[]>([])
   readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
   readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
   readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
+  readonly showDeveloperToolSubcategoryFilter = computed(
+    () => this.marketplaceCategories().length === 0 || this.marketplaceCategories().includes('developer-tools')
+  )
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()
     let plugins = this.plugins()
-    if (this.categories().length) {
-      plugins = plugins.filter((plugin) => this.categories().includes(plugin.meta.category))
+    if (this.marketplaceCategories().length || this.developerToolSubcategories().length) {
+      plugins = plugins.filter((plugin) =>
+        matchesPluginMarketplaceCategoryFilters(
+          {
+            category: plugin.meta.category,
+            targetAppMeta: plugin.meta.targetAppMeta
+          },
+          this.marketplaceCategories(),
+          this.developerToolSubcategories()
+        )
+      )
     }
     if (this.keywords().length) {
       plugins = plugins.filter(
@@ -158,20 +196,32 @@ export class PluginsComponent {
     return plugins
   })
 
-  readonly #categories = computed(() => {
-    const categories = new Set<string>()
-    this.plugins().forEach((plugin) => {
-      if (plugin.loadStatus !== 'failed' && plugin.meta.category) {
-        categories.add(plugin.meta.category)
-      }
-    })
-    return Array.from(categories)
+  readonly pluginCategoryGroups = computed(() =>
+    groupPluginsByMarketplaceCategory(
+      this.filteredPlugins().map((plugin) => ({
+        ...plugin,
+        category: plugin.meta.category,
+        targetAppMeta: plugin.meta.targetAppMeta
+      }))
+    )
+  )
+
+  readonly marketplaceCategoryOptions = computed(() => {
+    return buildMarketplaceCategoryOptions().map((category) => ({
+      label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
+      value: category.value
+    }))
   })
 
-  readonly categoriesOptions = computed(() => {
-    return this.#categories().map((category) => ({
-      label: this.i18nService.instant('PAC.Plugin.Category_' + category, { Default: category }),
-      value: category
+  readonly developerToolSubcategoryOptions = computed(() => {
+    return developerToolSubcategoryOptionsFor(
+      this.plugins().map((plugin) => ({
+        category: plugin.meta.category,
+        targetAppMeta: plugin.meta.targetAppMeta
+      }))
+    ).map((category) => ({
+      label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
+      value: category.value
     }))
   })
 
@@ -199,6 +249,15 @@ export class PluginsComponent {
   // }
 
   constructor() {
+    effect(
+      () => {
+        if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
+          this.developerToolSubcategories.set([])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         const basePlugins = this.#basePlugins()
@@ -649,14 +708,7 @@ function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownlo
     installed: plugin.loadStatus !== 'failed',
     contributions,
     operationSummary: countMarketplaceOperations(contributions),
-    marketplacePlugin: {
-      name: plugin.name,
-      packageName: plugin.packageName ?? plugin.name,
-      currentVersion: plugin.currentVersion,
-      source: plugin.source,
-      targetApps: plugin.meta.targetApps,
-      targetAppMeta: plugin.meta.targetAppMeta
-    }
+    targetAppMeta: plugin.meta.targetAppMeta
   }
 }
 

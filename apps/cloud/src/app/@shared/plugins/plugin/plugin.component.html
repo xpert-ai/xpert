@@ -1,19 +1,17 @@
 @if (plugin(); as plugin) {
-  <div
-    class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-background-default-subtle shadow-sm hover:shadow-md hover:bg-components-card-bg"
-  >
+  <div class="relative overflow-hidden rounded-xl border-[0.5px] shadow-sm hover:shadow-md hover:bg-components-card-bg">
     <div class="p-4 pb-3">
-        <div
+      <div
         class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
-        >
-          {{ 'PAC.Plugin.Category_' + plugin.category | translate: { Default: plugin.category } }}
-        </div>
+      >
+        {{ 'PAC.Plugin.Category_' + plugin.category | translate: { Default: plugin.category } }}
+      </div>
       <div class="flex">
         <div class="relative flex">
           <xp-icon
             [icon]="plugin.icon"
-            size="24"
-            class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"
+            size="32"
+            class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl"
           />
           @if (installed()) {
             <div
@@ -24,8 +22,8 @@
           }
         </div>
 
-        <div class="ml-3 w-0 grow pr-24">
-          <div class="flex h-5 items-center">
+        <div class="ml-3 w-0 grow pr-2">
+          <div class="flex h-5 items-start">
             <div
               class="system-md-semibold truncate text-text-secondary"
               [class]="plugin.deprecated ? 'line-through decoration-2 decoration-current' : ''"

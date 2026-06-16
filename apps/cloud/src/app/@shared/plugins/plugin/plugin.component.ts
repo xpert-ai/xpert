@@ -8,11 +8,11 @@ import { TranslateModule } from '@ngx-translate/core'
 
 export type TPlugin = {
   name: string
-  displayName: I18nObject
-  description: I18nObject
+  displayName: I18nObject | string
+  description: I18nObject | string
   version: string
   deprecated?: boolean
-  deprecationMessage?: I18nObject
+  deprecationMessage?: I18nObject | string
   category: string
   icon: IconDefinition
   author: {

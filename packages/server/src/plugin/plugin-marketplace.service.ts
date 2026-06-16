@@ -1,6 +1,17 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { PluginMarketplaceContribution, PluginMarketplaceOperation, PluginMeta, RolesEnum } from '@xpert-ai/contracts'
+import {
+	PluginMarketplaceContribution,
+	type PluginMarketplaceItem,
+	PluginMarketplaceOperation,
+	type PluginMarketplaceRegistryItemInput,
+	type PluginMarketplaceRegistryItemResponse,
+	type PluginMarketplaceResponse,
+	type PluginMarketplaceSourceInput,
+	type PluginMarketplaceSourceResponse,
+	PluginMeta,
+	RolesEnum
+} from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { execFile as execFileCallback } from 'node:child_process'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
@@ -76,78 +87,17 @@ interface InstalledPluginContext {
 	loadedMetaByName: Map<string, PluginMeta>
 }
 
+export type {
+	PluginMarketplaceRegistryItemInput,
+	PluginMarketplaceRegistryItemResponse,
+	PluginMarketplaceSourceInput,
+	PluginMarketplaceSourceResponse
+} from '@xpert-ai/contracts'
+
 export interface PluginMarketplaceListQuery {
 	targetApp?: string
 	sourceId?: string
 	search?: string
-}
-
-export interface PluginMarketplaceSourceInput {
-	name?: string
-	type?: PluginMarketplaceSourceType
-	url?: string
-	ref?: string | null
-	sparsePath?: string | null
-	enabled?: boolean
-	priority?: number
-}
-
-export interface PluginMarketplaceSourceResponse {
-	id: string
-	name: string
-	type: PluginMarketplaceSourceType | 'platform'
-	url: string
-	ref?: string | null
-	sparsePath?: string | null
-	enabled: boolean
-	priority: number
-	lastIndexStatus?: string | null
-	lastIndexedAt?: Date | string | null
-	lastIndexError?: string | null
-	builtin?: boolean
-}
-
-export interface PluginMarketplaceRegistryItemInput {
-	packageName?: string
-	version?: string | null
-	displayName?: string
-	description?: string
-	category?: string
-	author?: string
-	icon?: unknown
-	keywords?: string[]
-	homepage?: string | null
-	repository?: unknown
-	targetApps?: string[]
-	targetAppMeta?: JsonRecord | null
-	enabled?: boolean
-	priority?: number
-	section?: PluginMarketplaceRegistrySection
-}
-
-export interface PluginMarketplaceRegistryItemResponse {
-	id: string
-	packageName: string
-	version?: string | null
-	displayName: string
-	description: string
-	category: string
-	author: string
-	icon?: unknown
-	keywords: string[]
-	homepage?: string | null
-	repository?: unknown
-	targetApps: string[]
-	targetAppMeta: JsonRecord
-	enabled: boolean
-	priority: number
-	section: PluginMarketplaceRegistrySection
-	downloads?: JsonRecord | null
-	downloadsStatus?: string | null
-	downloadsUpdatedAt?: Date | string | null
-	downloadsError?: string | null
-	createdAt?: Date | string | null
-	updatedAt?: Date | string | null
 }
 
 @Injectable()
@@ -165,7 +115,7 @@ export class PluginMarketplaceService {
 		private readonly pluginInstanceService: PluginInstanceService
 	) {}
 
-	async listMarketplace(query: PluginMarketplaceListQuery = {}) {
+	async listMarketplace(query: PluginMarketplaceListQuery = {}): Promise<PluginMarketplaceResponse> {
 		const sources = await this.getSourceRecords()
 		const enabledSources = this.filterSources(sources, query.sourceId).filter((source) => source.enabled !== false)
 		const includePlatformRegistry = this.includesPlatformRegistry(query.sourceId)
@@ -191,7 +141,7 @@ export class PluginMarketplaceService {
 		const catalogs = [platformCatalog, ...sourceCatalogs].filter(
 			(catalog): catalog is NormalizedMarketplaceCatalog => !!catalog
 		)
-		const byName = new Map<string, any>()
+		const byName = new Map<string, PluginMarketplaceItem>()
 
 		for (const catalog of catalogs) {
 			for (const plugin of catalog.plugins) {
@@ -1462,7 +1412,7 @@ export class PluginMarketplaceService {
 		plugin: MarketplaceRegistryPlugin,
 		targetApp: string | undefined,
 		installedContext: InstalledPluginContext
-	) {
+	): PluginMarketplaceItem {
 		const installed = this.isInstalled(plugin, installedContext.installedNames)
 		const contributions = this.getMarketplaceContributions(plugin, targetApp)
 

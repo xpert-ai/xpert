@@ -100,9 +100,9 @@
       <ngm-select
         class="inline-block w-[160px]"
         multiple
-        [selectOptions]="categoriesOptions()"
+        [selectOptions]="marketplaceCategoryOptions()"
         [placeholder]="'PAC.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
-        [(ngModel)]="categories"
+        [(ngModel)]="marketplaceCategories"
       />
       <ngm-select
         class="inline-block w-[160px]"
@@ -169,327 +169,363 @@
           </div>
         </div>
       } @else {
-        <div class="pb-3">
-          <div class="grid grid-cols-2 gap-3">
-            @for (plugin of filteredPlugins(); track plugin.__trackId) {
-              <div
-                class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-components-input-bg-normal"
-              >
-                <div
-                  class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
-                  class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
-                >
-                  @if (plugin.loadStatus === 'failed') {
-                      <div
-                        class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-destructive shadow-xs"
-                      >
-                        {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
-                      </div>
-                  } @else {
-                      <div
-                        class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
-                      >
-                        {{
-                          'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category }
-                        }}
-                      </div>
-                  }
-                  <div class="flex">
-                    <xp-icon
-                      [icon]="plugin.meta.icon"
-                      size="24"
-                      class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-divider-subtle"
-                    />
-                    <div class="ml-3 w-0 grow pr-24">
-                      <div class="flex h-5 items-center">
-                        <button
-                          type="button"
-                          class="system-md-semibold min-w-0 truncate text-left text-text-primary transition-colors hover:text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                          [class.line-through]="plugin.meta.deprecated"
-                          [class.decoration-2]="plugin.meta.deprecated"
-                          [class.decoration-current]="plugin.meta.deprecated"
-                          [title]="plugin.meta.displayName"
-                          [ngmHighlight]="searchText()"
-                          [content]="plugin.meta.displayName"
-                          (click)="openPluginDetails(plugin)"
-                        >
-                          {{ plugin.meta.displayName }}
-                        </button>
-                        @if (plugin.meta.deprecated) {
-                          <i
-                            class="ri-alert-line shrink-0 ml-1 text-text-warning"
-                            [zTooltip]="
-                              plugin.meta.deprecationMessage
-                                ? (plugin.meta.deprecationMessage | i18n)
-                                : ('PAC.Plugin.DeprecatedPlugin'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'This plugin is deprecated. Use the built-in feature or a replacement plugin instead.'
-                                      })
-                            "
-                            zPosition="top"
-                          ></i>
-                        }
-                        @if (plugin.loadStatus === 'failed') {
-                          <i class="ri-error-warning-line shrink-0 ml-1 text-text-destructive"></i>
-                        } @else if (plugin.sdkCompatibilityWarnings?.length) {
-                          <i
-                            class="ri-alert-line shrink-0 ml-1 text-text-warning"
-                            [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
-                            zPosition="top"
-                          ></i>
-                        } @else {
-                          <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
-                        }
+        <div class="flex w-full flex-col gap-6 pb-3">
+          @for (group of pluginCategoryGroups(); track group.value) {
+            <section class="w-full">
+              <div class="mb-2 flex items-end justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-xl font-semibold text-text-primary">
+                    {{ group.labelKey | translate: { Default: group.defaultLabel } }}
+                  </div>
+                  <div class="system-xs-regular text-text-tertiary">
+                    {{ group.descriptionKey | translate: { Default: group.defaultDescription } }}
+                  </div>
+                </div>
+                <div class="shrink-0 text-xs font-medium text-text-tertiary">
+                  {{ group.plugins.length }}
+                </div>
+              </div>
+              @if (
+                group.value === 'developer-tools' &&
+                showDeveloperToolSubcategoryFilter() &&
+                developerToolSubcategoryOptions().length
+              ) {
+                <div class="mb-3 flex items-center gap-2">
+                  <div class="system-sm-semibold shrink-0 text-text-tertiary">
+                    {{
+                      'PAC.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' }
+                    }}
+                  </div>
+                  <ngm-select
+                    class="inline-block w-[220px]"
+                    multiple
+                    [selectOptions]="developerToolSubcategoryOptions()"
+                    [placeholder]="'PAC.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
+                    [(ngModel)]="developerToolSubcategories"
+                  />
+                </div>
+              }
+              <div class="grid grid-cols-2 gap-3">
+                @for (plugin of group.plugins; track plugin.__trackId) {
+                  <div class="relative overflow-hidden rounded-xl p-1 bg-(--secondary)">
+                    <div
+                      class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+                      class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+                    >
+                      @if (plugin.loadStatus === 'failed') {
                         <div
-                          class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
-                          [class.text-text-warning]="plugin.hasUpdate"
-                          [zTooltip]="
-                            ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
-                            ': ' +
-                            (plugin.latestVersion || '-')
-                          "
-                          zPosition="top"
-                          [zDisabled]="!plugin.hasUpdate"
+                          class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-destructive shadow-xs"
                         >
-                          {{ plugin.currentVersion || plugin.meta.version || '-' }}
+                          {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
                         </div>
+                      } @else {
                         <div
-                          class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
+                          class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
                         >
-                          <i
-                            class="shrink-0"
-                            [class.ri-global-line]="plugin.isGlobal"
-                            [class.ri-building-line]="!plugin.isGlobal"
-                          ></i>
-                          <span class="font-body font-medium uppercase">
-                            {{
-                              (plugin.isGlobal ? 'PAC.Plugin.ScopeGlobal' : 'PAC.Plugin.ScopeOrganization')
-                                | translate: { Default: plugin.isGlobal ? 'Global' : 'Organization' }
-                            }}
-                          </span>
+                          {{
+                            'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category }
+                          }}
                         </div>
-                      </div>
-                      <div class="flex items-center justify-between">
-                        <div class="min-w-0 grow">
-                          <div
-                            class="text-sm text-text-tertiary font-body truncate"
-                            [title]="plugin.meta.description"
-                            [ngmHighlight]="searchText()"
-                            [content]="plugin.meta.description"
-                          >
-                            {{ plugin.meta.description }}
-                          </div>
-                          @if (plugin.loadStatus === 'failed') {
-                            <div
-                              class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2"
+                      }
+                      <div class="flex">
+                        <xp-icon
+                          [icon]="plugin.meta.icon"
+                          size="24"
+                          class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-divider-subtle"
+                        />
+                        <div class="ml-3 w-0 grow pr-2">
+                          <div class="flex h-5 items-start">
+                            <button
+                              type="button"
+                              class="system-md-semibold min-w-0 truncate text-left text-text-primary transition-colors hover:text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                              [class.line-through]="plugin.meta.deprecated"
+                              [class.decoration-2]="plugin.meta.deprecated"
+                              [class.decoration-current]="plugin.meta.deprecated"
+                              [title]="plugin.meta.displayName"
+                              [ngmHighlight]="searchText()"
+                              [content]="plugin.meta.displayName"
+                              (click)="openPluginDetails(plugin)"
                             >
-                              <div class="flex items-start gap-2">
-                                <i class="ri-error-warning-line mt-0.5 text-text-destructive"></i>
-                                <div class="min-w-0">
-                                  <div class="text-xs font-medium text-text-destructive">
-                                    {{
-                                      'PAC.Plugin.LoadFailureReason'
-                                        | translate: { Default: 'This plugin is in the database but was not loaded.' }
-                                    }}
-                                  </div>
-                                  <div class="mt-1 break-words text-xs text-text-secondary max-h-16 overflow-auto">
-                                    {{
-                                      plugin.loadError ||
-                                        ('PAC.Plugin.LoadFailureReasonUnknown'
-                                          | translate: { Default: 'No detailed error was captured.' })
-                                    }}
+                              {{ plugin.meta.displayName }}
+                            </button>
+                            @if (plugin.meta.deprecated) {
+                              <i
+                                class="ri-alert-line shrink-0 ml-1 text-text-warning"
+                                [zTooltip]="
+                                  plugin.meta.deprecationMessage
+                                    ? (plugin.meta.deprecationMessage | i18n)
+                                    : ('PAC.Plugin.DeprecatedPlugin'
+                                      | translate
+                                        : {
+                                            Default:
+                                              'This plugin is deprecated. Use the built-in feature or a replacement plugin instead.'
+                                          })
+                                "
+                                zPosition="top"
+                              ></i>
+                            }
+                            @if (plugin.loadStatus === 'failed') {
+                              <i class="ri-error-warning-line shrink-0 ml-1 text-text-destructive"></i>
+                            } @else if (plugin.sdkCompatibilityWarnings?.length) {
+                              <i
+                                class="ri-alert-line shrink-0 ml-1 text-text-warning"
+                                [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
+                                zPosition="top"
+                              ></i>
+                            } @else {
+                              <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
+                            }
+                            <div
+                              class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                              [class.text-text-warning]="plugin.hasUpdate"
+                              [zTooltip]="
+                                ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
+                                ': ' +
+                                (plugin.latestVersion || '-')
+                              "
+                              zPosition="top"
+                              [zDisabled]="!plugin.hasUpdate"
+                            >
+                              {{ plugin.currentVersion || plugin.meta.version || '-' }}
+                            </div>
+                            <div
+                              class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
+                            >
+                              <i
+                                class="shrink-0"
+                                [class.ri-global-line]="plugin.isGlobal"
+                                [class.ri-building-line]="!plugin.isGlobal"
+                              ></i>
+                              <span class="font-body font-medium uppercase">
+                                {{
+                                  (plugin.isGlobal ? 'PAC.Plugin.ScopeGlobal' : 'PAC.Plugin.ScopeOrganization')
+                                    | translate: { Default: plugin.isGlobal ? 'Global' : 'Organization' }
+                                }}
+                              </span>
+                            </div>
+                          </div>
+                          <div class="flex items-start justify-between">
+                            <div class="min-w-0 grow">
+                              <div
+                                class="text-sm text-text-tertiary font-body truncate"
+                                [title]="plugin.meta.description"
+                                [ngmHighlight]="searchText()"
+                                [content]="plugin.meta.description"
+                              >
+                                {{ plugin.meta.description }}
+                              </div>
+                              @if (plugin.loadStatus === 'failed') {
+                                <div class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2">
+                                  <div class="flex items-start gap-2">
+                                    <i class="ri-error-warning-line mt-0.5 text-text-destructive"></i>
+                                    <div class="min-w-0">
+                                      <div class="text-xs font-medium text-text-destructive">
+                                        {{
+                                          'PAC.Plugin.LoadFailureReason'
+                                            | translate
+                                              : { Default: 'This plugin is in the database but was not loaded.' }
+                                        }}
+                                      </div>
+                                      <div class="mt-1 break-words text-xs text-text-secondary max-h-16 overflow-auto">
+                                        {{
+                                          plugin.loadError ||
+                                            ('PAC.Plugin.LoadFailureReasonUnknown'
+                                              | translate: { Default: 'No detailed error was captured.' })
+                                        }}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
+                              }
+                              @if (plugin.loadStatus !== 'failed' && plugin.sdkCompatibilityWarnings?.length) {
+                                <div
+                                  class="mt-2 flex items-center gap-1 text-xs text-text-warning"
+                                  [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
+                                  zPosition="top"
+                                >
+                                  <i class="ri-alert-line"></i>
+                                  <span>
+                                    {{
+                                      'PAC.Plugin.SdkCompatibilityWarning'
+                                        | translate: { Default: 'SDK compatibility warning' }
+                                    }}
+                                  </span>
+                                </div>
+                              }
+                              @if (plugin.configurationStatus === 'invalid') {
+                                <div
+                                  class="mt-2 flex items-center gap-1 text-xs text-text-warning"
+                                  [zTooltip]="
+                                    plugin.configurationError ||
+                                    ('PAC.Plugin.RequiresConfiguration'
+                                      | translate
+                                        : { Default: 'This plugin needs configuration before it can be used.' })
+                                  "
+                                  zPosition="top"
+                                >
+                                  <i class="ri-alert-line"></i>
+                                  <span>
+                                    {{
+                                      'PAC.Plugin.RequiresConfiguration'
+                                        | translate
+                                          : { Default: 'This plugin needs configuration before it can be used.' }
+                                    }}
+                                  </span>
+                                </div>
+                              }
+                              <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                @for (item of componentSummaryItems(plugin); track item.key) {
+                                  <div
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                                  >
+                                    <i class="shrink-0" [class]="item.icon"></i>
+                                    <span>{{ item.label | translate: { Default: item.defaultLabel } }}</span>
+                                    <span class="font-mono text-text-tertiary">{{ item.count }}</span>
+                                  </div>
+                                }
+                                @if (plugin.scopeRelation === 'overrides-global') {
+                                  <div
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                                  >
+                                    <i class="ri-arrow-up-circle-line shrink-0"></i>
+                                    <span>
+                                      {{ 'PAC.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
+                                    </span>
+                                  </div>
+                                } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
+                                  <div
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
+                                  >
+                                    <i class="ri-eye-off-line shrink-0"></i>
+                                    <span>
+                                      {{
+                                        'PAC.Plugin.ShadowedByOrganization'
+                                          | translate: { Default: 'Shadowed by organization' }
+                                      }}
+                                    </span>
+                                  </div>
+                                }
                               </div>
                             </div>
-                          }
-                          @if (plugin.loadStatus !== 'failed' && plugin.sdkCompatibilityWarnings?.length) {
-                            <div
-                              class="mt-2 flex items-center gap-1 text-xs text-text-warning"
-                              [zTooltip]="sdkCompatibilityWarningMessage(plugin)"
-                              zPosition="top"
-                            >
-                              <i class="ri-alert-line"></i>
-                              <span>
-                                {{
-                                  'PAC.Plugin.SdkCompatibilityWarning'
-                                    | translate: { Default: 'SDK compatibility warning' }
-                                }}
-                              </span>
+                            <div class="flex space-x-1">
+                              @if (plugin.loadStatus !== 'failed' && plugin.componentSummary?.total) {
+                                <button
+                                  type="button"
+                                  class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  [zTooltip]="
+                                    'PAC.Plugin.InitializeResourcesHint'
+                                      | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
+                                  "
+                                  zPosition="top"
+                                  (click)="initializeResources(plugin)"
+                                >
+                                  <i class="ri-magic-line"></i>
+                                </button>
+                              }
+                              @if (plugin.canConfigure && plugin.configSchema) {
+                                <button
+                                  type="button"
+                                  class="action-btn action-btn-m hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
+                                  [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
+                                  [zTooltip]="
+                                    'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
+                                  "
+                                  zPosition="top"
+                                  (click)="configure(plugin)"
+                                >
+                                  <i class="ri-settings-4-line"></i>
+                                </button>
+                              }
+                              @if (plugin.canUpdate && plugin.hasUpdate) {
+                                <button
+                                  type="button"
+                                  class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  [zTooltip]="
+                                    'PAC.Plugin.UpdatePlugin'
+                                      | translate: { Default: 'Update this plugin to the latest version' }
+                                  "
+                                  zPosition="top"
+                                  [disabled]="updating() === plugin.name"
+                                  (click)="update(plugin)"
+                                >
+                                  <i class="ri-refresh-line"></i>
+                                </button>
+                              }
+                              @if (isDevEnvironment && plugin.canRefresh) {
+                                <button
+                                  type="button"
+                                  class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  [zTooltip]="
+                                    'PAC.Plugin.RefreshPlugin'
+                                      | translate: { Default: 'Reload this local code plugin from workspace files' }
+                                  "
+                                  zPosition="top"
+                                  [disabled]="refreshing() === plugin.name"
+                                  (click)="refresh(plugin)"
+                                >
+                                  <i class="ri-restart-line"></i>
+                                </button>
+                              }
+                              @if (plugin.canUninstall) {
+                                <button
+                                  type="button"
+                                  class="action-btn action-btn-m text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive flex items-center justify-center"
+                                  [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
+                                  zPosition="top"
+                                  (click)="uninstall(plugin)"
+                                >
+                                  <i class="ri-delete-bin-line"></i>
+                                </button>
+                              }
                             </div>
-                          }
-                          @if (plugin.configurationStatus === 'invalid') {
-                            <div
-                              class="mt-2 flex items-center gap-1 text-xs text-text-warning"
-                              [zTooltip]="
-                                plugin.configurationError ||
-                                ('PAC.Plugin.RequiresConfiguration'
-                                  | translate: { Default: 'This plugin needs configuration before it can be used.' })
-                              "
-                              zPosition="top"
-                            >
-                              <i class="ri-alert-line"></i>
-                              <span>
-                                {{
-                                  'PAC.Plugin.RequiresConfiguration'
-                                    | translate: { Default: 'This plugin needs configuration before it can be used.' }
-                                }}
-                              </span>
-                            </div>
-                          }
-                          <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                            @for (item of componentSummaryItems(plugin); track item.key) {
-                              <div
-                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
-                              >
-                                <i class="shrink-0" [class]="item.icon"></i>
-                                <span>{{ item.label | translate: { Default: item.defaultLabel } }}</span>
-                                <span class="font-mono text-text-tertiary">{{ item.count }}</span>
-                              </div>
-                            }
-                            @if (plugin.scopeRelation === 'overrides-global') {
-                              <div
-                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
-                              >
-                                <i class="ri-arrow-up-circle-line shrink-0"></i>
-                                <span>
-                                  {{ 'PAC.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
-                                </span>
-                              </div>
-                            } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
-                              <div
-                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
-                              >
-                                <i class="ri-eye-off-line shrink-0"></i>
-                                <span>
-                                  {{
-                                    'PAC.Plugin.ShadowedByOrganization'
-                                      | translate: { Default: 'Shadowed by organization' }
-                                  }}
-                                </span>
-                              </div>
-                            }
                           </div>
                         </div>
-                        <div class="flex space-x-1">
-                          @if (plugin.loadStatus !== 'failed' && plugin.componentSummary?.total) {
-                            <button
-                              type="button"
-                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
-                              [zTooltip]="
-                                'PAC.Plugin.InitializeResourcesHint'
-                                  | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
-                              "
-                              zPosition="top"
-                              (click)="initializeResources(plugin)"
-                            >
-                              <i class="ri-magic-line"></i>
-                            </button>
-                          }
-                          @if (plugin.canConfigure && plugin.configSchema) {
-                            <button
-                              type="button"
-                              class="action-btn action-btn-m hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
-                              [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
-                              [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
-                              [zTooltip]="
-                                'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
-                              "
-                              zPosition="top"
-                              (click)="configure(plugin)"
-                            >
-                              <i class="ri-settings-4-line"></i>
-                            </button>
-                          }
-                          @if (plugin.canUpdate && plugin.hasUpdate) {
-                            <button
-                              type="button"
-                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
-                              [zTooltip]="
-                                'PAC.Plugin.UpdatePlugin'
-                                  | translate: { Default: 'Update this plugin to the latest version' }
-                              "
-                              zPosition="top"
-                              [disabled]="updating() === plugin.name"
-                              (click)="update(plugin)"
-                            >
-                              <i class="ri-refresh-line"></i>
-                            </button>
-                          }
-                          @if (isDevEnvironment && plugin.canRefresh) {
-                            <button
-                              type="button"
-                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
-                              [zTooltip]="
-                                'PAC.Plugin.RefreshPlugin'
-                                  | translate: { Default: 'Reload this local code plugin from workspace files' }
-                              "
-                              zPosition="top"
-                              [disabled]="refreshing() === plugin.name"
-                              (click)="refresh(plugin)"
-                            >
-                              <i class="ri-restart-line"></i>
-                            </button>
-                          }
-                          @if (plugin.canUninstall) {
-                            <button
-                              type="button"
-                              class="action-btn action-btn-m text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive flex items-center justify-center"
-                              [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
-                              zPosition="top"
-                              (click)="uninstall(plugin)"
-                            >
-                              <i class="ri-delete-bin-line"></i>
-                            </button>
+                      </div>
+                    </div>
+                    <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
+                      <div class="flex grow items-center overflow-hidden">
+                        <div class="flex h-4 items-center space-x-0.5">
+                          <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
+                          <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+                          <a
+                            class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
+                            [href]="plugin.meta.homepage || 'https://www.npmjs.com/package/' + plugin.meta.name"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {{ plugin.meta.name }}
+                          </a>
+                        </div>
+                      </div>
+                      <div class="flex shrink-0 items-center">
+                        <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
+                          @if (plugin.loadStatus !== 'failed') {
+                            @for (keyword of plugin.meta.keywords; track keyword) {
+                              <div
+                                class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
+                                [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
+                                (click)="toggleKeyword(keyword)"
+                              >
+                                <div class="text-xs font-medium uppercase font-body text-nowrap"># {{ keyword }}</div>
+                              </div>
+                            }
                           }
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
-                  <div class="flex grow items-center overflow-hidden">
-                    <div class="flex h-4 items-center space-x-0.5">
-                      <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
-                      <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
-                      <a
-                        class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
-                        [href]="plugin.meta.homepage || 'https://www.npmjs.com/package/' + plugin.meta.name"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {{ plugin.meta.name }}
-                      </a>
-                    </div>
-                  </div>
-                  <div class="flex shrink-0 items-center">
-                    <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
-                      @if (plugin.loadStatus !== 'failed') {
-                        @for (keyword of plugin.meta.keywords; track keyword) {
-                          <div
-                            class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
-                            [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
-                            (click)="toggleKeyword(keyword)"
-                          >
-                            <div class="text-xs font-medium uppercase font-body text-nowrap"># {{ keyword }}</div>
-                          </div>
-                        }
-                      }
-                    </div>
-                  </div>
-                </div>
 
-                @if (removing() === plugin.name || updating() === plugin.name || refreshing() === plugin.name) {
-                  <ngm-spin
-                    class="absolute inset-0 z-10 backdrop-blur-sm"
-                    style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
-                  />
+                    @if (removing() === plugin.name || updating() === plugin.name || refreshing() === plugin.name) {
+                      <ngm-spin
+                        class="absolute inset-0 z-10 backdrop-blur-sm"
+                        style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
+                      />
+                    }
+                  </div>
                 }
               </div>
-            }
-          </div>
+            </section>
+          }
         </div>
       }
     </div>
