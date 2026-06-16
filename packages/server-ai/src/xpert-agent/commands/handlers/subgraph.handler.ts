@@ -2047,7 +2047,7 @@ function createAfterAgentNavigator(
 
 // Fill tools or structured output into chatModel
 function isFileUnderstandingEnabled(agent: IXpertAgent) {
-    return agent.options?.fileUnderstanding?.enabled !== false
+    return !agent.options?.structuredOutputMethod && agent.options?.fileUnderstanding?.enabled !== false
 }
 
 function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
