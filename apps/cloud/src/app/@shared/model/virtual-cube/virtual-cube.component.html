@@ -50,7 +50,7 @@
             <i class="ri-loader-line text-xs animate-spin"></i>
           } @else {
             <span
-              class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-neutral-900"
+              class="w-3 h-3 rounded-full border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-background-body"
             >
               <span class="sr-only">Is dirty</span>
             </span>
@@ -72,7 +72,6 @@
           zType="ghost"
           zSize="icon"
           zShape="circle"
-
           displayDensity="cosy"
           class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
           cdkDropList
@@ -376,7 +375,7 @@
 
             @if (showFormula()) {
               <ngm-calculated-measure
-                class="col-span-4 h-96 rounded-lg overflow-hidden border border-solid border-neutral-100 dark:border-neutral-800"
+                class="col-span-4 h-96 rounded-lg overflow-hidden border border-solid border-divider-regular"
                 [syntax]="Syntax.MDX"
                 [dataSettings]="dataSettings()"
                 [entityType]="entityType()"
@@ -393,7 +392,6 @@
                   z-button
                   zType="default"
                   displayDensity="cosy"
-
                   [disabled]="calcMemberFormGroup.invalid"
                   (click)="applyCalculatedMember()"
                 >

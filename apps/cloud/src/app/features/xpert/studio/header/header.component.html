@@ -234,7 +234,7 @@
 
   <button
     #publishTrigger="cdkMenuTriggerFor"
-    class="no-underline group cursor-pointer relative shadow-2xl rounded-lg pl-4 pr-2 py-1 text-sm font-semibold leading-6 inline-block bg-primary-500 shadow-zinc-900 text-white"
+    class="no-underline group cursor-pointer relative shadow-2xl rounded-lg pl-4 pr-2 py-1 text-sm font-semibold leading-6 inline-block bg-primary text-primary-foreground shadow-zinc-900"
     [cdkMenuTriggerFor]="publishMenu"
     (cdkMenuOpened)="onMenuOpened(publishTrigger)"
   >
@@ -316,7 +316,7 @@
       <div class="border-b border-solid border-divider-regular my-1"></div>
 
       <button
-        class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block bg-primary-500 shadow-zinc-900 text-white disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
+        class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block bg-primary text-primary-foreground shadow-zinc-900 disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
         [disabled]="!draft()"
         (click)="publish()"
       >

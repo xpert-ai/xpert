@@ -1,18 +1,23 @@
 @if (integrationList()?.length) {
-  <ul cdkListbox cdkListboxMultiple class="ngm-cdk-listbox"
+  <ul
+    cdkListbox
+    cdkListboxMultiple
+    class="ngm-cdk-listbox"
     [(ngModel)]="integrations"
     [cdkListboxCompareWith]="compareId"
   >
     @for (item of integrationList(); track item.id) {
-      <li [cdkOption]="item" #option="cdkOption" class="ngm-cdk-option flex items-center cursor-pointer rounded-xl text-sm
-       hover:bg-hover-bg dark:hover:bg-white/10"
+      <li
+        [cdkOption]="item"
+        #option="cdkOption"
+        class="ngm-cdk-option flex items-center cursor-pointer rounded-xl text-sm hover:bg-hover-bg"
         [class.cdk-option-selected]="option.isSelected()"
       >
         @if (option.isSelected()) {
           <z-icon class="absolute right-1" color="accent" zType="check_small"></z-icon>
         }
         <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg" />
-        <span class="whitespace-nowrap text-ellipsis overflow-hidden" [title]="item.name">{{item.name}}</span>
+        <span class="whitespace-nowrap text-ellipsis overflow-hidden" [title]="item.name">{{ item.name }}</span>
       </li>
     }
   </ul>

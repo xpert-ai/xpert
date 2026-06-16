@@ -1,17 +1,19 @@
 <div class="mb-3 flex justify-between items-center">
   <div class="h-[41px] flex items-center text-lg font-semibold text-text-primary">
-    {{ 'PAC.Xpert.Monitoring' | translate: {Default: 'Monitoring'} }}
+    {{ 'PAC.Xpert.Monitoring' | translate: { Default: 'Monitoring' } }}
   </div>
   <div
     class="flex items-center p-2 rounded-xl border-[0.5px] border-divider-deep shadow-xs cursor-pointer hover:bg-hover-bg"
     [ngmTooltip]="perfInDevelopment"
     [hideDelay]="100"
   >
-    <div class="mr-2 w-6 h-6 p-1 flex justify-center items-center rounded-lg shadow-md bg-primary-500 text-white">
+    <div
+      class="mr-2 w-6 h-6 p-1 flex justify-center items-center rounded-lg shadow-md bg-primary text-primary-foreground"
+    >
       <i class="ri-pulse-ai-line"></i>
     </div>
     <div class="leading-5 text-sm font-semibold text-text-secondary">
-      {{ 'PAC.Xpert.TracingAppPerf' | translate: {Default: 'Tracing app performance'} }}
+      {{ 'PAC.Xpert.TracingAppPerf' | translate: { Default: 'Tracing app performance' } }}
     </div>
     <div class="flex items-center">
       <div class="inline-block">
@@ -33,7 +35,11 @@
 }
 
 <ng-template #perfInDevelopment>
-  <pac-in-development @overlayAnimation1 [feature]="'PAC.Xpert.TracingAppPerf' | translate: {Default: 'Tracing app performance'}" class="w-80" />
+  <pac-in-development
+    @overlayAnimation1
+    [feature]="'PAC.Xpert.TracingAppPerf' | translate: { Default: 'Tracing app performance' }"
+    class="w-80"
+  />
 </ng-template>
 
 <xpert-statistics />

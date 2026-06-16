@@ -71,9 +71,9 @@
             [disabled]="!instructions() || loading()"
             (click)="generate()"
           >
-            <i class="ri-sparkling-2-fill mr-1 text-white"></i>
+            <i class="ri-sparkling-2-fill mr-1 text-current"></i>
 
-            <span class="text-sm font-semibold text-white">
+            <span class="text-sm font-semibold text-current">
               {{ 'PAC.ACTIONS.Generate' | translate: { Default: 'Generate' } }}
             </span>
           </button>
@@ -122,7 +122,9 @@
     </div>
 
     @if (loading()) {
-      <ngm-spin class="absolute top-0 left-0 w-full h-full transition-all backdrop-blur-sm bg-background-default-subtle/60" />
+      <ngm-spin
+        class="absolute top-0 left-0 w-full h-full transition-all backdrop-blur-sm bg-background-default-subtle/60"
+      />
     }
   </div>
 

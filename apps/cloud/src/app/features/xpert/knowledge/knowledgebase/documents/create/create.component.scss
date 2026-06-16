@@ -18,7 +18,7 @@
   &.active {
     @apply text-primary-500;
     .step-num {
-      @apply bg-primary-500 text-white;
+      @apply bg-primary text-primary-foreground;
     }
     .ri-arrow-right-double-line {
       @apply stroke-primary-600;

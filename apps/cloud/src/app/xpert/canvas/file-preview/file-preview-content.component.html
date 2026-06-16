@@ -17,8 +17,7 @@
       <div class="text-center text-base text-text-tertiary">
         {{ 'PAC.Chat.FormatCannotPreviewed' | translate: { Default: 'This format cannot be previewed.' } }}
         <br />{{
-          'PAC.Chat.DownloadFiletoView'
-            | translate: { Default: 'Please download the file to view its contents.' }
+          'PAC.Chat.DownloadFiletoView' | translate: { Default: 'Please download the file to view its contents.' }
         }}
       </div>
 
@@ -29,7 +28,7 @@
           (click)="download.emit()"
         >
           <i class="ri-download-2-line"></i>
-          <span class="text-sm text-white">{{ 'PAC.Chat.Download' | translate: { Default: 'Download' } }}</span>
+          <span class="text-sm text-current">{{ 'PAC.Chat.Download' | translate: { Default: 'Download' } }}</span>
         </button>
       }
     </div>
@@ -50,7 +49,7 @@
       @case ('html') {
         <iframe
           [src]="url() | safe: 'resourceUrl'"
-          [srcdoc]="!url() ? content() ?? '' : null"
+          [srcdoc]="!url() ? (content() ?? '') : null"
           class="h-full w-full border-none bg-components-panel-bg"
         ></iframe>
       }
@@ -97,10 +96,8 @@
             {{
               'PAC.Chat.PreviewTopRows'
                 | translate: {
-                    Default: 'Previewing the first {{count}} rows per sheet.',
-                    count: spreadsheet()?.rowLimit
-                  }
-            }}
+                    Default: 'Previewing the first {{count}}
+            rows per sheet.', count: spreadsheet()?.rowLimit } }}
           </div>
 
           <div class="min-h-0 flex-1 overflow-auto p-4">

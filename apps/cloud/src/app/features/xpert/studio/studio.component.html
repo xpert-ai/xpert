@@ -94,7 +94,7 @@
           @if (!connection.readonly && connection.type === 'edge') {
             <button
               type="button"
-              class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-500 hover:bg-primary-600 text-white shadow-md cursor-pointer transition-colors"
+              class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 shadow-md cursor-pointer transition-colors"
               [cdkMenuTriggerFor]="menu.template"
               [cdkMenuTriggerData]="{ menuTrigger: menuTrigger }"
               (click)="setConnectionCenterPosition(connection); $event.stopPropagation()"

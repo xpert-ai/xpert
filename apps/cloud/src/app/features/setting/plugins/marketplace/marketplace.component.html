@@ -48,10 +48,7 @@
   {{ 'PAC.Plugin.PluginsMarketplace' | translate: { Default: 'Plugins Marketplace' } }}
 </h2>
 
-<div
-  class="w-full sticky top-0 z-[11] bg-components-panel-bg"
-  [class]="loading() ? 'pointer-events-none opacity-80' : ''"
->
+<div class="w-full sticky top-0 z-[11] bg-(--background)" [class]="loading() ? 'pointer-events-none opacity-80' : ''">
   <div class="mb-4 h-px shrink-0 bg-transparent"></div>
   <div class="flex items-center mx-auto w-full max-w-[920px] shrink-0 gap-2 px-4">
     <div
@@ -96,7 +93,7 @@
 </div>
 
 <div
-  class="sticky top-[56px] z-10 flex shrink-0 flex-col gap-3 bg-components-panel-bg px-12 py-3"
+  class="sticky top-[56px] z-10 flex shrink-0 flex-col gap-3 bg-(--background) px-12 py-3"
   [class]="loading() ? 'pointer-events-none opacity-80' : ''"
 >
   <div class="flex flex-wrap items-center justify-center gap-2">
