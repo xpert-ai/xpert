@@ -23,7 +23,7 @@ import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup, JsonSchemaUIExtensions } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 
 type JsonSchemaTypeWithUi = JsonSchema7Type & {
@@ -42,6 +42,7 @@ type JsonSchemaTypeWithUi = JsonSchema7Type & {
     XpertVariableInputComponent,
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
+    ZardInputDirective,
     ZardSwitchComponent
   ],
   selector: 'json-schema-property',
@@ -167,6 +168,10 @@ export class JSONSchemaPropertyComponent {
 
   update(value: unknown) {
     this.value$.set(value)
+  }
+
+  updateNumber(value: unknown) {
+    this.value$.set(value === '' ? null : Number.parseFloat(`${value}`))
   }
 
   toggleObjectCollapsed() {

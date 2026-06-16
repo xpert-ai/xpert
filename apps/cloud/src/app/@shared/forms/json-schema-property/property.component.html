@@ -103,7 +103,8 @@
             @switch (xUiComponent()) {
               @case ('jsonValue') {
                 <textarea
-                  class="xp-input w-full resize-y font-mono text-sm text-text-primary border-0 min-h-[160px] focus:ring-1 focus:ring-inset"
+                  z-input
+                  class="min-h-[160px] resize-y font-mono text-sm"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -118,7 +119,8 @@
               }
               @case ('textarea') {
                 <textarea
-                  class="xp-input w-full resize-y text-sm text-text-primary border-0 min-h-[36px] focus:ring-1 focus:ring-inset"
+                  z-input
+                  class="min-h-9 resize-y text-sm"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -147,7 +149,7 @@
                   />
                 } @else {
                   <input
-                    class="xp-input w-full text-sm leading-9 text-text-primary border-0 h-9 focus:ring-1 focus:ring-inset"
+                    z-input
                     [placeholder]="
                       (meta().description || meta().title || '' | i18n) +
                       (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -164,7 +166,8 @@
           }
           @case ('textarea') {
             <textarea
-              class="xp-input w-full resize-y text-sm text-text-primary border-0 min-h-[36px] focus:ring-1 focus:ring-inset"
+              z-input
+              class="min-h-9 resize-y text-sm"
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -179,7 +182,7 @@
           }
           @case ('number') {
             <input
-              class="xp-input w-full text-sm leading-9 text-text-primary border-0 h-9 focus:ring-1 focus:ring-inset"
+              z-input
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -188,12 +191,12 @@
               [disabled]="readonly()"
               [ngModel]="value$()"
               [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="update($event)"
+              (ngModelChange)="updateNumber($event)"
             />
           }
           @case ('integer') {
             <input
-              class="xp-input w-full text-sm leading-9 text-text-primary border-0 h-9 focus:ring-1 focus:ring-inset"
+              z-input
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -202,7 +205,7 @@
               [disabled]="readonly()"
               [ngModel]="value$()"
               [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="update($event)"
+              (ngModelChange)="updateNumber($event)"
             />
           }
           @case ('array') {
@@ -298,7 +301,7 @@
                 />
               } @else {
                 <input
-                  class="xp-input w-full text-sm leading-9 text-text-primary border-0 h-9 focus:ring-1 focus:ring-inset"
+                  z-input
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
