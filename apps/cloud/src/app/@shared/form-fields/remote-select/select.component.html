@@ -1,14 +1,18 @@
 <div
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
-  tabindex="0"
-  class="flex items-center gap-1 px-2 h-9 rounded-lg border-[0.5px] border-transparent cursor-pointer bg-components-input-bg-normal hover:bg-hover-bg"
-  [cdkMenuTriggerFor]="menu"
+  [tabindex]="disabled() ? -1 : 0"
+  class="flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+  [class.pointer-events-none]="disabled()"
+  [class.opacity-50]="disabled()"
+  [class.cursor-not-allowed]="disabled()"
+  [attr.aria-disabled]="disabled()"
+  [cdkMenuTriggerFor]="disabled() ? null : menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
   @if (notFoundOption(); as option) {
     <div
-      class="grow text-[13px] leading-[18px] text-text-destructive truncate"
+      class="min-w-0 grow truncate text-sm text-destructive"
       [title]="
         'Ngm.RemoteSelect.OptionNotFound'
           | translate: { Default: 'Option ' + option + ' not found, clear to reselect', option: option }
@@ -20,14 +24,14 @@
       }}
     </div>
   } @else {
-    <div title="" class="grow space-x-1 text-[13px] leading-[18px] text-text-secondary truncate">
+    <div title="" class="min-w-0 grow space-x-1 truncate text-sm text-foreground">
       @for (item of selectedOptions(); track item.value; let last = $last) {
         <span>{{ item.label | i18n }}</span>
         @if (!last) {
           <span>,</span>
         }
       } @empty {
-        <span class="text-text-tertiary">{{ placeholder() }}</span>
+        <span class="text-muted-foreground">{{ placeholder() }}</span>
       }
     </div>
   }
@@ -36,7 +40,7 @@
     <z-loader zSize="sm" />
   }
 
-  <div class="shrink-0 ml-1 text-text-secondary opacity-60">
+  <div class="shrink-0 text-muted-foreground opacity-50">
     <svg
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
@@ -51,14 +55,23 @@
     </svg>
   </div>
 
-  <button type="button" z-button zType="ghost" class="w-7 h-7 p-0 text-text-secondary hover:text-text-primary"
-    (click)="$event.stopPropagation(); refresh()">
+  <button
+    type="button"
+    z-button
+    zType="ghost"
+    class="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+    [disabled]="disabled()"
+    (click)="$event.stopPropagation(); refresh()"
+  >
     <z-icon zType="refresh"></z-icon>
   </button>
 
   @if (values()?.length) {
-    <div class="p-[1px] cursor-pointer group/clear" (click)="clear()">
-      <i class="ri-close-circle-fill text-text-quaternary group-hover/clear:text-text-destructive"></i>
+    <div
+      class="cursor-pointer p-[1px] text-muted-foreground hover:text-destructive"
+      (click)="$event.stopPropagation(); clear()"
+    >
+      <i class="ri-close-circle-fill"></i>
     </div>
   }
 </div>
@@ -66,11 +79,13 @@
 <ng-template #menu let-trigger="trigger">
   <div
     cdkMenu
-    class="relative bg-components-panel-bg rounded-lg border-[0.5px] border-divider-deep shadow-md"
+    class="relative rounded-md border bg-popover text-popover-foreground shadow-lg"
     [style.width.px]="menuTrigger.offsetWidth"
   >
-    <div class="p-2 border-b-[0.5px] border-divider-regular">
-      <div class="group flex items-center px-2 h-8 rounded-lg border border-transparent overflow-hidden shadow-xs">
+    <div class="border-b border-border p-2">
+      <div
+        class="group flex h-8 items-center overflow-hidden rounded-md border border-input bg-transparent px-2 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
+      >
         <div class="pointer-events-none shrink-0 flex items-center mr-1.5 justify-center w-4 h-4">
           <svg
             viewBox="0 0 24 24"
@@ -79,7 +94,7 @@
             height="24"
             fill="currentColor"
             aria-hidden="true"
-            class="remixicon h-3.5 w-3.5 text-text-tertiary"
+            class="remixicon h-3.5 w-3.5 text-muted-foreground"
           >
             <path
               d="M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM16.0247 15.8748C17.2475 14.6146 18 12.8956 18 11C18 7.1325 14.8675 4 11 4C7.1325 4 4 7.1325 4 11C4 14.8675 7.1325 18 11 18C12.8956 18 14.6146 17.2475 15.8748 16.0247L16.0247 15.8748Z"
@@ -87,7 +102,7 @@
           </svg>
         </div>
         <input
-          class="grow block h-[18px] border-0 text-text-secondary text-[13px] placeholder:text-text-tertiary appearance-none outline-none caret-blue-600 !bg-transparent hover:!bg-transparent group-hover:!bg-transparent"
+          class="block h-[18px] grow appearance-none border-0 !bg-transparent text-[13px] text-foreground caret-primary outline-none placeholder:text-muted-foreground hover:!bg-transparent group-hover:!bg-transparent"
           autocomplete="off"
           type="text"
           value=""
