@@ -43,6 +43,7 @@ jest.mock('./plugin.helper', () => ({
 	getEntitiesFromPlugins: jest.fn(() => []),
 	getSubscribersFromPlugins: jest.fn(() => []),
 	hasLifecycleMethod: jest.fn(() => false),
+	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE: 'plugin-system-level-install-forbidden',
 	registerPluginsAsync: jest.fn(async () => ({ modules: [], errors: [] })),
 	upsertPluginLoadFailure: jest.fn()
 }))
@@ -117,6 +118,7 @@ const {
 	collectProvidersWithMetadata,
 	getEntitiesFromPlugins,
 	getSubscribersFromPlugins,
+	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
 	registerPluginsAsync,
 	upsertPluginLoadFailure
 } = require('./plugin.helper')
@@ -644,6 +646,50 @@ describe('PluginManagementService', () => {
 	})
 
 	it('does not persist a placeholder plugin record when system-level installs are rejected', async () => {
+		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
+		;(registerPluginsAsync as jest.Mock).mockResolvedValueOnce({
+			modules: [],
+			errors: [
+				{
+					code: PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
+					pluginName: '@xpert-ai/plugin-system-demo',
+					packageName: '@xpert-ai/plugin-system-demo',
+					error: 'System-level plugin "@xpert-ai/plugin-system-demo" cannot be installed in this scope'
+				}
+			]
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-system-demo',
+				source: 'code',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-system-demo'
+				}
+			})
+		).rejects.toBeInstanceOf(Error)
+
+		expect(registerPluginsAsync).toHaveBeenCalledWith(
+			expect.objectContaining({
+				allowSystemPlugins: false,
+				plugins: [
+					expect.objectContaining({
+						name: '@xpert-ai/plugin-system-demo',
+						source: 'code'
+					})
+				]
+			}),
+			expect.anything()
+		)
+		expect(loadPlugin).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith('org-1', [
+			'@xpert-ai/plugin-system-demo'
+		])
+	})
+
+	it('keeps the post-load system-level guard as a defensive fallback', async () => {
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
 		;(resolvePluginLevel as jest.Mock).mockReturnValueOnce('system')
 		;(loadPlugin as jest.Mock).mockResolvedValue({

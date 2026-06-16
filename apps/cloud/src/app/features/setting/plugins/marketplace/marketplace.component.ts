@@ -550,6 +550,7 @@ function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDow
     displayName: item.displayName ?? name,
     description: item.description ?? name,
     version: item.version ?? '',
+    level: item.level,
     deprecated: item.deprecated,
     deprecationMessage: item.deprecationMessage ?? undefined,
     category: item.category ?? 'integration',

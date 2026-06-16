@@ -459,6 +459,7 @@ export interface PluginMarketplaceItem {
   displayName?: I18nObject | string
   description?: I18nObject | string
   version?: string | null
+  level?: PluginLevel
   deprecated?: boolean
   deprecationMessage?: I18nObject | string | null
   category?: PluginMeta['category'] | string

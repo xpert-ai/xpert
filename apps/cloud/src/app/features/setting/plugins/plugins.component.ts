@@ -687,6 +687,7 @@ function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownlo
     displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
     description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
     version: plugin.currentVersion ?? plugin.meta.version ?? '',
+    level: plugin.level ?? plugin.meta.level,
     deprecated: plugin.meta.deprecated,
     deprecationMessage: plugin.meta.deprecationMessage,
     category: plugin.meta.category ?? 'integration',

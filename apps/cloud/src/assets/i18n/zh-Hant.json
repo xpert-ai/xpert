@@ -666,6 +666,7 @@
       "ArchiveFile": "壓縮包文件",
       "ChooseArchiveFile": "選擇文件",
       "NoArchiveFileSelected": "未選擇文件",
+      "SystemPluginTenantScopeRequired": "系統插件只能在租戶 scope 下安裝。",
       "DeprecatedPlugin": "此插件已廢棄，建議使用內置功能或替代插件。",
       "CurrentVersion": "當前版本",
       "UpdatePlugin": "更新到最新版本",

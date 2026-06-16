@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
+	PLUGIN_LEVEL,
 	PluginMarketplaceContribution,
 	type PluginMarketplaceItem,
 	PluginMarketplaceOperation,
+	type PluginLevel,
 	type PluginMarketplaceRegistryItemInput,
 	type PluginMarketplaceRegistryItemResponse,
 	type PluginMarketplaceResponse,
@@ -64,6 +66,7 @@ interface MarketplaceSourceRecord {
 
 interface MarketplaceRegistryPlugin extends JsonRecord {
 	name: string
+	level?: PluginLevel
 	sourceId?: string
 	sourceName?: string
 	source?: {
@@ -104,6 +107,7 @@ export interface PluginMarketplaceListQuery {
 export class PluginMarketplaceService {
 	private readonly logger = new Logger(PluginMarketplaceService.name)
 	private readonly refreshJobs = new Map<string, Promise<void>>()
+	private readonly npmMetadataCache = new Map<string, { level?: PluginLevel } | null>()
 
 	constructor(
 		@InjectRepository(PluginMarketplaceSource)
@@ -410,7 +414,7 @@ export class PluginMarketplaceService {
 		const staleItems = items.filter((item) => this.isRegistryDownloadsCacheExpired(item))
 		this.schedulePlatformRegistryDownloadsRefresh(staleItems)
 
-		return this.toPlatformRegistryCatalog(items)
+		return this.enrichCatalogWithNpmMetadata(this.toPlatformRegistryCatalog(items))
 	}
 
 	private toPlatformRegistryCatalog(items: PluginMarketplaceRegistryItem[]): NormalizedMarketplaceCatalog {
@@ -881,6 +885,7 @@ export class PluginMarketplaceService {
 			if (this.isSourceCacheExpired(source)) {
 				this.scheduleSourceRefresh(source)
 			}
+			source.lastCatalog = await this.enrichCatalogWithNpmMetadata(source.lastCatalog)
 			return source.lastCatalog
 		}
 
@@ -928,8 +933,8 @@ export class PluginMarketplaceService {
 			await this.persistSourceRefreshFailure(source, error)
 			const cachedCatalog = this.readCachedCatalog(source.entity?.lastCatalog)
 			if (cachedCatalog) {
-				source.lastCatalog = cachedCatalog
-				return cachedCatalog
+				source.lastCatalog = await this.enrichCatalogWithNpmMetadata(cachedCatalog)
+				return source.lastCatalog
 			}
 			throw error
 		}
@@ -982,7 +987,7 @@ export class PluginMarketplaceService {
 			catalog = this.normalizeCatalog(raw, source)
 		}
 
-		return this.enrichCatalogWithNpmDownloads(catalog)
+		return this.enrichCatalogWithNpmMetadata(await this.enrichCatalogWithNpmDownloads(catalog))
 	}
 
 	private async fetchGithubCatalog(source: MarketplaceSourceRecord): Promise<NormalizedMarketplaceCatalog> {
@@ -1146,7 +1151,8 @@ export class PluginMarketplaceService {
 			author: plugin.author ?? packageJson.author,
 			homepage: plugin.homepage ?? packageJson.homepage,
 			repository: plugin.repository ?? packageJson.repository,
-			...plugin
+			...plugin,
+			level: this.readMarketplacePluginLevel(plugin) ?? this.readMarketplacePluginLevel(packageJson)
 		}
 	}
 
@@ -1169,6 +1175,7 @@ export class PluginMarketplaceService {
 			version: this.normalizeOptionalString(input.version) ?? null,
 			displayName: input.displayName ?? input.title ?? pluginInterface.displayName ?? name,
 			description: input.description ?? pluginInterface.shortDescription ?? pluginInterface.longDescription ?? '',
+			level: this.readMarketplacePluginLevel(input),
 			category: input.category ?? pluginInterface.category ?? 'integration',
 			keywords: Array.isArray(input.keywords) ? input.keywords.filter((value) => typeof value === 'string') : [],
 			targetApps: Array.isArray(input.targetApps)
@@ -1185,6 +1192,21 @@ export class PluginMarketplaceService {
 		}
 
 		return item
+	}
+
+	private readMarketplacePluginLevel(input: JsonRecord): PluginLevel | undefined {
+		return (
+			this.normalizePluginLevel(input.level) ??
+			this.normalizePluginLevel(readRecord(input.meta)?.level) ??
+			this.normalizePluginLevel(readRecord(readRecord(input.xpert)?.plugin)?.level)
+		)
+	}
+
+	private normalizePluginLevel(value: unknown): PluginLevel | undefined {
+		if (value === PLUGIN_LEVEL.SYSTEM || value === PLUGIN_LEVEL.ORGANIZATION) {
+			return value
+		}
+		return undefined
 	}
 
 	private normalizeMarketplacePluginSource(value: unknown, source: MarketplaceSourceRecord) {
@@ -1248,6 +1270,104 @@ export class PluginMarketplaceService {
 		}
 	}
 
+	private async enrichCatalogWithNpmMetadata(
+		catalog: NormalizedMarketplaceCatalog
+	): Promise<NormalizedMarketplaceCatalog> {
+		const packageNames = this.uniqueStrings(
+			catalog.plugins
+				.filter((plugin) => !plugin.level)
+				.map((plugin) => this.getNpmPackageName(plugin))
+				.filter(Boolean)
+		)
+		if (!packageNames.length) {
+			return catalog
+		}
+
+		const metadataByPackageName = await this.fetchNpmPluginMetadata(packageNames)
+		if (!metadataByPackageName.size) {
+			return catalog
+		}
+
+		return {
+			...catalog,
+			plugins: catalog.plugins.map((plugin) => {
+				if (plugin.level) {
+					return plugin
+				}
+
+				const packageName = this.getNpmPackageName(plugin)
+				const metadata = packageName ? metadataByPackageName.get(packageName) : undefined
+				if (!metadata?.level) {
+					return plugin
+				}
+
+				return {
+					...plugin,
+					level: metadata.level
+				}
+			})
+		}
+	}
+
+	private async fetchNpmPluginMetadata(packageNames: string[]) {
+		const result = new Map<string, { level?: PluginLevel }>()
+
+		for (let index = 0; index < packageNames.length; index += NPM_DOWNLOADS_CONCURRENCY) {
+			const batch = packageNames.slice(index, index + NPM_DOWNLOADS_CONCURRENCY)
+			const entries = await Promise.all(
+				batch.map(
+					async (packageName): Promise<[string, { level?: PluginLevel } | null]> => [
+						packageName,
+						await this.getNpmPackageMetadata(packageName)
+					]
+				)
+			)
+
+			for (const [packageName, metadata] of entries) {
+				if (metadata) {
+					result.set(packageName, metadata)
+				}
+			}
+		}
+
+		return result
+	}
+
+	private async getNpmPackageMetadata(packageName: string) {
+		if (this.npmMetadataCache.has(packageName)) {
+			return this.npmMetadataCache.get(packageName) ?? null
+		}
+
+		const metadata = await this.fetchNpmPackageMetadata(packageName)
+		if (metadata) {
+			this.npmMetadataCache.set(packageName, metadata)
+		}
+		return metadata
+	}
+
+	private async fetchNpmPackageMetadata(packageName: string): Promise<{ level?: PluginLevel } | null> {
+		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
+		try {
+			const response = await fetch(url)
+			if (!response.ok) {
+				throw new Error(`npm registry returned ${response.status}`)
+			}
+			const data = readRecord(await response.json())
+			const distTags = readRecord(data?.['dist-tags'])
+			const latestVersion = this.normalizeOptionalString(distTags?.latest)
+			const versions = readRecord(data?.versions)
+			const latestManifest = latestVersion ? readRecord(versions?.[latestVersion]) : null
+			const level = latestManifest ? this.readMarketplacePluginLevel(latestManifest) : undefined
+
+			return {
+				level: level ?? (data ? this.readMarketplacePluginLevel(data) : undefined)
+			}
+		} catch (error) {
+			this.logger.warn(`Failed to load npm metadata for "${packageName}": ${this.toErrorMessage(error)}`)
+			return null
+		}
+	}
+
 	private async fetchNpmDownloadCounts(packageNames: string[]) {
 		const result = new Map<string, number>()
 
@@ -1292,17 +1412,22 @@ export class PluginMarketplaceService {
 		const sourceType = this.normalizeOptionalString(source?.type)?.toLowerCase()
 		const sourceUrl = this.normalizeOptionalString(source?.url)
 		const packageNameFromUrl = sourceUrl ? this.extractNpmPackageNameFromUrl(sourceUrl) : null
-		if (sourceType !== 'npm' && !packageNameFromUrl) {
-			return null
-		}
-
 		const packageName =
 			packageNameFromUrl ??
 			this.normalizeOptionalString(source?.packageName) ??
 			this.normalizeOptionalString(plugin.packageName) ??
 			this.normalizeOptionalString(plugin.name)
+		if (!packageName) {
+			return null
+		}
+		if (sourceType !== 'npm' && sourceType !== 'marketplace' && !packageNameFromUrl) {
+			return null
+		}
+		if (!this.looksLikeNpmPackageName(packageName)) {
+			return null
+		}
 
-		return packageName ? normalizePluginName(packageName) : null
+		return normalizePluginName(packageName)
 	}
 
 	private extractNpmPackageNameFromUrl(value: string) {
@@ -1340,6 +1465,7 @@ export class PluginMarketplaceService {
 			...plugin,
 			displayName: plugin.displayName ?? loadedMeta.displayName,
 			description: plugin.description ?? loadedMeta.description,
+			level: this.normalizePluginLevel(plugin.level) ?? loadedMeta.level,
 			icon: plugin.icon ?? loadedMeta.icon,
 			keywords: plugin.keywords?.length ? plugin.keywords : (loadedMeta.keywords ?? []),
 			targetApps: this.uniqueStrings([...(plugin.targetApps ?? []), ...(loadedMeta.targetApps ?? [])]),

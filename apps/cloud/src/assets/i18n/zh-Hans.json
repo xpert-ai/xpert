@@ -1267,6 +1267,7 @@
       "PluginInstallError": "插件安装失败，请重试",
       "PluginWillInstall": "即将安装以下插件",
       "PluginAlreadyInstalled": "此插件的最新版本已安装",
+      "SystemPluginTenantScopeRequired": "系统插件只能在租户 scope 下安装。",
       "DeprecatedPlugin": "此插件已废弃，建议使用内置功能或替代插件。",
       "CurrentVersion": "当前版本",
       "LatestVersion": "最新版本",

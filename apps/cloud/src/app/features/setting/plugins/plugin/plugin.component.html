@@ -38,18 +38,20 @@
   <div
     class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient"
   >
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
-      [disabled]="installed()"
-      (click)="install()"
-    >
-      @if (installed()) {
-        {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
-      } @else {
-        {{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}
-      }
-    </button>
+    @if (!systemPluginUnavailableInCurrentScope()) {
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
+        [disabled]="installed()"
+        (click)="install()"
+      >
+        @if (installed()) {
+          {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+        } @else {
+          {{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}
+        }
+      </button>
+    }
     @if (hasMarketplaceDetails()) {
       <button
         type="button"

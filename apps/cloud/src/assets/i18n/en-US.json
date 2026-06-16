@@ -32,6 +32,7 @@
       "MarketplaceContentType_assistant-template": "Assistant Template",
       "InitializeAssistantTemplate": "Initialize",
       "InstallPluginBeforeInitialize": "Install or load this plugin before initializing the assistant.",
+      "SystemPluginTenantScopeRequired": "System plugins can only be installed from tenant scope.",
       "ArchiveSource": "Archive file",
       "InstallFromArchive": "Install from Archive",
       "ArchiveInstallHint": "Upload a plugin package archive (.zip, .tgz, .tar.gz, or .tar). The archive must contain one package.json and a built dist/ or src/index.ts entry.",

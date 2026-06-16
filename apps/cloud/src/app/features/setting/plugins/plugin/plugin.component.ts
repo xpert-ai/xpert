@@ -6,6 +6,8 @@ import { OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { PluginComponent } from '@cloud/app/@shared/plugins'
+import { injectScopeLevel } from '@xpert-ai/cloud/state'
+import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { PluginInstallComponent } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginsComponent } from '../plugins.component'
@@ -22,21 +24,30 @@ import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-det
 export class SettingsPluginComponent {
   readonly pluginsComponent = inject(PluginsComponent)
   readonly #dialog = inject(Dialog)
+  readonly scopeLevel = injectScopeLevel()
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
   readonly plugin = input<TPluginWithDownloads>()
   readonly installed = computed(() => this.plugin()?.installed === true)
   readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
+  readonly isSystemPlugin = computed(() => this.plugin()?.level === PLUGIN_LEVEL.SYSTEM)
+  readonly systemPluginUnavailableInCurrentScope = computed(
+    () => !this.installed() && this.isSystemPlugin() && this.scopeLevel() !== RequestScopeLevel.TENANT
+  )
+  readonly canInstall = computed(
+    () => !!this.plugin() && !this.installed() && !this.systemPluginUnavailableInCurrentScope()
+  )
 
   install() {
-    if (this.installed()) {
+    const plugin = this.plugin()
+    if (!plugin || !this.canInstall()) {
       return
     }
 
     this.#dialog
       .open(PluginInstallComponent, {
         data: {
-          plugin: this.plugin(),
+          plugin,
           reload: this.pluginsComponent.reload.bind(this.pluginsComponent),
           refreshStrategies: this.pluginsComponent.refreshStrategyCaches.bind(this.pluginsComponent)
         },
