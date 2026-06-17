@@ -1,7 +1,30 @@
 import { TestBed } from '@angular/core/testing'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { RequestScopeLevel } from '@xpert-ai/contracts'
+import { AiFeatureEnum, FeatureEnum, IFeatureOrganization, RequestScopeLevel } from '@xpert-ai/contracts'
 import { AppQuery, AppStore, PersistQuery, PersistStore, Store } from './store.service'
+
+function createFeatureOrganization(
+  code: FeatureEnum | AiFeatureEnum,
+  isEnabled: boolean,
+  organizationId?: string,
+  options?: { id?: string; featureId?: string; parentId?: string | null; name?: string }
+): IFeatureOrganization {
+  return {
+    featureId: options?.featureId ?? code,
+    organizationId,
+    isEnabled,
+    feature: {
+      id: options?.id,
+      code,
+      description: '',
+      icon: '',
+      link: '',
+      name: options?.name ?? code,
+      status: '',
+      parentId: options?.parentId
+    }
+  }
+}
 
 describe('Store', () => {
   let store: Store
@@ -143,5 +166,68 @@ describe('Store', () => {
       organizationId: 'org-1'
     })
     expect(store.lastOrganizationId).toBe('org-1')
+  })
+
+  it('checks only tenant features in tenant scope', () => {
+    store.organizationId = null
+    store.featureTenant = [createFeatureOrganization(FeatureEnum.FEATURE_SMTP, false)]
+    store.featureOrganizations = [createFeatureOrganization(FeatureEnum.FEATURE_SMTP, true, 'org-1')]
+
+    expect(store.hasFeatureEnabled(FeatureEnum.FEATURE_SMTP)).toBe(false)
+  })
+
+  it('uses organization features before tenant fallback in organization scope', () => {
+    store.organizationId = 'org-1'
+    store.featureTenant = [
+      createFeatureOrganization(FeatureEnum.FEATURE_SMTP, true),
+      createFeatureOrganization(FeatureEnum.FEATURE_EMAIL_TEMPLATE, true)
+    ]
+    store.featureOrganizations = [createFeatureOrganization(FeatureEnum.FEATURE_SMTP, false, 'org-1')]
+
+    expect(store.hasFeatureEnabled(FeatureEnum.FEATURE_SMTP)).toBe(false)
+    expect(store.hasFeatureEnabled(FeatureEnum.FEATURE_EMAIL_TEMPLATE)).toBe(true)
+  })
+
+  it('prefers child feature records when duplicate feature codes exist', () => {
+    store.organizationId = 'org-1'
+    store.featureTenant = [
+      createFeatureOrganization(AiFeatureEnum.FEATURE_XPERT, true, undefined, {
+        id: 'feature-legacy-xpert',
+        featureId: 'feature-legacy-xpert',
+        name: 'Xpert'
+      })
+    ]
+    store.featureOrganizations = [
+      createFeatureOrganization(AiFeatureEnum.FEATURE_XPERT, true, 'org-1', {
+        id: 'feature-legacy-xpert',
+        featureId: 'feature-legacy-xpert',
+        name: 'Xpert'
+      }),
+      createFeatureOrganization(AiFeatureEnum.FEATURE_XPERT, false, 'org-1', {
+        id: 'feature-xpert',
+        featureId: 'feature-xpert',
+        parentId: 'group-xpert',
+        name: 'Digital Expert'
+      })
+    ]
+
+    expect(store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)).toBe(false)
+  })
+
+  it('emits feature enabled changes when switching scope', () => {
+    store.organizationId = 'org-1'
+    store.featureTenant = [createFeatureOrganization(FeatureEnum.FEATURE_SMTP, false)]
+    store.featureOrganizations = [createFeatureOrganization(FeatureEnum.FEATURE_SMTP, true, 'org-1')]
+
+    const values: boolean[] = []
+    const subscription = store.selectHasFeatureEnabled(FeatureEnum.FEATURE_SMTP).subscribe((enabled) => {
+      values.push(enabled)
+    })
+
+    store.organizationId = null
+
+    expect(values).toEqual([true, false])
+
+    subscription.unsubscribe()
   })
 })

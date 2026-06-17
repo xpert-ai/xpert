@@ -5,26 +5,6 @@ const features = toggleFeatures;
 
 export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 	{
-		name: 'Home',
-		code: FeatureEnum.FEATURE_HOME,
-		description: 'Home page, Data Dashboard',
-		link: 'home',
-		isEnabled: true,
-		icon: 'home-outline',
-		status: 'info',
-		children: [
-			{
-				name: 'Dashboard',
-				code: FeatureEnum.FEATURE_DASHBOARD,
-				description: 'Go to home dashboard, View data dashboard',
-				link: '',
-				isEnabled: true,
-				icon: 'dashboard-outline',
-				status: 'primary'
-			},
-		]
-	},
-	{
 		name: 'Manage Organization',
 		code: 'FEATURE_ORGANIZATION',
 		description: 'Manage Organization Details, Location and Settings',
@@ -48,13 +28,35 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 	},
 	{
 		name: 'Users',
-		code: 'FEATURE_USER',
+		code: FeatureEnum.FEATURE_USER,
 		description: 'Manage Tenant Users',
 		image: 'user.png',
 		link: 'users',
 		isEnabled: features.FEATURE_USER,
 		icon: 'file-text-outline',
-		status: 'primary'
+		status: 'primary',
+		children: [
+			{
+				name: 'Users',
+				code: FeatureEnum.FEATURE_USERS,
+				description: 'Manage Tenant Users',
+				image: 'user.png',
+				link: 'users',
+				isEnabled: features.FEATURE_USERS,
+				icon: 'file-text-outline',
+				status: 'primary'
+			},
+			{
+				name: 'User Groups',
+				code: FeatureEnum.FEATURE_USER_GROUPS,
+				description: 'Manage Organization User Groups',
+				image: 'user.png',
+				link: 'groups',
+				isEnabled: features.FEATURE_USER_GROUPS,
+				icon: 'file-text-outline',
+				status: 'primary'
+			}
+		]
 	},
 
 	// {
@@ -87,39 +89,17 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 				isEnabled: features.FEATURE_EMAIL_TEMPLATE,
 				icon: 'file-text-outline',
 				status: 'info'
-			}
-		]
-	},
-	{
-		name: 'Setting',
-		code: 'FEATURE_SETTING',
-		description: 'Manage Setting',
-		image: 'email-history.png',
-		link: 'settings',
-		isEnabled: features.FEATURE_SETTING,
-		icon: 'file-text-outline',
-		status: 'primary',
-		children: [
-			{
-				name: 'File Storage',
-				code: 'FEATURE_FILE_STORAGE',
-				description: 'Manage File Storage Provider',
-				image: 'file-storage.png',
-				link: 'settings/file-storage',
-				isEnabled: features.FEATURE_FILE_STORAGE,
-				icon: 'file-text-outline',
-				status: 'info'
 			},
-			// {
-			// 	name: 'SMS Gateway',
-			// 	code: 'FEATURE_SMS_GATEWAY',
-			// 	description: 'Manage SMS Gateway',
-			// 	image: 'sms-gateway.png',
-			// 	link: 'tasks/me',
-			// 	isEnabled: features.FEATURE_SMS_GATEWAY,
-			// 	icon: 'file-text-outline',
-			// 	status: 'primary'
-			// }
+			{
+				name: 'Custom SMTP',
+				code: 'FEATURE_SMTP',
+				description: 'Manage Tenant & Organization Custom SMTP',
+				image: 'smtp.png',
+				link: 'settings/custom-smtp',
+				isEnabled: features.FEATURE_SMTP,
+				icon: 'file-text-outline',
+				status: 'success'
+			}
 		]
 	},
 	// {
@@ -132,16 +112,6 @@ export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 	// 	icon: 'file-text-outline',
 	// 	status: 'warning'
 	// },
-	{
-		name: 'Custom SMTP',
-		code: 'FEATURE_SMTP',
-		description: 'Manage Tenant & Organization Custom SMTP',
-		image: 'smtp.png',
-		link: 'settings/custom-smtp',
-		isEnabled: features.FEATURE_SMTP,
-		icon: 'file-text-outline',
-		status: 'success'
-	},
 	{
 		name: 'Roles & Permissions',
 		code: 'FEATURE_ROLES_PERMISSION',

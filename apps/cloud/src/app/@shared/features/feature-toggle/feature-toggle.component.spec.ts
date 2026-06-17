@@ -14,7 +14,7 @@ import {
   RequestScopeLevel
 } from '@xpert-ai/contracts'
 import { resolveLegacyIcon, ZARD_ICONS, ZardTooltipDirective } from '@xpert-ai/headless-ui'
-import { BehaviorSubject, of, Subject } from 'rxjs'
+import { BehaviorSubject, EMPTY, NEVER, of, Subject } from 'rxjs'
 import { FeatureService, Store } from '../../../@core/services'
 import { FeatureToggleComponent } from './feature-toggle.component'
 
@@ -31,6 +31,35 @@ const parentFeature: IFeature = {
   name: 'Xpert',
   description: 'Xpert feature',
   children: [childFeature]
+}
+
+const xpertLeafFeature: IFeature = {
+  id: 'feature-xpert',
+  code: AiFeatureEnum.FEATURE_XPERT,
+  name: 'Digital Expert',
+  description: 'Digital expert feature'
+}
+
+const legacyTopLevelXpertFeature: IFeature = {
+  id: 'feature-legacy-xpert',
+  code: AiFeatureEnum.FEATURE_XPERT,
+  name: 'Xpert',
+  description: 'Legacy top-level Xpert feature'
+}
+
+const xpertChatbiFeature: IFeature = {
+  id: 'feature-xpert-chatbi',
+  code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
+  name: 'ChatBI',
+  description: 'ChatBI feature'
+}
+
+const xpertFeatureGroup: IFeature = {
+  id: 'feature-xpert-group',
+  code: 'GROUP_XPERT',
+  name: 'Xpert features',
+  description: 'Xpert feature group',
+  children: [xpertLeafFeature, xpertChatbiFeature]
 }
 
 const homeFeature: IFeature = {
@@ -60,6 +89,27 @@ const smtpFeature: IFeature = {
   code: FeatureEnum.FEATURE_SMTP,
   name: 'Custom SMTP',
   description: 'Custom SMTP feature'
+}
+
+const rolePermissionFeature: IFeature = {
+  id: 'feature-role-permission',
+  code: FeatureEnum.FEATURE_ROLES_PERMISSION,
+  name: 'Role permission',
+  description: 'Role permission feature'
+}
+
+const businessAreaFeature: IFeature = {
+  id: 'feature-business-area',
+  code: AnalyticsFeatures.FEATURE_BUSINESS_AREA,
+  name: 'Business area',
+  description: 'Business area feature'
+}
+
+const integrationFeature: IFeature = {
+  id: 'feature-integration',
+  code: FeatureEnum.FEATURE_INTEGRATION,
+  name: 'Integration',
+  description: 'Integration feature'
 }
 
 const customChildFeature: IFeature = {
@@ -93,6 +143,8 @@ const childTenantFeatureOrganization: IFeatureOrganization = {
 
 class MockFeatureService {
   parentFeaturesRequestCount = 0
+  featureToggle = jest.fn(() => of(true))
+  featuresToggle = jest.fn(() => of([true]))
   private readonly featureDefinitionsRefreshed = new Subject<void>()
   readonly featureDefinitionsRefreshed$ = this.featureDefinitionsRefreshed.asObservable()
 
@@ -112,7 +164,7 @@ class MockFeatureService {
 
 class MockStore {
   readonly selectedOrganization$ = new BehaviorSubject({ id: 'org-1', name: 'Org' })
-  readonly featureTenant$ = new BehaviorSubject([tenantFeatureOrganization, childTenantFeatureOrganization])
+  readonly featureTenant$: BehaviorSubject<IFeatureOrganization[]>
   readonly preferredLanguage$ = new BehaviorSubject(LanguagesEnum.Chinese)
   private readonly activeScope$ = new BehaviorSubject({
     level: RequestScopeLevel.ORGANIZATION,
@@ -121,8 +173,12 @@ class MockStore {
   private _featureOrganizations: IFeatureOrganization[] | undefined
   featureOrganizationSetCount = 0
 
-  constructor(featureOrganizations: IFeatureOrganization[] | undefined = []) {
+  constructor(
+    featureOrganizations: IFeatureOrganization[] | undefined = [],
+    featureTenant: IFeatureOrganization[] = [tenantFeatureOrganization, childTenantFeatureOrganization]
+  ) {
     this._featureOrganizations = featureOrganizations
+    this.featureTenant$ = new BehaviorSubject(featureTenant)
   }
 
   get featureOrganizations() {
@@ -148,6 +204,533 @@ class MockStore {
 }
 
 describe('FeatureToggleComponent', () => {
+  it('shows tenant-only feature toggles in tenant feature management', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useClass: MockFeatureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: false } },
+            data: of({ isOrganization: false })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+
+    const groupIds = fixture.componentInstance
+      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .map((group) => group.id)
+
+    expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
+    expect(groupIds).not.toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
+    expect(groupIds).not.toContain(FeatureEnum.FEATURE_INTEGRATION)
+    expect(
+      fixture.componentInstance
+        .summaryCards([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+        .find((summary) => summary.id === 'groups')?.value
+    ).toBe(2)
+  })
+
+  it('shows organization-only feature toggles in organization feature management', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useClass: MockFeatureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+
+    const groupIds = fixture.componentInstance
+      .visibleFeatureGroups([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
+      .map((group) => group.id)
+
+    expect(groupIds).toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
+    expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
+    expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
+    expect(groupIds).not.toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+  })
+
+  it('marks the business area feature card as deprecated', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [businessAreaFeature], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+
+    const element = fixture.nativeElement as HTMLElement
+    const businessAreaCard = element.querySelector(
+      `[data-feature-group-id="${AnalyticsFeatures.FEATURE_BUSINESS_AREA}"]`
+    )
+
+    expect(businessAreaCard?.querySelector('[data-feature-deprecated]')).not.toBeNull()
+    expect(businessAreaCard?.querySelector('[data-feature-deprecated-icon]')).not.toBeNull()
+  })
+
+  it('renders feature toggles with z-checkbox and uses indeterminate state for partial groups', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [xpertFeatureGroup], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const store = new MockStore([], [
+      {
+        id: 'tenant-xpert',
+        featureId: xpertLeafFeature.id,
+        feature: xpertLeafFeature,
+        isEnabled: true
+      },
+      {
+        id: 'tenant-chatbi',
+        featureId: xpertChatbiFeature.id,
+        feature: xpertChatbiFeature,
+        isEnabled: false
+      }
+    ])
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: store
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+
+    const element = fixture.nativeElement as HTMLElement
+    const groupCheckbox = element.querySelector('[data-feature-parent-checkbox][data-feature-code="GROUP_XPERT"]')
+
+    expect(element.querySelector('z-switch')).toBeNull()
+    expect(groupCheckbox).not.toBeNull()
+    expect(groupCheckbox?.getAttribute('data-indeterminate')).toBe('')
+    expect(element.querySelector('[data-feature-parent-status="partial"]')).not.toBeNull()
+    expect(element.querySelectorAll('[data-feature-checkbox]').length).toBe(2)
+  })
+
+  it('restores the clicked checkbox when feature toggle confirmation is cancelled', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useClass: MockFeatureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+    const component = fixture.componentInstance
+    const checkboxControl = {
+      writeValue: jest.fn(),
+      setIndeterminateState: jest.fn()
+    }
+
+    fixture.detectChanges()
+    jest.spyOn(component, 'confirm').mockReturnValue(EMPTY)
+
+    component.featureChanged(true, organizationFeature, checkboxControl)
+
+    expect(checkboxControl.writeValue).toHaveBeenCalledWith(false)
+    expect(checkboxControl.setIndeterminateState).toHaveBeenCalledWith(false)
+  })
+
+  it('emits a disable request when unchecking an enabled child feature checkbox', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [xpertFeatureGroup], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureToggle: jest.fn(() => NEVER),
+      featuresToggle: jest.fn(() => NEVER),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const store = new MockStore([], [
+      {
+        id: 'tenant-xpert',
+        featureId: xpertLeafFeature.id,
+        feature: xpertLeafFeature,
+        isEnabled: true
+      },
+      {
+        id: 'tenant-chatbi',
+        featureId: xpertChatbiFeature.id,
+        feature: xpertChatbiFeature,
+        isEnabled: true
+      }
+    ])
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: store
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+    const component = fixture.componentInstance
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    jest.spyOn(component, 'confirm').mockImplementation((_info, execution) => execution ?? of(true))
+
+    const checkboxInput = fixture.nativeElement.querySelector(
+      '[data-feature-checkbox][data-feature-code="FEATURE_XPERT"] input'
+    ) as HTMLInputElement
+    expect(checkboxInput.checked).toBe(true)
+
+    checkboxInput.click()
+    fixture.detectChanges()
+
+    expect(featureService.featureToggle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        featureId: xpertLeafFeature.id,
+        isEnabled: false,
+        organizationId: 'org-1'
+      })
+    )
+    expect(featureService.featuresToggle).not.toHaveBeenCalled()
+  })
+
+  it('uses feature ids before feature codes when legacy duplicate feature codes exist', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [xpertFeatureGroup], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureToggle: jest.fn(() => NEVER),
+      featuresToggle: jest.fn(() => NEVER),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const store = new MockStore([], [
+      {
+        id: 'tenant-legacy-xpert',
+        featureId: legacyTopLevelXpertFeature.id,
+        feature: legacyTopLevelXpertFeature,
+        isEnabled: true
+      },
+      {
+        id: 'tenant-xpert',
+        featureId: xpertLeafFeature.id,
+        feature: xpertLeafFeature,
+        isEnabled: false
+      },
+      {
+        id: 'tenant-chatbi',
+        featureId: xpertChatbiFeature.id,
+        feature: xpertChatbiFeature,
+        isEnabled: false
+      }
+    ])
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: store
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.enabledFeature(xpertLeafFeature)).toBe(false)
+    expect(fixture.nativeElement.querySelector('[data-feature-parent-status="disabled"]')).not.toBeNull()
+  })
+
+  it('keeps the clicked child feature checkbox unchecked while disable confirmation is pending', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [xpertFeatureGroup], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureToggle: jest.fn(() => of(true)),
+      featuresToggle: jest.fn(() => of([true])),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const store = new MockStore([], [
+      {
+        id: 'tenant-xpert',
+        featureId: xpertLeafFeature.id,
+        feature: xpertLeafFeature,
+        isEnabled: true
+      },
+      {
+        id: 'tenant-chatbi',
+        featureId: xpertChatbiFeature.id,
+        feature: xpertChatbiFeature,
+        isEnabled: true
+      }
+    ])
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: store
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+    const component = fixture.componentInstance
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    jest.spyOn(component, 'confirm').mockReturnValue(NEVER)
+
+    const checkboxInput = fixture.nativeElement.querySelector(
+      '[data-feature-checkbox][data-feature-code="FEATURE_XPERT"] input'
+    ) as HTMLInputElement
+    expect(checkboxInput.checked).toBe(true)
+
+    checkboxInput.click()
+    fixture.detectChanges()
+
+    expect(checkboxInput.checked).toBe(false)
+  })
+
+  it('disables child feature toggles when unchecking a partially enabled feature group checkbox', async () => {
+    const featureService = {
+      getParentFeatures: jest.fn(() => of({ items: [xpertFeatureGroup], total: 1 })),
+      getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
+      featureToggle: jest.fn(() => NEVER),
+      featuresToggle: jest.fn(() => NEVER),
+      featureDefinitionsRefreshed$: new Subject<void>().asObservable()
+    }
+    const store = new MockStore([], [
+      {
+        id: 'tenant-xpert',
+        featureId: xpertLeafFeature.id,
+        feature: xpertLeafFeature,
+        isEnabled: true
+      },
+      {
+        id: 'tenant-chatbi',
+        featureId: xpertChatbiFeature.id,
+        feature: xpertChatbiFeature,
+        isEnabled: false
+      }
+    ])
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: store
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+    const component = fixture.componentInstance
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    jest.spyOn(component, 'confirm').mockImplementation((_info, execution) => execution ?? of(true))
+
+    const groupCheckboxInput = fixture.nativeElement.querySelector(
+      '[data-feature-parent-checkbox][data-feature-code="GROUP_XPERT"] input'
+    ) as HTMLInputElement
+    expect(groupCheckboxInput.indeterminate).toBe(true)
+
+    groupCheckboxInput.click()
+    fixture.detectChanges()
+
+    expect(featureService.featuresToggle).toHaveBeenCalledWith([
+      expect.objectContaining({
+        featureId: xpertLeafFeature.id,
+        isEnabled: false,
+        organizationId: 'org-1'
+      }),
+      expect.objectContaining({
+        featureId: xpertChatbiFeature.id,
+        isEnabled: false,
+        organizationId: 'org-1'
+      })
+    ])
+  })
+
+  it('updates child feature toggles only when disabling a feature group', async () => {
+    const featureService = new MockFeatureService()
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+    fixture.componentInstance.emitFeatureToggle({ feature: parentFeature, isEnabled: false })
+
+    expect(featureService.featureToggle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        featureId: childFeature.id,
+        isEnabled: false,
+        organizationId: 'org-1'
+      })
+    )
+    expect(featureService.featuresToggle).not.toHaveBeenCalled()
+  })
+
+  it('updates child feature toggles only when enabling a feature group', async () => {
+    const featureService = new MockFeatureService()
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FeatureToggleComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useClass: MockStore
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { isOrganization: true } },
+            data: of({ isOrganization: true })
+          }
+        }
+      ]
+    }).createComponent(FeatureToggleComponent)
+
+    fixture.detectChanges()
+    fixture.componentInstance.emitFeatureToggle({ feature: parentFeature, isEnabled: true })
+
+    expect(featureService.featureToggle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        featureId: childFeature.id,
+        isEnabled: true,
+        organizationId: 'org-1'
+      })
+    )
+    expect(featureService.featuresToggle).not.toHaveBeenCalled()
+  })
+
   it('ships translations for the ClawXpert feature toggle description', () => {
     const locales = [
       ['en', 'Show the ClawXpert entry in the chat sidebar.'],
@@ -173,7 +756,11 @@ describe('FeatureToggleComponent', () => {
 
       expect(featureMessages?.Enabled).toBeTruthy()
       expect(featureMessages?.Disabled).toBeTruthy()
+      expect(featureMessages?.AllEnabled).toBeTruthy()
+      expect(featureMessages?.PartiallyEnabled).toBeTruthy()
+      expect(featureMessages?.AllDisabled).toBeTruthy()
       expect(featureMessages?.Groups?.Organization).toBeTruthy()
+      expect(featureMessages?.Features?.GROUP_XPERT?.Name).toBeTruthy()
       expect(featureMessages?.Filters?.AllStatus).toBeTruthy()
       expect(featureMessages?.Summary?.Enabled).toBeTruthy()
       expect(featureMessages?.Summary?.Groups).toBeTruthy()
@@ -375,7 +962,7 @@ describe('FeatureToggleComponent', () => {
     expect(element.querySelector('[data-feature-group-id="FEATURE_HOME"]')).not.toBeNull()
     expect(element.querySelector('[data-feature-group-id="FEATURE_ORGANIZATION"] z-card-content')).toBeNull()
     expect(element.querySelector('[data-feature-group-card]')?.className).toContain('break-inside-avoid')
-    expect(element.querySelector('[data-feature-parent-switch][data-feature-code="FEATURE_XPERT"]')).not.toBeNull()
+    expect(element.querySelector('[data-feature-parent-checkbox][data-feature-code="FEATURE_XPERT"]')).not.toBeNull()
     expect(element.querySelector('[data-feature-parent-status="enabled"]')?.className).toContain('text-text-success')
     expect(element.querySelectorAll('[data-feature-group-card]').length).toBeGreaterThanOrEqual(4)
     expect(element.querySelector('[data-feature-status="enabled"]')?.className).toContain('text-text-success')
@@ -523,10 +1110,10 @@ describe('FeatureToggleComponent', () => {
     expect(customGroup).not.toBeNull()
     expect(groups).toHaveLength(2)
     expect(groups.find((group) => group.id === homeFeature.code)?.features).toEqual(homeFeature.children)
-    expect(groups.find((group) => group.id === homeFeature.code)?.matchCount).toBe(2)
+    expect(groups.find((group) => group.id === homeFeature.code)?.matchCount).toBe(1)
     expect(groups.find((group) => group.id === customParentFeature.code)?.titleDefault).toBe(customParentFeature.name)
     expect(groups.find((group) => group.id === customParentFeature.code)?.features).toEqual([customChildFeature])
-    expect(groups.find((group) => group.id === customParentFeature.code)?.matchCount).toBe(2)
+    expect(groups.find((group) => group.id === customParentFeature.code)?.matchCount).toBe(1)
   })
 
   it('shows full descriptions in zard tooltips for truncated description text', async () => {

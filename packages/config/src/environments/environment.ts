@@ -230,6 +230,8 @@ export const devToggleFeatures: IPACFeatures = {
   FEATURE_GOAL_SETTING: process.env.FEATURE_GOAL_SETTING === 'false' ? false : true,
   FEATURE_REPORT: process.env.FEATURE_REPORT === 'false' ? false : true,
   FEATURE_USER: process.env.FEATURE_USER === 'false' ? false : true,
+  FEATURE_USERS: process.env.FEATURE_USERS === 'false' ? false : true,
+  FEATURE_USER_GROUPS: process.env.FEATURE_USER_GROUPS === 'false' ? false : true,
   FEATURE_ORGANIZATIONS: process.env.FEATURE_ORGANIZATIONS === 'false' ? false : true,
   FEATURE_APP_INTEGRATION: process.env.FEATURE_APP_INTEGRATION === 'false' ? false : true,
   FEATURE_SETTING: process.env.FEATURE_SETTING === 'false' ? false : true,
@@ -245,6 +247,7 @@ export const devToggleFeatures: IPACFeatures = {
   FEATURE_COPILOT: process.env.FEATURE_COPILOT === 'false' ? false : true,
   FEATURE_COPILOT_CHAT: process.env.FEATURE_COPILOT_CHAT === 'false' ? false : true,
   FEATURE_COPILOT_KNOWLEDGEBASE: process.env.FEATURE_COPILOT_KNOWLEDGEBASE === 'false' ? false : true,
+  FEATURE_COPILOT_MONITORING: process.env.FEATURE_COPILOT_MONITORING === 'false' ? false : true,
   FEATURE_COPILOT_CHATBI: process.env.FEATURE_COPILOT_CHATBI === 'false' ? false : true,
   FEATURE_XPERT: process.env.FEATURE_XPERT === 'false' ? false : true,
   FEATURE_XPERT_DATA_ONTOLOGY: process.env.FEATURE_XPERT_DATA_ONTOLOGY === 'false' ? false : true

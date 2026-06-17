@@ -23,7 +23,6 @@ import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions';
 import { combineLatest } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/ocap-angular/core';
 
@@ -34,6 +33,14 @@ export type ActiveScope =
 export interface RememberedUserScope {
 	level: RequestScopeLevel
 	organizationId?: string | null
+}
+
+function findFeatureOrganizationByCode(
+	featureOrganizations: IFeatureOrganization[],
+	feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures
+) {
+	const matches = featureOrganizations.filter((item) => item.feature.code === feature);
+	return matches.find((item) => item.feature.parentId) ?? matches[0];
 }
 
 export interface AppState {
@@ -253,6 +260,7 @@ export class Store {
 	private readonly featureTenantSignal = toSignal(this.featureTenant$, { initialValue: [] })
 	private readonly featureTogglesSignal = toSignal(this.featureToggles$, { initialValue: [] })
 	private readonly featureContextHydratedSignal = toSignal(this.featureContextHydrated$, { initialValue: false })
+	private readonly activeScopeSignal = toSignal(this.activeScope$, { initialValue: this.activeScope })
 
 	set selectedOrganization(organization: IOrganization) {
 		this.appStore.update({
@@ -474,7 +482,7 @@ export class Store {
 	}
 
 	/*
-	 * Check features are enabled/disabled for tenant organization
+	 * Check features are enabled/disabled for the active tenant or organization scope.
 	 */
 	hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
 		// Reading these signals makes feature checks reactive in OnPush templates/computeds
@@ -483,16 +491,14 @@ export class Store {
 		this.featureTenantSignal();
 		this.featureTogglesSignal();
 		this.featureContextHydratedSignal();
+		this.activeScopeSignal();
+		const activeScope = this.activeScope;
 
 		const {
 			featureTenant = [],
 			featureOrganizations = [],
 			featureToggles = []
 		} = this.appQuery.getValue();
-		const filtered = uniqBy(
-			[...featureOrganizations, ...featureTenant],
-			(x) => x.featureId
-		);
 
 		const unleashToggle = featureToggles.find(
 			(toggle) => toggle.name === feature && toggle.enabled === false
@@ -501,9 +507,13 @@ export class Store {
 			return unleashToggle.enabled;
 		}
 
-		return !!filtered.find(
-			(item) => item.feature.code === feature && item.isEnabled
-		);
+		const tenantFeature = findFeatureOrganizationByCode(featureTenant, feature);
+		if (activeScope.level === RequestScopeLevel.TENANT) {
+			return tenantFeature?.isEnabled === true;
+		}
+
+		const organizationFeature = findFeatureOrganizationByCode(featureOrganizations, feature);
+		return (organizationFeature ?? tenantFeature)?.isEnabled === true;
 	}
 
 	selectHasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
@@ -511,7 +521,8 @@ export class Store {
 			this.featureOrganizations$,
 			this.featureTenant$,
 			this.featureToggles$,
-			this.featureContextHydrated$
+			this.featureContextHydrated$,
+			this.activeScope$
 		]).pipe(
 			map(() => this.hasFeatureEnabled(feature)),
 			distinctUntilChanged()
