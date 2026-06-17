@@ -42,11 +42,11 @@ export class FeatureService {
 		});
 	}
 
-  featureToggle(payload: IFeatureOrganizationUpdateInput) {
+  featureToggle(payload: IFeatureOrganizationUpdateInput): Observable<boolean> {
     return this.http.post<boolean[]>(`${this.API_URL}`, [payload]).pipe(map((res: boolean[]) => res[0]))
   }
 
-  featuresToggle(payload: IFeatureOrganizationUpdateInput[]) {
+  featuresToggle(payload: IFeatureOrganizationUpdateInput[]): Observable<boolean[]> {
     return this.http.post<boolean[]>(`${this.API_URL}`, payload)
   }
 

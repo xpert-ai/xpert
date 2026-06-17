@@ -26,6 +26,7 @@ export interface SettingsMenuItem {
   path: string
   label: string
   icon: string
+  deprecated?: boolean
   admin?: boolean
   pathMatch?: 'full' | 'prefix'
   scopeContext?: MenuScope
@@ -63,7 +64,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       scopeContext: 'organization-only',
       data: {
         permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
-        featureKey: AnalyticsFeatures.FEATURE_MODEL
+        featureKey: AnalyticsFeatures.FEATURE_DATA_SOURCE
       }
     },
     {
@@ -82,6 +83,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'chatbi',
       label: 'Chat BI',
       icon: 'try',
+      deprecated: true,
       scopeContext: 'dual-scope',
       data: {
         permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
@@ -92,6 +94,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'business-area',
       label: 'Business Area',
       icon: 'business_center',
+      deprecated: true,
       pathMatch: 'prefix',
       scopeContext: 'organization-only',
       data: {
@@ -103,6 +106,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'certification',
       label: 'Certification',
       icon: 'verified_user',
+      deprecated: true,
       pathMatch: 'prefix',
       scopeContext: 'organization-only',
       data: {
@@ -132,7 +136,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
           PermissionsEnum.ORG_USERS_VIEW,
           PermissionsEnum.ORG_USERS_EDIT
         ],
-        featureKey: FeatureEnum.FEATURE_USER
+        featureKey: FeatureEnum.FEATURE_USERS
       }
     },
     {
@@ -142,7 +146,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       scopeContext: 'organization-only',
       data: {
         permissionKeys: [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT],
-        featureKey: FeatureEnum.FEATURE_USER
+        featureKey: FeatureEnum.FEATURE_USER_GROUPS
       }
     },
     {
@@ -163,16 +167,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       data: {
         permissionKeys: [PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES],
         featureKey: FeatureEnum.FEATURE_EMAIL_TEMPLATE
-      }
-    },
-    {
-      path: 'custom-smtp',
-      label: 'Custom SMTP',
-      icon: 'alternate_email',
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [PermissionsEnum.CUSTOM_SMTP_VIEW],
-        featureKey: FeatureEnum.FEATURE_SMTP
       }
     },
     {
@@ -197,16 +191,8 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
           PermissionsEnum.ALL_ORG_EDIT,
           PermissionsEnum.ORG_USERS_VIEW,
           PermissionsEnum.ORG_USERS_EDIT
-        ]
-      }
-    },
-    {
-      path: 'plugins',
-      label: 'Plugins',
-      icon: 'extension',
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
+        ],
+        featureKey: FeatureEnum.FEATURE_ORGANIZATION
       }
     },
     {
@@ -414,13 +400,37 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings',
-        featureKey: FeatureEnum.FEATURE_SETTING
+        translationKey: 'Settings'
+      }
+    },
+    {
+      title: 'Plugins',
+      icon: 'ri-puzzle-2-line',
+      link: '/plugins',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Plugins',
+        featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
       }
     }
   ]
 
   return menus.filter((item) => matchesScope(item.scopeContext ?? 'dual-scope', scopeLevel))
+}
+
+export function syncMenuParentStateFromChildren(item: PacMenuItem) {
+  if (!item.children?.length || !item.data?.hideWhenAllChildrenHidden) {
+    return
+  }
+
+  const visibleChild = item.children.find((childItem) => !childItem.hidden)
+
+  item.hidden = !visibleChild
+  if (visibleChild?.link) {
+    item.link = visibleChild.link
+  }
 }
 
 function matchesScope(scope: MenuScope, level: RequestScopeLevel) {

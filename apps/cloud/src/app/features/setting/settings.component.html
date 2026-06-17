@@ -51,9 +51,26 @@
         }
 
         @if (sideMenuOpened()) {
-          <span class="ml-2 min-w-0 truncate">
+          <span
+            [class]="
+              e.deprecated
+                ? 'ml-2 min-w-0 truncate line-through decoration-2 decoration-current'
+                : 'ml-2 min-w-0 truncate'
+            "
+          >
             {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
+            @if (e.deprecated) {
+              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+            }
           </span>
+
+          @if (e.deprecated) {
+            <i
+              class="ri-alert-line ml-2 shrink-0 text-text-warning"
+              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+              zPosition="top"
+            ></i>
+          }
         }
       </li>
     }

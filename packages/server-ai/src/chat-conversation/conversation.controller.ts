@@ -15,6 +15,7 @@ import {
     Delete,
     Get,
     HttpStatus,
+    Logger,
     Param,
     Patch,
     Post,
@@ -43,6 +44,8 @@ import { ChatConversationGoalService } from './goal'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class ChatConversationController extends CrudController<ChatConversation> {
+    readonly #logger = new Logger(ChatConversationController.name)
+
     constructor(
         private readonly service: ChatConversationService,
         private readonly goalService: ChatConversationGoalService,
@@ -121,40 +124,64 @@ export class ChatConversationController extends CrudController<ChatConversation>
         return this.organizationScopeService.run(organizationId, () => this.service.getThreadState(id))
     }
 
+    @ApiOperation({
+        summary: 'Get conversation goal',
+        description: 'Deprecated compatibility route. Use GET /ai/conversations/{conversation_id}/goal instead.',
+        deprecated: true
+    })
     @Get(':id/goal')
     async getGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
+        this.warnLegacyGoalRoute('GET', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneInOrganizationOrTenant(id)
             return this.goalService.getByConversationId(conversation.id)
         })
     }
 
+    @ApiOperation({
+        summary: 'Set conversation goal',
+        description: 'Deprecated compatibility route. Use PUT /ai/conversations/{conversation_id}/goal instead.',
+        deprecated: true
+    })
     @Put(':id/goal')
     async setGoal(
         @Param('id', UUIDValidationPipe) id: string,
         @Body() body: TThreadGoalSetRequest,
         @Query('organizationId') organizationId?: string
     ) {
+        this.warnLegacyGoalRoute('PUT', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneInOrganizationOrTenant(id)
             return this.goalService.setGoalFromUser(conversation.id, body)
         })
     }
 
+    @ApiOperation({
+        summary: 'Update conversation goal',
+        description: 'Deprecated compatibility route. Use PATCH /ai/conversations/{conversation_id}/goal instead.',
+        deprecated: true
+    })
     @Patch(':id/goal')
     async updateGoal(
         @Param('id', UUIDValidationPipe) id: string,
         @Body() body: TThreadGoalPatchRequest,
         @Query('organizationId') organizationId?: string
     ) {
+        this.warnLegacyGoalRoute('PATCH', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneInOrganizationOrTenant(id)
             return this.goalService.patchGoalFromUser(conversation.id, body)
         })
     }
 
+    @ApiOperation({
+        summary: 'Clear conversation goal',
+        description: 'Deprecated compatibility route. Use DELETE /ai/conversations/{conversation_id}/goal instead.',
+        deprecated: true
+    })
     @Delete(':id/goal')
     async clearGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
+        this.warnLegacyGoalRoute('DELETE', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneInOrganizationOrTenant(id)
             return this.goalService.clearGoalFromUser(conversation.id)
@@ -275,5 +302,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Query('organizationId') organizationId?: string
     ) {
         return this.organizationScopeService.run(organizationId, () => this.service.deleteWorkspaceFile(id, path))
+    }
+
+    private warnLegacyGoalRoute(method: string, conversationId: string, organizationId?: string) {
+        this.#logger.warn(
+            `Deprecated ${method} /chat-conversation/:id/goal route used; use /ai/conversations/:conversation_id/goal instead. conversationId=${conversationId}${organizationId ? ` organizationId=${organizationId}` : ''}`
+        )
     }
 }

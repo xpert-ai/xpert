@@ -1,8 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule, Location } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
@@ -12,6 +10,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, debounceTime, map, of, startWith, switchMap } from 'rxjs'
 import {
   DateRelativePipe,
+  IChatConversation,
   getErrorMessage,
   injectToastr,
   IXpertTask,
@@ -22,17 +21,17 @@ import {
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
 import { XpertTaskDialogComponent, XpertTaskDialogService } from '@cloud/app/@shared/chat'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardEmptyComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterModule,
     TranslateModule,
     ...ZardTooltipImports,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardEmptyComponent,
     NgmCommonModule,
     EmojiAvatarComponent,
     DateRelativePipe,
@@ -55,35 +54,34 @@ export class ChatTasksComponent {
   readonly embedded = input(false)
   readonly xpertId = input<string | null>(null)
   readonly tasksChanged = output<void>()
+  readonly conversationSelected = output<IChatConversation>()
 
   // Refresh debounce 5 seconds
   readonly #refresh$ = new BehaviorSubject<void>(null)
   readonly refresh$ = this.#refresh$.pipe(debounceTime(5000), startWith(true))
   // Refresh immediately
   readonly _refresh = signal({})
-  readonly tasks = derivedAsync(
-    () => {
-      this._refresh()
-      const xpertId = this.xpertId()
+  readonly tasks = derivedAsync(() => {
+    this._refresh()
+    const xpertId = this.xpertId()
 
-      return this.refresh$.pipe(
-        switchMap(() =>
-          this.taskService.getMyAll({
-            relations: ['xpert', 'conversations'],
-            order: { updatedAt: OrderTypeEnum.DESC },
-            ...(xpertId
-              ? {
-                  where: {
-                    xpertId
-                  } as never
-                }
-              : {})
-          })
-        ),
-        map(({ items }) => items)
-      )
-    }
-  )
+    return this.refresh$.pipe(
+      switchMap(() =>
+        this.taskService.getMyAll({
+          relations: ['xpert', 'conversations'],
+          order: { updatedAt: OrderTypeEnum.DESC },
+          ...(xpertId
+            ? {
+                where: {
+                  xpertId
+                } as never
+              }
+            : {})
+        })
+      ),
+      map(({ items }) => items)
+    )
+  })
 
   readonly scheduledTasks = derivedAsync(() =>
     this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.SCHEDULED)
@@ -91,6 +89,17 @@ export class ChatTasksComponent {
   readonly pausedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.PAUSED))
   readonly archivedTasks = derivedAsync(() =>
     this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.ARCHIVED)
+  )
+  readonly tasksLoaded = computed(() => Array.isArray(this.tasks()))
+  readonly totalTaskCount = computed(() => this.tasks()?.length ?? 0)
+  readonly scheduledTaskCount = computed(() => this.scheduledTasks()?.length ?? 0)
+  readonly pausedTaskCount = computed(() => this.pausedTasks()?.length ?? 0)
+  readonly archivedTaskCount = computed(() => this.archivedTasks()?.length ?? 0)
+  readonly successfulExecutionCount = computed(
+    () => this.tasks()?.reduce((total, task) => total + (task.successCount ?? 0), 0) ?? 0
+  )
+  readonly failedExecutionCount = computed(
+    () => this.tasks()?.reduce((total, task) => total + (task.errorCount ?? 0), 0) ?? 0
   )
 
   // Details
@@ -145,6 +154,10 @@ export class ChatTasksComponent {
 
   openTask(task: IXpertTask) {
     this.taskId.set(task?.id)
+  }
+
+  openHistoryConversation(conversation: IChatConversation) {
+    this.conversationSelected.emit(conversation)
   }
 
   editTask(task: IXpertTask) {

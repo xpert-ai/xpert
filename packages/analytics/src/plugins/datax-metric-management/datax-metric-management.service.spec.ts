@@ -30,6 +30,9 @@ jest.mock('../../ai/toolset/builtin/bi-toolset', () => ({
 	},
 	updateOcapIndicators: jest.fn()
 }))
+jest.mock('../../certification', () => ({
+	CertificationService: class CertificationService {}
+}))
 jest.mock('../../indicator', () => ({
 	IndicatorService: class IndicatorService {},
 	applyIndicatorDraft: (indicator: any) => (indicator.draft ? { ...indicator, ...indicator.draft } : indicator),
@@ -77,12 +80,18 @@ describe('DataXMetricManagementService', () => {
 			type: IndicatorType.BASIC,
 			modelId: 'model-1',
 			businessAreaId: 'area-1',
+			certificationId: 'cert-1',
+			principal: 'Alice',
+			validity: '2026-12-31',
 			cube: 'Sales',
 			description: 'GMV for product A',
 			calendar: '[Date]',
 			measure: '[Measures].[GMV]',
+			aggregator: 'sum',
+			dimensions: ['[Store]'],
 			filters: [{ dimension: '[Product]', hierarchy: '[Product]', member: '[A]' }],
-			visible: false
+			visible: false,
+			isApplication: true
 		})
 
 		expect(draft).toMatchObject({
@@ -91,12 +100,18 @@ describe('DataXMetricManagementService', () => {
 			type: IndicatorType.BASIC,
 			modelId: 'model-1',
 			businessAreaId: 'area-1',
+			certificationId: 'cert-1',
+			principal: 'Alice',
+			validity: '2026-12-31',
 			entity: 'Sales',
 			business: 'GMV for product A',
 			visible: false,
+			isApplication: true,
 			options: {
 				calendar: '[Date]',
 				measure: '[Measures].[GMV]',
+				aggregator: 'sum',
+				dimensions: ['[Store]'],
 				filters: [
 					{
 						dimension: {
@@ -123,9 +138,13 @@ describe('DataXMetricManagementService', () => {
 				name: 'New',
 				modelId: 'model-2',
 				businessAreaId: 'area-1',
+				certificationId: 'cert-1',
 				entity: 'Sales',
 				business: 'New definition',
 				unit: '%',
+				principal: 'Alice',
+				validity: '2026-12-31',
+				isApplication: true,
 				options: {
 					formula: '[Measures].[A] / [Measures].[B]'
 				}
@@ -135,6 +154,9 @@ describe('DataXMetricManagementService', () => {
 			},
 			businessArea: {
 				name: 'Sales Area'
+			},
+			certification: {
+				name: 'Certified'
 			}
 		} as any)
 
@@ -146,9 +168,14 @@ describe('DataXMetricManagementService', () => {
 			modelName: 'Sales Model',
 			businessAreaId: 'area-1',
 			businessAreaName: 'Sales Area',
+			certificationId: 'cert-1',
+			certificationName: 'Certified',
 			entity: 'Sales',
 			business: 'New definition',
 			unit: '%',
+			principal: 'Alice',
+			validity: '2026-12-31',
+			isApplication: true,
 			options: {
 				formula: '[Measures].[A] / [Measures].[B]'
 			}
@@ -239,6 +266,9 @@ describe('DataXMetricManagementService', () => {
 			projectId: 'project-1',
 			modelIds: ['model-1'],
 			businessAreaIds: ['area-1'],
+			certificationIds: ['cert-1'],
+			tagIds: ['tag-1'],
+			isApplication: true,
 			type: IndicatorType.BASIC,
 			status: IndicatorStatusEnum.DRAFT,
 			search: 'sales'
@@ -249,6 +279,11 @@ describe('DataXMetricManagementService', () => {
 				projectId: 'project-1',
 				modelId: 'model-1',
 				businessAreaId: 'area-1',
+				certificationId: 'cert-1',
+				tags: {
+					id: 'tag-1'
+				},
+				isApplication: true,
 				type: IndicatorType.BASIC,
 				status: IndicatorStatusEnum.DRAFT,
 				code: expect.anything()
@@ -256,6 +291,74 @@ describe('DataXMetricManagementService', () => {
 			expect.objectContaining({ name: expect.anything() }),
 			expect.objectContaining({ business: expect.anything() })
 		])
+	})
+
+	it('handles bulk delete with per-row failures', async () => {
+		const { service, indicatorService } = createService()
+		indicatorService.deleteById.mockImplementation(async (id) => {
+			if (id === 'metric-2') {
+				throw new Error('locked')
+			}
+		})
+
+		await expect(service.bulkDeleteIndicators(['metric-1', 'metric-2'])).resolves.toEqual({
+			deleted: ['metric-1'],
+			failures: [{ id: 'metric-2', message: 'locked' }]
+		})
+	})
+
+	it('exports indicators using the legacy YAML shape', async () => {
+		const { service, indicatorService } = createService()
+		indicatorService.findMy.mockResolvedValue({
+			items: [
+				{
+					id: 'metric-1',
+					code: 'GMV',
+					name: 'GMV',
+					isApplication: true,
+					visible: true,
+					tags: [{ name: 'Finance', category: 'INDICATOR', color: 'blue' }]
+				}
+			],
+			total: 1
+		})
+
+		const result = await service.exportIndicators({
+			parameters: {
+				projectId: 'project-1'
+			}
+		})
+
+		expect(result.fileName).toBe('Indicators.yaml')
+		expect(result.content).toContain('code: GMV')
+		expect(result.content).toContain('tags:')
+		expect(result.count).toBe(1)
+	})
+
+	it('imports YAML rows as draft indicators with per-row validation results', async () => {
+		const { service, indicatorService } = createService()
+		indicatorService.checkCodeUnique.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+
+		const result = await service.importIndicators(
+			'project-1',
+			'- code: GMV\n  name: GMV\n- code: GMV\n  name: Duplicate\n'
+		)
+
+		expect(result.created).toHaveLength(1)
+		expect(result.failures).toEqual([
+			expect.objectContaining({
+				index: 1,
+				code: 'GMV'
+			})
+		])
+		expect(indicatorService.createDraft).toHaveBeenCalledTimes(1)
+	})
+
+	it('starts project embedding through IndicatorService', async () => {
+		const { service, indicatorService } = createService()
+
+		await expect(service.startEmbeddingProject('project-1')).resolves.toEqual({ projectId: 'project-1' })
+		expect(indicatorService.startEmbedding).toHaveBeenCalledWith('project-1')
 	})
 
 	it('initializes a runtime session for a selected project', async () => {
@@ -356,15 +459,26 @@ function createService() {
 		publish: jest.fn(),
 		embedding: jest.fn(),
 		deleteById: jest.fn(),
+		startEmbedding: jest.fn(),
 		findMy: jest.fn(async () => ({ items: [], total: 0 })),
 		findAll: jest.fn(async () => ({ items: [], total: 0 })),
+		findOne: jest.fn(async () => ({ id: 'metric-1', code: 'GMV', name: 'GMV', projectId: 'project-1' })),
 		findOneOrFailByWhereOptions: jest.fn()
+	}
+	const certificationService = {
+		findAll: jest.fn(async () => ({ items: [], total: 0 }))
 	}
 	return {
 		commandBus,
 		queryBus,
 		indicatorService,
-		service: new DataXMetricManagementService(commandBus, queryBus, indicatorService as any)
+		certificationService,
+		service: new DataXMetricManagementService(
+			commandBus,
+			queryBus,
+			indicatorService as any,
+			certificationService as any
+		)
 	}
 }
 

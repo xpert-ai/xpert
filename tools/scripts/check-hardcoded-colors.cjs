@@ -197,6 +197,10 @@ function isCandidateFile(relativeFile) {
   return fileExtensions.has(path.extname(relativeFile))
 }
 
+function isLegacyScanFile(relativeFile) {
+  return isCandidateFile(relativeFile) || explicitLegacyScanFiles.includes(relativeFile)
+}
+
 function walkFiles(dir, files = []) {
   if (!fs.existsSync(dir)) {
     return files
@@ -389,13 +393,7 @@ function getContentSegments(relativeFile, content) {
 }
 
 function getTypeScriptStringSegments(relativeFile, content) {
-  const sourceFile = ts.createSourceFile(
-    relativeFile,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS
-  )
+  const sourceFile = ts.createSourceFile(relativeFile, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   const segments = []
 
   function addSegment(start, end) {
@@ -422,10 +420,7 @@ function getTypeScriptStringSegments(relativeFile, content) {
       addTemplateSegment(node, 2)
     } else if (node.kind === ts.SyntaxKind.TemplateMiddle) {
       addTemplateSegment(node, 2)
-    } else if (
-      node.kind === ts.SyntaxKind.TemplateTail ||
-      node.kind === ts.SyntaxKind.LastTemplateToken
-    ) {
+    } else if (node.kind === ts.SyntaxKind.TemplateTail || node.kind === ts.SyntaxKind.LastTemplateToken) {
       addTemplateSegment(node, 1)
     }
 
@@ -445,13 +440,7 @@ function collectOccurrences(relativeFile, content) {
 
   for (const segment of segments) {
     const utilityMatches = matchPattern(relativeFile, lineStarts, segment, utilityPattern, 'utility')
-    const arbitraryMatches = matchPattern(
-      relativeFile,
-      lineStarts,
-      segment,
-      arbitraryUtilityPattern,
-      'arbitrary-value'
-    )
+    const arbitraryMatches = matchPattern(relativeFile, lineStarts, segment, arbitraryUtilityPattern, 'arbitrary-value')
 
     utilityOccurrences.push(...utilityMatches)
     arbitraryOccurrences.push(...arbitraryMatches)
@@ -463,9 +452,7 @@ function collectOccurrences(relativeFile, content) {
     const literalMatches = matchPattern(relativeFile, lineStarts, segment, colorLiteralPattern, 'literal')
 
     literalOccurrences.push(
-      ...literalMatches.filter(
-        (match) => !protectedRanges.some((range) => isOverlappingRange(match, range))
-      )
+      ...literalMatches.filter((match) => !protectedRanges.some((range) => isOverlappingRange(match, range)))
     )
   }
 
@@ -589,6 +576,25 @@ function collectNewOccurrences(relativeFile, content) {
   return newOccurrences
 }
 
+function collectNewLegacyTokenOccurrences(relativeFile, content) {
+  const baseCounts = toOccurrenceCountMap(collectLegacyTokenOccurrences(relativeFile, readHeadFile(relativeFile)))
+  const newOccurrences = []
+
+  for (const occurrence of collectLegacyTokenOccurrences(relativeFile, content)) {
+    const key = occurrenceKey(occurrence)
+    const baseCount = baseCounts.get(key) || 0
+
+    if (baseCount > 0) {
+      baseCounts.set(key, baseCount - 1)
+      continue
+    }
+
+    newOccurrences.push(occurrence)
+  }
+
+  return newOccurrences
+}
+
 function sortEntries(entries) {
   return [...entries].sort((left, right) => {
     if (left.file !== right.file) {
@@ -636,9 +642,31 @@ function collectChangedLinesForWorkingTreeMode() {
 }
 
 function collectChangedLines(mode) {
-  return mode === 'staged'
-    ? collectChangedLinesForStagedMode()
-    : collectChangedLinesForWorkingTreeMode()
+  return mode === 'staged' ? collectChangedLinesForStagedMode() : collectChangedLinesForWorkingTreeMode()
+}
+
+function collectLegacyScanFiles(mode) {
+  if (mode !== 'staged') {
+    return getLegacyScanFiles()
+  }
+
+  const output = runGit(['diff', '--cached', '--name-only', '--diff-filter=ACMR', '--relative'])
+  const seen = new Set()
+
+  return output
+    .split(/\r?\n/)
+    .map((file) => toPosixPath(file.trim()))
+    .filter(Boolean)
+    .filter((file) => isLegacyScanFile(file))
+    .filter((file) => {
+      if (seen.has(file)) {
+        return false
+      }
+
+      seen.add(file)
+      return true
+    })
+    .sort((left, right) => left.localeCompare(right))
 }
 
 function readFileForMode(relativeFile, mode) {
@@ -651,9 +679,13 @@ const files = [...changedLinesByFile.keys()].sort((left, right) => left.localeCo
 const regressions = []
 const legacyTokenRegressions = []
 
-for (const file of getLegacyScanFiles()) {
+const legacyFiles = collectLegacyScanFiles(mode)
+
+for (const file of legacyFiles) {
   const content = readFileForMode(file, mode)
-  legacyTokenRegressions.push(...collectLegacyTokenOccurrences(file, content))
+  const occurrences =
+    mode === 'staged' ? collectNewLegacyTokenOccurrences(file, content) : collectLegacyTokenOccurrences(file, content)
+  legacyTokenRegressions.push(...occurrences)
 }
 
 for (const file of files) {
@@ -717,4 +749,6 @@ if (regressionEntries.length > 0) {
   process.exit(1)
 }
 
-console.log(`Hardcoded color usage check passed. mode=${mode} files=${files.length} occurrences=0`)
+console.log(
+  `Hardcoded color usage check passed. mode=${mode} files=${files.length} legacyFiles=${legacyFiles.length} occurrences=0`
+)

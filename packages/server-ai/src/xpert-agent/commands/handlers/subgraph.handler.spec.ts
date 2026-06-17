@@ -548,4 +548,16 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
 
         expect(registryGet).not.toHaveBeenCalled()
     })
+
+    it('does not mount file understanding tools when structured output is enabled', async () => {
+        const { graph, command } = createCommand({
+            structuredOutputMethod: 'jsonMode'
+        })
+        const registryGet = jest.fn()
+        const handler = createHandler(graph, registryGet)
+
+        await handler.execute(command)
+
+        expect(registryGet).not.toHaveBeenCalled()
+    })
 })

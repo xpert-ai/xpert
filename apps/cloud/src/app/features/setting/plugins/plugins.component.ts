@@ -17,7 +17,7 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { injectPluginAPI } from '@xpert-ai/cloud/state'
+import { injectActiveScope, injectPluginAPI } from '@xpert-ai/cloud/state'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmHighlightDirective, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { debouncedSignal, linkedModel, myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
@@ -27,11 +27,25 @@ import { firstValueFrom } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
-import { RolesEnum } from '@xpert-ai/contracts'
+import { PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
 import { PluginResourcesComponent } from './resources/resources.component'
+import {
+  marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
+  developerToolSubcategoryOptionsFor,
+  groupPluginsByMarketplaceCategory,
+  matchesPluginMarketplaceCategoryFilters,
+  PLUGIN_MARKETPLACE_TARGET_APP
+} from './plugin-marketplace-categories'
+import {
+  buildMarketplacePluginMetadataLookup,
+  enrichInstalledPluginWithMarketplaceMetadata,
+  mergeMarketplaceContributions
+} from './plugin-marketplace-metadata'
+
+const INSTALLABLE_MARKETPLACE_CONTENT_TYPES = new Set(['assistant-template', 'skill', 'tool', 'app', 'hook'])
 
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
@@ -48,6 +62,7 @@ type TPluginComponentSummaryItem = {
     TranslateModule,
     FormsModule,
     CdkMenuModule,
+    ZardButtonComponent,
     ...ZardTooltipImports,
     NgmSelectComponent,
     NgmI18nPipe,
@@ -70,6 +85,7 @@ export class PluginsComponent {
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
+  readonly #activeScope = injectActiveScope()
   readonly currentUser = injectUser()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
@@ -93,8 +109,17 @@ export class PluginsComponent {
   })
 
   readonly #plugins = myRxResource({
-    request: () => ({}),
+    request: () => ({
+      scope: this.#activeScope()
+    }),
     loader: () => this.pluginAPI.getPlugins()
+  })
+
+  readonly #installedMarketplace = myRxResource({
+    request: () => ({
+      scope: this.#activeScope()
+    }),
+    loader: () => this.pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP })
   })
 
   readonly pluginsLoading = computed(() => this.#plugins.status() === 'loading')
@@ -103,12 +128,21 @@ export class PluginsComponent {
     return error ? getErrorMessage(error) : null
   })
 
-  readonly #basePlugins = computed(() =>
-    (this.#plugins.value() ?? []).map((plugin, index) => ({
-      ...plugin,
-      __trackId: this.buildPluginTrackId(plugin, index)
-    }))
+  readonly #marketplacePluginsByName = computed(() =>
+    buildMarketplacePluginMetadataLookup(this.#installedMarketplace.value()?.items ?? [])
   )
+
+  readonly #basePlugins = computed(() => {
+    const marketplacePluginsByName = this.#marketplacePluginsByName()
+    return (this.#plugins.value() ?? []).map((plugin, index) => {
+      const enrichedPlugin = enrichInstalledPluginWithMarketplaceMetadata(plugin, marketplacePluginsByName)
+
+      return {
+        ...enrichedPlugin,
+        __trackId: this.buildPluginTrackId(plugin, index)
+      }
+    })
+  })
   readonly plugins = signal<Array<TInstalledPlugin>>([])
   readonly removing = signal('')
   readonly updating = signal('')
@@ -128,17 +162,30 @@ export class PluginsComponent {
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
 
-  readonly categories = model<string[]>([])
+  readonly marketplaceCategories = model<PluginMarketplaceCategory[]>([])
+  readonly developerToolSubcategories = model<string[]>([])
   readonly keywords = model<string[]>([])
   readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
   readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
   readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
+  readonly showDeveloperToolSubcategoryFilter = computed(
+    () => this.marketplaceCategories().length === 0 || this.marketplaceCategories().includes('developer-tools')
+  )
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()
     let plugins = this.plugins()
-    if (this.categories().length) {
-      plugins = plugins.filter((plugin) => this.categories().includes(plugin.meta.category))
+    if (this.marketplaceCategories().length || this.developerToolSubcategories().length) {
+      plugins = plugins.filter((plugin) =>
+        matchesPluginMarketplaceCategoryFilters(
+          {
+            category: plugin.meta.category,
+            targetAppMeta: plugin.meta.targetAppMeta
+          },
+          this.marketplaceCategories(),
+          this.developerToolSubcategories()
+        )
+      )
     }
     if (this.keywords().length) {
       plugins = plugins.filter(
@@ -158,20 +205,32 @@ export class PluginsComponent {
     return plugins
   })
 
-  readonly #categories = computed(() => {
-    const categories = new Set<string>()
-    this.plugins().forEach((plugin) => {
-      if (plugin.loadStatus !== 'failed' && plugin.meta.category) {
-        categories.add(plugin.meta.category)
-      }
-    })
-    return Array.from(categories)
+  readonly pluginCategoryGroups = computed(() =>
+    groupPluginsByMarketplaceCategory(
+      this.filteredPlugins().map((plugin) => ({
+        ...plugin,
+        category: plugin.meta.category,
+        targetAppMeta: plugin.meta.targetAppMeta
+      }))
+    )
+  )
+
+  readonly marketplaceCategoryOptions = computed(() => {
+    return buildMarketplaceCategoryOptions().map((category) => ({
+      label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
+      value: category.value
+    }))
   })
 
-  readonly categoriesOptions = computed(() => {
-    return this.#categories().map((category) => ({
-      label: this.i18nService.instant('PAC.Plugin.Category_' + category, { Default: category }),
-      value: category
+  readonly developerToolSubcategoryOptions = computed(() => {
+    return developerToolSubcategoryOptionsFor(
+      this.plugins().map((plugin) => ({
+        category: plugin.meta.category,
+        targetAppMeta: plugin.meta.targetAppMeta
+      }))
+    ).map((category) => ({
+      label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
+      value: category.value
     }))
   })
 
@@ -199,6 +258,26 @@ export class PluginsComponent {
   // }
 
   constructor() {
+    effect(
+      () => {
+        this.#activeScope()
+        this.#latestVersionsRequestId += 1
+        this.removing.set('')
+        this.updating.set('')
+        this.refreshing.set('')
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
+          this.developerToolSubcategories.set([])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         const basePlugins = this.#basePlugins()
@@ -296,6 +375,24 @@ export class PluginsComponent {
     return items.filter((item) => item.count > 0)
   }
 
+  hasInstallablePluginContent(plugin: TInstalledPlugin) {
+    return (
+      plugin.loadStatus !== 'failed' &&
+      (this.hasInstallableBundleResources(plugin) || this.hasInstallableMarketplaceContributions(plugin))
+    )
+  }
+
+  hasInstallableBundleResources(plugin: TInstalledPlugin) {
+    const summary = plugin.componentSummary
+    return !!summary && (summary.skills > 0 || summary.mcpServers > 0 || summary.apps > 0 || summary.hooks > 0)
+  }
+
+  hasInstallableMarketplaceContributions(plugin: TInstalledPlugin) {
+    return getInstalledPluginMarketplaceContributions(plugin).some((content) =>
+      INSTALLABLE_MARKETPLACE_CONTENT_TYPES.has(content.type)
+    )
+  }
+
   reload() {
     this.reloadInstalledPlugins()
   }
@@ -332,6 +429,19 @@ export class PluginsComponent {
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
+  }
+
+  openInstallOptions(plugin: TInstalledPlugin) {
+    if (!this.hasInstallablePluginContent(plugin)) {
+      return
+    }
+
+    if (this.hasInstallableMarketplaceContributions(plugin)) {
+      this.openPluginDetails(plugin)
+      return
+    }
+
+    this.initializeResources(plugin)
   }
 
   initializeResources(plugin: TInstalledPlugin) {
@@ -628,6 +738,7 @@ function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownlo
     displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
     description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
     version: plugin.currentVersion ?? plugin.meta.version ?? '',
+    level: plugin.level ?? plugin.meta.level,
     deprecated: plugin.meta.deprecated,
     deprecationMessage: plugin.meta.deprecationMessage,
     category: plugin.meta.category ?? 'integration',
@@ -649,14 +760,7 @@ function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownlo
     installed: plugin.loadStatus !== 'failed',
     contributions,
     operationSummary: countMarketplaceOperations(contributions),
-    marketplacePlugin: {
-      name: plugin.name,
-      packageName: plugin.packageName ?? plugin.name,
-      currentVersion: plugin.currentVersion,
-      source: plugin.source,
-      targetApps: plugin.meta.targetApps,
-      targetAppMeta: plugin.meta.targetAppMeta
-    }
+    targetAppMeta: plugin.meta.targetAppMeta
   }
 }
 
@@ -666,9 +770,9 @@ function getInstalledPluginMarketplaceContributions(plugin: TInstalledPlugin): T
     return []
   }
 
-  return Object.values(targetAppMeta)
-    .flatMap((metadata) => metadata?.marketplace?.contents ?? [])
-    .filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
+  return mergeMarketplaceContributions(
+    ...Object.values(targetAppMeta).map((metadata) => metadata?.marketplace?.contents)
+  ).filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
 }
 
 function countMarketplaceOperations(

@@ -14,6 +14,7 @@ import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { XpertModule } from '../xpert/xpert.module'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { XpertAgentNodeValidator } from './agent-validator'
 import { XpertTitleMiddlewareService } from './title/xpert-title.middleware'
 import { Validators } from './workflow'
 import { WorkflowCommandHandlers } from './workflow/handlers'
@@ -50,6 +51,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,
+        XpertAgentNodeValidator,
         ...CommandHandlers,
         ...WorkflowCommandHandlers,
         ...QueryHandlers,

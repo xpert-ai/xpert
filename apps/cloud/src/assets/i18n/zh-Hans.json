@@ -598,6 +598,7 @@
       "LearnMore": "了解更多",
       "NameRequired": "名称必输",
       "AddItem": "添加项",
+      "Configured": "已配置",
       "Checklist": "检查清单",
       "ChecklistTip": "确保发布前所有问题都已解决",
       "Input": "输入",
@@ -612,6 +613,8 @@
       "Conversation": "会话",
       "Currency": "币种",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
+      "Deprecated": "已废弃",
+      "DeprecatedSuffix": "（已废弃）",
       "Owner": "所有者",
       "Query": "查询",
       "Story": "故事",
@@ -1180,6 +1183,8 @@
       "Plugins": "插件",
       "AllCategories": "所有类别",
       "AllKeywords": "所有标签",
+      "AllDeveloperTools": "全部开发工具",
+      "DeveloperToolsSubcategories": "开发工具分类",
       "InstallPlugin": "安装插件",
       "ExploreMarketplace": "探索插件市场",
       "EmpowerAIDevelopment": "赋能你的 AI 开发",
@@ -1213,13 +1218,43 @@
       "Category_database": "数据库",
       "Category_Integration": "系统集成",
       "Category_integration": "系统集成",
-      "Category_tools": "工具",
+      "Category_tools": "开发工具",
       "Category_doc-source": "文档源",
       "Category_set": "集合",
       "Category_vlm": "视觉模型",
       "Category_model": "语言模型",
       "Category_middleware": "中间件",
       "Category_vector-store": "向量数据库",
+      "Category_datasource": "数据源",
+      "Category_agent": "智能体",
+      "MarketplaceCategory_featured": "精选业务方案",
+      "MarketplaceCategory_business-operations": "业务与运营",
+      "MarketplaceCategory_communication": "通信",
+      "MarketplaceCategory_creativity": "创意设计",
+      "MarketplaceCategory_data-analytics": "数据分析",
+      "MarketplaceCategory_developer-tools": "开发工具",
+      "MarketplaceCategory_education-research": "教育与研究",
+      "MarketplaceCategory_finance": "金融",
+      "MarketplaceCategory_productivity": "效率工具",
+      "MarketplaceCategory_research": "研究",
+      "MarketplaceCategory_security": "安全",
+      "MarketplaceCategory_travel": "旅行",
+      "MarketplaceCategory_sales": "销售",
+      "MarketplaceCategory_other": "其他",
+      "MarketplaceCategoryDescription_featured": "经典常用插件。",
+      "MarketplaceCategoryDescription_business-operations": "B2B 和企业运营相关插件。",
+      "MarketplaceCategoryDescription_communication": "会议、消息和协作沟通插件。",
+      "MarketplaceCategoryDescription_creativity": "视频、页面和设计创作插件。",
+      "MarketplaceCategoryDescription_data-analytics": "数据分析、图表和报表工具。",
+      "MarketplaceCategoryDescription_developer-tools": "开发、系统集成、数据库、中间件和模型工具。",
+      "MarketplaceCategoryDescription_education-research": "调研、商业情报和科研信息工具。",
+      "MarketplaceCategoryDescription_finance": "金融研究和分析平台。",
+      "MarketplaceCategoryDescription_productivity": "提升工作效率的软件。",
+      "MarketplaceCategoryDescription_research": "提升研究效率的插件。",
+      "MarketplaceCategoryDescription_security": "安全防护相关插件。",
+      "MarketplaceCategoryDescription_travel": "旅行规划和出行保障插件。",
+      "MarketplaceCategoryDescription_sales": "销售相关插件。",
+      "MarketplaceCategoryDescription_other": "其他插件。",
       "GlobalPlugin": "这是一个面向所有组织的全局插件",
       "ScopeGlobal": "全局",
       "ScopeOrganization": "组织",
@@ -1233,6 +1268,7 @@
       "PluginInstallError": "插件安装失败，请重试",
       "PluginWillInstall": "即将安装以下插件",
       "PluginAlreadyInstalled": "此插件的最新版本已安装",
+      "SystemPluginTenantScopeRequired": "系统插件只能在租户 scope 下安装。",
       "DeprecatedPlugin": "此插件已废弃，建议使用内置功能或替代插件。",
       "CurrentVersion": "当前版本",
       "LatestVersion": "最新版本",
@@ -3200,6 +3236,19 @@
       "Tasks": "任务",
       "Pause": "暂停",
       "NoTasksAvailable": "无可用任务",
+      "Successful": "成功",
+      "Failed": "失败",
+      "TaskQueue": "任务队列",
+      "NoScheduledTasks": "暂无已安排任务。",
+      "NoPausedTasks": "暂无已暂停任务。",
+      "NoArchivedTasks": "暂无已归档任务。",
+      "UntitledTask": "未命名任务",
+      "SchedulePlaceholder": "调度信息即将支持",
+      "RunStats": "运行统计",
+      "NoInstruction": "暂无指令",
+      "SelectTaskTitle": "选择一个任务",
+      "UnknownStatus": "未知",
+      "UntitledConversation": "未命名会话",
       "TaskDeleted": "任务已被删除",
       "TaskSuccessCount": "任务成功执行次数",
       "TaskFailureCount": "任务执行失败次数",
@@ -3261,6 +3310,8 @@
         "LoadFailed": "ClawXpert 加载失败。",
         "LoadFailedDesc": "请检查助手访问权限后重试。",
         "ReferenceUnavailable": "聊天输入框还未准备好，请稍后重试。",
+        "ChatkitUnavailable": "聊天还未准备好。",
+        "TaskHistoryThreadMissing": "这条任务历史记录没有关联会话线程。",
         "ReferenceAttachFailed": "附加所选引用失败。",
         "ServiceRestartFailed": "重启沙箱服务失败。",
         "ServiceStopFailed": "停止沙箱服务失败。",
@@ -3418,9 +3469,11 @@
         "ThreadDetailEyebrow": "会话详情",
         "Detail": "ClawXpert 详情",
         "Files": "文件",
+        "FilesLauncherDesc": "浏览项目文件",
         "WorkspaceFiles": "工作区文件",
         "Computer": "电脑",
         "Browser": "浏览器",
+        "BrowserLauncherDesc": "打开网站",
         "NewWorkspaceTab": "新增工作区标签",
         "FixedViews": "固定视图",
         "NoFixedViews": "暂无固定视图",
@@ -3469,6 +3522,7 @@
         "Stdout": "标准输出",
         "Stderr": "标准错误",
         "Terminal": "终端",
+        "TerminalLauncherDesc": "打开交互式终端",
         "FilesTitle": "工作区文件浏览",
         "TerminalTitle": "工作区终端",
         "FilesDesc": "浏览并编辑保存在服务端卷中的当前会话工作区文件。",
@@ -3684,6 +3738,42 @@
     "Feature": {
       "EnableFeature": "启用功能",
       "DisableFeature": "禁用功能",
+      "Enabled": "已启用",
+      "Disabled": "已禁用",
+      "AllEnabled": "全部启用",
+      "PartiallyEnabled": "部分启用",
+      "AllDisabled": "全部禁用",
+      "SearchPlaceholder": "搜索模块...",
+      "EmptyTitle": "没有匹配的模块",
+      "EmptyDescription": "调整关键词、状态或分类筛选。",
+      "Filters": {
+        "Status": "状态",
+        "Category": "分类",
+        "AllStatus": "全部状态",
+        "Enabled": "已启用",
+        "Disabled": "已禁用",
+        "AllGroups": "全部分类"
+      },
+      "Summary": {
+        "Enabled": "已启用模块",
+        "Disabled": "已禁用模块",
+        "Groups": "功能分组",
+        "Items": "功能项"
+      },
+      "Groups": {
+        "Organization": "组织与权限",
+        "OrganizationDescription": "租户组织、用户、角色和基础设置。",
+        "Ai": "AI 能力",
+        "AiDescription": "模型提供商、对话和数字专家体验。",
+        "Data": "数据与分析",
+        "DataDescription": "语义模型、故事、指标和业务域。",
+        "Integration": "系统集成",
+        "IntegrationDescription": "外部连接、存储、邮件和 SMTP 服务。",
+        "Project": "项目协作",
+        "ProjectDescription": "项目工作空间和协作交付模块。",
+        "Other": "其他模块",
+        "OtherDescription": "未归入主要分类的其他功能模块。"
+      },
       "Features": {
         "FEATURE_HOME": {
           "Name": "首页",
@@ -3709,9 +3799,17 @@
           "Name": "角色权限",
           "Description": "维护系统角色和权限"
         },
+        "GROUP_COPILOT": {
+          "Name": "Copilot 功能",
+          "Description": "管理模型提供商和监测模块"
+        },
         "FEATURE_COPILOT": {
           "Name": "模型提供商",
           "Description": "配置和使用模型提供商功能"
+        },
+        "FEATURE_COPILOT_MONITORING": {
+          "Name": "监测",
+          "Description": "查看模型提供商的用户使用量和监测信息"
         },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知识库",
@@ -3733,9 +3831,13 @@
           "Name": "语义模型",
           "Description": "启用语义模型功能"
         },
+        "FEATURE_DATA_SOURCE": {
+          "Name": "数据源",
+          "Description": "启用数据源配置功能"
+        },
         "FEATURE_PROJECT": {
-          "Name": "项目",
-          "Description": "启用项目工作空间功能"
+          "Name": "BI项目",
+          "Description": "启用BI项目工作空间功能"
         },
         "FEATURE_STORY": {
           "Name": "故事",
@@ -3767,7 +3869,15 @@
         },
         "FEATURE_USER": {
           "Name": "用户",
+          "Description": "管理租户的用户和用户组"
+        },
+        "FEATURE_USERS": {
+          "Name": "用户",
           "Description": "管理租户的用户"
+        },
+        "FEATURE_USER_GROUPS": {
+          "Name": "用户组",
+          "Description": "管理组织内的用户组"
         },
         "FEATURE_SETTING": {
           "Name": "租户设置",
@@ -3790,12 +3900,16 @@
           "Description": "管理租户组织的电子邮件模版"
         },
         "FEATURE_INTEGRATION": {
-          "Name": "集成",
+          "Name": "系统集成",
           "Description": "管理组织内的集成连接"
         },
         "FEATURE_DATA_FACTORY": {
           "Name": "数据工厂",
           "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策"
+        },
+        "GROUP_XPERT": {
+          "Name": "数字专家功能",
+          "Description": "管理数字专家及相关入口"
         },
         "FEATURE_XPERT": {
           "Name": "数字专家",
@@ -4191,6 +4305,8 @@
       "RejectReasonPlaceholder": "解释为什么此工具调用不应运行",
       "HITLNoChanges": "批准且不做更改",
       "HITLEmpty": "当前没有需要审批的操作。",
+      "ClientToolWaiting": "正在交给宿主页面处理",
+      "ClientToolWaitingDesc": "客户端工具调用已提交给宿主页面。这不是人工审批操作，无需点击发送。",
       "AllowedDecisions": "允许的决策",
       "AgentMiddlewares": "智能体中间件",
       "UnknownMiddleware": "未知中间件",
@@ -4296,6 +4412,7 @@
       "StateSchema": "状态模式",
       "NoConfigurationRequired": "无需配置",
       "ToolDescription": "工具描述",
+      "Xpert": "数字专家",
       "AgentToolReturnContent": "返回内容",
       "AgentToolReturnContentTooltip": "选择作为工具结果返回给调用智能体的值。",
       "AgentToolReturnLastMessage": "最后消息",
@@ -4314,10 +4431,13 @@
       "TasksActive": "活动任务",
       "Current": "当前",
       "SelectExpert": "选择数字专家",
+      "ScheduleSendTarget": "发送目标",
+      "NoScheduleSendTarget": "不主动发送",
       "NoRecordsYet": "暂无记录",
       "NewTask": "新建任务",
       "History": "历史",
       "Record": "记录",
+      "Records": "条记录",
       "Archived": "已归档",
       "CreateTask": "创建任务",
       "UpdateTask": "更新任务",
@@ -5339,10 +5459,10 @@
         "CHATBI_VIEW": "使用 ChatBI",
         "CHATBI_EDIT": "管理 ChatBI 配置",
         "COPILOT_VIEW": "使用智能助理",
-        "COPILOT_EDIT": "维护智能助理配置",
+        "COPILOT_EDIT": "管理模型提供商",
         "KNOWLEDGEBASE_EDIT": "维护知识库",
         "CHAT_VIEW": "使用智能对话",
-        "INTEGRATION_EDIT": "维护集成连接",
+        "INTEGRATION_EDIT": "管理系统集成",
         "DATA_FACTORY_VIEW": "使用数据工厂",
         "DATA_FACTORY_EDIT": "管理数据工厂配置",
         "XPERT_EDIT": "管理数字专家"

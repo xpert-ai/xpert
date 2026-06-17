@@ -42,6 +42,7 @@ import { uniq } from 'lodash'
 import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
 import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
+import { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
@@ -71,6 +72,41 @@ import { AttachFileToConversationCommand } from '../../../file-understanding'
 import { applicationMetrics } from '../../../metrics'
 import { applicationTracing } from '../../../tracing'
 
+function readBooleanMarker(container: unknown, property: string): boolean {
+    return !!container && typeof container === 'object' && Reflect.get(container, property) === true
+}
+
+function readObjectProperty(container: unknown, property: string): unknown {
+    if (!container || typeof container !== 'object' || Array.isArray(container)) {
+        return null
+    }
+    return Reflect.get(container, property)
+}
+
+function isInternalGoalRunInput(input: TChatRequestHuman | null | undefined): boolean {
+    const metadata = readObjectProperty(input, 'goalRunMetadata')
+    return (
+        readBooleanMarker(input, 'goalRun') ||
+        readBooleanMarker(input, 'internalGoalRun') ||
+        readBooleanMarker(input, 'xpertInternalGoalRun') ||
+        readBooleanMarker(metadata, 'internal') ||
+        readBooleanMarker(metadata, 'xpertInternalGoalRun')
+    )
+}
+
+function resolveVisibleConversationTitle(
+    conversationTitle: string | null | undefined,
+    executionTitle: string | null | undefined,
+    fallbackInput: string | null | undefined,
+    internalGoalRunInput: string | null | undefined
+) {
+    const existingTitle =
+        internalGoalRunInput?.trim() && conversationTitle?.trim() === internalGoalRunInput.trim()
+            ? null
+            : conversationTitle
+    return existingTitle || executionTitle || shortTitle(fallbackInput || '')
+}
+
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
     readonly #logger = new Logger(XpertChatHandler.name)
@@ -80,6 +116,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly assistantBindingService: AssistantBindingService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
+        private readonly goalService: ChatConversationGoalService,
         private readonly redisSseStreamService?: RedisSseStreamService
     ) {}
 
@@ -152,6 +189,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
 
         const rawSendInput = request.action === 'send' ? sendInput : null
+        const isGoalRun = isInternalGoalRunInput(rawSendInput)
         const titleInput =
             typeof rawSendInput?.input === 'string' && rawSendInput.input.trim().length > 0
                 ? rawSendInput.input
@@ -309,6 +347,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let executionId: string
         let checkpointId: string = null
         let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
+        let goalRunVisibleInput: string | null = null
         const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
@@ -424,6 +463,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             }
 
+            if (isGoalRun) {
+                const goal = await this.goalService.getByConversationId(conversation.id)
+                goalRunVisibleInput = goal?.objective?.trim() || null
+            }
+
             let userMessage: IChatMessage = null
             const persistedPendingFollowUpGroup =
                 request.action === 'send'
@@ -526,6 +570,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     // marked consumed before the execution was created.
                 } else {
                     const persistedInput = rawSendInput ?? input
+                    const visibleInput = isGoalRun ? goalRunVisibleInput : persistedInput?.input
                     const references = normalizeReferences(persistedInput?.references)
                     const persistedRuntimeCapabilities =
                         getRuntimeCapabilitiesFromState(state) ??
@@ -533,8 +578,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const fileAssets = toFileAssetReferences(persistedInput?.files)
                     const legacyAttachments = toLegacyStorageFileAttachments(persistedInput?.files)
                     const thirdPartyMessage =
-                        persistedRuntimeCapabilities || persistedInput?.commandSource
+                        persistedRuntimeCapabilities || persistedInput?.commandSource || isGoalRun
                             ? {
+                                  ...(isGoalRun
+                                      ? {
+                                            internalGoalRun: true
+                                        }
+                                      : {}),
                                   ...(persistedRuntimeCapabilities
                                       ? {
                                             runtimeCapabilities: persistedRuntimeCapabilities
@@ -550,7 +600,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const _humanMessage: Partial<IChatMessage> = {
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
-                        content: persistedInput?.input,
+                        content: visibleInput,
                         conversationId: conversation.id,
                         ...(references.length
                             ? {
@@ -605,6 +655,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         state = preparedAgentChatState.state
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
+        const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
 
         const stream = new Observable<MessageEvent>((subscriber) => {
             let chatMetricsFinished = false
@@ -629,7 +680,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
                     data: {
                         id: conversation.id,
-                        title: conversation.title || shortTitle(titleInput || input?.input),
+                        title: resolveVisibleConversationTitle(
+                            conversation.title,
+                            null,
+                            visibleConversationTitleInput,
+                            isGoalRun ? titleInput : null
+                        ),
                         status: conversation.status,
                         createdAt: conversation.createdAt,
                         updatedAt: conversation.updatedAt
@@ -873,10 +929,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     new ChatConversationUpsertCommand({
                                         id: conversation.id,
                                         status: convStatus,
-                                        title:
-                                            conversation.title ||
-                                            _execution?.title ||
-                                            shortTitle(titleInput || input?.input),
+                                        title: resolveVisibleConversationTitle(
+                                            conversation.title,
+                                            _execution?.title,
+                                            visibleConversationTitleInput,
+                                            isGoalRun ? titleInput : null
+                                        ),
                                         operation,
                                         error: _execution?.error,
                                         options: conversation.options
@@ -947,10 +1005,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         new ChatConversationUpsertCommand({
                                             id: conversation.id,
                                             status: 'idle',
-                                            title:
-                                                conversation.title ||
-                                                _execution?.title ||
-                                                shortTitle(titleInput || input?.input),
+                                            title: resolveVisibleConversationTitle(
+                                                conversation.title,
+                                                _execution?.title,
+                                                visibleConversationTitleInput,
+                                                isGoalRun ? titleInput : null
+                                            ),
                                             options: conversation.options
                                         })
                                     )

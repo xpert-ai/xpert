@@ -1,93 +1,181 @@
-<div class="flex-1 overflow-y-auto">
-  <ngm-table class="rounded-xl border border-divider-deep overflow-hidden"
-    [columns]="[
-        {
-            name: 'email',
-            caption: 'PAC.INVITE_PAGE.Email' | translate: {Default: 'Email'}
-        },
-        {
-            name: 'role.name',
-            caption: 'PAC.INVITE_PAGE.Role' | translate: {Default: 'Role'}
-        },
-        {
-            name: 'invitedBy',
-            caption: 'PAC.INVITE_PAGE.InvitedBy' | translate: {Default: 'Invited By'},
-            cellTemplate: invitedByTempl
-        },
-        {
-            name: 'createdAt',
-            caption: 'PAC.INVITE_PAGE.CreatedAt' | translate: {Default: 'Created At'}
-        },
-        {
-            name: 'expireDate',
-            caption: 'PAC.INVITE_PAGE.Expires' | translate: {Default: 'Expires'}
-        },
-        {
-            name: 'statusText',
-            caption: 'PAC.INVITE_PAGE.Status' | translate: {Default: 'Status'},
-            cellTemplate: statusTempl
-        },
-        {
-            name: 'action',
-            caption: 'PAC.INVITE_PAGE.Action' | translate: {Default: 'Action'},
-            cellTemplate: actionTempl
+<div class="flex-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg">
+  <table z-table zSize="compact" class="min-w-max text-sm">
+    <thead z-table-header class="text-text-secondary">
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-72 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('email')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('email', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.Email' | translate: { Default: 'Email' } }}
+          </button>
+        </th>
+
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-48 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('role')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('role', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.Role' | translate: { Default: 'Role' } }}
+          </button>
+        </th>
+
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-64 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('invitedBy')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('invitedBy', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.InvitedBy' | translate: { Default: 'Invited By' } }}
+          </button>
+        </th>
+
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-44 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('createdAt')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('createdAt', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.CreatedAt' | translate: { Default: 'Created At' } }}
+          </button>
+        </th>
+
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-44 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('expireDate')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('expireDate', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.Expires' | translate: { Default: 'Expires' } }}
+          </button>
+        </th>
+
+        <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
+          <button
+            z-table-sort-header
+            [zDirection]="sortDirection('status')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('status', $event)"
+          >
+            {{ 'PAC.INVITE_PAGE.Status' | translate: { Default: 'Status' } }}
+          </button>
+        </th>
+
+        <th
+          z-table-head
+          zTableStickyEnd
+          [zTableStickyEnd]="0"
+          [zTableStickyZIndex]="10"
+          scope="col"
+          class="sticky top-0 z-10 w-28 bg-background px-4 text-right whitespace-nowrap"
+        >
+          {{ 'PAC.INVITE_PAGE.Action' | translate: { Default: 'Action' } }}
+        </th>
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @if (invites$ | async; as invites) {
+        @for (invite of invites; track invite.id) {
+          <tr z-table-row class="bg-components-card-bg">
+            <td z-table-cell class="px-4 py-3 text-text-secondary">
+              <span class="block max-w-64 truncate" [title]="invite.email">
+                {{ invite.email }}
+              </span>
+            </td>
+
+            <td z-table-cell class="px-4 py-3">
+              @if (invite.role; as role) {
+                <z-badge zType="secondary" zShape="pill" class="max-w-40 truncate uppercase">
+                  {{ role.name }}
+                </z-badge>
+              } @else {
+                <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
+                  {{ 'PAC.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
+                </z-badge>
+              }
+            </td>
+
+            <td z-table-cell class="px-4 py-3">
+              @if (invite.invitedBy) {
+                <pac-user-profile-inline class="min-w-0" [user]="invite.invitedBy" small />
+              } @else {
+                <span class="text-text-tertiary">
+                  {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                </span>
+              }
+            </td>
+
+            <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
+              {{ invite.createdAt || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+            </td>
+
+            <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
+              {{ invite.expireDate }}
+            </td>
+
+            <td z-table-cell class="px-4 py-3">
+              <z-badge zType="secondary" zShape="pill" class="gap-2 text-text-primary">
+                <span class="inline-block h-2 w-2 rounded-full" [ngClass]="statusTone(invite.displayStatus)"></span>
+                {{ invite.statusText }}
+              </z-badge>
+            </td>
+
+            <td
+              z-table-cell
+              zTableStickyEnd
+              [zTableStickyEnd]="0"
+              [zTableStickyZIndex]="5"
+              class="bg-components-card-bg px-4 py-3 text-right"
+            >
+              <div class="flex items-center justify-end gap-1">
+                @if (canResend(invite.displayStatus)) {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    class="text-text-tertiary"
+                    [zTooltip]="'PAC.ACTIONS.Resend' | translate: { Default: 'Resend' }"
+                    zPosition="top"
+                    (click)="
+                      resendInvite(invite.id, invite.email, invite.role, invite.organization, invite.displayStatus)
+                    "
+                  >
+                    <z-icon zType="refresh"></z-icon>
+                  </button>
+                }
+
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="text-text-destructive"
+                  [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                  zPosition="top"
+                  (click)="deleteInvite(invite.id, invite.email)"
+                >
+                  <z-icon zType="delete"></z-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="7" class="py-8 text-center text-text-tertiary">
+              {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+            </td>
+          </tr>
         }
-    ]"
-    [data]="invites$ | async">
-  </ngm-table>
+      }
+    </tbody>
+  </table>
 </div>
-
-<ng-template #invitedByTempl let-invitedBy="invitedBy" >
-  <pac-user-profile-inline class="m-1" [user]="invitedBy" />
-</ng-template>
-
-<ng-template
-  #actionTempl
-  let-id="id"
-  let-email="email"
-  let-role="role"
-  let-organization="organization"
-  let-displayStatus="displayStatus"
->
-  <div class="flex items-center gap-1">
-    @if (canResend(displayStatus)) {
-      <button
-        z-button
-        zType="ghost"
-        zSize="icon"
-        zShape="circle"
-        displayDensity="cosy"
-        [zTooltip]="'PAC.ACTIONS.Resend' | translate: { Default: 'Resend' }"
-        zPosition="top"
-        (click)="resendInvite(id, email, role, organization, displayStatus)"
-      >
-        <div class="flex justify-center items-center">
-          <z-icon zType="refresh"></z-icon>
-        </div>
-      </button>
-    }
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      displayDensity="cosy"
-      ngmAppearance="danger"
-      [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-      zPosition="top"
-      (click)="deleteInvite(id, email)"
-    >
-      <div class="flex justify-center items-center">
-        <z-icon zType="delete"></z-icon>
-      </div>
-    </button>
-  </div>
-</ng-template>
-
-<ng-template #statusTempl let-displayStatus="displayStatus" let-statusText="statusText">
-  <span class="inline-flex items-center gap-2 rounded-lg border border-divider-regular bg-components-input-bg-normal px-2.5 py-1.5 text-xs font-medium text-text-primary">
-    <span class="inline-block h-2 w-2 rounded-full" [ngClass]="statusTone(displayStatus)"></span>
-    {{ statusText }}
-  </span>
-</ng-template>

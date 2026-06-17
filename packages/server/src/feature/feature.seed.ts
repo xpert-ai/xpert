@@ -54,43 +54,36 @@ export const createDefaultFeatureToggle = async (
 	tenant: ITenant
 ) => {
 
-	DEFAULT_FEATURES.forEach(async (item: IFeatureCreateInput) => {
-		const feature: IFeature = await connection.manager.findOne(Feature, {
-			where: {code: item.code},
-			relations: ['featureOrganizations']
-		})
-
-		await connection.manager.save(new FeatureOrganization({
-			isEnabled: feature.isEnabled,
-			tenant,
-			featureId: feature.id
-		}))
-
+	for (const item of DEFAULT_FEATURES) {
 		const { children = [] } = item
-		children?.forEach(async (child: IFeature) => {
+		const toggleFeatures = children.length > 0 ? children : [item]
+
+		for (const child of toggleFeatures) {
 			const feature: IFeature = await connection.manager.findOne(Feature, {
 				where: {code: child.code},
 				relations: ['featureOrganizations']
 			})
-			const childFeatureToggle: FeatureOrganization = new FeatureOrganization({
+
+			await connection.manager.save(new FeatureOrganization({
 				isEnabled: feature.isEnabled,
 				tenant,
 				featureId: feature.id
-			})
-
-			await connection.manager.save(childFeatureToggle)
-		})
-	})
+			}))
+		}
+	}
 }
 
 export const createRandomFeatureToggle = async (
 	connection: Connection,
 	tenants: ITenant[]
 ) => {
-	const features: IFeature[] = await connection.getRepository(Feature).find();
+	const features: IFeature[] = await connection.getRepository(Feature).find({
+		relations: ['children']
+	});
+	const toggleFeatures = features.filter((feature) => !feature.children?.length);
 
 	const featureOrganizations: IFeatureOrganization[] = [];
-	features.forEach(async (feature: IFeature) => {
+	toggleFeatures.forEach(async (feature: IFeature) => {
 		tenants.forEach((tenant: ITenant) => {
 			const { isEnabled } = feature;
 			const featureOrganization: IFeatureOrganization = new FeatureOrganization(

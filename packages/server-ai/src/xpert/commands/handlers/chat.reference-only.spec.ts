@@ -20,6 +20,7 @@ jest.mock('@xpert-ai/contracts', () => {
 
 import { lastValueFrom, of, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
@@ -36,6 +37,7 @@ describe('XpertChatHandler reference-only inputs', () => {
     }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let handler: XpertChatHandler
 
     const xpert = {
@@ -69,12 +71,16 @@ describe('XpertChatHandler reference-only inputs', () => {
         queryBus = {
             execute: jest.fn()
         }
+        goalService = {
+            getByConversationId: jest.fn().mockResolvedValue(null)
+        }
 
         handler = new XpertChatHandler(
             xpertService as any,
             assistantBindingService as any,
             commandBus as any,
-            queryBus as any
+            queryBus as any,
+            goalService as unknown as ChatConversationGoalService
         )
     })
 

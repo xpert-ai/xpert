@@ -21,6 +21,7 @@ import {
 	clearPluginLoadFailure,
 	collectProvidersWithMetadata,
 	hasLifecycleMethod,
+	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
 	registerPluginsAsync,
 	upsertPluginLoadFailure
 } from './plugin.helper'
@@ -249,12 +250,22 @@ export class PluginManagementService {
 						}
 					],
 					configs: { [packageName]: body.config },
-					baseDir: organizationBaseDir
+					baseDir: organizationBaseDir,
+					allowSystemPlugins
 				},
 				this.logger
 			)
 
 			if (errors.length) {
+				const systemLevelError = errors.find(
+					(error) => error.code === PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE
+				)
+				if (systemLevelError) {
+					shouldPersistFailureState = false
+					throw new BadRequestException(
+						t('server:Error.PluginSystemLevelInstallForbidden', { name: packageName })
+					)
+				}
 				throw new BadRequestException(errors[0].error)
 			}
 

@@ -24,6 +24,9 @@ jest.mock('../../ai/toolset/builtin/bi-toolset', () => ({
 	},
 	updateOcapIndicators: jest.fn()
 }))
+jest.mock('../../certification', () => ({
+	CertificationService: class CertificationService {}
+}))
 jest.mock('../../indicator', () => ({
 	IndicatorService: class IndicatorService {},
 	applyIndicatorDraft: (indicator: unknown) => indicator,

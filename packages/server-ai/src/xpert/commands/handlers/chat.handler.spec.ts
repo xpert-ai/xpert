@@ -22,6 +22,7 @@ import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
+import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
@@ -42,6 +43,7 @@ describe('XpertChatHandler', () => {
     }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let redisSseStreamService: { wrapChatStream: jest.Mock }
     let handler: XpertChatHandler
 
@@ -90,6 +92,9 @@ describe('XpertChatHandler', () => {
         queryBus = {
             execute: jest.fn()
         }
+        goalService = {
+            getByConversationId: jest.fn().mockResolvedValue(null)
+        }
         redisSseStreamService = {
             wrapChatStream: jest.fn((stream) => stream)
         }
@@ -99,6 +104,7 @@ describe('XpertChatHandler', () => {
             assistantBindingService as any,
             commandBus as any,
             queryBus as any,
+            goalService as unknown as ChatConversationGoalService,
             redisSseStreamService as any
         )
     })
@@ -267,6 +273,114 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('persists the active goal objective for marked internal goal runs', async () => {
+        const commands: unknown[] = []
+        goalService.getByConversationId = jest.fn().mockResolvedValue({
+            id: 'goal-1',
+            conversationId: 'conversation-1',
+            objective: '创建一个工作区技能，名字叫“请假申请整理助手”。'
+        })
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: 'Continue working toward the active goal.',
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'human') {
+                    return {
+                        id: 'human-1',
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Continue working toward the active goal.',
+                            xpertInternalGoalRun: true
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as XpertChatCommandOptions
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+        const finalConversationCommand = commands
+            .filter((command) => command instanceof ChatConversationUpsertCommand && command.entity.id)
+            .at(-1) as ChatConversationUpsertCommand
+
+        expect(humanMessageCommand.entity.content).toBe('创建一个工作区技能，名字叫“请假申请整理助手”。')
+        expect(humanMessageCommand.entity.content).not.toBe('Continue working toward the active goal.')
+        expect(humanMessageCommand.entity.thirdPartyMessage).toMatchObject({
+            internalGoalRun: true
+        })
+        expect(finalConversationCommand.entity.title).toBe('创建一个工作区技能，名字叫“请假申请整理助手”。')
     })
 
     it('does not persist ChatKit file attachment ids as FileAsset relations', async () => {

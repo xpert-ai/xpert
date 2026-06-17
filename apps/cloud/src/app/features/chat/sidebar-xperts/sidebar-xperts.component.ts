@@ -70,7 +70,7 @@ type SidebarXpertState = {
                 </span>
               }
               <span
-                class="pointer-events-none absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-primary opacity-0 transition-opacity"
+                class="pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full bg-primary opacity-0 transition-opacity"
                 [class.opacity-100]="isActive(xpert)"
               ></span>
             </button>

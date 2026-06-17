@@ -7,7 +7,6 @@ import { PACAccountComponent } from './account/account.component'
 import { PACAccountPasswordComponent } from './account/password.component'
 import { PACAccountProfileComponent } from './account/profile.component'
 import { PACSettingComponent } from './settings.component'
-import { PluginsComponent } from './plugins/plugins.component'
 
 const routes: Routes = [
   {
@@ -269,15 +268,10 @@ const routes: Routes = [
       },
       {
         path: 'plugins',
-        component: PluginsComponent,
-        canActivate: [NgxPermissionsGuard],
+        redirectTo: '/plugins',
+        pathMatch: 'full',
         data: {
-          title: 'settings/plugins',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL],
-            redirectTo
-          }
+          title: 'settings/plugins'
         }
       },
       {
@@ -287,7 +281,7 @@ const routes: Routes = [
         data: {
           title: 'settings/skill-repository'
         }
-      },
+      }
     ]
   }
 ]

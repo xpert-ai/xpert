@@ -1,26 +1,16 @@
 import { IPluginDescriptor, PluginComponentType } from '@xpert-ai/cloud/state'
 import { TPlugin } from '@cloud/app/@shared/plugins'
-import { I18nObject, IconDefinition } from '@cloud/app/@core'
+import {
+  PluginMarketplaceContribution,
+  PluginMarketplaceDownloads,
+  PluginMarketplaceOperation,
+  PluginMarketplaceOperationSummary,
+  PluginTargetAppMeta
+} from '@xpert-ai/contracts'
 
-export type TPluginMarketplaceOperation = {
-  name: string
-  displayName?: I18nObject | string
-  description?: I18nObject | string
-  access?: 'read' | 'write' | 'admin' | string
-  tags?: string[]
-}
+export type TPluginMarketplaceOperation = PluginMarketplaceOperation
 
-export type TPluginMarketplaceContribution = {
-  id?: string
-  type: 'app' | 'view' | 'feature' | 'tool' | 'assistant-template' | 'skill' | 'hook' | string
-  name: string
-  displayName?: I18nObject | string
-  description?: I18nObject | string
-  icon?: IconDefinition
-  operations?: TPluginMarketplaceOperation[]
-  tags?: string[]
-  metadata?: Record<string, unknown>
-}
+export type TPluginMarketplaceContribution = PluginMarketplaceContribution
 
 export type TPluginResourceContribution = TPluginMarketplaceContribution & {
   type: 'skill' | 'tool' | 'app' | 'hook'
@@ -29,23 +19,14 @@ export type TPluginResourceContribution = TPluginMarketplaceContribution & {
 
 export type TPluginWithDownloads = TPlugin & {
   packageName?: string | null
-  downloads?: {
-    lastWeek?: number
-    lastMonth?: number
-    lastYear?: number
-  }
+  downloads?: PluginMarketplaceDownloads | null
   sourceId?: string | null
   sourceName?: string | null
   sourceNameI18nKey?: string | null
   installed?: boolean
   contributions?: TPluginMarketplaceContribution[]
-  operationSummary?: {
-    total: number
-    read: number
-    write: number
-    admin: number
-  }
-  marketplacePlugin?: Record<string, unknown> | null
+  operationSummary?: PluginMarketplaceOperationSummary
+  targetAppMeta?: PluginTargetAppMeta | null
 }
 
 export type TInstalledPlugin = IPluginDescriptor & {

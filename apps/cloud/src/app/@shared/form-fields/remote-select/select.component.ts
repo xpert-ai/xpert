@@ -156,6 +156,7 @@ export class XpertRemoteSelectComponent {
   })
 
   readonly loading = computed(() => this.#remoteOptionsResource.isLoading())
+  readonly disabled = computed(() => this.cva.disabled$())
 
   private loadRemoteOptions(url: string, params?: Record<string, unknown>) {
     return defer(() => {

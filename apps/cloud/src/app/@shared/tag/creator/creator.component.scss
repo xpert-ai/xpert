@@ -4,9 +4,11 @@
 }
 
 label {
-  @apply block mb-2 text-base font-medium text-text-primary dark:text-white;
+  @apply block mb-2 text-base font-medium text-text-primary;
 }
 
-select, input, textarea {
+select,
+input,
+textarea {
   @apply bg-background-default-subtle;
 }

@@ -48,10 +48,7 @@
   {{ 'PAC.Plugin.PluginsMarketplace' | translate: { Default: 'Plugins Marketplace' } }}
 </h2>
 
-<div
-  class="w-full sticky top-0 z-[11] bg-components-panel-bg"
-  [class]="loading() ? 'pointer-events-none opacity-80' : ''"
->
+<div class="w-full sticky top-0 z-[11] bg-(--background)" [class]="loading() ? 'pointer-events-none opacity-80' : ''">
   <div class="mb-4 h-px shrink-0 bg-transparent"></div>
   <div class="flex items-center mx-auto w-full max-w-[920px] shrink-0 gap-2 px-4">
     <div
@@ -96,71 +93,28 @@
 </div>
 
 <div
-  class="flex shrink-0 items-center justify-center space-x-2 bg-components-panel-bg py-3 sticky z-10 top-[56px]"
+  class="sticky top-[56px] z-10 flex shrink-0 flex-col gap-3 bg-(--background) px-12 py-3"
   [class]="loading() ? 'pointer-events-none opacity-80' : ''"
-  cdkListbox
-  [(ngModel)]="categories"
 >
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    [class.active]="categories().length === 0"
-    (click)="categories.set([])"
-  >
-    {{ 'PAC.Plugin.All' | translate: { Default: 'All' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option1="cdkOption"
-    [class.active]="option1.isSelected()"
-    cdkOption="model"
-  >
-    <i class="ri-brain-2-line mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.Models' | translate: { Default: 'Models' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option2="cdkOption"
-    [class.active]="option2.isSelected()"
-    cdkOption="tools"
-  >
-    <i class="ri-hammer-line mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.Tools' | translate: { Default: 'Tools' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option3="cdkOption"
-    [class.active]="option3.isSelected()"
-    cdkOption="database"
-  >
-    <i class="ri-database-2-line mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.Database' | translate: { Default: 'Database' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option4="cdkOption"
-    [class.active]="option4.isSelected()"
-    cdkOption="middleware"
-  >
-    <i class="ri-speak-ai-line mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.Agent' | translate: { Default: 'Agent' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option5="cdkOption"
-    [class.active]="option5.isSelected()"
-    cdkOption="integration"
-  >
-    <i class="ri-puzzle-2-line mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.Integration' | translate: { Default: 'Integrations' } }}
-  </div>
-  <div
-    class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
-    #option6="cdkOption"
-    [class.active]="option6.isSelected()"
-    cdkOption="vector-store"
-  >
-    <i class="ri-text-block mr-1.5 shrink-0"></i>
-    {{ 'PAC.Plugin.VectorStores' | translate: { Default: 'Vector Stores' } }}
+  <div class="flex flex-wrap items-center justify-center gap-2">
+    <button
+      type="button"
+      class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
+      [class.active]="marketplaceCategories().length === 0"
+      (click)="clearMarketplaceCategories()"
+    >
+      {{ 'PAC.Plugin.All' | translate: { Default: 'All' } }}
+    </button>
+    @for (category of marketplaceCategoryOptions; track category.value) {
+      <button
+        type="button"
+        class="list-option system-md-medium flex h-8 cursor-pointer items-center rounded-xl border border-transparent px-3 text-text-tertiary hover:bg-hover-bg hover:text-text-secondary"
+        [class.active]="marketplaceCategories().includes(category.value)"
+        (click)="toggleMarketplaceCategory(category.value)"
+      >
+        {{ category.labelKey | translate: { Default: category.defaultLabel } }}
+      </button>
+    }
   </div>
 </div>
 
@@ -283,100 +237,48 @@
       </div>
     }
 
-    @if (marketplacePlugins().length) {
-      <div class="py-3">
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-xl font-semibold text-text-primary">
-              {{ 'PAC.Plugin.Marketplace' | translate: { Default: 'Marketplace' } }}
+    <div class="flex flex-col gap-6 py-3">
+      @for (group of pluginCategoryGroups(); track group.value) {
+        <section>
+          <div class="flex items-end justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xl font-semibold text-text-primary">
+                {{ group.labelKey | translate: { Default: group.defaultLabel } }}
+              </div>
+              <div class="system-xs-regular text-text-tertiary">
+                {{ group.descriptionKey | translate: { Default: group.defaultDescription } }}
+              </div>
             </div>
-            <div class="system-xs-regular text-text-tertiary">
-              {{
-                'PAC.Plugin.MarketplaceDescription'
-                  | translate: { Default: 'Plugins discovered from the selected marketplace sources.' }
-              }}
-            </div>
-          </div>
-        </div>
-        <div class="mt-2 grid grid-cols-4 gap-3">
-          @for (plugin of marketplacePlugins(); track plugin.name) {
-            <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-hover-bg"
-              [plugin]="plugin"
-            />
-          }
-        </div>
-      </div>
-    }
-
-    @if (partnerPlugins().length) {
-      <div class="py-3">
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-xl font-semibold text-text-primary">
-              {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
-            </div>
-            <div class="system-xs-regular text-text-tertiary">
-              {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
+            <div class="shrink-0 text-xs font-medium text-text-tertiary">
+              {{ group.plugins.length }}
             </div>
           </div>
-        </div>
-        <div class="mt-2 grid grid-cols-4 gap-3">
-          @for (plugin of partnerPlugins(); track plugin.name) {
-            <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-hover-bg"
-              [plugin]="plugin"
-            />
+          @if (
+            group.value === 'developer-tools' &&
+            showDeveloperToolSubcategoryFilter() &&
+            developerToolSubcategoryOptions().length
+          ) {
+            <div class="mt-2 flex items-center gap-2">
+              <div class="system-sm-semibold shrink-0 text-text-tertiary">
+                {{ 'PAC.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' } }}
+              </div>
+              <ngm-select
+                class="inline-block w-[220px]"
+                multiple
+                [selectOptions]="developerToolSubcategoryOptions()"
+                [placeholder]="'PAC.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
+                [(ngModel)]="developerToolSubcategories"
+              />
+            </div>
           }
-        </div>
-      </div>
-    }
-
-    @if (officialPlugins().length) {
-      <div class="py-3">
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-xl font-semibold text-text-primary">
-              {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
-            </div>
-            <div class="system-xs-regular text-text-tertiary">
-              {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
-            </div>
+          <div class="mt-2 grid grid-cols-4 gap-3">
+            @for (plugin of group.plugins; track plugin.name) {
+              <xp-settings-plugin class="group relative rounded-xl hover:bg-hover-bg" [plugin]="plugin" />
+            }
           </div>
-        </div>
-        <div class="mt-2 grid grid-cols-4 gap-3">
-          @for (plugin of officialPlugins(); track plugin.name) {
-            <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-hover-bg"
-              [plugin]="plugin"
-            />
-          }
-        </div>
-      </div>
-    }
-
-    @if (communityPlugins().length) {
-      <div class="py-3">
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-xl font-semibold text-text-primary">
-              {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
-            </div>
-            <div class="system-xs-regular text-text-tertiary">
-              {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
-            </div>
-          </div>
-        </div>
-        <div class="mt-2 grid grid-cols-4 gap-3">
-          @for (plugin of communityPlugins(); track plugin.name) {
-            <xp-settings-plugin
-              class="group relative rounded-xl hover:bg-hover-bg"
-              [plugin]="plugin"
-            />
-          }
-        </div>
-      </div>
-    }
+        </section>
+      }
+    </div>
   }
 </div>
 
@@ -413,10 +315,7 @@
           <span class="text-sm font-medium text-text-tertiary">
             {{ 'PAC.Plugin.SourceType' | translate: { Default: 'Source type' } }}
           </span>
-          <select
-            class="xp-input w-full text-sm"
-            [(ngModel)]="sourceType"
-          >
+          <select class="xp-input w-full text-sm" [(ngModel)]="sourceType">
             <option value="github">{{ 'PAC.Plugin.SourceTypeGithub' | translate: { Default: 'Repository' } }}</option>
             <option value="git">{{ 'PAC.Plugin.SourceTypeGit' | translate: { Default: 'Git URL' } }}</option>
             <option value="url">{{ 'PAC.Plugin.SourceTypeUrl' | translate: { Default: 'Static index URL' } }}</option>
@@ -656,11 +555,7 @@
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version' } }}
               </span>
-              <input
-                class="xp-input w-full text-sm"
-                placeholder="latest"
-                [(ngModel)]="registryVersion"
-              />
+              <input class="xp-input w-full text-sm" placeholder="latest" [(ngModel)]="registryVersion" />
             </label>
             <label class="flex flex-col gap-2">
               <span class="text-sm font-medium text-text-tertiary">
@@ -711,10 +606,7 @@
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.RegistrySection' | translate: { Default: 'Section' } }}
               </span>
-              <select
-                class="xp-input w-full text-sm"
-                [(ngModel)]="registrySection"
-              >
+              <select class="xp-input w-full text-sm" [(ngModel)]="registrySection">
                 @for (section of registrySectionOptions; track section) {
                   <option [value]="section">
                     {{ 'PAC.Plugin.RegistrySection_' + section | translate: { Default: section } }}
@@ -739,10 +631,7 @@
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.Keywords' | translate: { Default: 'Keywords' } }}
               </span>
-              <input
-                class="xp-input w-full text-sm"
-                [(ngModel)]="registryKeywords"
-              />
+              <input class="xp-input w-full text-sm" [(ngModel)]="registryKeywords" />
             </label>
             <label class="col-span-2 flex flex-col gap-2">
               <span class="text-sm font-medium text-text-tertiary">
@@ -762,29 +651,19 @@
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
               </span>
-              <input
-                class="xp-input w-full text-sm"
-                [(ngModel)]="registryHomepage"
-              />
+              <input class="xp-input w-full text-sm" [(ngModel)]="registryHomepage" />
             </label>
             <label class="flex flex-col gap-2">
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.Repository' | translate: { Default: 'Repository' } }}
               </span>
-              <input
-                class="xp-input w-full text-sm"
-                [(ngModel)]="registryRepositoryUrl"
-              />
+              <input class="xp-input w-full text-sm" [(ngModel)]="registryRepositoryUrl" />
             </label>
             <label class="flex flex-col gap-2">
               <span class="text-sm font-medium text-text-tertiary">
                 {{ 'PAC.Plugin.Priority' | translate: { Default: 'Priority' } }}
               </span>
-              <input
-                type="number"
-                class="xp-input w-full text-sm"
-                [(ngModel)]="registryPriority"
-              />
+              <input type="number" class="xp-input w-full text-sm" [(ngModel)]="registryPriority" />
             </label>
             <label class="flex items-center gap-2 pt-7 text-sm text-text-secondary">
               <input type="checkbox" class="h-4 w-4" [(ngModel)]="registryEnabled" />

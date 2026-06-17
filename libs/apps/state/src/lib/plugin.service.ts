@@ -14,94 +14,35 @@ import {
   IPluginUpdateResult,
   PluginResourceInstallWorkspaceInput,
   PluginResourceInstallXpertInput,
-  PluginComponentType
+  PluginMarketplaceAuthor,
+  PluginMarketplaceDownloads,
+  PluginMarketplaceItem,
+  PluginMarketplaceOperationSummary,
+  PluginMarketplaceRegistryItem,
+  PluginMarketplaceRegistryItemInput,
+  PluginMarketplaceRegistrySection,
+  PluginMarketplaceResponse,
+  PluginMarketplaceSourceInput,
+  PluginMarketplaceSourceResponse,
+  PluginMarketplaceSourceResponseType,
+  PluginMarketplaceSourceType
 } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 
 const API_BASE = API_PREFIX + '/plugin'
 
-export type IPluginMarketplaceSourceType = 'url' | 'github' | 'git'
-export type IPluginMarketplaceSourceResponseType = IPluginMarketplaceSourceType | 'platform'
-export type IPluginMarketplaceRegistrySection = 'marketplace' | 'official' | 'partner' | 'community'
-
-export interface IPluginMarketplaceSource {
-  id: string
-  name: string
-  type: IPluginMarketplaceSourceResponseType
-  url: string
-  ref?: string | null
-  sparsePath?: string | null
-  enabled: boolean
-  priority: number
-  lastIndexStatus?: string | null
-  lastIndexedAt?: string | null
-  lastIndexError?: string | null
-  builtin?: boolean
-}
-
-export interface IPluginMarketplaceSourceInput {
-  name?: string
-  type: IPluginMarketplaceSourceType
-  url: string
-  ref?: string | null
-  sparsePath?: string | null
-  enabled?: boolean
-  priority?: number
-}
-
-export interface IPluginMarketplaceRegistryItem {
-  id: string
-  packageName: string
-  version?: string | null
-  displayName: string
-  description: string
-  category: string
-  author: string
-  icon?: unknown
-  keywords: string[]
-  homepage?: string | null
-  repository?: unknown
-  targetApps: string[]
-  targetAppMeta: Record<string, unknown>
-  enabled: boolean
-  priority: number
-  section: IPluginMarketplaceRegistrySection
-  downloads?: Record<string, unknown> | null
-  downloadsStatus?: string | null
-  downloadsUpdatedAt?: string | null
-  downloadsError?: string | null
-  createdAt?: string | null
-  updatedAt?: string | null
-}
-
-export interface IPluginMarketplaceRegistryItemInput {
-  packageName?: string
-  version?: string | null
-  displayName?: string
-  description?: string
-  category?: string
-  author?: string
-  icon?: unknown
-  keywords?: string[]
-  homepage?: string | null
-  repository?: unknown
-  targetApps?: string[]
-  targetAppMeta?: Record<string, unknown> | null
-  enabled?: boolean
-  priority?: number
-  section?: IPluginMarketplaceRegistrySection
-}
-
-export interface IPluginMarketplaceResponse {
-  updatedAt: string | null
-  total: number
-  items: any[]
-  sources: IPluginMarketplaceSource[]
-  official?: string[]
-  partner?: string[]
-  community?: string[]
-  errors?: Array<{ sourceId: string; sourceName: string; message: string }>
-}
+export type IPluginMarketplaceSourceType = PluginMarketplaceSourceType
+export type IPluginMarketplaceSourceResponseType = PluginMarketplaceSourceResponseType
+export type IPluginMarketplaceRegistrySection = PluginMarketplaceRegistrySection
+export type IPluginMarketplaceSource = PluginMarketplaceSourceResponse
+export type IPluginMarketplaceSourceInput = PluginMarketplaceSourceInput
+export type IPluginMarketplaceRegistryItem = PluginMarketplaceRegistryItem
+export type IPluginMarketplaceRegistryItemInput = PluginMarketplaceRegistryItemInput
+export type IPluginMarketplaceAuthor = PluginMarketplaceAuthor
+export type IPluginMarketplaceDownloads = PluginMarketplaceDownloads
+export type IPluginMarketplaceOperationSummary = PluginMarketplaceOperationSummary
+export type IPluginMarketplaceItem = PluginMarketplaceItem
+export type IPluginMarketplaceResponse = PluginMarketplaceResponse
 
 @Injectable({ providedIn: 'root' })
 export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {

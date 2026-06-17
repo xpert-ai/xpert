@@ -9,7 +9,7 @@ import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel, PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
+import { PLUGIN_LEVEL, PluginLevel, PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
@@ -167,10 +167,22 @@ export interface PluginLoadFailureRecord {
 	organizationId: string
 	pluginName: string
 	packageName?: string
+	code?: string
 	error: string
 }
 
 export const loadFailures: PluginLoadFailureRecord[] = []
+export const PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE = 'plugin-system-level-install-forbidden'
+
+class PluginLoadRejectedError extends Error {
+	constructor(
+		readonly code: string,
+		message: string
+	) {
+		super(message)
+		this.name = 'PluginLoadRejectedError'
+	}
+}
 
 function hasPluginName(name: string | undefined | null): name is string {
 	return typeof name === 'string' && !!name
@@ -182,6 +194,10 @@ function appendStageWorkspacePluginError(message: string, stageError?: string) {
 	}
 
 	return `${message} | stageWorkspacePlugin failed earlier: ${stageError}`
+}
+
+function getPluginLoadFailureCode(error: unknown) {
+	return error instanceof PluginLoadRejectedError ? error.code : undefined
 }
 
 function resolveLoadedSourceConfig(
@@ -320,6 +336,8 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
 	configs?: Record<string, unknown>
+	/** Runtime install guard: false rejects system-level plugins before plugin.register() is called. */
+	allowSystemPlugins?: boolean
 }
 
 /**
@@ -457,6 +475,13 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					sdkCompatibilityWarnings = warnings
 				}
 			})
+			const resolvedLevel = resolvePluginLevel(plugin.meta?.level ?? level)
+			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && opts.allowSystemPlugins === false) {
+				throw new PluginLoadRejectedError(
+					PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
+					`System-level plugin "${plugin.meta?.name ?? name}" cannot be installed in this scope`
+				)
+			}
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 
@@ -481,7 +506,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				packageName: name,
 				source,
 				sourceConfig: resolveLoadedSourceConfig(source, sourceConfig, workspacePath),
-				level: resolvePluginLevel(plugin.meta?.level ?? level),
+				level: resolvedLevel,
 				instance: plugin,
 				ctx,
 				baseDir: pluginBaseDir,
@@ -490,15 +515,24 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		} catch (error) {
 			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
 			const stack = error instanceof Error ? error.stack : undefined
-			const failure = {
+			const code = getPluginLoadFailureCode(error)
+			const failure: PluginLoadFailureRecord = {
 				organizationId,
 				pluginName: normalizePluginName(name),
 				packageName: normalizePluginName(name),
+				...(code ? { code } : {}),
 				error: message
 			}
-			upsertPluginLoadFailure(failure)
+			if (code !== PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE) {
+				upsertPluginLoadFailure(failure)
+				Logger.error(
+					`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`,
+					stack
+				)
+			} else {
+				Logger.warn(`Rejected plugin ${name} for organization ${organizationId}: ${message}`)
+			}
 			errors.push(failure)
-			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`, stack)
 		}
 	}
 

@@ -56,7 +56,13 @@ const {
 	stageWorkspacePlugin
 } = require('./organization-plugin.store')
 const { loadPlugin } = require('./plugin-loader')
-const { loaded, loadFailures, collectProvidersWithMetadata, registerPluginsAsync } = require('./plugin.helper')
+const {
+	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
+	loaded,
+	loadFailures,
+	collectProvidersWithMetadata,
+	registerPluginsAsync
+} = require('./plugin.helper')
 
 describe('plugin helper registerPluginsAsync', () => {
 	beforeEach(() => {
@@ -180,6 +186,51 @@ describe('plugin helper registerPluginsAsync', () => {
 				sdkCompatibilityWarnings: warnings
 			})
 		])
+	})
+
+	it('rejects system plugins before registering modules when system installs are not allowed', async () => {
+		const register = jest.fn(() => ({
+			module: class RuntimePluginModule {}
+		}))
+		;(loadPlugin as jest.Mock).mockResolvedValueOnce({
+			meta: {
+				name: '@xpert-ai/plugin-system-demo',
+				version: '1.0.0',
+				level: 'system'
+			},
+			register
+		})
+
+		await expect(
+			registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-system-demo',
+						source: 'npm'
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-system-demo': {}
+				},
+				allowSystemPlugins: false
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				modules: [],
+				errors: [
+					expect.objectContaining({
+						code: PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
+						pluginName: '@xpert-ai/plugin-system-demo'
+					})
+				]
+			})
+		)
+
+		expect(register).not.toHaveBeenCalled()
+		expect(loaded).toEqual([])
+		expect(loadFailures).toEqual([])
 	})
 
 	it('restages monorepo code plugins even when no workspacePath is persisted', async () => {

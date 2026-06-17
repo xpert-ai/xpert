@@ -19,6 +19,27 @@ import {
   injectHostedAssistantChatkitControl
 } from './assistant-chatkit.runtime'
 
+jest.mock('../../app.service', () => ({
+  AppService: class AppService {}
+}))
+
+jest.mock('../../@core', () => ({
+  AssistantBindingService: class AssistantBindingService {},
+  AssistantBindingScope: {
+    ORGANIZATION: 'organization'
+  },
+  AssistantBindingSourceScope: {
+    NONE: 'none',
+    ORGANIZATION: 'organization'
+  },
+  AssistantCode: {
+    CHATBI: 'chatbi'
+  },
+  Store: class Store {},
+  ToastrService: class ToastrService {},
+  getErrorMessage: jest.fn((error?: { message?: string }) => error?.message ?? '')
+}))
+
 jest.mock('@xpert-ai/chatkit-angular', () => ({
   createChatKit: jest.fn()
 }))
@@ -181,5 +202,74 @@ describe('assistant chatkit runtime helpers', () => {
         }
       })
     )
+  })
+
+  it('uses a custom client secret resolver when provided', async () => {
+    const createChatKitMock = createChatKit as jest.Mock
+    const getClientSecret = jest.fn(async (currentClientSecret: string | null) => ({
+      secret: `custom-${currentClientSecret}`,
+      organizationId: 'org-custom'
+    }))
+    createChatKitMock.mockReturnValue({
+      setOptions: jest.fn()
+    })
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: DOCUMENT,
+          useValue: document
+        },
+        {
+          provide: TranslateService,
+          useValue: {
+            currentLang: 'en',
+            instant: (_key: string, params?: { Default?: string }) => params?.Default ?? _key
+          }
+        },
+        {
+          provide: ToastrService,
+          useValue: {
+            error: jest.fn()
+          }
+        },
+        {
+          provide: AppService,
+          useValue: {
+            lang: signal('en'),
+            theme$: signal({ primary: 'light' })
+          }
+        },
+        {
+          provide: Store,
+          useValue: {
+            token: 'token-1',
+            token$: of('token-1'),
+            organizationId: 'org-1',
+            selectOrganizationId: () => of('org-1')
+          }
+        }
+      ]
+    })
+
+    TestBed.runInInjectionContext(() => {
+      injectHostedAssistantChatkitControl({
+        identity: signal('public-chatkit:xpert-1'),
+        assistantId: signal('xpert-1'),
+        frameUrl: signal('/chatkit'),
+        getClientSecret,
+        title: signal('Public Assistant'),
+        titleKey: 'PAC.Xpert.Assistant',
+        titleDefault: 'Assistant'
+      })
+    })
+    flushAngularEffects()
+
+    const options = createChatKitMock.mock.calls[0][0]
+    await expect(options.api.getClientSecret('secret-1')).resolves.toEqual({
+      secret: 'custom-secret-1',
+      organizationId: 'org-custom'
+    })
+    expect(options.header.title.text).toBe('Public Assistant')
   })
 })

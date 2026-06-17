@@ -22,7 +22,6 @@ import {
   IChatConversation,
   injectUserPreferences,
   IXpertProject,
-  IXpertTask,
   PaginationParams,
   PersistState
 } from '@xpert-ai/cloud/state'
@@ -48,10 +47,9 @@ import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ClawXpertFacade } from '../clawxpert/clawxpert.facade'
 import { ChatHomeService } from '../home.service'
 import { ChatSidebarXpertsComponent } from '../sidebar-xperts/sidebar-xperts.component'
-import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat/task-dialog/task-dialog.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
-type TMenuOverlayType = 'history' | 'project' | 'task'
+type TMenuOverlayType = 'history' | 'project'
 
 @Component({
   standalone: true,
@@ -208,13 +206,6 @@ export class ChatHomeComponent {
     compute: () => this.#conversations.value(),
     update: (conversations) => {}
   })
-  readonly taskConversations = computed(() =>
-    this.#conversations
-      .value()
-      ?.filter((conv) => conv.taskId)
-      .slice(0, 10)
-  )
-
   readonly allHistoryGroups = computed(() => {
     const conversations = this.conversations()
     return conversations ? groupConversations(conversations) : []
@@ -418,23 +409,6 @@ export class ChatHomeComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
-  }
-
-  newTask() {
-    this.#dialog
-      .open<IXpertTask>(XpertTaskDialogComponent, {
-        data: {},
-        disableClose: true,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet'
-      })
-      .closed.subscribe({
-        next: (task) => {
-          if (task?.id) {
-            this.#router.navigate(['/chat', 'tasks', task.id])
-          }
-        }
-      })
   }
 
   // Input method composition started

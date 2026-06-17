@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
 	IFeature,
 	IFeatureOrganization,
@@ -26,10 +26,10 @@ export class FeatureStoreService {
 		IFeatureOrganization[]
 	> = this._featureOrganizations$.asObservable();
 
-	private _featureToggles$: BehaviorSubject<any> = new BehaviorSubject([]);
-	public featureToggles$: Observable<any> = this._featureToggles$.asObservable();
+	private _featureToggles$: BehaviorSubject<IFeature[]> = new BehaviorSubject([]);
+	public featureToggles$: Observable<IFeature[]> = this._featureToggles$.asObservable();
 
-	constructor(private _featureService: FeatureService) {}
+	private readonly _featureService = inject(FeatureService);
 
 	public loadUnleashFeatures() {
 		const promise = this._featureService.getFeatureToggleDefinition();
@@ -66,7 +66,11 @@ export class FeatureStoreService {
 			.pipe(tap(({ items }) => this._featureOrganizations$.next(items)));
 	}
 
-	changedFeature(payload: IFeatureOrganizationUpdateInput) {
+	changedFeature(payload: IFeatureOrganizationUpdateInput): Observable<boolean> {
 		return this._featureService.featureToggle(payload);
+	}
+
+	changedFeatures(payload: IFeatureOrganizationUpdateInput[]): Observable<boolean[]> {
+		return this._featureService.featuresToggle(payload);
 	}
 }

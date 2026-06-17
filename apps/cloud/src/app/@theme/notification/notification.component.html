@@ -45,10 +45,7 @@
     <div class="flex flex-col overflow-auto" displayDensity="compact">
       <ul class="ngm-list space-y-1">
         @for (error of errors(); track error; let i = $index) {
-          <li
-            class="group relative flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
-            [zTooltip]="error"
-          >
+          <li class="group relative flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-hover-bg" [zTooltip]="error">
             <p class="min-w-0 flex-1 break-words">{{ error }}</p>
             <div class="shrink-0">
               <button
@@ -57,7 +54,6 @@
                 zSize="icon"
                 zShape="circle"
                 class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-text-destructive hover:bg-status-error-bg hover:text-text-destructive"
-
                 (click)="clearError(i)"
               >
                 <z-icon zType="close"></z-icon>

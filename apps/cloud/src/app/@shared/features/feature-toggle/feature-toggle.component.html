@@ -1,66 +1,266 @@
-<z-accordion>
-  @for (feature of features$ | async; track feature.code) {
-    <z-accordion-item hideToggle class="shadow-sm group/item rounded-[1rem]" [disabled]="!enabledFeature(feature)">
-      <z-accordion-header>
-        <z-accordion-title>
-          <span>
-            {{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name } }}
-          </span>
-        </z-accordion-title>
+<ng-template #searchIcon>
+  <z-icon zType="search" class="size-4 text-text-tertiary" />
+</ng-template>
 
-        <z-accordion-description class="flex justify-end items-center">
-          {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
-        </z-accordion-description>
-
-        <button
-          type="button"
-          class="btn btn-secondary w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary shadow-none hover:shadow-sm border-transparent group-hover/item:border-divider-deep"
-          [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{ feature: feature }"
-          (click)="$event.stopPropagation()"
+<ng-template #featureRow let-feature>
+  <div
+    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-divider-regular px-4 py-3 last:border-b-0 md:grid-cols-[minmax(160px,0.75fr)_minmax(220px,1fr)_auto_auto]"
+  >
+    <div class="flex min-w-0 items-center gap-3">
+      <span
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-components-card-bg text-text-secondary"
+      >
+        <z-icon [zType]="featureIcon(feature)" class="size-4" />
+      </span>
+      <div class="min-w-0">
+        <div class="truncate text-sm font-medium text-text-primary">
+          {{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name } }}
+        </div>
+        <div
+          data-feature-description
+          class="mt-0.5 truncate text-xs text-text-tertiary md:hidden"
+          [zTooltip]="
+            'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
+          "
+          zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
         >
-          <i class="ri-more-line"></i>
-        </button>
-      </z-accordion-header>
-
-      @if (feature.children?.length > 0) {
-        <ul role="list" class="ngm-list">
-          @for (child of feature.children; track child.code) {
-            <li role="listitem" class="rounded-lg px-3 py-2 hover:bg-hover-bg">
-              <z-checkbox [ngModel]="enabledFeature(child)" (checkChange)="featureChanged($event, child)">
-                <div class="flex items-center gap-4">
-                  <span>{{ 'PAC.Feature.Features.' + child.code + '.Name' | translate: { Default: child.name } }}</span>
-                  <span class="text-sm italic">{{
-                    'PAC.Feature.Features.' + child.code + '.Description' | translate: { Default: child.description }
-                  }}</span>
-                </div>
-              </z-checkbox>
-            </li>
-          }
-        </ul>
-      }
-    </z-accordion-item>
-
-    <ng-template #menu>
-      <div cdkMenu class="cdk-menu__large">
-        @if (enabledFeature(feature)) {
-          <button type="button" cdkMenuItem class="" (click)="featureChanged(false, feature)">
-            <i class="ri-toggle-fill mr-1"></i>
-            <span>{{ 'PAC.ACTIONS.Disable' | translate: { Default: 'Disable' } }}</span>
-          </button>
-        } @else {
-          <button type="button" cdkMenuItem class="" (click)="featureChanged(true, feature)">
-            <i class="ri-toggle-line mr-1"></i>
-            <span>{{ 'PAC.ACTIONS.Enable' | translate: { Default: 'Enable' } }}</span>
-          </button>
-        }
+          {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
+        </div>
       </div>
-    </ng-template>
-  }
-</z-accordion>
+    </div>
+
+    <div class="hidden min-w-0 text-sm text-text-secondary md:block">
+      <div
+        data-feature-description
+        class="truncate"
+        [zTooltip]="
+          'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description }
+        "
+        zTooltipClass="max-w-lg max-h-80 whitespace-pre-wrap overflow-auto text-left"
+      >
+        {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
+      </div>
+    </div>
+
+    <z-badge
+      class="justify-self-end"
+      [attr.data-feature-status]="enabledFeature(feature) ? 'enabled' : 'disabled'"
+      zType="outline"
+      [class]="
+        enabledFeature(feature)
+          ? 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
+          : 'h-5 border-destructive/25 bg-destructive/10 text-destructive'
+      "
+    >
+      @if (enabledFeature(feature)) {
+        {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+      } @else {
+        {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+      }
+    </z-badge>
+
+    <z-checkbox
+      #featureCheckbox="zCheckbox"
+      data-feature-checkbox
+      [attr.data-feature-code]="feature.code"
+      displayDensity="compact"
+      class="justify-self-end"
+      [ngModel]="enabledFeature(feature)"
+      (checkChange)="featureChanged($event, feature, featureCheckbox)"
+    ></z-checkbox>
+  </div>
+</ng-template>
+
+@if (features$ | async; as features) {
+  <div class="flex w-full flex-col gap-4">
+    <div class="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+        <z-input-group class="w-full sm:max-w-[320px]" zSize="sm" [zAddonBefore]="searchIcon">
+          <input
+            z-input
+            type="search"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event)"
+            [placeholder]="'PAC.Feature.SearchPlaceholder' | translate: { Default: 'Search modules...' }"
+          />
+        </z-input-group>
+
+        <z-select
+          class="w-full sm:w-[180px]"
+          zSize="sm"
+          [zValue]="statusFilter()"
+          [zPlaceholder]="'PAC.Feature.Filters.Status' | translate: { Default: 'Status' }"
+          (zSelectionChange)="setStatusFilter($event)"
+        >
+          @for (option of statusFilters; track $index) {
+            <z-select-item [zValue]="option.value">
+              {{ option.labelKey | translate: { Default: option.labelDefault } }}
+            </z-select-item>
+          }
+        </z-select>
+
+        <z-select
+          class="w-full sm:w-[220px]"
+          zSize="sm"
+          [zValue]="groupFilter()"
+          [zPlaceholder]="'PAC.Feature.Filters.Category' | translate: { Default: 'Category' }"
+          (zSelectionChange)="setGroupFilter($event)"
+        >
+          @for (option of groupFilterOptions(features); track option.value) {
+            <z-select-item [zValue]="option.value">
+              {{ option.labelKey | translate: { Default: option.labelDefault } }}
+            </z-select-item>
+          }
+        </z-select>
+      </div>
+
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        type="button"
+        (click)="searchText.set(''); statusFilter.set('all'); groupFilter.set('all')"
+      >
+        <z-icon zType="restart_alt" />
+        {{ 'PAC.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
+      </button>
+    </div>
+
+    <div data-feature-summary class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      @for (summary of summaryCards(features); track $index) {
+        <z-card class="border border-divider-regular bg-components-panel-bg shadow-sm">
+          <z-card-content class="flex items-center gap-3 p-4">
+            <span
+              class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+            >
+              <z-icon [zType]="summary.icon" />
+            </span>
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-text-tertiary">
+                {{ summary.labelKey | translate: { Default: summary.labelDefault } }}
+              </div>
+              <div class="mt-1 text-2xl font-semibold leading-none text-text-primary">{{ summary.value }}</div>
+            </div>
+          </z-card-content>
+        </z-card>
+      }
+    </div>
+
+    <div data-feature-groups-grid class="columns-1 gap-4 xl:columns-2 2xl:columns-3">
+      @for (group of visibleFeatureGroups(features); track $index) {
+        <z-card
+          data-feature-group-card
+          [attr.data-feature-group-id]="group.id"
+          class="mb-4 inline-block w-full break-inside-avoid overflow-hidden border border-divider-regular bg-components-panel-bg shadow-sm"
+        >
+          <z-card-header
+            class="flex flex-row items-start justify-between gap-3 border-b border-divider-regular px-4 py-3"
+          >
+            <div class="flex min-w-0 items-start gap-3">
+              <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+              >
+                <z-icon [zType]="group.icon" />
+              </span>
+              <div class="min-w-0">
+                <z-card-title class="flex min-w-0 items-center text-base font-semibold text-text-primary">
+                  <span
+                    [attr.data-feature-deprecated]="group.deprecated ? true : null"
+                    class="min-w-0 truncate"
+                    [class]="group.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+                  >
+                    {{ group.titleKey | translate: { Default: group.titleDefault } }}
+                    @if (group.deprecated) {
+                      {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                    }
+                  </span>
+                  @if (group.deprecated) {
+                    <z-icon
+                      data-feature-deprecated-icon
+                      zType="triangle-alert"
+                      class="ml-1 size-4 shrink-0 text-text-warning"
+                      [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                      zPosition="top"
+                    />
+                  }
+                </z-card-title>
+                <z-card-subtitle class="mt-1 text-sm text-text-tertiary">
+                  {{ group.descriptionKey | translate: { Default: group.descriptionDefault } }}
+                </z-card-subtitle>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <z-badge zType="outline">{{ group.matchCount }}</z-badge>
+              <z-badge
+                [attr.data-feature-parent-status]="featureGroupStatus(group.feature)"
+                zType="outline"
+                [class]="featureStatusBadgeClass(featureGroupStatus(group.feature))"
+              >
+                @if (hasChildFeatures(group.feature)) {
+                  @switch (featureGroupStatus(group.feature)) {
+                    @case ('enabled') {
+                      {{ 'PAC.Feature.AllEnabled' | translate: { Default: 'All enabled' } }}
+                    }
+                    @case ('partial') {
+                      {{ 'PAC.Feature.PartiallyEnabled' | translate: { Default: 'Partially enabled' } }}
+                    }
+                    @case ('disabled') {
+                      {{ 'PAC.Feature.AllDisabled' | translate: { Default: 'All disabled' } }}
+                    }
+                  }
+                } @else {
+                  @if (enabledFeature(group.feature)) {
+                    {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+                  } @else {
+                    {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+                  }
+                }
+              </z-badge>
+              <z-checkbox
+                #featureParentCheckbox="zCheckbox"
+                data-feature-parent-checkbox
+                [attr.data-feature-code]="group.feature.code"
+                displayDensity="compact"
+                [ngModel]="featureCheckboxChecked(group.feature)"
+                [indeterminate]="featureCheckboxIndeterminate(group.feature)"
+                (checkChange)="
+                  featureChanged(nextFeatureCheckboxValue($event, group.feature), group.feature, featureParentCheckbox)
+                "
+              ></z-checkbox>
+            </div>
+          </z-card-header>
+
+          @if (group.features.length > 0) {
+            <z-card-content class="p-0">
+              @for (feature of group.features; track $index) {
+                <ng-container [ngTemplateOutlet]="featureRow" [ngTemplateOutletContext]="{ $implicit: feature }" />
+              }
+            </z-card-content>
+          }
+        </z-card>
+      }
+    </div>
+
+    @if (filteredFeatureCount(features) === 0) {
+      <z-card class="border border-divider-regular bg-components-panel-bg shadow-sm">
+        <z-card-content class="flex min-h-[180px] flex-col items-center justify-center gap-2 p-8 text-center">
+          <z-icon zType="search_off" class="text-3xl text-text-tertiary" />
+          <div class="text-sm font-medium text-text-primary">
+            {{ 'PAC.Feature.EmptyTitle' | translate: { Default: 'No matching modules' } }}
+          </div>
+          <div class="max-w-md text-sm text-text-tertiary">
+            {{
+              'PAC.Feature.EmptyDescription' | translate: { Default: 'Adjust the keyword, status, or category filter.' }
+            }}
+          </div>
+        </z-card-content>
+      </z-card>
+    }
+  </div>
+}
 
 @if (loading()) {
-  <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">
-    <z-loader [diameter]="22" />
+  <div class="absolute left-0 top-0 flex h-full w-full items-center justify-center bg-components-panel-bg-blur">
+    <z-loader zSize="sm" />
   </div>
 }

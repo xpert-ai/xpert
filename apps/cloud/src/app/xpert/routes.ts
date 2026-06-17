@@ -1,9 +1,8 @@
 import { inject } from '@angular/core'
-import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, Routes } from '@angular/router'
+import { ActivatedRouteSnapshot, CanActivateFn, RedirectFunction, Router, RouterStateSnapshot, Routes } from '@angular/router'
 import { Store } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { XpertAPIService } from '../@core'
-import { ChatHomeComponent } from './home/home.component'
 
 export const authGuard: CanActivateFn = async (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
   const xpertService = inject(XpertAPIService)
@@ -43,21 +42,25 @@ export const authGuard: CanActivateFn = async (route: ActivatedRouteSnapshot, st
   return false // Prevent access to the route
 }
 
+export const redirectLegacyPublicChatkitRoute: RedirectFunction = ({ params, queryParams, fragment }) => {
+  const router = inject(Router)
+  const name = typeof params['name'] === 'string' ? params['name'] : ''
+  const id = typeof params['id'] === 'string' ? params['id'] : null
+  const commands = id ? ['/x-chatkit', 'x', name, 'c', id] : ['/x-chatkit', 'x', name]
+
+  return router.createUrlTree(commands, {
+    queryParams,
+    fragment: fragment ?? undefined
+  })
+}
+
 export const routes: Routes = [
   {
-    path: ':name',
-    component: ChatHomeComponent,
-    data: {
-      title: 'Chat Xpert'
-    },
-    canActivate: [authGuard]
+    path: ':name/c/:id',
+    redirectTo: redirectLegacyPublicChatkitRoute
   },
   {
-    path: ':name/c/:id',
-    component: ChatHomeComponent,
-    data: {
-      title: 'Chat Xpert Conversation'
-    },
-    canActivate: [authGuard]
+    path: ':name',
+    redirectTo: redirectLegacyPublicChatkitRoute
   }
 ]

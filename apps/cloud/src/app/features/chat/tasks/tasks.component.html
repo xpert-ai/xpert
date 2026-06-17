@@ -1,117 +1,296 @@
-@if (embedded()) {
-  <div class="relative flex h-full min-h-0 w-full flex-col gap-4">
-    <div class="flex justify-end">
-      <button type="button" class="btn btn-primary pl-2 pr-4 py-1" (click)="newTask()">
-        <i class="ri-add-line text-lg mr-1"></i>
+<div class="relative h-full min-h-0 w-full overflow-hidden">
+  <div class="flex h-full min-h-0 w-full flex-col gap-4" [class.p-4]="!embedded()">
+    <header class="flex shrink-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 text-xl font-semibold text-text-primary">
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-2xl bg-background-default-subtle text-text-secondary"
+          >
+            <i class="ri-calendar-line text-lg"></i>
+          </span>
+          <span>{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</span>
+        </div>
+        <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
+          <span>
+            {{ totalTaskCount() }}
+            {{ 'PAC.Chat.Tasks' | translate: { Default: 'tasks' } }}
+          </span>
+          <span class="h-1 w-1 rounded-full bg-text-tertiary"></span>
+          <span>
+            {{ successfulExecutionCount() }}
+            {{ 'PAC.Chat.Successful' | translate: { Default: 'successful' } }}
+            /
+            {{ failedExecutionCount() }}
+            {{ 'PAC.Chat.Failed' | translate: { Default: 'failed' } }}
+          </span>
+        </div>
+      </div>
+
+      <button z-button type="button" zType="default" zSize="lg" class="shrink-0" (click)="newTask()">
+        <i class="ri-add-line text-lg"></i>
         {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
       </button>
-    </div>
+    </header>
 
-    <div class="min-h-0 flex-1 overflow-auto">
-      <ng-container *ngTemplateOutlet="taskSectionsTempl; context: { embeddedView: true }"></ng-container>
-    </div>
-
-    @if (openedTask(); as task) {
-      <div class="min-h-0 overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg">
-        <ng-container
-          *ngTemplateOutlet="taskDetailTempl; context: { task: task, embeddedView: true }"
-        ></ng-container>
-      </div>
-    }
-  </div>
-} @else {
-  <div class="relative flex h-full w-full items-start">
     <div
-      class="max-w-[50rem] px-2 pt-16 @sm:pt-18 mx-auto w-full flex flex-col h-full items-center pb-4"
-      style="mask-image: linear-gradient(black 85%, transparent 100%)"
+      [class]="
+        embedded()
+          ? 'grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)]'
+          : 'grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(24rem,34rem)_minmax(0,1fr)]'
+      "
     >
-      <div class="w-full py-4 flex justify-between items-center">
-        <div>
-          <div class="text-2xl font-semibold">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
+      <section class="min-h-0 overflow-hidden rounded-3xl bg-components-panel-bg">
+        <div class="flex h-full min-h-0 flex-1 flex-col">
+          <div class="flex flex-col gap-3 px-4 py-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-text-primary">
+                  {{ 'PAC.Chat.TaskQueue' | translate: { Default: 'Task queue' } }}
+                </div>
+              </div>
+              <z-badge zType="outline" zShape="pill" class="shrink-0">
+                {{ totalTaskCount() }}
+              </z-badge>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
+                <div class="text-lg font-semibold text-text-primary">{{ scheduledTaskCount() }}</div>
+                <div class="truncate text-xs text-text-tertiary">
+                  {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+                </div>
+              </div>
+              <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
+                <div class="text-lg font-semibold text-text-primary">{{ pausedTaskCount() }}</div>
+                <div class="truncate text-xs text-text-tertiary">
+                  {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+                </div>
+              </div>
+              <div class="rounded-2xl bg-background-default-subtle px-3 py-2">
+                <div class="text-lg font-semibold text-text-primary">{{ archivedTaskCount() }}</div>
+                <div class="truncate text-xs text-text-tertiary">
+                  {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-auto p-3">
+            @if (!tasksLoaded()) {
+              <div class="flex min-h-[18rem] items-center justify-center">
+                <ngm-spin class="h-8 w-8" />
+              </div>
+            } @else if (totalTaskCount()) {
+              <div class="flex flex-col gap-3">
+                <ng-container
+                  *ngTemplateOutlet="
+                    taskGroupTempl;
+                    context: {
+                      title: 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' },
+                      icon: 'ri-calendar-check-line',
+                      tasks: scheduledTasks() ?? [],
+                      empty: 'PAC.Chat.NoScheduledTasks' | translate: { Default: 'No scheduled tasks.' }
+                    }
+                  "
+                ></ng-container>
+
+                <ng-container
+                  *ngTemplateOutlet="
+                    taskGroupTempl;
+                    context: {
+                      title: 'PAC.Xpert.Paused' | translate: { Default: 'Paused' },
+                      icon: 'ri-pause-circle-line',
+                      tasks: pausedTasks() ?? [],
+                      empty: 'PAC.Chat.NoPausedTasks' | translate: { Default: 'No paused tasks.' }
+                    }
+                  "
+                ></ng-container>
+
+                <ng-container
+                  *ngTemplateOutlet="
+                    taskGroupTempl;
+                    context: {
+                      title: 'PAC.Xpert.Archived' | translate: { Default: 'Archived' },
+                      icon: 'ri-archive-line',
+                      tasks: archivedTasks() ?? [],
+                      empty: 'PAC.Chat.NoArchivedTasks' | translate: { Default: 'No archived tasks.' }
+                    }
+                  "
+                ></ng-container>
+              </div>
+            } @else {
+              <z-empty
+                class="min-h-[18rem] rounded-2xl bg-background-default-subtle"
+                zIcon="calendar"
+                [zTitle]="'PAC.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' }"
+              ></z-empty>
+            }
+          </div>
         </div>
-
-        <button type="button" class="btn btn-primary btn-large p-5" (click)="newTask()">
-          <i class="ri-add-line text-lg mr-2"></i>
-          {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
-        </button>
-      </div>
-
-      <div class="w-full">
-        <ng-container *ngTemplateOutlet="taskSectionsTempl; context: { embeddedView: false }"></ng-container>
-      </div>
-    </div>
-
-    <div
-      class="relative h-full flex-shrink-0 max-w-[40%] xl:max-w-none transition-all duration-300 ease-in-out"
-      [style]="openedTask() ? { width: '550px' } : { width: '0px' }"
-    >
-      <div
-        class="absolute start-0 top-0 bottom-0 w-2 cursor-col-resize border-l border-input-border hover:bg-hover-bg z-50"
-      ></div>
+      </section>
 
       @if (openedTask(); as task) {
-        <ng-container
-          *ngTemplateOutlet="taskDetailTempl; context: { task: task, embeddedView: false }"
-        ></ng-container>
+        <ng-container *ngTemplateOutlet="taskDetailTempl; context: { task: task }"></ng-container>
+      } @else if (!embedded() || totalTaskCount()) {
+        <section class="min-h-0 overflow-hidden rounded-3xl bg-components-panel-bg">
+          <div class="flex h-full min-h-[18rem] items-center justify-center p-4">
+            <z-empty
+              zIcon="calendar"
+              [zTitle]="'PAC.Chat.SelectTaskTitle' | translate: { Default: 'Select a task' }"
+            ></z-empty>
+          </div>
+        </section>
       }
     </div>
   </div>
-}
 
-@if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
-}
-
-<ng-template #taskSectionsTempl let-embeddedView="embeddedView">
-  @if (embeddedView && !tasks()?.length) {
-    <div
-      class="flex min-h-[14rem] items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center text-text-secondary"
-    >
-      {{ 'PAC.Chat.NoTasksAvailable' | translate: { Default: 'No tasks available' } }}
-    </div>
-  } @else {
-    <div class="w-full">
-      <div class="w-full mt-8 first:mt-0 pb-2 border-b border-solid border-divider-regular">
-        {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
-      </div>
-      @for (task of scheduledTasks(); track task.id) {
-        <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
-      }
-
-      <div class="w-full mt-8 pb-2 border-b border-solid border-divider-regular">
-        {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
-      </div>
-      @for (task of pausedTasks(); track task.id) {
-        <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
-      }
-
-      <div class="w-full mt-8 pb-2 border-b border-solid border-divider-regular">
-        {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
-      </div>
-      @for (task of archivedTasks(); track task.id) {
-        <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
-      }
+  @if (loading()) {
+    <div class="absolute inset-0 z-20 flex items-center justify-center bg-background-default/60 backdrop-blur-sm">
+      <ngm-spin class="h-8 w-8" />
     </div>
   }
+</div>
+
+<ng-template #taskGroupTempl let-title="title" let-icon="icon" let-tasks="tasks" let-empty="empty">
+  <section class="rounded-3xl bg-background-default p-3">
+    <div class="mb-3 flex items-center justify-between gap-3 px-1">
+      <div class="flex min-w-0 items-center gap-2">
+        <span
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
+        >
+          <i [class]="icon + ' text-base'"></i>
+        </span>
+        <div class="min-w-0">
+          <div class="truncate text-sm font-semibold text-text-primary">{{ title }}</div>
+        </div>
+      </div>
+      <z-badge zType="secondary" zShape="pill" class="shrink-0">{{ tasks.length }}</z-badge>
+    </div>
+
+    @if (tasks.length) {
+      <div class="flex flex-col gap-2">
+        @for (task of tasks; track task.id) {
+          <button
+            type="button"
+            class="group w-full rounded-2xl border px-3 py-3 text-left shadow-sm transition"
+            [class]="
+              taskId() === task.id
+                ? 'border-divider-regular bg-hover-bg shadow-md'
+                : 'border-divider-subtle bg-components-card-bg hover:border-divider-regular hover:bg-hover-bg hover:shadow-sm'
+            "
+            (click)="openTask(task)"
+          >
+            <div class="flex items-start gap-3">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-background-default-subtle">
+                <ng-container *ngTemplateOutlet="statusIconTempl; context: { status: task.status }"></ng-container>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-sm font-semibold text-text-primary">
+                      {{ task.name || ('PAC.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+                    </div>
+                    <div class="mt-1 truncate text-xs font-mono text-text-secondary">
+                      {{
+                        task.scheduleDescription ||
+                          task.schedule ||
+                          ('PAC.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
+                      }}
+                    </div>
+                  </div>
+                  <ng-container *ngTemplateOutlet="statusBadgeTempl; context: { status: task.status }"></ng-container>
+                </div>
+
+                @if (task.prompt) {
+                  <p class="mt-2 line-clamp-2 text-xs leading-5 text-text-tertiary" [title]="task.prompt">
+                    {{ task.prompt }}
+                  </p>
+                }
+
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  @if (task.xpert) {
+                    <div class="flex min-w-0 items-center gap-2 rounded-xl bg-background-default-subtle px-2 py-1">
+                      <emoji-avatar
+                        [avatar]="task.xpert.avatar"
+                        xs
+                        class="shrink-0 overflow-hidden rounded-lg shadow-sm"
+                        [zTooltip]="task.xpert.title || task.xpert.name"
+                        zPosition="top"
+                      />
+                      <span class="max-w-36 truncate text-xs text-text-secondary">
+                        {{ task.xpert.title || task.xpert.name }}
+                      </span>
+                    </div>
+                  }
+
+                  <z-badge
+                    zType="secondary"
+                    class="gap-1 text-[11px]"
+                    [zTooltip]="
+                      'PAC.Chat.TaskSuccessCount' | translate: { Default: 'Number of successful task executions' }
+                    "
+                    zPosition="top"
+                  >
+                    <i class="ri-checkbox-circle-line"></i>
+                    {{ task.successCount ?? 0 }}
+                  </z-badge>
+                  @if (task.errorCount) {
+                    <z-badge
+                      zType="destructive"
+                      class="gap-1 text-[11px]"
+                      [zTooltip]="
+                        'PAC.Chat.TaskFailureCount' | translate: { Default: 'Number of task execution failures' }
+                      "
+                      zPosition="top"
+                    >
+                      <i class="ri-error-warning-line"></i>
+                      {{ task.errorCount }}
+                    </z-badge>
+                  }
+                </div>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="rounded-2xl bg-background-default-subtle px-4 py-6 text-center text-sm text-text-tertiary">
+        {{ empty }}
+      </div>
+    }
+  </section>
 </ng-template>
 
-<ng-template #taskDetailTempl let-task="task" let-embeddedView="embeddedView">
-  <div class="h-full p-0">
-    <div
-      class="overflow-hidden w-full p-4 flex flex-col gap-4"
-      [class.max-h-[100vh]]="!embeddedView"
-      [class.h-full]="!embeddedView"
-    >
-      <div class="flex items-center justify-between mb-2 h-full">
-        <h1 class="text-xl font-semibold">
-          {{ task.name }}
-        </h1>
-        <div class="flex gap-1 items-center">
+<ng-template #taskDetailTempl let-task="task">
+  <section class="min-h-0 overflow-hidden rounded-3xl bg-components-panel-bg">
+    <div class="flex h-full min-h-0 flex-col">
+      <div class="flex shrink-0 items-start justify-between gap-3 px-4 py-4">
+        <div class="flex min-w-0 items-start gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background-default-subtle">
+            <ng-container *ngTemplateOutlet="statusIconTempl; context: { status: task.status }"></ng-container>
+          </div>
+          <div class="min-w-0">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 class="truncate text-lg font-semibold text-text-primary">
+                {{ task.name || ('PAC.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+              </h2>
+              <ng-container *ngTemplateOutlet="statusBadgeTempl; context: { status: task.status }"></ng-container>
+            </div>
+            <div class="mt-1 truncate text-xs font-mono text-text-tertiary">
+              {{ task.updatedAt || task.createdAt | relative }}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-1">
           @if (task.status !== eXpertTaskStatus.ARCHIVED) {
             <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-secondary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl hover:text-text-primary"
+              z-button
               type="button"
-              aria-label="Archive"
+              zType="ghost"
+              zSize="icon"
+              class="rounded-xl text-text-secondary hover:text-text-primary"
               [zTooltip]="'PAC.Xpert.Archive' | translate: { Default: 'Archive' }"
               zPosition="top"
               (click)="archiveTask(task)"
@@ -120,196 +299,233 @@
             </button>
           }
           <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl"
+            z-button
             type="button"
-            aria-label="close task results"
+            zType="ghost"
+            zSize="icon"
+            class="rounded-xl text-text-secondary hover:text-text-primary"
+            [attr.aria-label]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
             (click)="taskId.set(null)"
           >
-            <i class="ri-close-large-line"></i>
+            <i class="ri-close-line text-lg"></i>
           </button>
         </div>
       </div>
-      <div class="flex gap-4">
-        <div class="grow flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1">
-          <h1 class="font-medium text-text-secondary flex items-center gap-1">
-            {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
-          </h1>
-          <h1 class="text-sm text-text-primary flex items-center gap-1">
-            <i class="ri-repeat-2-line"></i>
-            <p class="flex items-center gap-1 text-sm font-mono">{{ task.scheduleDescription }}</p>
-          </h1>
-        </div>
-      </div>
 
-      <div class="w-full flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1 shrink-0">
-        @if (task.xpert) {
-          <xpert-inline-profile [xpert]="task.xpert" />
-        }
-      </div>
-
-      <div
-        class="w-full flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1 shrink-0 overflow-auto"
-        [class.h-full]="!embeddedView"
-        [class.max-h-[20vh]]="!embeddedView"
-        [class.max-h-[16rem]]="embeddedView"
-      >
-        <h1 class="font-medium text-text-secondary">
-          {{ 'PAC.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
-        </h1>
-        <p
-          class="flex items-center gap-1 text-sm font-body whitespace-normal break-all text-text-secondary line-clamp-3"
-          [title]="task.prompt"
-        >
-          {{ task.prompt }}
-        </p>
-      </div>
-      @if (task.status !== eXpertTaskStatus.ARCHIVED) {
-        <div class="w-full flex flex-row gap-2 justify-between">
-          <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
-            type="button"
-            (click)="editTask(task)"
-          >
-            <i class="ri-pencil-line"></i>
-            <p>{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</p>
-          </button>
-          @if (task.status === eXpertTaskStatus.SCHEDULED) {
-            <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
-              type="button"
-              (click)="pauseTask(task)"
-            >
-              <i class="ri-pause-circle-line"></i>
-              <p>{{ 'PAC.ACTIONS.Pause' | translate: { Default: 'Pause' } }}</p>
-            </button>
-          } @else {
-            <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
-              type="button"
-              (click)="scheduleTask(task)"
-            >
-              <i class="ri-calendar-check-line"></i>
-              <p>{{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}</p>
-            </button>
-          }
-          <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent h-10 rounded-xl w-full"
-            type="button"
-            (click)="runTask(task)"
-          >
-            <i class="ri-play-circle-line"></i>
-            <p>{{ 'PAC.ACTIONS.Test' | translate: { Default: 'Test' } }}</p>
-          </button>
-        </div>
-      }
-      <div class="flex justify-between w-full items-center pt-4 px-1.5">
-        <div class="flex items-center gap-1.5 h-8">
-          <h1 class="text-lg font-semibold">{{ 'PAC.Xpert.History' | translate: { Default: 'History' } }}</h1>
-        </div>
-        <div class="flex items-center gap-2">
-          @if (historyConversations(); as conversations) {
-            <p class="text-sm text-text-secondary">
-              {{ conversations.length }} {{ 'PAC.Xpert.Record' | translate: { Default: 'record' } }}
-            </p>
-          }
-        </div>
-      </div>
-
-      <div
-        class="w-full flex flex-col pb-4 relative no-scrollbar overflow-auto"
-        [class.h-full]="!embeddedView"
-        [style.maskImage]="embeddedView ? null : 'linear-gradient(black 85%, transparent 100%)'"
-      >
-        <div class="relative no-scrollbar" style="opacity: 1; transform: none">
-          @for (history of historyConversations(); track history.id) {
-            <button
-              class="items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 px-3.5 text-sm w-full flex justify-between rounded-2xl relative py-8"
-              type="button"
-              [routerLink]="['/chat', 'c', history.id]"
-            >
-              <div class="flex gap-3">
-                <div class="w-[30px] h-[30px] m-0 p-0">
-                  @if (history.status === 'busy') {
-                    <ngm-spin class="w-[30px] h-[30px] bg-components-card-bg rounded-full" />
-                  } @else {
-                    <div
-                      class="relative flex w-[30px] h-[30px] bg-components-card-bg rounded-full pl-[1px] m-0 items-center justify-center border-border-l1 border"
-                    >
-                      <i class="ri-chat-3-line"></i>
-                    </div>
-                  }
-                </div>
-                <div class="flex flex-col w-full items-start text-wrap text-start">
-                  @if (history.status === 'error') {
-                    <p class="text-sm text-text-destructive">{{ history.error }}</p>
-                  } @else {
-                    <p class="text-sm text-text-primary font-medium">{{ history.title }}</p>
-                  }
-                  <p class="text-xs text-text-secondary font-mono">{{ history.createdAt | relative }}</p>
-                </div>
+      <div class="min-h-0 flex-1 overflow-auto p-4">
+        <div class="grid gap-4">
+          <section class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl bg-background-default px-4 py-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                <i class="ri-calendar-schedule-line text-text-secondary"></i>
+                {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
               </div>
-            </button>
-          } @empty {
-            <div class="items-center flex justify-center self-stretch">
-              <div style="opacity: 1">
-                <h1 class="text-text-secondary font-semibold text-lg">
-                  {{ 'PAC.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' } }}
-                </h1>
+              <div class="mt-2 text-sm font-mono leading-6 text-text-secondary">
+                {{
+                  task.scheduleDescription ||
+                    task.schedule ||
+                    ('PAC.Chat.SchedulePlaceholder' | translate: { Default: 'Schedule details coming soon' })
+                }}
               </div>
             </div>
+
+            <div class="rounded-2xl bg-background-default px-4 py-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                <i class="ri-bar-chart-box-line text-text-secondary"></i>
+                {{ 'PAC.Chat.RunStats' | translate: { Default: 'Run stats' } }}
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <z-badge zType="secondary" class="gap-1">
+                  <i class="ri-checkbox-circle-line"></i>
+                  {{ task.successCount ?? 0 }}
+                  {{ 'PAC.Chat.Successful' | translate: { Default: 'successful' } }}
+                </z-badge>
+                <z-badge [zType]="task.errorCount ? 'destructive' : 'outline'" class="gap-1">
+                  <i class="ri-error-warning-line"></i>
+                  {{ task.errorCount ?? 0 }}
+                  {{ 'PAC.Chat.Failed' | translate: { Default: 'failed' } }}
+                </z-badge>
+              </div>
+            </div>
+          </section>
+
+          @if (task.xpert) {
+            <section class="rounded-2xl bg-background-default p-3">
+              <div class="mb-3 text-sm font-semibold text-text-primary">
+                {{ 'PAC.Xpert.Xpert' | translate: { Default: 'Xpert' } }}
+              </div>
+              <xpert-inline-profile [xpert]="task.xpert" />
+            </section>
           }
 
-          @if (taskDetailLoading()) {
-            <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+          <section class="rounded-2xl bg-background-default px-4 py-3">
+            <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
+              <i class="ri-file-list-3-line text-text-secondary"></i>
+              {{ 'PAC.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
+            </div>
+            <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-text-secondary" [title]="task.prompt">
+              {{ task.prompt || ('PAC.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
+            </p>
+          </section>
+
+          @if (task.status !== eXpertTaskStatus.ARCHIVED) {
+            <section class="grid gap-2 md:grid-cols-3">
+              <button
+                z-button
+                type="button"
+                zType="secondary"
+                class="justify-center rounded-2xl"
+                (click)="editTask(task)"
+              >
+                <i class="ri-pencil-line"></i>
+                {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+              </button>
+              @if (task.status === eXpertTaskStatus.SCHEDULED) {
+                <button
+                  z-button
+                  type="button"
+                  zType="secondary"
+                  class="justify-center rounded-2xl"
+                  (click)="pauseTask(task)"
+                >
+                  <i class="ri-pause-circle-line"></i>
+                  {{ 'PAC.ACTIONS.Pause' | translate: { Default: 'Pause' } }}
+                </button>
+              } @else {
+                <button
+                  z-button
+                  type="button"
+                  zType="secondary"
+                  class="justify-center rounded-2xl"
+                  (click)="scheduleTask(task)"
+                >
+                  <i class="ri-calendar-check-line"></i>
+                  {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
+                </button>
+              }
+              <button
+                z-button
+                type="button"
+                zType="secondary"
+                class="justify-center rounded-2xl"
+                (click)="runTask(task)"
+              >
+                <i class="ri-play-circle-line"></i>
+                {{ 'PAC.ACTIONS.Test' | translate: { Default: 'Test' } }}
+              </button>
+            </section>
           }
+
+          <section class="overflow-hidden rounded-2xl bg-background-default">
+            <div class="flex items-center justify-between gap-3 px-4 py-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                <i class="ri-history-line text-text-secondary"></i>
+                {{ 'PAC.Xpert.History' | translate: { Default: 'History' } }}
+              </div>
+              <z-badge zType="secondary" zShape="pill">
+                {{ historyConversations().length }}
+                {{ 'PAC.Xpert.Records' | translate: { Default: 'records' } }}
+              </z-badge>
+            </div>
+
+            <div class="relative min-h-[10rem]">
+              @if (historyConversations().length) {
+                <div class="divide-y divide-divider-regular">
+                  @for (history of historyConversations(); track history.id) {
+                    <button
+                      type="button"
+                      class="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-hover-bg"
+                      (click)="openHistoryConversation(history)"
+                    >
+                      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-components-card-bg">
+                        @if (history.status === 'busy') {
+                          <ngm-spin class="h-5 w-5" />
+                        } @else {
+                          <i class="ri-chat-3-line text-text-secondary"></i>
+                        }
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        @if (history.status === 'error') {
+                          <div class="line-clamp-2 text-sm text-text-destructive" [title]="history.error || ''">
+                            {{ history.error }}
+                          </div>
+                        } @else {
+                          <div class="truncate text-sm font-medium text-text-primary">
+                            {{
+                              history.title ||
+                                history.options?.parameters?.input ||
+                                ('PAC.Chat.UntitledConversation' | translate: { Default: 'Untitled conversation' })
+                            }}
+                          </div>
+                        }
+                        <div class="mt-1 text-xs font-mono text-text-tertiary">
+                          {{ history.createdAt | relative }}
+                        </div>
+                      </div>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <z-empty
+                  class="min-h-[10rem]"
+                  zIcon="message-circle-more"
+                  [zTitle]="'PAC.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' }"
+                ></z-empty>
+              }
+
+              @if (taskDetailLoading()) {
+                <div
+                  class="absolute inset-0 flex items-center justify-center bg-background-default/60 backdrop-blur-sm"
+                >
+                  <ngm-spin class="h-7 w-7" />
+                </div>
+              }
+            </div>
+          </section>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </ng-template>
 
-<ng-template #taskTempl let-task="task">
-  <div class="task flex border-b border-solid border-divider-deep">
-    <div
-      class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-3xl text-sm hover:bg-hover-bg"
-      [class.bg-components-card-bg]="taskId() === task.id"
-      [class.deleted]="!!task.deletedAt"
-      (click)="openTask(task)"
-    >
-      <div class="flex-1 flex justify-start items-center gap-1 overflow-hidden">
-        <emoji-avatar
-          [avatar]="task.xpert?.avatar"
-          xs
-          class="overflow-hidden rounded-lg shadow-sm"
-          [zTooltip]="task.xpert?.title || task.xpert?.name"
-          zPosition="top"
-        />
-        @if (task.status === eXpertTaskStatus.PAUSED) {
-          <i class="ri-pause-circle-fill text-xl text-text-secondary"></i>
-        } @else if (task.status === eXpertTaskStatus.SCHEDULED) {
-          <i class="ri-calendar-schedule-line mr-2 text-xl text-text-secondary"></i>
-        }
-        <div class="font-medium truncate">{{ task.name }}</div>
+<ng-template #statusIconTempl let-status="status">
+  @switch (status) {
+    @case (eXpertTaskStatus.SCHEDULED) {
+      <i class="ri-calendar-check-line text-lg text-text-success"></i>
+    }
+    @case (eXpertTaskStatus.PAUSED) {
+      <i class="ri-pause-circle-line text-lg text-text-secondary"></i>
+    }
+    @case (eXpertTaskStatus.ARCHIVED) {
+      <i class="ri-archive-line text-lg text-text-tertiary"></i>
+    }
+    @default {
+      <i class="ri-calendar-line text-lg text-text-secondary"></i>
+    }
+  }
+</ng-template>
 
-        <span
-          class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300"
-          [zTooltip]="'PAC.Chat.TaskSuccessCount' | translate: { Default: 'Number of successful task executions' }"
-          zPosition="top"
-        >
-          {{ task.successCount }}
-        </span>
-        @if (task.errorCount) {
-          <span
-            class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"
-            [zTooltip]="'PAC.Chat.TaskFailureCount' | translate: { Default: 'Number of task execution failures' }"
-            zPosition="top"
-          >
-            {{ task.errorCount }}
-          </span>
-        }
-      </div>
-
-      <div class="text-text-secondary truncate">{{ task.scheduleDescription }}</div>
-    </div>
-  </div>
+<ng-template #statusBadgeTempl let-status="status">
+  @switch (status) {
+    @case (eXpertTaskStatus.SCHEDULED) {
+      <z-badge zType="default" zShape="pill" class="shrink-0">
+        {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+      </z-badge>
+    }
+    @case (eXpertTaskStatus.PAUSED) {
+      <z-badge zType="secondary" zShape="pill" class="shrink-0">
+        {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
+      </z-badge>
+    }
+    @case (eXpertTaskStatus.ARCHIVED) {
+      <z-badge zType="outline" zShape="pill" class="shrink-0">
+        {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
+      </z-badge>
+    }
+    @default {
+      <z-badge zType="outline" zShape="pill" class="shrink-0">
+        {{ 'PAC.Chat.UnknownStatus' | translate: { Default: 'Unknown' } }}
+      </z-badge>
+    }
+  }
 </ng-template>

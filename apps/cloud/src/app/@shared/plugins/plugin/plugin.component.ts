@@ -2,17 +2,19 @@ import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { PluginLevel } from '@xpert-ai/contracts'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 export type TPlugin = {
   name: string
-  displayName: I18nObject
-  description: I18nObject
+  displayName: I18nObject | string
+  description: I18nObject | string
   version: string
+  level?: PluginLevel
   deprecated?: boolean
-  deprecationMessage?: I18nObject
+  deprecationMessage?: I18nObject | string
   category: string
   icon: IconDefinition
   author: {

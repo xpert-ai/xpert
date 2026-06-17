@@ -147,6 +147,19 @@ describe('RemoteComponentRendererComponent', () => {
     expect(frame.hasAttribute('srcdoc')).toBe(false)
   })
 
+  it('allows same-origin access inside sandboxed remote component iframes', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    expect(frame.getAttribute('sandbox')?.split(/\s+/).sort()).toEqual(
+      ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-same-origin', 'allow-scripts'].sort()
+    )
+  })
+
   it('passes the current host theme to the iframe init message', async () => {
     document.documentElement.dataset.theme = 'dark'
 

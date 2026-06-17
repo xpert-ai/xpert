@@ -84,8 +84,10 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 		}
 		
 		const featureOrganizations: IFeatureOrganization[] = [];
-		const { items } = await this._featureService.findAll();
-		const features: IFeature[] = items;
+		const { items } = await this._featureService.findAll({
+			relations: ['children']
+		});
+		const features: IFeature[] = items.filter((feature) => !feature.children?.length);
 		
 		for await (const feature of features) {
 			for await (const tenant of tenants) {

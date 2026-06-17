@@ -80,6 +80,11 @@ export class XpertTaskController extends CrudController<XpertTask> {
         })
     }
 
+    @Get('schedule/capabilities/:xpertId')
+    async getScheduleCapabilities(@Param('xpertId') xpertId: string, @Query('agentKey') agentKey?: string) {
+        return this.service.getScheduleCapabilities(xpertId, agentKey)
+    }
+
     @Get('templates')
     async listXpertTaskTemplates(@Query('source') source?: string) {
         return this.service.listXpertTaskTemplates(source)

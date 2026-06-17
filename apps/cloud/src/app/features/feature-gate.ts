@@ -3,7 +3,7 @@ import { Router } from '@angular/router'
 import { CurrentUserHydrationService } from '@xpert-ai/cloud/state'
 import { from, of, race, timer } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
-import { AiFeatureEnum, Store } from '../@core'
+import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum, Store } from '../@core'
 
 const FEATURE_HYDRATION_TIMEOUT_MS = 3000
 
@@ -21,7 +21,7 @@ export function hydrateFeatureContext(options: { skipSessionCache?: boolean } = 
 }
 
 export function featureGate(
-  featureKeys: AiFeatureEnum[],
+  featureKeys: Array<AiFeatureEnum | AnalyticsFeatures | FeatureEnum>,
   redirectCommands: Parameters<Router['createUrlTree']>[0] = ['/chat']
 ) {
   return () => {

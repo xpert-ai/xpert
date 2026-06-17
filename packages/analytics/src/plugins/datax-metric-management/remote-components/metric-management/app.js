@@ -2,134 +2,196 @@
 	const CHANNEL = 'xpertai.remote_component'
 	const VERSION = 1
 	const h = React.createElement
-	const NO_WRAP_STYLE = { whiteSpace: 'nowrap' }
-	const ACTIONS_NO_WRAP_STYLE = { whiteSpace: 'nowrap', flexWrap: 'nowrap' }
 	const VIEWPORT_BOUND_FILL_HEIGHT = 100000
+	const APPROVALS_VIEW_KEY = 'datax_metric_management__approvals'
 	let instanceId = null
 	let requestSequence = 0
 	const pending = new Map()
+	const NO_WRAP = { whiteSpace: 'nowrap' }
 	const I18N = {
 		zh_Hans: {
-			remoteRequestFailed: '远程请求失败',
 			actionCompleted: '操作已完成',
 			actionFailed: '操作失败',
-			requiredFields: '编码和名称为必填项。',
-			selectProject: '选择项目',
-			allModels: '全部模型',
+			addFilter: '添加过滤',
 			allBusinessAreas: '全部业务域',
+			allCertifications: '全部认证',
+			allModels: '全部模型',
 			allStatuses: '全部状态',
+			allTags: '全部标签',
 			allTypes: '全部类型',
-			searchPlaceholder: '搜索指标编码、名称或业务口径',
-			search: '搜索',
-			createMetric: '新建指标',
-			editMetric: '编辑指标',
-			projectRequired: '请选择项目后维护指标。',
-			loadingMetrics: '正在加载指标...',
-			emptyMetrics: '暂无指标。',
-			code: '编码',
-			name: '名称',
-			type: '类型',
-			status: '状态',
-			model: '模型',
+			appAvailable: '应用可用',
+			approvalPolicy: '审批策略',
+			approve: '通过',
+			approving: '处理中',
+			bulkDelete: '删除选中',
+			business: '业务口径',
 			businessArea: '业务域',
-			embeddingStatus: '向量状态',
-			updatedAt: '更新时间',
-			actions: '操作',
-			edit: '编辑',
-			publish: '发布',
-			publishing: '发布中',
-			embedding: '向量化',
-			embeddingBusy: '处理中',
+			calendar: '日历',
+			cancel: '取消',
+			certification: '认证',
+			close: '关闭',
+			code: '编码',
+			confirmBulkDelete: '确认删除选中的指标？',
+			confirmDelete: '确认删除该指标？',
+			confirmEmbedAll: '确认启动当前项目全部 released + visible 指标向量化？',
+			confirmRefuse: '确认拒绝该审批？',
+			createMetric: '新建指标',
+			createdAt: '创建时间',
+			createdBy: '发起人',
 			delete: '删除',
 			deleting: '删除中',
-			confirmDelete: '确认删除该指标？',
-			totalRows: '共 {total} 条',
-			page: '第 {page} 页',
-			previousPage: '上一页',
-			nextPage: '下一页',
-			refresh: '刷新',
-			close: '关闭',
-			noModel: '不指定模型',
-			cube: '立方体',
-			entity: '实体',
-			description: '描述',
-			calendar: '日历',
-			measure: '度量',
-			formula: '公式',
-			filters: '过滤条件',
-			addFilter: '添加过滤',
-			remove: '移除',
 			dimension: '维度',
+			dimensions: '自由维度',
+			downloadResult: '下载结果',
+			duplicate: '复制',
+			duplicating: '复制中',
+			edit: '编辑',
+			editMetric: '编辑指标',
+			embedAll: '全量向量化',
+			embedding: '向量化',
+			embeddingBusy: '处理中',
+			embeddingStatus: '向量状态',
+			entity: '实体',
+			error: '错误',
+			export: '导出',
+			exporting: '导出中',
+			falseValue: '否',
+			filters: '过滤条件',
+			formula: '公式',
 			hierarchy: '层级',
+			importFile: '导入 YAML',
+			importing: '导入中',
+			initializing: '正在初始化指标管理插件...',
+			measure: '度量',
 			member: '成员',
-			unit: '单位',
-			business: '业务口径',
-			visible: '可见',
-			cancel: '取消',
+			model: '模型',
+			name: '名称',
+			nextPage: '下一页',
+			noModel: '不指定模型',
+			page: '第 {page} 页',
+			permissionType: '权限类型',
+			previousPage: '上一页',
+			principal: '负责人',
+			projectRequired: '请选择项目。',
+			publish: '发布',
+			publishedAt: '发布时间',
+			publishing: '发布中',
+			refresh: '刷新',
+			refreshEmbedding: '刷新向量状态',
+			refuse: '拒绝',
+			refusing: '处理中',
+			remove: '移除',
+			requiredFields: '编码和名称为必填项。',
 			save: '保存',
 			saving: '保存中',
-			initializing: '正在初始化指标管理插件...'
+			search: '搜索',
+			searchApprovals: '搜索审批、指标或发起人',
+			searchMetrics: '搜索指标编码、名称或业务口径',
+			selectProject: '选择项目',
+			selectedRows: '已选 {count} 条',
+			sqlAggregator: 'SQL 聚合器',
+			status: '状态',
+			tag: '标签',
+			tags: '标签',
+			totalRows: '共 {total} 条',
+			trueValue: '是',
+			type: '类型',
+			unit: '单位',
+			updatedAt: '更新时间',
+			validity: '有效期',
+			visible: '可见'
 		},
 		en_US: {
-			remoteRequestFailed: 'Remote request failed',
 			actionCompleted: 'Action completed',
 			actionFailed: 'Action failed',
-			requiredFields: 'Code and name are required.',
-			selectProject: 'Select project',
-			allModels: 'All models',
+			addFilter: 'Add filter',
 			allBusinessAreas: 'All business areas',
+			allCertifications: 'All certifications',
+			allModels: 'All models',
 			allStatuses: 'All statuses',
+			allTags: 'All tags',
 			allTypes: 'All types',
-			searchPlaceholder: 'Search metric code, name, or business definition',
-			search: 'Search',
-			createMetric: 'Create metric',
-			editMetric: 'Edit metric',
-			projectRequired: 'Select a project to maintain metrics.',
-			loadingMetrics: 'Loading metrics...',
-			emptyMetrics: 'No metrics.',
-			code: 'Code',
-			name: 'Name',
-			type: 'Type',
-			status: 'Status',
-			model: 'Model',
+			appAvailable: 'App available',
+			approvalPolicy: 'Approval policy',
+			approve: 'Approve',
+			approving: 'Working',
+			bulkDelete: 'Delete selected',
+			business: 'Business definition',
 			businessArea: 'Business area',
-			embeddingStatus: 'Embedding',
-			updatedAt: 'Updated at',
-			actions: 'Actions',
-			edit: 'Edit',
-			publish: 'Publish',
-			publishing: 'Publishing',
-			embedding: 'Embed',
-			embeddingBusy: 'Processing',
+			calendar: 'Calendar',
+			cancel: 'Cancel',
+			certification: 'Certification',
+			close: 'Close',
+			code: 'Code',
+			confirmBulkDelete: 'Delete selected metrics?',
+			confirmDelete: 'Delete this metric?',
+			confirmEmbedAll: 'Start embedding all released and visible metrics in this project?',
+			confirmRefuse: 'Refuse this approval?',
+			createMetric: 'Create metric',
+			createdAt: 'Created at',
+			createdBy: 'Created by',
 			delete: 'Delete',
 			deleting: 'Deleting',
-			confirmDelete: 'Delete this metric?',
-			totalRows: '{total} total',
-			page: 'Page {page}',
-			previousPage: 'Previous',
-			nextPage: 'Next',
-			refresh: 'Refresh',
-			close: 'Close',
-			noModel: 'No model',
-			cube: 'Cube',
-			entity: 'Entity',
-			description: 'Description',
-			calendar: 'Calendar',
-			measure: 'Measure',
-			formula: 'Formula',
-			filters: 'Filters',
-			addFilter: 'Add filter',
-			remove: 'Remove',
 			dimension: 'Dimension',
+			dimensions: 'Free dimensions',
+			downloadResult: 'Download result',
+			duplicate: 'Duplicate',
+			duplicating: 'Duplicating',
+			edit: 'Edit',
+			editMetric: 'Edit metric',
+			embedAll: 'Embed project',
+			embedding: 'Embed',
+			embeddingBusy: 'Processing',
+			embeddingStatus: 'Embedding',
+			entity: 'Entity',
+			error: 'Error',
+			export: 'Export',
+			exporting: 'Exporting',
+			falseValue: 'No',
+			filters: 'Filters',
+			formula: 'Formula',
 			hierarchy: 'Hierarchy',
+			importFile: 'Import YAML',
+			importing: 'Importing',
+			initializing: 'Initializing metric management plugin...',
+			measure: 'Measure',
 			member: 'Member',
-			unit: 'Unit',
-			business: 'Business definition',
-			visible: 'Visible',
-			cancel: 'Cancel',
+			model: 'Model',
+			name: 'Name',
+			nextPage: 'Next',
+			noModel: 'No model',
+			page: 'Page {page}',
+			permissionType: 'Permission type',
+			previousPage: 'Previous',
+			principal: 'Principal',
+			projectRequired: 'Select a project.',
+			publish: 'Publish',
+			publishedAt: 'Published at',
+			publishing: 'Publishing',
+			refresh: 'Refresh',
+			refreshEmbedding: 'Refresh embedding',
+			refuse: 'Refuse',
+			refusing: 'Working',
+			remove: 'Remove',
+			requiredFields: 'Code and name are required.',
 			save: 'Save',
 			saving: 'Saving',
-			initializing: 'Initializing metric management plugin...'
+			search: 'Search',
+			searchApprovals: 'Search approvals, metrics, or requesters',
+			searchMetrics: 'Search metric code, name, or business definition',
+			selectProject: 'Select project',
+			selectedRows: '{count} selected',
+			sqlAggregator: 'SQL aggregator',
+			status: 'Status',
+			tag: 'Tag',
+			tags: 'Tags',
+			totalRows: '{total} total',
+			trueValue: 'Yes',
+			type: 'Type',
+			unit: 'Unit',
+			updatedAt: 'Updated at',
+			validity: 'Validity',
+			visible: 'Visible'
 		}
 	}
 
@@ -148,7 +210,7 @@
 		return function translate(messageKey, values) {
 			let text = messages[messageKey] || I18N.en_US[messageKey] || messageKey
 			Object.keys(values || {}).forEach((name) => {
-				text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(values[name]))
+				text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), String(values[name]))
 			})
 			return text
 		}
@@ -163,7 +225,7 @@
 		return primary || secondary || fallback || ''
 	}
 
-	function post(type, body) {
+	function post(type, body, transfers) {
 		if (!instanceId && type !== 'ready') return
 		parent.postMessage(
 			Object.assign(
@@ -175,13 +237,14 @@
 				},
 				body || {}
 			),
-			'*'
+			'*',
+			transfers || []
 		)
 	}
 
-	function request(type, body) {
+	function request(type, body, transfers) {
 		const requestId = String(++requestSequence)
-		post(type, Object.assign({ requestId }, body || {}))
+		post(type, Object.assign({ requestId }, body || {}), transfers)
 		return new Promise((resolve, reject) => {
 			pending.set(requestId, { resolve, reject })
 		})
@@ -191,6 +254,16 @@
 		if (!value) return '-'
 		const date = new Date(value)
 		return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+	}
+
+	function formatBoolean(value, t) {
+		if (typeof value !== 'boolean') return '-'
+		return value ? t('trueValue') : t('falseValue')
+	}
+
+	function optionLabel(options, value) {
+		const option = options.find((item) => item.value === value)
+		return option ? option.label : value || ''
 	}
 
 	function reportResize() {
@@ -225,9 +298,7 @@
 		if (message.instanceId !== instanceId) return
 
 		if (message.type === 'hostEvent') {
-			if (window.__metricAppHandleHostEvent) {
-				window.__metricAppHandleHostEvent(message.event)
-			}
+			window.__metricAppHandleHostEvent && window.__metricAppHandleHostEvent(message.event)
 			return
 		}
 
@@ -235,7 +306,7 @@
 			const item = pending.get(message.requestId)
 			pending.delete(message.requestId)
 			if (message.type === 'error') {
-				item.reject(new Error(message.message || createTranslator()('remoteRequestFailed')))
+				item.reject(new Error(message.message || 'Remote request failed'))
 			} else {
 				item.resolve(message)
 			}
@@ -253,42 +324,18 @@
 		})
 	}
 
+	function getManifestKey(context) {
+		return (context && context.manifest && context.manifest.key) || ''
+	}
+
+	function isApprovalsView(context) {
+		const key = getManifestKey(context)
+		return key === APPROVALS_VIEW_KEY || key === 'approvals'
+	}
+
 	function getEventOutput(event) {
 		const data = (event && event.data) || {}
 		return isObject(data.output) ? data.output : data
-	}
-
-	function optionLabel(options, value) {
-		const option = options.find((item) => item.value === value)
-		return option ? option.label : value || ''
-	}
-
-	function buildFormState(row, query) {
-		const draft = isObject(row && row.draft) ? row.draft : {}
-		const options = isObject(draft.options) ? draft.options : isObject(row && row.options) ? row.options : {}
-		return {
-			code: draft.code || (row && row.code) || '',
-			name: draft.name || (row && row.name) || '',
-			type: draft.type || (row && row.type) || 'BASIC',
-			modelId: draft.modelId || (row && row.modelId) || query.parameters.modelId || '',
-			businessAreaId:
-				draft.businessAreaId || (row && row.businessAreaId) || query.parameters.businessAreaId || '',
-			cube: draft.cube || draft.entity || (row && (row.cube || row.entity)) || '',
-			entity: draft.entity || (row && row.entity) || '',
-			description: draft.description || draft.business || (row && (row.description || row.business)) || '',
-			business: draft.business || (row && row.business) || '',
-			calendar: draft.calendar || options.calendar || '',
-			measure: draft.measure || options.measure || '',
-			formula: draft.formula || options.formula || '',
-			filters: normalizeFilters(draft.filters || options.filters),
-			unit: draft.unit || (row && row.unit) || '',
-			visible:
-				typeof draft.visible === 'boolean'
-					? draft.visible
-					: row && typeof row.visible === 'boolean'
-						? row.visible
-						: true
-		}
 	}
 
 	function normalizeFilters(filters) {
@@ -308,23 +355,78 @@
 			.filter(Boolean)
 	}
 
-	function MetricApp() {
+	function buildFormState(row, query) {
+		const draft = isObject(row && row.draft) ? row.draft : {}
+		const options = isObject(draft.options) ? draft.options : isObject(row && row.options) ? row.options : {}
+		return {
+			code: draft.code || (row && row.code) || '',
+			name: draft.name || (row && row.name) || '',
+			type: draft.type || (row && row.type) || 'BASIC',
+			modelId: draft.modelId || (row && row.modelId) || query.parameters.modelId || '',
+			businessAreaId:
+				draft.businessAreaId || (row && row.businessAreaId) || query.parameters.businessAreaId || '',
+			certificationId:
+				draft.certificationId || (row && row.certificationId) || query.parameters.certificationId || '',
+			principal: draft.principal || (row && row.principal) || '',
+			validity: draft.validity || (row && row.validity) || '',
+			cube: draft.cube || draft.entity || (row && (row.cube || row.entity)) || '',
+			entity: draft.entity || (row && row.entity) || '',
+			description: draft.description || draft.business || (row && (row.description || row.business)) || '',
+			business: draft.business || (row && row.business) || '',
+			calendar: draft.calendar || options.calendar || '',
+			measure: draft.measure || options.measure || '',
+			formula: draft.formula || options.formula || '',
+			aggregator: draft.aggregator || options.aggregator || '',
+			dimensions: Array.isArray(draft.dimensions)
+				? draft.dimensions.join(', ')
+				: Array.isArray(options.dimensions)
+					? options.dimensions.join(', ')
+					: '',
+			filters: normalizeFilters(draft.filters || options.filters),
+			unit: draft.unit || (row && row.unit) || '',
+			tags: Array.isArray(row && row.tags)
+				? row.tags
+						.map((tag) => tag.name || tag.id)
+						.filter(Boolean)
+						.join(', ')
+				: '',
+			visible:
+				typeof draft.visible === 'boolean'
+					? draft.visible
+					: row && typeof row.visible === 'boolean'
+						? row.visible
+						: true,
+			isApplication:
+				typeof draft.isApplication === 'boolean'
+					? draft.isApplication
+					: row && typeof row.isApplication === 'boolean'
+						? row.isApplication
+						: false
+		}
+	}
+
+	function MetricManagementApp() {
 		const [context, setContext] = React.useState(null)
 		const [query, setQuery] = React.useState({ page: 1, pageSize: 20, parameters: {} })
 		const [data, setData] = React.useState({ items: [], total: 0 })
 		const [projects, setProjects] = React.useState([])
 		const [models, setModels] = React.useState([])
 		const [businessAreas, setBusinessAreas] = React.useState([])
+		const [certifications, setCertifications] = React.useState([])
+		const [tags, setTags] = React.useState([])
 		const [statuses, setStatuses] = React.useState([])
 		const [types, setTypes] = React.useState([])
+		const [selectedIds, setSelectedIds] = React.useState([])
 		const [searchInput, setSearchInput] = React.useState('')
 		const [loading, setLoading] = React.useState(false)
 		const [busy, setBusy] = React.useState('')
 		const [notice, setNotice] = React.useState(null)
 		const [modal, setModal] = React.useState(null)
 		const [form, setForm] = React.useState(buildFormState(null, query))
+		const fileInputRef = React.useRef(null)
 		const locale = (context && context.locale) || navigator.language
 		const t = React.useMemo(() => createTranslator(locale), [locale])
+		const approvalsView = isApprovalsView(context)
 
 		window.__metricAppSetContext = setContext
 		window.__metricAppHandleHostEvent = handleHostEvent
@@ -335,17 +437,18 @@
 			setQuery(nextQuery)
 			setSearchInput(nextQuery.search || '')
 			loadProjects(nextQuery)
-			loadStaticScopeOptions(nextQuery)
-			if (nextQuery.parameters.projectId) {
-				loadModels(nextQuery.parameters.projectId, nextQuery)
-				loadBusinessAreas(nextQuery.parameters.projectId, nextQuery)
+			if (!isApprovalsView(context)) {
+				loadStaticMetricOptions(nextQuery)
+				if (nextQuery.parameters.projectId) {
+					loadProjectOptions(nextQuery.parameters.projectId, nextQuery)
+				}
 			}
 			loadData(nextQuery)
 		}, [context])
 
 		React.useEffect(() => {
 			reportResize()
-		}, [data, projects, models, businessAreas, statuses, types, loading, notice, modal, form])
+		}, [data, projects, models, businessAreas, certifications, tags, selectedIds, loading, notice, modal, form])
 
 		async function loadProjects(nextQuery) {
 			try {
@@ -359,42 +462,42 @@
 			}
 		}
 
-		async function loadModels(projectId, nextQuery) {
+		async function loadOption(parameterKey, nextQuery) {
+			const response = await request('requestParameterOptions', {
+				parameterKey,
+				query: { parameters: nextQuery.parameters }
+			})
+			return (response.result && response.result.items) || []
+		}
+
+		async function loadStaticMetricOptions(nextQuery) {
 			try {
-				const response = await request('requestParameterOptions', {
-					parameterKey: 'modelId',
-					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
-				})
-				setModels((response.result && response.result.items) || [])
+				const responses = await Promise.all([
+					loadOption('status', nextQuery),
+					loadOption('type', nextQuery),
+					loadOption('certificationId', nextQuery)
+				])
+				setStatuses(responses[0])
+				setTypes(responses[1])
+				setCertifications(responses[2])
 			} catch (error) {
 				setNotice({ error: true, text: error.message })
 			}
 		}
 
-		async function loadBusinessAreas(projectId, nextQuery) {
+		async function loadProjectOptions(projectId, nextQuery) {
+			const scopedQuery = Object.assign({}, nextQuery, {
+				parameters: Object.assign({}, nextQuery.parameters, { projectId })
+			})
 			try {
-				const response = await request('requestParameterOptions', {
-					parameterKey: 'businessAreaId',
-					query: { parameters: Object.assign({}, nextQuery.parameters, { projectId }) }
-				})
-				setBusinessAreas((response.result && response.result.items) || [])
-			} catch (error) {
-				setNotice({ error: true, text: error.message })
-			}
-		}
-
-		async function loadStaticScopeOptions(nextQuery) {
-			try {
-				const statusResponse = await request('requestParameterOptions', {
-					parameterKey: 'status',
-					query: { parameters: nextQuery.parameters }
-				})
-				const typeResponse = await request('requestParameterOptions', {
-					parameterKey: 'type',
-					query: { parameters: nextQuery.parameters }
-				})
-				setStatuses((statusResponse.result && statusResponse.result.items) || [])
-				setTypes((typeResponse.result && typeResponse.result.items) || [])
+				const responses = await Promise.all([
+					loadOption('modelId', scopedQuery),
+					loadOption('businessAreaId', scopedQuery),
+					loadOption('tagId', scopedQuery)
+				])
+				setModels(responses[0])
+				setBusinessAreas(responses[1])
+				setTags(responses[2])
 			} catch (error) {
 				setNotice({ error: true, text: error.message })
 			}
@@ -405,6 +508,10 @@
 			try {
 				const response = await request('requestData', { query: nextQuery })
 				setData(response.data || { items: [], total: 0 })
+				setSelectedIds((current) => {
+					const rowIds = new Set(((response.data && response.data.items) || []).map((row) => row.id))
+					return current.filter((id) => rowIds.has(id))
+				})
 				setNotice(null)
 			} catch (error) {
 				setNotice({ error: true, text: error.message })
@@ -419,41 +526,38 @@
 		}
 
 		function updateProject(projectId) {
-			const parameters = Object.assign({}, query.parameters, { projectId })
+			const parameters = Object.assign({}, query.parameters)
+			if (projectId) parameters.projectId = projectId
+			else delete parameters.projectId
 			delete parameters.modelId
 			delete parameters.businessAreaId
-			const nextQuery = Object.assign({}, query, {
-				page: 1,
-				parameters
-			})
+			delete parameters.tagId
+			const nextQuery = Object.assign({}, query, { page: 1, parameters })
 			setModels([])
 			setBusinessAreas([])
+			setTags([])
+			setSelectedIds([])
 			setQuery(nextQuery)
-			if (projectId) {
-				loadModels(projectId, nextQuery)
-				loadBusinessAreas(projectId, nextQuery)
+			if (projectId && !approvalsView) {
+				loadProjectOptions(projectId, nextQuery)
 			}
 			loadData(nextQuery)
 		}
 
-		function updateModel(modelId) {
-			const parameters = Object.assign({}, query.parameters)
-			if (modelId) parameters.modelId = modelId
-			else delete parameters.modelId
-			applyQuery(Object.assign({}, query, { page: 1, parameters }))
-		}
-
 		function updateParameter(key, value) {
 			const parameters = Object.assign({}, query.parameters)
-			if (value) parameters[key] = value
+			if (value === 'true') parameters[key] = true
+			else if (value === 'false') parameters[key] = false
+			else if (value) parameters[key] = value
 			else delete parameters[key]
-			applyQuery(Object.assign({}, query, { page: 1, parameters }))
+			const nextQuery = Object.assign({}, query, { page: 1, parameters })
+			applyQuery(nextQuery)
 		}
 
 		async function executeAction(actionKey, options) {
 			const targetId = options && options.targetId
 			const input = options && options.input
-			const busyKey = targetId ? `${actionKey}:${targetId}` : actionKey
+			const busyKey = targetId ? actionKey + ':' + targetId : actionKey
 			setBusy(busyKey)
 			try {
 				const response = await request('executeAction', {
@@ -479,6 +583,69 @@
 			}
 		}
 
+		async function executeFileAction(actionKey, file) {
+			setBusy(actionKey)
+			try {
+				const buffer = await file.arrayBuffer()
+				const response = await request(
+					'executeFileAction',
+					{
+						actionKey,
+						parameters: query.parameters,
+						file: {
+							name: file.name,
+							type: file.type,
+							size: file.size,
+							buffer
+						}
+					},
+					[buffer]
+				)
+				const result = response.result || {}
+				setNotice({
+					error: !result.success,
+					text: resolveText(result.message, result.success ? t('actionCompleted') : t('actionFailed'), locale)
+				})
+				if (result.data && result.data.resultContent) {
+					downloadText(
+						result.data.resultFileName || 'Indicator_Import_Results.yaml',
+						result.data.resultContent,
+						'application/x-yaml'
+					)
+				}
+				if (result.refresh) {
+					await loadData(query)
+				}
+				return result
+			} catch (error) {
+				setNotice({ error: true, text: error.message })
+				return { success: false }
+			} finally {
+				setBusy('')
+			}
+		}
+
+		async function exportMetrics() {
+			const result = await executeAction('export', {
+				input: Object.assign({}, query, { ids: selectedIds })
+			})
+			if (result.success && result.data && result.data.content) {
+				downloadText(result.data.fileName || 'Indicators.yaml', result.data.content, result.data.mimeType)
+			}
+		}
+
+		function downloadText(fileName, content, mimeType) {
+			const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			link.href = url
+			link.download = fileName
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			URL.revokeObjectURL(url)
+		}
+
 		function openModal(mode, row) {
 			setForm(buildFormState(row, query))
 			setModal({ mode, row })
@@ -489,12 +656,25 @@
 				setNotice({ error: true, text: t('requiredFields') })
 				return
 			}
+			const filters =
+				form.type === 'BASIC'
+					? form.filters
+							.map((filter) => ({
+								dimension: filter.dimension.trim(),
+								hierarchy: filter.hierarchy.trim() || undefined,
+								member: filter.member.trim()
+							}))
+							.filter((filter) => filter.dimension && filter.member)
+					: undefined
 			const input = {
 				code: form.code.trim(),
 				name: form.name.trim(),
 				type: form.type,
 				modelId: form.modelId || undefined,
 				businessAreaId: form.businessAreaId || undefined,
+				certificationId: form.certificationId || undefined,
+				principal: form.principal.trim() || undefined,
+				validity: form.validity.trim() || undefined,
 				cube: form.cube.trim() || form.entity.trim() || undefined,
 				entity: form.cube.trim() || form.entity.trim() || undefined,
 				description: form.description.trim() || form.business.trim() || undefined,
@@ -502,18 +682,15 @@
 				calendar: form.calendar.trim() || undefined,
 				measure: form.type === 'BASIC' ? form.measure.trim() || undefined : undefined,
 				formula: form.type === 'DERIVE' ? form.formula.trim() || undefined : undefined,
-				filters:
-					form.type === 'BASIC'
-						? form.filters
-								.map((filter) => ({
-									dimension: filter.dimension.trim(),
-									hierarchy: filter.hierarchy.trim() || undefined,
-									member: filter.member.trim()
-								}))
-								.filter((filter) => filter.dimension && filter.member)
-						: undefined,
+				aggregator: form.aggregator.trim() || undefined,
+				dimensions: form.dimensions
+					.split(',')
+					.map((item) => item.trim())
+					.filter(Boolean),
+				filters,
 				unit: form.unit.trim() || undefined,
-				visible: form.visible
+				visible: form.visible,
+				isApplication: form.isApplication
 			}
 			const result = await executeAction(modal.mode === 'create' ? 'create' : 'edit', {
 				targetId: modal.row && modal.row.id,
@@ -525,7 +702,7 @@
 		}
 
 		async function handleHostEvent(event) {
-			if (!context || !event || event.type !== 'assistant.tool.completed') {
+			if (!context || approvalsView || !event || event.type !== 'assistant.tool.completed') {
 				return
 			}
 			const output = getEventOutput(event)
@@ -534,24 +711,14 @@
 			if (scope) {
 				mergeScopeParameters(nextParameters, scope)
 			} else {
-				if (output && output.projectId) {
-					nextParameters.projectId = output.projectId
-				}
-				if (output && output.modelId) {
-					nextParameters.modelId = output.modelId
-				}
-				if (output && output.businessAreaId) {
-					nextParameters.businessAreaId = output.businessAreaId
-				}
+				if (output && output.projectId) nextParameters.projectId = output.projectId
+				if (output && output.modelId) nextParameters.modelId = output.modelId
+				if (output && output.businessAreaId) nextParameters.businessAreaId = output.businessAreaId
 			}
-			const nextQuery = Object.assign({}, query, {
-				page: 1,
-				parameters: nextParameters
-			})
+			const nextQuery = Object.assign({}, query, { page: 1, parameters: nextParameters })
 			setQuery(nextQuery)
 			if (nextParameters.projectId) {
-				loadModels(nextParameters.projectId, nextQuery)
-				loadBusinessAreas(nextParameters.projectId, nextQuery)
+				loadProjectOptions(nextParameters.projectId, nextQuery)
 			}
 			await loadData(nextQuery)
 		}
@@ -559,11 +726,12 @@
 		function mergeScopeParameters(parameters, scope) {
 			if (scope.projectId) parameters.projectId = scope.projectId
 			else delete parameters.projectId
-
 			setSingleScopeParameter(parameters, 'modelId', scope.modelIds)
 			setSingleScopeParameter(parameters, 'businessAreaId', scope.businessAreaIds)
-			setSingleScopeParameter(parameters, 'entity', scope.entities)
-
+			setSingleScopeParameter(parameters, 'certificationId', scope.certificationIds)
+			setSingleScopeParameter(parameters, 'tagId', scope.tagIds)
+			if (typeof scope.isApplication === 'boolean') parameters.isApplication = scope.isApplication
+			else delete parameters.isApplication
 			if (scope.status) parameters.status = scope.status
 			else delete parameters.status
 			if (scope.type) parameters.type = scope.type
@@ -571,119 +739,184 @@
 		}
 
 		function setSingleScopeParameter(parameters, key, values) {
-			if (Array.isArray(values) && values.length === 1) {
-				parameters[key] = values[0]
-			} else {
-				delete parameters[key]
-			}
+			if (Array.isArray(values) && values.length === 1) parameters[key] = values[0]
+			else delete parameters[key]
 		}
 
-		function renderToolbar() {
+		function toggleSelected(id, checked) {
+			setSelectedIds((current) =>
+				checked ? Array.from(new Set(current.concat(id))) : current.filter((item) => item !== id)
+			)
+		}
+
+		function toggleAllRows(checked) {
+			const rowIds = ((data && data.items) || []).map((row) => row.id).filter(Boolean)
+			setSelectedIds(checked ? rowIds : [])
+		}
+
+		function renderProjectFilter() {
 			const projectId = query.parameters.projectId || ''
-			const modelId = query.parameters.modelId || ''
-			const businessAreaId = query.parameters.businessAreaId || ''
-			const status = query.parameters.status || ''
-			const type = query.parameters.type || ''
+			return h(
+				'select',
+				{
+					className: 'xui-control',
+					value: projectId,
+					onChange: (event) => updateProject(event.target.value)
+				},
+				h('option', { value: '' }, t('selectProject')),
+				projects.map((project) => h('option', { key: project.value, value: project.value }, project.label))
+			)
+		}
+
+		function renderMetricToolbar() {
+			const projectId = query.parameters.projectId || ''
 			return h(
 				'div',
 				{ className: 'xui-toolbar xui-metric-sticky-toolbar' },
+				renderProjectFilter(),
+				selectFilter('modelId', t('allModels'), models, !projectId),
+				selectFilter('businessAreaId', t('allBusinessAreas'), businessAreas, !projectId),
+				selectFilter('status', t('allStatuses'), statuses),
+				selectFilter('type', t('allTypes'), types),
+				selectFilter('certificationId', t('allCertifications'), certifications),
+				selectFilter('tagId', t('allTags'), tags, !projectId),
 				h(
 					'select',
 					{
 						className: 'xui-control',
-						value: projectId,
-						onChange: (event) => updateProject(event.target.value)
+						value:
+							typeof query.parameters.isApplication === 'boolean'
+								? String(query.parameters.isApplication)
+								: '',
+						onChange: (event) => updateParameter('isApplication', event.target.value)
 					},
-					h('option', { value: '' }, t('selectProject')),
-					projects.map((project) => h('option', { key: project.value, value: project.value }, project.label))
+					h('option', { value: '' }, t('appAvailable')),
+					h('option', { value: 'true' }, t('trueValue')),
+					h('option', { value: 'false' }, t('falseValue'))
 				),
-				h(
-					'select',
-					{
-						className: 'xui-control',
-						value: modelId,
-						disabled: !projectId,
-						onChange: (event) => updateModel(event.target.value)
-					},
-					h('option', { value: '' }, t('allModels')),
-					models.map((model) => h('option', { key: model.value, value: model.value }, model.label))
+				searchInputControl(t('searchMetrics')),
+				toolbarButton(t('search'), 'search', loading, () =>
+					applyQuery(Object.assign({}, query, { page: 1, search: searchInput }))
 				),
-				h(
-					'select',
-					{
-						className: 'xui-control',
-						value: businessAreaId,
-						disabled: !projectId,
-						onChange: (event) => updateParameter('businessAreaId', event.target.value)
-					},
-					h('option', { value: '' }, t('allBusinessAreas')),
-					businessAreas.map((area) => h('option', { key: area.value, value: area.value }, area.label))
+				toolbarButton(
+					t('createMetric'),
+					'createMetric',
+					!projectId || loading,
+					() => openModal('create', null),
+					true
 				),
-				h(
-					'select',
-					{
-						className: 'xui-control',
-						value: status,
-						onChange: (event) => updateParameter('status', event.target.value)
-					},
-					h('option', { value: '' }, t('allStatuses')),
-					statuses.map((item) => h('option', { key: item.value, value: item.value }, item.label))
+				toolbarButton(
+					busy === 'export' ? t('exporting') : t('export'),
+					'export',
+					loading || !projectId,
+					exportMetrics
 				),
-				h(
-					'select',
-					{
-						className: 'xui-control',
-						value: type,
-						onChange: (event) => updateParameter('type', event.target.value)
-					},
-					h('option', { value: '' }, t('allTypes')),
-					types.map((item) => h('option', { key: item.value, value: item.value }, item.label))
-				),
-				h('input', {
-					className: 'xui-input',
-					value: searchInput,
-					placeholder: t('searchPlaceholder'),
-					onChange: (event) => setSearchInput(event.target.value),
-					onKeyDown: (event) => {
-						if (event.key === 'Enter') {
-							applyQuery(Object.assign({}, query, { page: 1, search: searchInput }))
+				toolbarButton(
+					busy === 'bulk_delete' ? t('deleting') : t('bulkDelete'),
+					'bulkDelete',
+					!selectedIds.length || Boolean(busy),
+					() => {
+						if (confirm(t('confirmBulkDelete'))) {
+							executeAction('bulk_delete', { input: { ids: selectedIds } })
 						}
 					}
-				}),
-				h(
-					'button',
-					{
-						className: 'xui-button',
-						type: 'button',
-						disabled: loading,
-						onClick: () => applyQuery(Object.assign({}, query, { page: 1, search: searchInput }))
-					},
-					t('search')
 				),
-				h(
-					'button',
-					{
-						className: 'xui-button xui-button-primary',
-						type: 'button',
-						disabled: !projectId || loading,
-						onClick: () => openModal('create', null)
-					},
-					t('createMetric')
+				toolbarButton(
+					busy === 'start_embedding_project' ? t('embeddingBusy') : t('embedAll'),
+					'embedAll',
+					!projectId || Boolean(busy),
+					() => {
+						if (confirm(t('confirmEmbedAll'))) {
+							executeAction('start_embedding_project')
+						}
+					}
+				),
+				toolbarButton(
+					busy === 'refresh_embedding_status' ? t('embeddingBusy') : t('refreshEmbedding'),
+					'refreshEmbedding',
+					loading || !projectId,
+					() => executeAction('refresh_embedding_status', { input: query })
+				),
+				h('input', {
+					ref: fileInputRef,
+					type: 'file',
+					accept: '.yaml,.yml,application/x-yaml,text/yaml,text/plain',
+					style: { display: 'none' },
+					onChange: (event) => {
+						const file = event.target.files && event.target.files[0]
+						event.target.value = ''
+						if (file) executeFileAction('import', file)
+					}
+				}),
+				toolbarButton(
+					busy === 'import' ? t('importing') : t('importFile'),
+					'importFile',
+					!projectId || Boolean(busy),
+					() => fileInputRef.current && fileInputRef.current.click()
 				)
 			)
 		}
 
-		function renderRows() {
+		function renderApprovalsToolbar() {
+			return h(
+				'div',
+				{ className: 'xui-toolbar xui-metric-sticky-toolbar' },
+				renderProjectFilter(),
+				searchInputControl(t('searchApprovals')),
+				toolbarButton(t('search'), 'search', loading, () =>
+					applyQuery(Object.assign({}, query, { page: 1, search: searchInput }))
+				),
+				toolbarButton(t('refresh'), 'refresh', loading, () => loadData(query))
+			)
+		}
+
+		function selectFilter(key, placeholder, options, disabled) {
+			return h(
+				'select',
+				{
+					className: 'xui-control',
+					value: query.parameters[key] || '',
+					disabled: Boolean(disabled),
+					onChange: (event) => updateParameter(key, event.target.value)
+				},
+				h('option', { value: '' }, placeholder),
+				options.map((item) => h('option', { key: item.value, value: item.value }, item.label))
+			)
+		}
+
+		function searchInputControl(placeholder) {
+			return h('input', {
+				className: 'xui-input',
+				value: searchInput,
+				placeholder,
+				onChange: (event) => setSearchInput(event.target.value),
+				onKeyDown: (event) => {
+					if (event.key === 'Enter') {
+						applyQuery(Object.assign({}, query, { page: 1, search: searchInput }))
+					}
+				}
+			})
+		}
+
+		function toolbarButton(label, key, disabled, onClick, primary) {
+			return h(
+				'button',
+				{
+					className: primary ? 'xui-button xui-button-primary' : 'xui-button',
+					type: 'button',
+					disabled,
+					onClick
+				},
+				label
+			)
+		}
+
+		function renderMetricsRows() {
 			const rows = Array.isArray(data.items) ? data.items : []
-			if (!query.parameters.projectId) {
-				return h('div', { className: 'xui-empty' }, t('projectRequired'))
-			}
-			if (loading) {
-				return h('div', { className: 'xui-empty' }, t('loadingMetrics'))
-			}
-			if (rows.length === 0) {
-				return h('div', { className: 'xui-empty' }, t('emptyMetrics'))
-			}
+			if (!query.parameters.projectId) return h('div', { className: 'xui-empty' }, t('projectRequired'))
+			if (loading) return h('div', { className: 'xui-empty' }, '...')
+			if (!rows.length) return h('div', { className: 'xui-empty' }, '-')
+			const allSelected = rows.length > 0 && rows.every((row) => selectedIds.includes(row.id))
 
 			return h(
 				'div',
@@ -697,6 +930,15 @@
 						h(
 							'tr',
 							null,
+							h(
+								'th',
+								{ style: NO_WRAP },
+								h('input', {
+									type: 'checkbox',
+									checked: allSelected,
+									onChange: (event) => toggleAllRows(event.target.checked)
+								})
+							),
 							[
 								['code', t('code')],
 								['name', t('name')],
@@ -704,13 +946,15 @@
 								['status', t('status')],
 								['model', t('model')],
 								['businessArea', t('businessArea')],
+								['certification', t('certification')],
 								['entity', t('entity')],
-								['business', t('business')],
-								['unit', t('unit')],
+								['appAvailable', t('appAvailable')],
+								['visible', t('visible')],
 								['embeddingStatus', t('embeddingStatus')],
+								['publishedAt', t('publishedAt')],
 								['updatedAt', t('updatedAt')],
-								['actions', t('actions')]
-							].map((column) => h('th', { key: column[0], style: NO_WRAP_STYLE }, column[1]))
+								['actions', '']
+							].map((column) => h('th', { key: column[0], style: NO_WRAP }, column[1]))
 						)
 					),
 					h(
@@ -720,90 +964,66 @@
 							h(
 								'tr',
 								{ key: row.id },
-								h('td', { style: NO_WRAP_STYLE }, row.code || '-'),
-								h('td', { style: NO_WRAP_STYLE }, row.name || '-'),
 								h(
 									'td',
-									{ style: NO_WRAP_STYLE },
-									h('span', { className: 'xui-pill' }, row.type || '-')
+									{ style: NO_WRAP },
+									h('input', {
+										type: 'checkbox',
+										checked: selectedIds.includes(row.id),
+										onChange: (event) => toggleSelected(row.id, event.target.checked)
+									})
 								),
+								h('td', { style: NO_WRAP }, row.code || '-'),
+								h('td', { style: NO_WRAP }, row.name || '-'),
+								pillCell(row.type),
+								pillCell(row.status),
+								h('td', { style: NO_WRAP }, row.modelName || optionLabel(models, row.modelId) || '-'),
 								h(
 									'td',
-									{ style: NO_WRAP_STYLE },
-									h('span', { className: 'xui-pill' }, row.status || '-')
-								),
-								h(
-									'td',
-									{ style: NO_WRAP_STYLE },
-									row.modelName || optionLabel(models, row.modelId) || '-'
-								),
-								h(
-									'td',
-									{ style: NO_WRAP_STYLE },
+									{ style: NO_WRAP },
 									row.businessAreaName || optionLabel(businessAreas, row.businessAreaId) || '-'
 								),
-								h('td', { style: NO_WRAP_STYLE }, row.entity || '-'),
-								h('td', { style: NO_WRAP_STYLE }, row.business || '-'),
-								h('td', { style: NO_WRAP_STYLE }, row.unit || '-'),
 								h(
 									'td',
-									{ style: NO_WRAP_STYLE },
-									h('span', { className: 'xui-pill' }, row.embeddingStatus || '-')
+									{ style: NO_WRAP },
+									row.certificationName || optionLabel(certifications, row.certificationId) || '-'
 								),
-								h('td', { style: NO_WRAP_STYLE }, formatDate(row.updatedAt)),
+								h('td', { style: NO_WRAP }, row.entity || '-'),
+								h('td', { style: NO_WRAP }, formatBoolean(row.isApplication, t)),
+								h('td', { style: NO_WRAP }, formatBoolean(row.visible, t)),
+								pillCell(row.embeddingStatus || '-'),
+								h('td', { style: NO_WRAP }, formatDate(row.publishedAt)),
+								h('td', { style: NO_WRAP }, formatDate(row.updatedAt)),
 								h(
 									'td',
-									{ className: 'xui-table-actions-cell', style: NO_WRAP_STYLE },
+									{ className: 'xui-table-actions-cell', style: NO_WRAP },
 									h(
 										'div',
-										{ className: 'xui-actions xui-table-actions', style: ACTIONS_NO_WRAP_STYLE },
-										h(
-											'button',
-											{
-												className: 'xui-button xui-button-sm',
-												type: 'button',
-												style: NO_WRAP_STYLE,
-												disabled: Boolean(busy),
-												onClick: () => openModal('edit', row)
-											},
-											t('edit')
+										{ className: 'xui-actions xui-table-actions' },
+										rowButton(t('edit'), () => openModal('edit', row), Boolean(busy)),
+										rowButton(
+											busy === 'duplicate:' + row.id ? t('duplicating') : t('duplicate'),
+											() => executeAction('duplicate', { targetId: row.id }),
+											Boolean(busy)
 										),
-										h(
-											'button',
-											{
-												className: 'xui-button xui-button-sm',
-												type: 'button',
-												style: NO_WRAP_STYLE,
-												disabled: Boolean(busy),
-												onClick: () => executeAction('publish', { targetId: row.id })
-											},
-											busy === `publish:${row.id}` ? t('publishing') : t('publish')
+										rowButton(
+											busy === 'publish:' + row.id ? t('publishing') : t('publish'),
+											() => executeAction('publish', { targetId: row.id }),
+											Boolean(busy)
 										),
-										h(
-											'button',
-											{
-												className: 'xui-button xui-button-sm',
-												type: 'button',
-												style: NO_WRAP_STYLE,
-												disabled: Boolean(busy),
-												onClick: () => executeAction('embedding', { targetId: row.id })
-											},
-											busy === `embedding:${row.id}` ? t('embeddingBusy') : t('embedding')
+										rowButton(
+											busy === 'embedding:' + row.id ? t('embeddingBusy') : t('embedding'),
+											() => executeAction('embedding', { targetId: row.id }),
+											Boolean(busy)
 										),
-										h(
-											'button',
-											{
-												className: 'xui-button xui-button-sm xui-button-danger',
-												type: 'button',
-												style: NO_WRAP_STYLE,
-												disabled: Boolean(busy),
-												onClick: () => {
-													if (confirm(t('confirmDelete'))) {
-														executeAction('delete', { targetId: row.id })
-													}
-												}
+										rowButton(
+											busy === 'delete:' + row.id ? t('deleting') : t('delete'),
+											() => {
+												if (confirm(t('confirmDelete')))
+													executeAction('delete', { targetId: row.id })
 											},
-											busy === `delete:${row.id}` ? t('deleting') : t('delete')
+											Boolean(busy),
+											true
 										)
 									)
 								)
@@ -811,6 +1031,98 @@
 						)
 					)
 				)
+			)
+		}
+
+		function renderApprovalRows() {
+			const rows = Array.isArray(data.items) ? data.items : []
+			if (!query.parameters.projectId) return h('div', { className: 'xui-empty' }, t('projectRequired'))
+			if (loading) return h('div', { className: 'xui-empty' }, '...')
+			if (!rows.length) return h('div', { className: 'xui-empty' }, '-')
+			return h(
+				'div',
+				{ className: 'xui-table-wrap' },
+				h(
+					'table',
+					{ className: 'xui-table' },
+					h(
+						'thead',
+						null,
+						h(
+							'tr',
+							null,
+							[
+								['indicatorCode', t('code')],
+								['indicatorName', t('name')],
+								['status', t('status')],
+								['permissionType', t('permissionType')],
+								['approvalPolicyName', t('approvalPolicy')],
+								['indicatorGroupName', t('businessArea')],
+								['createdByName', t('createdBy')],
+								['createdAt', t('createdAt')],
+								['actions', '']
+							].map((column) => h('th', { key: column[0], style: NO_WRAP }, column[1]))
+						)
+					),
+					h(
+						'tbody',
+						null,
+						rows.map((row) =>
+							h(
+								'tr',
+								{ key: row.id },
+								h('td', { style: NO_WRAP }, row.indicatorCode || '-'),
+								h('td', { style: NO_WRAP }, row.indicatorName || '-'),
+								pillCell(row.statusLabel || row.status || '-'),
+								h('td', { style: NO_WRAP }, row.permissionType || '-'),
+								h('td', { style: NO_WRAP }, row.approvalPolicyName || '-'),
+								h('td', { style: NO_WRAP }, row.indicatorGroupName || '-'),
+								h('td', { style: NO_WRAP }, row.createdByName || '-'),
+								h('td', { style: NO_WRAP }, formatDate(row.createdAt)),
+								h(
+									'td',
+									{ className: 'xui-table-actions-cell', style: NO_WRAP },
+									h(
+										'div',
+										{ className: 'xui-actions xui-table-actions' },
+										rowButton(
+											busy === 'approve:' + row.id ? t('approving') : t('approve'),
+											() => executeAction('approve', { targetId: row.id }),
+											Boolean(busy)
+										),
+										rowButton(
+											busy === 'refuse:' + row.id ? t('refusing') : t('refuse'),
+											() => {
+												if (confirm(t('confirmRefuse')))
+													executeAction('refuse', { targetId: row.id })
+											},
+											Boolean(busy),
+											true
+										)
+									)
+								)
+							)
+						)
+					)
+				)
+			)
+		}
+
+		function pillCell(value) {
+			return h('td', { style: NO_WRAP }, h('span', { className: 'xui-pill' }, value || '-'))
+		}
+
+		function rowButton(label, onClick, disabled, danger) {
+			return h(
+				'button',
+				{
+					className: danger ? 'xui-button xui-button-sm xui-button-danger' : 'xui-button xui-button-sm',
+					type: 'button',
+					style: NO_WRAP,
+					disabled,
+					onClick
+				},
+				label
 			)
 		}
 
@@ -822,41 +1134,27 @@
 			return h(
 				'div',
 				{ className: 'xui-pager xui-metric-pager' },
-				h('span', { className: 'xui-metric-pager-total' }, t('totalRows', { total })),
+				h(
+					'span',
+					{ className: 'xui-metric-pager-total' },
+					t('totalRows', { total }) +
+						(selectedIds.length ? ' / ' + t('selectedRows', { count: selectedIds.length }) : '')
+				),
 				h(
 					'div',
 					{ className: 'xui-actions xui-metric-pager-actions' },
-					h(
-						'button',
-						{
-							className: 'xui-button xui-button-sm',
-							type: 'button',
-							disabled: loading || page <= 1,
-							onClick: () => applyQuery(Object.assign({}, query, { page: page - 1 }))
-						},
-						t('previousPage')
+					rowButton(
+						t('previousPage'),
+						() => applyQuery(Object.assign({}, query, { page: page - 1 })),
+						loading || page <= 1
 					),
 					h('span', { className: 'xui-muted' }, t('page', { page })),
-					h(
-						'button',
-						{
-							className: 'xui-button xui-button-sm',
-							type: 'button',
-							disabled: loading || !hasNext,
-							onClick: () => applyQuery(Object.assign({}, query, { page: page + 1 }))
-						},
-						t('nextPage')
+					rowButton(
+						t('nextPage'),
+						() => applyQuery(Object.assign({}, query, { page: page + 1 })),
+						loading || !hasNext
 					),
-					h(
-						'button',
-						{
-							className: 'xui-button xui-button-sm',
-							type: 'button',
-							disabled: loading,
-							onClick: () => loadData(query)
-						},
-						t('refresh')
-					)
+					rowButton(t('refresh'), () => loadData(query), loading)
 				)
 			)
 		}
@@ -877,134 +1175,51 @@
 							{ className: 'xui-modal-title' },
 							modal.mode === 'create' ? t('createMetric') : t('editMetric')
 						),
-						h(
-							'button',
-							{ className: 'xui-button xui-button-sm', type: 'button', onClick: () => setModal(null) },
-							t('close')
-						)
+						rowButton(t('close'), () => setModal(null), false)
 					),
 					h(
 						'div',
 						{ className: 'xui-form' },
 						field(t('code'), 'code'),
 						field(t('name'), 'name'),
-						h(
-							'div',
-							{ className: 'xui-field' },
-							h('label', null, t('type')),
-							h(
-								'select',
-								{
-									className: 'xui-input',
-									value: form.type,
-									onChange: (event) => setForm(Object.assign({}, form, { type: event.target.value }))
-								},
-								h('option', { value: 'BASIC' }, 'BASIC'),
-								h('option', { value: 'DERIVE' }, 'DERIVE')
-							)
+						selectField(t('type'), 'type', [
+							{ value: 'BASIC', label: 'BASIC' },
+							{ value: 'DERIVE', label: 'DERIVE' }
+						]),
+						selectField(t('model'), 'modelId', [{ value: '', label: t('noModel') }].concat(models)),
+						selectField(
+							t('businessArea'),
+							'businessAreaId',
+							[{ value: '', label: t('allBusinessAreas') }].concat(businessAreas)
 						),
-						h(
-							'div',
-							{ className: 'xui-field' },
-							h('label', null, t('model')),
-							h(
-								'select',
-								{
-									className: 'xui-input',
-									value: form.modelId,
-									onChange: (event) =>
-										setForm(Object.assign({}, form, { modelId: event.target.value }))
-								},
-								h('option', { value: '' }, t('noModel')),
-								models.map((model) =>
-									h('option', { key: model.value, value: model.value }, model.label)
-								)
-							)
+						selectField(
+							t('certification'),
+							'certificationId',
+							[{ value: '', label: t('allCertifications') }].concat(certifications)
 						),
-						h(
-							'div',
-							{ className: 'xui-field' },
-							h('label', null, t('businessArea')),
-							h(
-								'select',
-								{
-									className: 'xui-input',
-									value: form.businessAreaId,
-									onChange: (event) =>
-										setForm(Object.assign({}, form, { businessAreaId: event.target.value }))
-								},
-								h('option', { value: '' }, t('allBusinessAreas')),
-								businessAreas.map((area) =>
-									h('option', { key: area.value, value: area.value }, area.label)
-								)
-							)
-						),
-						field(t('cube'), 'cube'),
+						field(t('principal'), 'principal'),
+						field(t('validity'), 'validity', 'date'),
+						field(t('entity'), 'cube'),
 						field(t('calendar'), 'calendar'),
 						form.type === 'BASIC' ? field(t('measure'), 'measure') : null,
-						form.type === 'DERIVE'
-							? h(
-									'div',
-									{ className: 'xui-field xui-field-full' },
-									h('label', null, t('formula')),
-									h('textarea', {
-										className: 'xui-textarea',
-										value: form.formula,
-										onChange: (event) =>
-											setForm(Object.assign({}, form, { formula: event.target.value }))
-									})
-								)
-							: null,
+						form.type === 'DERIVE' ? textArea(t('formula'), 'formula') : null,
+						field(t('sqlAggregator'), 'aggregator'),
+						field(t('dimensions'), 'dimensions'),
 						form.type === 'BASIC' ? renderFilters() : null,
 						field(t('unit'), 'unit'),
-						h(
-							'div',
-							{ className: 'xui-field xui-field-full' },
-							h('label', null, t('business')),
-							h('textarea', {
-								className: 'xui-textarea',
-								value: form.description,
-								onChange: (event) =>
-									setForm(
-										Object.assign({}, form, {
-											description: event.target.value,
-											business: event.target.value
-										})
-									)
-							})
-						),
-						h(
-							'label',
-							{ className: 'xui-checkbox' },
-							h('input', {
-								type: 'checkbox',
-								checked: form.visible,
-								onChange: (event) => setForm(Object.assign({}, form, { visible: event.target.checked }))
-							}),
-							t('visible')
-						)
+						textArea(t('business'), 'description'),
+						field(t('tags'), 'tags', 'text', true),
+						checkboxField(t('visible'), 'visible'),
+						checkboxField(t('appAvailable'), 'isApplication')
 					),
 					h(
 						'div',
 						{ className: 'xui-modal-footer' },
-						h(
-							'span',
-							{ className: 'xui-muted' },
-							query.parameters.projectId ? optionLabel(projects, query.parameters.projectId) : ''
-						),
+						h('span', { className: 'xui-muted' }, optionLabel(projects, query.parameters.projectId)),
 						h(
 							'div',
 							{ className: 'xui-actions' },
-							h(
-								'button',
-								{
-									className: 'xui-button',
-									type: 'button',
-									disabled: Boolean(busy),
-									onClick: () => setModal(null)
-								},
-								t('cancel')
-							),
+							rowButton(t('cancel'), () => setModal(null), Boolean(busy)),
 							h(
 								'button',
 								{
@@ -1021,6 +1236,64 @@
 			)
 		}
 
+		function field(label, key, type, disabled) {
+			return h(
+				'div',
+				{ className: 'xui-field' },
+				h('label', null, label),
+				h('input', {
+					className: 'xui-input',
+					type: type || 'text',
+					value: form[key],
+					disabled: Boolean(disabled),
+					onChange: (event) => setForm(Object.assign({}, form, { [key]: event.target.value }))
+				})
+			)
+		}
+
+		function textArea(label, key) {
+			return h(
+				'div',
+				{ className: 'xui-field xui-field-full' },
+				h('label', null, label),
+				h('textarea', {
+					className: 'xui-textarea',
+					value: form[key],
+					onChange: (event) => setForm(Object.assign({}, form, { [key]: event.target.value }))
+				})
+			)
+		}
+
+		function selectField(label, key, options) {
+			return h(
+				'div',
+				{ className: 'xui-field' },
+				h('label', null, label),
+				h(
+					'select',
+					{
+						className: 'xui-input',
+						value: form[key],
+						onChange: (event) => setForm(Object.assign({}, form, { [key]: event.target.value }))
+					},
+					options.map((item) => h('option', { key: item.value || '__empty', value: item.value }, item.label))
+				)
+			)
+		}
+
+		function checkboxField(label, key) {
+			return h(
+				'label',
+				{ className: 'xui-checkbox' },
+				h('input', {
+					type: 'checkbox',
+					checked: Boolean(form[key]),
+					onChange: (event) => setForm(Object.assign({}, form, { [key]: event.target.checked }))
+				}),
+				label
+			)
+		}
+
 		function renderFilters() {
 			const filters = Array.isArray(form.filters) ? form.filters : []
 			return h(
@@ -1031,50 +1304,34 @@
 					h(
 						'div',
 						{ className: 'xui-actions', key: index },
-						h('input', {
-							className: 'xui-input',
-							value: filter.dimension,
-							placeholder: t('dimension'),
-							onChange: (event) => updateFilter(index, { dimension: event.target.value })
-						}),
-						h('input', {
-							className: 'xui-input',
-							value: filter.hierarchy,
-							placeholder: t('hierarchy'),
-							onChange: (event) => updateFilter(index, { hierarchy: event.target.value })
-						}),
-						h('input', {
-							className: 'xui-input',
-							value: filter.member,
-							placeholder: t('member'),
-							onChange: (event) => updateFilter(index, { member: event.target.value })
-						}),
-						h(
-							'button',
-							{
-								className: 'xui-button xui-button-sm',
-								type: 'button',
-								onClick: () => removeFilter(index)
-							},
-							t('remove')
-						)
+						filterInput(index, 'dimension', t('dimension')),
+						filterInput(index, 'hierarchy', t('hierarchy')),
+						filterInput(index, 'member', t('member')),
+						rowButton(t('remove'), () => removeFilter(index), false)
 					)
 				),
-				h(
-					'button',
-					{
-						className: 'xui-button xui-button-sm',
-						type: 'button',
-						onClick: () =>
-							setForm(
-								Object.assign({}, form, {
-									filters: filters.concat([{ dimension: '', hierarchy: '', member: '' }])
-								})
-							)
-					},
-					t('addFilter')
+				rowButton(
+					t('addFilter'),
+					() =>
+						setForm(
+							Object.assign({}, form, {
+								filters: filters.concat([{ dimension: '', hierarchy: '', member: '' }])
+							})
+						),
+					false
 				)
 			)
+		}
+
+		function filterInput(index, key, placeholder) {
+			const filters = Array.isArray(form.filters) ? form.filters : []
+			const filter = filters[index] || {}
+			return h('input', {
+				className: 'xui-input',
+				value: filter[key] || '',
+				placeholder,
+				onChange: (event) => updateFilter(index, { [key]: event.target.value })
+			})
 		}
 
 		function updateFilter(index, patch) {
@@ -1091,19 +1348,6 @@
 			setForm(Object.assign({}, form, { filters }))
 		}
 
-		function field(label, key) {
-			return h(
-				'div',
-				{ className: 'xui-field' },
-				h('label', null, label),
-				h('input', {
-					className: 'xui-input',
-					value: form[key],
-					onChange: (event) => setForm(Object.assign({}, form, { [key]: event.target.value }))
-				})
-			)
-		}
-
 		if (!context) {
 			return h('div', { className: 'xui-app xui-empty' }, t('initializing'))
 		}
@@ -1111,16 +1355,16 @@
 		return h(
 			'div',
 			{ className: 'xui-app' },
-			renderToolbar(),
+			approvalsView ? renderApprovalsToolbar() : renderMetricToolbar(),
 			notice
 				? h('div', { className: notice.error ? 'xui-notice xui-notice-error' : 'xui-notice' }, notice.text)
 				: null,
-			renderRows(),
+			approvalsView ? renderApprovalRows() : renderMetricsRows(),
 			renderPager(),
 			renderModal()
 		)
 	}
 
-	ReactDOM.createRoot(document.getElementById('root')).render(h(MetricApp))
+	ReactDOM.createRoot(document.getElementById('root')).render(h(MetricManagementApp))
 	parent.postMessage({ channel: CHANNEL, protocolVersion: VERSION, type: 'ready' }, '*')
 })()

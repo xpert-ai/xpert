@@ -63,6 +63,15 @@ type StatisticsFilters = {
   userId?: string | null
 }
 
+export type TPublicChatkitSession = {
+  client_secret: string
+  expires_at: string | Date
+  expires_after: number
+  xpertId: string
+  assistantId: string
+  organizationId?: string | null
+}
+
 export type TSandboxProvider = {
   type: string
   meta: TSandboxProviderMeta
@@ -343,6 +352,14 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.get<IXpert>(this.apiBaseUrl + `/${slug}/app`, { withCredentials: true })
   }
 
+  createPublicChatkitSession(identifier: string, currentClientSecret?: string | null) {
+    return this.httpClient.post<TPublicChatkitSession>(
+      this.apiBaseUrl + `/${encodeURIComponent(identifier)}/chatkit-session`,
+      { currentClientSecret },
+      { withCredentials: true }
+    )
+  }
+
   updateChatApi(id: string, api: Partial<TChatApi>) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/api`, api)
   }
@@ -579,7 +596,7 @@ export function injectXperts() {
     [
       xpertService
         .getMyAll({
-          relations: ['createdBy'],
+          relations: ['createdBy', 'workspace'],
           where: { type: XpertTypeEnum.Agent, latest: true },
           order: { createdAt: OrderTypeEnum.DESC }
         })

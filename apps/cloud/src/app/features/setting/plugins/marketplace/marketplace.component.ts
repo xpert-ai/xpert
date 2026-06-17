@@ -1,11 +1,11 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
-import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, TemplateRef, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import {
+  injectActiveScope,
   IPluginMarketplaceRegistryItem,
   IPluginMarketplaceRegistrySection,
   PluginAPIService
@@ -18,20 +18,31 @@ import type { Observable } from 'rxjs'
 import { TPlugin } from '@cloud/app/@shared/plugins'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import {
-  getPluginMarketplaceSourceI18nKey,
-  PLATFORM_REGISTRY_SOURCE_ID,
-  TPluginMarketplaceContribution,
-  TPluginMarketplaceOperation,
-  TPluginWithDownloads
-} from '../types'
+  PluginMarketplaceCategory,
+  PluginMarketplaceItem,
+  PluginTargetAppMarketplaceMetadata,
+  PluginTargetAppMeta,
+  PluginTargetAppMetadata,
+  JSONValue
+} from '@xpert-ai/contracts'
+import { getPluginMarketplaceSourceI18nKey, PLATFORM_REGISTRY_SOURCE_ID, TPluginWithDownloads } from '../types'
 import { SettingsPluginComponent } from '../plugin/plugin.component'
+import {
+  marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
+  developerToolSubcategoryOptionsFor,
+  groupPluginsByMarketplaceCategory,
+  matchesPluginMarketplaceCategoryFilters,
+  normalizePluginMarketplaceCategory,
+  PLUGIN_MARKETPLACE_TARGET_APP
+} from '../plugin-marketplace-categories'
+import { mergeMarketplaceContributions } from '../plugin-marketplace-metadata'
 
 type MarketplaceSourceType = 'url' | 'github' | 'git'
-type JsonRecord = Record<string, unknown>
 const DEFAULT_REGISTRY_TARGET_APP_META = `{
   "data-xpert": {
     "types": ["business-app"],
     "marketplace": {
+      "category": "developer-tools",
       "contents": []
     }
   }
@@ -39,15 +50,7 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
 
 @Component({
   standalone: true,
-  imports: [
-    CdkMenuModule,
-    CdkListboxModule,
-    TranslateModule,
-    FormsModule,
-    NgmSelectComponent,
-    NgmSpinComponent,
-    SettingsPluginComponent
-  ],
+  imports: [CdkMenuModule, TranslateModule, FormsModule, NgmSelectComponent, NgmSpinComponent, SettingsPluginComponent],
   selector: 'xp-plugins-marketplace',
   templateUrl: './marketplace.component.html',
   styleUrls: ['./marketplace.component.scss'],
@@ -55,6 +58,7 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
 })
 export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
+  readonly #activeScope = injectActiveScope()
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
@@ -69,6 +73,7 @@ export class PluginsMarketplaceComponent {
 
   readonly #marketplace = myRxResource({
     request: () => ({
+      scope: this.#activeScope(),
       sourceId: this.selectedSourceId()
     }),
     loader: ({ request }) =>
@@ -89,21 +94,18 @@ export class PluginsMarketplaceComponent {
   readonly pluginsWithDownloads = signal<TPluginWithDownloads[]>([])
   readonly refreshingSource = signal(false)
   readonly loading = computed(() => (!this.manifest() && !this.error()) || this.manifestLoading())
-  readonly hasVisiblePlugins = computed(
-    () =>
-      !!(
-        (this.marketplacePlugins()?.length ?? 0) ||
-        (this.partnerPlugins()?.length ?? 0) ||
-        (this.officialPlugins()?.length ?? 0) ||
-        (this.communityPlugins()?.length ?? 0)
-      )
-  )
+  readonly hasVisiblePlugins = computed(() => this.pluginCategoryGroups().length > 0)
   readonly loadingCards = Array.from({ length: 8 }, (_, index) => index)
 
   readonly keywords = model<string[]>([])
   readonly searchModel = model<string>('')
   readonly searchText = debouncedSignal(this.searchModel, 300)
-  readonly categories = model<string[]>([])
+  readonly marketplaceCategories = model<PluginMarketplaceCategory[]>([])
+  readonly developerToolSubcategories = model<string[]>([])
+  readonly marketplaceCategoryOptions = buildMarketplaceCategoryOptions()
+  readonly showDeveloperToolSubcategoryFilter = computed(
+    () => this.marketplaceCategories().length === 0 || this.marketplaceCategories().includes('developer-tools')
+  )
 
   readonly sourceName = model('')
   readonly sourceType = model<MarketplaceSourceType>('github')
@@ -131,7 +133,7 @@ export class PluginsMarketplaceComponent {
   readonly registryCategory = model('integration')
   readonly registryAuthor = model('XpertAI')
   readonly registrySection = model<IPluginMarketplaceRegistrySection>('marketplace')
-  readonly registryTargetApps = model('data-xpert')
+  readonly registryTargetApps = model(PLUGIN_MARKETPLACE_TARGET_APP)
   readonly registryKeywords = model('')
   readonly registryHomepage = model('')
   readonly registryRepositoryUrl = model('')
@@ -163,7 +165,7 @@ export class PluginsMarketplaceComponent {
       !this.registryAuthor().trim() ||
       this.registryTargetAppsMissing()
   )
-  readonly registryTargetAppMetaInvalid = computed(() => !this.parseJsonRecord(this.registryTargetAppMetaJson()))
+  readonly registryTargetAppMetaInvalid = computed(() => !this.parseTargetAppMeta(this.registryTargetAppMetaJson()))
   readonly registryFormInvalid = computed(
     () => this.registryRequiredFieldsMissing() || this.registryTargetAppMetaInvalid()
   )
@@ -176,8 +178,10 @@ export class PluginsMarketplaceComponent {
       plugins = plugins.filter((plugin) => plugin.keywords?.some((keyword) => keywords.includes(keyword)))
     }
 
-    if (this.categories().length) {
-      plugins = plugins.filter((plugin) => this.categories().includes(plugin.category?.toLowerCase()))
+    if (this.marketplaceCategories().length || this.developerToolSubcategories().length) {
+      plugins = plugins.filter((plugin) =>
+        matchesPluginMarketplaceCategoryFilters(plugin, this.marketplaceCategories(), this.developerToolSubcategories())
+      )
     }
 
     const searchText = this.searchText().trim().toLowerCase()
@@ -195,30 +199,7 @@ export class PluginsMarketplaceComponent {
     return plugins
   })
 
-  readonly pluginByName = computed(() => {
-    const map = new Map<string, TPluginWithDownloads>()
-    this.plugins().forEach((plugin) => {
-      map.set(normalizePluginName(plugin.name), plugin)
-    })
-    return map
-  })
-
-  readonly officialPlugins = computed(() => this.pluginsByNames(this.manifest()?.official ?? []))
-  readonly partnerPlugins = computed(() => this.pluginsByNames(this.manifest()?.partner ?? []))
-  readonly communityPlugins = computed(() => this.pluginsByNames(this.manifest()?.community ?? []))
-  readonly marketplacePlugins = computed(() => {
-    const groupedNames = new Set(
-      [...(this.manifest()?.official ?? []), ...(this.manifest()?.partner ?? []), ...(this.manifest()?.community ?? [])]
-        .filter(Boolean)
-        .map((name) => normalizePluginName(name))
-    )
-
-    if (!groupedNames.size) {
-      return this.plugins()
-    }
-
-    return this.plugins().filter((plugin) => !groupedNames.has(normalizePluginName(plugin.name)))
-  })
+  readonly pluginCategoryGroups = computed(() => groupPluginsByMarketplaceCategory(this.plugins()))
 
   readonly keywordsOptions = computed(() => {
     const keywords = this.pluginsWithDownloads().flatMap((plugin) => plugin.keywords ?? [])
@@ -227,7 +208,23 @@ export class PluginsMarketplaceComponent {
       .map((keyword) => ({ label: keyword, value: keyword }))
   })
 
+  readonly developerToolSubcategoryOptions = computed(() =>
+    developerToolSubcategoryOptionsFor(this.pluginsWithDownloads()).map((category) => ({
+      label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
+      value: category.value
+    }))
+  )
+
   constructor() {
+    effect(
+      () => {
+        if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
+          this.developerToolSubcategories.set([])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         const sources = this.sources()
@@ -248,19 +245,22 @@ export class PluginsMarketplaceComponent {
     )
   }
 
-  pluginsByNames(names: string[]) {
-    const byName = this.pluginByName()
-    return names
-      .map((name) => byName.get(normalizePluginName(name)))
-      .filter((plugin): plugin is TPluginWithDownloads => !!plugin)
-  }
-
   reload() {
     this.#marketplace.reload()
   }
 
   sourceI18nKey(sourceId?: string | null, sourceName?: string | null) {
     return getPluginMarketplaceSourceI18nKey(sourceId, sourceName)
+  }
+
+  clearMarketplaceCategories() {
+    this.marketplaceCategories.set([])
+  }
+
+  toggleMarketplaceCategory(category: PluginMarketplaceCategory) {
+    this.marketplaceCategories.update((categories) =>
+      categories.includes(category) ? categories.filter((item) => item !== category) : [...categories, category]
+    )
   }
 
   resetAddSourceForm() {
@@ -324,7 +324,7 @@ export class PluginsMarketplaceComponent {
     this.registryCategory.set('integration')
     this.registryAuthor.set('XpertAI')
     this.registrySection.set('marketplace')
-    this.registryTargetApps.set('data-xpert')
+    this.registryTargetApps.set(PLUGIN_MARKETPLACE_TARGET_APP)
     this.registryKeywords.set('')
     this.registryHomepage.set('')
     this.registryRepositoryUrl.set('')
@@ -363,7 +363,7 @@ export class PluginsMarketplaceComponent {
     const category = this.registryCategory()
     const author = this.registryAuthor().trim()
     const targetApps = this.parseCommaList(this.registryTargetApps())
-    const targetAppMeta = this.parseJsonRecord(this.registryTargetAppMetaJson())
+    const targetAppMeta = this.parseTargetAppMeta(this.registryTargetAppMetaJson())
 
     if (this.registryRequiredFieldsMissing()) {
       this.registryFormError.set(
@@ -520,71 +520,125 @@ export class PluginsMarketplaceComponent {
       .filter(Boolean)
   }
 
-  private parseJsonRecord(value: string): JsonRecord | null {
+  private parseTargetAppMeta(value: string): PluginTargetAppMeta | null {
     try {
       const parsed = JSON.parse(value || '{}')
-      return readRecord(parsed)
+      return isPluginTargetAppMetaInput(parsed) ? parsed : null
     } catch {
       return null
     }
   }
 
-  private readRepositoryUrl(value: unknown) {
+  private readRepositoryUrl(value: JSONValue | null | undefined) {
     if (typeof value === 'string') {
       return value
     }
-    const record = readRecord(value)
-    return readString(record?.url) ?? ''
+    if (!isPlainObject(value)) {
+      return ''
+    }
+
+    const url = Reflect.get(value, 'url')
+    return typeof url === 'string' ? url : ''
   }
 }
 
-function normalizeMarketplacePlugin(item: unknown): TPluginWithDownloads {
-  const record = readRecord(item) ?? {}
-  const packageName = readString(record.packageName)
-  const name = readString(record.name) ?? packageName ?? ''
-  const sourceId = readString(record.sourceId)
-  const sourceName = readString(record.sourceName)
-  const source = normalizeSource(record.source)
-  const contributions = normalizeContributions(record.contributions)
+function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
+  const name = item.name || item.packageName || ''
+  const packageName = item.packageName ?? name
+  const sourceId = item.sourceId ?? null
+  const sourceName = item.sourceName ?? null
 
   return {
     name,
-    packageName: packageName ?? name,
-    displayName: (record.displayName ?? name) as TPlugin['displayName'],
-    description: (record.description ?? name) as TPlugin['description'],
-    version: readString(record.version) ?? '',
-    deprecated: Boolean(record.deprecated),
-    deprecationMessage: record.deprecationMessage as TPlugin['deprecationMessage'],
-    category: readString(record.category) ?? 'integration',
-    icon: normalizeIcon(record.icon),
-    author: normalizeAuthor(record.author),
-    source,
-    keywords: readStringArray(record.keywords),
-    downloads: normalizeDownloads(record.downloads),
+    packageName,
+    displayName: item.displayName ?? name,
+    description: item.description ?? name,
+    version: item.version ?? '',
+    level: item.level,
+    deprecated: item.deprecated,
+    deprecationMessage: item.deprecationMessage ?? undefined,
+    category: item.category ?? 'integration',
+    icon: normalizeIcon(item.icon),
+    author: normalizeAuthor(item.author),
+    source: normalizeSource(item.source),
+    keywords: item.keywords,
+    downloads: item.downloads,
     sourceId,
     sourceName,
-    sourceNameI18nKey: getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
-    installed: Boolean(record.installed),
-    contributions,
-    operationSummary: readRecord(record.operationSummary) as TPluginWithDownloads['operationSummary'],
-    marketplacePlugin: record
+    sourceNameI18nKey: item.sourceNameI18nKey ?? getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
+    installed: item.installed,
+    contributions: mergeMarketplaceContributions(item.contributions),
+    operationSummary: item.operationSummary,
+    targetAppMeta: item.targetAppMeta ?? null
   }
 }
 
-function normalizeDownloads(value: unknown): TPluginWithDownloads['downloads'] {
-  const record = readRecord(value)
-  if (!record) {
-    return undefined
+function isPluginTargetAppMetaInput(value: unknown): value is PluginTargetAppMeta {
+  if (!isPlainObject(value)) {
+    return false
   }
 
-  return {
-    lastWeek: readNumber(record.lastWeek),
-    lastMonth: readNumber(record.lastMonth),
-    lastYear: readNumber(record.lastYear)
-  }
+  const entries: Array<[string, unknown]> = Object.entries(value)
+  return entries.every(([, metadata]) => metadata === undefined || isPluginTargetAppMetaEntry(metadata))
 }
 
-function normalizeAuthor(value: unknown): TPlugin['author'] {
+function isPluginTargetAppMetaEntry(value: unknown): value is PluginTargetAppMetadata {
+  if (!isPlainObject(value)) {
+    return false
+  }
+
+  const types = Reflect.get(value, 'types')
+  const minAppVersion = Reflect.get(value, 'minAppVersion')
+  const capabilities = Reflect.get(value, 'capabilities')
+  const marketplace = Reflect.get(value, 'marketplace')
+  const runtime = Reflect.get(value, 'runtime')
+
+  return (
+    isOptionalStringArray(types) &&
+    (minAppVersion === undefined || typeof minAppVersion === 'string') &&
+    isOptionalStringArray(capabilities) &&
+    (marketplace === undefined || isMarketplaceMetadataInput(marketplace)) &&
+    (runtime === undefined || isPlainObject(runtime))
+  )
+}
+
+function isMarketplaceMetadataInput(value: unknown): value is PluginTargetAppMarketplaceMetadata {
+  if (!isPlainObject(value)) {
+    return false
+  }
+
+  const contents = Reflect.get(value, 'contents')
+  const category = Reflect.get(value, 'category')
+  const subcategory = Reflect.get(value, 'subcategory')
+  const featured = Reflect.get(value, 'featured')
+  const screenshots = Reflect.get(value, 'screenshots')
+  const readme = Reflect.get(value, 'readme')
+  const updatedAt = Reflect.get(value, 'updatedAt')
+
+  return (
+    (contents === undefined || Array.isArray(contents)) &&
+    (category === undefined || isPluginMarketplaceCategory(category)) &&
+    (subcategory === undefined || typeof subcategory === 'string') &&
+    (featured === undefined || typeof featured === 'boolean') &&
+    isOptionalStringArray(screenshots) &&
+    (readme === undefined || typeof readme === 'string') &&
+    (updatedAt === undefined || typeof updatedAt === 'string')
+  )
+}
+
+function isPluginMarketplaceCategory(value: unknown): value is PluginMarketplaceCategory {
+  return typeof value === 'string' && normalizePluginMarketplaceCategory(value) === value
+}
+
+function isOptionalStringArray(value: unknown) {
+  return value === undefined || (Array.isArray(value) && value.every((item) => typeof item === 'string'))
+}
+
+function isPlainObject(value: unknown): value is object {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function normalizeAuthor(value: PluginMarketplaceItem['author']): TPlugin['author'] {
   if (typeof value === 'string') {
     return {
       name: value,
@@ -592,46 +646,34 @@ function normalizeAuthor(value: unknown): TPlugin['author'] {
     }
   }
 
-  const record = readRecord(value)
   return {
-    name: readString(record?.name) ?? readString(record?.displayName) ?? 'XpertAI',
-    url: readString(record?.url) ?? readString(record?.homepage) ?? ''
+    name: value?.name ?? value?.displayName ?? 'XpertAI',
+    url: value?.url ?? value?.homepage ?? ''
   }
 }
 
-function normalizeIcon(value: unknown): TPlugin['icon'] {
-  return (
-    normalizeOptionalIcon(value) ?? {
-      type: 'font',
-      value: 'ri-puzzle-2-line'
-    }
-  )
-}
-
-function normalizeOptionalIcon(value: unknown): TPluginMarketplaceContribution['icon'] {
-  const record = readRecord(value)
-  if (!record || typeof record.type !== 'string' || typeof record.value !== 'string') {
-    return undefined
-  }
-  return record as unknown as TPluginMarketplaceContribution['icon']
-}
-
-function normalizeSource(value: unknown): TPlugin['source'] {
-  const record = readRecord(value)
-  const type = normalizeSourceType(readString(record?.type))
-  const url = readString(record?.url)
-
-  if (!url) {
-    return undefined
+function normalizeIcon(value: PluginMarketplaceItem['icon']): TPlugin['icon'] {
+  if (value) {
+    return value
   }
 
   return {
-    type,
-    url
+    type: 'font',
+    value: 'ri-puzzle-2-line'
   }
 }
 
-function normalizeSourceType(type: string | null): NonNullable<TPlugin['source']>['type'] {
+function normalizeSource(value: PluginMarketplaceItem['source']): TPlugin['source'] {
+  if (!value?.url) {
+    return undefined
+  }
+  return {
+    type: normalizeSourceType(value.type),
+    url: value.url
+  }
+}
+
+function normalizeSourceType(type: string | undefined): NonNullable<TPlugin['source']>['type'] {
   if (
     type === 'marketplace' ||
     type === 'github' ||
@@ -643,79 +685,4 @@ function normalizeSourceType(type: string | null): NonNullable<TPlugin['source']
     return type
   }
   return 'other'
-}
-
-function normalizeContributions(value: unknown): TPluginMarketplaceContribution[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value
-    .map((item): TPluginMarketplaceContribution | null => {
-      const record = readRecord(item)
-      const name = readString(record?.name)
-      const type = readString(record?.type)
-      if (!record || !name || !type) {
-        return null
-      }
-
-      return {
-        id: readString(record.id) ?? undefined,
-        type,
-        name,
-        displayName: record.displayName as TPluginMarketplaceContribution['displayName'],
-        description: record.description as TPluginMarketplaceContribution['description'],
-        icon: normalizeOptionalIcon(record.icon),
-        operations: normalizeOperations(record.operations),
-        tags: readStringArray(record.tags),
-        metadata: readRecord(record.metadata) ?? undefined
-      }
-    })
-    .filter((item): item is TPluginMarketplaceContribution => !!item)
-}
-
-function normalizeOperations(value: unknown): TPluginMarketplaceOperation[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value
-    .map((item): TPluginMarketplaceOperation | null => {
-      const record = readRecord(item)
-      const name = readString(record?.name)
-      if (!record || !name) {
-        return null
-      }
-
-      return {
-        name,
-        displayName: record.displayName as TPluginMarketplaceOperation['displayName'],
-        description: record.description as TPluginMarketplaceOperation['description'],
-        access: readString(record.access) ?? 'read',
-        tags: readStringArray(record.tags)
-      }
-    })
-    .filter((item): item is TPluginMarketplaceOperation => !!item)
-}
-
-function normalizePluginName(pluginName: string) {
-  if (!pluginName?.includes('@')) return pluginName
-  const lastAt = pluginName.lastIndexOf('@')
-  return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName
-}
-
-function readRecord(value: unknown): JsonRecord | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as JsonRecord) : null
-}
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function readStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && !!item.trim()) : []
 }

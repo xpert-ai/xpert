@@ -23,7 +23,7 @@
   .cdk-option {
     @apply border-2 flex items-center h-9 px-3 rounded-xl cursor-pointer space-x-2
           bg-components-list-option-bg hover:bg-components-list-option-active-bg active:bg-components-list-option-active-bg
-          border-neutral-100 dark:border-neutral-600;
+          border-divider-regular;
     .radio-indicator {
       @apply border-4 border-gray-200 w-4 h-4 rounded-full;
     }
