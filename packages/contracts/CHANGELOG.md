@@ -1,5 +1,17 @@
 # @xpert-ai/contracts
 
+## 3.11.0
+
+### Minor Changes
+
+- d92d0f2: upgrade zard ui
+
+## 3.10.1
+
+### Patch Changes
+
+- 49101da: release
+
 ## 3.10.0
 
 ### Minor Changes

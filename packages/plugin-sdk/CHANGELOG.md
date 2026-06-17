@@ -4,6 +4,34 @@
 
 ### Minor Changes
 
+- d92d0f2: upgrade zard ui
+
+### Patch Changes
+
+- Updated dependencies [d92d0f2]
+  - @xpert-ai/contracts@3.11.0
+
+## 3.11.0
+
+### Minor Changes
+
+- 49101da: release
+
+### Patch Changes
+
+- Updated dependencies [49101da]
+  - @xpert-ai/contracts@3.10.1
+
+## 3.10.0
+
+### Minor Changes
+
+- a83c9ea: fix
+
+## 4.0.0
+
+### Minor Changes
+
 - df9d7e2: agentic app
 
 ### Patch Changes

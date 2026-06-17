@@ -1,5 +1,28 @@
 # @xpert-ai/plugin-agent-middlewares
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [d92d0f2]
+  - @xpert-ai/plugin-sdk@4.0.0
+  - @xpert-ai/contracts@3.11.0
+
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [49101da]
+  - @xpert-ai/plugin-sdk@3.11.0
+  - @xpert-ai/contracts@3.10.1
+
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [a83c9ea]
+  - @xpert-ai/plugin-sdk@3.10.0
+
 ## 1.0.0
 
 ### Patch Changes
