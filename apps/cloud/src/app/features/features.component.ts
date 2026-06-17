@@ -40,7 +40,7 @@ import {
   routeAnimations
 } from '../@core'
 import { AppService } from '../app.service'
-import { getFeatureMenus } from './menus'
+import { getFeatureMenus, syncMenuParentStateFromChildren } from './menus'
 
 function isWorkspaceRoute(url?: string | null) {
   return /^\/xpert\/w(?:\/|$)/.test(url?.split('?')[0] ?? '')
@@ -317,9 +317,7 @@ export class FeaturesComponent implements OnInit {
         this.refreshMenuItem(childItem)
       })
 
-      if (item.data.hideWhenAllChildrenHidden) {
-        item.hidden = item.children.every((childItem) => childItem.hidden)
-      }
+      syncMenuParentStateFromChildren(item)
     }
   }
 

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'
+import { Component, ViewChild } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -22,6 +22,8 @@ import { ZardCheckboxComponent } from './checkbox.component'
   `
 })
 class ReactiveHostComponent {
+  @ViewChild(ZardCheckboxComponent, { static: true }) checkboxComponent!: ZardCheckboxComponent
+
   readonly control = new FormControl<boolean | null>(null)
   indeterminate = true
   checked: boolean | null = null
@@ -71,6 +73,12 @@ describe('ZardCheckboxComponent', () => {
     expect(input.checked).toBe(true)
     expect(input.indeterminate).toBe(false)
     expect(host.hasAttribute('data-indeterminate')).toBe(false)
+
+    fixture.componentInstance.checkboxComponent.setIndeterminateState(true)
+    fixture.detectChanges()
+
+    expect(input.indeterminate).toBe(true)
+    expect(host.getAttribute('data-indeterminate')).toBe('')
   })
 
   it('supports ngModel bindings and zDisabled state', async () => {

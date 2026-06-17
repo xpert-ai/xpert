@@ -59,12 +59,15 @@
       }
     </z-badge>
 
-    <z-switch
-      zSize="sm"
+    <z-checkbox
+      #featureCheckbox="zCheckbox"
+      data-feature-checkbox
+      [attr.data-feature-code]="feature.code"
+      displayDensity="compact"
       class="justify-self-end"
       [ngModel]="enabledFeature(feature)"
-      (ngModelChange)="featureChanged($event, feature)"
-    />
+      (checkChange)="featureChanged($event, feature, featureCheckbox)"
+    ></z-checkbox>
   </div>
 </ng-template>
 
@@ -160,8 +163,26 @@
                 <z-icon [zType]="group.icon" />
               </span>
               <div class="min-w-0">
-                <z-card-title class="text-base font-semibold text-text-primary">
-                  {{ group.titleKey | translate: { Default: group.titleDefault } }}
+                <z-card-title class="flex min-w-0 items-center text-base font-semibold text-text-primary">
+                  <span
+                    [attr.data-feature-deprecated]="group.deprecated ? true : null"
+                    class="min-w-0 truncate"
+                    [class]="group.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+                  >
+                    {{ group.titleKey | translate: { Default: group.titleDefault } }}
+                    @if (group.deprecated) {
+                      {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                    }
+                  </span>
+                  @if (group.deprecated) {
+                    <z-icon
+                      data-feature-deprecated-icon
+                      zType="triangle-alert"
+                      class="ml-1 size-4 shrink-0 text-text-warning"
+                      [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                      zPosition="top"
+                    />
+                  }
                 </z-card-title>
                 <z-card-subtitle class="mt-1 text-sm text-text-tertiary">
                   {{ group.descriptionKey | translate: { Default: group.descriptionDefault } }}
@@ -171,27 +192,41 @@
             <div class="flex shrink-0 items-center gap-2">
               <z-badge zType="outline">{{ group.matchCount }}</z-badge>
               <z-badge
-                [attr.data-feature-parent-status]="enabledFeature(group.feature) ? 'enabled' : 'disabled'"
+                [attr.data-feature-parent-status]="featureGroupStatus(group.feature)"
                 zType="outline"
-                [class]="
-                  enabledFeature(group.feature)
-                    ? 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
-                    : 'h-5 border-destructive/25 bg-destructive/10 text-destructive'
-                "
+                [class]="featureStatusBadgeClass(featureGroupStatus(group.feature))"
               >
-                @if (enabledFeature(group.feature)) {
-                  {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+                @if (hasChildFeatures(group.feature)) {
+                  @switch (featureGroupStatus(group.feature)) {
+                    @case ('enabled') {
+                      {{ 'PAC.Feature.AllEnabled' | translate: { Default: 'All enabled' } }}
+                    }
+                    @case ('partial') {
+                      {{ 'PAC.Feature.PartiallyEnabled' | translate: { Default: 'Partially enabled' } }}
+                    }
+                    @case ('disabled') {
+                      {{ 'PAC.Feature.AllDisabled' | translate: { Default: 'All disabled' } }}
+                    }
+                  }
                 } @else {
-                  {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+                  @if (enabledFeature(group.feature)) {
+                    {{ 'PAC.Feature.Enabled' | translate: { Default: 'Enabled' } }}
+                  } @else {
+                    {{ 'PAC.Feature.Disabled' | translate: { Default: 'Disabled' } }}
+                  }
                 }
               </z-badge>
-              <z-switch
-                data-feature-parent-switch
+              <z-checkbox
+                #featureParentCheckbox="zCheckbox"
+                data-feature-parent-checkbox
                 [attr.data-feature-code]="group.feature.code"
-                zSize="sm"
-                [ngModel]="enabledFeature(group.feature)"
-                (ngModelChange)="featureChanged($event, group.feature)"
-              />
+                displayDensity="compact"
+                [ngModel]="featureCheckboxChecked(group.feature)"
+                [indeterminate]="featureCheckboxIndeterminate(group.feature)"
+                (checkChange)="
+                  featureChanged(nextFeatureCheckboxValue($event, group.feature), group.feature, featureParentCheckbox)
+                "
+              ></z-checkbox>
             </div>
           </z-card-header>
 

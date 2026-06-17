@@ -2,12 +2,19 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum, IFeature, IFeatureOrganization } from '@xpert-ai/contracts'
+import {
+  AiFeatureEnum,
+  AnalyticsFeatures,
+  FeatureEnum,
+  IFeature,
+  IFeatureOrganization,
+  IFeatureOrganizationUpdateInput
+} from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
-import { of, pipe } from 'rxjs'
-import { finalize, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { Observable, of, pipe } from 'rxjs'
+import { finalize, map, startWith, switchMap } from 'rxjs/operators'
 import {
   injectConfirm,
   ZardBadgeComponent,
@@ -19,7 +26,7 @@ import {
   ZardLoaderComponent,
   ZardSelectComponent,
   ZardSelectItemComponent,
-  ZardSwitchComponent,
+  ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { FeatureService, FeatureStoreService, Store } from '../../../@core/services'
@@ -27,10 +34,15 @@ import { injectI18nService } from '../../i18n'
 
 type FeatureStatusFilter = 'all' | 'enabled' | 'disabled'
 type FeatureGroupFilter = string
+type FeatureGroupStatus = 'enabled' | 'partial' | 'disabled'
+type FeatureToggleScope = 'tenant-only' | 'organization-only' | 'dual-scope'
+type FeatureToggleRequest = IFeatureOrganizationUpdateInput & { feature: IFeature }
+type FeatureCheckboxControl = Pick<ZardCheckboxComponent, 'writeValue' | 'setIndeterminateState'>
 
 interface FeatureGroupView {
   id: string
   feature: IFeature
+  deprecated: boolean
   titleKey: string
   titleDefault: string
   descriptionKey: string
@@ -46,8 +58,24 @@ const STATUS_FILTERS: Array<{ value: FeatureStatusFilter; labelKey: string; labe
   { value: 'disabled', labelKey: 'PAC.Feature.Filters.Disabled', labelDefault: 'Disabled' }
 ]
 
+const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
+  [FeatureEnum.FEATURE_ROLES_PERMISSION]: 'tenant-only',
+  [AnalyticsFeatures.FEATURE_BUSINESS_AREA]: 'organization-only',
+  [FeatureEnum.FEATURE_INTEGRATION]: 'organization-only'
+}
+
+const DEPRECATED_FEATURE_CODES = new Set<string>([AnalyticsFeatures.FEATURE_BUSINESS_AREA])
+
 function isFeatureStatusFilter(value: unknown): value is FeatureStatusFilter {
   return value === 'all' || value === 'enabled' || value === 'disabled'
+}
+
+function matchesFeatureToggleScope(scope: FeatureToggleScope, isOrganization: boolean) {
+  if (scope === 'dual-scope') {
+    return true
+  }
+
+  return isOrganization ? scope === 'organization-only' : scope === 'tenant-only'
 }
 
 function areFeatureOrganizationsEqual(
@@ -90,7 +118,7 @@ function areFeatureOrganizationsEqual(
     ZardLoaderComponent,
     ZardSelectComponent,
     ZardSelectItemComponent,
-    ZardSwitchComponent,
+    ZardCheckboxComponent,
     ...ZardTooltipImports
   ],
   providers: [FeatureStoreService],
@@ -106,7 +134,7 @@ export class FeatureToggleComponent {
   readonly confirm = injectConfirm()
   readonly translate = injectI18nService()
 
-  readonly isOrganization = injectRouteData('isOrganization')
+  readonly isOrganization = injectRouteData<boolean>('isOrganization')
 
   readonly loading = signal(true)
   readonly searchText = signal('')
@@ -180,7 +208,13 @@ export class FeatureToggleComponent {
     this._featureStoreService.loadFeatures(['children']).pipe(takeUntilDestroyed(this.destroyRef)).subscribe()
   }
 
-  featureChanged(isEnabled: boolean, feature: IFeature) {
+  featureChanged(isEnabled: boolean, feature: IFeature, checkboxControl?: FeatureCheckboxControl) {
+    if (typeof isEnabled !== 'boolean') {
+      return
+    }
+
+    let applied = false
+
     this.confirm(
       {
         title: isEnabled
@@ -193,34 +227,91 @@ export class FeatureToggleComponent {
             Default: feature.description
           })
       },
-      this.emitFeatureToggle({ feature, isEnabled: !!isEnabled })
-    ).subscribe()
+      this.emitFeatureToggle({ feature, isEnabled: !!isEnabled }).pipe(
+        map((result) => {
+          applied = true
+          return result
+        })
+      )
+    )
+      .pipe(
+        finalize(() => {
+          if (!applied) {
+            checkboxControl?.writeValue(this.featureCheckboxChecked(feature))
+            checkboxControl?.setIndeterminateState(this.featureCheckboxIndeterminate(feature))
+          }
+        })
+      )
+      .subscribe()
   }
 
-  emitFeatureToggle({ feature, isEnabled }: { feature: IFeature; isEnabled: boolean }) {
-    const isOrganization = this.isOrganization()
-    const organization = this.organization()
-    const { id: featureId } = feature
-    const request = {
-      featureId,
-      feature,
-      isEnabled
+  nextFeatureCheckboxValue(isChecked: boolean, feature: IFeature) {
+    if (this.hasChildFeatures(feature) && this.featureCheckboxIndeterminate(feature)) {
+      return false
     }
-    if (organization && isOrganization) {
-      const { id: organizationId } = organization
-      request['organizationId'] = organizationId
+
+    return isChecked
+  }
+
+  emitFeatureToggle({ feature, isEnabled }: { feature: IFeature; isEnabled: boolean }): Observable<boolean | boolean[]> {
+    const requests = this.featureToggleRequests(feature, isEnabled)
+    if (!requests.length) {
+      return of(false)
     }
-    return this._featureStoreService.changedFeature(request).pipe(
-      tap(() => {
+
+    const toggle: Observable<boolean | boolean[]> = requests.length === 1
+      ? this._featureStoreService.changedFeature(requests[0])
+      : this._featureStoreService.changedFeatures(requests)
+
+    return toggle.pipe(
+      map((result) => {
         window.location.reload()
+        return result
       })
     )
   }
 
+  private featureToggleRequests(feature: IFeature, isEnabled: boolean): FeatureToggleRequest[] {
+    const isOrganization = this.isOrganization()
+    const organization = this.organization()
+    const features = this.hasChildFeatures(feature)
+      ? this.childFeaturesForParent(feature).filter((childFeature) => this.matchesCurrentFeatureScope(childFeature))
+      : [feature]
+
+    return features.map((item) => this.featureToggleRequest(
+      item,
+      isEnabled,
+      organization && isOrganization ? organization.id : undefined
+    ))
+  }
+
+  private featureToggleRequest(feature: IFeature, isEnabled: boolean, organizationId?: string): FeatureToggleRequest {
+    if (!feature.id) {
+      throw new Error(`Feature "${feature.code}" is missing an id`)
+    }
+
+    return {
+      featureId: feature.id,
+      feature,
+      isEnabled,
+      ...(organizationId ? { organizationId } : {})
+    }
+  }
+
   enabledFeature(row: IFeature) {
-    const featureOrganization = this.featureToggles().find(
+    const featureOrganizationById = this.featureToggles().find(
+      (featureOrganization: IFeatureOrganization) => featureOrganization.featureId === row.id
+    )
+    if (featureOrganizationById) {
+      return featureOrganizationById.isEnabled
+    }
+
+    const featureOrganizationsByCode = this.featureToggles().filter(
       (featureOrganization: IFeatureOrganization) => featureOrganization.feature.code === row.code
     )
+    const featureOrganization =
+      featureOrganizationsByCode.find((featureOrganization) => featureOrganization.feature.parentId) ??
+      featureOrganizationsByCode[0]
     if (featureOrganization) {
       return featureOrganization.isEnabled
     }
@@ -231,6 +322,54 @@ export class FeatureToggleComponent {
     // }
 
     return false
+  }
+
+  hasChildFeatures(feature: IFeature) {
+    return this.childFeaturesForParent(feature).some((childFeature) => this.matchesCurrentFeatureScope(childFeature))
+  }
+
+  featureCheckboxChecked(feature: IFeature) {
+    if (!this.hasChildFeatures(feature)) {
+      return this.enabledFeature(feature)
+    }
+
+    const childFeatures = this.childFeaturesForParent(feature).filter((childFeature) =>
+      this.matchesCurrentFeatureScope(childFeature)
+    )
+
+    return childFeatures.length > 0 && childFeatures.every((childFeature) => this.enabledFeature(childFeature))
+  }
+
+  featureCheckboxIndeterminate(feature: IFeature) {
+    const childFeatures = this.childFeaturesForParent(feature).filter((childFeature) =>
+      this.matchesCurrentFeatureScope(childFeature)
+    )
+
+    if (!childFeatures.length) {
+      return false
+    }
+
+    const enabledCount = childFeatures.filter((childFeature) => this.enabledFeature(childFeature)).length
+    return enabledCount > 0 && enabledCount < childFeatures.length
+  }
+
+  featureGroupStatus(feature: IFeature): FeatureGroupStatus {
+    if (this.featureCheckboxIndeterminate(feature)) {
+      return 'partial'
+    }
+
+    return this.featureCheckboxChecked(feature) ? 'enabled' : 'disabled'
+  }
+
+  featureStatusBadgeClass(status: FeatureGroupStatus) {
+    switch (status) {
+      case 'enabled':
+        return 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
+      case 'partial':
+        return 'h-5 border-state-warning-hover bg-state-warning-hover/20 text-text-warning'
+      case 'disabled':
+        return 'h-5 border-destructive/25 bg-destructive/10 text-destructive'
+    }
   }
 
   setStatusFilter(value: unknown) {
@@ -246,21 +385,34 @@ export class FeatureToggleComponent {
   }
 
   allFeatures(features: readonly IFeature[] | null | undefined) {
-    return (features ?? []).flatMap((feature) => [feature, ...(feature.children ?? [])])
+    return (features ?? []).flatMap((feature) => {
+      if (!this.matchesCurrentFeatureScope(feature)) {
+        return []
+      }
+
+      const childFeatures = this.childFeaturesForParent(feature).filter((childFeature) =>
+        this.matchesCurrentFeatureScope(childFeature)
+      )
+
+      return childFeatures.length > 0 ? childFeatures : [feature]
+    })
   }
 
   groupFilterOptions(features: readonly IFeature[] | null | undefined) {
     return [
       { value: 'all', labelKey: 'PAC.Feature.Filters.AllGroups', labelDefault: 'All categories' },
-      ...(features ?? []).map((feature) => ({
-        value: feature.code,
-        labelKey: `PAC.Feature.Features.${feature.code}.Name`,
-        labelDefault: feature.name
-      }))
+      ...(features ?? [])
+        .filter((feature) => this.matchesCurrentFeatureScope(feature))
+        .map((feature) => ({
+          value: feature.code,
+          labelKey: `PAC.Feature.Features.${feature.code}.Name`,
+          labelDefault: feature.name
+        }))
     ]
   }
 
   summaryCards(features: readonly IFeature[] | null | undefined) {
+    const featureGroups = (features ?? []).filter((feature) => this.matchesCurrentFeatureScope(feature))
     const allFeatures = this.allFeatures(features)
     const enabledCount = allFeatures.filter((feature) => this.enabledFeature(feature)).length
 
@@ -284,7 +436,7 @@ export class FeatureToggleComponent {
         icon: 'layers',
         labelKey: 'PAC.Feature.Summary.Groups',
         labelDefault: 'Feature groups',
-        value: (features ?? []).length
+        value: featureGroups.length
       },
       {
         id: 'items',
@@ -298,23 +450,32 @@ export class FeatureToggleComponent {
 
   visibleFeatureGroups(features: readonly IFeature[] | null | undefined): FeatureGroupView[] {
     return (features ?? [])
+      .filter((feature) => this.matchesCurrentFeatureScope(feature))
       .filter((feature) => this.groupFilter() === 'all' || this.groupFilter() === feature.code)
       .map((feature) => {
-        const childFeatures = this.childFeaturesForParent(feature).filter((childFeature) =>
-          this.matchesFilters(childFeature)
+        const scopedChildFeatures = this.childFeaturesForParent(feature).filter((childFeature) =>
+          this.matchesCurrentFeatureScope(childFeature)
+        )
+        const parentMatchesSearch = this.matchesSearchTerm(feature)
+        const childFeatures = scopedChildFeatures.filter(
+          (childFeature) =>
+            this.matchesCurrentFeatureScope(childFeature) &&
+            this.matchesStatusFilter(childFeature) &&
+            (parentMatchesSearch || this.matchesSearchTerm(childFeature))
         )
         const parentMatches = this.matchesFilters(feature)
 
         return {
           id: feature.code,
           feature,
+          deprecated: this.isDeprecatedFeature(feature),
           titleKey: `PAC.Feature.Features.${feature.code}.Name`,
           titleDefault: feature.name,
           descriptionKey: `PAC.Feature.Features.${feature.code}.Description`,
           descriptionDefault: feature.description,
           icon: this.featureIcon(feature),
           features: childFeatures,
-          matchCount: childFeatures.length + (parentMatches ? 1 : 0)
+          matchCount: scopedChildFeatures.length > 0 ? childFeatures.length : parentMatches ? 1 : 0
         }
       })
       .filter((group) => group.matchCount > 0)
@@ -334,8 +495,11 @@ export class FeatureToggleComponent {
       case FeatureEnum.FEATURE_ORGANIZATIONS:
         return 'corporate_fare'
       case FeatureEnum.FEATURE_USER:
+      case FeatureEnum.FEATURE_USERS:
       case FeatureEnum.FEATURE_EMPLOYEES:
         return 'users'
+      case FeatureEnum.FEATURE_USER_GROUPS:
+        return 'group'
       case FeatureEnum.FEATURE_ROLES_PERMISSION:
         return 'shield'
       case FeatureEnum.FEATURE_SETTING:
@@ -348,9 +512,11 @@ export class FeatureToggleComponent {
         return 'mail'
       case FeatureEnum.FEATURE_INTEGRATION:
         return 'hub'
+      case 'GROUP_COPILOT':
       case AiFeatureEnum.FEATURE_COPILOT:
         return 'robot_2'
       case AiFeatureEnum.FEATURE_XPERT:
+      case 'GROUP_XPERT':
         return 'sparkles'
       case AiFeatureEnum.FEATURE_XPERT_CHATBI:
         return 'query_stats'
@@ -371,10 +537,21 @@ export class FeatureToggleComponent {
     return feature.children ?? []
   }
 
+  private matchesCurrentFeatureScope(feature: IFeature) {
+    return matchesFeatureToggleScope(FEATURE_SCOPE_BY_CODE[feature.code] ?? 'dual-scope', !!this.isOrganization())
+  }
+
+  private isDeprecatedFeature(feature: IFeature) {
+    return DEPRECATED_FEATURE_CODES.has(feature.code)
+  }
+
   private matchesFilters(feature: IFeature) {
-    const term = this.searchText().trim().toLowerCase()
-    const enabled = this.enabledFeature(feature)
+    return this.matchesStatusFilter(feature) && this.matchesSearchTerm(feature)
+  }
+
+  private matchesStatusFilter(feature: IFeature) {
     const statusFilter = this.statusFilter()
+    const enabled = this.enabledFeature(feature)
 
     if (statusFilter === 'enabled' && !enabled) {
       return false
@@ -383,6 +560,12 @@ export class FeatureToggleComponent {
     if (statusFilter === 'disabled' && enabled) {
       return false
     }
+
+    return true
+  }
+
+  private matchesSearchTerm(feature: IFeature) {
+    const term = this.searchText().trim().toLowerCase()
 
     if (!term) {
       return true

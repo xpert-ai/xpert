@@ -64,7 +64,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       scopeContext: 'organization-only',
       data: {
         permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
-        featureKey: AnalyticsFeatures.FEATURE_MODEL
+        featureKey: AnalyticsFeatures.FEATURE_DATA_SOURCE
       }
     },
     {
@@ -136,7 +136,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
           PermissionsEnum.ORG_USERS_VIEW,
           PermissionsEnum.ORG_USERS_EDIT
         ],
-        featureKey: FeatureEnum.FEATURE_USER
+        featureKey: FeatureEnum.FEATURE_USERS
       }
     },
     {
@@ -146,7 +146,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       scopeContext: 'organization-only',
       data: {
         permissionKeys: [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT],
-        featureKey: FeatureEnum.FEATURE_USER
+        featureKey: FeatureEnum.FEATURE_USER_GROUPS
       }
     },
     {
@@ -191,7 +191,8 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
           PermissionsEnum.ALL_ORG_EDIT,
           PermissionsEnum.ORG_USERS_VIEW,
           PermissionsEnum.ORG_USERS_EDIT
-        ]
+        ],
+        featureKey: FeatureEnum.FEATURE_ORGANIZATION
       }
     },
     {
@@ -399,8 +400,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings',
-        featureKey: FeatureEnum.FEATURE_SETTING
+        translationKey: 'Settings'
       }
     },
     {
@@ -418,6 +418,19 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   ]
 
   return menus.filter((item) => matchesScope(item.scopeContext ?? 'dual-scope', scopeLevel))
+}
+
+export function syncMenuParentStateFromChildren(item: PacMenuItem) {
+  if (!item.children?.length || !item.data?.hideWhenAllChildrenHidden) {
+    return
+  }
+
+  const visibleChild = item.children.find((childItem) => !childItem.hidden)
+
+  item.hidden = !visibleChild
+  if (visibleChild?.link) {
+    item.link = visibleChild.link
+  }
 }
 
 function matchesScope(scope: MenuScope, level: RequestScopeLevel) {

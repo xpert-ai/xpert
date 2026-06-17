@@ -19,6 +19,7 @@ import {
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { isDeprecatedRolePermission, isRolePermissionReadonly } from './deprecated-permissions'
 
 @Component({
   standalone: false,
@@ -251,18 +252,29 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
     return permissions.reduce((count, permission) => count + (this.enabledPermissions[permission] ? 1 : 0), 0)
   }
 
+  isDeprecatedPermission(permission: string): boolean {
+    return isDeprecatedRolePermission(permission)
+  }
+
+  isDisabledGeneralPermissions(): boolean {
+    return isRolePermissionReadonly(this.role?.name)
+  }
+
   /**
-	 * Disabled General Group Permissions
-	 *
-	 * @returns
-	 */
-	isDisabledAdministrationPermissions(): boolean {
-		if (!this.role) {
-			return true;
-		}
-		if (this.user?.role.name === RolesEnum.SUPER_ADMIN) {
-			return false;
-		}
-		return true;
-	}
+   * Disabled Administration Group Permissions
+   *
+   * @returns
+   */
+  isDisabledAdministrationPermissions(): boolean {
+    if (!this.role) {
+      return true
+    }
+    if (isRolePermissionReadonly(this.role.name)) {
+      return true
+    }
+    if (this.user?.role.name === RolesEnum.SUPER_ADMIN) {
+      return false
+    }
+    return true
+  }
 }

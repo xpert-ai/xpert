@@ -4,7 +4,6 @@ import { Component, DestroyRef, effect, inject, model, signal } from '@angular/c
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
-  AiFeatureEnum,
   AnalyticsFeatures,
   FeatureEnum,
   FeatureService,
@@ -14,6 +13,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { map } from 'rxjs/operators'
+
+const COPILOT_FEATURE_GROUP_CODE = 'GROUP_COPILOT'
+const XPERT_FEATURE_GROUP_CODE = 'GROUP_XPERT'
 
 @Component({
   standalone: true,
@@ -38,7 +40,7 @@ export class FeatureCategoryComponent {
   readonly featureCategories = signal([
     {
       value: 'ai',
-      features: [AiFeatureEnum.FEATURE_COPILOT, AiFeatureEnum.FEATURE_XPERT]
+      features: [COPILOT_FEATURE_GROUP_CODE, XPERT_FEATURE_GROUP_CODE]
     },
     {
       value: 'bi',

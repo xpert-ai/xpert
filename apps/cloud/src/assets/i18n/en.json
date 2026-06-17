@@ -201,6 +201,9 @@
       "DisableFeature": "Disable feature",
       "Enabled": "Enabled",
       "Disabled": "Disabled",
+      "AllEnabled": "All enabled",
+      "PartiallyEnabled": "Partially enabled",
+      "AllDisabled": "All disabled",
       "SearchPlaceholder": "Search modules...",
       "EmptyTitle": "No matching modules",
       "EmptyDescription": "Adjust the keyword, status, or category filter.",
@@ -231,6 +234,48 @@
         "ProjectDescription": "Project workspaces and collaborative delivery modules.",
         "Other": "Other modules",
         "OtherDescription": "Additional feature modules not assigned to a primary group."
+      },
+      "Features": {
+        "GROUP_COPILOT": {
+          "Name": "Copilot features",
+          "Description": "Manage model provider and monitoring modules."
+        },
+        "FEATURE_COPILOT": {
+          "Name": "Model Provider",
+          "Description": "Configure and use model provider features."
+        },
+        "FEATURE_COPILOT_MONITORING": {
+          "Name": "Monitoring",
+          "Description": "Show model provider user usage and monitoring."
+        },
+        "GROUP_XPERT": {
+          "Name": "Xpert features",
+          "Description": "Manage digital expert and related entry points."
+        },
+        "FEATURE_XPERT": {
+          "Name": "Digital Expert",
+          "Description": "Enable Xpert."
+        },
+        "FEATURE_XPERT_CLAWXPERT": {
+          "Name": "ClawXpert",
+          "Description": "Show the ClawXpert entry in the chat sidebar."
+        },
+        "FEATURE_XPERT_CHATBI": {
+          "Name": "ChatBI",
+          "Description": "Show the ChatBI entry in the main navigation."
+        },
+        "FEATURE_XPERT_CODEXPERT": {
+          "Name": "CodeXpert",
+          "Description": "Show the CodeXpert entry in the main navigation."
+        },
+        "FEATURE_XPERT_DEEP_RESEARCH": {
+          "Name": "DeepResearch",
+          "Description": "Show the DeepResearch entry in the main navigation."
+        },
+        "FEATURE_XPERT_DATA_ONTOLOGY": {
+          "Name": "Data & Ontology",
+          "Description": "Show the Data & Ontology entry in the main navigation."
+        }
       }
     },
     "MCP": {
@@ -1296,10 +1341,10 @@
         "CHATBI_VIEW": "Use ChatBI",
         "CHATBI_EDIT": "Manage ChatBI Configuration",
         "COPILOT_VIEW": "Use Copilots",
-        "COPILOT_EDIT": "Maintain Copilot Configuration",
+        "COPILOT_EDIT": "Manage Model Providers",
         "KNOWLEDGEBASE_EDIT": "Maintain Knowledge Base",
         "CHAT_VIEW": "Use Chat AI",
-        "INTEGRATION_EDIT": "Maintain Integrations",
+        "INTEGRATION_EDIT": "Manage System Integrations",
         "DATA_FACTORY_VIEW": "Use Data Factory",
         "DATA_FACTORY_EDIT": "Manage Data Factory Configuration",
         "XPERT_EDIT": "Manage Difital Experts"
@@ -1752,9 +1797,17 @@
         "Name": "Chat AI",
         "Description": "A conversational interface for interacting with intelligent assistants, digital experts, and toolsets."
       },
+      "FEATURE_COPILOT_MONITORING": {
+        "Name": "Monitoring",
+        "Description": "Show model provider user usage and monitoring."
+      },
       "FEATURE_COPILOT_CHATBI": {
         "Name": "Chat BI",
         "Description": "A conversational interface that enables data querying, analysis, and visualization through natural language interaction."
+      },
+      "FEATURE_DATA_SOURCE": {
+        "Name": "Data Source",
+        "Description": "Enable data source configuration."
       },
       "FEATURE_XPERT": {
         "Name": "Digital Expert",

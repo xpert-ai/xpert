@@ -12,32 +12,34 @@
       <z-icon class="mr-1" zType="generating_tokens"></z-icon>
       {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
     </span>
-    @if (organization()) {
-      <span z-tab-link [routerLink]="['./users']"
-        routerLinkActive #rla4="routerLinkActive"
-        [active]="rla4.isActive"
-      >
-        <z-icon class="mr-1" zType="data_usage"></z-icon>
-        {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
-      </span>
-    } @else {
-      <span z-tab-link [routerLink]="['./usages']"
-        routerLinkActive #rla4="routerLinkActive"
-        [active]="rla4.isActive"
-      >
-        <z-icon class="mr-1" zType="data_usage"></z-icon>
-        {{ 'PAC.Copilot.OrgUsage' | translate: {Default: "Organization Usage"} }}
-      </span>
-    }
+    @if (monitoringEnabled()) {
+      @if (organization()) {
+        <span z-tab-link [routerLink]="['./users']"
+          routerLinkActive #rla4="routerLinkActive"
+          [active]="rla4.isActive"
+        >
+          <z-icon class="mr-1" zType="data_usage"></z-icon>
+          {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
+        </span>
+      } @else {
+        <span z-tab-link [routerLink]="['./usages']"
+          routerLinkActive #rla4="routerLinkActive"
+          [active]="rla4.isActive"
+        >
+          <z-icon class="mr-1" zType="data_usage"></z-icon>
+          {{ 'PAC.Copilot.OrgUsage' | translate: {Default: "Organization Usage"} }}
+        </span>
+      }
 
-    @if (organization()) {
-      <span z-tab-link [routerLink]="['./overview']"
-        routerLinkActive #rla4="routerLinkActive"
-        [active]="rla4.isActive"
-      >
-        <z-icon class="mr-1" zType="browse_activity"></z-icon>
-        {{ 'PAC.Copilot.Monitoring' | translate: {Default: "Monitoring"} }}
-      </span>
+      @if (organization()) {
+        <span z-tab-link [routerLink]="['./overview']"
+          routerLinkActive #rla4="routerLinkActive"
+          [active]="rla4.isActive"
+        >
+          <z-icon class="mr-1" zType="browse_activity"></z-icon>
+          {{ 'PAC.Copilot.Monitoring' | translate: {Default: "Monitoring"} }}
+        </span>
+      }
     }
   </nav>
 </div>
