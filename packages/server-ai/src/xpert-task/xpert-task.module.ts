@@ -16,6 +16,7 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
+import { XpertModule } from '../xpert/xpert.module'
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { XpertTaskTemplate } from './xpert-task-template.entity'
         TenantModule,
         CqrsModule,
         forwardRef(() => XpertAgentModule),
+        forwardRef(() => XpertModule),
 
         BullModule.registerQueue({
             name: 'xpert-task-scheduler'

@@ -596,7 +596,7 @@ export function injectXperts() {
     [
       xpertService
         .getMyAll({
-          relations: ['createdBy'],
+          relations: ['createdBy', 'workspace'],
           where: { type: XpertTypeEnum.Agent, latest: true },
           order: { createdAt: OrderTypeEnum.DESC }
         })

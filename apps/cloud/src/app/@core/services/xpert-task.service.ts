@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core'
+import { HttpParams } from '@angular/common/http'
 import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
-import { IXpertTask } from '../types'
+import { IXpertTask, TXpertTaskScheduleCapabilities } from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class XpertTaskService extends OrganizationBaseCrudService<IXpertTask> {
@@ -23,10 +24,17 @@ export class XpertTaskService extends OrganizationBaseCrudService<IXpertTask> {
     return this.httpClient.get<number>(this.apiBaseUrl + `/total`, { params: toHttpParams(options) })
   }
 
+  getScheduleCapabilities(xpertId: string, agentKey?: string) {
+    const params = agentKey ? new HttpParams().set('agentKey', agentKey) : undefined
+    return this.httpClient.get<TXpertTaskScheduleCapabilities>(this.apiBaseUrl + `/schedule/capabilities/${xpertId}`, {
+      params
+    })
+  }
+
   schedule(id: string, entity?: Partial<IXpertTask>) {
     return this.httpClient.put(this.apiBaseUrl + `/${id}/schedule`, entity)
   }
-  
+
   pause(id: string) {
     return this.httpClient.put(this.apiBaseUrl + `/${id}/pause`, {})
   }

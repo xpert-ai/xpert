@@ -1,15 +1,25 @@
 import {
     generateCronExpression,
+    getAgentMiddlewareNodes,
+    IWFNMiddleware,
     I18nObject,
     IUser,
     IXpertTask,
+    JsonSchemaObjectType,
     RolesEnum,
     TChatOptions,
+    TXpertChatState,
+    TXpertGraph,
+    TXpertTaskScheduleCapabilities,
+    TXpertTaskScheduleRuntimeState,
     TScheduleOptions,
     ScheduleTaskStatus,
     TaskFrequency,
+    WorkflowNodeTypeEnum,
+    XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
@@ -22,9 +32,11 @@ import { CronJob } from 'cron'
 import { lastValueFrom, toArray } from 'rxjs'
 import { Between, Repository, SelectQueryBuilder } from 'typeorm'
 import { XpertChatCommand } from '../xpert/commands'
+import { XpertService } from '../xpert/xpert.service'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
+import { ToolSchemaParser } from '../shared/tools/utils'
 import { AutoTask } from './auto-task.entity'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
@@ -53,6 +65,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         @InjectRepository(XpertTaskTemplate)
         private readonly xpertTaskTemplateRepository: Repository<XpertTaskTemplate>,
         private readonly schedulerRegistry: SchedulerRegistry,
+        private readonly xpertService: XpertService,
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -73,12 +87,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async executeTask(id: string, options: TChatOptions) {
         const task = await this.findOne(id, { relations: ['xpert'] })
+        const runtimeState = await this.resolveTaskRuntimeState(task)
         const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
             prompt: task.prompt,
             xpertId: task.xpertId,
             taskId: task.id,
             conversationTaskId: task.id,
             timeZone: task.timeZone || options.timeZone,
+            runtimeState,
             chatOptions: options
         })
         observable.subscribe({
@@ -103,6 +119,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         taskId?: string | null
         conversationTaskId?: string | null
         timeZone?: string | null
+        runtimeState?: TXpertChatState | null
         chatOptions?: TChatOptions
     }) {
         const conversation = await this.commandBus.execute(
@@ -120,7 +137,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         )
         const execution = await this.commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
-                xpert: params.xpertId ? ({ id: params.xpertId } as any) : undefined,
+                xpertId: params.xpertId ?? undefined,
                 status: XpertAgentExecutionStatusEnum.RUNNING,
                 threadId: conversation.threadId
             })
@@ -134,7 +151,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                         input: {
                             input: params.prompt
                         }
-                    }
+                    },
+                    ...(params.runtimeState ? { state: params.runtimeState } : {})
                 },
                 {
                     ...(params.chatOptions ?? {}),
@@ -237,6 +255,35 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         })
     }
 
+    async getScheduleCapabilities(xpertId: string, agentKey?: string | null): Promise<TXpertTaskScheduleCapabilities> {
+        const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
+        const resolvedAgentKey = normalizeOptionalString(agentKey) || xpert.agent?.key
+        const graph = xpert.graph
+        const stateVariables =
+            xpert.agentConfig?.stateVariables?.map((variable) => ({
+                name: variable.name,
+                type: variable.type,
+                description: variable.description
+            })) ?? []
+        const middlewareStateSchema =
+            graph && resolvedAgentKey
+                ? await discoverScheduleStateSchemaFromGraph(
+                      graph,
+                      resolvedAgentKey,
+                      this.agentMiddlewareRegistry,
+                      xpertId
+                  )
+                : null
+        const stateSchema = mergeStateSchemas(buildStateVariablesSchema(stateVariables), middlewareStateSchema)
+
+        return {
+            xpertId,
+            ...(resolvedAgentKey ? { agentKey: resolvedAgentKey } : {}),
+            stateVariables,
+            ...(stateSchema ? { stateSchema } : {})
+        }
+    }
+
     rescheduleTask(task: IXpertTask, user: IUser) {
         try {
             const job = this.schedulerRegistry.getCronJob(task.id)
@@ -265,7 +312,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
      * Update task and reschedule if necessary
      */
     async updateTask(id: string, entity: Partial<IXpertTask>) {
-        await super.update(id, entity)
+        const updateEntity = sanitizeTaskMutationInput(entity)
+        await super.update(id, updateEntity)
         const task = await this.findOne(id, { relations: ['xpert'] })
         if (task.status === ScheduleTaskStatus.SCHEDULED) {
             this.rescheduleTask(task, RequestContext.currentUser())
@@ -295,6 +343,20 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async test(id: string, options: TChatOptions) {
         return await this.executeTask(id, options)
+    }
+
+    private async resolveTaskRuntimeState(task: IXpertTask): Promise<TXpertChatState | null> {
+        const state: TXpertChatState = task.runtimeState ? { ...task.runtimeState } : {}
+        const scheduleState = Reflect.get(state, XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY)
+        const idempotencyKey = buildScheduleIdempotencyKey(task)
+
+        return {
+            ...state,
+            [XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY]: {
+                ...(isObject(scheduleState) ? scheduleState : {}),
+                idempotencyKey
+            } satisfies TXpertTaskScheduleRuntimeState
+        }
     }
 
     private resolveScheduleScope() {
@@ -2113,4 +2175,192 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             await this.autoTaskTemplateRepository.save(entity)
         }
     }
+}
+
+async function discoverScheduleStateSchemaFromGraph(
+    graph: TXpertGraph,
+    agentKey: string,
+    agentMiddlewareRegistry: AgentMiddlewareRegistry,
+    xpertId: string
+): Promise<JsonSchemaObjectType | null> {
+    const schemas: JsonSchemaObjectType[] = []
+
+    for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
+        const entity = node.entity
+        if (!isMiddlewareEntity(entity)) {
+            continue
+        }
+
+        try {
+            const strategy = agentMiddlewareRegistry.get(entity.provider)
+            const middleware = await Promise.resolve(
+                strategy.createMiddleware(entity.options ?? {}, {
+                    tenantId: RequestContext.currentTenantId(),
+                    organizationId: RequestContext.getOrganizationId(),
+                    userId: RequestContext.currentUserId(),
+                    xpertId,
+                    node: {
+                        ...node,
+                        key: node.key,
+                        options: entity.options ?? {}
+                    },
+                    tools: new Map(),
+                    runtime: {}
+                } as any)
+            )
+            const schema = normalizeJsonSchema(middleware.stateSchema)
+            if (schema) {
+                schemas.push(schema)
+            }
+        } catch {
+            continue
+        }
+    }
+
+    return mergeStateSchemas(...schemas)
+}
+
+const XPERT_TASK_MUTATION_KEYS = [
+    'name',
+    'schedule',
+    'options',
+    'timeZone',
+    'prompt',
+    'status',
+    'runtimeState',
+    'xpertId',
+    'agentKey'
+] satisfies (keyof IXpertTask)[]
+
+function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): Partial<IXpertTask> {
+    const result: Partial<IXpertTask> = {}
+    const source = entity as Record<string, unknown>
+    const target = result as Record<string, unknown>
+
+    for (const key of XPERT_TASK_MUTATION_KEYS) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+            target[key] = source[key]
+        }
+    }
+
+    return result
+}
+
+function isMiddlewareEntity(value: unknown): value is IWFNMiddleware {
+    return (
+        isObject(value) &&
+        Reflect.get(value, 'type') === WorkflowNodeTypeEnum.MIDDLEWARE &&
+        typeof Reflect.get(value, 'provider') === 'string'
+    )
+}
+
+function normalizeJsonSchema(schema: unknown): JsonSchemaObjectType | null {
+    if (!schema) {
+        return null
+    }
+    try {
+        const jsonSchema = (schema as any)?._def ? ToolSchemaParser.parseZodToJsonSchema(schema as any) : schema
+        if (!isObject(jsonSchema) || Reflect.get(jsonSchema, 'type') !== 'object') {
+            return null
+        }
+        return applyScheduleStateSchemaTitles(jsonSchema as JsonSchemaObjectType)
+    } catch {
+        return null
+    }
+}
+
+function buildStateVariablesSchema(
+    variables: TXpertTaskScheduleCapabilities['stateVariables']
+): JsonSchemaObjectType | null {
+    const properties = variables.reduce<Record<string, any>>((acc, variable) => {
+        if (!variable.name || variable.name === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
+            return acc
+        }
+        acc[variable.name] = {
+            type: normalizeJsonSchemaType(variable.type),
+            ...(variable.description ? { title: variable.description } : {})
+        }
+        return acc
+    }, {})
+
+    return Object.keys(properties).length ? { type: 'object', properties } : null
+}
+
+function normalizeJsonSchemaType(type?: string) {
+    if (type === 'number' || type === 'integer' || type === 'boolean' || type === 'object') {
+        return type
+    }
+    if (type?.startsWith('array')) {
+        return 'array'
+    }
+    return 'string'
+}
+
+function mergeStateSchemas(...schemas: Array<JsonSchemaObjectType | null | undefined>): JsonSchemaObjectType | null {
+    const properties: Record<string, any> = {}
+    const required = new Set<string>()
+
+    for (const schema of schemas) {
+        if (!schema?.properties) {
+            continue
+        }
+        for (const [key, property] of Object.entries(schema.properties as Record<string, unknown>)) {
+            if (key === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
+                continue
+            }
+            properties[key] = property
+        }
+        for (const key of Array.isArray((schema as any).required) ? (schema as any).required : []) {
+            if (key === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
+                continue
+            }
+            required.add(key)
+        }
+    }
+
+    return Object.keys(properties).length
+        ? {
+              type: 'object',
+              properties,
+              ...(required.size ? { required: Array.from(required) } : {})
+          }
+        : null
+}
+
+function applyScheduleStateSchemaTitles(schema: JsonSchemaObjectType): JsonSchemaObjectType {
+    const clone = JSON.parse(JSON.stringify(schema)) as JsonSchemaObjectType
+    applyJsonSchemaDescriptionTitles(clone)
+    return clone
+}
+
+function applyJsonSchemaDescriptionTitles(schema: unknown) {
+    if (!isObject(schema)) {
+        return
+    }
+
+    if (!Reflect.get(schema, 'title') && Reflect.get(schema, 'description')) {
+        Reflect.set(schema, 'title', Reflect.get(schema, 'description'))
+    }
+
+    const properties = Reflect.get(schema, 'properties')
+    if (isObject(properties)) {
+        for (const property of Object.values(properties as Record<string, unknown>)) {
+            applyJsonSchemaDescriptionTitles(property)
+        }
+    }
+
+    applyJsonSchemaDescriptionTitles(Reflect.get(schema, 'items'))
+}
+
+function buildScheduleIdempotencyKey(task: IXpertTask) {
+    const fireWindow = new Date().toISOString().slice(0, 16)
+    return `xpert-task:${task.id}:${fireWindow}`
+}
+
+function normalizeOptionalString(value: unknown) {
+    return typeof value === 'string' ? value.trim() : ''
+}
+
+function isObject(value: unknown): value is object {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
 }

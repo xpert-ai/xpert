@@ -84,6 +84,7 @@ export class JSONSchemaPropertyComponent {
   readonly value$ = this.cva.value$
 
   readonly meta = computed(() => this.schema() as JsonSchema7Type)
+  readonly label = computed(() => this.meta()?.title || this.meta()?.description || this.name())
   readonly stringSchema = computed(() => this.schema() as JsonSchema7StringType)
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
   readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)

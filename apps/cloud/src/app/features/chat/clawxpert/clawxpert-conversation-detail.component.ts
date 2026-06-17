@@ -31,6 +31,7 @@ import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/wo
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertFacade } from './clawxpert.facade'
+import { ChatTasksComponent } from '../tasks/tasks.component'
 import {
   type ClawXpertSandboxPreviewTarget,
   getSandboxPreviewTargetFromEffectEvent,
@@ -64,7 +65,7 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
-type ClawXpertStaticTabId = 'files' | 'terminal'
+type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
 type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
 type ClawXpertToolTab = {
@@ -100,6 +101,7 @@ type ClawXpertFixedViewMenuItem = {
   order: number
 }
 const DEFAULT_BROWSER_ZOOM = 100
+const TASKS_WORKSPACE_TAB_ID = 'tasks'
 const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
   id: 'files-initial',
   kind: 'files'
@@ -130,6 +132,7 @@ type ChatKitReferenceComposerControl = {
     ...ZardTabsImports,
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
+    ChatTasksComponent,
     ChatSharedTerminalComponent,
     IconComponent,
     ExtensionHostOutletComponent
@@ -171,6 +174,9 @@ type ChatKitReferenceComposerControl = {
                           @case ('terminal') {
                             <i class="ri-terminal-window-line shrink-0 text-lg"></i>
                           }
+                          @case ('tasks') {
+                            <i class="ri-calendar-line shrink-0 text-lg"></i>
+                          }
                           @case ('browser') {
                             <i class="ri-global-line shrink-0 text-lg"></i>
                           }
@@ -203,6 +209,9 @@ type ChatKitReferenceComposerControl = {
                         <span class="truncate">
                           {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
                         </span>
+                      }
+                      @case ('tasks') {
+                        <span class="truncate">{{ 'PAC.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
                       }
                       @case ('browser') {
                         <span class="max-w-[12rem] truncate">
@@ -308,6 +317,24 @@ type ChatKitReferenceComposerControl = {
                   }
                 </div>
               </ng-template>
+
+              <div class="ml-auto flex shrink-0 items-center justify-end">
+                <button
+                  z-button
+                  type="button"
+                  zType="ghost"
+                  zSize="icon"
+                  data-open-tasks-panel
+                  class="flex !h-9 !w-12 items-center justify-center rounded-2xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50"
+                  [class.bg-hover-bg]="activeTab()?.kind === 'tasks'"
+                  [class.text-text-primary]="activeTab()?.kind === 'tasks'"
+                  [disabled]="!facade.xpertId()"
+                  [title]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
+                  (click)="openTasksTab()"
+                >
+                  <i class="ri-calendar-line text-lg"></i>
+                </button>
+              </div>
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -410,6 +437,16 @@ type ChatKitReferenceComposerControl = {
                       {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
                     </div>
                   }
+                } @else if (activeTab()?.kind === 'tasks') {
+                  <div class="h-full min-h-0 overflow-hidden px-4 py-3">
+                    <pac-chat-tasks
+                      class="block h-full min-h-0"
+                      [embedded]="true"
+                      [xpertId]="facade.xpertId()"
+                      (tasksChanged)="handleTasksChanged()"
+                      (conversationSelected)="openTaskHistoryConversation($event)"
+                    />
+                  </div>
                 } @else if (contextLoading() && !resolvedConversationId()) {
                   <div
                     class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
@@ -941,6 +978,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (kind === 'browser') {
       return this.addBrowserTab()
     }
+    if (kind === 'tasks') {
+      return this.openTasksTab()
+    }
 
     const tab: ClawXpertToolTab = {
       id: this.createWorkspaceTabId(kind),
@@ -950,6 +990,62 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
     return tab
+  }
+
+  openTasksTab() {
+    const existing = this.workspaceTabs().find((tab) => tab.kind === 'tasks')
+    if (existing) {
+      this.activeTabId.set(existing.id)
+      return existing
+    }
+
+    const tab: ClawXpertToolTab = {
+      id: TASKS_WORKSPACE_TAB_ID,
+      kind: 'tasks'
+    }
+
+    this.workspaceTabs.update((tabs) => [...tabs, tab])
+    this.activeTabId.set(tab.id)
+    return tab
+  }
+
+  handleTasksChanged() {
+    if (hasTaskSummaryRefresh(this.facade)) {
+      this.facade.refreshTaskSummaries()
+    }
+  }
+
+  async openTaskHistoryConversation(conversation: IChatConversation) {
+    const threadId = normalizeConversationThreadId(conversation.threadId)
+    if (!threadId) {
+      this.#toastr.error(
+        this.#translate.instant('PAC.Chat.ClawXpert.TaskHistoryThreadMissing', {
+          Default: 'This task history record has no conversation thread.'
+        })
+      )
+      return
+    }
+
+    const control = this.control()
+    if (!control) {
+      this.#toastr.error(
+        this.#translate.instant('PAC.Chat.ClawXpert.ChatkitUnavailable', {
+          Default: 'Chat is not ready yet.'
+        })
+      )
+      return
+    }
+
+    try {
+      this.isChatMinimizedToPet.set(false)
+      if (conversation.id) {
+        this.syncResolvedConversation(conversation.id, conversation)
+      }
+      await control.setThreadId(threadId)
+      this.facade.onChatThreadChange(threadId)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error) || 'Failed to open task history conversation.')
+    }
   }
 
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
@@ -1398,6 +1494,12 @@ function isInitialWorkspaceTab(tab: ClawXpertWorkspaceTab | undefined) {
   return tab?.kind === INITIAL_WORKSPACE_TAB.kind && tab.id === INITIAL_WORKSPACE_TAB.id
 }
 
+function hasTaskSummaryRefresh(
+  facade: WorkbenchChatFacade
+): facade is WorkbenchChatFacade & { refreshTaskSummaries(): void } {
+  return 'refreshTaskSummaries' in facade && typeof facade.refreshTaskSummaries === 'function'
+}
+
 function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
   if (typeof value === 'string') {
     return value.trim() || fallback
@@ -1502,6 +1604,10 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
 
 function resolveEmbeddedChatkitElement(host: HTMLElement) {
   return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
+}
+
+function normalizeConversationThreadId(threadId: string | null | undefined) {
+  return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null
 }
 
 function formatFileElementSource(reference: TChatFileElementReference) {

@@ -152,6 +152,26 @@ jest.mock('./clawxpert-conversation-preview.component', () => {
   }
 })
 
+jest.mock('../tasks/tasks.component', () => {
+  const { Component, EventEmitter, Input, Output } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-chat-tasks',
+    template: ''
+  })
+  class ChatTasksComponent {
+    @Input() embedded?: boolean
+    @Input() xpertId?: string | null
+    @Output() tasksChanged = new EventEmitter<void>()
+    @Output() conversationSelected = new EventEmitter()
+  }
+
+  return {
+    ChatTasksComponent
+  }
+})
+
 jest.mock('../../../@shared/chat/terminal/terminal.component', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
@@ -206,6 +226,7 @@ import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -343,6 +364,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     navigateToOverview: jest.Mock
     setActiveConversation: jest.Mock
     patchActiveConversationStatus: jest.Mock
+    refreshTaskSummaries: jest.Mock
   }
   let aiThreadService: {
     getThread: jest.Mock
@@ -390,7 +412,8 @@ describe('ClawXpertConversationDetailComponent', () => {
               } as IChatConversation)
             : conversation
         )
-      })
+      }),
+      refreshTaskSummaries: jest.fn()
     }
     aiThreadService = {
       getThread: jest.fn(() =>
@@ -760,6 +783,59 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((terminal.componentInstance as ChatSharedTerminalComponent).mode).toBe('interactive')
     expect((terminal.componentInstance as ChatSharedTerminalComponent).conversationId).toBe('conversation-1')
     expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
+  })
+
+  it('opens the task maintenance panel from the conversation detail header', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    ;(fixture.nativeElement.querySelector('[data-open-tasks-panel]') as HTMLButtonElement).click()
+    await settle(fixture)
+
+    const tasksPanel = fixture.debugElement.query(By.directive(ChatTasksComponent))
+    expect(fixture.componentInstance.activeTab()?.kind).toBe('tasks')
+    expect(fixture.nativeElement.querySelector('[data-panel-button="tasks"]')).not.toBeNull()
+    expect(tasksPanel).not.toBeNull()
+    expect((tasksPanel.componentInstance as ChatTasksComponent).embedded).toBe(true)
+    expect((tasksPanel.componentInstance as ChatTasksComponent).xpertId).toBe('assistant-1')
+    ;(tasksPanel.componentInstance as ChatTasksComponent).tasksChanged.emit()
+    ;(fixture.nativeElement.querySelector('[data-open-tasks-panel]') as HTMLButtonElement).click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.workspaceTabs().filter((tab) => tab.kind === 'tasks')).toHaveLength(1)
+    expect(facade.refreshTaskSummaries).toHaveBeenCalled()
+  })
+
+  it('opens task history conversations inside the embedded chatkit', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    ;(fixture.nativeElement.querySelector('[data-open-tasks-panel]') as HTMLButtonElement).click()
+    await settle(fixture)
+
+    const tasksPanel = fixture.debugElement.query(By.directive(ChatTasksComponent))
+    expect(tasksPanel).not.toBeNull()
+
+    facade.onChatThreadChange.mockClear()
+    ;(tasksPanel.componentInstance as ChatTasksComponent).conversationSelected.emit({
+      id: 'history-conversation-1',
+      threadId: 'history-thread-1',
+      status: 'idle',
+      messages: []
+    } as IChatConversation)
+    await settle(fixture)
+
+    expect(setThreadId).toHaveBeenCalledWith('history-thread-1')
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('history-thread-1')
+    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'history-conversation-1', threadId: 'history-thread-1' })
+    )
   })
 
   it('adds a browser tab with the resolved conversation context', async () => {

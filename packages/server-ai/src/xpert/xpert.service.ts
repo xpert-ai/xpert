@@ -160,6 +160,10 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     async getMyAll(params: PaginationParams<Xpert>) {
         const userId = RequestContext.currentUserId()
         const { items: userWorkspaces } = await this.queryBus.execute(new MyXpertWorkspaceQuery(userId, {}))
+        const workspaceAccesses = await Promise.all(
+            userWorkspaces.map((workspace) => this.workspaceAccessService.buildAccess(workspace))
+        )
+        const workspaceById = new Map(workspaceAccesses.map((access) => [access.workspace.id, access.workspace]))
 
         const { relations, order, take } = params ?? {}
         let { where } = params ?? {}
@@ -190,6 +194,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         })
 
         const allXperts = uniqBy([...xpertsCreatedByUser.items, ...xpertsInUserWorkspaces], 'id')
+        allXperts.forEach((xpert) => {
+            const workspace = xpert.workspaceId ? workspaceById.get(xpert.workspaceId) : null
+            if (workspace) {
+                xpert.workspace = workspace
+            }
+        })
 
         return {
             items: allXperts.map((item) => new XpertIdentiDto(item)),

@@ -1,67 +1,81 @@
-import { ITag, IUser, IXpert, IXpertAgent, TAvatar, TXpertExportedTemplate, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+    ITag,
+    IUser,
+    IXpert,
+    IXpertAgent,
+    IXpertWorkspace,
+    TAvatar,
+    TXpertExportedTemplate,
+    XpertTypeEnum
+} from '@xpert-ai/contracts'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
+import { WorkspacePublicDTO } from '../../xpert-workspace/dto/public.dto'
 
 /**
  * IdentiDto: The minimum attributes that can be exposed to represent this object
  */
 @Exclude()
 export class XpertIdentiDto implements Partial<IXpert> {
-	@Expose()
-	id: string
+    @Expose()
+    id: string
 
-	@Expose()
-	slug: string
+    @Expose()
+    slug: string
 
-	@Expose()
-	name: string
+    @Expose()
+    name: string
 
-	@Expose()
-	type: XpertTypeEnum
+    @Expose()
+    type: XpertTypeEnum
 
-	@Expose()
-	description: string
+    @Expose()
+    description: string
 
-	@Expose()
-	avatar?: TAvatar
+    @Expose()
+    avatar?: TAvatar
 
-	@Expose()
-	title?: string
+    @Expose()
+    title?: string
 
-	@Expose()
-	titleCN?: string
+    @Expose()
+    titleCN?: string
 
-	@Expose()
-	version?: string
+    @Expose()
+    version?: string
 
-	@Expose()
-	publishAt?: Date
+    @Expose()
+    publishAt?: Date
 
-	@Expose()
-	exportedTemplate?: TXpertExportedTemplate | null
+    @Expose()
+    exportedTemplate?: TXpertExportedTemplate | null
 
-	@Expose()
-	tags?: ITag[]
+    @Expose()
+    tags?: ITag[]
 
-	@Expose()
-	@Transform((params: TransformFnParams) => (params.value ? new XpertAgentIdentiDto(params.value) : null))
-	agent?: IXpertAgent
+    @Expose()
+    @Transform((params: TransformFnParams) => (params.value ? new XpertAgentIdentiDto(params.value) : null))
+    agent?: IXpertAgent
 
-	@Expose()
-	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentIdentiDto(_)))
-	agents?: IXpertAgent[]
+    @Expose()
+    @Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentIdentiDto(_)))
+    agents?: IXpertAgent[]
 
-	@Expose()
-	@Transform(({ value }: TransformFnParams) => value && new UserPublicDTO(value))
-	createdBy?: IUser
+    @Expose()
+    @Transform(({ value }: TransformFnParams) => value && new UserPublicDTO(value))
+    createdBy?: IUser
 
-	@Expose()
-	createdAt?: Date
-	@Expose()
-	updatedAt?: Date
+    @Expose()
+    @Transform(({ value }: TransformFnParams) => value && new WorkspacePublicDTO(value))
+    workspace?: IXpertWorkspace
 
-	constructor(partial: Partial<XpertIdentiDto | IXpert>) {
-		Object.assign(this, partial)
-	}
+    @Expose()
+    createdAt?: Date
+    @Expose()
+    updatedAt?: Date
+
+    constructor(partial: Partial<XpertIdentiDto | IXpert>) {
+        Object.assign(this, partial)
+    }
 }

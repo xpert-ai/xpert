@@ -2,7 +2,7 @@
   <h2 class="text-lg font-semibold leading-none tracking-tight">
     <div class="flex w-full items-center justify-between">
       <input
-        [placeholder]="'PAC.Xpert.NameOfTask' | translate: {Default: 'Name of task'}"
+        [placeholder]="'PAC.Xpert.NameOfTask' | translate: { Default: 'Name of task' }"
         class="p-1 w-full focus-visible:outline-none bg-transparent rounded-xl"
         type="text"
         [(ngModel)]="name"
@@ -23,36 +23,68 @@
 <div class="relative gap-3 flex flex-col px-6">
   <xp-schedule-form [(ngModel)]="options" />
 
-  <button
-    class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-input-border rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
-    [disabled]="lockXpertSelection()"
-    [cdkMenuTriggerFor]="lockXpertSelection() ? null : xpertsMenu"
-  >
-    <i class="ri-links-line ml-1 text-lg"></i>
-    <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
-    <span>
-      {{ xpert()?.title || xpert()?.name || ('PAC.Xpert.SelectExpert' | translate: {Default: 'Select Expert'}) }}
-    </span>
-    @if (lockXpertSelection()) {
-      <i class="ri-lock-line ml-auto text-text-tertiary"></i>
+  <div class="flex items-center gap-2 border-solid border-[0.5px] border-input-border rounded-xl p-2">
+    <button
+      type="button"
+      class="flex min-w-0 grow items-center gap-2 text-left disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
+      [disabled]="lockXpertSelection()"
+      [cdkMenuTriggerFor]="lockXpertSelection() ? null : xpertsMenu"
+    >
+      <i class="ri-links-line ml-1 text-lg"></i>
+      <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
+      <span class="min-w-0 grow truncate">
+        {{ xpert()?.title || xpert()?.name || ('PAC.Xpert.SelectExpert' | translate: { Default: 'Select Expert' }) }}
+      </span>
+      @if (lockXpertSelection()) {
+        <i class="ri-lock-line text-text-tertiary"></i>
+      }
+    </button>
+
+    @if (canEditSelectedXpert()) {
+      <button
+        type="button"
+        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        [zTooltip]="'PAC.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
+        zPosition="top"
+        (click)="editXpert()"
+      >
+        <i class="ri-settings-3-line text-lg"></i>
+      </button>
     }
-  </button>
+  </div>
+
+  @if (runtimeStateSchema(); as stateSchema) {
+    <json-schema-form
+      class="grid grid-cols-2 gap-2"
+      [schema]="stateSchema"
+      [ngModel]="runtimeStateValue()"
+      [ngModelOptions]="{ standalone: true }"
+      (ngModelChange)="setRuntimeState($event)"
+    />
+  }
 
   <textarea
     class="flex min-h-[60px] w-full bg-transparent text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 rounded-xl p-4 border border-input-border"
     rows="8"
-    [placeholder]="'PAC.Xpert.EnterPromptHere' | translate: {Default: 'Enter prompt here.'}"
+    [placeholder]="'PAC.Xpert.EnterPromptHere' | translate: { Default: 'Enter prompt here.' }"
     maxlength="8000"
     [(ngModel)]="prompt"
   ></textarea>
 
   @if (isTrialUser()) {
-    <div class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-components-card-bg px-3 py-3">
+    <div
+      class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-components-card-bg px-3 py-3"
+    >
       <div class="flex items-center gap-4">
         <ngm-progress-spinner class="w-10 h-10 text-[var(--sys-primary)]" [value]="(total() / 10) * 100" />
         <div class="flex flex-col gap-0 -my-0.5">
-          <p class="text-sm font-semibold text-text-primary -mb-[2px]">{{10 - total()}} {{'PAC.Xpert.TasksRemaining' | translate: {Default: 'tasks remaining'} }}</p>
-          <p class="text-sm font-medium text-text-secondary -mt-[2px]">{{'PAC.Xpert.Current' | translate: {Default: 'Current'} }}: {{total()}} {{'PAC.Xpert.TasksActive' | translate: {Default: 'tasks active'} }}</p>
+          <p class="text-sm font-semibold text-text-primary -mb-[2px]">
+            {{ 10 - total() }} {{ 'PAC.Xpert.TasksRemaining' | translate: { Default: 'tasks remaining' } }}
+          </p>
+          <p class="text-sm font-medium text-text-secondary -mt-[2px]">
+            {{ 'PAC.Xpert.Current' | translate: { Default: 'Current' } }}: {{ total() }}
+            {{ 'PAC.Xpert.TasksActive' | translate: { Default: 'tasks active' } }}
+          </p>
         </div>
       </div>
     </div>
@@ -69,7 +101,9 @@
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="isSubmitDisabled()"
       (click)="createTask()"
     >
@@ -87,15 +121,15 @@
     <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
       <ngm-search class="" [(ngModel)]="search" />
     </div>
-    
+
     @for (item of myXperts(); track item.id) {
       <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="bindExpert(item)">
         <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
-        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
+        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{ item.title || item.name }}</p>
       </button>
     } @empty {
       <div class="p-2 text-text-secondary">
-        {{ 'PAC.XProject.NoExperts' | translate: {Default: 'No experts found'} }}
+        {{ 'PAC.XProject.NoExperts' | translate: { Default: 'No experts found' } }}
       </div>
     }
   </div>
