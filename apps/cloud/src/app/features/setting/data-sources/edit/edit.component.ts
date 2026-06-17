@@ -1,40 +1,32 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  HostBinding,
-  inject,
-  Inject,
-  Optional,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  Z_MODAL_DATA,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardDialogRef,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardLoaderComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
-import { NgmInputComponent, NgmRadioSelectComponent } from '@xpert-ai/ocap-angular/common'
-import { ButtonGroupDirective, myRxResource, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { cloneDeep } from '@xpert-ai/ocap-core'
-import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { assign, isEqual, isNil, omitBy } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom, map, of, startWith } from 'rxjs'
-import {
-  AuthenticationEnum,
-  convertConfigurationSchema,
-  getErrorMessage,
-  IDataSource,
-  LocalAgent,
-  ServerAgent,
-  ToastrService
-} from '../../../../@core'
+import { AuthenticationEnum, getErrorMessage, IDataSource } from '../../../../@core/types'
+import { convertConfigurationSchema } from '../../../../@core/services/configuration-schema.service'
+import { LocalAgent } from '../../../../@core/services/local-agent.service'
+import { ServerAgent } from '../../../../@core/services/server-agent.service'
+import { ToastrService } from '../../../../@core/services/toastr.service'
 
 @Component({
   standalone: true,
@@ -42,17 +34,14 @@ import {
     CommonModule,
     TranslateModule,
     ReactiveFormsModule,
-    DragDropModule,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardTooltipImports,
+    ZardBadgeComponent,
     ZardButtonComponent,
-    FormlyModule,
-    ContentLoaderModule,
-    ButtonGroupDirective,
-    NgmDensityDirective,
-    NgmInputComponent,
-    NgmRadioSelectComponent
+    ZardIconComponent,
+    ZardLoaderComponent,
+    FormlyModule
   ],
   selector: 'pac-data-source-edit',
   templateUrl: 'edit.component.html',
@@ -62,10 +51,15 @@ import {
 export class PACDataSourceEditComponent {
   AuthenticationEnum = AuthenticationEnum
   enableLocalAgent = environment.enableLocalAgent
-  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
+  private translateService = inject(TranslateService)
+  public dialogRef = inject<ZardDialogRef<PACDataSourceEditComponent, boolean>>(ZardDialogRef)
+  public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
+  private toastrService = inject(ToastrService)
+  private serverAgent = inject(ServerAgent)
+  private localAgent = inject(LocalAgent, { optional: true }) ?? undefined
 
   readonly dataSourceId = signal(this.data?.id)
   readonly _loading = signal(false)
@@ -112,24 +106,15 @@ export class PACDataSourceEditComponent {
   readonly formValue = toSignal(this.optionsFormGroup.valueChanges.pipe(startWith(this.optionsFormGroup.value)))
   readonly dirty = computed(() => !isEqual(this.dataSource()?.options, omitBy(this.formValue(), isNil)))
 
-  constructor(
-    private translateService: TranslateService,
-    public dialogRef: DialogRef<boolean>,
-    @Inject(DIALOG_DATA) public data: Pick<IDataSource, 'id'>,
-    private toastrService: ToastrService,
-    private serverAgent: ServerAgent,
-    @Optional() private localAgent?: LocalAgent
-  ) {
-    effect(
-      () => {
-        const dataSource = this.dataSource()
-        if (dataSource) {
-          this.formGroup.patchValue(dataSource)
-          this.optionsFormGroup.patchValue(dataSource.options)
-          assign(this.model, dataSource.options)
-        }
+  constructor() {
+    effect(() => {
+      const dataSource = this.dataSource()
+      if (dataSource) {
+        this.formGroup.patchValue(dataSource)
+        this.optionsFormGroup.patchValue(dataSource.options)
+        assign(this.model, dataSource.options)
       }
-    )
+    })
   }
 
   onCancel() {
@@ -146,7 +131,7 @@ export class PACDataSourceEditComponent {
       )
       this.toastrService.success('PAC.MESSAGE.Update', { Default: 'Update' })
       this.dialogRef.close(true)
-    } catch (err) {
+    } catch {
       this.toastrService.error('', 'PAC.MESSAGE.Update', { Default: 'Update' })
     }
   }

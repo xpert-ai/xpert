@@ -643,6 +643,7 @@
       "DataSource": "数据源",
       "DATA_SOURCE": "数据源",
       "DATA_SOURCES": "数据源",
+      "Docs": "文档",
       "DELETE": "删除",
       "Default": "默认",
       "DIMENSIONS": "维度",
@@ -651,6 +652,8 @@
       "Email": "邮箱",
       "EXPORT": "导出",
       "GENERAL": "常规",
+      "Items": "项",
+      "Unknown": "未知",
       "GROUP": "组",
       "HIERARCHY": "层次结构",
       "INDICATOR": "指标",
@@ -1687,7 +1690,8 @@
         "AuthType_Basic": "基本身份验证",
         "AuthType_None_Description": "系统统一授权，不需要用户提供账号",
         "AuthType_Basic_Description": "用户需提供账号进行授权",
-        "SelectTypeToCreate": "选择一个数据源类型进行创建"
+        "SelectTypeToCreate": "选择一个数据源类型进行创建",
+        "NoDataSources": "暂无数据源"
       },
       "Roles": {
         "General": "通用",
@@ -2688,8 +2692,13 @@
       }
     },
     "DataSources": {
+      "PageDescription": "管理用于分析的数据库和服务连接。",
       "CreateDataSource": "创建数据源",
       "CreateDataSourceHelp": "了解更多关于自定义数据源的信息",
+      "NoMatchingDataSources": "未找到匹配的数据源",
+      "NoDataSources": "暂无数据源",
+      "TryDifferentSearch": "尝试使用其他搜索关键词。",
+      "EmptyDescription": "创建数据源以连接数据库和服务。",
       "Schema": {
         "Host": "主机",
         "Port": "端口号",
@@ -3004,6 +3013,8 @@
       "DescribeYourUseCase": "在左侧描述您的用例",
       "ThePromptPreview": "提示词预览将显示在这里",
       "Chat": "对话",
+      "ModelFilters": "筛选",
+      "ClearFilters": "清空筛选",
       "SelectModel": "选择模型",
       "Parameters": "参数",
       "LoadModelParameterRulesFailed": "加载模型参数失败",

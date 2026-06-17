@@ -18,7 +18,7 @@
 <div
   #modelContainer
   #mt="cdkMenuTriggerFor"
-  class="container group/container flex items-center px-1 h-8 rounded-lg border border-divider-regular bg-components-input-bg-normal hover:border-divider-deep"
+  class="model-select-trigger group/container flex w-full items-center px-1 h-8 rounded-lg border border-divider-regular bg-components-input-bg-normal hover:border-divider-deep"
   [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
   [cdkMenuTriggerData]="{ mt: mt }"
   (cdkMenuOpened)="syncActiveCopilotTab()"
@@ -68,66 +68,64 @@
         <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5" />
       }
 
-      <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
-        <div class="truncate" [title]="_copilotModel()?.model">{{ _copilotModel()?.model }}</div>
-        @if (selectedAiModel(); as model) {
-          @switch (model.model_type) {
-            @case (eModelType.LLM) {
+      @if (selectedAiModel(); as model) {
+        <ng-template #selectedModelTagsPreview>
+          <div class="w-[220px] p-3">
+            <div class="flex min-w-0 items-center gap-2">
+              @if (copilot.providerWithModels.icon_small) {
+                <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0" />
+              }
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
+                class="min-w-0 truncate text-[13px] font-semibold text-text-primary"
+                [title]="_copilotModel()?.model"
               >
-                {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
+                {{ _copilotModel()?.model }}
               </div>
-            }
-            @case (eModelType.RERANK) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-sort-number-asc"></i>
-              </div>
-            }
-            @case (eModelType.TEXT_EMBEDDING) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-text-block"></i>
-              </div>
-            }
-            @case (eModelType.SPEECH2TEXT) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-speech-to-text-line"></i>
-              </div>
-            }
-            @case (eModelType.TTS) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-text-to-speech-line"></i>
-              </div>
-            }
-            @default {}
-          }
-          @if (
-            model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)
-          ) {
-            <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-            >
-              <i class="ri-hammer-fill"></i>
             </div>
-          }
-          @if (model.features?.includes(eModelFeature.VISION)) {
-            <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-            >
-              <i class="ri-eye-fill"></i>
+            <div class="mt-2 flex flex-wrap gap-1">
+              @for (tag of modelDisplayTags(model); track tag.id) {
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap"
+                >
+                  @if (tag.iconClass) {
+                    <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                  }
+                  {{ tag.defaultText }}
+                </div>
+              }
             </div>
+          </div>
+        </ng-template>
+        <div
+          class="flex min-w-0 flex-1 items-center text-[13px] font-medium mr-1.5"
+          [zTooltip]="showInlineSelectedModelTags(modelContainer) ? null : selectedModelTagsPreview"
+          [zTooltipClass]="
+            showInlineSelectedModelTags(modelContainer)
+              ? ''
+              : 'px-0 py-0 rounded-xl border border-divider-regular bg-components-card-bg text-text-primary shadow-lg [&>span]:hidden'
+          "
+          zPosition="left"
+        >
+          <div class="min-w-0 truncate" [title]="_copilotModel()?.model">{{ _copilotModel()?.model }}</div>
+          @if (showInlineSelectedModelTags(modelContainer)) {
+            @for (tag of modelDisplayTags(model); track tag.id; let first = $first) {
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
+                [class.opacity-60]="!first"
+              >
+                @if (tag.iconClass) {
+                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                }
+                {{ tag.defaultText }}
+              </div>
+            }
           }
-        }
-        <div class="inline-block cursor-help"></div>
-      </div>
+        </div>
+      } @else {
+        <div class="min-w-0 flex-1 truncate text-[13px] font-medium mr-1.5" [title]="_copilotModel()?.model">
+          {{ _copilotModel()?.model }}
+        </div>
+      }
     } @else if (__copilotModel()) {
       <div class="truncate text-sm text-text-warning" [title]="__copilotModel().model">
         {{ 'PAC.Copilot.ChooseRightCopilot' | translate: { Default: 'Please choose right copilot' } }}
@@ -309,6 +307,41 @@
           [ngModelOptions]="{ standalone: true }"
         />
       </div>
+      @if (modelFilterTags().length) {
+        <div class="mt-2 flex min-w-0 items-center gap-1.5 overflow-x-auto">
+          <span class="shrink-0 text-[11px] font-medium text-text-tertiary">
+            {{ 'PAC.Copilot.ModelFilters' | translate: { Default: 'Filters' } }}
+          </span>
+          @for (filter of modelFilterTags(); track filter.id) {
+            <button
+              type="button"
+              [class]="
+                'inline-flex shrink-0 items-center whitespace-nowrap rounded-[5px] border px-1.5 py-0.5 text-[10px] font-medium transition-colors ' +
+                (isModelFilterSelected(filter.id)
+                  ? 'border-primary-500 bg-components-panel-bg text-primary-600'
+                  : 'border-divider-regular bg-components-panel-bg text-text-tertiary hover:border-divider-deep hover:text-text-primary')
+              "
+              (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+              (click)="$event.stopPropagation(); toggleModelFilter(filter.id)"
+            >
+              @if (filter.iconClass) {
+                <i class="mr-0.5 text-[11px] leading-none" [ngClass]="filter.iconClass"></i>
+              }
+              {{ filter.defaultText }}
+            </button>
+          }
+          @if (selectedModelFilters().length) {
+            <button
+              type="button"
+              class="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
+              (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+              (click)="$event.stopPropagation(); clearModelFilters()"
+            >
+              {{ 'PAC.Copilot.ClearFilters' | translate: { Default: 'Clear' } }}
+            </button>
+          }
+        </div>
+      }
     </div>
 
     <div class="min-h-0 flex-1 overflow-hidden">
@@ -400,7 +433,12 @@
 
                 <ng-container
                   [ngTemplateOutlet]="copilotModels"
-                  [ngTemplateOutletContext]="{ $implicit: copilot, mt: mt }"
+                  [ngTemplateOutletContext]="{
+                    $implicit: copilot,
+                    mt: mt,
+                    menuWidth: menuWidth,
+                    menuRailWidth: menuRailWidth
+                  }"
                 />
               </z-tab>
             }
@@ -420,7 +458,10 @@
   </div>
 </ng-template>
 
-<ng-template #copilotModels let-copilot let-mt="mt">
+<ng-template #copilotModels let-copilot let-mt="mt" let-menuWidth="menuWidth" let-menuRailWidth="menuRailWidth">
+  @let showInlineTags = showInlineModelTags(menuWidth, menuRailWidth);
+  @let visibleModels = getVisibleCopilotModels(copilot);
+
   <div class="sticky top-0 z-10 flex items-center bg-components-card-bg px-4 pb-3 pt-4 text-base font-semibold">
     <div class="min-w-0 text-left">
       <span>{{ copilot.providerWithModels?.label | i18n }}</span>
@@ -435,7 +476,31 @@
     </div>
   </div>
 
-  @for (item of copilot.providerWithModels?.models; track item.model) {
+  @for (item of visibleModels; track item.model) {
+    <ng-template #modelTagsPreview>
+      <div class="w-[220px] p-3">
+        <div class="flex min-w-0 items-center gap-2">
+          @if (copilot.providerWithModels.icon_small) {
+            <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0" />
+          }
+          <div class="min-w-0 truncate text-[13px] font-semibold text-text-primary" [title]="item.model">
+            {{ item.model }}
+          </div>
+        </div>
+        <div class="mt-2 flex flex-wrap gap-1">
+          @for (tag of modelDisplayTags(item); track tag.id) {
+            <div
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap"
+            >
+              @if (tag.iconClass) {
+                <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+              }
+              {{ tag.defaultText }}
+            </div>
+          }
+        </div>
+      </div>
+    </ng-template>
     <button
       type="button"
       class="flex w-full min-w-0 items-center justify-start gap-0.5 rounded-xl px-2.5 py-2 text-left cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
@@ -445,7 +510,18 @@
           : ''
       "
       [class.opacity-60]="item.deprecated"
-      [zTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
+      [zTooltip]="
+        item.deprecated
+          ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' })
+          : showInlineTags
+            ? null
+            : modelTagsPreview
+      "
+      [zTooltipClass]="
+        item.deprecated || showInlineTags
+          ? ''
+          : 'px-0 py-0 rounded-xl border border-divider-regular bg-components-card-bg text-text-primary shadow-lg [&>span]:hidden'
+      "
       zPosition="left"
       [disabled]="item.deprecated"
       (click)="setModel(copilot, item); mt.close()"
@@ -461,56 +537,17 @@
         customClasses="text-primary-600"
         >{{ item.model }}</span
       >
-      @switch (item.model_type) {
-        @case (eModelType.LLM) {
+      @if (showInlineTags) {
+        @for (tag of modelDisplayTags(item); track tag.id) {
           <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
+            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap opacity-60"
           >
-            {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
+            @if (tag.iconClass) {
+              <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+            }
+            {{ tag.defaultText }}
           </div>
         }
-        @case (eModelType.RERANK) {
-          <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-          >
-            <i class="ri-sort-number-asc"></i>
-          </div>
-        }
-        @case (eModelType.TEXT_EMBEDDING) {
-          <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-          >
-            <i class="ri-text-block"></i>
-          </div>
-        }
-        @case (eModelType.SPEECH2TEXT) {
-          <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-          >
-            <i class="ri-speech-to-text-line"></i>
-          </div>
-        }
-        @case (eModelType.TTS) {
-          <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
-          >
-            <i class="ri-text-to-speech-line"></i>
-          </div>
-        }
-      }
-      @if (item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
-        <div
-          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-        >
-          <i class="ri-hammer-fill"></i>
-        </div>
-      }
-      @if (item.features?.includes(eModelFeature.VISION)) {
-        <div
-          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
-        >
-          <i class="ri-eye-fill"></i>
-        </div>
       }
     </button>
   }

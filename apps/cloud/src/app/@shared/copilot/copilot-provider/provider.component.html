@@ -154,28 +154,16 @@
             <img alt="model-icon" class="w-4 h-4 shrink-0 mr-2" [src]="smallIcon() | i18n" />
           }
 
-          <div class="flex items-center truncate text-[13px] grow text-sm font-normal text-text-primary">
-            <div class="truncate" [title]="model.modelName">{{ model.modelName }}</div>
-
-            <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
-            >
-              {{ model.modelType }}
-            </div>
-
-            @if (model.modelProperties?.context_size) {
+          <div class="flex min-w-0 items-center overflow-hidden text-[13px] grow text-sm font-normal text-text-primary">
+            <div class="min-w-0 truncate" [title]="model.modelName">{{ model.modelName }}</div>
+            @for (tag of customModelTags(model); track tag.id) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
+                class="flex shrink-0 items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
               >
-                {{ model.modelProperties.context_size / 1000 | number: '0.0-0' }}K
-              </div>
-            }
-            <!-- @todo move to plugin -->
-            @if (model.modelProperties?.vision_support === 'support') {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-eye-fill"></i>
+                @if (tag.iconClass) {
+                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                }
+                {{ tag.defaultText }}
               </div>
             }
           </div>
@@ -204,33 +192,16 @@
         >
           <img alt="model-icon" [src]="smallIcon() | i18n" class="w-4 h-4 shrink-0 mr-2" />
 
-          <div class="flex items-center truncate text-base grow font-normal text-text-primary">
-            <div class="truncate" [title]="model.model">{{ model.model }}</div>
-
-            <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
-            >
-              {{ model.model_type }}
-            </div>
-            @if (model.model_properties?.mode) {
+          <div class="flex min-w-0 items-center overflow-hidden text-base grow font-normal text-text-primary">
+            <div class="min-w-0 truncate" [title]="model.model">{{ model.model }}</div>
+            @for (tag of builtinModelTags(model); track tag.id) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
+                class="flex shrink-0 items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
               >
-                {{ model.model_properties?.mode }}
-              </div>
-            }
-            @if (model.model_properties?.context_size) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                {{ model.model_properties.context_size / 1000 | number: '0.0-0' }}K
-              </div>
-            }
-            @if (model.features?.includes(eModelFeature.VISION)) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
-              >
-                <i class="ri-eye-fill"></i>
+                @if (tag.iconClass) {
+                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                }
+                {{ tag.defaultText }}
               </div>
             }
           </div>

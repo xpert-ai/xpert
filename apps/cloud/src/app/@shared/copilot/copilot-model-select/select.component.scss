@@ -1,16 +1,16 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  .container {
+  .model-select-trigger {
     @apply cursor-pointer bg-components-input-bg-normal;
   }
   &.status-choose {
-    .container {
+    .model-select-trigger {
       @apply bg-yellow-50 border-yellow-200 hover:border-yellow-300;
     }
   }
 
   &.readonly {
-    .container {
+    .model-select-trigger {
       @apply cursor-default;
     }
   }
