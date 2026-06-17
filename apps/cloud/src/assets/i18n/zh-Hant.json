@@ -2770,6 +2770,10 @@
           "Name": "角色權限",
           "Description": "維護系統角色和權限"
         },
+        "GROUP_COPILOT": {
+          "Name": "Copilot 功能",
+          "Description": "管理模型提供商和監測模塊"
+        },
         "FEATURE_COPILOT": {
           "Name": "模型提供商",
           "Description": "配置和使用模型提供商功能"

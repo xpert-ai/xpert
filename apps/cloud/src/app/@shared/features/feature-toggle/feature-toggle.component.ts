@@ -512,6 +512,7 @@ export class FeatureToggleComponent {
         return 'mail'
       case FeatureEnum.FEATURE_INTEGRATION:
         return 'hub'
+      case 'GROUP_COPILOT':
       case AiFeatureEnum.FEATURE_COPILOT:
         return 'robot_2'
       case AiFeatureEnum.FEATURE_XPERT:

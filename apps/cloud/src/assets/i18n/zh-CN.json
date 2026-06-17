@@ -1801,9 +1801,13 @@
           "Name": "角色权限",
           "Description": "维护系统角色和权限"
         },
+        "GROUP_COPILOT": {
+          "Name": "Copilot 功能",
+          "Description": "管理模型提供商和监测模块"
+        },
         "FEATURE_COPILOT": {
-          "Name": "AI 副驾驶",
-          "Description": "配置和使用 AI 副驾驶功能"
+          "Name": "模型提供商",
+          "Description": "配置和使用模型提供商功能"
         },
         "FEATURE_COPILOT_MONITORING": {
           "Name": "监测",

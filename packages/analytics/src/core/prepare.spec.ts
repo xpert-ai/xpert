@@ -69,10 +69,18 @@ describe('prepare default feature definitions', () => {
 		)
 	})
 
-	it('exposes Copilot monitoring as a child feature toggle', () => {
-		const copilotFeature = SERVER_AI_DEFAULT_FEATURES.find((feature) => feature.code === AiFeatureEnum.FEATURE_COPILOT)
+	it('nests Copilot feature toggles under a pure Copilot feature group', () => {
+		const features = getMergedDefaultFeatures()
+		const topLevelCodes = features.map((feature) => feature.code)
+		const copilotGroup = findFeature(features, 'GROUP_COPILOT')
 
-		expect(copilotFeature?.children?.map((feature) => feature.code)).toContain('FEATURE_COPILOT_MONITORING')
+		expect(topLevelCodes).not.toContain(AiFeatureEnum.FEATURE_COPILOT)
+		expect(copilotGroup?.children?.map((feature) => feature.code)).toEqual(
+			expect.arrayContaining([
+				AiFeatureEnum.FEATURE_COPILOT,
+				AiFeatureEnum.FEATURE_COPILOT_MONITORING
+			])
+		)
 	})
 
 	it('does not expose retired tenant feature toggles', () => {

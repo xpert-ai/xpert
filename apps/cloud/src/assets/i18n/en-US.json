@@ -152,6 +152,10 @@
         "OtherDescription": "Additional feature modules not assigned to a primary group."
       },
       "Features": {
+        "GROUP_COPILOT": {
+          "Name": "Copilot features",
+          "Description": "Manage model provider and monitoring modules."
+        },
         "GROUP_XPERT": {
           "Name": "Xpert features",
           "Description": "Manage digital expert and related entry points."
