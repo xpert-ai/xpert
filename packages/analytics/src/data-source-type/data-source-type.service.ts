@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@xpert-ai/contracts'
 import { environment as env } from '@xpert-ai/server-config'
 import { RequestContext, Tenant, TenantAwareCrudService, TenantCreatedEvent } from '@xpert-ai/server-core'
@@ -9,7 +10,6 @@ import { DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
 import { EntityManager, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
-import { seedDefaultDataSourceTypes } from './data-source-type.seed'
 
 @Injectable()
 export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType> {
@@ -23,7 +23,7 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 		@InjectRepository(DataSourceType)
 		dsTypeRepository: Repository<DataSourceType>,
 		@InjectEntityManager()
-		private entityManager: EntityManager,
+		private entityManager: EntityManager
 	) {
 		super(dsTypeRepository)
 	}
@@ -32,12 +32,22 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 	async handleTenantCreatedEvent(event: TenantCreatedEvent) {
 		this.logger.debug('Tenant Created Event: seed dataSource types')
 		const { tenantId } = event
-		const tenant = await this.entityManager.findOne(Tenant, {where: { id: tenantId }})
-		await seedDefaultDataSourceTypes(this.entityManager.connection, tenant)
+		await this.syncForTenant(tenantId)
 	}
 
 	async sync() {
 		const tenantId = RequestContext.currentTenantId()
+		await this.syncForTenant(tenantId)
+	}
+
+	async syncAllTenants() {
+		const tenants = await this.entityManager.find(Tenant)
+		for (const tenant of tenants) {
+			await this.syncForTenant(tenant.id)
+		}
+	}
+
+	async syncForTenant(tenantId: string) {
 		this.log(
 			chalk.magenta(
 				`🌱 SEEDING DATA SOURCE TYPES ${
@@ -78,6 +88,10 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 				configuration: queryRunner.configurationSchema
 			})
 		} else {
+			if (isDeepStrictEqual(dataSourceType.configuration, queryRunner.configurationSchema)) {
+				this.log(chalk.gray(`Datasource type '${queryRunner.name}' unchanged for tenant: ${tenantId}`))
+				return dataSourceType
+			}
 			this.log(chalk.blue(`Update datasource type '${queryRunner.name}' for tenant: ${tenantId}`))
 			await this.update(dataSourceType.id, { configuration: queryRunner.configurationSchema } as DataSourceType)
 		}
