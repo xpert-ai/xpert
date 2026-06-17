@@ -5,8 +5,8 @@ export const checkboxVariants = cva(
   {
     variants: {
       zType: {
-        default: 'border-primary checked:bg-primary',
-        destructive: 'border-destructive checked:bg-destructive'
+        default: 'border-primary checked:bg-primary indeterminate:bg-primary',
+        destructive: 'border-destructive checked:bg-destructive indeterminate:bg-destructive'
       },
       zSize: {
         default: 'size-4',

@@ -1742,6 +1742,9 @@
       "DisableFeature": "禁用功能",
       "Enabled": "已启用",
       "Disabled": "已禁用",
+      "AllEnabled": "全部启用",
+      "PartiallyEnabled": "部分启用",
+      "AllDisabled": "全部禁用",
       "SearchPlaceholder": "搜索模块...",
       "EmptyTitle": "没有匹配的模块",
       "EmptyDescription": "调整关键词、状态或分类筛选。",
@@ -1802,13 +1805,21 @@
           "Name": "AI 副驾驶",
           "Description": "配置和使用 AI 副驾驶功能"
         },
+        "FEATURE_COPILOT_MONITORING": {
+          "Name": "监测",
+          "Description": "查看模型提供商的用户使用量和监测信息"
+        },
         "FEATURE_MODEL": {
           "Name": "语义模型",
           "Description": "启用语义模型功能"
         },
+        "FEATURE_DATA_SOURCE": {
+          "Name": "数据源",
+          "Description": "启用数据源配置功能"
+        },
         "FEATURE_PROJECT": {
-          "Name": "项目",
-          "Description": "启用项目工作空间功能"
+          "Name": "BI项目",
+          "Description": "启用BI项目工作空间功能"
         },
         "FEATURE_STORY": {
           "Name": "故事",
@@ -1834,9 +1845,45 @@
           "Name": "业务域",
           "Description": "启用业务域功能，创建和使用业务域"
         },
+        "FEATURE_USER": {
+          "Name": "用户",
+          "Description": "管理租户的用户和用户组"
+        },
+        "FEATURE_USERS": {
+          "Name": "用户",
+          "Description": "管理租户的用户"
+        },
+        "FEATURE_USER_GROUPS": {
+          "Name": "用户组",
+          "Description": "管理组织内的用户组"
+        },
+        "GROUP_XPERT": {
+          "Name": "数字专家功能",
+          "Description": "管理数字专家及相关入口"
+        },
+        "FEATURE_XPERT": {
+          "Name": "数字专家",
+          "Description": "数字专家模块"
+        },
         "FEATURE_XPERT_CLAWXPERT": {
           "Name": "ClawXpert",
           "Description": "在聊天左侧边栏中显示 ClawXpert 入口。"
+        },
+        "FEATURE_XPERT_CHATBI": {
+          "Name": "ChatBI",
+          "Description": "在主导航中显示 ChatBI 入口。"
+        },
+        "FEATURE_XPERT_CODEXPERT": {
+          "Name": "CodeXpert",
+          "Description": "在主导航中显示 CodeXpert 入口。"
+        },
+        "FEATURE_XPERT_DEEP_RESEARCH": {
+          "Name": "DeepResearch",
+          "Description": "在主导航中显示 DeepResearch 入口。"
+        },
+        "FEATURE_XPERT_DATA_ONTOLOGY": {
+          "Name": "Data & Ontology",
+          "Description": "在主导航中显示 Data & Ontology 入口。"
         }
       }
     },

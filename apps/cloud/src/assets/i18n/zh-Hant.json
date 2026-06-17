@@ -2711,6 +2711,9 @@
       "DisableFeature": "禁用功能",
       "Enabled": "已啟用",
       "Disabled": "已禁用",
+      "AllEnabled": "全部啟用",
+      "PartiallyEnabled": "部分啟用",
+      "AllDisabled": "全部禁用",
       "SearchPlaceholder": "搜索模塊...",
       "EmptyTitle": "沒有匹配的模塊",
       "EmptyDescription": "調整關鍵詞、狀態或分類篩選。",
@@ -2771,6 +2774,10 @@
           "Name": "模型提供商",
           "Description": "配置和使用模型提供商功能"
         },
+        "FEATURE_COPILOT_MONITORING": {
+          "Name": "監測",
+          "Description": "查看模型提供商的用戶使用量和監測信息"
+        },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知識庫",
           "Description": "高效地存儲、檢索和生成與特定領域相關的知識內容。"
@@ -2825,7 +2832,15 @@
         },
         "FEATURE_USER": {
           "Name": "用戶",
+          "Description": "管理租戶的用戶和用戶組"
+        },
+        "FEATURE_USERS": {
+          "Name": "用戶",
           "Description": "管理租戶的用戶"
+        },
+        "FEATURE_USER_GROUPS": {
+          "Name": "用戶組",
+          "Description": "管理組織內的用戶組"
         },
         "FEATURE_SETTING": {
           "Name": "租戶設置",
@@ -2854,6 +2869,10 @@
         "FEATURE_DATA_FACTORY": {
           "Name": "數據工廠",
           "Description": "負責自動化、標準化和高效地處理、轉換和存儲數據，以支持數據分析、應用和決策"
+        },
+        "GROUP_XPERT": {
+          "Name": "數字專家功能",
+          "Description": "管理數字專家及相關入口"
         },
         "FEATURE_XPERT": {
           "Name": "數字專家",
@@ -4111,10 +4130,10 @@
         "CHATBI_VIEW": "使用 ChatBI",
         "CHATBI_EDIT": "管理 ChatBI 配置",
         "COPILOT_VIEW": "使用智能助理",
-        "COPILOT_EDIT": "維護智能助理配置",
+        "COPILOT_EDIT": "管理模型提供商",
         "KNOWLEDGEBASE_EDIT": "維護知識庫",
         "CHAT_VIEW": "使用智能對話",
-        "INTEGRATION_EDIT": "維護集成連接",
+        "INTEGRATION_EDIT": "管理系統集成",
         "DATA_FACTORY_VIEW": "使用數據工廠",
         "DATA_FACTORY_EDIT": "管理數據工廠配置",
         "XPERT_EDIT": "管理數字專家"

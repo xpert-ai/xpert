@@ -2,6 +2,7 @@ import { AiFeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts'
 import { toggleFeatures } from '@xpert-ai/server-config'
 
 const features = toggleFeatures
+const XPERT_FEATURE_GROUP_CODE = 'GROUP_XPERT'
 
 export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
     {
@@ -15,35 +16,35 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
         status: 'accent',
         children: [
             {
-                name: 'Copilot Knowledgebase',
-                code: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
-                description: 'Manage Knowledgebase of Copilot',
-                link: 'settings/knowledgebase',
-                isEnabled: features.FEATURE_COPILOT_KNOWLEDGEBASE,
-                icon: 'file-text-outline',
-                status: 'info'
-            },
-            {
-                name: 'Copilot Chat',
-                code: AiFeatureEnum.FEATURE_COPILOT_CHAT,
-                description: 'Use Chat of Copilot',
-                link: 'chat',
-                isEnabled: features.FEATURE_COPILOT_CHAT,
-                icon: 'chat',
+                name: 'Monitoring',
+                code: AiFeatureEnum.FEATURE_COPILOT_MONITORING,
+                description: 'Show Copilot usage and monitoring tabs',
+                link: 'settings/copilot/overview',
+                isEnabled: features.FEATURE_COPILOT_MONITORING,
+                icon: 'browse_activity',
                 status: 'info'
             }
         ]
     },
     {
         name: 'Xpert',
-        code: AiFeatureEnum.FEATURE_XPERT,
-        description: 'Enable Xpert',
+        code: XPERT_FEATURE_GROUP_CODE,
+        description: 'Manage Xpert feature modules',
         image: 'xpert.png',
-        link: '/xpert',
-        isEnabled: features.FEATURE_XPERT,
-        icon: 'assistant',
+        link: '',
+        isEnabled: false,
+        icon: 'sparkles',
         status: 'accent',
         children: [
+            {
+                name: 'Digital Expert',
+                code: AiFeatureEnum.FEATURE_XPERT,
+                description: 'Enable Xpert',
+                link: '/xpert',
+                isEnabled: features.FEATURE_XPERT,
+                icon: 'assistant',
+                status: 'info'
+            },
             {
                 name: 'ClawXpert',
                 code: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,

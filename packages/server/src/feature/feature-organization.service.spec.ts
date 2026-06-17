@@ -22,9 +22,9 @@ jest.mock('./feature.service', () => ({
 
 jest.mock('./../core/crud', () => ({
 	TenantAwareCrudService: class TenantAwareCrudService<T> {
-		protected repository: any
+		protected repository: unknown
 
-		constructor(repository: any) {
+		constructor(repository: unknown) {
 			this.repository = repository
 		}
 
@@ -51,7 +51,7 @@ describe('FeatureOrganizationService', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
-		service = new FeatureOrganizationService(repo as any, {} as any, cacheManager)
+		service = new FeatureOrganizationService(repo, {}, cacheManager)
 	})
 
 	it('queries tenant-scoped toggles with organizationId IsNull when no organizationId is provided', async () => {
@@ -120,5 +120,52 @@ describe('FeatureOrganizationService', () => {
 				isEnabled: true
 			})
 		])
+	})
+
+	it('does not create tenant toggles for feature groups', async () => {
+		const tenant = { id: 'tenant-1' }
+		const featureService = {
+			findAll: jest.fn().mockResolvedValue({
+				items: [
+					{
+						id: 'feature-group',
+						code: 'GROUP_XPERT',
+						isEnabled: false,
+						children: [{ id: 'feature-xpert' }]
+					},
+					{
+						id: 'feature-xpert',
+						code: 'FEATURE_XPERT',
+						isEnabled: true,
+						children: []
+					}
+				]
+			})
+		}
+		service = new FeatureOrganizationService(repo, featureService, cacheManager)
+		repo.save.mockResolvedValue([])
+
+		await service.updateTenantFeatureOrganizations([tenant])
+
+		expect(featureService.findAll).toHaveBeenCalledWith({
+			relations: ['children']
+		})
+		expect(repo.save).toHaveBeenCalledWith([
+			expect.objectContaining({
+				feature: expect.objectContaining({
+					id: 'feature-xpert'
+				}),
+				tenant
+			})
+		])
+		expect(repo.save).not.toHaveBeenCalledWith(
+			expect.arrayContaining([
+				expect.objectContaining({
+					feature: expect.objectContaining({
+						id: 'feature-group'
+					})
+				})
+			])
+		)
 	})
 })

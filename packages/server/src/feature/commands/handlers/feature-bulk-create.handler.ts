@@ -8,6 +8,22 @@ import { Feature } from '../../feature.entity'
 import { createFeature } from '../../feature.seed'
 import { FeatureBulkCreateCommand } from '../feature-bulk-create.command'
 
+function isFeatureId(id: IFeature['id']): id is string {
+	return typeof id === 'string' && id.length > 0
+}
+
+function featureMatchesParent(feature: IFeature, parentId: string | null) {
+	return (feature.parentId ?? null) === parentId
+}
+
+function selectFeatureDefinition(features: IFeature[], parentId: string | null, name: string) {
+	return (
+		features.find((feature) => featureMatchesParent(feature, parentId) && feature.name === name) ??
+		features.find((feature) => featureMatchesParent(feature, parentId)) ??
+		features[0]
+	)
+}
+
 @CommandHandler(FeatureBulkCreateCommand)
 export class FeatureBulkCreateHandler implements ICommandHandler<FeatureBulkCreateCommand> {
 	constructor(
@@ -23,32 +39,13 @@ export class FeatureBulkCreateHandler implements ICommandHandler<FeatureBulkCrea
 
 		// Create default features
 		for (const item of DEFAULT_FEATURES) {
-			let feature: IFeature = await this.featureRepository.findOne({
-				where: { code: item.code },
-			})
-			// If feature not exist, create it
-			if (!feature) {
-				feature = createFeature(item)
-				feature = await this.featureRepository.save(feature)
-			}
+			const feature = await this.syncFeatureDefinition(item)
 
 			const { children = [] } = item
 			if (children.length > 0) {
-				const featureChildren: IFeature[] = []
 				for (const child of children) {
-					const childFeature: IFeature = await this.featureRepository.findOne({
-						where: { code: child.code },
-					})
-
-					// If child feature not exist, create it
-					if (!childFeature) {
-						const featureChild: IFeature = createFeature(child)
-						featureChild.parent = feature
-						featureChildren.push(featureChild)
-					}
+					await this.syncFeatureDefinition(child, feature)
 				}
-
-				await this.featureRepository.save(featureChildren)
 			}
 		}
 
@@ -86,5 +83,34 @@ export class FeatureBulkCreateHandler implements ICommandHandler<FeatureBulkCrea
 		// })
 
 		return
+	}
+
+	private async syncFeatureDefinition(item: IFeature, parent?: IFeature): Promise<IFeature> {
+		const parentId = parent?.id ?? null
+		const existingFeatures = await this.featureRepository.find({
+			where: {
+				code: item.code
+			},
+			order: {
+				createdAt: 'ASC'
+			}
+		})
+		const selectedFeature = selectFeatureDefinition(existingFeatures, parentId, item.name)
+		const feature = createFeature(item)
+		const featureDefinition = {
+			...(selectedFeature ?? {}),
+			...feature,
+			...(parent ? { parent, parentId: parent.id } : { parentId: null })
+		}
+		const savedFeature = await this.featureRepository.save(featureDefinition)
+		const staleFeatureIds = existingFeatures
+			.filter((existingFeature) => isFeatureId(existingFeature.id) && existingFeature.id !== savedFeature.id)
+			.map((existingFeature) => existingFeature.id)
+			.filter(isFeatureId)
+		if (staleFeatureIds.length > 0) {
+			await this.featureRepository.delete(staleFeatureIds)
+		}
+
+		return savedFeature
 	}
 }

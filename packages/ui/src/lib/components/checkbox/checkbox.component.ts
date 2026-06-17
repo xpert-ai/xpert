@@ -159,6 +159,10 @@ export class ZardCheckboxComponent implements ControlValueAccessor {
     this.checked.set(!!val)
   }
 
+  setIndeterminateState(isIndeterminate: boolean): void {
+    this.localIndeterminate.set(isIndeterminate)
+  }
+
   setDisabledState(isDisabled: boolean): void {
     this.disabledByForm.set(isDisabled)
   }

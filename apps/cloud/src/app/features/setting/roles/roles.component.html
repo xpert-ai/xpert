@@ -166,15 +166,38 @@
               <z-card-content class="p-2">
                 <ul role="list" class="space-y-1">
                   @for (permission of permissionGroups.GENERAL; track permission) {
-                    <li role="listitem" class="rounded-2xl px-3 py-2 hover:bg-hover-bg">
+                    <li
+                      role="listitem"
+                      class="rounded-2xl px-3 py-2 hover:bg-hover-bg"
+                      [class.opacity-60]="isDisabledGeneralPermissions()"
+                    >
                       <z-checkbox
                         class="w-full items-start"
                         displayDensity="cosy"
                         labelClass="flex-1 text-sm leading-6 text-text-primary"
+                        [zDisabled]="isDisabledGeneralPermissions()"
                         [ngModel]="enabledPermissions[permission]"
                         (checkChange)="permissionChanged(permission, $event)"
                       >
-                        {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                        <span class="inline-flex min-w-0 items-center align-middle">
+                          <span
+                            class="min-w-0 truncate"
+                            [class]="isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''"
+                          >
+                            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                            @if (isDeprecatedPermission(permission)) {
+                              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                            }
+                          </span>
+                          @if (isDeprecatedPermission(permission)) {
+                            <z-icon
+                              zType="triangle-alert"
+                              class="ml-1 size-4 shrink-0 text-text-warning"
+                              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                              zPosition="top"
+                            />
+                          }
+                        </span>
                       </z-checkbox>
                     </li>
                   }
@@ -213,7 +236,25 @@
                         [ngModel]="enabledPermissions[permission]"
                         (checkChange)="permissionChanged(permission, $event)"
                       >
-                        {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                        <span class="inline-flex min-w-0 items-center align-middle">
+                          <span
+                            class="min-w-0 truncate"
+                            [class]="isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''"
+                          >
+                            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                            @if (isDeprecatedPermission(permission)) {
+                              {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+                            }
+                          </span>
+                          @if (isDeprecatedPermission(permission)) {
+                            <z-icon
+                              zType="triangle-alert"
+                              class="ml-1 size-4 shrink-0 text-text-warning"
+                              [zTooltip]="'PAC.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
+                              zPosition="top"
+                            />
+                          }
+                        </span>
                       </z-checkbox>
                     </li>
                   }
