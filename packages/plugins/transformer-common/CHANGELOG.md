@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-transformer-common
 
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [7418eef]
+  - @xpert-ai/plugin-sdk@3.11.2
+
 ## 4.0.0
 
 ### Patch Changes
