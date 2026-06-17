@@ -22,12 +22,12 @@
   --sys-surface: #ffffff;
   --sys-surface-elevated: #ffffff;
   --sys-surface-overlay: #ffffff;
-  --sys-surface-subtle: #eeece7;
-  --sys-surface-field: #ffffff;
+  --sys-surface-subtle: var(--secondary);
+  --sys-surface-field: var(--background);
   --sys-text-primary: #212121;
   --sys-text-secondary: #616161;
   --sys-border: #d9d9dd;
-  --sys-border-strong: #93939f;
+  --sys-border-strong: color-mix(in oklab, var(--sys-border) 64%, var(--sys-text-secondary));
   --sys-border-control: #e5e7eb;
   --sys-accent: #ff7759;
   --sys-success: #159f6a;
@@ -46,8 +46,8 @@
   --color-components-button-secondary-bg: #ffffff;
   --color-components-button-secondary-bg-hover: #f2f2f2;
   --color-components-input-bg-normal: var(--sys-surface-field);
-  --color-components-input-bg-hover: #ffffff;
-  --color-components-input-bg-active: #ffffff;
+  --color-components-input-bg-hover: var(--sys-surface-field);
+  --color-components-input-bg-active: var(--sys-surface-field);
   --color-components-input-text-filled-disabled: var(--sys-text-secondary);
   --color-components-input-border-hover: var(--sys-border);
   --color-components-list-option-bg: var(--color-background-default-subtle);

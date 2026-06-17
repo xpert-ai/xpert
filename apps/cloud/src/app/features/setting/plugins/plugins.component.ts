@@ -27,7 +27,7 @@ import { firstValueFrom } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
 import { PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
@@ -45,6 +45,8 @@ import {
   mergeMarketplaceContributions
 } from './plugin-marketplace-metadata'
 
+const INSTALLABLE_MARKETPLACE_CONTENT_TYPES = new Set(['assistant-template', 'skill', 'tool', 'app', 'hook'])
+
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
   count: number
@@ -60,6 +62,7 @@ type TPluginComponentSummaryItem = {
     TranslateModule,
     FormsModule,
     CdkMenuModule,
+    ZardButtonComponent,
     ...ZardTooltipImports,
     NgmSelectComponent,
     NgmI18nPipe,
@@ -372,6 +375,24 @@ export class PluginsComponent {
     return items.filter((item) => item.count > 0)
   }
 
+  hasInstallablePluginContent(plugin: TInstalledPlugin) {
+    return (
+      plugin.loadStatus !== 'failed' &&
+      (this.hasInstallableBundleResources(plugin) || this.hasInstallableMarketplaceContributions(plugin))
+    )
+  }
+
+  hasInstallableBundleResources(plugin: TInstalledPlugin) {
+    const summary = plugin.componentSummary
+    return !!summary && (summary.skills > 0 || summary.mcpServers > 0 || summary.apps > 0 || summary.hooks > 0)
+  }
+
+  hasInstallableMarketplaceContributions(plugin: TInstalledPlugin) {
+    return getInstalledPluginMarketplaceContributions(plugin).some((content) =>
+      INSTALLABLE_MARKETPLACE_CONTENT_TYPES.has(content.type)
+    )
+  }
+
   reload() {
     this.reloadInstalledPlugins()
   }
@@ -408,6 +429,19 @@ export class PluginsComponent {
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
+  }
+
+  openInstallOptions(plugin: TInstalledPlugin) {
+    if (!this.hasInstallablePluginContent(plugin)) {
+      return
+    }
+
+    if (this.hasInstallableMarketplaceContributions(plugin)) {
+      this.openPluginDetails(plugin)
+      return
+    }
+
+    this.initializeResources(plugin)
   }
 
   initializeResources(plugin: TInstalledPlugin) {

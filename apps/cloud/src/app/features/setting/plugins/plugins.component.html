@@ -213,18 +213,49 @@
                       class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
                     >
                       @if (plugin.loadStatus === 'failed') {
-                        <div
-                          class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-destructive shadow-xs"
-                        >
-                          {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
+                        <div class="absolute right-0 top-0 flex max-w-[45%] pl-[13px]">
+                          <svg
+                            width="13"
+                            height="18"
+                            viewBox="0 0 13 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="-mr-[1px] shrink-0 text-background-default-subtle"
+                          >
+                            <path
+                              d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                              fill="currentColor"
+                            ></path>
+                          </svg>
+                          <div
+                            class="h-[18px] truncate rounded-tr-xl bg-background-default-subtle pr-2 text-xs font-semibold font-body uppercase leading-5 text-text-destructive"
+                          >
+                            {{ 'PAC.Plugin.LoadFailed' | translate: { Default: 'Load failed' } }}
+                          </div>
                         </div>
                       } @else {
-                        <div
-                          class="absolute right-3 top-3 max-w-[45%] truncate rounded-md border-[0.5px] border-divider-subtle bg-components-card-bg px-2 py-0.5 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary shadow-xs"
-                        >
-                          {{
-                            'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category }
-                          }}
+                        <div class="absolute right-0 top-0 flex max-w-[45%] pl-[13px]">
+                          <svg
+                            width="13"
+                            height="18"
+                            viewBox="0 0 13 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="-mr-[1px] shrink-0 text-background-default-subtle"
+                          >
+                            <path
+                              d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                              fill="currentColor"
+                            ></path>
+                          </svg>
+                          <div
+                            class="h-[18px] truncate rounded-tr-xl bg-background-default-subtle pr-2 text-xs font-semibold font-body uppercase leading-5 text-text-tertiary"
+                          >
+                            {{
+                              'PAC.Plugin.Category_' + plugin.meta.category
+                                | translate: { Default: plugin.meta.category }
+                            }}
+                          </div>
                         </div>
                       }
                       <div class="flex">
@@ -408,18 +439,23 @@
                               </div>
                             </div>
                             <div class="flex space-x-1">
-                              @if (plugin.loadStatus !== 'failed' && plugin.componentSummary?.total) {
+                              @if (hasInstallablePluginContent(plugin)) {
                                 <button
+                                  z-button
                                   type="button"
-                                  class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  zType="secondary"
+                                  class="px-3 hover:border-divider-deep hover:bg-hover-bg hover:text-text-primary hover:shadow-sm"
                                   [zTooltip]="
                                     'PAC.Plugin.InitializeResourcesHint'
                                       | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }
                                   "
                                   zPosition="top"
-                                  (click)="initializeResources(plugin)"
+                                  (click)="openInstallOptions(plugin)"
                                 >
-                                  <i class="ri-magic-line"></i>
+                                  <i class="ri-apps-2-add-line"></i>
+                                  <span>{{
+                                    'PAC.Plugin.InitializeAssistantTemplate' | translate: { Default: 'Initialize' }
+                                  }}</span>
                                 </button>
                               }
                               @if (plugin.canConfigure && plugin.configSchema) {
@@ -484,7 +520,7 @@
                       </div>
                     </div>
                     <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
-                      <div class="flex grow items-center overflow-hidden">
+                      <div class="flex grow shrink-0 items-center overflow-hidden max-w-[200px]">
                         <div class="flex h-4 items-center space-x-0.5">
                           <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
                           <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
@@ -498,12 +534,12 @@
                           </a>
                         </div>
                       </div>
-                      <div class="flex shrink-0 items-center">
+                      <div class="flex items-center">
                         <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
                           @if (plugin.loadStatus !== 'failed') {
                             @for (keyword of plugin.meta.keywords; track keyword) {
                               <div
-                                class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
+                                class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-regular cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
                                 [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
                                 (click)="toggleKeyword(keyword)"
                               >
