@@ -4,7 +4,8 @@
 
 <ng-template #featureRow let-feature>
   <div
-    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-divider-regular px-4 py-3 last:border-b-0 md:grid-cols-[minmax(160px,0.75fr)_minmax(220px,1fr)_auto_auto]"
+    data-feature-row
+    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-divider-regular px-4 py-3 last:border-b-0 md:grid-cols-[minmax(160px,0.75fr)_minmax(0,1fr)_auto_auto]"
   >
     <div class="flex min-w-0 items-center gap-3">
       <span
@@ -146,7 +147,7 @@
       }
     </div>
 
-    <div data-feature-groups-grid class="columns-1 gap-4 xl:columns-2 2xl:columns-3">
+    <div data-feature-groups-grid class="columns-xl gap-4">
       @for (group of visibleFeatureGroups(features); track $index) {
         <z-card
           data-feature-group-card
