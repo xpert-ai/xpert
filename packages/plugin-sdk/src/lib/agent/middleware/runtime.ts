@@ -7,7 +7,7 @@ import type { BaseMessage } from '@langchain/core/messages'
 import { ICopilotModel, ILLMUsage, IXpertAgentExecution, JSONValue, TSandboxConfigurable } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { IRerank } from '../../ai-model/types'
-import type { AgentMiddlewareRuntimeCapabilityRegistry } from './runtime-capability'
+import type { RuntimeCapabilityRegistry } from '../../core'
 
 export * from './runtime-capability'
 export * from './capabilities'
@@ -120,5 +120,5 @@ export interface AgentMiddlewareRuntimeApi {
 
   emitMiddlewareEvent?(event: AgentMiddlewareEvent): Promise<void> | void
 
-  capabilities?: AgentMiddlewareRuntimeCapabilityRegistry
+  capabilities?: RuntimeCapabilityRegistry
 }

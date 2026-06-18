@@ -60,14 +60,18 @@ jest.mock('./execution', () => {
 
 import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import {
     AssistantTaskRuntimeCapability,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
-    RequestContext
+    RequestContext,
+    WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
-import { GetStorageFileQuery } from '@xpert-ai/server-core'
+import { GetStorageFileQuery, UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
@@ -89,26 +93,36 @@ import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../kn
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let volumeClient: { resolve: jest.Mock }
+    let volumeRoot: string
+    let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
+        volumeRoot = mkdtempSync(join(tmpdir(), 'xpert-workspace-files-'))
         commandBus = {
             execute: jest.fn()
         }
         queryBus = {
             execute: jest.fn()
         }
+        volumeClient = {
+            resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
+        }
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient)
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
             {
                 t: jest.fn().mockReturnValue('AI model not found')
-            } as any
+            } as any,
+            workspaceFiles
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -117,6 +131,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     })
 
     afterEach(() => {
+        rmSync(volumeRoot, { recursive: true, force: true })
         jest.restoreAllMocks()
     })
 
@@ -720,6 +735,99 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 
+    it('uploads workspace files through the volume upload target', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof UploadFileCommand) {
+                return {
+                    status: 'success',
+                    destinations: [
+                        {
+                            kind: 'volume',
+                            status: 'success',
+                            path: 'files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx',
+                            url: 'https://files.example/files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx',
+                            metadata: {
+                                filePath: 'files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx',
+                                fileUrl:
+                                    'https://files.example/files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx'
+                            }
+                        }
+                    ]
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).uploadBuffer({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            isolateByUser: false,
+            folder: 'files/docx-editor/documents/doc-1/versions',
+            fileName: 'v1-abcd1234.docx',
+            originalName: 'contract.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            buffer: Buffer.from('docx')
+        })
+
+        expect(result?.workspacePath).toBe('files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx')
+        const command = commandBus.execute.mock.calls[0][0] as UploadFileCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                source: expect.objectContaining({
+                    kind: 'buffer',
+                    originalName: 'contract.docx'
+                }),
+                targets: [
+                    expect.objectContaining({
+                        kind: 'volume',
+                        catalog: 'xperts',
+                        xpertId: 'xpert-1',
+                        isolateByUser: false,
+                        folder: 'files/docx-editor/documents/doc-1/versions',
+                        fileName: 'v1-abcd1234.docx'
+                    })
+                ]
+            })
+        )
+    })
+
+    it('reads and deletes raw workspace file buffers', async () => {
+        const relativePath = 'files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx'
+        mkdirSync(join(volumeRoot, 'files/docx-editor/documents/doc-1/versions'), { recursive: true })
+        writeFileSync(join(volumeRoot, relativePath), Buffer.from([0x50, 0x4b, 0x03, 0x04]))
+
+        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).readBuffer({
+            tenantId: 'tenant-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            isolateByUser: false,
+            filePath: relativePath
+        })
+
+        expect(result?.buffer).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]))
+        expect(volumeClient.resolve).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                catalog: 'xperts',
+                xpertId: 'xpert-1',
+                isolateByUser: false
+            })
+        )
+
+        await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).deleteFile({
+            tenantId: 'tenant-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            isolateByUser: false,
+            filePath: relativePath
+        })
+
+        expect(existsSync(join(volumeRoot, relativePath))).toBe(false)
+    })
+
     it('resolves file asset references through the runtime facade', async () => {
         queryBus.execute.mockImplementation(async (query: unknown) => {
             if (query instanceof GetFileAssetQuery) {
@@ -855,3 +963,20 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 })
+
+function createTestVolumeHandle(scope: Record<string, unknown>, root: string) {
+    return {
+        scope,
+        serverRoot: root,
+        hostRoot: root,
+        publicBaseUrl: 'https://files.example',
+        path: (relativePath?: string | null) => join(root, normalizeTestRelativePath(relativePath)),
+        publicUrl: (relativePath?: string | null) =>
+            ['https://files.example', normalizeTestRelativePath(relativePath)].filter(Boolean).join('/'),
+        ensureRoot: async () => createTestVolumeHandle(scope, root)
+    }
+}
+
+function normalizeTestRelativePath(relativePath?: string | null) {
+    return (relativePath ?? '').replace(/\\/g, '/').replace(/^\/+/, '')
+}
