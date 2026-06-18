@@ -281,6 +281,66 @@ describe('RemoteComponentRendererComponent', () => {
     expect(result).toEqual({ success: true, status: 'sent' })
   })
 
+  it('executes declared assistant context client commands through the host registry', async () => {
+    const handler = jest.fn(async () => ({ success: true, status: 'updated' }))
+    registry.register('assistant.context.set', handler)
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      clientCommands: [
+        ...(manifest.clientCommands ?? []),
+        {
+          key: 'assistant.context.set',
+          label: {
+            en_US: 'Set assistant context'
+          }
+        }
+      ]
+    })
+    await flushRemoteEntry(fixture)
+
+    const component = fixture.componentInstance as unknown as {
+      handleClientCommandRequest(message: Record<string, unknown>): Promise<unknown>
+    }
+    const result = await component.handleClientCommandRequest({
+      commandKey: 'assistant.context.set',
+      payload: {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'doc-1'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'doc-1'
+          }
+        }
+      }
+    })
+
+    expect(handler).toHaveBeenCalledWith(
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'doc-1'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'doc-1'
+          }
+        }
+      },
+      expect.objectContaining({
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'bom_document_intake__review'
+      })
+    )
+    expect(result).toEqual({ success: true, status: 'updated' })
+  })
+
   it('rejects undeclared client commands before reaching the registry', async () => {
     const handler = jest.fn()
     registry.register('assistant.chat.send_message', handler)
