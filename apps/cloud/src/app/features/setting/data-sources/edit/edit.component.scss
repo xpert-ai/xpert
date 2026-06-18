@@ -1,11 +1,4 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply max-h-[80vh] text-text-primary;
-}
-
-.pac-data-source-creation__stepper-content {
-  max-height: 400px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  @apply flex h-[80vh] max-h-[80vh] flex-col overflow-hidden bg-components-card-bg text-text-primary;
 }

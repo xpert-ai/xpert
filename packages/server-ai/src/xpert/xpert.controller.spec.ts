@@ -14,6 +14,7 @@ import type { HandoffQueueService } from '../handoff/message-queue.service'
 import type { PromptWorkflowService } from '../prompt-workflow'
 import { XpertController } from './xpert.controller'
 import type { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
+import type { XpertPrincipalService } from './xpert-principal.service'
 import type { XpertService } from './xpert.service'
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -75,6 +76,10 @@ jest.mock('./xpert.service', () => ({
 
 jest.mock('./xpert-frequent-questions.service', () => ({
     XpertFrequentQuestionsService: class {}
+}))
+
+jest.mock('./xpert-principal.service', () => ({
+    XpertPrincipalService: class {}
 }))
 
 jest.mock('../copilot-store/copilot-store.service', () => ({
@@ -156,6 +161,7 @@ describe('XpertController', () => {
     let xpertService: {
         findBySlug: jest.Mock
         findOne: jest.Mock
+        update: jest.Mock
     }
     let environmentService: {
         findOne: jest.Mock
@@ -169,6 +175,9 @@ describe('XpertController', () => {
     let runtimeCapabilitiesService: {
         getRuntimeCapabilities: jest.Mock
     }
+    let xpertPrincipalService: {
+        ensurePrincipalUser: jest.Mock
+    }
     let commandBus: {
         execute: jest.Mock
     }
@@ -179,7 +188,8 @@ describe('XpertController', () => {
     beforeEach(() => {
         xpertService = {
             findBySlug: jest.fn(),
-            findOne: jest.fn()
+            findOne: jest.fn(),
+            update: jest.fn()
         }
         environmentService = {
             findOne: jest.fn()
@@ -197,6 +207,9 @@ describe('XpertController', () => {
                 subAgents: [],
                 commands: []
             }))
+        }
+        xpertPrincipalService = {
+            ensurePrincipalUser: jest.fn()
         }
         commandBus = {
             execute: jest.fn()
@@ -217,6 +230,7 @@ describe('XpertController', () => {
             runtimeCapabilitiesService as unknown as RuntimeCapabilitiesService,
             handoffQueue as unknown as HandoffQueueService,
             agentChatRealtime as unknown as AgentChatRealtimeService,
+            xpertPrincipalService as unknown as XpertPrincipalService,
             {} as unknown as XpertFrequentQuestionsService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
@@ -234,6 +248,76 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('initializes the xpert principal user when enabling Chat API', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            slug: 'assistant',
+            userId: null,
+            api: {
+                disabled: true
+            }
+        }
+        xpertService.findOne.mockResolvedValue(xpert)
+
+        await controller.updateChatApi('xpert-1', {
+            disabled: false
+        })
+
+        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+            api: {
+                disabled: false
+            }
+        })
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
+    })
+
+    it('initializes the xpert principal user when enabling Chat App', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            slug: 'assistant',
+            userId: null,
+            app: {
+                enabled: false
+            }
+        }
+        xpertService.findOne.mockResolvedValue(xpert)
+
+        await controller.updateChatApp('xpert-1', {
+            enabled: true
+        })
+
+        expect(xpertService.update).toHaveBeenCalledWith('xpert-1', {
+            app: {
+                enabled: true
+            }
+        })
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
+    })
+
+    it('initializes the xpert principal user on demand', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            slug: 'assistant',
+            userId: null
+        }
+        xpertService.findOne.mockResolvedValue(xpert)
+        xpertPrincipalService.ensurePrincipalUser.mockResolvedValue({
+            id: 'assistant-user-1'
+        })
+
+        await expect(controller.ensurePrincipalUser('xpert-1')).resolves.toEqual({
+            userId: 'assistant-user-1'
+        })
+
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
     })
 
     it('loads conversation logs with transformed filters and search text', async () => {

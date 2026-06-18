@@ -268,11 +268,11 @@ describe('plugin sdk versioning', () => {
 	it('falls back to monorepo plugin manifests for code plugins without an installed package.json', () => {
 		expect(
 			readInstalledPluginManifest(
-				'@xpert-ai/plugin-draft',
-				join(process.cwd(), 'plugins/global/@xpert-ai/plugin-draft')
+				'@xpert-ai/plugin-vlm-default',
+				join(process.cwd(), 'plugins/global/@xpert-ai/plugin-vlm-default')
 			)
 		).toMatchObject({
-			name: '@xpert-ai/plugin-draft',
+			name: '@xpert-ai/plugin-vlm-default',
 			peerDependencies: expect.objectContaining({
 				'@xpert-ai/plugin-sdk': 'workspace:*'
 			})
@@ -287,11 +287,11 @@ describe('plugin sdk versioning', () => {
 
 			expect(
 				readInstalledPluginManifest(
-					'@xpert-ai/plugin-trigger-schedule',
-					join(originalCwd, 'plugins/global/@xpert-ai/plugin-trigger-schedule')
+					'@xpert-ai/plugin-vlm-default',
+					join(originalCwd, 'plugins/global/@xpert-ai/plugin-vlm-default')
 				)
 			).toMatchObject({
-				name: '@xpert-ai/plugin-trigger-schedule',
+				name: '@xpert-ai/plugin-vlm-default',
 				peerDependencies: expect.objectContaining({
 					'@xpert-ai/plugin-sdk': 'workspace:*'
 				})

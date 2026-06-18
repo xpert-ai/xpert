@@ -21,23 +21,21 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { distinctUntilChanged, map, of } from 'rxjs'
-import {
-  AiModelTypeEnum,
-  CopilotServerService,
+import { AiModelTypeEnum, ModelFeature, ModelPropertyKey, ParameterType } from '@xpert-ai/contracts'
+import type {
   I18nObject,
   ICopilot,
   ICopilotModel,
   ICopilotWithProvider,
-  injectCopilotProviderService,
-  ModelPropertyKey,
-  ModelFeature,
   ParameterRule,
-  ParameterType,
   ProviderModel
-} from '../../../@core'
+} from '@xpert-ai/contracts'
+import { injectCopilotProviderService } from '../../../@core/services/copilot-provider.service'
+import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } from '../model-tags'
 
 type ModelParameterRulesResourceValue = {
   model: string | undefined
@@ -49,6 +47,8 @@ type ModelParameterRulesResourceValue = {
 const MODEL_MENU_MAX_HEIGHT = 560
 const MODEL_MENU_VIEWPORT_MARGIN = 16
 const MODEL_MENU_TRIGGER_GAP = 8
+const MODEL_INLINE_TAGS_MIN_WIDTH = 720
+const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
 
 @Component({
   standalone: true,
@@ -75,10 +75,6 @@ const MODEL_MENU_TRIGGER_GAP = 8
   }
 })
 export class CopilotModelSelectComponent implements ControlValueAccessor {
-  eModelFeature = ModelFeature
-  eModelType = AiModelTypeEnum
-  eParameterType = ParameterType
-
   protected cva = inject<NgxControlValueAccessor<Partial<ICopilotModel> | null>>(NgxControlValueAccessor)
   readonly copilotServer = inject(CopilotServerService)
   readonly copilotProviderService = injectCopilotProviderService()
@@ -107,6 +103,8 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   readonly label = input<string | I18nObject>()
 
+  readonly modelDisplayTags = providerModelDisplayTags
+
   // States
   readonly __copilotModel = computed(() => this.cva.value$() ?? this.copilotModel())
   readonly _copilotModel = computed(() => this.__copilotModel() ?? this.inheritModel())
@@ -130,10 +128,11 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly activeCopilotTabId = model<string | null>(null)
   readonly railWidth = model<number | null>(null)
   readonly isRailResizing = signal(false)
+  readonly selectedModelFilterIds = signal<string[]>([])
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
-  readonly searchedModels = computed(() => {
-    const searchText = this.#searchTerm().trim().toLowerCase()
-    const copilots = this.features()?.length
+  readonly featureFilteredCopilots = computed(() => {
+    const features = this.features()
+    return features?.length
       ? this.copilotWithModels()
           ?.map((_) => {
             return {
@@ -141,13 +140,18 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
               providerWithModels: {
                 ..._.providerWithModels,
                 models: _.providerWithModels.models.filter((m) =>
-                  this.features().every((feature) => m.features?.includes(feature))
+                  features.every((feature) => m.features?.includes(feature))
                 )
               }
             }
           })
           .filter((_) => _.providerWithModels.models.length)
       : this.copilotWithModels()
+  })
+
+  readonly searchedModels = computed(() => {
+    const searchText = this.#searchTerm().trim().toLowerCase()
+    const copilots = this.featureFilteredCopilots()
 
     return searchText
       ? copilots
@@ -172,6 +176,34 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
           })
           .filter(nonBlank)
       : copilots
+  })
+
+  readonly activeSearchedCopilot = computed(() => {
+    const activeCopilotTabId = this.resolvedActiveCopilotTabId()
+    return activeCopilotTabId
+      ? (this.searchedModels()?.find((copilot) => copilot.id === activeCopilotTabId) ?? null)
+      : null
+  })
+
+  readonly activeModelFilterTags = computed(() => {
+    const tags = new Map<string, ModelFilterTag>()
+    for (const model of this.activeSearchedCopilot()?.providerWithModels.models ?? []) {
+      for (const tag of this.getModelFilterTags(model)) {
+        if (!tags.has(tag.id)) {
+          tags.set(tag.id, tag)
+        }
+      }
+    }
+    return Array.from(tags.values())
+  })
+
+  readonly selectedModelFilters = computed(() => {
+    const selectedIds = new Set(this.selectedModelFilterIds())
+    return this.activeModelFilterTags().filter((tag) => selectedIds.has(tag.id))
+  })
+
+  readonly modelFilterTags = computed(() => {
+    return this.activeModelFilterTags()
   })
   readonly activeCopilotTabIndex = computed(() => {
     const copilots = this.searchedModels() ?? []
@@ -275,8 +307,40 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     }, 100)
   })
 
+  toggleModelFilter(filterId: string) {
+    this.selectedModelFilterIds.update((ids) =>
+      ids.includes(filterId) ? ids.filter((id) => id !== filterId) : [...ids, filterId]
+    )
+  }
+
+  clearModelFilters() {
+    this.selectedModelFilterIds.set([])
+  }
+
+  isModelFilterSelected(filterId: string) {
+    return this.selectedModelFilterIds().includes(filterId)
+  }
+
+  private getModelFilterTags(model: ProviderModel): ModelFilterTag[] {
+    return providerModelFilterTags(model)
+  }
+
+  private matchesModelFilters(model: ProviderModel, filters: ModelFilterTag[]) {
+    const modelTagIds = new Set(this.getModelFilterTags(model).map((tag) => tag.id))
+    return filters.every((filter) => modelTagIds.has(filter.id))
+  }
+
   constructor() {
     this.#destroyRef.onDestroy(() => this.stopRailResize())
+
+    effect(() => {
+      const availableIds = new Set(this.modelFilterTags().map((tag) => tag.id))
+      const selectedIds = this.selectedModelFilterIds()
+      const nextSelectedIds = selectedIds.filter((id) => availableIds.has(id))
+      if (nextSelectedIds.length !== selectedIds.length) {
+        this.selectedModelFilterIds.set(nextSelectedIds)
+      }
+    })
 
     effect(() => {
       const value = this.cva.value$()
@@ -399,12 +463,33 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   selectCopilotTabByIndex(index: number) {
     const copilot = this.searchedModels()?.[index]
     if (copilot) {
+      if (copilot.id !== this.activeCopilotTabId()) {
+        this.clearModelFilters()
+      }
       this.activeCopilotTabId.set(copilot.id)
     }
   }
 
   getCopilotTabModelCount(copilot: ICopilotWithProvider) {
     return copilot.providerWithModels?.models?.length ?? 0
+  }
+
+  getVisibleCopilotModels(copilot: ICopilotWithProvider) {
+    const models = copilot.providerWithModels?.models ?? []
+    if (copilot.id !== this.resolvedActiveCopilotTabId()) {
+      return models
+    }
+
+    const filters = this.selectedModelFilters()
+    return filters.length ? models.filter((model) => this.matchesModelFilters(model, filters)) : models
+  }
+
+  showInlineModelTags(menuWidth: number | null | undefined, menuRailWidth: number | null | undefined) {
+    return (menuWidth ?? 0) - (menuRailWidth ?? 0) >= MODEL_INLINE_TAGS_MIN_WIDTH
+  }
+
+  showInlineSelectedModelTags(container: HTMLElement | null | undefined) {
+    return (container?.getBoundingClientRect().width ?? 0) >= SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH
   }
 
   getMenuWidth(container: HTMLElement | null | undefined) {

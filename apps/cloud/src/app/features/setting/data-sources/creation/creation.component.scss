@@ -1,14 +1,4 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  overflow: hidden;
-  max-height: 80vh;
-}
-
-.pac-ds-creation__types {
-  .pac-ds-creation__type-content {
-    @apply -mr-4;
-  }
+  @apply flex h-[80vh] max-h-[80vh] w-[780px] max-w-[calc(100vw-48px)] flex-col overflow-hidden bg-components-card-bg text-text-primary;
 }

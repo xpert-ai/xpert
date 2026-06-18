@@ -9,7 +9,8 @@ jest.mock('../../../environment', () => {
 })
 
 jest.mock('../../../xpert', () => ({
-    PublishedXpertAccessService: class PublishedXpertAccessService {}
+    PublishedXpertAccessService: class PublishedXpertAccessService {},
+    XpertPrincipalService: class XpertPrincipalService {}
 }))
 
 jest.mock('@xpert-ai/contracts', () => {
@@ -724,6 +725,53 @@ describe('RunCreateStreamHandler environment resolution', () => {
                         value: 'workspace-from-request'
                     })
                 ])
+            })
+        )
+    })
+})
+
+describe('RunCreateStreamHandler assistant principal', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
+    it('ensures the target xpert principal user before returning the assistant runtime context', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                userId: null,
+                user: null
+            })
+        }
+        const xpertPrincipalService = {
+            ensurePrincipalUser: jest.fn().mockResolvedValue({
+                id: 'assistant-user-1',
+                tenantId: 'tenant-1'
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            {} as any,
+            {} as any,
+            {} as any,
+            publishedXpertAccessService as any,
+            xpertPrincipalService as any
+        )
+
+        await expect(handler['resolveAssistantForRun']('xpert-1')).resolves.toMatchObject({
+            id: 'xpert-1',
+            userId: 'assistant-user-1',
+            user: {
+                id: 'assistant-user-1'
+            }
+        })
+
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'xpert-1'
             })
         )
     })

@@ -1,3 +1,5 @@
 export * from './chat.gateway'
 export * from './chat.module'
 export * from './chat.controller'
+export * from './speech-to-text.service'
+export * from './speech-to-text-permission'

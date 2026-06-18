@@ -1,33 +1,29 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
-import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
-import { isEmpty, omit } from '@xpert-ai/ocap-core'
+import { AuthenticationEnum, getErrorMessage, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
+import { omit } from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
-import {
-  LocalAgent,
-  ServerSocketAgent,
-  ToastrService,
-  convertConfigurationSchema,
-  getErrorMessage
-} from '@cloud/app/@core/index'
+import { BehaviorSubject, firstValueFrom, startWith } from 'rxjs'
+import { convertConfigurationSchema } from '@cloud/app/@core/services/configuration-schema.service'
+import { LocalAgent } from '@cloud/app/@core/services/local-agent.service'
+import { ServerSocketAgent } from '@cloud/app/@core/services/server-socket-agent.service'
+import { ToastrService } from '@cloud/app/@core/services/toastr.service'
 import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
-import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CdkListboxModule } from '@angular/cdk/listbox'
-import { ContentLoaderModule } from '@ngneat/content-loader'
 
-import { NgmInputComponent } from '@xpert-ai/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import {
+  Z_MODAL_DATA,
+  ZardBadgeComponent,
   ZardButtonComponent,
-  ZardSwitchComponent,
-  ZardToggleGroupComponent,
-  ZardToggleGroupItemComponent,
+  ZardDialogRef,
+  ZardEmptyComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardLoaderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 
@@ -35,21 +31,16 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    DragDropModule,
     TranslateModule,
     FormlyModule,
-    FormsModule,
     ReactiveFormsModule,
-    CdkListboxModule,
+    ZardBadgeComponent,
     ZardButtonComponent,
-    ZardToggleGroupComponent,
-    ZardToggleGroupItemComponent,
-    ContentLoaderModule,
-    NgmInputComponent,
-    ButtonGroupDirective,
-    AppearanceDirective,
-    DensityDirective,
-    ZardSwitchComponent,
+    ZardEmptyComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardLoaderComponent,
+    ...ZardFormImports,
     ...ZardTooltipImports
   ],
   selector: 'pac-data-source-creation',
@@ -64,8 +55,8 @@ export class PACDataSourceCreationComponent implements OnInit {
   private dataSourceService = inject(DataSourceService)
   private toastrService = inject(ToastrService)
   private translateService = inject(TranslateService)
-  private data: IDataSource = inject(DIALOG_DATA, { optional: true })
-  public dialogRef = inject(DialogRef<Partial<IDataSource>>)
+  private data = inject<IDataSource | null>(Z_MODAL_DATA, { optional: true })
+  public dialogRef = inject<ZardDialogRef<PACDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
   private localAgent? = inject(LocalAgent, { optional: true })
   private serverAgent = inject(ServerSocketAgent)
 
@@ -74,25 +65,27 @@ export class PACDataSourceCreationComponent implements OnInit {
   readonly connectionTypes$ = this.typesService.types$.pipe(takeUntilDestroyed())
   readonly connectionTypes = toSignal(this.connectionTypes$, { initialValue: null })
   public typeFormGroup = new FormGroup({
-    type: new FormControl(null, [Validators.required])
+    type: new FormControl<string | null>(null, [Validators.required])
   })
-  // get type(): IDataSourceType {
-  //   return this.typeFormGroup.value?.type?.[0]
-  // }
 
-  readonly dataSourceType = toSignal(this.typeFormGroup.valueChanges.pipe(map((value) => value?.type?.[0])))
-  readonly listboxConnectionTypes = computed(() => {
+  readonly selectedTypeId = toSignal(
+    this.typeFormGroup.controls.type.valueChanges.pipe(startWith(this.typeFormGroup.controls.type.value))
+  )
+  readonly initialDataSourceType = signal<IDataSourceType | null>(null)
+  readonly connectionTypeOptions = computed(() => {
     const types = this.connectionTypes() ?? []
-    const selectedTypes = this.typeFormGroup.value?.type ?? []
+    const selectedType = this.initialDataSourceType()
     const options = [...types]
 
-    selectedTypes.forEach((item) => {
-      if (!options.some((type) => this.compareFn(type, item))) {
-        options.push(item)
-      }
-    })
+    if (selectedType && !options.some((type) => type.id === selectedType.id)) {
+      options.push(selectedType)
+    }
 
     return options
+  })
+  readonly dataSourceType = computed(() => {
+    const selectedTypeId = this.selectedTypeId()
+    return selectedTypeId ? this.connectionTypeOptions().find((type) => type.id === selectedTypeId) : null
   })
 
   formGroup = new FormGroup({
@@ -115,26 +108,24 @@ export class PACDataSourceCreationComponent implements OnInit {
   // Signal States
   readonly isXmla = computed(() => this.dataSourceType()?.protocol === DataSourceProtocolEnum.XMLA)
 
-  private _typeFormGroupSub = this.typeFormGroup.valueChanges.subscribe(({ type }) => {
-    if (!isEmpty(type)) {
+  private _typeFieldsEffect = effect(() => {
+    const type = this.dataSourceType()
+    if (type) {
       const i18n = this.translateService.instant('PAC.DataSources.Schema')
-      this.fields$.next(convertConfigurationSchema(type[0].configuration, i18n))
+      this.fields$.next(convertConfigurationSchema(type.configuration, i18n))
     }
   })
 
   async ngOnInit() {
     if (this.data?.id) {
       const dataSource = await firstValueFrom(this.dataSourceService.getOne(this.data.id))
+      this.initialDataSourceType.set(dataSource.type)
       this.typeFormGroup.patchValue({
-        type: [dataSource.type]
+        type: dataSource.type.id
       })
       this.formGroup.patchValue(omit(dataSource, 'id'))
       this.model = dataSource.options
     }
-  }
-
-  compareFn(a: IDataSourceType, b: IDataSourceType) {
-    return a?.id === b?.id
   }
 
   async onSave() {
@@ -154,8 +145,6 @@ export class PACDataSourceCreationComponent implements OnInit {
   onCancel() {
     this.dialogRef.close()
   }
-
-  onModelChange(event) {}
 
   async ping() {
     const agent = this.formGroup.value.useLocalAgent ? this.localAgent : this.serverAgent

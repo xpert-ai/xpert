@@ -1,96 +1,209 @@
 <div class="pac-page-header">
-  <div class="pac-page-title">{{ 'PAC.KEY_WORDS.DATA_SOURCES' | translate: {Default: "Data Sources"} }}</div>
-</div>
-
-<div class="w-full flex justify-start p-4">
-  <ngm-search [formControl]="searchControl" />
-</div>
-
-<nav class="grid content-start grid-cols-1 gap-4 px-6 pt-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0">
-  <ngm-card-create [title]="'PAC.DataSources.CreateDataSource' | translate: {Default: 'Create data source'}"
-    [helpTitle]="'PAC.DataSources.CreateDataSourceHelp' | translate: {Default: 'Learn more about custom data sources'} "
-    helpUrl="/docs/server/datasources/"
-    (create)="create()"
-  />
-  @for (item of dataSources(); track item.id) {
-    <div class="datasource-card group relative col-span-1 border-2 border-solid border-transparent rounded-xl shadow-sm min-h-[160px] flex flex-col transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg
-            bg-background-default-subtle hover:bg-hover-bg"
-      [ngClass]="routeAnimationsElements"
-      [class.active]="mt.isOpen()"
-      (click)="edit(item)"
-    >
-      <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
-        <div class="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden">
-          <img src="assets/images/db-logos/{{item.type?.type}}.png">
-        </div>
-        <div class="grow w-0 py-[1px]">
-          <div class="flex items-center text-base leading-5 font-semibold">
-            <div class="truncate" [title]="item.name">{{ item.name }}</div>
-          </div>
-          <div class="flex items-center text-sm leading-5">
-            <div class="truncate" [title]="item.type?.type">{{ item.type?.type }}</div>
-          </div>
-        </div>
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div class="min-w-0">
+      <div class="pac-page-title">
+        {{ 'PAC.KEY_WORDS.DATA_SOURCES' | translate: { Default: 'Data Sources' } }}
       </div>
-      <div
-        class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal line-clamp-2 group-hover:line-clamp-2 group-hover:max-h-[36px]"
-      >
-      </div>
-      <div class="flex items-center shrink-0 mt-1 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[42px]">
-      </div>
-
-      <div
-        class="absolute bottom-1 left-0 right-0 items-center shrink-0 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[42px]
-          hidden group-hover:flex"
-        (click)="$event.stopPropagation();"
-      >
-        <div class="grow flex items-center gap-1 w-0">
-          
-        </div>
-        <div class="shrink-0 mx-1 w-[1px] h-[14px] bg-divider-regular"></div>
-        <div class="shrink-0">
-          <button
-            class="bg-components-input-bg-normal !bg-transparent h-8 w-8 rounded-md border-none active:!bg-black/5 hover:!bg-black/5 dark:bg-neutral-400"
-            type="button"
-            [cdkMenuTriggerFor]="menu"
-            [cdkMenuTriggerData]="{item: item}"
-            #mt="cdkMenuTriggerFor"
-            [class.active]="mt.isOpen()"
-            [attr.active]="mt.isOpen()"
-          >
-            <div class="flex items-center justify-center w-8 h-8 cursor-pointer rounded-md">
-              <i class="ri-more-line"></i>
-            </div>
-          </button>
-        </div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          'PAC.DataSources.PageDescription'
+            | translate: { Default: 'Manage database and service connections for analytics.' }
+        }}
       </div>
     </div>
-  }
-</nav>
 
-@if (loading()) {
-  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
-}
+    <div class="flex shrink-0 items-center gap-2">
+      <a
+        z-button
+        zType="secondary"
+        [href]="helpWebsite() + '/docs/server/datasources/'"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <z-icon zType="help_outline"></z-icon>
+        {{ 'PAC.KEY_WORDS.Docs' | translate: { Default: 'Docs' } }}
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="pac-page-body flex flex-1 flex-col gap-4 p-4">
+  <div
+    class="flex flex-col gap-3 rounded-2xl bg-components-panel-bg px-4 py-3 md:flex-row md:items-center md:justify-between"
+  >
+    <div class="relative min-w-0 flex-1 md:max-w-md">
+      <z-icon zType="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+      <input
+        z-input
+        type="text"
+        class="w-full pl-9"
+        [formControl]="searchControl"
+        [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+      />
+    </div>
+
+    <div class="flex items-center gap-2 text-sm text-text-tertiary">
+      @if (loading()) {
+        <z-loader zSize="sm" />
+        <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
+      } @else {
+        <z-badge zType="secondary" zShape="pill">
+          {{ dataSources().length }}
+          {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+        </z-badge>
+      }
+    </div>
+  </div>
+
+  @if (dataSources().length) {
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <z-card
+        class="group overflow-hidden border border-dashed border-divider-regular bg-components-card-bg p-0 shadow-none transition-colors hover:bg-hover-bg"
+      >
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          class="flex min-h-[180px] w-full flex-col items-start justify-between rounded-xl p-4 text-left hover:bg-transparent"
+          (click)="create()"
+        >
+          <span
+            class="flex h-11 w-11 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
+          >
+            <z-icon zType="add"></z-icon>
+          </span>
+
+          <span class="flex w-full flex-col gap-1">
+            <span class="text-base font-semibold text-text-primary">
+              {{ 'PAC.DataSources.CreateDataSource' | translate: { Default: 'Create data source' } }}
+            </span>
+          </span>
+        </button>
+      </z-card>
+
+      @for (item of dataSources(); track item.id) {
+        <z-card
+          class="group relative overflow-hidden border border-divider-regular bg-components-card-bg p-0 shadow-none transition-colors hover:bg-hover-bg"
+          [ngClass]="routeAnimationsElements"
+        >
+          <button
+            type="button"
+            z-button
+            zType="ghost"
+            class="flex min-h-[180px] w-full flex-col items-stretch justify-between rounded-xl p-4 text-left hover:bg-transparent"
+            [attr.aria-label]="('PAC.ACTIONS.Edit' | translate: { Default: 'Edit' }) + ': ' + item.name"
+            (click)="edit(item)"
+          >
+            <span class="flex min-w-0 items-start gap-3 pr-10">
+              <span
+                class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-divider-regular bg-background-default-subtle"
+              >
+                <img
+                  src="assets/images/db-logos/{{ item.type?.type }}.png"
+                  width="40"
+                  height="40"
+                  class="m-0 inline-block"
+                  [alt]="item.type?.type || ('PAC.KEY_WORDS.DataSource' | translate: { Default: 'Data Source' })"
+                />
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-base font-semibold text-text-primary" [title]="item.name">
+                  {{ item.name }}
+                </span>
+
+                <span class="mt-2 flex min-w-0 items-center gap-2">
+                  <z-badge zType="secondary" zShape="pill" class="max-w-full truncate font-mono">
+                    {{ item.type?.type || ('PAC.KEY_WORDS.Unknown' | translate: { Default: 'Unknown' }) }}
+                  </z-badge>
+                </span>
+              </span>
+            </span>
+
+            <span
+              class="mt-5 flex items-center justify-between border-t border-divider-regular pt-3 text-xs font-normal text-text-tertiary"
+            >
+              <span class="inline-flex min-w-0 items-center gap-1.5">
+                <z-icon zType="database" class="shrink-0"></z-icon>
+                <span class="truncate">
+                  {{ 'PAC.KEY_WORDS.DataSource' | translate: { Default: 'Data Source' } }}
+                </span>
+              </span>
+
+              <span class="inline-flex items-center gap-1 text-text-secondary">
+                {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                <z-icon zType="chevron_right"></z-icon>
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            class="absolute right-3 top-3 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+            z-menu
+            [zMenuTriggerFor]="menu"
+            [zMenuTriggerData]="{ item: item }"
+            zPlacement="bottomRight"
+            [attr.aria-label]="'PAC.Chat.MoreActions' | translate: { Default: 'More actions' }"
+            (click)="$event.stopPropagation()"
+          >
+            <z-icon zType="more_vert"></z-icon>
+          </button>
+        </z-card>
+      }
+    </div>
+  } @else if (!loading()) {
+    <div
+      class="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-components-panel-bg px-6 py-10 text-center"
+    >
+      <z-empty
+        zIcon="database"
+        [zTitle]="
+          searchText()
+            ? ('PAC.DataSources.NoMatchingDataSources' | translate: { Default: 'No matching data sources' })
+            : ('PAC.DataSources.NoDataSources' | translate: { Default: 'No data sources yet' })
+        "
+        [zDescription]="
+          searchText()
+            ? ('PAC.DataSources.TryDifferentSearch' | translate: { Default: 'Try a different search keyword.' })
+            : ('PAC.DataSources.EmptyDescription'
+              | translate: { Default: 'Create a data source to connect your databases and services.' })
+        "
+      >
+        @if (!searchText()) {
+          <button type="button" z-button zType="default" class="mt-4" (click)="create()">
+            <z-icon zType="add"></z-icon>
+            {{ 'PAC.DataSources.CreateDataSource' | translate: { Default: 'Create data source' } }}
+          </button>
+        }
+      </z-empty>
+    </div>
+  }
+</div>
 
 <ng-template #menu let-item="item">
-  <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem (click)="edit(item)">
-      <i class="ri-edit-line mr-1"></i>
+  <div z-menu-content class="p-1">
+    <button type="button" z-menu-item (click)="edit(item)">
+      <z-icon zType="edit" class="mr-2"></z-icon>
       <span>
-        {{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}
+        {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </span>
     </button>
 
-    <button cdkMenuItem (click)="copy(item)">
-      <i class="ri-file-copy-line mr-1"></i>
+    <button type="button" z-menu-item (click)="copy(item)">
+      <z-icon zType="copy" class="mr-2"></z-icon>
       <span>
-        {{ 'PAC.ACTIONS.Copy' | translate: {Default: "Copy"} }}
+        {{ 'PAC.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
       </span>
     </button>
 
-    <button cdkMenuItem class="danger" (click)="remove(item)">
-      <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+    <button type="button" z-menu-item zType="destructive" (click)="remove(item)">
+      <z-icon zType="trash" class="mr-2"></z-icon>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>

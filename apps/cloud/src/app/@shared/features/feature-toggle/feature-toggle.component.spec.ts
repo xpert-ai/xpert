@@ -957,8 +957,12 @@ describe('FeatureToggleComponent', () => {
 
     expect(element.querySelector('[data-feature-summary]')).not.toBeNull()
     expect(element.querySelector('[data-feature-home-section]')).toBeNull()
-    expect(element.querySelector('[data-feature-groups-grid]')?.className).toContain('columns-1')
-    expect(element.querySelector('[data-feature-groups-grid]')?.className).toContain('2xl:columns-3')
+    const groupsGridClass = element.querySelector('[data-feature-groups-grid]')?.className ?? ''
+    expect(groupsGridClass).toContain('columns-xl')
+    expect(groupsGridClass).not.toContain('2xl:columns-3')
+
+    const featureRowClass = element.querySelector('[data-feature-row]')?.className ?? ''
+    expect(featureRowClass).toContain('minmax(0,1fr)')
     expect(element.querySelector('[data-feature-group-id="FEATURE_HOME"]')).not.toBeNull()
     expect(element.querySelector('[data-feature-group-id="FEATURE_ORGANIZATION"] z-card-content')).toBeNull()
     expect(element.querySelector('[data-feature-group-card]')?.className).toContain('break-inside-avoid')

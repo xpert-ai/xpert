@@ -195,6 +195,7 @@
       "DataSource": "數據源",
       "DATA_SOURCE": "數據源",
       "DATA_SOURCES": "數據源",
+      "Docs": "文檔",
       "DELETE": "刪除",
       "Default": "默認",
       "DIMENSIONS": "維度",
@@ -202,6 +203,8 @@
       "EDIT": "編輯",
       "EXPORT": "導出",
       "GENERAL": "常規",
+      "Items": "項",
+      "Unknown": "未知",
       "GROUP": "組",
       "HIERARCHY": "層次結構",
       "INDICATOR": "指標",
@@ -906,7 +909,8 @@
         "AuthType_Basic": "基本身份驗證",
         "AuthType_None_Description": "系統統一授權，不需要用戶提供賬號",
         "AuthType_Basic_Description": "用戶需提供賬號進行授權",
-        "SelectTypeToCreate": "選擇一個數據源類型進行創建"
+        "SelectTypeToCreate": "選擇一個數據源類型進行創建",
+        "NoDataSources": "暫無數據源"
       },
       "Roles": {
         "General": "通用",
@@ -1876,8 +1880,13 @@
       }
     },
     "DataSources": {
+      "PageDescription": "管理用於分析的數據庫和服務連接。",
       "CreateDataSource": "創建數據源",
       "CreateDataSourceHelp": "了解更多關於自定義數據源的信息",
+      "NoMatchingDataSources": "未找到匹配的數據源",
+      "NoDataSources": "暫無數據源",
+      "TryDifferentSearch": "嘗試使用其他搜索關鍵詞。",
+      "EmptyDescription": "創建數據源以連接數據庫和服務。",
       "Schema": {
         "Host": "主機",
         "Port": "端口號",
@@ -2238,6 +2247,7 @@
       "PromptGenerator": "提示詞生成器",
       "PromptGeneratorDesc": "提示生成器使用配置的模型來優化提示，以獲得更高的質量和更好的結構。請寫出清晰詳細的說明。",
       "NoSupportedAIModelFound": "未找到支持的 AI 模型",
+      "NoMatchingModels": "沒有匹配的模型",
       "TryIt": "試一試",
       "Instructions": "指令",
       "WriteClearInstructions": "寫下清晰、具體的說明。",
@@ -2245,6 +2255,8 @@
       "DescribeYourUseCase": "在左側描述您的用例",
       "ThePromptPreview": "提示詞預覽將顯示在這裏",
       "Chat": "對話",
+      "ModelFilters": "篩選",
+      "ClearFilters": "清空篩選",
       "SelectModel": "選擇模型",
       "Parameters": "參數",
       "Role_primary": "主",
@@ -2354,6 +2366,7 @@
     "Chat": {
       "QuoteSelection": "引用選取內容",
       "RemoveReference": "移除引用",
+      "MoreActions": "更多操作",
       "ContextCompression": "正在自動壓縮上下文",
       "ContextCompressed": "上下文已自動壓縮",
       "ContextCompressionSkipped": "上下文無需壓縮",

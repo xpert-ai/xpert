@@ -37,6 +37,8 @@ import { ChatConversationModule } from '../chat-conversation'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.entity'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
+import { XpertPrincipalService } from './xpert-principal.service'
+import { ScheduleTriggerStrategies } from './plugins'
 
 @Module({
     imports: [
@@ -75,12 +77,14 @@ import { XpertFrequentQuestionsService } from './xpert-frequent-questions.servic
         PublishedXpertAccessService,
         XpertAuthoringService,
         XpertAuthoringMiddleware,
+        XpertPrincipalService,
         RuntimeCommandService,
         RuntimeCapabilitiesService,
         XpertFrequentQuestionsService,
+        ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [XpertService, PublishedXpertAccessService]
+    exports: [XpertService, XpertPrincipalService, PublishedXpertAccessService]
 })
 export class XpertModule {}

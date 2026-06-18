@@ -1,9 +1,8 @@
-
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { ParameterRule, ParameterType } from '../../../@core'
+import { ParameterRule, ParameterType } from '@xpert-ai/contracts'
 
 /**
  * @todo Use JSON Schema to implement

@@ -13,9 +13,10 @@ import {
   DateRelativePipe,
   getErrorMessage,
   IApiKey,
-  injectToastr
+  injectToastr,
+  XpertAPIService
 } from 'apps/cloud/src/app/@core'
-import { EMPTY, firstValueFrom } from 'rxjs'
+import { EMPTY, firstValueFrom, of } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -46,6 +47,7 @@ export class XpertDevelopApiKeyComponent {
   readonly #dialog = inject(Dialog)
   readonly #data = inject<{ type: ApiKeyBindingType; id: string } | null>(DIALOG_DATA, { optional: true })
   readonly apiKeyService = inject(ApiKeyService)
+  readonly xpertService = inject(XpertAPIService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
@@ -86,7 +88,9 @@ export class XpertDevelopApiKeyComponent {
     }
 
     this.loading.set(true)
-    this.apiKeyService.create({ type, entityId }).subscribe({
+    const ensurePrincipal$ =
+      type === ApiKeyBindingType.ASSISTANT ? this.xpertService.ensurePrincipalUser(entityId) : of(null)
+    ensurePrincipal$.pipe(switchMap(() => this.apiKeyService.create({ type, entityId }))).subscribe({
       next: () => {
         this.loading.set(false)
         this.refreshVersion.update((value) => value + 1)

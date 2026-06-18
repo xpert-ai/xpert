@@ -121,32 +121,38 @@
         <p>{{ 'PAC.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
         <div class="text-sm text-text-secondary">
           {{
-            (longConnectionProbe()?.connected ? 'PAC.Integration.ReconnectSlackHint' : 'PAC.Integration.ConnectSlackHint')
-              | translate: {
-                  Default: longConnectionProbe()?.connected
-                    ? 'Reconnect the Slack app if you need to refresh workspace authorization.'
-                    : 'Open Slack to install the app and grant the required workspace scopes.'
-                }
+            (longConnectionProbe()?.connected
+              ? 'PAC.Integration.ReconnectSlackHint'
+              : 'PAC.Integration.ConnectSlackHint'
+            )
+              | translate
+                : {
+                    Default: longConnectionProbe()?.connected
+                      ? 'Reconnect the Slack app if you need to refresh workspace authorization.'
+                      : 'Open Slack to install the app and grant the required workspace scopes.'
+                  }
           }}
         </div>
         <div>
           <button z-button zType="secondary" type="button" (click)="openAuthorizationUrl()">
             {{
               (longConnectionProbe()?.connected ? 'PAC.Integration.ReconnectSlack' : 'PAC.Integration.ConnectSlack')
-                | translate: {
-                    Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
-                  }
+                | translate
+                  : {
+                      Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
+                    }
             }}
           </button>
         </div>
       </div>
-    } @else if (isSlackProvider() && !paramId() && callbackUrl()) {
+    } @else if (authorizationRequiresSavedIntegration() && !paramId() && callbackUrl()) {
       <div class="rounded-lg border border-divider-subtle p-3 text-sm text-text-secondary">
         {{
-          'PAC.Integration.SaveSlackBeforeAuthorize'
-            | translate: {
-                Default: 'Save this Slack integration first, then the Connect to Slack button will appear here.'
-              }
+          'PAC.Integration.SaveIntegrationBeforeAuthorize'
+            | translate
+              : {
+                  Default: 'Save this integration first, then the authorization button will appear here.'
+                }
         }}
       </div>
     }
@@ -189,7 +195,13 @@
     }
 
     <div class="filter-bar flex w-full items-center justify-between gap-4 p-2">
-      <button z-button zType="secondary" type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        [disabled]="!integrationProvider() || optionsInvalid"
+        (click)="test()"
+      >
         {{ 'PAC.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
       </button>
       <div class="flex items-center gap-2">

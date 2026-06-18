@@ -1,92 +1,84 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-import { type ComponentType, Overlay, OverlayConfig, OverlayRef } from '@angular/cdk/overlay';
-import { ComponentPortal, TemplatePortal } from '@angular/cdk/portal';
-import { isPlatformBrowser } from '@angular/common';
-import {
-  inject,
-  Injectable,
-  InjectionToken,
-  Injector,
-  PLATFORM_ID,
-  TemplateRef,
-  ViewContainerRef,
-} from '@angular/core';
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { type ComponentType, Overlay, OverlayConfig, OverlayRef } from '@angular/cdk/overlay'
+import { ComponentPortal, TemplatePortal } from '@angular/cdk/portal'
+import { isPlatformBrowser } from '@angular/common'
+import { inject, Injectable, InjectionToken, Injector, PLATFORM_ID, TemplateRef, ViewContainerRef } from '@angular/core'
 
-import { ZardDialogRef } from './dialog-ref';
-import { ZardDialogComponent, ZardDialogOptions } from './dialog.component';
+import { ZardDialogRef } from './dialog-ref'
+import { ZardDialogComponent, ZardDialogOptions } from './dialog.component'
 
-type ContentType<T> = ComponentType<T> | TemplateRef<T> | string;
-type CustomClass = string | string[] | undefined;
+type ContentType<T> = ComponentType<T> | TemplateRef<T> | string
+type CustomClass = string | string[] | undefined
 
-export const Z_MODAL_DATA = new InjectionToken<any>('Z_MODAL_DATA');
+export const Z_MODAL_DATA = new InjectionToken<any>('Z_MODAL_DATA')
 
 export interface ZardDialogOpenConfig<U = any> {
-  backdropClass?: CustomClass;
-  data?: U;
-  disableClose?: boolean;
-  height?: string;
-  maxHeight?: string;
-  maxWidth?: string;
-  minHeight?: string;
-  minWidth?: string;
-  panelClass?: CustomClass;
-  viewContainerRef?: ViewContainerRef;
-  width?: string;
+  backdropClass?: CustomClass
+  data?: U
+  disableClose?: boolean
+  height?: string
+  maxHeight?: string
+  maxWidth?: string
+  minHeight?: string
+  minWidth?: string
+  panelClass?: CustomClass
+  viewContainerRef?: ViewContainerRef
+  width?: string
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class ZardDialogService {
-  private overlay = inject(Overlay);
-  private injector = inject(Injector);
-  private platformId = inject(PLATFORM_ID);
+  private overlay = inject(Overlay)
+  private injector = inject(Injector)
+  private platformId = inject(PLATFORM_ID)
 
   create<T, U>(config: ZardDialogOptions<T, U>): ZardDialogRef<T> {
-    return this.createDialog<T, U>(config.zContent as ComponentType<T>, config);
+    return this.createDialog<T, U>(config.zContent as ComponentType<T>, config)
   }
 
   open<T, D = any, R = any>(
     componentOrTemplateRef: ContentType<T>,
-    config: ZardDialogOpenConfig<D> = {},
+    config: ZardDialogOpenConfig<D> = {}
   ): ZardDialogRef<T, R, D> {
-    const zardConfig = new ZardDialogOptions<T, D>();
-    zardConfig.zBackdropClass = config.backdropClass;
-    zardConfig.zClosable = false;
-    zardConfig.zContent = componentOrTemplateRef;
-    zardConfig.zCustomClasses = this.mergeCustomClasses(config.panelClass);
-    zardConfig.zData = config.data;
-    zardConfig.zHeight = config.height;
-    zardConfig.zHideFooter = true;
-    zardConfig.zMaskClosable = !config.disableClose;
-    zardConfig.zMaxHeight = config.maxHeight;
-    zardConfig.zMaxWidth = config.maxWidth;
-    zardConfig.zMinHeight = config.minHeight;
-    zardConfig.zMinWidth = config.minWidth;
-    zardConfig.zViewContainerRef = config.viewContainerRef;
-    zardConfig.zWidth = config.width;
+    const zardConfig = new ZardDialogOptions<T, D>()
+    zardConfig.zBackdropClass = config.backdropClass
+    zardConfig.zClosable = false
+    zardConfig.zContent = componentOrTemplateRef
+    zardConfig.zCustomClasses = this.mergeCustomClasses(config.panelClass)
+    zardConfig.zData = config.data
+    zardConfig.zHeight = config.height
+    zardConfig.zHideFooter = true
+    zardConfig.zMaskClosable = !config.disableClose
+    zardConfig.zMaxHeight = config.maxHeight
+    zardConfig.zMaxWidth = config.maxWidth
+    zardConfig.zMinHeight = config.minHeight
+    zardConfig.zMinWidth = config.minWidth
+    zardConfig.zViewContainerRef = config.viewContainerRef
+    zardConfig.zWidth = config.width
 
-    return this.create<T, D>(zardConfig) as ZardDialogRef<T, R, D>;
+    return this.create<T, D>(zardConfig) as ZardDialogRef<T, R, D>
   }
 
   private createDialog<T, U>(componentOrTemplateRef: ContentType<T>, config: ZardDialogOptions<T, U>) {
-    const overlayRef = this.createOverlay(config);
+    const overlayRef = this.createOverlay(config)
 
     if (!overlayRef) {
       return new ZardDialogRef(
         undefined as unknown as OverlayRef,
         config,
         undefined as unknown as ZardDialogComponent<T, U>,
-        this.platformId,
-      );
+        this.platformId
+      )
     }
 
-    const dialogContainer = this.attachDialogContainer<T, U>(overlayRef, config);
-    const dialogRef = this.attachDialogContent<T, U>(componentOrTemplateRef, dialogContainer, overlayRef, config);
+    const dialogContainer = this.attachDialogContainer<T, U>(overlayRef, config)
+    const dialogRef = this.attachDialogContent<T, U>(componentOrTemplateRef, dialogContainer, overlayRef, config)
 
-    dialogContainer.dialogRef = dialogRef;
+    dialogContainer.dialogRef = dialogRef
 
-    return dialogRef;
+    return dialogRef
   }
 
   private createOverlay<T, U>(config: ZardDialogOptions<T, U>): OverlayRef | undefined {
@@ -95,12 +87,13 @@ export class ZardDialogService {
         backdropClass: config.zBackdropClass,
         hasBackdrop: true,
         positionStrategy: this.overlay.position().global(),
-      });
+        usePopover: false
+      })
 
-      return this.overlay.create(overlayConfig);
+      return this.overlay.create(overlayConfig)
     }
 
-    return undefined;
+    return undefined
   }
 
   private attachDialogContainer<T, U>(overlayRef: OverlayRef, config: ZardDialogOptions<T, U>) {
@@ -108,51 +101,51 @@ export class ZardDialogService {
       parent: this.injector,
       providers: [
         { provide: OverlayRef, useValue: overlayRef },
-        { provide: ZardDialogOptions, useValue: config },
-      ],
-    });
+        { provide: ZardDialogOptions, useValue: config }
+      ]
+    })
 
     const containerPortal = new ComponentPortal<ZardDialogComponent<T, U>>(
       ZardDialogComponent,
       config.zViewContainerRef,
-      injector,
-    );
+      injector
+    )
 
-    const containerRef = overlayRef.attach<ZardDialogComponent<T, U>>(containerPortal);
+    const containerRef = overlayRef.attach<ZardDialogComponent<T, U>>(containerPortal)
 
-    return containerRef.instance;
+    return containerRef.instance
   }
 
   private attachDialogContent<T, U>(
     componentOrTemplateRef: ContentType<T>,
     dialogContainer: ZardDialogComponent<T, U>,
     overlayRef: OverlayRef,
-    config: ZardDialogOptions<T, U>,
+    config: ZardDialogOptions<T, U>
   ) {
-    const dialogRef = new ZardDialogRef<T>(overlayRef, config, dialogContainer, this.platformId);
+    const dialogRef = new ZardDialogRef<T>(overlayRef, config, dialogContainer, this.platformId)
 
     if (componentOrTemplateRef instanceof TemplateRef) {
-      const viewContainerRef = config.zViewContainerRef ?? dialogContainer.getViewContainerRef();
-      const injector = this.createInjector<T, U>(dialogRef, config);
+      const viewContainerRef = config.zViewContainerRef ?? dialogContainer.getViewContainerRef()
+      const injector = this.createInjector<T, U>(dialogRef, config)
       dialogContainer.attachTemplatePortal(
         new TemplatePortal<T>(
           componentOrTemplateRef,
           viewContainerRef,
           {
-            dialogRef,
+            dialogRef
           } as T,
-          injector,
-        ),
-      );
+          injector
+        )
+      )
     } else if (typeof componentOrTemplateRef !== 'string') {
-      const injector = this.createInjector<T, U>(dialogRef, config);
+      const injector = this.createInjector<T, U>(dialogRef, config)
       const contentRef = dialogContainer.attachComponentPortal<T>(
-        new ComponentPortal(componentOrTemplateRef, config.zViewContainerRef, injector),
-      );
-      dialogRef.componentInstance = contentRef.instance;
+        new ComponentPortal(componentOrTemplateRef, config.zViewContainerRef, injector)
+      )
+      dialogRef.componentInstance = contentRef.instance
     }
 
-    return dialogRef;
+    return dialogRef
   }
 
   private createInjector<T, U>(dialogRef: ZardDialogRef<T>, config: ZardDialogOptions<T, U>) {
@@ -162,16 +155,16 @@ export class ZardDialogService {
         { provide: DialogRef, useValue: dialogRef },
         { provide: DIALOG_DATA, useValue: config.zData },
         { provide: ZardDialogRef, useValue: dialogRef },
-        { provide: Z_MODAL_DATA, useValue: config.zData },
-      ],
-    });
+        { provide: Z_MODAL_DATA, useValue: config.zData }
+      ]
+    })
   }
 
   private mergeCustomClasses(panelClass: CustomClass) {
     if (Array.isArray(panelClass)) {
-      return panelClass.filter(Boolean).join(' ');
+      return panelClass.filter(Boolean).join(' ')
     }
 
-    return panelClass ?? undefined;
+    return panelClass ?? undefined
   }
 }

@@ -3,13 +3,9 @@ import { join } from 'node:path'
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
-import {
-  AiModelTypeEnum,
-  CopilotProviderService,
-  CopilotServerService,
-  ModelPropertyKey,
-  ParameterType
-} from '../../../@core'
+import { AiModelTypeEnum, ModelPropertyKey, ParameterType } from '@xpert-ai/contracts'
+import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
+import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { CopilotModelSelectComponent } from './select.component'
 
 describe('CopilotModelSelectComponent', () => {
@@ -23,6 +19,17 @@ describe('CopilotModelSelectComponent', () => {
     const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
 
     expect(template).toContain('[style.max-height.px]="getMenuMaxHeight(modelContainer)"')
+  })
+
+  it('prevents model filter controls from stealing menu focus', () => {
+    const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
+
+    expect(template).toMatch(
+      /<button[\s\S]*\(mousedown\)="\$event\.preventDefault\(\); \$event\.stopPropagation\(\)"[\s\S]*\(click\)="\$event\.stopPropagation\(\); toggleModelFilter\(filter\.id\)"/
+    )
+    expect(template).toMatch(
+      /<button[\s\S]*\(mousedown\)="\$event\.preventDefault\(\); \$event\.stopPropagation\(\)"[\s\S]*\(click\)="\$event\.stopPropagation\(\); clearModelFilters\(\)"/
+    )
   })
 
   const copilot = {
@@ -448,6 +455,30 @@ describe('CopilotModelSelectComponent', () => {
 
     expect(component['cva'].value$()?.options).toBeUndefined()
     expect(onChange).not.toHaveBeenCalled()
+  }))
+
+  it('uses AND semantics for model filters while keeping all available filter tags', fakeAsync(() => {
+    tick(600)
+    fixture.detectChanges()
+
+    const contextTags = component.modelFilterTags().filter((tag) => tag.kind === 'context-size')
+    expect(contextTags.map((tag) => tag.defaultText)).toEqual(['64K', '200K', '32K'])
+
+    const context64KTag = contextTags.find((tag) => tag.defaultText === '64K')
+    if (!context64KTag) {
+      throw new Error('Expected 64K context filter')
+    }
+
+    component.toggleModelFilter(context64KTag.id)
+    fixture.detectChanges()
+
+    expect(component.getVisibleCopilotModels(copilot).map((model) => model.model)).toEqual(['deepseek-chat'])
+    expect(
+      component
+        .modelFilterTags()
+        .filter((tag) => tag.kind === 'context-size')
+        .map((tag) => tag.defaultText)
+    ).toEqual(['64K', '200K', '32K'])
   }))
 
   it('drops non-applicable options when switching to a model without parameter rules', fakeAsync(() => {

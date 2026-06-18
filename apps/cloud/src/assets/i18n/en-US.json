@@ -85,8 +85,11 @@
       "ACTION": "Action",
       "BUSINESS_AREA": "Business Area",
       "CACHE": "Cache",
+      "DataSource": "Data Source",
       "DATA_SOURCES": "Data Sources",
+      "Docs": "Docs",
       "INDICATOR": "Indicator",
+      "Items": "items",
       "MODEL_TYPE": "Model Type",
       "MODIFY": "Modify",
       "NEW": "New",
@@ -94,11 +97,14 @@
       "Name": "Name",
       "Description": "Description",
       "NOTIFICATION_DESTINATION": "Notification Destination",
+      "Search": "Search",
+      "Loading": "Loading",
       "Role&Permissions": "Role & Permissions",
       "SEMANTIC_MODEL": "Semantic Model",
       "STORY": "Story",
       "USER": "User",
       "SUCCEED": "Succeed",
+      "Unknown": "Unknown",
       "Middleware": "Middleware",
       "Skills": "Skills",
       "You": "You",
@@ -171,6 +177,7 @@
     "Chat": {
       "QuoteSelection": "Quote selection",
       "RemoveReference": "Remove reference",
+      "MoreActions": "More actions",
       "ContextCompression": "Automatically compressing context",
       "ContextCompressed": "Context automatically compressed",
       "ContextCompressionSkipped": "Context not compressed",
@@ -288,6 +295,21 @@
         "Administration": "Administration",
         "General": "General"
       },
+      "DATA_SOURCES": {
+        "TYPE_SELECTION": "Type Selection",
+        "CONFIGURATION": "Configuration",
+        "NAME": "Name",
+        "NAME_REQUIRED": "Name is required",
+        "USE_LOCAL_AGENT": "Use Local Agent",
+        "DONE": "Done",
+        "AuthType": "Auth Type",
+        "AuthType_None": "None",
+        "AuthType_Basic": "Basic",
+        "AuthType_None_Description": "Unified system authorization, no need for users to provide accounts.",
+        "AuthType_Basic_Description": "Users need to provide an account for authorization.",
+        "SelectTypeToCreate": "Select a data source type to create",
+        "NoDataSources": "No data sources"
+      },
       "USERS": "Users",
       "FEATURES": "Features",
       "Data": "Data",
@@ -314,10 +336,15 @@
       "ADD_USER": "Add User"
     },
     "ACTIONS": {
+      "NEW": "New",
+      "CREATE": "Create",
       "CANCEL": "Cancel",
+      "SAVE": "Save",
+      "PING": "Ping",
       "Close": "Close",
       "Delete": "Delete",
       "Edit": "Edit",
+      "Copy": "Copy",
       "Pause": "Pause",
       "Rename": "Rename",
       "CLEAR": "Clear",
@@ -617,6 +644,20 @@
       "Organization": {
         "OrganizationId": "Organization ID"
       }
+    },
+    "DataSources": {
+      "PageDescription": "Manage database and service connections for analytics.",
+      "CreateDataSource": "Create data source",
+      "CreateDataSourceHelp": "Learn more about custom data sources",
+      "NoMatchingDataSources": "No matching data sources",
+      "NoDataSources": "No data sources yet",
+      "TryDifferentSearch": "Try a different search keyword.",
+      "EmptyDescription": "Create a data source to connect your databases and services."
+    },
+    "Copilot": {
+      "NoMatchingModels": "No matching models",
+      "ModelFilters": "Filters",
+      "ClearFilters": "Clear filters"
     }
   },
   "STORY_DESIGNER": {
@@ -951,6 +992,13 @@
     }
   },
   "COMPONENTS": {
+    "COMMON": {
+      "Confirm": "Confirm",
+      "CANCEL": "Cancel"
+    },
+    "CONFIRM": {
+      "DELETE": "Confirm Delete"
+    },
     "TIME_FILTER": {
       "SET_DATE_RANGE": "Set Date Range for {{property}}"
     },

@@ -25,12 +25,12 @@ import {
   ICopilotProviderModel,
   injectAiProviders,
   injectCopilotProviderService,
-  ModelFeature,
   TCopilotTokenUsage,
   ToastrService
 } from '../../../@core'
 import { CopilotProviderModelComponent } from '../copilot-provider-model/model.component'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
+import { customProviderModelDisplayTags, providerModelDisplayTags } from '../model-tags'
 
 @Component({
   standalone: true,
@@ -55,7 +55,6 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
 })
 export class CopilotProviderComponent {
   eConfigurateMethod = ConfigurateMethod
-  eModelFeature = ModelFeature
 
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
@@ -121,6 +120,9 @@ export class CopilotProviderComponent {
   })
   readonly usageWarn = computed(() => this.tokenRemain() < 40 && this.tokenRemain() > 1)
   readonly usageError = computed(() => this.tokenRemain() < 1)
+
+  readonly customModelTags = customProviderModelDisplayTags
+  readonly builtinModelTags = providerModelDisplayTags
 
   constructor() {
     effect(() => {

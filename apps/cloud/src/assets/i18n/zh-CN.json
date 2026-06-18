@@ -180,14 +180,18 @@
       "Cube": "多维数据集",
       "Tags": "标签",
       "DATA": "数据",
+      "DataSource": "数据源",
       "DATA_SOURCE": "数据源",
       "DATA_SOURCES": "数据源",
+      "Docs": "文档",
       "DELETE": "删除",
       "DIMENSIONS": "维度",
       "DIMENSION": "维度",
       "EDIT": "编辑",
       "EXPORT": "导出",
       "GENERAL": "常规",
+      "Items": "项",
+      "Unknown": "未知",
       "GROUP": "组",
       "HIERARCHY": "层次结构",
       "INDICATOR": "指标",
@@ -330,6 +334,7 @@
     "Chat": {
       "QuoteSelection": "引用选中内容",
       "RemoveReference": "移除引用",
+      "MoreActions": "更多操作",
       "ContextCompression": "正在自动压缩上下文",
       "ContextCompressed": "上下文已自动压缩",
       "ContextCompressionSkipped": "上下文无需压缩",
@@ -609,7 +614,11 @@
         "DONE": "完成",
         "AuthType": "授权方式",
         "AuthType_None": "无",
-        "AuthType_Basic": "基本身份验证"
+        "AuthType_Basic": "基本身份验证",
+        "AuthType_None_Description": "系统统一授权，不需要用户提供账号",
+        "AuthType_Basic_Description": "用户需提供账号进行授权",
+        "SelectTypeToCreate": "选择一个数据源类型进行创建",
+        "NoDataSources": "暂无数据源"
       },
       "Roles": {
         "General": "通用",
@@ -1304,6 +1313,13 @@
       }
     },
     "DataSources": {
+      "PageDescription": "管理用于分析的数据库和服务连接。",
+      "CreateDataSource": "创建数据源",
+      "CreateDataSourceHelp": "了解更多关于自定义数据源的信息",
+      "NoMatchingDataSources": "未找到匹配的数据源",
+      "NoDataSources": "暂无数据源",
+      "TryDifferentSearch": "尝试使用其他搜索关键词。",
+      "EmptyDescription": "创建数据源以连接数据库和服务。",
       "Schema": {
         "Host": "主机",
         "Port": "端口号",
@@ -1599,6 +1615,9 @@
       "Model": "模型",
       "AllModels": "全部模型",
       "AllUsers": "全部用户",
+      "NoMatchingModels": "没有匹配的模型",
+      "ModelFilters": "筛选",
+      "ClearFilters": "清空筛选",
       "Options": "选项",
       "UseSystemPrompt": "使用系统提示",
       "ExamplesOfPrompts": "提示语示例",
