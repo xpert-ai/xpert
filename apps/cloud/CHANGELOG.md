@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.12.1
+
+### Patch Changes
+
+- 6a17eca: plugin sdk and mcp toolset close
+
 ## 3.12.0
 
 ### Minor Changes

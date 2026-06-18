@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.12.1
+
+### Patch Changes
+
+- 6a17eca: plugin sdk and mcp toolset close
+- Updated dependencies [6a17eca]
+  - @xpert-ai/contracts@3.12.1
+
 ## 3.12.0
 
 ### Minor Changes
