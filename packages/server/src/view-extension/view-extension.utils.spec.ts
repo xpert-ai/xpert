@@ -218,4 +218,49 @@ describe('view extension utils', () => {
 		expect(isManifestActiveForContext(activatedManifest, activeContext)).toBe(true)
 		expect(isManifestActiveForContext(activatedManifest, inactiveContext)).toBe(false)
 	})
+
+	it('requires feature activation for slots with that manifest policy', () => {
+		const policyManifest: XpertExtensionViewManifest = {
+			...manifest,
+			slot: 'detail.secure_sections'
+		}
+		const policyContext: XpertResolvedViewHostContext = {
+			...context,
+			slots: [
+				{
+					key: 'detail.secure_sections',
+					mode: 'sections',
+					order: 10,
+					manifestPolicy: { requireFeatureActivation: true }
+				}
+			],
+			capabilities: {
+				features: ['excalidraw']
+			}
+		}
+
+		expect(isManifestActiveForContext(policyManifest, policyContext)).toBe(false)
+		expect(
+			isManifestActiveForContext(
+				{
+					...policyManifest,
+					activation: {
+						requiredFeatures: ['excalidraw']
+					}
+				},
+				policyContext
+			)
+		).toBe(true)
+		expect(
+			isManifestActiveForContext(
+				{
+					...policyManifest,
+					activation: {
+						requiredFeatures: ['smart_maintenance']
+					}
+				},
+				policyContext
+			)
+		).toBe(false)
+	})
 })

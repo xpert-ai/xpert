@@ -47,6 +47,7 @@ import { VolumeModule } from './shared/volume'
 import { FileMemoryModule } from './file-memory'
 import { FileUnderstandingModule } from './file-understanding'
 import { MetricsModule } from './metrics'
+import { MobileModule } from './mobile'
 
 @Module({
     imports: [
@@ -75,6 +76,7 @@ import { MetricsModule } from './metrics'
         VolumeModule,
         FileMemoryModule,
         FileUnderstandingModule,
+        MobileModule,
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,
