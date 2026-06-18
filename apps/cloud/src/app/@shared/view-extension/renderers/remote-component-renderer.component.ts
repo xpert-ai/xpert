@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs'
 import {
   XpertExtensionViewManifest,
   XpertViewActionDefinition,
+  XpertViewHostEventSubscription,
   XpertViewParameterDefinition,
   XpertViewQuery
 } from '@xpert-ai/contracts'
@@ -11,6 +12,11 @@ import { SafePipe } from '@xpert-ai/core'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
+import {
+  ViewHostEventBus,
+  type XpertRemoteViewHostEventMessage,
+  type XpertViewHostEventMessage
+} from '../view-host-event-bus.service'
 
 const REMOTE_COMPONENT_CHANNEL = 'xpertai.remote_component'
 const REMOTE_COMPONENT_PROTOCOL_VERSION = 1
@@ -67,6 +73,7 @@ export class RemoteComponentRendererComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #document = inject(DOCUMENT)
   readonly #themeService = inject(NgmThemeService)
+  readonly #hostEvents = inject(ViewHostEventBus)
   readonly frame = viewChild('frame', { read: ElementRef<HTMLIFrameElement> })
 
   readonly entryUrl = signal<string | null>(null)
@@ -90,17 +97,21 @@ export class RemoteComponentRendererComponent {
   #entryRequestId = 0
   #entryObjectUrl: string | null = null
   #viewportUpdateFrame: number | null = null
+  readonly #hostEventDebounces = new Map<string, number>()
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
     const onViewportChange = () => this.scheduleViewportHeightUpdate()
+    const hostEventSubscription = this.#hostEvents.events$.subscribe((event) => this.handleHostEvent(event))
     window.addEventListener('message', onMessage)
     window.addEventListener('resize', onViewportChange)
     window.addEventListener('scroll', onViewportChange, true)
     this.#destroyRef.onDestroy(() => {
+      hostEventSubscription.unsubscribe()
       window.removeEventListener('message', onMessage)
       window.removeEventListener('resize', onViewportChange)
       window.removeEventListener('scroll', onViewportChange, true)
+      this.#hostEventDebounces.clear()
       this.cancelViewportHeightUpdate()
       this.clearEntryUrl()
     })
@@ -316,6 +327,55 @@ export class RemoteComponentRendererComponent {
     this.#toastr.success(text)
   }
 
+  private handleHostEvent(event: XpertViewHostEventMessage) {
+    if (!this.active() || !matchesHost(event, this.hostType(), this.hostId())) {
+      return
+    }
+
+    // Host events are page-wide; the manifest subscription is the only routing contract for remote views.
+    const subscriptions = this.manifest().hostEvents?.subscriptions ?? []
+    for (const subscription of subscriptions) {
+      if (!matchesSubscription(event, subscription)) {
+        continue
+      }
+
+      const actionType = subscription.action?.type ?? 'refresh'
+      if (actionType !== 'forward' && actionType !== 'refresh-and-forward') {
+        continue
+      }
+
+      const debounceMs = Math.max(0, subscription.action?.debounceMs ?? 0)
+      // Match the existing workbench behavior: forward the first event immediately, then suppress duplicates.
+      const debounceKey = [
+        subscription.key,
+        event.type,
+        event.toolName ?? event.toolCallId ?? event.runId ?? event.id ?? ''
+      ].join(':')
+      const previousAt = this.#hostEventDebounces.get(debounceKey)
+      const now = Date.now()
+      if (debounceMs > 0 && previousAt !== undefined && now - previousAt < debounceMs) {
+        continue
+      }
+      this.#hostEventDebounces.set(debounceKey, now)
+      this.forwardHostEvent(subscription, event)
+    }
+  }
+
+  private forwardHostEvent(subscription: XpertViewHostEventSubscription, event: XpertViewHostEventMessage) {
+    console.info('[view-extension] forwarding host event to remote component', {
+      event: event.type,
+      source: event.source,
+      toolName: event.toolName,
+      hostType: event.hostType,
+      hostId: event.hostId,
+      viewKey: this.manifest().key,
+      subscriptionKey: subscription.key
+    })
+    this.sendToFrame('hostEvent', {
+      event: createRemoteHostEvent(event)
+    })
+  }
+
   private sendToFrame(type: string, body: Record<string, unknown> = {}) {
     this.frame()?.nativeElement.contentWindow?.postMessage(
       {
@@ -391,6 +451,43 @@ function isRemoteComponentMessage(value: unknown): value is RemoteComponentMessa
     (value as RemoteComponentMessage).channel === REMOTE_COMPONENT_CHANNEL &&
     (value as RemoteComponentMessage).protocolVersion === REMOTE_COMPONENT_PROTOCOL_VERSION
   )
+}
+
+function matchesHost(event: XpertViewHostEventMessage, hostType: string, hostId: string) {
+  if (event.hostType && event.hostType !== hostType) {
+    return false
+  }
+  if (event.hostId && event.hostId !== hostId) {
+    return false
+  }
+  return true
+}
+
+function matchesSubscription(event: XpertViewHostEventMessage, subscription: XpertViewHostEventSubscription) {
+  if (event.type !== subscription.event) {
+    return false
+  }
+
+  const filter = subscription.filter
+  if (!filter) {
+    return true
+  }
+
+  return (
+    matchesOptionalFilter(filter.sources, event.source) &&
+    matchesOptionalFilter(filter.toolNames, event.toolName) &&
+    matchesOptionalFilter(filter.viewKeys, event.visualization?.viewKey) &&
+    matchesOptionalFilter(filter.visualizationTypes, event.visualization?.type)
+  )
+}
+
+function matchesOptionalFilter(values: string[] | undefined, actual: string | undefined) {
+  return !values?.length || (Boolean(actual) && values.includes(actual))
+}
+
+function createRemoteHostEvent(event: XpertViewHostEventMessage): XpertRemoteViewHostEventMessage {
+  const { hostType: _hostType, hostId: _hostId, ...remoteEvent } = event
+  return remoteEvent
 }
 
 function toQuery(value: unknown): XpertViewQuery {

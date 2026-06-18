@@ -1,4 +1,4 @@
-import { createRuntimeCapability } from '../runtime-capability'
+import { createRuntimeCapability } from '../../../core/runtime-capability'
 
 export type AgentMiddlewareFileReference = {
   id?: string

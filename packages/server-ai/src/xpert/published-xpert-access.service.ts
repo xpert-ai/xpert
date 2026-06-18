@@ -1,4 +1,9 @@
-import { ApiKeyBindingType, IApiPrincipal, isTenantSharedXpertWorkspace, SecretTokenBindingType } from '@xpert-ai/contracts'
+import {
+    ApiKeyBindingType,
+    IApiPrincipal,
+    isTenantSharedXpertWorkspace,
+    SecretTokenBindingType
+} from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'
@@ -15,12 +20,12 @@ import {
 import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
-const TENANT_SHARED_WORKSPACE_FILTER =
-    `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
+const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
 type PublishedXpertQueryOptions = {
     where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>>
     relations?: string[]
+    search?: string
     order?: Record<string, 'ASC' | 'DESC' | 'asc' | 'desc'>
     take?: number
     skip?: number
@@ -122,6 +127,26 @@ export class PublishedXpertAccessService {
         return qb
     }
 
+    private applySearchFilter(qb: SelectQueryBuilder<Xpert>, search?: string) {
+        const term = search?.trim().toLowerCase()
+        if (!term) {
+            return qb
+        }
+
+        qb.andWhere(
+            new Brackets((searchQb) => {
+                searchQb
+                    .where('LOWER(xpert.name) LIKE :search', { search: `%${term}%` })
+                    .orWhere('LOWER(xpert.title) LIKE :search', { search: `%${term}%` })
+                    .orWhere('LOWER(xpert.titleCN) LIKE :search', { search: `%${term}%` })
+                    .orWhere('LOWER(xpert.slug) LIKE :search', { search: `%${term}%` })
+                    .orWhere('LOWER(xpert.description) LIKE :search', { search: `%${term}%` })
+            })
+        )
+
+        return qb
+    }
+
     private buildWorkspaceBoundQuery(workspaceId: string, options?: PublishedXpertQueryOptions) {
         const tenantId = this.currentTenantId()
         const qb = this.repository
@@ -135,6 +160,7 @@ export class PublishedXpertAccessService {
             })
 
         this.applyPublishedFilters(qb, options?.where)
+        this.applySearchFilter(qb, options?.search)
 
         if (options?.order) {
             Object.entries(options.order).forEach(([name, direction]) => {
@@ -165,6 +191,7 @@ export class PublishedXpertAccessService {
 
         this.applyPublicChatAppFilter(qb)
         this.applyPublishedFilters(qb, options?.where)
+        this.applySearchFilter(qb, options?.search)
 
         if (options?.order) {
             Object.entries(options.order).forEach(([name, direction]) => {
@@ -236,41 +263,40 @@ export class PublishedXpertAccessService {
             })
         }
 
-        qb
-            .andWhere(
-                new Brackets((scopeQb) => {
-                    scopeQb
-                        .where('xpert.organizationId = :organizationId', {
-                            organizationId
+        qb.andWhere(
+            new Brackets((scopeQb) => {
+                scopeQb
+                    .where('xpert.organizationId = :organizationId', {
+                        organizationId
+                    })
+                    .orWhere(
+                        new Brackets((tenantScopeQb) => {
+                            tenantScopeQb
+                                .where('xpert.organizationId IS NULL')
+                                .andWhere('workspace.id IS NOT NULL')
+                                .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
                         })
-                        .orWhere(
-                            new Brackets((tenantScopeQb) => {
-                                tenantScopeQb
-                                    .where('xpert.organizationId IS NULL')
-                                    .andWhere('workspace.id IS NOT NULL')
-                                    .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
-                            })
-                        )
-                })
-            )
-            .andWhere(
-                new Brackets((accessQb) => {
-                    accessQb
-                        .where('xpert.createdById = :userId', { userId })
-                        .orWhere('workspace.ownerId = :userId', { userId })
-                        .orWhere('workspaceMember.id = :userId', { userId })
-                        .orWhere('member.id = :userId', { userId })
-                        .orWhere(
-                            new Brackets((tenantSharedQb) => {
-                                tenantSharedQb
-                                    .where('xpert.organizationId IS NULL')
-                                    .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
-                            })
-                        )
-                })
-            )
+                    )
+            })
+        ).andWhere(
+            new Brackets((accessQb) => {
+                accessQb
+                    .where('xpert.createdById = :userId', { userId })
+                    .orWhere('workspace.ownerId = :userId', { userId })
+                    .orWhere('workspaceMember.id = :userId', { userId })
+                    .orWhere('member.id = :userId', { userId })
+                    .orWhere(
+                        new Brackets((tenantSharedQb) => {
+                            tenantSharedQb
+                                .where('xpert.organizationId IS NULL')
+                                .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
+                        })
+                    )
+            })
+        )
 
         this.applyPublishedFilters(qb, options?.where)
+        this.applySearchFilter(qb, options?.search)
 
         if (options?.order) {
             Object.entries(options.order).forEach(([name, direction]) => {
@@ -334,8 +360,8 @@ export class PublishedXpertAccessService {
         return xpert
     }
 
-    async countAccessiblePublishedXperts(where?: PublishedXpertQueryOptions['where']) {
-        return this.buildAccessibleQuery({ where }).select('xpert.id').distinct(true).getCount()
+    async countAccessiblePublishedXperts(where?: PublishedXpertQueryOptions['where'], search?: string) {
+        return this.buildAccessibleQuery({ where, search }).select('xpert.id').distinct(true).getCount()
     }
 
     async findAccessiblePublishedXperts(options?: PublishedXpertQueryOptions) {

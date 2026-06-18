@@ -87,6 +87,78 @@ Notes:
 - use an explicit single-major range such as `^3.8.0`
 - the host validates SDK compatibility before activating a plugin and rejects packages that bundle their own SDK copy
 
+## Plugin webhook auth guard
+
+Use `PluginWebhookAuthGuard` when a plugin exposes an inbound webhook route for an external system. The webhook credential is scoped to one Integration. It is not a full platform API key, and plugins should not look up or embed platform API keys in callback URLs.
+
+The credential lifecycle is managed by the host through the integration permission service:
+
+- `ensureWebhookCredential(id, { provider })` creates or returns the active credential and returns the plain token once
+- `rotateWebhookCredential(id, { provider })` replaces the credential and returns a new token
+- `revokeWebhookCredential(id, { provider })` disables the credential
+- the stored Integration option is `webhookCredential`, shaped as `PluginWebhookCredentialRecord`
+- the stored record contains only metadata and `tokenHash`; the plain token is never persisted
+
+Webhook URLs should carry only an opaque secret query value, for example:
+
+```text
+https://api.example.com/api/my-provider/webhook/<integration-id>?secret=<webhook-secret>
+```
+
+For systems that cannot set custom headers, this keeps the URL self-contained without exposing an API key. The guard reads the Integration id from a route parameter and the secret from a query parameter, validates the token hash, checks the optional provider, and then writes the resolved Integration principal plus tenant/organization headers onto the request. Downstream plugin code should run webhook work under that principal context before calling host permission services.
+
+Example controller:
+
+```ts
+import { Body, Controller, Param, Post, Request, UseGuards } from '@nestjs/common'
+import { PluginWebhookAuth, PluginWebhookAuthGuard, runWithRequestContext } from '@xpert-ai/plugin-sdk'
+
+@Controller('my-provider')
+export class MyWebhookController {
+  // Use the host public-route decorator when normal platform auth is global.
+  @Public()
+  @PluginWebhookAuth({
+    provider: 'my-provider',
+    integrationParam: 'integrationId',
+    secretQueryParam: 'secret'
+  })
+  @UseGuards(PluginWebhookAuthGuard)
+  @Post('webhook/:integrationId')
+  async webhook(
+    @Param('integrationId') integrationId: string,
+    @Request() req: { user?: unknown; headers?: Record<string, string> },
+    @Body() body: unknown
+  ) {
+    await new Promise<void>((resolve, reject) => {
+      runWithRequestContext({ user: req.user, headers: req.headers ?? {} }, {}, () => {
+        this.handleWebhook(integrationId, body).then(resolve).catch(reject)
+      })
+    })
+    return 'success'
+  }
+}
+```
+
+`@Public()` or the host-equivalent public decorator is still required when the route is intentionally called by an external webhook sender and would otherwise be blocked by the normal platform auth guard. `PluginWebhookAuthGuard` is then the route-specific auth boundary for that webhook.
+
+Register the guard in the plugin module that owns the webhook route:
+
+```ts
+@XpertServerPlugin({
+  providers: [MyWebhookService, PluginWebhookAuthGuard],
+  controllers: [MyWebhookController]
+})
+export class MyProviderPlugin {}
+```
+
+Operational rules:
+
+- generate the callback URL from `ensureWebhookCredential()` or `rotateWebhookCredential()`; do not ask users to paste a platform API key
+- include `provider` in `@PluginWebhookAuth()` so a credential for one Integration provider cannot be replayed against another provider route
+- rotate the credential when the URL is exposed, and revoke it when the external integration is disconnected
+- do not add `PluginWebhookAuthGuard` as a global bootstrap guard; attach it to webhook routes with `@UseGuards()`
+- if the external system supports signed headers, a plugin may add provider-specific signature checks after this guard, but the Xpert principal should still come from the scoped webhook credential
+
 ## Plugin configuration support
 
 If a plugin needs user-managed configuration:

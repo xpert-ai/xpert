@@ -36,8 +36,18 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     readonly hostType = 'agent'
     readonly slots: XpertViewSlot[] = [
         { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
-        { key: AGENT_WORKBENCH_MAIN_SLOT, mode: 'sections', order: 10 },
-        { key: AGENT_WORKBENCH_FIXED_SLOT, mode: 'sections', order: 20 }
+        {
+            key: AGENT_WORKBENCH_MAIN_SLOT,
+            mode: 'sections',
+            order: 10,
+            manifestPolicy: { requireFeatureActivation: true }
+        },
+        {
+            key: AGENT_WORKBENCH_FIXED_SLOT,
+            mode: 'sections',
+            order: 20,
+            manifestPolicy: { requireFeatureActivation: true }
+        }
     ]
 
     constructor(

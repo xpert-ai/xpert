@@ -24,36 +24,37 @@ import {
     AgentMiddlewareFileReference,
     AgentMiddlewareResolvedFile,
     AgentMiddlewareCreateModelClientOptions,
-    AgentMiddlewareKnowledgebaseDocument,
-    AgentMiddlewareKnowledgebaseDeleteChunksInput,
-    AgentMiddlewareKnowledgebaseDeleteChunksResult,
-    AgentMiddlewareKnowledgebaseCreateDocumentsInput,
-    AgentMiddlewareKnowledgebaseCreateDocumentsResult,
-    AgentMiddlewareKnowledgebaseDeleteDocumentsInput,
-    AgentMiddlewareKnowledgebaseDeleteDocumentsResult,
-    AgentMiddlewareKnowledgebaseDocumentStatusInput,
-    AgentMiddlewareKnowledgebaseDocumentStatusResult,
-    AgentMiddlewareKnowledgebaseImportArchiveInput,
-    AgentMiddlewareKnowledgebaseImportArchiveResult,
-    AgentMiddlewareKnowledgebaseListInput,
-    AgentMiddlewareKnowledgebaseListItem,
-    AgentMiddlewareKnowledgebaseSearchInput,
-    AgentMiddlewareKnowledgebaseStartProcessingInput,
-    AgentMiddlewareKnowledgebaseUploadFileInput,
-    AgentMiddlewareKnowledgebaseUploadedFile,
-    AgentMiddlewareKnowledgebaseWriteChunkInput,
-    AgentMiddlewareKnowledgebaseWriteChunkResult,
+    KnowledgebaseDocument,
+    KnowledgebaseDeleteChunksInput,
+    KnowledgebaseDeleteChunksResult,
+    KnowledgebaseCreateDocumentsInput,
+    KnowledgebaseCreateDocumentsResult,
+    KnowledgebaseDeleteDocumentsInput,
+    KnowledgebaseDeleteDocumentsResult,
+    KnowledgebaseDocumentStatusInput,
+    KnowledgebaseDocumentStatusResult,
+    KnowledgebaseImportArchiveInput,
+    KnowledgebaseImportArchiveResult,
+    KnowledgebaseListInput,
+    KnowledgebaseListItem,
+    KnowledgebaseSearchInput,
+    KnowledgebaseStartProcessingInput,
+    KnowledgebaseUploadFileInput,
+    KnowledgebaseUploadedFile,
+    KnowledgebaseWriteChunkInput,
+    KnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
     AgentMiddlewareModelClient,
     AgentMiddlewareRuntimeApi,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     AssistantTaskRuntimeCapability,
-    DefaultAgentMiddlewareRuntimeCapabilityRegistry,
+    DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
-    RequestContext
+    RequestContext,
+    WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
@@ -80,12 +81,13 @@ import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../kn
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
 @Injectable()
 export class AgentMiddlewareRuntimeService {
     readonly #logger = new Logger(AgentMiddlewareRuntimeService.name)
-    private readonly capabilities = new DefaultAgentMiddlewareRuntimeCapabilityRegistry([
+    private readonly capabilities = new DefaultRuntimeCapabilityRegistry([
         [
             KnowledgebaseRuntimeCapability,
             {
@@ -118,7 +120,8 @@ export class AgentMiddlewareRuntimeService {
             {
                 resolveFile: (input) => this.resolveFile(input)
             }
-        ]
+        ],
+        [WorkspaceFilesRuntimeCapability, this.workspaceFiles.api]
     ])
 
     async createModelClient<T = AgentMiddlewareModelClient>(
@@ -246,9 +249,7 @@ export class AgentMiddlewareRuntimeService {
         })
     }
 
-    async listKnowledgebases(
-        input: AgentMiddlewareKnowledgebaseListInput = {}
-    ): Promise<AgentMiddlewareKnowledgebaseListItem[]> {
+    async listKnowledgebases(input: KnowledgebaseListInput = {}): Promise<KnowledgebaseListItem[]> {
         const workspaceId = normalizeOptionalString(input.workspaceId)
         if (!workspaceId) {
             return []
@@ -263,9 +264,7 @@ export class AgentMiddlewareRuntimeService {
         )
     }
 
-    async searchKnowledgebase(
-        input: AgentMiddlewareKnowledgebaseSearchInput
-    ): Promise<AgentMiddlewareKnowledgebaseDocument[]> {
+    async searchKnowledgebase(input: KnowledgebaseSearchInput): Promise<KnowledgebaseDocument[]> {
         return this.queryBus.execute(
             new KnowledgeSearchQuery({
                 tenantId: input.tenantId ?? RequestContext.currentTenantId(),
@@ -282,51 +281,45 @@ export class AgentMiddlewareRuntimeService {
         )
     }
 
-    async writeKnowledgeChunk(
-        input: AgentMiddlewareKnowledgebaseWriteChunkInput
-    ): Promise<AgentMiddlewareKnowledgebaseWriteChunkResult> {
+    async writeKnowledgeChunk(input: KnowledgebaseWriteChunkInput): Promise<KnowledgebaseWriteChunkResult> {
         return this.commandBus.execute(new WriteAgentKnowledgeChunkCommand(input))
     }
 
-    async deleteKnowledgeChunks(
-        input: AgentMiddlewareKnowledgebaseDeleteChunksInput
-    ): Promise<AgentMiddlewareKnowledgebaseDeleteChunksResult> {
+    async deleteKnowledgeChunks(input: KnowledgebaseDeleteChunksInput): Promise<KnowledgebaseDeleteChunksResult> {
         return this.commandBus.execute(new DeleteAgentKnowledgeChunksCommand(input))
     }
 
-    async uploadKnowledgebaseDocumentFile(
-        input: AgentMiddlewareKnowledgebaseUploadFileInput
-    ): Promise<AgentMiddlewareKnowledgebaseUploadedFile> {
+    async uploadKnowledgebaseDocumentFile(input: KnowledgebaseUploadFileInput): Promise<KnowledgebaseUploadedFile> {
         return this.commandBus.execute(new UploadKnowledgebaseDocumentFileCommand(input))
     }
 
     async importKnowledgebaseArchive(
-        input: AgentMiddlewareKnowledgebaseImportArchiveInput
-    ): Promise<AgentMiddlewareKnowledgebaseImportArchiveResult> {
+        input: KnowledgebaseImportArchiveInput
+    ): Promise<KnowledgebaseImportArchiveResult> {
         return this.commandBus.execute(new ImportKnowledgebaseArchiveCommand(input))
     }
 
     async createKnowledgebaseDocuments(
-        input: AgentMiddlewareKnowledgebaseCreateDocumentsInput
-    ): Promise<AgentMiddlewareKnowledgebaseCreateDocumentsResult> {
+        input: KnowledgebaseCreateDocumentsInput
+    ): Promise<KnowledgebaseCreateDocumentsResult> {
         return this.commandBus.execute(new CreateKnowledgebaseDocumentsCommand(input))
     }
 
     async startKnowledgebaseDocumentsProcessing(
-        input: AgentMiddlewareKnowledgebaseStartProcessingInput
-    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+        input: KnowledgebaseStartProcessingInput
+    ): Promise<KnowledgebaseDocumentStatusResult> {
         return this.commandBus.execute(new StartKnowledgebaseDocumentsProcessingCommand(input))
     }
 
     async getKnowledgebaseDocumentStatus(
-        input: AgentMiddlewareKnowledgebaseDocumentStatusInput
-    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+        input: KnowledgebaseDocumentStatusInput
+    ): Promise<KnowledgebaseDocumentStatusResult> {
         return this.commandBus.execute(new GetKnowledgebaseDocumentStatusCommand(input))
     }
 
     async deleteKnowledgebaseDocuments(
-        input: AgentMiddlewareKnowledgebaseDeleteDocumentsInput
-    ): Promise<AgentMiddlewareKnowledgebaseDeleteDocumentsResult> {
+        input: KnowledgebaseDeleteDocumentsInput
+    ): Promise<KnowledgebaseDeleteDocumentsResult> {
         return this.commandBus.execute(new DeleteKnowledgebaseDocumentsCommand(input))
     }
 
@@ -473,7 +466,8 @@ export class AgentMiddlewareRuntimeService {
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly i18nService: I18nService
+        private readonly i18nService: I18nService,
+        private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     ) {}
 
     private resolveStorageFileUrl(storageFile: IStorageFile | null) {

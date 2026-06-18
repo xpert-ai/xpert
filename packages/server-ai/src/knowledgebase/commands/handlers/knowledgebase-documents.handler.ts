@@ -11,9 +11,9 @@ import {
     IKnowledgeDocument
 } from '@xpert-ai/contracts'
 import {
-    AgentMiddlewareKnowledgebaseDocumentRecord,
-    AgentMiddlewareKnowledgebaseDocumentStatusResult,
-    AgentMiddlewareKnowledgebaseUploadedFile
+    KnowledgebaseDocumentRecord,
+    KnowledgebaseDocumentStatusResult,
+    KnowledgebaseUploadedFile
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
@@ -275,9 +275,7 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
 export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHandler<StartKnowledgebaseDocumentsProcessingCommand> {
     constructor(private readonly documentService: KnowledgeDocumentService) {}
 
-    async execute(
-        command: StartKnowledgebaseDocumentsProcessingCommand
-    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+    async execute(command: StartKnowledgebaseDocumentsProcessingCommand): Promise<KnowledgebaseDocumentStatusResult> {
         const docs = await this.documentService.startProcessing(
             command.input.documentIds,
             command.input.knowledgebaseId
@@ -293,9 +291,7 @@ export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHan
 export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<GetKnowledgebaseDocumentStatusCommand> {
     constructor(private readonly documentService: KnowledgeDocumentService) {}
 
-    async execute(
-        command: GetKnowledgebaseDocumentStatusCommand
-    ): Promise<AgentMiddlewareKnowledgebaseDocumentStatusResult> {
+    async execute(command: GetKnowledgebaseDocumentStatusCommand): Promise<KnowledgebaseDocumentStatusResult> {
         const ids = command.input.documentIds.filter(Boolean)
         if (!ids.length) {
             return { documents: [] }
@@ -348,7 +344,7 @@ export class DeleteKnowledgebaseDocumentsHandler implements ICommandHandler<Dele
 async function uploadKnowledgebaseFile(
     deps: KnowledgebaseDocumentHandlerDeps,
     input: UploadKnowledgebaseDocumentFileCommand['input']
-): Promise<AgentMiddlewareKnowledgebaseUploadedFile> {
+): Promise<KnowledgebaseUploadedFile> {
     if (!input.knowledgebaseId) {
         throw new BadRequestException('knowledgebaseId is required')
     }
@@ -389,7 +385,7 @@ async function uploadKnowledgebaseBufferFile(
         mimeType?: string
         size?: number
     }
-): Promise<AgentMiddlewareKnowledgebaseUploadedFile> {
+): Promise<KnowledgebaseUploadedFile> {
     const asset = await commandBus.execute(
         new UploadFileCommand({
             source: {
@@ -651,7 +647,7 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
     })
 }
 
-function serializeKnowledgeDocument(document: IKnowledgeDocument): AgentMiddlewareKnowledgebaseDocumentRecord {
+function serializeKnowledgeDocument(document: IKnowledgeDocument): KnowledgebaseDocumentRecord {
     return {
         id: document.id,
         name: document.name,
@@ -666,7 +662,7 @@ function serializeKnowledgeDocument(document: IKnowledgeDocument): AgentMiddlewa
         progress: document.progress,
         processMsg: document.processMsg,
         knowledgebaseId: document.knowledgebaseId,
-        metadata: document.metadata as AgentMiddlewareKnowledgebaseDocumentRecord['metadata']
+        metadata: document.metadata as KnowledgebaseDocumentRecord['metadata']
     }
 }
 

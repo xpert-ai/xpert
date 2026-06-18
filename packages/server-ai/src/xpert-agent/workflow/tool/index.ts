@@ -15,6 +15,7 @@ import {
     XpertParameterTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, isBlank } from '@xpert-ai/server-common'
+import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, omitBy } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
@@ -34,6 +35,8 @@ const WORKFLOW_TOOL_ERROR_CHANNEL = 'error'
 const WORKFLOW_TOOL_TEXT_CHANNEL = 'text'
 const WORKFLOW_TOOL_JSON_CHANNEL = 'json'
 const WORKFLOW_TOOL_FILES_CHANNEL = 'files'
+
+const workflowToolNodeLogger = new Logger('WorkflowToolNode')
 
 export function createToolNode(
     graph: TXpertGraph,
@@ -102,78 +105,85 @@ export function createToolNode(
                 return await wrapAgentExecution(
                     async () => {
                         const toolset = toolsets[0]
-                        await toolset.initTools()
-                        const tool = toolset.getTool(toolName)
                         try {
-                            // The artifact can be obtained from the returned ToolMessage by using a tool call.
-                            const outputMessage: ToolMessage = await tool.invoke(
-                                {
-                                    id: uuidv4(),
-                                    name: toolName,
-                                    type: 'tool_call',
-                                    args: parameters
-                                },
-                                config
-                            )
-                            let output = outputMessage?.content
-                            const artifact = outputMessage?.artifact
-                            let resultJson = null
-                            if (typeof output === 'string') {
-                                try {
-                                    resultJson = JSON.parse(output)
-                                } catch (e) {
-                                    // ignore JSON parse error
-                                }
-                            } else {
-                                resultJson = output
-                                output = JSON.stringify(output, null, 2)
-                            }
-
-                            return {
-                                state: {
-                                    [channelName(node.key)]: {
-                                        [WORKFLOW_TOOL_TEXT_CHANNEL]: output,
-                                        [WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-                                        [WORKFLOW_TOOL_FILES_CHANNEL]: artifact?.files ?? undefined,
-                                        [WORKFLOW_TOOL_ERROR_CHANNEL]: null
+                            await toolset.initTools()
+                            const tool = toolset.getTool(toolName)
+                            try {
+                                // The artifact can be obtained from the returned ToolMessage by using a tool call.
+                                const outputMessage: ToolMessage = await tool.invoke(
+                                    {
+                                        id: uuidv4(),
+                                        name: toolName,
+                                        type: 'tool_call',
+                                        args: parameters
+                                    },
+                                    config
+                                )
+                                let output = outputMessage?.content
+                                const artifact = outputMessage?.artifact
+                                let resultJson = null
+                                if (typeof output === 'string') {
+                                    try {
+                                        resultJson = JSON.parse(output)
+                                    } catch (e) {
+                                        // ignore JSON parse error
                                     }
-                                },
-                                output: resultJson || output
-                            }
-                        } catch (error) {
-                            if (entity.errorHandling?.type === 'defaultValue') {
-                                const result = entity.errorHandling.defaultValue?.result
-                                let resultJson = result
-                                try {
-                                    resultJson = JSON.parse(result)
-                                } catch (e) {
-                                    // ignore JSON parse error
+                                } else {
+                                    resultJson = output
+                                    output = JSON.stringify(output, null, 2)
                                 }
+
                                 return {
                                     state: {
                                         [channelName(node.key)]: {
-                                            [WORKFLOW_TOOL_TEXT_CHANNEL]: result,
+                                            [WORKFLOW_TOOL_TEXT_CHANNEL]: output,
                                             [WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
-                                            [WORKFLOW_TOOL_FILES_CHANNEL]: [],
+                                            [WORKFLOW_TOOL_FILES_CHANNEL]: artifact?.files ?? undefined,
                                             [WORKFLOW_TOOL_ERROR_CHANNEL]: null
                                         }
                                     },
-                                    output: resultJson || result
+                                    output: resultJson || output
                                 }
-                            } else if (entity.errorHandling?.type === 'failBranch') {
-                                return {
-                                    state: {
-                                        [channelName(node.key)]: {
-                                            [WORKFLOW_TOOL_TEXT_CHANNEL]: null,
-                                            [WORKFLOW_TOOL_JSON_CHANNEL]: null,
-                                            [WORKFLOW_TOOL_FILES_CHANNEL]: [],
-                                            [WORKFLOW_TOOL_ERROR_CHANNEL]:
-                                                getErrorMessage(error) || 'An error occurred while executing the tool'
+                            } catch (error) {
+                                if (entity.errorHandling?.type === 'defaultValue') {
+                                    const result = entity.errorHandling.defaultValue?.result
+                                    let resultJson = result
+                                    try {
+                                        resultJson = JSON.parse(result)
+                                    } catch (e) {
+                                        // ignore JSON parse error
+                                    }
+                                    return {
+                                        state: {
+                                            [channelName(node.key)]: {
+                                                [WORKFLOW_TOOL_TEXT_CHANNEL]: result,
+                                                [WORKFLOW_TOOL_JSON_CHANNEL]: resultJson,
+                                                [WORKFLOW_TOOL_FILES_CHANNEL]: [],
+                                                [WORKFLOW_TOOL_ERROR_CHANNEL]: null
+                                            }
+                                        },
+                                        output: resultJson || result
+                                    }
+                                } else if (entity.errorHandling?.type === 'failBranch') {
+                                    return {
+                                        state: {
+                                            [channelName(node.key)]: {
+                                                [WORKFLOW_TOOL_TEXT_CHANNEL]: null,
+                                                [WORKFLOW_TOOL_JSON_CHANNEL]: null,
+                                                [WORKFLOW_TOOL_FILES_CHANNEL]: [],
+                                                [WORKFLOW_TOOL_ERROR_CHANNEL]:
+                                                    getErrorMessage(error) ||
+                                                    'An error occurred while executing the tool'
+                                            }
                                         }
                                     }
                                 }
+                                throw error
                             }
-                            throw error
+                        } finally {
+                            if (toolset) {
+                                toolset.close().catch((err) => workflowToolNodeLogger.debug(err))
+                            }
                         }
                     },
                     {

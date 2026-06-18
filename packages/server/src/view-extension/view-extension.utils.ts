@@ -99,11 +99,11 @@ export function isManifestActiveForContext(
 	context: XpertResolvedViewHostContext
 ): boolean {
 	const activation = manifest.activation
-	if (!activation) {
-		return true
-	}
+	const requiredFeatures = normalizeStringList(activation?.requiredFeatures)
 
-	const requiredFeatures = normalizeStringList(activation.requiredFeatures)
+	if (requiresFeatureActivation(manifest, context) && requiredFeatures.length === 0) {
+		return false
+	}
 
 	if (requiredFeatures.length) {
 		const availableFeatures = new Set(normalizeStringList(context.capabilities?.features))
@@ -113,6 +113,13 @@ export function isManifestActiveForContext(
 	}
 
 	return true
+}
+
+function requiresFeatureActivation(
+	manifest: XpertExtensionViewManifest,
+	context: XpertResolvedViewHostContext
+): boolean {
+	return context.slots.find((slot) => slot.key === manifest.slot)?.manifestPolicy?.requireFeatureActivation === true
 }
 
 export function composePublicViewKey(providerKey: string, manifestKey: string) {

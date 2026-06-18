@@ -85,6 +85,22 @@ export class VolumeSubtreeClient {
         }
     }
 
+    async readBuffer(scopePath: string, filePath: string): Promise<Buffer> {
+        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
+        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
+        if (!relativePath) {
+            throw new BadRequestException('File path is required')
+        }
+
+        const absolutePath = resolve(subtreeRoot, relativePath)
+        const stat = await fsPromises.stat(absolutePath).catch(() => null)
+        if (!stat?.isFile()) {
+            throw new BadRequestException('Conversation file not found')
+        }
+
+        return fsPromises.readFile(absolutePath)
+    }
+
     async getDownloadTarget(scopePath: string, filePath: string): Promise<TVolumeSubtreeDownloadTarget> {
         const subtreeRoot = this.resolveSubtreeRoot(scopePath)
         const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
@@ -224,10 +240,7 @@ export class VolumeSubtreeClient {
 }
 
 function normalizeSubtreePath(filePath?: string | null) {
-    return (filePath ?? '')
-        .replace(/\\/g, '/')
-        .replace(/^\/+/, '')
-        .replace(/^\.\//, '')
+    return (filePath ?? '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
 }
 
 function isEditableSubtreeFile(filePath: string) {
@@ -252,5 +265,5 @@ function getSubtreeFileExtension(filePath: string) {
     }
 
     const parts = fileName.split('.')
-    return parts.length > 1 ? parts.pop() ?? '' : ''
+    return parts.length > 1 ? (parts.pop() ?? '') : ''
 }

@@ -64,4 +64,27 @@ describe('VolumeSubtreeClient', () => {
             type: 'directory'
         })
     })
+
+    it('reads binary buffers inside a subtree', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-read-buffer-'))
+        await mkdir(join(tempRoot, 'files'), { recursive: true })
+        await writeFile(join(tempRoot, 'files', 'document.docx'), Buffer.from([0x50, 0x4b, 0x03, 0x04]))
+
+        const volume = new VolumeHandle(
+            {
+                tenantId: 'tenant-1',
+                catalog: 'xperts',
+                xpertId: 'xpert-1',
+                isolateByUser: false
+            },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+
+        await expect(client.readBuffer('', 'files/document.docx')).resolves.toEqual(
+            Buffer.from([0x50, 0x4b, 0x03, 0x04])
+        )
+    })
 })

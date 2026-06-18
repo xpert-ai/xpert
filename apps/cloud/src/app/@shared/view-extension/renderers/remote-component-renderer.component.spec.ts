@@ -1,9 +1,25 @@
+jest.mock('@cloud/app/@core', () => {
+  const { inject } = jest.requireActual('@angular/core')
+
+  class ViewExtensionApiService {}
+  class ToastrService {}
+
+  return {
+    ViewExtensionApiService,
+    ToastrService,
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error ?? '')),
+    injectToastr: () => inject(ToastrService),
+    injectViewExtensionApi: () => inject(ViewExtensionApiService)
+  }
+})
+
 import { TestBed } from '@angular/core/testing'
 import { of } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
+import { ViewHostEventBus } from '../view-host-event-bus.service'
 
 async function flushRemoteEntry(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }) {
   fixture.detectChanges()
@@ -60,6 +76,7 @@ describe('RemoteComponentRendererComponent', () => {
     executeFileAction: jest.Mock
   }
   let registry: ViewClientCommandRegistry
+  let hostEvents: ViewHostEventBus
   let originalCreateObjectURL: typeof URL.createObjectURL | undefined
   let originalRevokeObjectURL: typeof URL.revokeObjectURL | undefined
   let objectUrlIndex: number
@@ -105,6 +122,7 @@ describe('RemoteComponentRendererComponent', () => {
     }).compileComponents()
 
     registry = TestBed.inject(ViewClientCommandRegistry)
+    hostEvents = TestBed.inject(ViewHostEventBus)
   })
 
   afterEach(() => {
@@ -432,5 +450,65 @@ describe('RemoteComponentRendererComponent', () => {
       }
     })
     expect(component.height()).toBe(676)
+  })
+
+  it('forwards matching host events to the remote iframe', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      hostEvents: {
+        subscriptions: [
+          {
+            key: 'excalidraw-tool-completed',
+            event: 'assistant.tool.completed',
+            filter: {
+              sources: ['chatkit'],
+              toolNames: ['excalidraw_patch_scene']
+            },
+            action: {
+              type: 'forward'
+            }
+          }
+        ]
+      }
+    })
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const frameWindow = frame.contentWindow as Window
+    const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    postMessage.mockClear()
+
+    hostEvents.publish({
+      id: 'assistant.tool.completed:assistant-1:call-1',
+      type: 'assistant.tool.completed',
+      source: 'chatkit',
+      receivedAt: '2026-06-18T00:00:00.000Z',
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      toolName: 'excalidraw_patch_scene',
+      data: {
+        input: {
+          targetId: 'target-1'
+        }
+      }
+    })
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'hostEvent',
+        event: expect.objectContaining({
+          type: 'assistant.tool.completed',
+          source: 'chatkit',
+          receivedAt: '2026-06-18T00:00:00.000Z',
+          toolName: 'excalidraw_patch_scene'
+        })
+      }),
+      '*'
+    )
+    expect(postMessage.mock.calls[0][0].event).not.toHaveProperty('hostType')
+    expect(postMessage.mock.calls[0][0].event).not.toHaveProperty('hostId')
   })
 })

@@ -1,5 +1,7 @@
+import { AIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
+import { Logger } from '@nestjs/common'
 import {
     channelName,
     ChatMessageEventTypeEnum,
@@ -559,5 +561,325 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
         await handler.execute(command)
 
         expect(registryGet).not.toHaveBeenCalled()
+    })
+})
+
+describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
+    type ErrorHandlingOption = NonNullable<IXpertAgent['options']>['errorHandling']
+
+    function constructorName(value: unknown) {
+        return value && typeof value === 'object' ? value.constructor.name : ''
+    }
+
+    function createMalformedToolCallFixture(options: { invalidArgs: string; errorHandling?: ErrorHandlingOption }) {
+        const invalidMessage = new AIMessage({
+            id: 'ai-invalid-1',
+            content: '',
+            invalid_tool_calls: [
+                {
+                    id: 'call-invalid-1',
+                    name: 'excalidraw_create_drawing',
+                    error: 'Malformed args.',
+                    args: options.invalidArgs
+                }
+            ]
+        })
+        const model = RunnableLambda.from(async () => invalidMessage)
+        const agent = {
+            key: 'agent-1',
+            name: 'Drawing Agent',
+            title: 'Drawing Agent',
+            prompt: 'Draw the requested diagram.',
+            promptTemplates: [
+                {
+                    id: 'prompt-1',
+                    role: 'human',
+                    text: '{{input}}'
+                }
+            ],
+            toolsetIds: [],
+            knowledgebaseIds: [],
+            options: {
+                fileUnderstanding: {
+                    enabled: false
+                },
+                ...(options.errorHandling ? { errorHandling: options.errorHandling } : {})
+            },
+            team: {
+                id: 'xpert-1',
+                workspaceId: 'workspace-1',
+                agentConfig: {},
+                copilotModel: {
+                    model: 'fake-model',
+                    copilot: {
+                        modelProvider: {
+                            providerName: 'fake-provider'
+                        },
+                        copilotModel: {
+                            model: 'provider-model'
+                        }
+                    }
+                }
+            }
+        }
+        const graph = {
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'agent-1',
+                    entity: agent
+                }
+            ],
+            connections: []
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                switch (constructorName(command)) {
+                    case 'ToolsetGetToolsCommand':
+                        return []
+                    case 'CreateWorkflowNodeCommand':
+                        return {
+                            workflowNode: {
+                                graph: RunnableLambda.from(() => ({})),
+                                ends: []
+                            },
+                            nextNodes: []
+                        }
+                    case 'CreateNodeStagePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({
+                            [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
+                        }))
+                    case 'CreateNodeConsumePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({}))
+                    default:
+                        throw new Error(`Unexpected command: ${constructorName(command)}`)
+                }
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                switch (constructorName(query)) {
+                    case 'GetXpertWorkflowQuery':
+                        return {
+                            agent,
+                            graph,
+                            next: [],
+                            fail: []
+                        }
+                    case 'GetXpertChatModelQuery':
+                        return model
+                    default:
+                        throw new Error(`Unexpected query: ${constructorName(query)}`)
+                }
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                api: {}
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        Object.defineProperty(handler, 'agentMiddlewareRegistry', {
+            value: {
+                get: jest.fn()
+            }
+        })
+
+        return {
+            handler,
+            command: new XpertAgentSubgraphCommand(
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                },
+                {
+                    isStart: true,
+                    isDraft: true,
+                    mute: [],
+                    store: null,
+                    subscriber: null,
+                    execution: {
+                        id: 'execution-1'
+                    } as IXpertAgentExecution,
+                    rootController: new AbortController(),
+                    signal: new AbortController().signal,
+                    channel: channelName('agent-1'),
+                    thread_id: 'thread-1',
+                    disableCheckpointer: true,
+                    environment: {
+                        variables: []
+                    } as IEnvironment,
+                    partners: []
+                }
+            )
+        }
+    }
+
+    async function invokeMalformedGraph(fixture: ReturnType<typeof createMalformedToolCallFixture>) {
+        const { graph } = await fixture.handler.execute(fixture.command)
+        return graph.invoke(
+            {
+                input: 'draw a flowchart',
+                [STATE_VARIABLE_SYS]: {
+                    language: 'en-US',
+                    user_email: 'user@example.com',
+                    timezone: 'UTC',
+                    date: '2026-06-18',
+                    datetime: '2026-06-18 10:00:00',
+                    common_times: ''
+                }
+            },
+            {
+                configurable: {
+                    thread_id: 'thread-1',
+                    checkpoint_ns: '',
+                    checkpoint_id: 'checkpoint-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'organization-1',
+                    language: 'en-US',
+                    userId: 'user-1',
+                    agentKey: 'agent-1',
+                    executionId: 'execution-1'
+                },
+                recursionLimit: 5
+            }
+        )
+    }
+
+    function getFirstLoggedInvalidToolCall(loggerError: jest.SpyInstance) {
+        const diagnostic = loggerError.mock.calls[0]?.[0]
+        if (!diagnostic || typeof diagnostic !== 'object') {
+            throw new Error('Expected invalid tool call diagnostic object')
+        }
+        const invalidToolCalls = Reflect.get(diagnostic, 'invalidToolCalls')
+        if (!Array.isArray(invalidToolCalls)) {
+            throw new Error('Expected invalid tool call diagnostics')
+        }
+        const firstCall = invalidToolCalls[0]
+        if (!firstCall || typeof firstCall !== 'object') {
+            throw new Error('Expected first invalid tool call diagnostic')
+        }
+        return firstCall
+    }
+
+    function getMessagesFromState(state: unknown, channel?: string) {
+        if (!state || typeof state !== 'object') {
+            throw new Error('Expected graph state object')
+        }
+        const container = channel ? Reflect.get(state, channel) : state
+        if (!container || typeof container !== 'object') {
+            throw new Error('Expected channel state object')
+        }
+        const messages = Reflect.get(container, 'messages')
+        if (!Array.isArray(messages)) {
+            throw new Error('Expected channel messages')
+        }
+        return messages
+    }
+
+    function getMessageContent(message: unknown) {
+        if (!message || typeof message !== 'object') {
+            return undefined
+        }
+        const content = Reflect.get(message, 'content')
+        if (typeof content === 'string') {
+            return content
+        }
+        const kwargs = Reflect.get(message, 'kwargs')
+        if (kwargs && typeof kwargs === 'object') {
+            const kwargsContent = Reflect.get(kwargs, 'content')
+            return typeof kwargsContent === 'string' ? kwargsContent : undefined
+        }
+        return undefined
+    }
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    it('logs invalid tool call diagnostics and throws a sanitized error', async () => {
+        const longArgs = `{"elements": ${'x'.repeat(21050)}`
+        const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+        const fixture = createMalformedToolCallFixture({ invalidArgs: longArgs })
+
+        let thrown: unknown
+        try {
+            await invokeMalformedGraph(fixture)
+        } catch (err) {
+            thrown = err
+        }
+
+        const thrownMessage = thrown instanceof Error ? thrown.message : String(thrown)
+        expect(thrownMessage).toContain('excalidraw_create_drawing: Malformed args.')
+        expect(thrownMessage).toContain('diagnosticId:')
+        expect(thrownMessage).not.toContain('{"elements":')
+        expect(loggerError).toHaveBeenCalledWith(
+            expect.objectContaining({
+                event: 'xpert.invalid_tool_calls',
+                diagnosticId: expect.any(String),
+                threadId: 'thread-1',
+                executionId: 'execution-1',
+                xpertId: 'xpert-1',
+                agentKey: 'agent-1',
+                agentChannel: channelName('agent-1'),
+                model: {
+                    provider: 'fake-provider',
+                    model: 'fake-model'
+                },
+                aiMessageId: 'ai-invalid-1',
+                invalidToolCalls: [
+                    expect.objectContaining({
+                        id: 'call-invalid-1',
+                        name: 'excalidraw_create_drawing',
+                        error: 'Malformed args.',
+                        rawArgsLength: longArgs.length,
+                        truncated: true,
+                        argsPreview: expect.stringContaining('{"elements":')
+                    })
+                ]
+            })
+        )
+
+        const firstCall = getFirstLoggedInvalidToolCall(loggerError)
+        const argsPreview = Reflect.get(firstCall, 'argsPreview')
+        expect(typeof argsPreview === 'string' ? argsPreview.length : 0).toBe(20000)
+    })
+
+    it('keeps malformed AIMessage and raw args out of the failBranch channel', async () => {
+        const invalidArgs = '{"elements": "bad", "password": "secret-value"'
+        const loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+        const fixture = createMalformedToolCallFixture({
+            invalidArgs,
+            errorHandling: {
+                type: 'failBranch'
+            }
+        })
+
+        const output = await invokeMalformedGraph(fixture)
+        const rootMessages = getMessagesFromState(output)
+        const channelMessages = getMessagesFromState(output, channelName('agent-1'))
+        const outputJson = JSON.stringify(output)
+        const lastChannelMessage = channelMessages[channelMessages.length - 1]
+
+        expect(rootMessages).toHaveLength(2)
+        expect(channelMessages).toHaveLength(2)
+        expect(getMessageContent(lastChannelMessage)).toContain('diagnosticId:')
+        expect(outputJson).not.toContain(invalidArgs)
+        expect(outputJson).not.toContain('secret-value')
+        expect(outputJson).not.toContain('call-invalid-1')
+        expect(loggerError).toHaveBeenCalledWith(
+            expect.objectContaining({
+                invalidToolCalls: [
+                    expect.objectContaining({
+                        argsPreview: expect.stringContaining('[REDACTED]')
+                    })
+                ]
+            })
+        )
     })
 })

@@ -16,6 +16,7 @@ import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceReque
 import { IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
   AiThreadService,
@@ -41,6 +42,7 @@ import {
   shouldRefreshWorkspaceFilesFromEffectEvent,
   shouldRefreshWorkspaceFilesFromLogEvent
 } from './clawxpert-workspace-file-refresh.utils'
+import { createAssistantToolCompletedHostEvent } from './assistant-tool-host-events.utils'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
@@ -631,6 +633,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
+  readonly #hostEvents = inject(ViewHostEventBus)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
@@ -668,6 +671,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onLog: (event) => {
+      const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
+        hostType: 'agent',
+        hostId: this.facade.xpertId(),
+        threadId: this.facade.threadId()
+      })
+      if (toolCompletedEvent) {
+        console.info('[view-extension] publishing assistant tool completed host event', {
+          toolName: toolCompletedEvent.toolName,
+          hostType: toolCompletedEvent.hostType,
+          hostId: toolCompletedEvent.hostId,
+          threadId: toolCompletedEvent.threadId
+        })
+        this.#hostEvents.publish(toolCompletedEvent)
+      }
       if (shouldRefreshWorkspaceFilesFromLogEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }

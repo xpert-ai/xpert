@@ -226,6 +226,7 @@ import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
@@ -376,6 +377,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   let viewExtensionApi: {
     getSlotViews: jest.Mock
   }
+  let hostEvents: ViewHostEventBus
 
   beforeEach(async () => {
     const activeConversation = signal<IChatConversation | null>(null)
@@ -470,6 +472,8 @@ describe('ClawXpertConversationDetailComponent', () => {
         }
       ]
     }).compileComponents()
+
+    hostEvents = TestBed.inject(ViewHostEventBus)
   })
 
   afterEach(() => {
@@ -1388,6 +1392,41 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.advanceTimersByTime(1)
     fixture.detectChanges()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
+  })
+
+  it('publishes assistant tool completed host events from ChatKit tool-end logs', async () => {
+    const publish = jest.spyOn(hostEvents, 'publish')
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    runtimeInput.onLog?.({
+      name: 'lg.tool.end',
+      data: {
+        toolName: 'excalidraw_patch_scene',
+        toolCallId: 'call-1',
+        argsPreview: '{"targetId":"target-1","updates":[{"id":"title","patch":{"text":"Observability"}}]}',
+        durationMs: 73
+      }
+    })
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'assistant.tool.completed',
+        source: 'chatkit',
+        receivedAt: expect.any(String),
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        threadId: 'thread-1',
+        toolName: 'excalidraw_patch_scene',
+        toolCallId: 'call-1',
+        durationMs: 73,
+        data: expect.objectContaining({
+          toolName: 'excalidraw_patch_scene',
+          argsPreview: expect.any(String)
+        })
+      })
+    )
   })
 
   it('opens a browser tab when a sandbox service start tool log arrives', async () => {

@@ -11,12 +11,12 @@ import {
     TXpertChatState,
     TXpertGraph,
     TXpertTaskScheduleCapabilities,
-    TXpertTaskScheduleRuntimeState,
     TScheduleOptions,
     ScheduleTaskStatus,
     TaskFrequency,
     WorkflowNodeTypeEnum,
-    XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY,
+    XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY,
+    XPERT_TASK_SCHEDULE_PROPERTY_PREFIX,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
@@ -259,13 +259,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
         const resolvedAgentKey = normalizeOptionalString(agentKey) || xpert.agent?.key
         const graph = xpert.graph
-        const stateVariables =
-            xpert.agentConfig?.stateVariables?.map((variable) => ({
-                name: variable.name,
-                type: variable.type,
-                description: variable.description
-            })) ?? []
-        const middlewareStateSchema =
+        const stateSchema =
             graph && resolvedAgentKey
                 ? await discoverScheduleStateSchemaFromGraph(
                       graph,
@@ -274,12 +268,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                       xpertId
                   )
                 : null
-        const stateSchema = mergeStateSchemas(buildStateVariablesSchema(stateVariables), middlewareStateSchema)
 
         return {
             xpertId,
             ...(resolvedAgentKey ? { agentKey: resolvedAgentKey } : {}),
-            stateVariables,
+            stateVariables: [],
             ...(stateSchema ? { stateSchema } : {})
         }
     }
@@ -347,15 +340,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     private async resolveTaskRuntimeState(task: IXpertTask): Promise<TXpertChatState | null> {
         const state: TXpertChatState = task.runtimeState ? { ...task.runtimeState } : {}
-        const scheduleState = Reflect.get(state, XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY)
         const idempotencyKey = buildScheduleIdempotencyKey(task)
 
         return {
             ...state,
-            [XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY]: {
-                ...(isObject(scheduleState) ? scheduleState : {}),
-                idempotencyKey
-            } satisfies TXpertTaskScheduleRuntimeState
+            [XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY]: idempotencyKey
         }
     }
 
@@ -2208,7 +2197,7 @@ async function discoverScheduleStateSchemaFromGraph(
                     runtime: {}
                 } as any)
             )
-            const schema = normalizeJsonSchema(middleware.stateSchema)
+            const schema = pickScheduleTaskPropertiesSchema(normalizeJsonSchema(middleware.stateSchema))
             if (schema) {
                 schemas.push(schema)
             }
@@ -2269,51 +2258,38 @@ function normalizeJsonSchema(schema: unknown): JsonSchemaObjectType | null {
     }
 }
 
-function buildStateVariablesSchema(
-    variables: TXpertTaskScheduleCapabilities['stateVariables']
-): JsonSchemaObjectType | null {
-    const properties = variables.reduce<Record<string, any>>((acc, variable) => {
-        if (!variable.name || variable.name === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
-            return acc
-        }
-        acc[variable.name] = {
-            type: normalizeJsonSchemaType(variable.type),
-            ...(variable.description ? { title: variable.description } : {})
-        }
-        return acc
-    }, {})
+function pickScheduleTaskPropertiesSchema(schema: JsonSchemaObjectType | null): JsonSchemaObjectType | null {
+    const properties: JsonSchemaObjectType['properties'] = {}
 
-    return Object.keys(properties).length ? { type: 'object', properties } : null
-}
+    for (const [key, property] of Object.entries(schema?.properties ?? {})) {
+        if (key.startsWith(XPERT_TASK_SCHEDULE_PROPERTY_PREFIX)) {
+            properties[key] = property
+        }
+    }
 
-function normalizeJsonSchemaType(type?: string) {
-    if (type === 'number' || type === 'integer' || type === 'boolean' || type === 'object') {
-        return type
-    }
-    if (type?.startsWith('array')) {
-        return 'array'
-    }
-    return 'string'
+    const required = (schema?.required ?? []).filter((key) => Object.prototype.hasOwnProperty.call(properties, key))
+
+    return Object.keys(properties).length
+        ? {
+              type: 'object',
+              properties,
+              ...(required.length ? { required } : {})
+          }
+        : null
 }
 
 function mergeStateSchemas(...schemas: Array<JsonSchemaObjectType | null | undefined>): JsonSchemaObjectType | null {
-    const properties: Record<string, any> = {}
+    const properties: JsonSchemaObjectType['properties'] = {}
     const required = new Set<string>()
 
     for (const schema of schemas) {
         if (!schema?.properties) {
             continue
         }
-        for (const [key, property] of Object.entries(schema.properties as Record<string, unknown>)) {
-            if (key === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
-                continue
-            }
+        for (const [key, property] of Object.entries(schema.properties)) {
             properties[key] = property
         }
-        for (const key of Array.isArray((schema as any).required) ? (schema as any).required : []) {
-            if (key === XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY) {
-                continue
-            }
+        for (const key of schema.required ?? []) {
             required.add(key)
         }
     }

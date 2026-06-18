@@ -1,7 +1,7 @@
 import { Query } from '@nestjs/cqrs'
-import type { AgentMiddlewareKnowledgebaseListItem } from '@xpert-ai/plugin-sdk'
+import type { KnowledgebaseListItem } from '@xpert-ai/plugin-sdk'
 
-export class ListWorkspaceKnowledgebasesQuery extends Query<AgentMiddlewareKnowledgebaseListItem[]> {
+export class ListWorkspaceKnowledgebasesQuery extends Query<KnowledgebaseListItem[]> {
     static readonly type = '[Knowledgebase] List workspace knowledgebases'
 
     constructor(
