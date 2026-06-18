@@ -194,6 +194,7 @@ export interface ISkillPackage extends IBasePerWorkspaceEntityModel, TSkillPacka
   packagePath?: string
   sharedSkillId?: string
   sharedPackagePath?: string
+  publishAt?: Date
 }
 
 /**
