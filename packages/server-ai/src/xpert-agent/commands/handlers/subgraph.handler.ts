@@ -9,7 +9,8 @@ import {
     isBaseMessageChunk,
     isToolMessage,
     RemoveMessage,
-    ToolMessage
+    ToolMessage,
+    type InvalidToolCall
 } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
@@ -48,6 +49,7 @@ import {
     TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
+    TAgentExecutionMetadata,
     TXpertGraph,
     TXpertParameter,
     TXpertTeamNode,
@@ -76,6 +78,7 @@ import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import { t } from 'i18next'
 import z from 'zod'
+import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -135,6 +138,8 @@ import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
 const GRAPH_JUMP_TO_STATE_KEY = '__xpertJumpTo'
+const INVALID_TOOL_CALL_LOG_EVENT = 'xpert.invalid_tool_calls'
+const MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS = 20000
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -1204,13 +1209,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 if (isBaseMessage(response) && isAIMessage(response)) {
                     const invalidToolCalls = response.invalid_tool_calls
                     if (invalidToolCalls?.length) {
-                        const detail = invalidToolCalls
-                            .map(
-                                (call) =>
-                                    `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}\n${call.args}`
-                            )
-                            .join('; ')
-                        throw new InternalServerErrorException(t('server-ai:Error.InvalidToolCalls') + detail)
+                        const diagnosticId = randomUUID()
+                        this.#logger.error(
+                            createInvalidToolCallDiagnostics({
+                                diagnosticId,
+                                invalidToolCalls,
+                                threadId: thread_id,
+                                executionId: execution.id,
+                                xpertId: xpert.id,
+                                agentKey,
+                                agentChannel,
+                                model: execution.metadata,
+                                aiMessageId: response.id
+                            })
+                        )
+                        throw new InternalServerErrorException(
+                            createInvalidToolCallErrorMessage(invalidToolCalls, diagnosticId)
+                        )
                     }
                 }
                 return response
@@ -2090,6 +2105,88 @@ function stringifyStructuredResponse(response: unknown) {
     } catch {
         return String(response)
     }
+}
+
+type InvalidToolCallDiagnosticsInput = {
+    diagnosticId: string
+    invalidToolCalls: InvalidToolCall[]
+    threadId?: string
+    executionId?: string
+    xpertId?: string
+    agentKey: string
+    agentChannel: string
+    model?: TAgentExecutionMetadata | null
+    aiMessageId?: string
+}
+
+type InvalidToolCallDiagnostics = {
+    event: typeof INVALID_TOOL_CALL_LOG_EVENT
+    diagnosticId: string
+    threadId?: string
+    executionId?: string
+    xpertId?: string
+    agentKey: string
+    agentChannel: string
+    model?: TAgentExecutionMetadata | null
+    aiMessageId?: string
+    invalidToolCalls: Array<{
+        id?: string
+        name?: string
+        error: string
+        argsPreview: string
+        rawArgsLength: number
+        truncated: boolean
+    }>
+}
+
+function createInvalidToolCallDiagnostics(input: InvalidToolCallDiagnosticsInput): InvalidToolCallDiagnostics {
+    return {
+        event: INVALID_TOOL_CALL_LOG_EVENT,
+        diagnosticId: input.diagnosticId,
+        threadId: input.threadId,
+        executionId: input.executionId,
+        xpertId: input.xpertId,
+        agentKey: input.agentKey,
+        agentChannel: input.agentChannel,
+        model: input.model,
+        aiMessageId: input.aiMessageId,
+        invalidToolCalls: input.invalidToolCalls.map((call) => {
+            const rawArgs = call.args ?? ''
+            const redactedArgs = redactInvalidToolCallArgs(rawArgs)
+            const truncated = redactedArgs.length > MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS
+
+            return {
+                id: call.id,
+                name: call.name,
+                error: call.error ?? 'Invalid tool call',
+                argsPreview: truncated ? redactedArgs.slice(0, MAX_INVALID_TOOL_CALL_ARGS_LOG_CHARS) : redactedArgs,
+                rawArgsLength: rawArgs.length,
+                truncated
+            }
+        })
+    }
+}
+
+function createInvalidToolCallErrorMessage(invalidToolCalls: InvalidToolCall[], diagnosticId: string) {
+    const detail = invalidToolCalls
+        .map((call) => `${call.name ?? call.id ?? 'tool'}: ${call.error ?? 'Invalid tool call'}`)
+        .join('; ')
+    const prefix = t('server-ai:Error.InvalidToolCalls') || 'Model returned invalid tool calls:'
+
+    return `${prefix}${detail ? `${detail} ` : ''}(diagnosticId: ${diagnosticId})`
+}
+
+function redactInvalidToolCallArgs(args: string) {
+    return args
+        .replace(
+            /("(?:api[_-]?key|authorization|password|secret|token|access[_-]?token|refresh[_-]?token|client[_-]?secret)"\s*:\s*)"([^"\\]*(?:\\.[^"\\]*)*)"/gi,
+            '$1"[REDACTED]"'
+        )
+        .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]')
+        .replace(
+            /\b(api[_-]?key|authorization|password|secret|token|access[_-]?token|refresh[_-]?token|client[_-]?secret)(\s*[=:]\s*)([^\s,;}"']+)/gi,
+            '$1$2[REDACTED]'
+        )
 }
 
 function getModelHooks(middlewareWithKeys: Array<{ key: string; middleware: AgentMiddleware }>) {
