@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.12.0
+
+### Minor Changes
+
+- d017897: plugin integration guard
+
 ## 3.11.1
 
 ### Patch Changes

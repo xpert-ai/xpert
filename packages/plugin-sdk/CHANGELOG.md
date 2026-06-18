@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 3.12.0
+
+### Minor Changes
+
+- d017897: plugin integration guard
+
+### Patch Changes
+
+- Updated dependencies [d017897]
+  - @xpert-ai/contracts@3.12.0
+
 ## 3.11.2
 
 ### Patch Changes
