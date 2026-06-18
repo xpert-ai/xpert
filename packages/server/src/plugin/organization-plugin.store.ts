@@ -35,7 +35,18 @@ export interface StagePackageDirectoryPluginOptions extends OrganizationPluginSt
 
 type WorkspacePluginPackageJson = {
 	name?: string
+	version?: string
+	type?: string
+	main?: string
+	module?: string
+	exports?: unknown
+	bin?: unknown
 	dependencies?: Record<string, string>
+	optionalDependencies?: Record<string, string>
+	overrides?: unknown
+	engines?: unknown
+	os?: string[]
+	cpu?: string[]
 }
 
 type WorkspacePluginProjectJson = {
@@ -53,7 +64,56 @@ function ensureDir(dir: string) {
 }
 
 function hasRuntimeDependencies(packageJson: WorkspacePluginPackageJson) {
-	return Object.keys(packageJson.dependencies ?? {}).length > 0
+	return (
+		Object.keys(packageJson.dependencies ?? {}).length > 0 ||
+		Object.keys(packageJson.optionalDependencies ?? {}).length > 0
+	)
+}
+
+function createRuntimeInstallPackageJson(packageJson: WorkspacePluginPackageJson): WorkspacePluginPackageJson {
+	const runtimePackageJson: WorkspacePluginPackageJson = {}
+
+	if (packageJson.name) {
+		runtimePackageJson.name = packageJson.name
+	}
+	if (packageJson.version) {
+		runtimePackageJson.version = packageJson.version
+	}
+	if (packageJson.type) {
+		runtimePackageJson.type = packageJson.type
+	}
+	if (packageJson.main) {
+		runtimePackageJson.main = packageJson.main
+	}
+	if (packageJson.module) {
+		runtimePackageJson.module = packageJson.module
+	}
+	if (packageJson.exports) {
+		runtimePackageJson.exports = packageJson.exports
+	}
+	if (packageJson.bin) {
+		runtimePackageJson.bin = packageJson.bin
+	}
+	if (packageJson.dependencies && Object.keys(packageJson.dependencies).length) {
+		runtimePackageJson.dependencies = packageJson.dependencies
+	}
+	if (packageJson.optionalDependencies && Object.keys(packageJson.optionalDependencies).length) {
+		runtimePackageJson.optionalDependencies = packageJson.optionalDependencies
+	}
+	if (packageJson.overrides) {
+		runtimePackageJson.overrides = packageJson.overrides
+	}
+	if (packageJson.engines) {
+		runtimePackageJson.engines = packageJson.engines
+	}
+	if (packageJson.os) {
+		runtimePackageJson.os = packageJson.os
+	}
+	if (packageJson.cpu) {
+		runtimePackageJson.cpu = packageJson.cpu
+	}
+
+	return runtimePackageJson
 }
 
 function readExecFailureOutput(value: unknown) {
@@ -71,8 +131,13 @@ function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, pac
 		return
 	}
 
+	const packageJsonPath = path.join(targetPackageDir, 'package.json')
+	const originalPackageJson = fs.readFileSync(packageJsonPath, 'utf8')
+	const runtimePackageJson = createRuntimeInstallPackageJson(packageJson)
+
 	try {
-		execSync('npm install --omit=dev --ignore-scripts --no-save --legacy-peer-deps', {
+		fs.writeFileSync(packageJsonPath, JSON.stringify(runtimePackageJson, null, 2))
+		execSync('npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps', {
 			cwd: targetPackageDir,
 			stdio: 'pipe',
 			env: {
@@ -90,6 +155,8 @@ function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, pac
 				? `Failed to install runtime dependencies for staged workspace plugin at ${targetPackageDir}: ${details}`
 				: `Failed to install runtime dependencies for staged workspace plugin at ${targetPackageDir}`
 		)
+	} finally {
+		fs.writeFileSync(packageJsonPath, originalPackageJson)
 	}
 }
 

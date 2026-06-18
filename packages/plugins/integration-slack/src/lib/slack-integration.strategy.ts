@@ -1,9 +1,4 @@
-import type {
-  I18nObject,
-  IIntegration,
-  IntegrationFeatureEnum,
-  TIntegrationProvider
-} from '@xpert-ai/contracts'
+import type { I18nObject, IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { IntegrationStrategy, IntegrationTestResult, TIntegrationStrategyParams } from '@xpert-ai/plugin-sdk'
@@ -40,6 +35,12 @@ export class SlackIntegrationStrategy implements IntegrationStrategy<SlackIntegr
     webhook: true,
     helpUrl: 'https://api.slack.com/authentication/oauth-v2',
     features: [] as IntegrationFeatureEnum[],
+    setup: {
+      autoValidateOnLoad: true,
+      authorization: {
+        requiresSavedIntegration: true
+      }
+    },
     schema: {
       type: 'object',
       properties: {
@@ -73,10 +74,7 @@ export class SlackIntegrationStrategy implements IntegrationStrategy<SlackIntegr
         signingSecret: {
           type: 'string',
           title: i18n('Signing Secret', 'Signing Secret'),
-          description: i18n(
-            'Signing secret used to verify Slack requests.',
-            '用于校验 Slack 请求的 Signing Secret。'
-          ),
+          description: i18n('Signing secret used to verify Slack requests.', '用于校验 Slack 请求的 Signing Secret。'),
           'x-ui': {
             component: 'password'
           }

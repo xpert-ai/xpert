@@ -21,7 +21,7 @@ import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
-import { PublishedXpertAccessService } from '../../../xpert'
+import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
@@ -395,7 +395,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly xpertPrincipalService?: XpertPrincipalService
     ) {}
 
     private async resolveAssistantForRun(assistantId: string) {
@@ -411,6 +412,15 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
             throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
+        }
+
+        if (this.xpertPrincipalService) {
+            const principalUser = await this.xpertPrincipalService.ensurePrincipalUser(xpert as never)
+            return {
+                ...xpert,
+                user: principalUser,
+                userId: principalUser.id
+            }
         }
 
         return xpert

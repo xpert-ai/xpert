@@ -1,120 +1,137 @@
-import {
-	IBasePerTenantAndOrganizationEntityModel
-} from './base-entity.model';
-import { IOrganizationProjectsUpdateInput } from './organization-projects.model';
-import { IOrganizationUpdateInput } from './organization.model';
-import { ITag } from './tag-entity.model';
-import { I18nObject, IconDefinition, TAvatar, TParameterSchema } from './types';
-import { IUser } from './user.model';
-
+import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import { IOrganizationProjectsUpdateInput } from './organization-projects.model'
+import { IOrganizationUpdateInput } from './organization.model'
+import { ITag } from './tag-entity.model'
+import { I18nObject, IconDefinition, TAvatar, TParameterSchema } from './types'
+import { IUser } from './user.model'
 
 export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
-	name: string
-	description?: string
-	/**
-     * avatar object
-     */
-	avatar?: TAvatar
-	slug: string;
-	provider: string
+  name: string
+  description?: string
+  /**
+   * avatar object
+   */
+  avatar?: TAvatar
+  slug: string
+  provider: string
 
-	/**
-	 * Integration features: ['knowledge', 'agent', ...]
-	 */
-	features?: IntegrationFeatureEnum[]
+  /**
+   * Integration features: ['knowledge', 'agent', ...]
+   */
+  features?: IntegrationFeatureEnum[]
 
-	/**
-	 * Custom options for different providers
-	 */
-	options?: T
+  /**
+   * Custom options for different providers
+   */
+  options?: T
 
-	tags?: ITag[]
-	/**
-	 * Stable technical principal for this integration.
-	 * One integration should map to one long-lived communication user.
-	 */
-	userId?: string
-	user?: IUser
+  tags?: ITag[]
+  /**
+   * Stable technical principal for this integration.
+   * One integration should map to one long-lived communication user.
+   */
+  userId?: string
+  user?: IUser
 }
 
 export interface IIntegrationFilter {
-	integrationTypeId: string;
-	searchQuery: string;
-	filter: string;
+  integrationTypeId: string
+  searchQuery: string
+  filter: string
 }
 
-export interface IIntegrationMapSyncProject 
-	extends IBasePerTenantAndOrganizationEntityModel {
-	organizationProjectInput: IOrganizationProjectsUpdateInput;
-	integrationId: string;
-	sourceId: number;
+export interface IIntegrationMapSyncProject extends IBasePerTenantAndOrganizationEntityModel {
+  organizationProjectInput: IOrganizationProjectsUpdateInput
+  integrationId: string
+  sourceId: number
 }
 
-export interface IIntegrationMapSyncOrganization 
-	extends IBasePerTenantAndOrganizationEntityModel {
-	organizationInput: IOrganizationUpdateInput;
-	integrationId: string;
-	sourceId: number;
+export interface IIntegrationMapSyncOrganization extends IBasePerTenantAndOrganizationEntityModel {
+  organizationInput: IOrganizationUpdateInput
+  integrationId: string
+  sourceId: number
 }
 
 /**
  * @deprecated use Plugins instead
  */
 export enum IntegrationEnum {
-	UPWORK = 'Upwork',
-	HUBSTAFF = 'Hubstaff',
-	LARK = 'Lark',
-	DINGTALK = 'DingTalk',
-	WECOM = 'WeCom',
-	FIRECRAWL = 'firecrawl',
-	KNOWLEDGEBASE = 'knowledgebase',
-	GITHUB = 'github',
-	RAGFlow = 'ragflow',
-	Dify = 'dify',
-	FastGPT = 'fastgpt',
+  UPWORK = 'Upwork',
+  HUBSTAFF = 'Hubstaff',
+  LARK = 'Lark',
+  DINGTALK = 'DingTalk',
+  WECOM = 'WeCom',
+  FIRECRAWL = 'firecrawl',
+  KNOWLEDGEBASE = 'knowledgebase',
+  GITHUB = 'github',
+  RAGFlow = 'ragflow',
+  Dify = 'dify',
+  FastGPT = 'fastgpt'
 }
 
 export enum IntegrationFeatureEnum {
-	KNOWLEDGE = 'knowledge',
-	AGENT = 'agent',
-	SSO = 'sso',
+  KNOWLEDGE = 'knowledge',
+  AGENT = 'agent',
+  SSO = 'sso'
 }
 
 export enum IntegrationFilterEnum {
-	ALL = 'All',
-	FREE = 'Free',
-	PAID = 'Paid'
+  ALL = 'All',
+  FREE = 'Free',
+  PAID = 'Paid'
 }
 
 export const DEFAULT_INTEGRATION_PAID_FILTERS = [
-	{
-		label: IntegrationFilterEnum.ALL,
-		value: 'all'
-	},
-	{
-		label: IntegrationFilterEnum.FREE,
-		value: 'false'
-	},
-	{
-		label: IntegrationFilterEnum.PAID,
-		value: 'true'
-	}
-];
+  {
+    label: IntegrationFilterEnum.ALL,
+    value: 'all'
+  },
+  {
+    label: IntegrationFilterEnum.FREE,
+    value: 'false'
+  },
+  {
+    label: IntegrationFilterEnum.PAID,
+    value: 'true'
+  }
+]
 
 export interface IDateRangeActivityFilter {
-	start: Date;
-	end: Date;
+  start: Date
+  end: Date
 }
 
 export type TIntegrationProvider = {
-	name: string
-	label: I18nObject
-	description?: I18nObject
-	avatar?: string
-	icon?: IconDefinition
-	webhook?: boolean
-	schema?: TParameterSchema
-	features?: IntegrationFeatureEnum[]
-	helpUrl?: string
-	pro?: boolean
+  name: string
+  label: I18nObject
+  description?: I18nObject
+  avatar?: string
+  icon?: IconDefinition
+  webhook?: boolean
+  schema?: TParameterSchema
+  features?: IntegrationFeatureEnum[]
+  helpUrl?: string
+  /**
+   * Declarative setup hints consumed by the host integration configuration UI.
+   *
+   * Plugins can use this to ask the host to run `validateConfig` automatically
+   * and display returned setup artifacts, such as webhook/callback URLs or
+   * authorization links, without the host hard-coding provider names.
+   */
+  setup?: {
+    /**
+     * When true, the host runs the provider's `validateConfig` after an
+     * existing integration is loaded and after save/upsert succeeds. Use this
+     * for providers whose setup information is computed by validation.
+     */
+    autoValidateOnLoad?: boolean
+    authorization?: {
+      /**
+       * When true, the host can show a generic hint that authorization is
+       * available only after the integration has been saved and has an id.
+       */
+      requiresSavedIntegration?: boolean
+    }
+  }
+  pro?: boolean
 }

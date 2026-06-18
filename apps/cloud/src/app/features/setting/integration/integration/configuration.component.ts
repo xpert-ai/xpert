@@ -96,10 +96,14 @@ export class IntegrationConfigurationComponent implements IsDirty {
   })
 
   readonly provider = toSignal(
-    this.formGroup.get('provider').valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
+    this.formGroup
+      .get('provider')
+      .valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
   )
 
-  readonly integrationProvider = computed(() => this.providersResource().find((provider) => provider.name === this.provider()))
+  readonly integrationProvider = computed(() =>
+    this.providersResource().find((provider) => provider.name === this.provider())
+  )
   readonly schema = computed(() => this.integrationProvider()?.schema)
 
   readonly integration = derivedFrom(
@@ -120,11 +124,13 @@ export class IntegrationConfigurationComponent implements IsDirty {
   readonly authorizationUrl = computed(() => this.testResult()?.authorizationUrl ?? '')
   readonly longConnectionProbe = computed<IntegrationTestProbe | null>(() => this.testResult()?.probe ?? null)
   readonly testWarnings = computed(() => this.testResult()?.warnings ?? [])
-  readonly isSlackProvider = computed(() => this.provider() === 'slack')
-  readonly optionsValue = toSignal(
-    this.optionsControl.valueChanges.pipe(startWith(this.optionsControl.value)),
-    { initialValue: this.optionsControl.value }
+  readonly autoValidateOnLoad = computed(() => this.integrationProvider()?.setup?.autoValidateOnLoad === true)
+  readonly authorizationRequiresSavedIntegration = computed(
+    () => this.integrationProvider()?.setup?.authorization?.requiresSavedIntegration === true
   )
+  readonly optionsValue = toSignal(this.optionsControl.valueChanges.pipe(startWith(this.optionsControl.value)), {
+    initialValue: this.optionsControl.value
+  })
 
   constructor() {
     effect(() => {
@@ -185,7 +191,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
     })
 
     effect(() => {
-      if (!this.integration() || !this.paramId() || this.provider() !== 'slack') {
+      if (!this.integration() || !this.paramId() || !this.autoValidateOnLoad()) {
         return
       }
 
@@ -233,7 +239,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
         this.formGroup.markAsPristine()
         this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
 
-        if ((savedIntegration?.provider || this.provider()) === 'slack') {
+        if (this.autoValidateOnLoad()) {
           if (!this.paramId() && savedIntegration?.id) {
             void this.#router.navigate(['/settings/integration', savedIntegration.id])
             return

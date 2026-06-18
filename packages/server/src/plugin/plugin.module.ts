@@ -7,6 +7,7 @@ import {
 	ACCOUNT_BINDING_PERMISSION_SERVICE_TOKEN,
 	BOUND_IDENTITY_LOGIN_PERMISSION_SERVICE_TOKEN,
 	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN,
 	PLUGIN_CONFIG_RESOLVER_TOKEN,
 	PluginLifecycleMethods,
 	SSO_BINDING_PERMISSION_SERVICE_TOKEN,
@@ -33,6 +34,7 @@ import {
 	PluginSsoBindingPermissionService,
 	PluginUserPermissionService
 } from './permissions'
+import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens'
 
 @Global()
 @Module({
@@ -42,7 +44,13 @@ import {
 		CqrsModule
 	],
 	controllers: [PluginController],
-	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN, LOADED_PLUGINS],
+	exports: [
+		StrategyBus,
+		PluginConfigResolver,
+		PLUGIN_CONFIG_RESOLVER_TOKEN,
+		PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN,
+		LOADED_PLUGINS
+	],
 	providers: [
 		{ provide: LOADED_PLUGINS, useValue: loaded },
 		PluginConfigResolverProvider,
@@ -59,6 +67,18 @@ import {
 			useExisting: PluginAccountBindingPermissionService
 		},
 		{ provide: INTEGRATION_PERMISSION_SERVICE_TOKEN, useExisting: PluginIntegrationPermissionService },
+		{
+			provide: PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN,
+			useFactory: (moduleRef: ModuleRef) => ({
+				validateWebhookSecret: async (input: any) => {
+					const service = moduleRef.get<any>(PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN, {
+						strict: false
+					})
+					return service.validateWebhookSecret(input)
+				}
+			}),
+			inject: [ModuleRef]
+		},
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
 		PluginConfigResolver,
 		PluginInstanceService,

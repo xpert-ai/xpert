@@ -128,6 +128,7 @@ import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service
 import { PromptWorkflowService } from '../prompt-workflow'
 import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
+import { XpertPrincipalService } from './xpert-principal.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -146,6 +147,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
         private readonly handoffQueue: HandoffQueueService,
         private readonly agentChatRealtime: AgentChatRealtimeService,
+        private readonly xpertPrincipalService: XpertPrincipalService,
         private readonly frequentQuestionsService: XpertFrequentQuestionsService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -877,7 +879,7 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
-            await this.ensureXpertPrincipalUser(xpert)
+            await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
     }
 
@@ -886,30 +888,17 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
-            await this.ensureXpertPrincipalUser(xpert)
+            await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         }
     }
 
-    private async ensureXpertPrincipalUser(xpert: Pick<Xpert, 'id' | 'tenantId' | 'userId' | 'slug'>) {
-        if (xpert.userId) {
-            try {
-                return await this.userService.findOneByIdWithinTenant(xpert.userId, xpert.tenantId, {
-                    relations: ['role', 'role.rolePermissions', 'employee']
-                })
-            } catch {
-                //
-            }
+    @Post(':id/principal-user')
+    async ensurePrincipalUser(@Param('id') id: string) {
+        const xpert = await this.service.findOne(id)
+        const user = await this.xpertPrincipalService.ensurePrincipalUser(xpert)
+        return {
+            userId: user.id
         }
-
-        const user = await this.userService.ensureCommunicationUser({
-            tenantId: xpert.tenantId,
-            thirdPartyId: `xpert:${xpert.id}`,
-            username: xpert.slug || xpert.id
-        })
-
-        await this.service.update(xpert.id, { user })
-
-        return user
     }
 
     @Post(':id/duplicate')

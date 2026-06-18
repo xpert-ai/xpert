@@ -38,6 +38,9 @@ import { ApiKeyModule } from './api-key/api-key.module'
 import { HealthModule } from './health'
 import { ViewExtensionModule } from './view-extension/view-extension.module'
 import { AccountBindingModule } from './account-binding'
+import { PluginWebhookCredentialService } from './plugin/plugin-webhook-credential.service'
+import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin/plugin-webhook.tokens'
+import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 
 @Module({
 	imports: [
@@ -88,7 +91,18 @@ import { AccountBindingModule } from './account-binding'
 		IntegrationModule
 	],
 	controllers: [AppController],
-	providers: [AppService],
+	providers: [
+		AppService,
+		PluginWebhookCredentialService,
+		{
+			provide: PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN,
+			useExisting: PluginWebhookCredentialService
+		},
+		{
+			provide: PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN,
+			useExisting: PluginWebhookCredentialService
+		}
+	],
 	exports: []
 })
 export class ServerAppModule {}

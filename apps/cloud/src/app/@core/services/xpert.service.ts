@@ -368,6 +368,10 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/app`, app)
   }
 
+  ensurePrincipalUser(id: string) {
+    return this.httpClient.post<{ userId: string }>(this.apiBaseUrl + `/${id}/principal-user`, {})
+  }
+
   // Conversations
   getConversations(id: string, options: PaginationParams<IChatConversation>, timeRange: string[], search?: string) {
     let params = toHttpParams(options)

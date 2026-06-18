@@ -208,6 +208,12 @@ describe('organization-plugin.store', () => {
 					main: './dist/index.js',
 					dependencies: {
 						'xpert-runtime-dependency': `file:${runtimeDependencyRoot}`
+					},
+					devDependencies: {
+						'xpert-dev-only': `file:${path.join(tempRoot, 'missing-dev-only')}`
+					},
+					peerDependencies: {
+						'xpert-peer-only': '*'
 					}
 				},
 				null,
@@ -227,9 +233,22 @@ describe('organization-plugin.store', () => {
 			rootDir: pluginRoot
 		})
 		const stagedEntry = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark', 'dist', 'index.js')
+		const stagedNodeModules = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark', 'node_modules')
+		const stagedPackageJson = JSON.parse(
+			fs.readFileSync(path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark', 'package.json'), 'utf8')
+		)
 
 		expect(require(stagedEntry)).toEqual({
 			runtimeDependencyName: 'xpert-runtime-dependency'
+		})
+		expect(fs.existsSync(path.join(stagedNodeModules, 'xpert-runtime-dependency'))).toBe(true)
+		expect(fs.existsSync(path.join(stagedNodeModules, 'xpert-dev-only'))).toBe(false)
+		expect(fs.existsSync(path.join(stagedNodeModules, 'xpert-peer-only'))).toBe(false)
+		expect(stagedPackageJson.devDependencies).toEqual({
+			'xpert-dev-only': `file:${path.join(tempRoot, 'missing-dev-only')}`
+		})
+		expect(stagedPackageJson.peerDependencies).toEqual({
+			'xpert-peer-only': '*'
 		})
 	})
 

@@ -15,6 +15,7 @@ export * from './auth-login'
 export * from './bound-identity-login'
 export * from './sso-binding'
 export * from './user'
+export * from './speech-to-text'
 
 import type {
   FileSystemPermission,
@@ -27,6 +28,7 @@ import type { AnalyticsPermission } from './analytics'
 import type { AccountBindingPermission } from './account-binding'
 import type { BoundIdentityLoginPermission } from './bound-identity-login'
 import type { HandoffPermission } from './handoff'
+import type { SpeechToTextPermission } from './speech-to-text'
 import type { SsoBindingPermission } from './sso-binding'
 import type { UserPermission } from './user'
 
@@ -45,6 +47,7 @@ export type Permission =
   | SsoBindingPermission
   | UserPermission
   | HandoffPermission
+  | SpeechToTextPermission
 
 /**
  * Permissions array type
