@@ -239,12 +239,12 @@ describe('plugin helper registerPluginsAsync', () => {
 				organizationId: 'org-1',
 				plugins: [
 					{
-						name: '@xpert-ai/plugin-trigger-schedule',
+						name: '@xpert-ai/plugin-vlm-default',
 						source: 'code'
 					}
 				],
 				configs: {
-					'@xpert-ai/plugin-trigger-schedule': {}
+					'@xpert-ai/plugin-vlm-default': {}
 				}
 			})
 		).resolves.toEqual(
@@ -256,25 +256,25 @@ describe('plugin helper registerPluginsAsync', () => {
 
 		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
 			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-trigger-schedule',
-			expectedPackageName: '@xpert-ai/plugin-trigger-schedule',
-			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/),
+			pluginName: '@xpert-ai/plugin-vlm-default',
+			expectedPackageName: '@xpert-ai/plugin-vlm-default',
+			workspacePath: expect.stringMatching(/packages\/plugins\/vlm-default$/),
 			rootDir: undefined,
 			manifestName: undefined
 		})
-		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-trigger-schedule', {
-			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule',
+		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-vlm-default', {
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-vlm-default',
 			source: 'code',
-			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/),
+			workspacePath: expect.stringMatching(/packages\/plugins\/vlm-default$/),
 			codeLoadMode: 'workspace-ts',
 			onCompatibilityWarnings: expect.any(Function)
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({
-				name: '@xpert-ai/plugin-trigger-schedule',
+				name: '@xpert-ai/plugin-vlm-default',
 				source: 'code',
 				sourceConfig: {
-					workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/)
+					workspacePath: expect.stringMatching(/packages\/plugins\/vlm-default$/)
 				}
 			})
 		])

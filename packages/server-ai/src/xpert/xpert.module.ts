@@ -38,6 +38,7 @@ import { ChatMessage } from '../chat-message/chat-message.entity'
 import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.entity'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import { XpertPrincipalService } from './xpert-principal.service'
+import { ScheduleTriggerStrategies } from './plugins'
 
 @Module({
     imports: [
@@ -80,6 +81,7 @@ import { XpertPrincipalService } from './xpert-principal.service'
         RuntimeCommandService,
         RuntimeCapabilitiesService,
         XpertFrequentQuestionsService,
+        ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers
     ],

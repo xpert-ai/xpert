@@ -5,11 +5,12 @@ import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
-	DocumentSourceRegistry,
-	DocumentTransformerRegistry,
-	ImageUnderstandingRegistry,
-	KnowledgeStrategyRegistry,
-	TextSplitterRegistry
+    DocumentSourceRegistry,
+    DocumentTransformerRegistry,
+    ImageUnderstandingRegistry,
+    KnowledgeStrategyRegistry,
+    RetrieverRegistry,
+    TextSplitterRegistry
 } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
 import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
@@ -30,48 +31,50 @@ import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-		TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask, KnowledgeRetrievalLog]),
-		DiscoveryModule,
-		TenantModule,
-		CqrsModule,
-		UserModule,
-		CopilotModule,
-		DatabaseModule,
-		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => IntegrationModule),
-		forwardRef(() => KnowledgeDocumentModule),
-		forwardRef(() => XpertModule),
-		BullModule.registerQueue({
-			name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
-		})
-	],
-	controllers: [KnowledgebaseController],
-	providers: [
-		KnowledgebaseService,
-		KnowledgebaseRebuildEmbeddingConsumer,
-		KnowledgebaseTaskService,
-		KnowledgeRetrievalLogService,
-		DocumentSourceRegistry,
-		KnowledgeStrategyRegistry,
-		TextSplitterRegistry,
-		DocumentTransformerRegistry,
-		ImageUnderstandingRegistry,
-		KnowledgebaseViewHostDefinition,
-		KnowledgebaseWriterMiddleware,
-		...QueryHandlers,
-		...CommandHandlers,
-		...Strategies,
-		...Validators
-	],
-	exports: [
-		KnowledgebaseService,
-		KnowledgebaseTaskService,
-		DocumentSourceRegistry,
-		TextSplitterRegistry,
-		DocumentTransformerRegistry,
-		ImageUnderstandingRegistry
-	]
+    imports: [
+        RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
+        TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask, KnowledgeRetrievalLog]),
+        DiscoveryModule,
+        TenantModule,
+        CqrsModule,
+        UserModule,
+        CopilotModule,
+        DatabaseModule,
+        forwardRef(() => XpertWorkspaceModule),
+        forwardRef(() => IntegrationModule),
+        forwardRef(() => KnowledgeDocumentModule),
+        forwardRef(() => XpertModule),
+        BullModule.registerQueue({
+            name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
+        })
+    ],
+    controllers: [KnowledgebaseController],
+    providers: [
+        KnowledgebaseService,
+        KnowledgebaseRebuildEmbeddingConsumer,
+        KnowledgebaseTaskService,
+        KnowledgeRetrievalLogService,
+        DocumentSourceRegistry,
+        KnowledgeStrategyRegistry,
+        RetrieverRegistry,
+        TextSplitterRegistry,
+        DocumentTransformerRegistry,
+        ImageUnderstandingRegistry,
+        KnowledgebaseViewHostDefinition,
+        KnowledgebaseWriterMiddleware,
+        ...QueryHandlers,
+        ...CommandHandlers,
+        ...Strategies,
+        ...Validators
+    ],
+    exports: [
+        KnowledgebaseService,
+        KnowledgebaseTaskService,
+        DocumentSourceRegistry,
+        RetrieverRegistry,
+        TextSplitterRegistry,
+        DocumentTransformerRegistry,
+        ImageUnderstandingRegistry
+    ]
 })
 export class KnowledgebaseModule {}

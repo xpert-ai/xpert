@@ -1,7 +1,9 @@
 # Xpert 仓库分阶段去除 Nx（保留 pnpm，核心链路优先）
 
 ## Summary
+
 按你确认的偏好执行：
+
 1. `分阶段移除 Nx`
 2. `第 1 阶段仅覆盖核心流水线`
 3. `第 1 阶段核心链路不允许再依赖 Nx`
@@ -11,6 +13,7 @@
 总体策略是先把核心链路从 `pnpm nx ...` 切到 `pnpm + 原生工具`，再迁移测试/Storybook/lint，最后彻底删除 Nx 依赖与配置文件。
 
 ## 重要接口/契约变更（Public APIs / Interfaces / Types）
+
 1. 构建编排契约从 `nx project targets` 迁移到 `pnpm scripts + tools/workspace manifest`。
 2. 新增 `angular.json` 作为 Cloud 应用的 Angular CLI 构建契约（替代 Nx 对 `apps/cloud/project.json` 的承载）。
 3. 新增 `tools/workspace/projects.manifest.json`（或同等命名）作为项目构建元数据源，最终替代 `project.json + nx graph`。
@@ -18,6 +21,7 @@
 5. 业务 API（Nest/Angular 对外接口、DTO、数据库结构）不改。
 
 ## Phase 0：基线冻结与迁移护栏
+
 1. 固化当前基线命令与产物路径，用于后续回归对比：`pnpm build`、`pnpm build:plugins`、`pnpm localpack`、两套 Dockerfile build 阶段。
 2. 记录当前输出目录契约，后续必须保持不变：`dist/apps/api`、`dist/apps/cloud`、`dist/packages/*`、`packages/contracts/dist`、`packages/plugin-sdk/dist`。
 3. 建立扫描护栏：
@@ -25,6 +29,7 @@
    - 全仓最终扫描：`rg -n "\bnx\b|@nx/|@nrwl/" . -g '!CHANGELOG.md' -g '!**/node_modules/**'`。
 
 ## Phase 1：核心流水线去 Nx（本阶段核心链路 0 Nx 依赖）
+
 1. 新增构建执行层（不依赖 Nx）：
    - `tools/build/build-rollup.mjs`（替代 `@nx/rollup:rollup`）
    - `tools/build/build-tsc.mjs`（替代 `@nrwl/js:tsc` / `@nx/js:tsc`）
@@ -33,7 +38,7 @@
    - `tools/build/build-cloud.mjs`（调用 `ng build cloud`）
    - `tools/workspace/projects.manifest.json`（显式声明项目、构建器、依赖顺序、输出路径、资产拷贝规则）。
 2. 核心项目构建映射固定如下（决策完成，实施不再二次选型）：
-   - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, agent-middlewares, integration-github, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, tool-calculator, ocr-paddle, vstore-chroma, vstore-weaviate`
+   - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, agent-middlewares, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, ocr-paddle, vstore-chroma, vstore-weaviate`
    - `tsc`: `auth, common, config, server, server-ai, analytics, duckdb, echarts`
    - `ng-packagr`: `ngx-echarts, ocap-angular, copilot-angular, component-angular, formly, story-angular, core-angular`
    - `app`: `api(webpack)`, `cloud(angular cli)`
@@ -57,16 +62,18 @@
 9. 修改发布 workflow 的构建步骤：
    - `pnpm bootstrap`、`pnpm build` 必须已完全不走 Nx。
 10. Phase 1 验收（必须全部通过）：
-   - `pnpm install`
-   - `pnpm bootstrap`
-   - `pnpm build:plugins`
-   - `pnpm build`
-   - `pnpm localpack`
-   - `docker build -f .deploy/api/Dockerfile .`
-   - `docker build -f .deploy/webapp/Dockerfile .`
-   - 核心文件扫描无 Nx：`rg -n "\bnx\b|@nx/|@nrwl/" package.json tools/scripts/build.mjs .deploy/api/Dockerfile .deploy/webapp/Dockerfile .github/workflows/publish-npm-packages.yml`
+
+- `pnpm install`
+- `pnpm bootstrap`
+- `pnpm build:plugins`
+- `pnpm build`
+- `pnpm localpack`
+- `docker build -f .deploy/api/Dockerfile .`
+- `docker build -f .deploy/webapp/Dockerfile .`
+- 核心文件扫描无 Nx：`rg -n "\bnx\b|@nx/|@nrwl/" package.json tools/scripts/build.mjs .deploy/api/Dockerfile .deploy/webapp/Dockerfile .github/workflows/publish-npm-packages.yml`
 
 ## Phase 2：非核心开发链路去 Nx（测试、Lint、Storybook、辅助脚本）
+
 1. Jest 去 Nx：
    - `jest.config.ts` 移除 `getJestProjects()`。
    - 改为显式 `projects` glob（`apps/**/jest.config.ts`, `packages/**/jest.config.ts`, `libs/**/jest.config.ts`）。
@@ -84,6 +91,7 @@
    - `pnpm storybook` / `pnpm b:sb:ocap-angular`
 
 ## Phase 3：发布链路迁移到 Changesets（核心包发布）
+
 1. 新增 `@changesets/cli` 与配置：
    - `.changeset/config.json`
    - 根脚本：`changeset`、`changeset:version`。
@@ -101,6 +109,7 @@
    - workflow 中 publish job 无 Nx 依赖且仅发布 core。
 
 ## Phase 4：彻底删除 Nx
+
 1. 删除配置与元文件：
    - `nx.json`
    - 根 `project.json`
@@ -116,6 +125,7 @@
    - 全仓扫描仅允许历史残留：`rg -n "\bnx\b|@nx/|@nrwl/" . -g '!CHANGELOG.md' -g '!**/node_modules/**'`。
 
 ## 测试场景（最终验收矩阵）
+
 1. 开发：
    - `pnpm start:api:dev`
    - `pnpm start:cloud`
@@ -133,6 +143,7 @@
    - 根脚本名保持不变，外部调用命令不需要改。
 
 ## 显式假设与默认值
+
 1. 保持严格兼容：脚本名、核心产物目录、Docker/CI 入口不变。
 2. 第 1 阶段核心链路禁止任何 Nx 运行时依赖。
 3. 不引入新编排器，仅使用 pnpm workspace/脚本。

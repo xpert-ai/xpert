@@ -22,6 +22,7 @@
         "@langchain/google-genai": "0.2.16",
         "@langchain/ollama": "0.2.3",
         "@langchain/xai": "0.1.0",
+        "@langchain/textsplitters": "0.1.0",
         "@larksuiteoapi/node-sdk": "^1.30.0",
         "@modelcontextprotocol/sdk": "^1.17.4",
         "@nestjs/schedule": "6.0.0",
@@ -34,6 +35,7 @@
         "@opentelemetry/sdk-trace-node": "^2.7.1",
         "@sap_oss/odata-library": "2.4.0",
         "archiver": "^7.0.1",
+        "cron": "4.3.0",
         "cronstrue": "2.53.0",
         "epub2": "^3.0.2",
         "handlebars": "^4.7.8",
@@ -42,6 +44,7 @@
         "json-schema-faker": "^0.5.9",
         "json-schema-to-zod": "^2.4.0",
         "langchain": "0.3.31",
+        "mammoth": "^1.11.0",
         "mime-types": "2.1.35",
         "notion-to-md": "3.1.5",
         "octokit": "^3.2.2",
@@ -54,6 +57,7 @@
         "tar": "^7.5.13",
         "tslib": "^2.3.0",
         "turndown": "7.2.0",
+        "xlsx": "^0.18.5",
         "zod-to-json-schema": "^3.23.2"
     },
     "devDependencies": {
