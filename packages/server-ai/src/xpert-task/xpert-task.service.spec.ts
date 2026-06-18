@@ -5,7 +5,7 @@ import {
     TaskFrequency,
     TXpertGraph,
     WorkflowNodeTypeEnum,
-    XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY,
+    XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -82,9 +82,7 @@ describe('XpertTaskService', () => {
                 }
             },
             state: {
-                [XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY]: {
-                    idempotencyKey: expect.stringMatching(/^xpert-task:task-1:/)
-                }
+                [XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY]: expect.stringMatching(/^xpert-task:task-1:/)
             }
         })
         expect(chatCommand.options).toMatchObject({
@@ -111,9 +109,9 @@ describe('XpertTaskService', () => {
                 prompt: '生成今日早报',
                 xpertId: 'xpert-1',
                 runtimeState: {
-                    wechatPersonalScheduleUuid: 'uuid-1',
-                    wechatPersonalScheduleContactId: 'room@chatroom',
-                    wechatPersonalScheduleChatType: 'group'
+                    xpert_task_uuid: 'uuid-1',
+                    xpert_task_contact_id: 'room@chatroom',
+                    xpert_task_chat_type: 'group'
                 }
             })
         )
@@ -124,17 +122,15 @@ describe('XpertTaskService', () => {
         expect(chatCommand.request).toMatchObject({
             action: 'send',
             state: {
-                wechatPersonalScheduleUuid: 'uuid-1',
-                wechatPersonalScheduleContactId: 'room@chatroom',
-                wechatPersonalScheduleChatType: 'group',
-                [XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY]: {
-                    idempotencyKey: expect.stringMatching(/^xpert-task:task-1:/)
-                }
+                xpert_task_uuid: 'uuid-1',
+                xpert_task_contact_id: 'room@chatroom',
+                xpert_task_chat_type: 'group',
+                [XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY]: expect.stringMatching(/^xpert-task:task-1:/)
             }
         })
     })
 
-    it('reports schedule runtime state schema from connected middleware', async () => {
+    it('reports xpert_task-prefixed schedule runtime state schema from connected middleware', async () => {
         const commandBus = createCommandBusMock()
         const middlewareEntity: IWFNMiddleware = {
             id: 'middleware-1',
@@ -185,9 +181,9 @@ describe('XpertTaskService', () => {
                         description: 'Daily topic'
                     },
                     {
-                        name: XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY,
-                        type: 'object',
-                        description: 'Internal schedule runtime state'
+                        name: 'currentDocumentId',
+                        type: 'string',
+                        description: 'Current document id'
                     }
                 ]
             }
@@ -197,23 +193,25 @@ describe('XpertTaskService', () => {
         })
         const service = createService(commandBus, xpertService, agentMiddlewareRegistry)
 
-        await expect(service.getScheduleCapabilities('xpert-1')).resolves.toMatchObject({
+        const capabilities = await service.getScheduleCapabilities('xpert-1')
+
+        expect(capabilities).toMatchObject({
             xpertId: 'xpert-1',
             agentKey: 'Agent_primary',
+            stateVariables: [],
             stateSchema: {
                 type: 'object',
+                required: ['xpert_task_uuid'],
                 properties: {
-                    wechatPersonalScheduleUuid: {
+                    xpert_task_uuid: {
                         type: 'string',
                         title: 'wx2.0 Account UUID'
-                    },
-                    dailyTopic: {
-                        type: 'string',
-                        title: 'Daily topic'
                     }
                 }
             }
         })
+        expect(capabilities.stateSchema?.properties).not.toHaveProperty('contact_id')
+        expect(capabilities.stateSchema?.properties).not.toHaveProperty('dailyTopic')
     })
 
     it('strips read-only relation fields before updating a task', async () => {
@@ -295,10 +293,15 @@ function createScheduleStateMiddlewareStrategy() {
             name: 'ExampleScheduleMiddleware',
             stateSchema: {
                 type: 'object',
+                required: ['xpert_task_uuid', 'contact_id'],
                 properties: {
-                    wechatPersonalScheduleUuid: {
+                    xpert_task_uuid: {
                         type: 'string',
                         description: 'wx2.0 Account UUID'
+                    },
+                    contact_id: {
+                        type: 'string',
+                        description: 'Regular runtime state, not schedule task configurable'
                     }
                 }
             }

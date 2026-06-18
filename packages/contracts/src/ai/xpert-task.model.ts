@@ -5,7 +5,8 @@ import { IChatConversation } from './chat.model'
 import { JsonSchemaObjectType } from './types'
 import { IXpert } from './xpert.model'
 
-export const XPERT_TASK_SCHEDULE_RUNTIME_STATE_KEY = 'xpertTaskSchedule'
+export const XPERT_TASK_SCHEDULE_PROPERTY_PREFIX = 'xpert_task_'
+export const XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY = '__idempotency_key'
 
 export type TXpertTaskScheduleCapabilities = {
   xpertId: string
@@ -19,7 +20,7 @@ export type TXpertTaskScheduleCapabilities = {
 }
 
 export type TXpertTaskScheduleRuntimeState = {
-  idempotencyKey?: string
+  [XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY]?: string
 }
 
 /**
