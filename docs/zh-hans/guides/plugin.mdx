@@ -87,6 +87,78 @@ pnpm plugin:reinstall:local \
 - 使用明确的单 major 兼容范围，例如 `^3.8.0`
 - 宿主会在激活插件前校验 SDK 兼容性，并拒绝自带 SDK 副本的插件包
 
+## Plugin Webhook Auth Guard
+
+当插件需要暴露给外部系统调用的入站 webhook 路由时，使用 `PluginWebhookAuthGuard`。webhook credential 只绑定到一个 Integration，不等同于完整平台 API Key，插件不应自行查找或把平台 API Key 拼进 callback URL。
+
+credential 生命周期由宿主通过 integration permission service 管理：
+
+- `ensureWebhookCredential(id, { provider })` 创建或返回当前有效 credential，并只在这次调用中返回明文 token
+- `rotateWebhookCredential(id, { provider })` 轮换 credential，并返回新的明文 token
+- `revokeWebhookCredential(id, { provider })` 吊销 credential
+- Integration option 中保存的字段是 `webhookCredential`，类型为 `PluginWebhookCredentialRecord`
+- 持久化记录只包含元数据和 `tokenHash`，不会保存明文 token
+
+webhook URL 中只放 opaque secret，例如：
+
+```text
+https://api.example.com/api/my-provider/webhook/<integration-id>?secret=<webhook-secret>
+```
+
+对于不能设置自定义 header 的外部系统，这种方式可以让 URL 自包含，同时不暴露平台 API Key。guard 会从路由参数读取 Integration id，从 query 参数读取 secret，校验 token hash，并检查可选的 provider。校验通过后，guard 会把解析出的 Integration principal 以及 tenant/organization headers 写入 request。插件后续调用宿主 permission service 前，应在该 principal context 下执行 webhook 处理逻辑。
+
+Controller 示例：
+
+```ts
+import { Body, Controller, Param, Post, Request, UseGuards } from '@nestjs/common'
+import { PluginWebhookAuth, PluginWebhookAuthGuard, runWithRequestContext } from '@xpert-ai/plugin-sdk'
+
+@Controller('my-provider')
+export class MyWebhookController {
+  // 当宿主启用了全局平台鉴权时，这里使用宿主的 public-route decorator。
+  @Public()
+  @PluginWebhookAuth({
+    provider: 'my-provider',
+    integrationParam: 'integrationId',
+    secretQueryParam: 'secret'
+  })
+  @UseGuards(PluginWebhookAuthGuard)
+  @Post('webhook/:integrationId')
+  async webhook(
+    @Param('integrationId') integrationId: string,
+    @Request() req: { user?: unknown; headers?: Record<string, string> },
+    @Body() body: unknown
+  ) {
+    await new Promise<void>((resolve, reject) => {
+      runWithRequestContext({ user: req.user, headers: req.headers ?? {} }, {}, () => {
+        this.handleWebhook(integrationId, body).then(resolve).catch(reject)
+      })
+    })
+    return 'success'
+  }
+}
+```
+
+当 webhook route 本来就是给外部系统调用、会被普通平台 AuthGuard 拦截时，仍需要使用 `@Public()` 或宿主等价的 public decorator 跳过普通登录鉴权。随后由 `PluginWebhookAuthGuard` 作为该 webhook route 的专用鉴权边界。
+
+在拥有 webhook route 的插件模块中注册 guard：
+
+```ts
+@XpertServerPlugin({
+  providers: [MyWebhookService, PluginWebhookAuthGuard],
+  controllers: [MyWebhookController]
+})
+export class MyProviderPlugin {}
+```
+
+运维约定：
+
+- callback URL 必须来自 `ensureWebhookCredential()` 或 `rotateWebhookCredential()` 返回的 token，不要让用户粘贴平台 API Key
+- 在 `@PluginWebhookAuth()` 中声明 `provider`，避免某个 Integration provider 的 credential 被重放到另一个 provider route
+- URL 泄露后应轮换 credential；外部集成断开后应吊销 credential
+- 不要把 `PluginWebhookAuthGuard` 加成全局 bootstrap guard，应通过 `@UseGuards()` 只挂到 webhook route 上
+- 如果外部系统支持签名 header，插件可以在该 guard 之后再做 provider-specific 签名校验，但 Xpert principal 仍应来自 scoped webhook credential
+
 ## 插件配置支持
 
 如果插件需要用户可管理配置：
