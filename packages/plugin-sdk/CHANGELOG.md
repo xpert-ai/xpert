@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.11.2
+
+### Patch Changes
+
+- 7418eef: version
+
 ## 4.0.0
 
 ### Minor Changes

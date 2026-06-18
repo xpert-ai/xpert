@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.11.1
+
+### Patch Changes
+
+- 7418eef: version
+
 ## 3.11.0
 
 ### Minor Changes
