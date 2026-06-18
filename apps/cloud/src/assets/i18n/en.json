@@ -131,8 +131,11 @@
       "ACTION": "Action",
       "BUSINESS_AREA": "Business Area",
       "CACHE": "Cache",
+      "DataSource": "Data Source",
       "DATA_SOURCES": "Data Sources",
+      "Docs": "Docs",
       "INDICATOR": "Indicator",
+      "Items": "items",
       "MODEL_TYPE": "Model Type",
       "MODIFY": "Modify",
       "NEW": "New",
@@ -158,6 +161,7 @@
       "Deprecated": "Deprecated",
       "DeprecatedSuffix": " (Deprecated)",
       "Disabled": "Disabled",
+      "Unknown": "Unknown",
       "EDIT": "Edit",
       "Email": "Email",
       "ID": "Identifier",
@@ -294,6 +298,21 @@
         "Administration": "Administration",
         "General": "General"
       },
+      "DATA_SOURCES": {
+        "TYPE_SELECTION": "Type Selection",
+        "CONFIGURATION": "Configuration",
+        "NAME": "Name",
+        "NAME_REQUIRED": "Name is required",
+        "USE_LOCAL_AGENT": "Use Local Agent",
+        "DONE": "Done",
+        "AuthType": "Auth Type",
+        "AuthType_None": "None",
+        "AuthType_Basic": "Basic",
+        "AuthType_None_Description": "Unified system authorization, no need for users to provide accounts.",
+        "AuthType_Basic_Description": "Users need to provide an account for authorization.",
+        "SelectTypeToCreate": "Select a data source type to create",
+        "NoDataSources": "No data sources"
+      },
       "USERS": "Users",
       "FEATURES": "Features",
       "Data": "Data",
@@ -429,11 +448,14 @@
       "CANCEL": "Cancel",
       "Cancel": "Cancel",
       "Close": "Close",
+      "CREATE": "Create",
       "Delete": "Delete",
       "Edit": "Edit",
+      "Copy": "Copy",
       "INVITE": "Invite",
       "ManageInvites": "Manage Invites",
       "NEW": "New",
+      "PING": "Ping",
       "Pause": "Pause",
       "Remove": "Remove",
       "Rename": "Rename",
@@ -1091,6 +1113,9 @@
       }
     },
     "Copilot": {
+      "NoMatchingModels": "No matching models",
+      "ModelFilters": "Filters",
+      "ClearFilters": "Clear filters",
       "SelectModel": "Select model",
       "AllModels": "All models",
       "AllUsers": "All users"
@@ -1520,6 +1545,15 @@
       "EndTool": "End point tool. The conversation ends when the tool completes.",
       "XpertUserGroups": "Xpert User Groups"
     },
+    "DataSources": {
+      "PageDescription": "Manage database and service connections for analytics.",
+      "CreateDataSource": "Create data source",
+      "CreateDataSourceHelp": "Learn more about custom data sources",
+      "NoMatchingDataSources": "No matching data sources",
+      "NoDataSources": "No data sources yet",
+      "TryDifferentSearch": "Try a different search keyword.",
+      "EmptyDescription": "Create a data source to connect your databases and services."
+    },
     "UserGroup": {
       "Title": "User Groups",
       "Subtitle": "Manage organization-level access groups for published assistants.",
@@ -1780,6 +1814,13 @@
     }
   },
   "COMPONENTS": {
+    "COMMON": {
+      "Confirm": "Confirm",
+      "CANCEL": "Cancel"
+    },
+    "CONFIRM": {
+      "DELETE": "Confirm Delete"
+    },
     "TIME_FILTER": {
       "SET_DATE_RANGE": "Set Date Range for {{property}}"
     },

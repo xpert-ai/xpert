@@ -1,129 +1,196 @@
-<div
-  class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary group"
->
-  <div
-    class="w-full flex justify-start items-center p-4 mb-4 cursor-move"
-    cdkDrag
-    cdkDragRootElement=".cdk-overlay-pane"
-    cdkDragHandle
-  >
-    <i class="ri-draggable -ml-2 opacity-0 group-hover:opacity-80"></i>
-    <span class="text-xl pointer-events-none">
+<header class="flex shrink-0 items-center border-b border-divider-regular px-6 py-4">
+  <div class="min-w-0 flex-1">
+    <h2 class="truncate text-lg font-semibold">
       {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }}
       {{ 'PAC.KEY_WORDS.DataSource' | translate: { Default: 'Data Source' } }}
-    </span>
+    </h2>
+    <p class="mt-0.5 truncate text-xs text-text-secondary">
+      {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: { Default: 'Select a data source type to create' } }}
+    </p>
   </div>
+</header>
 
-  <form [formGroup]="typeFormGroup" class="flex-1 pl-4 overflow-auto">
-    <ul
-      class="pac-ds-creation__types ngm-nav-list ngm-cdk-listbox"
-      cdkListbox
-      formControlName="type"
-      [cdkListboxMultiple]="false"
-      [cdkListboxCompareWith]="compareFn"
-    >
-      @if (listboxConnectionTypes(); as connectionTypes) {
-        @for (item of connectionTypes; track item.id) {
-          <li [cdkOption]="item" class="ngm-cdk-option rounded-lg mb-1 flex items-center gap-3">
-            <span class="flex items-center gap-3">
-              <img src="assets/images/db-logos/{{ item.type }}.png" width="32" height="32" class="m-0 inline-block" />
-              {{ item.name }}
-            </span>
-          </li>
-        }
-      } @else {
-        <list-content-loader />
+<div class="grid min-h-0 flex-1 overflow-hidden grid-cols-[280px_minmax(0,1fr)]">
+  <aside class="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-divider-regular bg-components-panel-bg">
+    <div class="flex items-center justify-between gap-3 px-4 py-3">
+      <div class="min-w-0">
+        <h3 class="truncate text-sm font-medium">
+          {{ 'PAC.MENU.DATA_SOURCES.TYPE_SELECTION' | translate: { Default: 'Type Selection' } }}
+        </h3>
+      </div>
+      @if (connectionTypes() !== null) {
+        <z-badge zType="secondary" zShape="pill">{{ connectionTypeOptions().length }}</z-badge>
       }
-    </ul>
-  </form>
-
-  <div class="flex justify-between items-center p-4">
-    <div ngmButtonGroup>
-      <button
-        z-button
-        zType="default"
-
-        [disabled]="loading() || formGroup.pristine || formGroup.invalid"
-        (click)="ping()"
-      >
-        {{ 'PAC.ACTIONS.PING' | translate: { Default: 'Ping' } }}
-      </button>
     </div>
 
-    <div ngmButtonGroup>
-      <button z-button zType="secondary" (click)="onCancel()">
-        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-      </button>
-      <button
-        z-button
-        zType="default"
-
-        cdkFocusInitial
-        [disabled]="formGroup.pristine || formGroup.invalid"
-        (click)="onSave()"
-      >
-        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="w-[500px] shrink-0 flex flex-col overflow-y-auto">
-  <div class="text-lg sticky top-0 z-10 px-6 py-4 bg-components-card-bg">
-    {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
-  </div>
-
-  @if (dataSourceType(); as type) {
-    <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch p-6">
-      <div class="flex justify-center items-center text-lg my-2">
-        <img src="assets/images/db-logos/{{ type.type }}.png" width="64" height="64" class="m-0 inline-block" />
-        {{ type.name }}
-      </div>
-
-      <ngm-input
-        [ngClass]="{ 'ngm-input-error': nameCtrl.invalid }"
-        [label]="'PAC.MENU.DATA_SOURCES.NAME' | translate: { Default: 'Name' }"
-        formControlName="name"
-        required
-      >
-        @if (nameCtrl.invalid) {
-          <span ngmError>
-            {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: { Default: 'Name Required' } }}
-          </span>
-        }
-      </ngm-input>
-
-      <div class="flex justify-between items-center mx-2 mb-6">
-        @if (enableLocalAgent) {
-          <z-switch formControlName="useLocalAgent" labelPosition="before">
-            {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: { Default: 'Use Local Agent' } }}
-          </z-switch>
-        }
-
-        @if (isXmla()) {
-          <div class="flex justify-end items-center gap-2">
-            <div>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</div>
-            <z-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
-              <z-toggle-group-item [value]="null"
-                [zTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
-              >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</z-toggle-group-item>
-              <z-toggle-group-item [value]="AuthenticationEnum.BASIC"
-                [zTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
-              >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</z-toggle-group-item>
-            </z-toggle-group>
-          </div>
-        }
-      </div>
-
-      <formly-form [form]="options" [fields]="fields$ | async" [model]="model" (modelChange)="onModelChange($event)">
-      </formly-form>
+    <form [formGroup]="typeFormGroup" class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+      @if (connectionTypes() === null) {
+        <div class="flex h-full items-center justify-center gap-2 text-sm text-text-secondary">
+          <z-loader zSize="sm" />
+          <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}</span>
+        </div>
+      } @else {
+        <z-radio-group formControlName="type" class="flex flex-col gap-1">
+          @for (item of connectionTypeOptions(); track item.id) {
+            <z-radio
+              [value]="item.id"
+              [class]="
+                dataSourceType()?.id === item.id
+                  ? 'w-full items-center rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-text-primary shadow-sm'
+                  : 'w-full items-center rounded-lg border border-transparent px-3 py-2 text-text-secondary hover:bg-hover-bg hover:text-text-primary'
+              "
+            >
+              <span class="flex min-w-0 flex-1 items-center gap-3">
+                <img
+                  src="assets/images/db-logos/{{ item.type }}.png"
+                  width="24"
+                  height="24"
+                  class="m-0 inline-block shrink-0"
+                  [alt]="item.name"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium">{{ item.name }}</span>
+                  <span class="block truncate text-xs text-text-tertiary">{{ item.type }}</span>
+                </span>
+              </span>
+            </z-radio>
+          } @empty {
+            <div class="flex min-h-48 items-center justify-center">
+              <z-empty
+                zIcon="database"
+                [zTitle]="'PAC.MENU.DATA_SOURCES.NoDataSources' | translate: { Default: 'No data sources' }"
+              />
+            </div>
+          }
+        </z-radio-group>
+      }
     </form>
-  } @else {
-    <div class="flex-1 w-full flex flex-col justify-center items-center">
-      <i class="ri-database-2-line text-[3rem]"></i>
-      <span class="text-text-secondary">
-        {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: { Default: 'Select a data source type to create' } }}
-      </span>
-    </div>
-  }
+  </aside>
+
+  <section class="flex min-h-0 min-w-0 flex-col overflow-hidden bg-components-card-bg">
+    @if (dataSourceType(); as type) {
+      <form [formGroup]="formGroup" class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div class="mb-5 flex items-center justify-between gap-4 border-b border-divider-regular pb-4">
+          <div class="flex min-w-0 items-center gap-3">
+            <img
+              src="assets/images/db-logos/{{ type.type }}.png"
+              width="40"
+              height="40"
+              class="m-0 inline-block shrink-0"
+              [alt]="type.name"
+            />
+            <div class="min-w-0">
+              <div class="truncate text-base font-semibold">{{ type.name }}</div>
+              <div class="mt-1 flex items-center gap-2">
+                <z-badge zType="outline" zShape="pill">{{ type.type }}</z-badge>
+                <span class="truncate text-xs text-text-tertiary">{{ type.protocol }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="shrink-0 text-sm font-medium text-text-secondary">
+            {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <z-form-field class="w-full" appearance="fill">
+            <z-form-label [zRequired]="true">
+              {{ 'PAC.MENU.DATA_SOURCES.NAME' | translate: { Default: 'Name' } }}
+            </z-form-label>
+            <input z-input formControlName="name" required [zStatus]="nameCtrl?.invalid ? 'error' : undefined" />
+            @if (nameCtrl?.invalid) {
+              <z-form-message zType="error">
+                {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: { Default: 'Name Required' } }}
+              </z-form-message>
+            }
+          </z-form-field>
+
+          @if (enableLocalAgent || isXmla()) {
+            <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                @if (enableLocalAgent) {
+                  <z-switch formControlName="useLocalAgent" labelPosition="before">
+                    {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: { Default: 'Use Local Agent' } }}
+                  </z-switch>
+                }
+
+                @if (isXmla()) {
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm text-text-secondary">
+                      {{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: { Default: 'Auth Type' } }}
+                    </span>
+                    <z-toggle-group formControlName="authType" name="authType" zType="outline" zSize="sm">
+                      <z-toggle-group-item
+                        [value]="null"
+                        [zTooltip]="
+                          'PAC.MENU.DATA_SOURCES.AuthType_None_Description'
+                            | translate
+                              : { Default: 'Unified system authorization, no need for users to provide accounts.' }
+                        "
+                      >
+                        {{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: { Default: 'None' } }}
+                      </z-toggle-group-item>
+                      <z-toggle-group-item
+                        [value]="AuthenticationEnum.BASIC"
+                        [zTooltip]="
+                          'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description'
+                            | translate: { Default: 'Users need to provide an account for authorization.' }
+                        "
+                      >
+                        {{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: { Default: 'Basic' } }}
+                      </z-toggle-group-item>
+                    </z-toggle-group>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <formly-form [form]="options" [fields]="fields$ | async" [model]="model" />
+        </div>
+      </form>
+    } @else {
+      <div class="flex min-h-0 flex-1 items-center justify-center px-8">
+        <z-empty
+          class="max-w-[280px]"
+          zIcon="database"
+          [zTitle]="
+            'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: { Default: 'Select a data source type to create' }
+          "
+          [zDescription]="'PAC.MENU.DATA_SOURCES.TYPE_SELECTION' | translate: { Default: 'Type Selection' }"
+        />
+      </div>
+    }
+  </section>
 </div>
+
+<footer
+  class="flex shrink-0 items-center justify-between gap-3 border-t border-divider-regular bg-components-card-bg px-4 py-3"
+>
+  <button
+    z-button
+    zType="outline"
+    type="button"
+    class="min-w-32"
+    [zLoading]="loading()"
+    [disabled]="loading() || formGroup.pristine || formGroup.invalid"
+    (click)="ping()"
+  >
+    {{ 'PAC.ACTIONS.PING' | translate: { Default: 'Ping' } }}
+  </button>
+
+  <div class="flex items-center gap-2">
+    <button z-button zType="secondary" type="button" (click)="onCancel()">
+      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button
+      z-button
+      zType="default"
+      type="button"
+      [disabled]="formGroup.pristine || formGroup.invalid"
+      (click)="onSave()"
+    >
+      {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+    </button>
+  </div>
+</footer>
