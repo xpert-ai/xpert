@@ -64,6 +64,9 @@ export interface XpertViewSlot {
   title?: I18nObject
   mode: XpertViewSlotMode
   order?: number
+  manifestPolicy?: {
+    requireFeatureActivation?: boolean
+  }
 }
 
 export interface XpertViewSource {
@@ -281,25 +284,96 @@ export interface XpertViewClientCommandDefinition {
   permissions?: string[]
 }
 
+/**
+ * Action a host should take when a view host event matches a manifest subscription.
+ */
 export type XpertViewHostEventSubscriptionActionType = 'refresh' | 'forward' | 'refresh-and-forward'
 
+/**
+ * Declarative host event subscription owned by a view manifest.
+ */
 export interface XpertViewHostEventSubscription {
+  /** Stable subscription key used for de-duping and diagnostics. */
   key: string
+  /** Machine-readable event type, for example `assistant.tool.completed`. */
   event: string
   filter?: {
+    /** Optional event source allow-list, for example `chatkit`. */
     sources?: string[]
+    /** Optional tool name allow-list for assistant tool completion events. */
     toolNames?: string[]
+    /** Optional remote view key allow-list for visualization events. */
     viewKeys?: string[]
+    /** Optional visualization type allow-list. */
     visualizationTypes?: string[]
   }
   action?: {
+    /** Defaults to `refresh` when omitted. */
     type?: XpertViewHostEventSubscriptionActionType
+    /** Suppresses repeated matching events with the same debounce key for this duration. */
     debounceMs?: number
   }
 }
 
+/**
+ * Host event subscriptions declared by a remote view manifest.
+ */
 export interface XpertViewHostEvents {
   subscriptions?: XpertViewHostEventSubscription[]
+}
+
+/**
+ * Optional visualization metadata attached to a host event.
+ */
+export interface XpertViewHostEventVisualization {
+  /** Visualization renderer/type discriminator. */
+  type?: string
+  /** Remote view key associated with the emitted visualization. */
+  viewKey?: string
+  /** Human-readable visualization title. */
+  title?: string
+  /** Host slot that should receive the visualization. */
+  slotKey?: string
+  /** Parameter key associated with this visualization payload. */
+  parameterKey?: string
+}
+
+/**
+ * Event payload forwarded to remote components. Keep this shape host-agnostic so
+ * the same plugin can run in xpert and data-xpert.
+ */
+export interface XpertRemoteViewHostEventMessage {
+  /** Stable event id for diagnostics and de-duping. */
+  id: string
+  /** Machine-readable event type, for example `assistant.tool.completed`. */
+  type: string
+  /** Event source, for example `chatkit`. */
+  source: string
+  /** ISO timestamp captured when the host normalized the event. */
+  receivedAt: string
+  /** Conversation or execution thread id when available. */
+  threadId?: string
+  /** Tool name for assistant tool events. */
+  toolName?: string
+  /** Tool call id when provided by the runtime. */
+  toolCallId?: string
+  /** Runtime run id when provided by the runtime. */
+  runId?: string
+  /** Tool duration in milliseconds when provided by the runtime. */
+  durationMs?: number
+  /** Opaque event data. Plugin-specific ids stay inside this payload. */
+  data?: Record<string, unknown>
+  /** Optional visualization metadata used by manifest filters and remote views. */
+  visualization?: XpertViewHostEventVisualization
+}
+
+/**
+ * Host-internal event message. `hostType` and `hostId` are routing fields and
+ * must be stripped before forwarding to remote components.
+ */
+export interface XpertViewHostEventMessage extends XpertRemoteViewHostEventMessage {
+  hostType?: string
+  hostId?: string
 }
 
 export interface XpertExtensionViewManifest {

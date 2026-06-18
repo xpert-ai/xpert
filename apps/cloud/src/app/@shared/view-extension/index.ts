@@ -1,4 +1,5 @@
 export * from './extension-host-outlet.component'
 export * from './extension-host-view-page.component'
 export * from './view-client-command-registry.service'
+export * from './view-host-event-bus.service'
 export * from './view-renderer.component'
