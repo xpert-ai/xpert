@@ -205,9 +205,10 @@ export class XpertAssistantFacade {
         return next
       }
 
+      const normalizedContext = normalizeWorkbenchRequestContext(context)
       return {
         ...current,
-        [normalizedKey]: normalizeWorkbenchRequestContext(context)
+        [normalizedKey]: normalizedContext
       }
     })
   }

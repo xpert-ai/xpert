@@ -226,6 +226,7 @@ import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -270,6 +271,7 @@ type MockChatKitEvent = {
 
 type MockChatKitRuntimeInput = {
   initialThread?: () => string | null
+  requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
@@ -354,6 +356,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     xpertId: ReturnType<typeof signal<string | null>>
+    currentWorkspaceId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
@@ -393,6 +396,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
+      currentWorkspaceId: signal('workspace-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
@@ -494,6 +498,72 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+  })
+
+  it('passes remote assistant context client commands into the current ChatKit request context', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'doc-1',
+          docxEditorVersionId: 'version-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'doc-1',
+            title: '技术通知单',
+            currentVersionId: 'version-1',
+            currentVersionNumber: 1,
+            workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx',
+            selection: {
+              selectedText: 'selected text'
+            }
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        status: 'updated',
+        key: 'docxEditor'
+      })
+    )
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          xpertId: 'assistant-1',
+          docxEditorDocumentId: 'doc-1',
+          docxEditorVersionId: 'version-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx'
+        }),
+        docxEditor: expect.objectContaining({
+          currentDocument: expect.objectContaining({
+            documentId: 'doc-1',
+            currentVersionId: 'version-1',
+            workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx',
+            selection: expect.objectContaining({
+              selectedText: 'selected text'
+            })
+          })
+        })
+      })
+    )
   })
 
   it('filters and orders fixed view menu items from the current bound xpert', async () => {

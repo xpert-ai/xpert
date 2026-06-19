@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
@@ -26,7 +26,11 @@ import {
   getErrorMessage,
   injectToastr
 } from '../../../@core'
-import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
+import {
+  registerAssistantChatSendMessageCommand,
+  registerAssistantContextSetCommand,
+  type AssistantContextSetPayload
+} from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -67,6 +71,7 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
+type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
 type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
 type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
@@ -636,6 +641,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
+  #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
@@ -643,12 +649,21 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
+  readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
+  readonly assistantRequestContext = computed(() =>
+    buildAssistantRequestContext({
+      workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
+      xpertId: this.facade.xpertId(),
+      contexts: this.#assistantWorkbenchContexts()
+    })
+  )
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.facade.assistantId,
     frameUrl: this.facade.chatkitFrameUrl,
+    requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
@@ -781,6 +796,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+    this.#unregisterAssistantContextCommand = registerAssistantContextSetCommand(this.#clientCommands, {
+      setContext: (key, context) => {
+        this.setAssistantWorkbenchContext(key, context)
+      }
     })
     this.#unregisterBrowserOpenCommand = this.#clientCommands.register(WORKBENCH_BROWSER_OPEN_COMMAND, (payload) => {
       const target = toWorkbenchBrowserPreviewTarget(payload)
@@ -933,12 +953,39 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   ngOnDestroy() {
     this.#unregisterAssistantCommand?.()
     this.#unregisterAssistantCommand = null
+    this.#unregisterAssistantContextCommand?.()
+    this.#unregisterAssistantContextCommand = null
     this.#unregisterBrowserOpenCommand?.()
     this.#unregisterBrowserOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
+  }
+
+  private setAssistantWorkbenchContext(key: string, context: AssistantWorkbenchRequestContext | null) {
+    const normalizedKey = key.trim()
+    if (!normalizedKey || normalizedKey === 'env') {
+      return
+    }
+
+    this.#assistantWorkbenchContexts.update((current) => {
+      if (!context) {
+        if (!current[normalizedKey]) {
+          return current
+        }
+
+        const next = { ...current }
+        delete next[normalizedKey]
+        return next
+      }
+
+      const normalizedContext = normalizeAssistantWorkbenchContext(context)
+      return {
+        ...current,
+        [normalizedKey]: normalizedContext
+      }
+    })
   }
 
   async handleWorkspaceReference(request: FileWorkbenchReferenceRequest) {
@@ -1515,6 +1562,73 @@ function hasTaskSummaryRefresh(
   facade: WorkbenchChatFacade
 ): facade is WorkbenchChatFacade & { refreshTaskSummaries(): void } {
   return 'refreshTaskSummaries' in facade && typeof facade.refreshTaskSummaries === 'function'
+}
+
+function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, key: T): string | null {
+  const value = (facade as WorkbenchChatFacade & Record<T, Signal<unknown> | undefined>)[key]
+  if (typeof value !== 'function') {
+    return null
+  }
+  return getString(value()) ?? null
+}
+
+function buildAssistantRequestContext(input: {
+  workspaceId: string | null
+  xpertId: string | null
+  contexts: Record<string, AssistantWorkbenchRequestContext>
+}) {
+  const env: Record<string, string> = {}
+  if (input.workspaceId) {
+    env['workspaceId'] = input.workspaceId
+  }
+  if (input.xpertId) {
+    env['xpertId'] = input.xpertId
+  }
+
+  const requestContext: Record<string, unknown> = {}
+  for (const [key, context] of Object.entries(input.contexts)) {
+    Object.assign(env, normalizeAssistantEnv(context.env))
+    if (isRecord(context.context)) {
+      requestContext[key] = context.context
+    }
+  }
+
+  if (Object.keys(env).length) {
+    requestContext['env'] = env
+  }
+
+  return requestContext
+}
+
+function normalizeAssistantWorkbenchContext(
+  context: AssistantWorkbenchRequestContext
+): AssistantWorkbenchRequestContext {
+  const env = normalizeAssistantEnv(context.env)
+  const structuredContext = isRecord(context.context) ? context.context : undefined
+  return {
+    ...(Object.keys(env).length ? { env } : {}),
+    ...(structuredContext ? { context: structuredContext } : {})
+  }
+}
+
+function normalizeAssistantEnv(env: unknown): Record<string, string> {
+  if (!isRecord(env)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(env)
+      .map(([key, value]) => [key, getString(value)] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
 function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
