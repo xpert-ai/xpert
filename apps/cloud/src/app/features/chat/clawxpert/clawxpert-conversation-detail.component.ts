@@ -340,125 +340,124 @@ type ChatKitReferenceComposerControl = {
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div class="min-h-0 flex-1 p-0">
-                @if (!activeTab()) {
+              @if (!activeTab()) {
+                <div
+                  data-empty-workspace-placeholder
+                  class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                >
                   <div
-                    data-empty-workspace-placeholder
-                    class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                    data-empty-workspace-card-grid
+                    class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
                   >
-                    <div
-                      data-empty-workspace-card-grid
-                      class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
+                    <button
+                      type="button"
+                      data-empty-workspace-card="files"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('files')"
                     >
+                      <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      data-empty-workspace-card="browser"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('browser')"
+                    >
+                      <i class="ri-global-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
+                      </div>
+                    </button>
+                    @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
                       <button
                         type="button"
-                        data-empty-workspace-card="files"
+                        data-empty-workspace-card="fixed-view"
+                        [attr.data-fixed-view-key]="fixedView.viewKey"
                         class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('files')"
+                        (click)="openFixedViewTab(fixedView)"
                       >
-                        <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                        <xp-icon
+                          [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                          [size]="32"
+                          class="text-text-tertiary"
+                        />
                         <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
-                        </div>
-                        <div class="mt-2 text-lg text-text-secondary">
-                          {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        data-empty-workspace-card="browser"
-                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('browser')"
-                      >
-                        <i class="ri-global-line text-3xl text-text-tertiary"></i>
-                        <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
-                        </div>
-                        <div class="mt-2 text-lg text-text-secondary">
-                          {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
-                        </div>
-                      </button>
-                      @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                        <button
-                          type="button"
-                          data-empty-workspace-card="fixed-view"
-                          [attr.data-fixed-view-key]="fixedView.viewKey"
-                          class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                          (click)="openFixedViewTab(fixedView)"
-                        >
-                          <xp-icon
-                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
-                            [size]="32"
-                            class="text-text-tertiary"
-                          />
-                          <div class="mt-4 text-xl font-semibold text-text-primary">
-                            {{ fixedView.title }}
-                          </div>
-                          <div class="mt-2 text-lg text-text-secondary">
-                            {{
-                              fixedView.description ||
-                                ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
-                            }}
-                          </div>
-                        </button>
-                      }
-                      <button
-                        type="button"
-                        data-empty-workspace-card="terminal"
-                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('terminal')"
-                      >
-                        <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
-                        <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                          {{ fixedView.title }}
                         </div>
                         <div class="mt-2 text-lg text-text-secondary">
                           {{
-                            'PAC.Chat.ClawXpert.TerminalLauncherDesc'
-                              | translate: { Default: 'Launch interactive shell' }
+                            fixedView.description ||
+                              ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
                           }}
                         </div>
                       </button>
-                    </div>
-                  </div>
-                } @else if (activeFixedViewTab(); as fixedViewTab) {
-                  @if (fixedViewHostId(); as hostId) {
-                    <xp-extension-host-outlet
-                      class="block h-full min-h-0 overflow-hidden"
-                      mode="single-view"
-                      hostType="agent"
-                      [hostId]="hostId"
-                      [slot]="agentWorkbenchFixedSlot"
-                      [viewKey]="fixedViewTab.viewKey"
-                      [fillAvailableHeight]="true"
-                    />
-                  } @else {
-                    <div
-                      class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                    }
+                    <button
+                      type="button"
+                      data-empty-workspace-card="terminal"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('terminal')"
                     >
-                      {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
-                    </div>
-                  }
-                } @else if (activeTab()?.kind === 'tasks') {
-                  <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                    <pac-chat-tasks
-                      class="block h-full min-h-0"
-                      [embedded]="true"
-                      [xpertId]="facade.xpertId()"
-                      (tasksChanged)="handleTasksChanged()"
-                      (conversationSelected)="openTaskHistoryConversation($event)"
-                    />
+                      <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{
+                          'PAC.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
+                        }}
+                      </div>
+                    </button>
                   </div>
-                } @else if (contextLoading() && !resolvedConversationId()) {
+                </div>
+              } @else if (activeFixedViewTab(); as fixedViewTab) {
+                @if (fixedViewHostId(); as hostId) {
+                  <xp-extension-host-outlet
+                    class="block h-full min-h-0 overflow-hidden"
+                    mode="single-view"
+                    hostType="agent"
+                    [hostId]="hostId"
+                    [slot]="agentWorkbenchFixedSlot"
+                    [viewKey]="fixedViewTab.viewKey"
+                    [fillAvailableHeight]="true"
+                  />
+                } @else {
                   <div
                     class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                   >
-                    {{
-                      'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
-                    }}
+                    {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
                   </div>
-                } @else {
-                  @if (!resolvedConversationId()) {
+                }
+              } @else if (activeTab()?.kind === 'tasks') {
+                <div class="h-full min-h-0 overflow-hidden px-4 py-3">
+                  <pac-chat-tasks
+                    class="block h-full min-h-0"
+                    [embedded]="true"
+                    [xpertId]="facade.xpertId()"
+                    (tasksChanged)="handleTasksChanged()"
+                    (conversationSelected)="openTaskHistoryConversation($event)"
+                  />
+                </div>
+              } @else if (contextLoading() && !resolvedConversationId()) {
+                <div
+                  class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
+                  }}
+                </div>
+              } @else {
+                @if (!resolvedConversationId()) {
+                  <div class="block h-full p-2">
                     <div
                       class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
                     >
@@ -500,47 +499,47 @@ type ChatKitReferenceComposerControl = {
                         }
                       </div>
                     </div>
-                  } @else {
-                    @if (contextError()) {
-                      <div
-                        class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-                      >
-                        {{ contextError() }}
-                      </div>
-                    }
+                  </div>
+                } @else {
+                  @if (contextError()) {
+                    <div
+                      class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                    >
+                      {{ contextError() }}
+                    </div>
+                  }
 
-                    @if (activeTab()?.kind === 'files') {
-                      <pac-clawxpert-conversation-files
-                        class="h-full"
-                        [conversationId]="resolvedConversationId()"
-                        [xpertId]="facade.xpertId()"
-                        [mode]="'editable'"
-                        [reloadKey]="fileListReloadKey()"
-                        (referenceRequest)="handleWorkspaceReference($event)"
-                      />
-                    } @else if (activeTab()?.kind === 'browser') {
-                      <pac-clawxpert-conversation-preview
-                        class="h-full"
-                        [conversationId]="resolvedConversationId()"
-                        [serviceId]="activeBrowserTab()?.serviceId"
-                        [url]="activeBrowserTab()?.url"
-                        [zoom]="activeBrowserTab()?.zoom"
-                        [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
-                        [reloadKey]="activeBrowserTab()?.reloadKey"
-                        (browserStateChange)="updateActiveBrowserTab($event)"
-                        (referenceRequest)="handleElementReference($event)"
-                      />
-                    } @else {
-                      <xp-chat-shared-terminal
-                        class="h-full"
-                        [mode]="'interactive'"
-                        [conversationId]="resolvedConversationId()"
-                        [projectId]="resolvedConversation()?.projectId ?? null"
-                      />
-                    }
+                  @if (activeTab()?.kind === 'files') {
+                    <pac-clawxpert-conversation-files
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [xpertId]="facade.xpertId()"
+                      [mode]="'editable'"
+                      [reloadKey]="fileListReloadKey()"
+                      (referenceRequest)="handleWorkspaceReference($event)"
+                    />
+                  } @else if (activeTab()?.kind === 'browser') {
+                    <pac-clawxpert-conversation-preview
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [serviceId]="activeBrowserTab()?.serviceId"
+                      [url]="activeBrowserTab()?.url"
+                      [zoom]="activeBrowserTab()?.zoom"
+                      [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
+                      [reloadKey]="activeBrowserTab()?.reloadKey"
+                      (browserStateChange)="updateActiveBrowserTab($event)"
+                      (referenceRequest)="handleElementReference($event)"
+                    />
+                  } @else {
+                    <xp-chat-shared-terminal
+                      class="h-full"
+                      [mode]="'interactive'"
+                      [conversationId]="resolvedConversationId()"
+                      [projectId]="resolvedConversation()?.projectId ?? null"
+                    />
                   }
                 }
-              </div>
+              }
             </z-tab-nav-panel>
           </div>
         }
@@ -772,7 +771,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   })
   readonly chatSurfaceClasses = computed(() =>
     this.showDetailPanel() && !this.isChatMinimizedToPet()
-      ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border'
+      ? 'rounded-2xl bg-components-card-bg shadow-sm border border-border'
       : ''
   )
 

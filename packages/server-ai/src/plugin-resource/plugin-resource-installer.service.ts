@@ -89,11 +89,6 @@ export type PluginResourceComponentStateInput = {
     agentKey?: string
 }
 
-type PluginRuntimePaths = {
-    pluginRoot: string
-    pluginData: string
-}
-
 type ParsedMcpServer = {
     server: TMCPServer
     policy?: XpertPluginMcpServerPolicy
@@ -621,8 +616,8 @@ export class PluginResourceInstallerService {
     }
 
     private async ensureMcpToolset(runtimeComponent: RuntimeComponent, workspaceId: string, xpertId: string | null) {
-        const runtimePaths = await this.resolveRuntimePaths(runtimeComponent, workspaceId)
-        const parsed = this.parseMcpServer(runtimeComponent, runtimePaths)
+        await this.ensureRuntimePaths(runtimeComponent, workspaceId)
+        const parsed = this.parseMcpServer(runtimeComponent)
         const policy = this.mergeMcpPolicies(parsed.policy, runtimeComponent.policyOverrides)
         const toolset = await this.findPluginManagedToolset(workspaceId, xpertId, runtimeComponent)
         const enabledTools = policy.enabledTools ?? []
@@ -935,11 +930,7 @@ export class PluginResourceInstallerService {
         return dirname(skillFile)
     }
 
-    private async resolveRuntimePaths(
-        runtimeComponent: RuntimeComponent,
-        workspaceId: string
-    ): Promise<PluginRuntimePaths> {
-        const pluginRoot = runtimeComponent.rootDir
+    private async ensureRuntimePaths(runtimeComponent: RuntimeComponent, workspaceId: string): Promise<void> {
         const pluginData = resolve(
             process.cwd(),
             '.xpertai-plugin-data',
@@ -949,13 +940,9 @@ export class PluginResourceInstallerService {
             safePathSegment(runtimeComponent.component.componentKey)
         )
         await mkdir(pluginData, { recursive: true })
-        return {
-            pluginRoot,
-            pluginData
-        }
     }
 
-    private parseMcpServer(runtimeComponent: RuntimeComponent, runtimePaths: PluginRuntimePaths): ParsedMcpServer {
+    private parseMcpServer(runtimeComponent: RuntimeComponent): ParsedMcpServer {
         if (!isObjectValue(runtimeComponent.component.config)) {
             throw new BadRequestException(
                 `MCP component '${runtimeComponent.component.componentKey}' has invalid config`
@@ -973,11 +960,11 @@ export class PluginResourceInstallerService {
 
         const server: TMCPServer = {
             type: serverType,
-            ...(command ? { command: this.replacePluginVariables(command, runtimePaths) } : {}),
-            ...(url ? { url: this.replacePluginVariables(url, runtimePaths) } : {}),
-            ...this.readStringArrayProperty(runtimeComponent.component.config, 'args', runtimePaths),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'env', runtimePaths),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'headers', runtimePaths),
+            ...(command ? { command } : {}),
+            ...(url ? { url } : {}),
+            ...this.readStringArrayProperty(runtimeComponent.component.config, 'args'),
+            ...this.readStringMapProperty(runtimeComponent.component.config, 'env'),
+            ...this.readStringMapProperty(runtimeComponent.component.config, 'headers'),
             ...(readStringField(runtimeComponent.component.config, 'encoding')
                 ? { encoding: readStringField(runtimeComponent.component.config, 'encoding') }
                 : {}),
@@ -992,18 +979,18 @@ export class PluginResourceInstallerService {
         }
     }
 
-    private readStringArrayProperty(source: object, key: string, runtimePaths: PluginRuntimePaths) {
+    private readStringArrayProperty(source: object, key: string) {
         const value = Reflect.get(source, key)
         if (!Array.isArray(value)) {
             return {}
         }
         const args = value
-            .map((item) => (typeof item === 'string' ? this.replacePluginVariables(item, runtimePaths) : null))
+            .map((item) => (typeof item === 'string' ? item : null))
             .filter((item): item is string => item !== null)
         return args.length ? { [key]: args } : {}
     }
 
-    private readStringMapProperty(source: object, key: 'env' | 'headers', runtimePaths: PluginRuntimePaths) {
+    private readStringMapProperty(source: object, key: 'env' | 'headers') {
         const value = Reflect.get(source, key)
         if (!isObjectValue(value)) {
             return {}
@@ -1011,22 +998,10 @@ export class PluginResourceInstallerService {
         const entries: Array<[string, string]> = []
         for (const [entryKey, entryValue] of Object.entries(value)) {
             if (typeof entryValue === 'string') {
-                entries.push([entryKey, this.replacePluginVariables(entryValue, runtimePaths)])
+                entries.push([entryKey, entryValue])
             }
         }
         return entries.length ? { [key]: Object.fromEntries(entries) } : {}
-    }
-
-    private replacePluginVariables(value: string, runtimePaths: PluginRuntimePaths) {
-        return value
-            .replace(
-                /\$\{PLUGIN_ROOT\}|\$PLUGIN_ROOT|\$\{XPERT_PLUGIN_ROOT\}|\$XPERT_PLUGIN_ROOT/g,
-                runtimePaths.pluginRoot
-            )
-            .replace(
-                /\$\{PLUGIN_DATA\}|\$PLUGIN_DATA|\$\{XPERT_PLUGIN_DATA\}|\$XPERT_PLUGIN_DATA/g,
-                runtimePaths.pluginData
-            )
     }
 
     private normalizeMcpServerType(value: string | undefined): MCPServerType | null {

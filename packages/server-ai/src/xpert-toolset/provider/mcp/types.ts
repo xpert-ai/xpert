@@ -15,6 +15,8 @@ import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
 import { buildMCPHeaders } from './headers'
 import { installMcpMetaArtifactBridge } from './meta-artifact-bridge'
+import { installMcpToolAppMetadataBridge, installMcpUiClientCapabilitiesBridge } from './app-support'
+import { resolvePluginManagedMcpSchema } from './plugin-managed-runtime'
 
 export async function createMCPClient(
     toolset: Partial<IXpertToolset>,
@@ -25,7 +27,8 @@ export async function createMCPClient(
     const logs: string[] = []
     const mcpServers = {}
     let server: TMCPServer = null
-    const servers = schema.servers ?? schema.mcpServers
+    const resolvedSchema = resolvePluginManagedMcpSchema(toolset, schema)
+    const servers = resolvedSchema.servers ?? resolvedSchema.mcpServers
     // Connect to a remote server via SSE or HTTP
     for await (const serverName of Object.keys(servers)) {
         server = servers[serverName]
@@ -112,6 +115,8 @@ export async function createMCPClient(
         }
     }
 
+    installMcpUiClientCapabilitiesBridge()
+
     // Create a client
     const client = new MultiServerMCPClient({
         throwOnLoadError: true,
@@ -124,6 +129,7 @@ export async function createMCPClient(
     })
 
     installMcpMetaArtifactBridge(client)
+    installMcpToolAppMetadataBridge(client)
     await client.getTools()
     // Ready event
     await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {

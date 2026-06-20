@@ -12,20 +12,22 @@ import { XpertToolsetController } from './xpert-toolset.controller'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { XpertAgentModule } from '../xpert-agent'
+import { McpAppsController } from './mcp-apps.controller'
+import { McpAppsService } from './mcp-apps.service'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
-		TypeOrmModule.forFeature([XpertToolset]),
-		DiscoveryModule,
-		TenantModule,
-		CqrsModule,
-		CopilotModule,
-		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => XpertAgentModule)
-	],
-	controllers: [XpertToolsetController],
-	providers: [XpertToolsetService, ToolsetRegistry, ...QueryHandlers, ...CommandHandlers],
-	exports: [XpertToolsetService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
+        TypeOrmModule.forFeature([XpertToolset]),
+        DiscoveryModule,
+        TenantModule,
+        CqrsModule,
+        CopilotModule,
+        forwardRef(() => XpertWorkspaceModule),
+        forwardRef(() => XpertAgentModule)
+    ],
+    controllers: [XpertToolsetController, McpAppsController],
+    providers: [XpertToolsetService, McpAppsService, ToolsetRegistry, ...QueryHandlers, ...CommandHandlers],
+    exports: [XpertToolsetService]
 })
 export class XpertToolsetModule {}
