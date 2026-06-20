@@ -1,4 +1,3 @@
-import { PacMenuItem } from '@xpert-ai/cloud/auth'
 import {
   AiFeatureEnum,
   AIPermissionsEnum,
@@ -10,6 +9,7 @@ import {
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
+import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
 export type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
 type MenuFeatureKey = AiFeatureEnum | AnalyticsFeatures | FeatureEnum
@@ -35,7 +35,7 @@ export interface SettingsMenuItem {
   data?: MenuData
 }
 
-type ScopedMenuItem = PacMenuItem & { scopeContext?: MenuScope }
+type ScopedMenuItem = CloudMenuItem & { scopeContext?: MenuScope }
 
 export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMenuItem[] {
   const isTenantScope = scopeLevel === RequestScopeLevel.TENANT
@@ -45,16 +45,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'Account',
       icon: 'account_circle',
       scopeContext: 'dual-scope'
-    },
-    {
-      path: 'copilot',
-      label: 'AI Copilot',
-      icon: 'psychology',
-      scopeContext: 'dual-scope',
-      data: {
-        permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
-        featureKey: AiFeatureEnum.FEATURE_COPILOT
-      }
     },
     {
       path: 'data-sources',
@@ -209,33 +199,47 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
   return items.filter((item) => matchesScope(item.scopeContext ?? 'dual-scope', scopeLevel))
 }
 
-export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganization | null): PacMenuItem[] {
+export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganization | null): CloudMenuItem[] {
+  void _org
+
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
       title: 'Chat',
-      icon: 'ri-robot-2-line',
+      icon: 'ri-chat-1-line',
       link: '/chat',
       pathMatch: 'prefix',
+      expanded: true,
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Chat',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.CHAT_VIEW],
-        inactivePathPrefixes: ['/chat/chatbi', '/chatbi']
-      }
-    },
-    {
-      title: 'ChatBI Assistant',
-      icon: 'ri-line-chart-line',
-      link: '/chatbi',
-      pathMatch: 'prefix',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'ChatBI Assistant',
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI],
-        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
-      }
+        inactivePathPrefixes: ['/chat/chatbi', '/chatbi'],
+        subtitleKey: 'PAC.Chat.MenuSubtitle',
+        subtitleDefault: '新建、最近、任务'
+      },
+      children: [
+        {
+          title: '最近会话',
+          icon: 'ri-history-line',
+          link: '/chat',
+          pathMatch: 'prefix',
+          data: {
+            translationKey: 'Recent Chats',
+            activePathPrefixes: ['/chat/c']
+          }
+        },
+        {
+          title: '任务',
+          icon: 'ri-list-check-3',
+          link: '/chat/tasks',
+          pathMatch: 'prefix',
+          data: {
+            translationKey: 'Tasks'
+          }
+        }
+      ]
     },
     {
       title: 'CodeXpert',
@@ -246,17 +250,6 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'CodeXpert',
         featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CODEXPERT]
-      }
-    },
-    {
-      title: 'DeepResearch',
-      icon: 'ri-binoculars-line',
-      link: 'https://research.xpertai.cn/',
-      external: true,
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'DeepResearch',
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH]
       }
     },
     {
@@ -400,7 +393,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings'
+        translationKey: 'Settings',
+        inactivePathPrefixes: ['/settings/copilot']
       }
     },
     {
@@ -416,14 +410,28 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
-      title: 'Operations',
+      title: 'MCP Monitor',
       icon: 'ri-pulse-line',
       link: '/operations',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Operations',
+        translationKey: 'MCP Monitor',
         permissionKeys: [RolesEnum.SUPER_ADMIN]
+      }
+    },
+    {
+      title: 'Model Providers',
+      icon: 'psychology',
+      link: '/settings/copilot/basic',
+      pathMatch: 'prefix',
+      admin: true,
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'AI Copilot',
+        featureKey: AiFeatureEnum.FEATURE_COPILOT,
+        permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
+        activePathPrefixes: ['/settings/copilot']
       }
     }
   ]
@@ -431,7 +439,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   return menus.filter((item) => matchesScope(item.scopeContext ?? 'dual-scope', scopeLevel))
 }
 
-export function syncMenuParentStateFromChildren(item: PacMenuItem) {
+export function syncMenuParentStateFromChildren(item: CloudMenuItem) {
   if (!item.children?.length || !item.data?.hideWhenAllChildrenHidden) {
     return
   }

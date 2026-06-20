@@ -63,11 +63,12 @@ describe('features routing', () => {
     expect(route?.data?.permissions?.only).toEqual(['XPERT_EDIT'])
   })
 
-  it('mounts Operations at the top level behind the super admin role', () => {
+  it('mounts MCP Monitor at the top level behind the super admin role', () => {
     const route = children.find((item) => item.path === 'operations')
 
     expect(route?.loadComponent).toEqual(expect.any(Function))
     expect(route?.canActivate).toContain(NgxPermissionsGuard)
+    expect(route?.data?.title).toBe('MCP Monitor')
     expect(route?.data?.scopeContext).toBe('dual-scope')
     expect(route?.data?.permissions?.only).toEqual(['SUPER_ADMIN'])
   })

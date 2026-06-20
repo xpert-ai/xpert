@@ -1,0 +1,116 @@
+<div class="cloud-sidebar-identity" [class.is-collapsed]="collapsed()">
+  @if (!collapsed()) {
+    <div class="cloud-sidebar-identity__expanded">
+      <button
+        #menuTrigger="cdkMenuTriggerFor"
+        type="button"
+        class="cloud-sidebar-identity__card"
+        [class.can-open]="canOpenMenu()"
+        [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+        (cdkMenuOpened)="loadOrganizations()"
+        (closed)="resetSearch()"
+      >
+        <img class="cloud-sidebar-identity__logo" src="/assets/icon.png" alt="Xpert AI" />
+        <span class="cloud-sidebar-identity__copy">
+          <span class="cloud-sidebar-identity__title">{{ scopeLabel() }}</span>
+          <span class="cloud-sidebar-identity__subtitle">{{ scopeEyebrow() }} · Xpert AI</span>
+        </span>
+        <i class="ri-arrow-down-s-line cloud-sidebar-identity__chevron"></i>
+      </button>
+
+      <button
+        type="button"
+        class="cloud-sidebar-identity__collapse-button"
+        [attr.aria-label]="'PAC.Sidebar.Collapse' | translate: { Default: 'Collapse sidebar' }"
+        (click)="toggleCollapsed($event)"
+      >
+        <i class="ri-sidebar-fold-line"></i>
+      </button>
+    </div>
+  } @else {
+    <div class="cloud-sidebar-identity__compact">
+      <button type="button" class="cloud-sidebar-identity__brand" (click)="onBrandClick($event)">
+        <img class="cloud-sidebar-identity__compact-logo" src="/assets/icon.png" alt="Xpert AI" />
+      </button>
+
+      <button
+        type="button"
+        class="cloud-sidebar-identity__collapse-button"
+        [attr.aria-label]="'PAC.Sidebar.Expand' | translate: { Default: 'Expand sidebar' }"
+        (click)="toggleCollapsed($event)"
+      >
+        <i class="ri-sidebar-unfold-line"></i>
+      </button>
+    </div>
+  }
+</div>
+
+<ng-template #menu>
+  <div cdkMenu class="cloud-sidebar-identity__menu cdk-menu__large" @overlayAnimation1>
+    <div class="cloud-sidebar-identity__menu-search">
+      <ngm-search class="w-full rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
+    </div>
+
+    @if (organizationsLoading()) {
+      <div class="cloud-sidebar-identity__loading" role="status" aria-live="polite">
+        <i class="ri-loader-4-line animate-spin"></i>
+        <span>{{ 'PAC.Organization.Loading' | translate: { Default: 'Loading organizations...' } }}</span>
+      </div>
+    }
+
+    @if (showTenantScopeItem()) {
+      <div class="cloud-sidebar-identity__section-label">
+        {{ 'PAC.Scope.TenantSection' | translate: { Default: 'Tenant Console' } }}
+      </div>
+      <div
+        cdkMenuItem
+        class="cloud-sidebar-identity__menu-item"
+        [class.active]="isTenantScope()"
+        (click)="selectTenantScope()"
+      >
+        <span class="cloud-sidebar-identity__tenant-icon">
+          <i class="ri-building-4-line"></i>
+        </span>
+        <span class="cloud-sidebar-identity__menu-copy">
+          <span class="cloud-sidebar-identity__menu-title">
+            {{ 'PAC.Scope.TenantLabel' | translate: { Default: 'Tenant defaults and governance' } }}
+          </span>
+          <span class="cloud-sidebar-identity__menu-subtitle">
+            {{
+              'PAC.Scope.TenantHint'
+                | translate: { Default: 'Manage tenant-wide defaults, organizations, and inherited configuration.' }
+            }}
+          </span>
+        </span>
+      </div>
+    }
+
+    @if (hasVisibleOrganizations()) {
+      <div class="cloud-sidebar-identity__section-label">
+        {{ 'PAC.Scope.OrganizationSection' | translate: { Default: 'Organizations' } }}
+      </div>
+      @for (org of organizations(); track org.id) {
+        <div
+          cdkMenuItem
+          class="cloud-sidebar-identity__menu-item"
+          [class.active]="isActiveOrganization(org)"
+          (click)="selectOrganization(org)"
+        >
+          <pac-org-avatar [organization]="org" class="cloud-sidebar-identity__org-avatar" />
+          <span
+            class="cloud-sidebar-identity__menu-title"
+            [title]="org.name"
+            [ngmHighlight]="searchTerm()"
+            [content]="org.name"
+          >
+            {{ org.name }}
+          </span>
+        </div>
+      }
+    } @else if (hasOrganizations()) {
+      <div class="cloud-sidebar-identity__empty">
+        {{ 'PAC.Organization.EmptySearch' | translate: { Default: 'No matching organizations.' } }}
+      </div>
+    }
+  </div>
+</ng-template>

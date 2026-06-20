@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { PacMenuComponent } from '@xpert-ai/cloud/auth'
 import { NgmFormlyModule, provideFormly, provideFormlyUi } from '@xpert-ai/formly'
 import {
   NgmDrawerContentComponent,
@@ -28,6 +27,7 @@ import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
 import { FeaturesRoutingModule } from './features-routing.module'
 import { FeaturesComponent } from './features.component'
+import { CloudSidebarComponent } from './sidebar'
 import { provideCheckpointSaver, provideDimensionMemberRetriever } from '../@core/copilot'
 import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@xpert-ai/ocap-angular/common'
 import { NgxEchartsModule } from 'ngx-echarts'
@@ -35,7 +35,13 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui/components/layout'
-import { ZardAvatarComponent, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
+import {
+  ZardAvatarComponent,
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardMenuImports
+} from '@xpert-ai/headless-ui'
 
 registerEChartsThemes()
 
@@ -48,7 +54,7 @@ registerEChartsThemes()
     LayoutComponent,
     ZardIconComponent,
     SidebarComponent,
-    PacMenuComponent,
+    CloudSidebarComponent,
     PACThemeModule,
     AssetsComponent,
     ProjectSelectorComponent,

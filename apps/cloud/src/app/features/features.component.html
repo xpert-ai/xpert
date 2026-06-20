@@ -1,63 +1,23 @@
-<z-layout class="flex-1 h-full"
-  zDirection="horizontal"
->
-  <z-sidebar class="pac-features__sidenav flex flex-col"
-    [zWidth]="250"
+<ng-template #emptySidebarTrigger></ng-template>
+
+<z-layout class="flex-1 h-full" zDirection="horizontal">
+  <z-sidebar
+    class="pac-features__sidenav flex flex-col p-0!"
+    [zWidth]="292"
     [zCollapsible]="true"
     [zCollapsed]="sidebarCollapsed()"
-    [zCollapsedWidth]="50"
+    [zCollapsedWidth]="56"
+    [zTrigger]="emptySidebarTrigger"
     (zCollapsedChange)="onCollapsedChange($event)"
-    class="p-0!"
   >
-    <nav class="h-full flex flex-col overflow-auto">
-      <div class="flex items-center p-3" [class.justify-center]="sidebarCollapsed()" [class.justify-between]="!sidebarCollapsed()">
-        @if (!sidebarCollapsed()) {
-          <div class="pac-home-title w-36 h-12 inline-block" routerLink="/home">
-          </div>
-        }
-        <button
-          type="button"
-          z-button
-          zType="ghost"
-          zSize="icon"
-          class="m-1.5 h-auto w-auto rounded-lg p-1.5 cursor-pointer"
-          (click)="toggleSidebar()"
-        >
-          <z-icon zType="panel-left" zSize="lg" />
-        </button>
-      </div>
-      <div class="flex items-center">
-        <pac-organization-selector class="overflow-hidden flex-1 flex justify-center items-center hover:text-yellow-600 transition-colors"
-          [isCollapsed]="sidebarCollapsed()"
-        />
-      </div>
-
-      <pac-menu class="flex-1 flex overflow-hidden hover:overflow-y-auto"
-        [class.p-0]="sidebarCollapsed()"
-        [class.p-2]="!sidebarCollapsed()"
-        [isCollapsed]="sidebarCollapsed()"
-        [isMobile]="isMobile()"
-        [menus]="menus()"
-      >
-        <div class="w-full flex flex-col" [class.items-end]="!sidebarCollapsed()">
-          <pac-notification class="flex justify-center"/>
-          <!-- <pac-tune class="flex justify-center"/> -->
-        </div>
-      </pac-menu>
-
-      <div class="mt-auto flex" [class.justify-center]="sidebarCollapsed()">
-        @if (isAuthenticated$ | async; as user) {
-          <pac-header-user
-            class="block pb-1"
-            [class.w-full]="!sidebarCollapsed()"
-            [class.px-1.5]="!sidebarCollapsed()"
-            [user]="user"
-            [compact]="sidebarCollapsed()"
-            [fullWidth]="!sidebarCollapsed()"
-          />
-        }
-      </div>
-    </nav>
+    <pac-cloud-sidebar
+      [collapsed]="sidebarCollapsed()"
+      [isMobile]="isMobile()"
+      [menus]="menus()"
+      [user]="user$()"
+      (collapsedChange)="onCollapsedChange($event)"
+      (brandClick)="onBrandClick()"
+    />
   </z-sidebar>
 
   <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>

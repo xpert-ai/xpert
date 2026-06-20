@@ -24,6 +24,12 @@ describe('getSettingsMenuItems', () => {
     expect(menus.find((item) => item.path === 'plugins')).toBeUndefined()
   })
 
+  it('removes model providers from the settings menu after promotion', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+
+    expect(menus.find((item) => item.path === 'copilot')).toBeUndefined()
+  })
+
   it('gates the organization settings menu with the organization feature', () => {
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
     const organizations = menus.find((item) => item.path === 'organizations')
@@ -63,7 +69,16 @@ describe('getFeatureMenus', () => {
     expect(plugins?.data?.permissionKeys).toEqual([AIPermissionsEnum.XPERT_EDIT])
   })
 
-  it('adds Operations beside Plugins for super admins', () => {
+  it('groups chat entries under the top-level Chat menu', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const chat = menus.find((item) => item.link === '/chat')
+
+    expect(chat?.expanded).toBe(true)
+    expect(chat?.children?.map((item) => item.link)).toEqual(['/chat', '/chat/tasks'])
+    expect(chat?.children?.map((item) => item.title)).toEqual(['最近会话', '任务'])
+  })
+
+  it('adds MCP Monitor beside Plugins for super admins', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const pluginIndex = menus.findIndex((item) => item.link === '/plugins')
     const operations = menus.find((item) => item.link === '/operations')
@@ -71,12 +86,32 @@ describe('getFeatureMenus', () => {
     expect(pluginIndex).toBeGreaterThanOrEqual(0)
     expect(menus[pluginIndex + 1]?.link).toBe('/operations')
     expect(operations).toMatchObject({
-      title: 'Operations',
+      title: 'MCP Monitor',
       icon: 'ri-pulse-line',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
+    expect(operations?.data?.translationKey).toBe('MCP Monitor')
     expect(operations?.data?.permissionKeys).toEqual([RolesEnum.SUPER_ADMIN])
+  })
+
+  it('promotes model providers to the management menu with the original copilot gate', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const modelProviders = menus.find((item) => item.link === '/settings/copilot/basic')
+    const settings = menus.find((item) => item.link === '/settings')
+
+    expect(modelProviders).toMatchObject({
+      title: 'Model Providers',
+      icon: 'psychology',
+      pathMatch: 'prefix',
+      admin: true,
+      scopeContext: 'dual-scope'
+    })
+    expect(modelProviders?.data?.translationKey).toBe('AI Copilot')
+    expect(modelProviders?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_COPILOT)
+    expect(modelProviders?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
+    expect(modelProviders?.data?.activePathPrefixes).toEqual(['/settings/copilot'])
+    expect(settings?.data?.inactivePathPrefixes).toEqual(['/settings/copilot'])
   })
 
   it('points the Data parent menu at the first visible child menu', () => {

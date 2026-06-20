@@ -369,6 +369,12 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "MENU": {
+      "Plugins": "Plugins",
+      "Operations": "MCP Monitor",
+      "MCP Monitor": "MCP Monitor",
+      "Settings": "Settings",
+      "AI Copilot": "Model Providers",
+      "Model Providers": "Model Providers",
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",

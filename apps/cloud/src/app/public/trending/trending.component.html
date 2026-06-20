@@ -1,54 +1,54 @@
 <div class="flex justify-between items-center p-4">
   <div class="flex items-center">
-    <img src="/assets/logo.svg" class="w-8 h-8" >
-    <span class="pac-home-title text-2xl" routerLink="/home">{{'PAC.title.short' | translate}}</span>
+    <img src="/assets/icon.png" class="w-8 h-8" />
+    <span class="pac-home-title text-2xl" routerLink="/home">{{ 'PAC.title.short' | translate }}</span>
   </div>
 
   <div class="flex gap-4">
     <button z-button zType="ghost" routerLink="/data/project">
-      {{ 'PAC.KEY_WORDS.Story' | translate: {Default: "Story"} }}
+      {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
     </button>
     <button z-button zType="ghost" routerLink="/data/models">
-      {{ 'PAC.KEY_WORDS.SemanticModel' | translate: {Default: "Semantic Model"} }}
+      {{ 'PAC.KEY_WORDS.SemanticModel' | translate: { Default: 'Semantic Model' } }}
     </button>
   </div>
 </div>
 
 <div class="max-w-full w-full flex flex-col px-8 py-4 overflow-auto">
-
   <div class="flex justify-between items-center">
     <div class="text-xl my-4">
-      {{ 'PAC.MENU.HOME.Trending' | translate: {Default: "Trending"} }}
+      {{ 'PAC.MENU.HOME.Trending' | translate: { Default: 'Trending' } }}
     </div>
     <div class="flex items-center gap-2" displayDensity="cosy">
-      <div>
-        {{ 'PAC.KEY_WORDS.SortBy' | translate: {Default: 'Sort By'} }}:
-      </div>
+      <div>{{ 'PAC.KEY_WORDS.SortBy' | translate: { Default: 'Sort By' } }}:</div>
       <z-toggle-group [(ngModel)]="orderType" ngmAppearance="outline" color="accent">
         <z-toggle-group-item value="visits">
-          {{ 'PAC.KEY_WORDS.Visits' | translate: {Default: 'Visits'} }}
+          {{ 'PAC.KEY_WORDS.Visits' | translate: { Default: 'Visits' } }}
         </z-toggle-group-item>
         <z-toggle-group-item value="update">
-          {{ 'PAC.KEY_WORDS.UpdatedDate' | translate: {Default: 'Updated Date'} }}
+          {{ 'PAC.KEY_WORDS.UpdatedDate' | translate: { Default: 'Updated Date' } }}
         </z-toggle-group-item>
       </z-toggle-group>
       <ngm-search [formControl]="searchControl"></ngm-search>
     </div>
   </div>
 
-  <div class="max-w-full w-full grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" waIntersectionObserver waIntersectionThreshold="0.5"
-    [@listAnimation]="trends.length">
+  <div
+    class="max-w-full w-full grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+    waIntersectionObserver
+    waIntersectionThreshold="0.5"
+    [@listAnimation]="trends.length"
+  >
     @for (story of trends; track trackById($index, story)) {
-      <pac-story-card
-        storyLink="/public/story"
-        [story]="story"
-        [highlight]="highlight">
-      </pac-story-card>
+      <pac-story-card storyLink="/public/story" [story]="story" [highlight]="highlight"> </pac-story-card>
     }
 
     @if (!done) {
-      <div class="col-span-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" (waIntersectionObservee)="onIntersection()">
-        @for (item of [1,2,3]; track item) {
+      <div
+        class="col-span-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+        (waIntersectionObservee)="onIntersection()"
+      >
+        @for (item of [1, 2, 3]; track item) {
           <div class="border shadow rounded-md p-4 w-full mx-auto dark:border-white/10">
             <div class="animate-pulse flex space-x-4">
               <div class="h-24 w-20 bg-slate-200 dark:bg-white/10"></div>
@@ -68,5 +68,4 @@
       </div>
     }
   </div>
-
 </div>

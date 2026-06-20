@@ -1,0 +1,306 @@
+@reference "../../../styles/tailwind-reference.css";
+
+:host {
+  display: block;
+}
+
+.cloud-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 0.25rem 0.75rem 1rem;
+}
+
+.cloud-sidebar-menu.is-collapsed {
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.5rem 0.75rem;
+}
+
+.cloud-sidebar-menu__group {
+  width: 100%;
+}
+
+.cloud-sidebar-menu__group-label {
+  margin: 0 0.55rem 0.5rem;
+  color: var(--color-text-tertiary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__group-label {
+  margin: 0.15rem 0.85rem 0.55rem;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+
+.cloud-sidebar-menu__list,
+.cloud-sidebar-menu__submenu {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cloud-sidebar-menu__entry {
+  min-width: 0;
+}
+
+.cloud-sidebar-menu__item,
+.cloud-sidebar-menu__subitem {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cloud-sidebar-menu__item {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.625rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__item {
+  min-height: 3.625rem;
+  gap: 0.9rem;
+  padding: 0.25rem 0.85rem;
+}
+
+.cloud-sidebar-menu.is-collapsed .cloud-sidebar-menu__item {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  margin: auto;
+}
+
+.cloud-sidebar-menu__item:hover,
+.cloud-sidebar-menu__subitem:hover,
+.cloud-sidebar-menu__flyout-item:hover {
+  background: var(--color-hover-bg);
+  color: var(--color-text-primary);
+}
+
+.cloud-sidebar-menu__item.is-active {
+  border: 1px solid var(--color-divider-regular);
+  background: var(--color-components-card-bg);
+  color: var(--color-text-primary);
+  @apply shadow-sm;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__item.is-active {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__item:hover {
+  background: var(--color-hover-bg);
+}
+
+.cloud-sidebar-menu__icon {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  font-size: 1.2rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-basis: 1.5rem;
+  font-size: 1.45rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__icon z-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.45rem;
+}
+
+.cloud-sidebar-menu__icon z-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.2rem;
+}
+
+.cloud-sidebar-menu__content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.cloud-sidebar-menu__title {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3rem;
+}
+
+.cloud-sidebar-menu__subtitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__subtitle {
+  font-size: 0.875rem;
+  line-height: 1.15rem;
+}
+
+.cloud-sidebar-menu__badge {
+  display: inline-flex;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-divider-regular);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__badge {
+  min-width: 1.85rem;
+  height: 1.85rem;
+  font-size: 0.875rem;
+}
+
+.cloud-sidebar-menu__chevron,
+.cloud-sidebar-menu__external {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+}
+
+.cloud-sidebar-menu__chevron {
+  transition: transform 160ms ease;
+}
+
+.cloud-sidebar-menu__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.cloud-sidebar-menu__submenu {
+  margin: 0.25rem 0 0.2rem 1.55rem;
+  border-left: 1px solid var(--color-divider-regular);
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__submenu {
+  margin: 0.05rem 0 0.65rem 1.05rem;
+}
+
+.cloud-sidebar-menu__subitem {
+  display: flex;
+  min-height: 2.125rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__subitem {
+  min-height: 2.7rem;
+  gap: 0.75rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.cloud-sidebar-menu__subitem.is-active {
+  background: var(--color-components-list-option-active-bg);
+  color: var(--color-text-primary);
+}
+
+.cloud-sidebar-menu__subitem-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__subitem-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-basis: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.cloud-sidebar-menu__subitem-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: 1.15rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__subitem-title {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.2rem;
+}
+
+.cloud-sidebar-menu__flyout {
+  min-width: 13rem;
+  padding: 0.4rem;
+}
+
+.cloud-sidebar-menu__flyout-title {
+  padding: 0.35rem 0.5rem 0.45rem;
+  color: var(--color-text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.cloud-sidebar-menu__flyout-item {
+  gap: 0.55rem;
+}
+
+.cloud-sidebar-menu__flyout-item.is-active {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.cloud-sidebar-menu__flyout-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+}

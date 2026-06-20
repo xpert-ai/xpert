@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use `CloudMenuItem` from `apps/cloud/src/app/features/sidebar` for the cloud shell menu.
+ * The auth package menu is kept only for compatibility while auth UI is migrated into cloud.
+ */
 export interface PacMenuItem {
   title: string
   icon?: string

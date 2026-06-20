@@ -10,8 +10,12 @@ import { PacMenuItem } from '../types'
   styleUrls: ['menu.component.scss'],
   imports: [CommonModule, PacMenuGroupComponent]
 })
+/**
+ * @deprecated Use `CloudSidebarComponent` and `CloudSidebarMenuComponent` in
+ * `apps/cloud/src/app/features/sidebar` for the cloud shell menu. This component
+ * remains exported only for compatibility during auth package migration.
+ */
 export class PacMenuComponent {
-
   readonly isMobile = input<boolean>(false)
   readonly isCollapsed = input<boolean>(false)
 
@@ -22,5 +26,4 @@ export class PacMenuComponent {
   readonly #menus = computed(() => this.menus().filter((menu) => !menu.hidden))
   readonly general = computed(() => this.#menus().filter((menu) => !menu.admin))
   readonly admin = computed(() => this.#menus().filter((menu) => menu.admin))
-
 }

@@ -525,8 +525,13 @@
       }
     },
     "MENU": {
+      "Plugins": "插件",
+      "Operations": "MCP 监控",
+      "MCP Monitor": "MCP 监控",
       "Certification": "认证",
       "Copilot": "副驾驶",
+      "AI Copilot": "模型提供商",
+      "Model Providers": "模型提供商",
       "Dashboard": "仪表板",
       "Data": "数据",
       "Semantic Model": "语义模型",

@@ -1576,6 +1576,8 @@
     },
     "MENU": {
       "Plugins": "插件",
+      "Operations": "MCP 监控",
+      "MCP Monitor": "MCP 监控",
       "IsLatest": "已是最新版本。",
       "Certification": "认证",
       "Skills Repository": "技能库",
@@ -1587,6 +1589,7 @@
       "Assistants": "助手",
       "Copilot": "智能助理",
       "AI Copilot": "模型提供商",
+      "Model Providers": "模型提供商",
       "Digital Xpert": "数字专家",
       "Xpert": "数字专家",
       "Explore Xperts": "探索数字专家",

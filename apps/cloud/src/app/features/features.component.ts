@@ -20,8 +20,13 @@ import {
   RouterEvent,
   RouterOutlet
 } from '@angular/router'
-import { PacMenuItem } from '@xpert-ai/cloud/auth'
-import { CurrentUserHydrationService, CURRENT_USER_BOOTSTRAP_RELATIONS, CURRENT_USER_BOOTSTRAP_SELECT, injectUserPreferences, UsersService } from '@xpert-ai/cloud/state'
+import {
+  CurrentUserHydrationService,
+  CURRENT_USER_BOOTSTRAP_RELATIONS,
+  CURRENT_USER_BOOTSTRAP_SELECT,
+  injectUserPreferences,
+  UsersService
+} from '@xpert-ai/cloud/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -41,6 +46,7 @@ import {
 } from '../@core'
 import { AppService } from '../app.service'
 import { getFeatureMenus, syncMenuParentStateFromChildren } from './menus'
+import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
 function isWorkspaceRoute(url?: string | null) {
   return /^\/xpert\/w(?:\/|$)/.test(url?.split('?')[0] ?? '')
@@ -76,7 +82,7 @@ export class FeaturesComponent implements OnInit {
   readonly appService = this.#appService
 
   // States
-  readonly sidebarCollapsed = signal(true);
+  readonly sidebarCollapsed = signal(true)
   readonly activeRouteUrl = signal(this.#router.url)
   readonly pendingRouteUrl = signal<string | null>(null)
   readonly disableContentRouteAnimations = computed(
@@ -151,7 +157,7 @@ export class FeaturesComponent implements OnInit {
   | Signals
   |--------------------------------------------------------------------------
   */
-  readonly menus = signal<PacMenuItem[]>([])
+  readonly menus = signal<CloudMenuItem[]>([])
 
   constructor() {
     this.#router.events
@@ -209,10 +215,9 @@ export class FeaturesComponent implements OnInit {
       Array.isArray(cachedUser?.role?.rolePermissions) &&
       !!cachedUser?.tenant
 
-    this.user =
-      hasHydratedUser
-        ? cachedUser
-        : await this.#usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS], CURRENT_USER_BOOTSTRAP_SELECT, {
+    this.user = hasHydratedUser
+      ? cachedUser
+      : await this.#usersService.getMe([...CURRENT_USER_BOOTSTRAP_RELATIONS], CURRENT_USER_BOOTSTRAP_SELECT, {
           currentOrganizationId: this.#store.organizationId ?? this.#store.lastOrganizationId,
           limitOrganizations: true
         })
@@ -228,13 +233,10 @@ export class FeaturesComponent implements OnInit {
 
     const memberships = (this.user.organizations ?? []).filter(
       (membership) =>
-        membership.isActive !== false &&
-        !!membership.organization?.id &&
-        membership.organization.isActive !== false
+        membership.isActive !== false && !!membership.organization?.id && membership.organization.isActive !== false
     )
     const organizations = memberships.map(({ organization }) => organization)
-    const preferredOrganizationId =
-      memberships.find((membership) => membership.isDefault)?.organizationId ?? null
+    const preferredOrganizationId = memberships.find((membership) => membership.isDefault)?.organizationId ?? null
 
     this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
@@ -282,14 +284,18 @@ export class FeaturesComponent implements OnInit {
     })
   }
 
-  refreshMenuItem(item: PacMenuItem) {
+  refreshMenuItem(item: CloudMenuItem) {
     item.title = this.#translateService.instant('PAC.MENU.' + item.data.translationKey, {
-      Default: item.data.translationKey
+      Default: item.title || item.data.translationKey
     })
     if (item.data.permissionKeys || item.data.hide) {
       const anyPermission = item.data.permissionKeys
         ? item.data.permissionKeys.reduce((permission, key) => {
-            return this.#rolesService.getRole(key) || this.#store.hasPermission(key) || permission
+            return (
+              !!this.#rolesService.getRole(key) ||
+              this.#store.hasPermission(key as Parameters<Store['hasPermission']>[0]) ||
+              permission
+            )
           }, false)
         : true
 
@@ -307,7 +313,9 @@ export class FeaturesComponent implements OnInit {
     if (Object.prototype.hasOwnProperty.call(item.data, 'featureKey') && item.hidden !== true) {
       if (this.#store.featureContextHydrated) {
         const { featureKey } = item.data
-        const disabled = Array.isArray(featureKey) ? !featureKey.every((key) => this.#store.hasFeatureEnabled(key)) : !this.#store.hasFeatureEnabled(featureKey)
+        const disabled = Array.isArray(featureKey)
+          ? !featureKey.every((key) => this.#store.hasFeatureEnabled(key))
+          : !this.#store.hasFeatureEnabled(featureKey)
         item.hidden = disabled || (item.data.hide && item.data.hide())
       }
     }
@@ -329,11 +337,11 @@ export class FeaturesComponent implements OnInit {
   }
 
   toggleSidebar() {
-    this.sidebarCollapsed.update(collapsed => !collapsed);
+    this.sidebarCollapsed.update((collapsed) => !collapsed)
   }
- 
+
   onCollapsedChange(collapsed: boolean) {
-    this.sidebarCollapsed.set(collapsed);
+    this.sidebarCollapsed.set(collapsed)
   }
 
   navigate(link: MenuCatalog) {
@@ -374,7 +382,11 @@ export class FeaturesComponent implements OnInit {
       this.activeRouteUrl.set(url)
       this.pendingRouteUrl.set(null)
       this.loading.set(false)
-      if (this.#store.featureContextHydrationFailed && !this.#store.featureContextHydrationLoading && this.#store.userId) {
+      if (
+        this.#store.featureContextHydrationFailed &&
+        !this.#store.featureContextHydrationLoading &&
+        this.#store.userId
+      ) {
         this.#store.featureContextHydrationLoading = true
         this.#store.featureContextHydrationFailed = false
         void this.hydrateCurrentUserContextInBackground(this.#store.userId)

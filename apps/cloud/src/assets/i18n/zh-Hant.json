@@ -799,6 +799,8 @@
     },
     "MENU": {
       "Plugins": "插件",
+      "Operations": "MCP 監控",
+      "MCP Monitor": "MCP 監控",
       "IsLatest": "已是最新版本。",
       "Certification": "認證",
       "Chat": "聊天",
@@ -808,6 +810,7 @@
       "Data & Ontology": "Data & Ontology",
       "Copilot": "智能助理",
       "AI Copilot": "模型提供商",
+      "Model Providers": "模型提供商",
       "Digital Xpert": "數字專家",
       "Xpert": "數字專家",
       "Explore Xperts": "探索數字專家",

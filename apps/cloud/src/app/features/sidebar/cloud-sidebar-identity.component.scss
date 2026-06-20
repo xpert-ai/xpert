@@ -1,0 +1,241 @@
+@reference "../../../styles/tailwind-reference.css";
+
+:host {
+  display: block;
+}
+
+.cloud-sidebar-identity {
+  min-width: 0;
+}
+
+.cloud-sidebar-identity__expanded {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cloud-sidebar-identity__card {
+  display: flex;
+  min-width: 0;
+  min-height: 4rem;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  cursor: default;
+  padding: 0.25rem 0.875rem;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cloud-sidebar-identity__card.can-open {
+  cursor: pointer;
+}
+
+.cloud-sidebar-identity__card.can-open:hover {
+  background: var(--color-components-card-bg);
+}
+
+.cloud-sidebar-identity__logo {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  object-fit: contain;
+}
+
+.cloud-sidebar-identity__copy,
+.cloud-sidebar-identity__menu-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.cloud-sidebar-identity__title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-identity__subtitle {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-identity__chevron {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 1.15rem;
+}
+
+.cloud-sidebar-identity__collapse-button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-divider-regular);
+  border-radius: 0.5rem;
+  background: var(--color-components-card-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cloud-sidebar-identity__collapse-button:hover {
+  color: var(--color-text-primary);
+  @apply shadow-sm;
+}
+
+.cloud-sidebar-identity__compact {
+  position: relative;
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.cloud-sidebar-identity__brand {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cloud-sidebar-identity__compact-logo {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+.cloud-sidebar-identity.is-collapsed .cloud-sidebar-identity__collapse-button {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.cloud-sidebar-identity.is-collapsed:hover .cloud-sidebar-identity__collapse-button,
+.cloud-sidebar-identity.is-collapsed .cloud-sidebar-identity__collapse-button:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.cloud-sidebar-identity__menu {
+  min-width: 17rem;
+  max-width: 22rem;
+  padding: 0.4rem;
+}
+
+.cloud-sidebar-identity__menu-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--color-divider-regular);
+  background: var(--color-components-card-bg);
+  padding-bottom: 0.35rem;
+}
+
+.cloud-sidebar-identity__loading,
+.cloud-sidebar-identity__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.cloud-sidebar-identity__section-label {
+  padding: 0.55rem 0.65rem 0.3rem;
+  color: var(--color-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  line-height: 1rem;
+}
+
+.cloud-sidebar-identity__menu-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.65rem;
+}
+
+.cloud-sidebar-identity__menu-item:hover,
+.cloud-sidebar-identity__menu-item.active {
+  background: var(--color-hover-bg);
+}
+
+.cloud-sidebar-identity__tenant-icon,
+.cloud-sidebar-identity__org-avatar {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--color-components-list-option-active-bg);
+  color: var(--color-primary);
+}
+
+.cloud-sidebar-identity__menu-title,
+.cloud-sidebar-identity__menu-subtitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sidebar-identity__menu-title {
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2rem;
+}
+
+.cloud-sidebar-identity__menu-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
