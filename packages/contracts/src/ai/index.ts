@@ -3,7 +3,7 @@ export const STATE_VARIABLE_HUMAN = 'human'
 export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
 
 export type * from '@xpert-ai/chatkit-types'
-export type { TThreadGoalClearedEvent, TThreadGoalUpdatedEvent, ThreadGoalStatus } from '@xpert-ai/chatkit-types'
+export type { IconDefinition, IconType } from '../types'
 export type { TChatRequest } from './xpert-chat.model'
 export { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED } from './chat-event.model'
 export * from './assistant-binding.model'

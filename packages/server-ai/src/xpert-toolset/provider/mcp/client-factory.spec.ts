@@ -14,6 +14,9 @@ const mockMcpMeta = {
         }
     }
 }
+const mockStructuredContent = {
+    ok: true
+}
 
 type MockMcpClientInstance = {
     config: {
@@ -70,6 +73,7 @@ jest.mock('@langchain/mcp-adapters', () => ({
             callTool: jest.fn(
                 async (): Promise<CallToolResult> => ({
                     content: [{ type: 'text', text: '{"ok":true}' }],
+                    structuredContent: mockStructuredContent,
                     _meta: mockMcpMeta
                 })
             )
@@ -195,7 +199,14 @@ function decodeRunnerSpec(server: Record<string, unknown>) {
 }
 
 async function expectMcpMetaArtifactBridgeInstalled(tool: MockMcpTool) {
-    await expect(tool.func({})).resolves.toEqual(['{"ok":true}', mockMcpMeta])
+    await expect(tool.func({})).resolves.toEqual([
+        '{"ok":true}',
+        {
+            ...mockMcpMeta,
+            _meta: mockMcpMeta,
+            structuredContent: mockStructuredContent
+        }
+    ])
 }
 
 describe('MCP client factories', () => {
@@ -233,6 +244,10 @@ describe('MCP client factories', () => {
             serverName: 'default',
             name: 'query',
             displayName: 'dx__query',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
             ui: {
                 resourceUri: 'ui://query-app'
             },

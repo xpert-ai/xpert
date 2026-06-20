@@ -86,4 +86,70 @@ describe('MCP App instance lifecycle', () => {
 
         expect(getMcpAppInstance(app!.appInstanceId)).toBeNull()
     })
+
+    it('persists a replayable initial tool input and result on the component data', () => {
+        const client = {} as MultiServerMCPClient
+        const app = registerMcpAppInstance({
+            client,
+            toolset: createToolset(),
+            tool: createTool('wiki_links', 'ui://wiki-explorer/mcp-app.html'),
+            toolInput: {
+                page: 'Luke P. Blackburn'
+            },
+            toolResult: [
+                'links',
+                {
+                    structuredContent: {
+                        page: {
+                            title: 'Luke P. Blackburn'
+                        },
+                        links: [{ title: 'Kentucky' }]
+                    }
+                }
+            ]
+        })
+
+        expect(app?.toolInput).toEqual({
+            page: 'Luke P. Blackburn'
+        })
+        expect(app?.toolResult).toMatchObject({
+            content: [{ type: 'text', text: 'links' }],
+            structuredContent: {
+                page: {
+                    title: 'Luke P. Blackburn'
+                }
+            }
+        })
+        expect(app?.toolResultSize).toBeGreaterThan(0)
+        expect(app?.toolResultTruncated).toBe(false)
+    })
+
+    it('keeps oversized initial tool results on the live instance but does not inline them in message history', () => {
+        const client = {} as MultiServerMCPClient
+        const app = registerMcpAppInstance({
+            client,
+            toolset: createToolset(),
+            tool: createTool('large_report', 'ui://large-report'),
+            toolInput: {
+                reportId: 'large'
+            },
+            toolResult: [
+                'large report',
+                {
+                    structuredContent: {
+                        rows: [{ value: 'x'.repeat(140 * 1024) }]
+                    }
+                }
+            ]
+        })
+
+        expect(app?.toolResult).toBeUndefined()
+        expect(app?.toolResultSize).toBeGreaterThan(128 * 1024)
+        expect(app?.toolResultTruncated).toBe(true)
+
+        const liveInstance = getMcpAppInstance(app!.appInstanceId)
+        expect(liveInstance?.toolResult?.structuredContent).toMatchObject({
+            rows: [{ value: expect.stringContaining('xxx') }]
+        })
+    })
 })

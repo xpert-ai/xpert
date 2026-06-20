@@ -1,3 +1,4 @@
+import type { TMcpAppCsp, TMcpAppPermissions, TMcpAppToolResult, TMcpAppVisibility } from '@xpert-ai/chatkit-types'
 import type { I18nObject } from '../i18n.model'
 import type { IconDefinition } from '../types'
 
@@ -133,24 +134,6 @@ export type TMCPSchema = {
 
 export const MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app'
 
-export type TMcpAppVisibility = 'model' | 'app'
-
-export type TMcpAppCsp = {
-  connectDomains?: string[]
-  resourceDomains?: string[]
-  frameDomains?: string[]
-  baseUriDomains?: string[]
-}
-
-export type TMcpAppPermissionGrant = boolean | Record<string, unknown>
-
-export type TMcpAppPermissions = {
-  camera?: TMcpAppPermissionGrant
-  microphone?: TMcpAppPermissionGrant
-  geolocation?: TMcpAppPermissionGrant
-  clipboardWrite?: TMcpAppPermissionGrant
-}
-
 export type TMcpAppUiMeta = {
   resourceUri: string
   title?: string | I18nObject
@@ -176,6 +159,7 @@ export type TMcpToolAppMeta = {
   serverName: string
   name: string
   displayName: string
+  inputSchema?: Record<string, unknown>
   visibility: TMcpAppVisibility[]
   ui?: TMcpAppUiMeta
   annotations?: Record<string, unknown>
@@ -200,6 +184,15 @@ export type TMcpAppComponentData = {
   domain?: string
   prefersBorder?: boolean
   toolInput?: Record<string, unknown>
+  /**
+   * Standardized initial CallToolResult used to replay MCP App history without
+   * re-running the originating tool. Raw app HTML is never persisted here.
+   */
+  toolResult?: TMcpAppToolResult
+  /** Serialized byte size of the initial tool result when known. */
+  toolResultSize?: number
+  /** True when the initial tool result was too large to inline in chat history. */
+  toolResultTruncated?: boolean
   visibility?: TMcpAppVisibility[]
   status?: 'running' | 'success' | 'fail'
   error?: string

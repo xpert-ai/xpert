@@ -28,17 +28,16 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
     )
 }
 
-function closeAsyncIterableOnCompletion<T>(iterable: AsyncIterable<T>, close: () => Promise<void>): AsyncIterable<T> {
-    return {
-        async *[Symbol.asyncIterator]() {
-            try {
-                for await (const item of iterable) {
-                    yield item
-                }
-            } finally {
-                await close()
-            }
+async function* closeAsyncIterableOnCompletion<T>(
+    iterable: AsyncIterable<T>,
+    close: () => Promise<void>
+): AsyncGenerator<T, void, unknown> {
+    try {
+        for await (const item of iterable) {
+            yield item
         }
+    } finally {
+        await close()
     }
 }
 

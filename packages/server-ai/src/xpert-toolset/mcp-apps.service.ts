@@ -275,6 +275,7 @@ export class McpAppsService {
             toolInfo: {
                 name: instance.toolMeta.displayName,
                 originalName: instance.toolMeta.name,
+                inputSchema: instance.toolMeta.inputSchema ?? { type: 'object', properties: {} },
                 title: resource.title ?? instance.toolMeta.ui?.title,
                 description: resource.description ?? instance.toolMeta.ui?.description,
                 icon: resource.icon ?? instance.toolMeta.ui?.icon,

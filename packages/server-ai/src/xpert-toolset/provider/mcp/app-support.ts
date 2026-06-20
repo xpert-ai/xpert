@@ -11,6 +11,8 @@ import {
     type TMcpAppComponentData,
     type TMcpAppCsp,
     type TMcpAppPermissions,
+    type TMcpAppToolResult,
+    type TMcpAppToolResultContentBlock,
     type TMcpAppUiMeta,
     type TMcpAppVisibility,
     type TMcpToolAppMeta,
@@ -22,6 +24,7 @@ import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 
 const MCP_APP_INSTANCE_TTL_MS = 30 * 60 * 1000
 const MCP_APP_RESOURCE_MAX_BYTES = 2 * 1024 * 1024
+const MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES = 128 * 1024
 const MCP_APP_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 const bridgedMcpAppClients = new WeakSet<MultiServerMCPClient>()
 let mcpUiClientCapabilitiesBridgeInstalled = false
@@ -60,7 +63,7 @@ export type McpAppInstance = {
     toolMeta: TMcpToolAppMeta
     toolCallId?: string
     toolInput?: Record<string, unknown>
-    toolResult?: unknown
+    toolResult?: TMcpAppToolResult
     modelContext?: {
         content?: unknown
         structuredContent?: Record<string, unknown>
@@ -108,8 +111,44 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
+type ToolResultObjectInput = Record<string, unknown> & {
+    toolResult?: unknown
+    content?: unknown
+    structuredContent?: unknown
+    isError?: unknown
+    _meta?: unknown
+}
+
+type ToolResultArtifactInput = Record<string, unknown> | readonly ToolResultArtifactInput[]
+
+type LangChainToolResultTuple = readonly [content: unknown, artifact: unknown, ...rest: unknown[]]
+
+function isToolResultArtifactInput(value: unknown): value is ToolResultArtifactInput {
+    if (Array.isArray(value)) {
+        return value.every(isToolResultArtifactInput)
+    }
+    return isRecord(value)
+}
+
+function isLangChainToolResultTuple(value: unknown): value is LangChainToolResultTuple {
+    return Array.isArray(value) && value.length >= 2
+}
+
+function normalizeInputSchema(value: unknown): Record<string, unknown> {
+    return isRecord(value) ? value : { type: 'object', properties: {} }
+}
+
 function base64UrlJson(value: unknown) {
     return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url')
+}
+
+function readPositiveIntegerEnv(name: string, fallback: number) {
+    const raw = process.env[name]?.trim()
+    if (!raw) {
+        return fallback
+    }
+    const parsed = Number.parseInt(raw, 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function getMcpAppTokenSecret() {
@@ -495,6 +534,7 @@ export async function listMcpToolAppMetadata(client: MultiServerMCPClient): Prom
                 serverName,
                 name: tool.name,
                 displayName: getToolDisplayName(serverName, tool.name, loadOptions[serverName]),
+                inputSchema: normalizeInputSchema(tool.inputSchema),
                 visibility: extractMcpAppVisibility(meta),
                 ui: extractMcpAppUiMeta(meta),
                 annotations: tool.annotations,
@@ -566,11 +606,149 @@ function readArtifactMeta(value: unknown): Record<string, unknown> | undefined {
     return isRecord(value) ? value : undefined
 }
 
-function extractToolResultMeta(toolResult: unknown): Record<string, unknown> | undefined {
-    if (!Array.isArray(toolResult) || toolResult.length < 2) {
+function stringifyToolResult(value: unknown) {
+    if (typeof value === 'string') {
+        return value
+    }
+    try {
+        return JSON.stringify(value ?? null)
+    } catch {
+        return String(value)
+    }
+}
+
+function normalizeToolResultContent(value: readonly unknown[]): TMcpAppToolResultContentBlock[] {
+    return value.filter(
+        (item): item is TMcpAppToolResultContentBlock => isRecord(item) && typeof item.type === 'string'
+    )
+}
+
+function extractToolResultArtifact(value: ToolResultArtifactInput): Partial<TMcpAppToolResult> {
+    if (Array.isArray(value)) {
+        return value.reduce<Partial<TMcpAppToolResult>>((result, item) => {
+            const normalized = extractToolResultArtifact(item)
+            return {
+                ...result,
+                ...normalized,
+                structuredContent: result.structuredContent ?? normalized.structuredContent,
+                isError: result.isError ?? normalized.isError,
+                _meta: result._meta ?? normalized._meta
+            }
+        }, {})
+    }
+
+    const artifact = value as Record<string, unknown>
+    const structuredContent = isRecord(artifact.structuredContent) ? artifact.structuredContent : undefined
+    const isError = typeof artifact.isError === 'boolean' ? artifact.isError : undefined
+    const explicitMeta = isRecord(artifact._meta) ? artifact._meta : undefined
+    const legacyMeta = Object.fromEntries(
+        Object.entries(artifact).filter(([key]) => !['structuredContent', 'isError', '_meta'].includes(key))
+    )
+    const _meta = explicitMeta ?? (Object.keys(legacyMeta).length ? legacyMeta : undefined)
+
+    return {
+        ...(structuredContent ? { structuredContent } : {}),
+        ...(isError !== undefined ? { isError } : {}),
+        ...(_meta ? { _meta } : {})
+    }
+}
+
+function normalizeToolResultObject(value: ToolResultObjectInput): TMcpAppToolResult {
+    if (value.toolResult !== undefined && !Array.isArray(value.content)) {
+        return normalizeMcpAppToolResult(value.toolResult) ?? { content: [] }
+    }
+
+    const result: TMcpAppToolResult = {
+        content: Array.isArray(value.content) ? normalizeToolResultContent(value.content) : []
+    }
+    if (isRecord(value.structuredContent)) {
+        result.structuredContent = value.structuredContent
+    }
+    if (typeof value.isError === 'boolean') {
+        result.isError = value.isError
+    }
+    if (isRecord(value._meta)) {
+        result._meta = value._meta
+    }
+    return result
+}
+
+function normalizeLangChainToolResultTuple(value: LangChainToolResultTuple): TMcpAppToolResult {
+    const [content, artifact] = value
+    return {
+        content: [
+            {
+                type: 'text',
+                text: typeof content === 'string' ? content : stringifyToolResult(content)
+            }
+        ],
+        ...(isToolResultArtifactInput(artifact) ? extractToolResultArtifact(artifact) : {})
+    }
+}
+
+export function normalizeMcpAppToolResult(value: unknown): TMcpAppToolResult | undefined {
+    if (value === undefined) {
         return undefined
     }
-    return readArtifactMeta(toolResult[1])
+
+    if (isRecord(value)) {
+        return normalizeToolResultObject(value)
+    }
+
+    if (isLangChainToolResultTuple(value)) {
+        return normalizeLangChainToolResultTuple(value)
+    }
+
+    return {
+        content: [
+            {
+                type: 'text',
+                text: stringifyToolResult(value)
+            }
+        ]
+    }
+}
+
+function getSerializedByteSize(value: unknown) {
+    try {
+        return Buffer.byteLength(JSON.stringify(value) ?? 'null', 'utf8')
+    } catch {
+        return Number.POSITIVE_INFINITY
+    }
+}
+
+function createPersistedToolResultSnapshot(toolResult: TMcpAppToolResult | undefined) {
+    if (!toolResult) {
+        return {}
+    }
+
+    const toolResultSize = getSerializedByteSize(toolResult)
+    const maxBytes = readPositiveIntegerEnv(
+        'XPERT_MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES',
+        MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES
+    )
+    if (toolResultSize <= maxBytes) {
+        return {
+            toolResult,
+            toolResultSize,
+            toolResultTruncated: false
+        }
+    }
+
+    return {
+        toolResultSize,
+        toolResultTruncated: true
+    }
+}
+
+function extractToolResultMeta(toolResult: unknown): Record<string, unknown> | undefined {
+    if (isRecord(toolResult)) {
+        return isRecord(toolResult._meta) ? toolResult._meta : toolResult
+    }
+    if (Array.isArray(toolResult) && toolResult.length >= 2) {
+        return readArtifactMeta(toolResult[1])
+    }
+    return undefined
 }
 
 function resolveToolEnabled(toolset: Pick<IXpertToolset, 'tools' | 'options'>, toolName: string, displayName: string) {
@@ -634,6 +812,9 @@ export function registerMcpAppInstance(options: {
         return null
     }
 
+    const toolInput = isRecord(options.toolInput) ? options.toolInput : {}
+    const toolResult = normalizeMcpAppToolResult(options.toolResult)
+    const persistedToolResultSnapshot = createPersistedToolResultSnapshot(toolResult)
     const now = Date.now()
     pruneExpiredMcpAppInstances(now)
 
@@ -649,8 +830,8 @@ export function registerMcpAppInstance(options: {
             ui
         },
         toolCallId: options.toolCallId,
-        toolInput: isRecord(options.toolInput) ? options.toolInput : {},
-        toolResult: options.toolResult,
+        toolInput,
+        toolResult,
         messages: [],
         logs: [],
         createdAt: now,
@@ -676,7 +857,8 @@ export function registerMcpAppInstance(options: {
         permissions: ui.permissions,
         domain: ui.domain,
         prefersBorder: ui.prefersBorder,
-        toolInput: isRecord(options.toolInput) ? options.toolInput : {},
+        toolInput,
+        ...persistedToolResultSnapshot,
         visibility: toolMeta.visibility,
         status: 'success'
     }
@@ -717,7 +899,7 @@ export function restoreMcpAppInstance(options: {
         toolMeta: options.toolMeta,
         toolCallId: options.toolCallId,
         toolInput: isRecord(options.toolInput) ? options.toolInput : {},
-        toolResult: options.toolResult,
+        toolResult: normalizeMcpAppToolResult(options.toolResult),
         messages: [],
         logs: [],
         createdAt: now,

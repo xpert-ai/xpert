@@ -41,6 +41,45 @@ describe('createToolsetRuntimeCleanup', () => {
         expect(nestedToolsetClose).toHaveBeenCalledTimes(1)
     })
 
+    it('preserves async iterator next() for wrapped graph streams', async () => {
+        const rootController = new AbortController()
+        const toolsetClose = jest.fn<Promise<void>, []>().mockResolvedValue(undefined)
+
+        const cleanup = createToolsetRuntimeCleanup({
+            toolsets: [createToolset(toolsetClose)],
+            abortSignal: new AbortController().signal,
+            rootController,
+            logger
+        })
+        const graph = {
+            stream: jest.fn(() =>
+                (async function* () {
+                    yield 'chunk'
+                })()
+            ),
+            streamEvents: jest.fn(function (this: { stream: () => AsyncGenerator<string, void, unknown> }) {
+                const graph = this
+                return (async function* () {
+                    const outputStream = graph.stream()
+                    yield (await outputStream.next()).value
+                })()
+            })
+        }
+
+        cleanup.installGraphCloseHook(graph)
+
+        const stream = graph.stream()
+        expect(typeof stream.next).toBe('function')
+        await expect(stream.next()).resolves.toMatchObject({ value: 'chunk', done: false })
+        await expect(stream.next()).resolves.toMatchObject({ done: true })
+
+        const events = graph.streamEvents()
+        expect(typeof events.next).toBe('function')
+        await expect(events.next()).resolves.toMatchObject({ value: 'chunk', done: false })
+        await expect(events.next()).resolves.toMatchObject({ done: true })
+        expect(toolsetClose).toHaveBeenCalledTimes(1)
+    })
+
     it('closes toolsets when the subgraph abort signal fires', async () => {
         const rootController = new AbortController()
         const abortController = new AbortController()
