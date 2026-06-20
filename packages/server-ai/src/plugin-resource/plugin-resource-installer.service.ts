@@ -642,11 +642,13 @@ export class PluginResourceInstallerService {
             }),
             options: {
                 disableToolDefault: enabledTools.length > 0,
+                needSandbox: true,
                 pluginManaged: true,
                 pluginName: runtimeComponent.pluginName,
                 componentKey: runtimeComponent.component.componentKey,
                 ...(xpertId ? { xpertId } : {}),
                 definitionHash: runtimeComponent.component.definitionHash,
+                ...(policy.runtime ? { mcpRuntime: policy.runtime } : {}),
                 policy
             },
             tools
@@ -957,6 +959,7 @@ export class PluginResourceInstallerService {
                 `MCP component '${runtimeComponent.component.componentKey}' has invalid transport`
             )
         }
+        const policy = this.readMcpPolicy(runtimeComponent.component.config)
 
         const server: TMCPServer = {
             type: serverType,
@@ -970,12 +973,13 @@ export class PluginResourceInstallerService {
                 : {}),
             ...(readStringField(runtimeComponent.component.config, 'encodingErrorHandler')
                 ? { encodingErrorHandler: readStringField(runtimeComponent.component.config, 'encodingErrorHandler') }
-                : {})
+                : {}),
+            ...(policy.runtime ? { runtime: policy.runtime } : {})
         }
 
         return {
             server,
-            policy: this.readMcpPolicy(runtimeComponent.component.config)
+            policy
         }
     }
 
@@ -1035,6 +1039,7 @@ export class PluginResourceInstallerService {
             : undefined
         const defaultToolsApprovalMode = readApprovalMode(Reflect.get(policyValue, 'defaultToolsApprovalMode'))
         const toolsValue = Reflect.get(policyValue, 'tools')
+        const runtime = readRuntimePolicy(Reflect.get(policyValue, 'runtime'))
         const tools: XpertPluginMcpServerPolicy['tools'] = {}
         if (isObjectValue(toolsValue)) {
             for (const [toolName, toolPolicy] of Object.entries(toolsValue)) {
@@ -1053,6 +1058,7 @@ export class PluginResourceInstallerService {
                     : undefined,
             defaultToolsApprovalMode,
             enabledTools,
+            runtime,
             tools: Object.keys(tools).length ? tools : undefined
         })
     }
@@ -1066,6 +1072,7 @@ export class PluginResourceInstallerService {
             enabled: override?.enabled ?? base?.enabled,
             defaultToolsApprovalMode: override?.defaultToolsApprovalMode ?? base?.defaultToolsApprovalMode,
             enabledTools: override?.enabledTools ?? base?.enabledTools,
+            runtime: override?.runtime ?? base?.runtime,
             tools: Object.keys(mergedTools).length ? mergedTools : undefined
         })
     }
@@ -1196,11 +1203,42 @@ function readApprovalMode(value: unknown) {
     return undefined
 }
 
+function readPositiveNumberField(value: object, key: string): number | undefined {
+    const field = Reflect.get(value, key)
+    return typeof field === 'number' && Number.isFinite(field) && field > 0 ? field : undefined
+}
+
+function readStringArrayField(value: object, key: string): string[] | undefined {
+    const field = Reflect.get(value, key)
+    if (!Array.isArray(field)) {
+        return undefined
+    }
+    const items = field
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter((item): item is string => Boolean(item))
+    return items.length ? items : undefined
+}
+
+function readRuntimePolicy(value: unknown): XpertPluginMcpServerPolicy['runtime'] | undefined {
+    if (!isObjectValue(value)) {
+        return undefined
+    }
+    const runtime = {
+        provider: readStringField(value, 'provider'),
+        startupTimeoutMs: readPositiveNumberField(value, 'startupTimeoutMs'),
+        idleTimeoutMs: readPositiveNumberField(value, 'idleTimeoutMs'),
+        maxLifetimeMs: readPositiveNumberField(value, 'maxLifetimeMs'),
+        allowedCommands: readStringArrayField(value, 'allowedCommands')
+    }
+    return Object.values(runtime).some((item) => item !== undefined) ? runtime : undefined
+}
+
 function removeUndefinedPolicy(policy: XpertPluginMcpServerPolicy): XpertPluginMcpServerPolicy {
     return {
         ...(typeof policy.enabled === 'boolean' ? { enabled: policy.enabled } : {}),
         ...(policy.defaultToolsApprovalMode ? { defaultToolsApprovalMode: policy.defaultToolsApprovalMode } : {}),
         ...(policy.enabledTools?.length ? { enabledTools: policy.enabledTools } : {}),
+        ...(policy.runtime ? { runtime: policy.runtime } : {}),
         ...(policy.tools && Object.keys(policy.tools).length ? { tools: policy.tools } : {})
     }
 }

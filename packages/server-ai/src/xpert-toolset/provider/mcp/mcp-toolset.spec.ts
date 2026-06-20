@@ -20,8 +20,10 @@ describe('MCPToolset transport cleanup', () => {
         expect(content).toContain("Reflect.set(value, 'onopen', null)")
         expect(content).toContain('abort.call(abortController)')
         expect(content).toContain("Reflect.set(transport, '_eventSource', undefined)")
+        expect(content).toContain('await this.destroy?.()')
+        expect(content).toContain('await this.client.close().catch((err) => this.#logger.debug(err))')
         expect(content).toMatch(
-            /forceCloseMCPClientTransports\(this\.client\)\s+await this\.client\.close\(\)\s+forceCloseMCPClientTransports\(this\.client\)/
+            /forceCloseMCPClientTransports\(this\.client\)[\s\S]+finally[\s\S]+forceCloseMCPClientTransports\(this\.client\)/
         )
     })
 })

@@ -414,6 +414,17 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
       }
+    },
+    {
+      title: 'Operations',
+      icon: 'ri-pulse-line',
+      link: '/operations',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Operations',
+        permissionKeys: [RolesEnum.SUPER_ADMIN]
+      }
     }
   ]
 

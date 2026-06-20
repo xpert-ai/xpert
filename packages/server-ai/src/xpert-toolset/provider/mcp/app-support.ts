@@ -3,19 +3,22 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Client as McpSdkClient, type Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { CallToolResult, ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
 import {
-    IXpertTool,
-    IXpertToolset,
     MCP_APP_RESOURCE_MIME_TYPE,
-    TMcpAppComponentData,
-    TMcpAppCsp,
-    TMcpAppPermissions,
-    TMcpAppUiMeta,
-    TMcpAppVisibility,
-    TMcpToolAppMeta,
+    type IXpertTool,
+    type IXpertToolset,
+    type IconDefinition,
+    type I18nObject,
+    type TMcpAppComponentData,
+    type TMcpAppCsp,
+    type TMcpAppPermissions,
+    type TMcpAppUiMeta,
+    type TMcpAppVisibility,
+    type TMcpToolAppMeta,
     isToolEnabled
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 
 const MCP_APP_INSTANCE_TTL_MS = 30 * 60 * 1000
 const MCP_APP_RESOURCE_MAX_BYTES = 2 * 1024 * 1024
@@ -53,7 +56,7 @@ export type McpAppInstance = {
     client: MultiServerMCPClient
     destroy?: (() => Promise<void>) | null
     closeClientOnExpire?: boolean
-    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options'>
+    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     toolMeta: TMcpToolAppMeta
     toolCallId?: string
     toolInput?: Record<string, unknown>
@@ -71,8 +74,143 @@ export type McpAppInstance = {
 
 const mcpAppInstances = new Map<string, McpAppInstance>()
 
+type McpAppInstanceTokenPayload = {
+    v: 1
+    appInstanceId: string
+    tenantId?: string
+    organizationId?: string
+    workspaceId?: string
+    toolsetId?: string
+    serverName?: string
+    toolName?: string
+    displayName?: string
+    resourceUri?: string
+    toolCallId?: string
+    exp: number
+}
+
+export type McpAppInstanceTokenExpected = Partial<
+    Pick<
+        McpAppInstanceTokenPayload,
+        | 'appInstanceId'
+        | 'tenantId'
+        | 'organizationId'
+        | 'workspaceId'
+        | 'toolsetId'
+        | 'serverName'
+        | 'toolName'
+        | 'resourceUri'
+        | 'toolCallId'
+    >
+>
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function base64UrlJson(value: unknown) {
+    return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url')
+}
+
+function getMcpAppTokenSecret() {
+    const secret =
+        process.env.XPERT_MCP_APP_TOKEN_SECRET?.trim() ||
+        process.env.JWT_SECRET?.trim() ||
+        process.env.SECRET_KEY?.trim()
+    if (secret) {
+        return secret
+    }
+    if (!environment.production) {
+        return 'xpert-mcp-app-dev-secret'
+    }
+    throw new Error('XPERT_MCP_APP_TOKEN_SECRET is required to host MCP Apps in production')
+}
+
+function signMcpAppTokenPayload(encodedPayload: string) {
+    return createHmac('sha256', getMcpAppTokenSecret()).update(encodedPayload).digest('base64url')
+}
+
+function signaturesEqual(left: string, right: string) {
+    const leftBuffer = Buffer.from(left)
+    const rightBuffer = Buffer.from(right)
+    return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
+}
+
+function createMcpAppInstanceToken(instance: McpAppInstance) {
+    const payload: McpAppInstanceTokenPayload = {
+        v: 1,
+        appInstanceId: instance.id,
+        tenantId: instance.toolset.tenantId,
+        organizationId: instance.toolset.organizationId,
+        workspaceId: instance.toolset.workspaceId,
+        toolsetId: instance.toolset.id,
+        serverName: instance.toolMeta.serverName,
+        toolName: instance.toolMeta.name,
+        displayName: instance.toolMeta.displayName,
+        resourceUri: instance.toolMeta.ui?.resourceUri,
+        toolCallId: instance.toolCallId,
+        exp: instance.expiresAt
+    }
+    const encodedPayload = base64UrlJson(payload)
+    return `${encodedPayload}.${signMcpAppTokenPayload(encodedPayload)}`
+}
+
+function readMcpAppInstanceTokenPayload(token: string): McpAppInstanceTokenPayload {
+    const [encodedPayload, signature, extra] = token.split('.')
+    if (!encodedPayload || !signature || extra) {
+        throw new Error('Invalid MCP App token')
+    }
+    const expectedSignature = signMcpAppTokenPayload(encodedPayload)
+    if (!signaturesEqual(signature, expectedSignature)) {
+        throw new Error('Invalid MCP App token signature')
+    }
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as McpAppInstanceTokenPayload
+    if (payload.v !== 1 || !payload.appInstanceId || !Number.isFinite(payload.exp)) {
+        throw new Error('Invalid MCP App token payload')
+    }
+    if (payload.exp <= Date.now()) {
+        throw new Error('MCP App token has expired')
+    }
+    return payload
+}
+
+function assertTokenField(
+    payload: McpAppInstanceTokenPayload,
+    expected: McpAppInstanceTokenExpected,
+    key: keyof McpAppInstanceTokenExpected
+) {
+    const expectedValue = expected[key]
+    if (!expectedValue) {
+        return
+    }
+    if (key === 'toolName') {
+        if (payload.toolName === expectedValue || payload.displayName === expectedValue) {
+            return
+        }
+        throw new Error('MCP App token does not match this tool')
+    }
+    if (payload[key] !== expectedValue) {
+        throw new Error(`MCP App token does not match ${key}`)
+    }
+}
+
+export function verifyMcpAppInstanceToken(token: string, expected: McpAppInstanceTokenExpected) {
+    const payload = readMcpAppInstanceTokenPayload(token)
+    assertTokenField(payload, expected, 'appInstanceId')
+    assertTokenField(payload, expected, 'tenantId')
+    assertTokenField(payload, expected, 'organizationId')
+    assertTokenField(payload, expected, 'workspaceId')
+    assertTokenField(payload, expected, 'toolsetId')
+    assertTokenField(payload, expected, 'serverName')
+    assertTokenField(payload, expected, 'toolName')
+    assertTokenField(payload, expected, 'resourceUri')
+    assertTokenField(payload, expected, 'toolCallId')
+    return payload
+}
+
+export function isMcpAppTokenRequired() {
+    const raw = process.env.XPERT_MCP_APP_TOKEN_REQUIRED?.trim().toLowerCase()
+    return environment.production || Boolean(raw && ['1', 'true', 'yes', 'on'].includes(raw))
 }
 
 export function installMcpUiClientCapabilitiesBridge(): void {
@@ -108,12 +246,86 @@ function readBoolean(value: unknown): boolean | undefined {
     return typeof value === 'boolean' ? value : undefined
 }
 
+function readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
 function readStringArray(value: unknown): string[] | undefined {
     if (!Array.isArray(value)) {
         return undefined
     }
     const strings = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     return strings.length ? strings : undefined
+}
+
+function normalizeI18nText(value: unknown): string | I18nObject | undefined {
+    const text = readString(value)
+    if (text) {
+        return text
+    }
+    if (!isRecord(value)) {
+        return undefined
+    }
+
+    const localized: Record<string, string> = {}
+    for (const [key, item] of Object.entries(value)) {
+        const localizedText = readString(item)
+        if (localizedText) {
+            localized[key] = localizedText
+        }
+    }
+
+    return Object.keys(localized).length ? (localized as unknown as I18nObject) : undefined
+}
+
+function normalizeIconStyle(value: unknown): Record<string, string> | undefined {
+    if (!isRecord(value)) {
+        return undefined
+    }
+    const style: Record<string, string> = {}
+    for (const [key, item] of Object.entries(value)) {
+        const cssValue = readString(item)
+        if (cssValue) {
+            style[key] = cssValue
+        }
+    }
+    return Object.keys(style).length ? style : undefined
+}
+
+function normalizeIconDefinition(value: unknown): IconDefinition | undefined {
+    if (!isRecord(value)) {
+        return undefined
+    }
+
+    const type = readString(value.type)
+    const iconValue = readString(value.value)
+    if (!type || !iconValue || !['image', 'svg', 'font', 'emoji', 'lottie'].includes(type)) {
+        return undefined
+    }
+
+    const icon: IconDefinition = {
+        type: type as IconDefinition['type'],
+        value: iconValue
+    }
+    const color = readString(value.color)
+    const size = readNumber(value.size)
+    const alt = readString(value.alt)
+    const style = normalizeIconStyle(value.style)
+
+    if (color) {
+        icon.color = color
+    }
+    if (size && size > 0 && size <= 256) {
+        icon.size = size
+    }
+    if (alt) {
+        icon.alt = alt
+    }
+    if (style) {
+        icon.style = style
+    }
+
+    return icon
 }
 
 function normalizeCsp(value: unknown): TMcpAppCsp | undefined {
@@ -183,6 +395,9 @@ export function extractMcpAppUiMeta(meta: unknown): TMcpAppUiMeta | undefined {
 
     return {
         resourceUri,
+        title: normalizeI18nText(ui?.title),
+        description: normalizeI18nText(ui?.description),
+        icon: normalizeIconDefinition(ui?.icon),
         // Legacy fallback only. MCP Apps resource security metadata belongs on the resource `_meta.ui`.
         csp: normalizeCsp(ui?.csp),
         // Legacy fallback only. MCP Apps resource security metadata belongs on the resource `_meta.ui`.
@@ -204,6 +419,15 @@ function extractMcpAppResourceUiMeta(value: unknown): Partial<Omit<TMcpAppUiMeta
     }
 
     const resourceUi: Partial<Omit<TMcpAppUiMeta, 'resourceUri'>> = {
+        title: normalizeI18nText(ui.title) ?? normalizeI18nText(meta.title) ?? normalizeI18nText(value.title),
+        description:
+            normalizeI18nText(ui.description) ??
+            normalizeI18nText(meta.description) ??
+            normalizeI18nText(value.description),
+        icon:
+            normalizeIconDefinition(ui.icon) ??
+            normalizeIconDefinition(meta.icon) ??
+            normalizeIconDefinition(value.icon),
         csp: normalizeCsp(ui.csp),
         permissions: normalizePermissions(ui.permissions),
         domain: readString(ui.domain),
@@ -220,6 +444,9 @@ function mergeMcpAppUiMeta(
 ): TMcpAppUiMeta {
     return {
         resourceUri,
+        title: resourceUi?.title ?? toolUi?.title,
+        description: resourceUi?.description ?? toolUi?.description,
+        icon: resourceUi?.icon ?? toolUi?.icon,
         csp: resourceUi?.csp ?? toolUi?.csp,
         permissions: resourceUi?.permissions ?? toolUi?.permissions,
         domain: resourceUi?.domain ?? toolUi?.domain,
@@ -352,17 +579,22 @@ function resolveToolEnabled(toolset: Pick<IXpertToolset, 'tools' | 'options'>, t
     if (config) {
         return isToolEnabled(config as IXpertTool, disableToolDefault)
     }
-    return Boolean(disableToolDefault)
+    return !disableToolDefault
+}
+
+function closeMcpAppInstanceClient(instance: McpAppInstance) {
+    if (!instance.closeClientOnExpire) {
+        return
+    }
+    instance.destroy?.().catch(() => undefined)
+    instance.client.close().catch(() => undefined)
 }
 
 function pruneExpiredMcpAppInstances(now = Date.now()) {
     for (const [id, instance] of mcpAppInstances) {
         if (instance.expiresAt <= now) {
             mcpAppInstances.delete(id)
-            if (instance.closeClientOnExpire) {
-                instance.destroy?.().catch(() => undefined)
-                instance.client.close().catch(() => undefined)
-            }
+            closeMcpAppInstanceClient(instance)
         }
     }
 }
@@ -377,7 +609,7 @@ export function isMcpAppsEnabled(): boolean {
 
 export function registerMcpAppInstance(options: {
     client: MultiServerMCPClient
-    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options'>
+    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     tool: DynamicStructuredTool
     toolCallId?: string
     toolInput?: unknown
@@ -406,7 +638,7 @@ export function registerMcpAppInstance(options: {
     pruneExpiredMcpAppInstances(now)
 
     const id = randomUUID()
-    mcpAppInstances.set(id, {
+    const instance: McpAppInstance = {
         id,
         client: options.client,
         destroy: null,
@@ -423,17 +655,23 @@ export function registerMcpAppInstance(options: {
         logs: [],
         createdAt: now,
         expiresAt: now + MCP_APP_INSTANCE_TTL_MS
-    })
+    }
+
+    mcpAppInstances.set(id, instance)
+    mcpStdioRuntimeManager.attachAppInstance(options.client, id)
 
     return {
         type: 'McpApp',
         appInstanceId: id,
+        appInstanceToken: createMcpAppInstanceToken(instance),
         resourceUri: ui.resourceUri,
         toolName: options.tool.name,
         toolCallId: options.toolCallId,
         toolsetId: options.toolset.id,
         serverName: toolMeta.serverName,
-        title: options.tool.description || options.tool.name,
+        title: ui.title ?? options.tool.description ?? options.tool.name,
+        description: ui.description,
+        icon: ui.icon,
         csp: ui.csp,
         permissions: ui.permissions,
         domain: ui.domain,
@@ -448,7 +686,7 @@ export function restoreMcpAppInstance(options: {
     id: string
     client: MultiServerMCPClient
     destroy?: (() => Promise<void>) | null
-    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options'>
+    toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     toolMeta: TMcpToolAppMeta
     toolCallId?: string
     toolInput?: unknown
@@ -490,15 +728,30 @@ export function restoreMcpAppInstance(options: {
     return instance
 }
 
+export function detachMcpAppInstancesForClient(client: MultiServerMCPClient) {
+    let detached = 0
+    for (const [id, instance] of mcpAppInstances) {
+        if (instance.client === client) {
+            mcpAppInstances.delete(id)
+            detached++
+        }
+    }
+    return detached
+}
+
 export function getMcpAppInstance(appInstanceId: string): McpAppInstance | null {
     pruneExpiredMcpAppInstances()
     const instance = mcpAppInstances.get(appInstanceId)
     if (!instance || instance.expiresAt <= Date.now()) {
         mcpAppInstances.delete(appInstanceId)
-        if (instance?.closeClientOnExpire) {
-            instance.destroy?.().catch(() => undefined)
-            instance.client.close().catch(() => undefined)
+        if (instance) {
+            closeMcpAppInstanceClient(instance)
         }
+        return null
+    }
+    if (!mcpStdioRuntimeManager.isClientRuntimeUsable(instance.client)) {
+        mcpAppInstances.delete(appInstanceId)
+        closeMcpAppInstanceClient(instance)
         return null
     }
     return instance
@@ -552,6 +805,9 @@ export function normalizeMcpResourceContent(result: ReadResourceResult, expected
         mimeType,
         text: content.text,
         blob: content.blob,
+        title: resourceUi?.title,
+        description: resourceUi?.description,
+        icon: resourceUi?.icon,
         csp: resourceUi?.csp,
         permissions: resourceUi?.permissions,
         domain: resourceUi?.domain,
@@ -590,13 +846,20 @@ export async function readMcpAppResource(instance: McpAppInstance) {
         throw new Error('MCP App resource URI must use the ui:// scheme')
     }
 
+    mcpStdioRuntimeManager.touchClient(instance.client)
     const result = await sdkClient.readResource({ uri: resourceUri })
     const resource = normalizeMcpResourceContent(result, resourceUri)
     const listedUi =
-        resource.csp || resource.permissions || resource.domain || resource.prefersBorder !== undefined
+        resource.title &&
+        resource.description &&
+        resource.icon &&
+        (resource.csp || resource.permissions || resource.domain || resource.prefersBorder !== undefined)
             ? undefined
             : await readListedMcpResourceUiMeta(sdkClient, resourceUri)
     const resourceUi = {
+        title: resource.title ?? listedUi?.title,
+        description: resource.description ?? listedUi?.description,
+        icon: resource.icon ?? listedUi?.icon,
         csp: resource.csp ?? listedUi?.csp,
         permissions: resource.permissions ?? listedUi?.permissions,
         domain: resource.domain ?? listedUi?.domain,
@@ -610,6 +873,9 @@ export async function readMcpAppResource(instance: McpAppInstance) {
 
     return {
         ...resource,
+        title: ui.title,
+        description: ui.description,
+        icon: ui.icon,
         csp: ui.csp,
         permissions: ui.permissions,
         domain: ui.domain,
@@ -637,6 +903,7 @@ export async function callMcpAppTool(instance: McpAppInstance, name: string, arg
         throw new Error(`MCP server '${instance.toolMeta.serverName}' is not connected`)
     }
 
+    mcpStdioRuntimeManager.touchClient(instance.client)
     return sdkClient.callTool({
         name: toolMeta.name,
         arguments: isRecord(args) ? args : {}
@@ -657,6 +924,7 @@ export async function readMcpAppServerResource(instance: McpAppInstance, uri: st
         throw new Error(`MCP server '${instance.toolMeta.serverName}' is not connected`)
     }
 
+    mcpStdioRuntimeManager.touchClient(instance.client)
     const result = await sdkClient.readResource({ uri })
     let totalBytes = 0
     for (const content of result.contents ?? []) {

@@ -14,11 +14,15 @@ import { XpertToolsetService } from './xpert-toolset.service'
 import { XpertAgentModule } from '../xpert-agent'
 import { McpAppsController } from './mcp-apps.controller'
 import { McpAppsService } from './mcp-apps.service'
+import { McpRuntimeController } from './mcp-runtime.controller'
+import { McpRuntimeAuditService } from './mcp-runtime-audit.service'
+import { McpRuntimeInstanceEntity } from './mcp-runtime-instance.entity'
+import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-installation.entity'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
-        TypeOrmModule.forFeature([XpertToolset]),
+        TypeOrmModule.forFeature([XpertToolset, McpRuntimeInstanceEntity, PluginResourceInstallation]),
         DiscoveryModule,
         TenantModule,
         CqrsModule,
@@ -26,8 +30,15 @@ import { McpAppsService } from './mcp-apps.service'
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => XpertAgentModule)
     ],
-    controllers: [XpertToolsetController, McpAppsController],
-    providers: [XpertToolsetService, McpAppsService, ToolsetRegistry, ...QueryHandlers, ...CommandHandlers],
+    controllers: [XpertToolsetController, McpAppsController, McpRuntimeController],
+    providers: [
+        XpertToolsetService,
+        McpAppsService,
+        McpRuntimeAuditService,
+        ToolsetRegistry,
+        ...QueryHandlers,
+        ...CommandHandlers
+    ],
     exports: [XpertToolsetService]
 })
 export class XpertToolsetModule {}

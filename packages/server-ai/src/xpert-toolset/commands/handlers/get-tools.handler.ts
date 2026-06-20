@@ -50,6 +50,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             projectId: command.environment?.projectId,
             xpertId: command.environment?.xpertId,
             agentKey: command.environment?.agentKey,
+            executionId: command.environment?.executionId,
             signal: command.environment?.signal,
             env: command.environment?.env,
             store: command.environment?.store

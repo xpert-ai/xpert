@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { TMCPSchema, TMcpToolAppMeta } from '@xpert-ai/contracts'
 import { EnvStateQuery } from '../environment'
@@ -10,11 +10,13 @@ import {
     getInitialMcpAppToolResult,
     getMcpAppInstance,
     isMcpAppsEnabled,
+    isMcpAppTokenRequired,
     listMcpToolAppMetadata,
     readMcpAppResource,
     readMcpAppServerResource,
     restoreMcpAppInstance,
-    updateMcpAppModelContext
+    updateMcpAppModelContext,
+    verifyMcpAppInstanceToken
 } from './provider/mcp/app-support'
 import type { McpAppInstance } from './provider/mcp/app-support'
 import { createProMCPClient } from './provider/mcp/pro'
@@ -28,6 +30,7 @@ export type McpAppReviveQuery = {
     toolCallId?: string | string[]
     resourceUri?: string | string[]
     title?: string | string[]
+    token?: string | string[]
 }
 
 type NormalizedMcpAppReviveQuery = {
@@ -37,6 +40,7 @@ type NormalizedMcpAppReviveQuery = {
     toolCallId?: string
     resourceUri?: string
     title?: string
+    token?: string
 }
 
 type JsonRpcRequest = {
@@ -71,7 +75,8 @@ function normalizeReviveQuery(query?: McpAppReviveQuery): NormalizedMcpAppRevive
         toolName: readQueryString(query?.toolName),
         toolCallId: readQueryString(query?.toolCallId),
         resourceUri: readQueryString(query?.resourceUri),
-        title: readQueryString(query?.title)
+        title: readQueryString(query?.title),
+        token: readQueryString(query?.token)
     }
 }
 
@@ -107,16 +112,73 @@ export class McpAppsService {
 
     private async getInstance(appInstanceId: string, query?: McpAppReviveQuery) {
         this.assertEnabled()
+        const normalizedQuery = normalizeReviveQuery(query)
         const instance = getMcpAppInstance(appInstanceId)
         if (instance) {
+            this.assertTokenForInstance(instance, normalizedQuery)
             return instance
         }
 
-        const revived = await this.reviveInstance(appInstanceId, normalizeReviveQuery(query))
+        const revived = await this.reviveInstance(appInstanceId, normalizedQuery)
         if (!revived) {
             throw new NotFoundException('MCP App instance was not found or has expired')
         }
         return revived
+    }
+
+    private assertTokenForInstance(instance: McpAppInstance, query: NormalizedMcpAppReviveQuery) {
+        if (!query.token) {
+            if (isMcpAppTokenRequired()) {
+                throw new ForbiddenException('MCP App token is required')
+            }
+            return
+        }
+
+        try {
+            verifyMcpAppInstanceToken(query.token, {
+                appInstanceId: instance.id,
+                tenantId: instance.toolset.tenantId,
+                organizationId: instance.toolset.organizationId,
+                workspaceId: instance.toolset.workspaceId,
+                toolsetId: instance.toolset.id,
+                serverName: instance.toolMeta.serverName,
+                toolName: instance.toolMeta.name,
+                resourceUri: instance.toolMeta.ui?.resourceUri,
+                toolCallId: instance.toolCallId
+            })
+        } catch (error) {
+            throw new ForbiddenException(getErrorMessage(error))
+        }
+    }
+
+    private assertReviveToken(
+        appInstanceId: string,
+        query: NormalizedMcpAppReviveQuery,
+        toolset?: McpAppInstance['toolset'],
+        toolMeta?: TMcpToolAppMeta
+    ) {
+        if (!query.token) {
+            if (isMcpAppTokenRequired()) {
+                throw new ForbiddenException('MCP App token is required')
+            }
+            return
+        }
+
+        try {
+            verifyMcpAppInstanceToken(query.token, {
+                appInstanceId,
+                tenantId: toolset?.tenantId,
+                organizationId: toolset?.organizationId,
+                workspaceId: toolset?.workspaceId,
+                toolsetId: toolset?.id ?? query.toolsetId,
+                serverName: toolMeta?.serverName ?? query.serverName,
+                toolName: toolMeta?.name ?? query.toolName,
+                resourceUri: toolMeta?.ui?.resourceUri ?? query.resourceUri,
+                toolCallId: query.toolCallId
+            })
+        } catch (error) {
+            throw new ForbiddenException(getErrorMessage(error))
+        }
     }
 
     private async reviveInstance(appInstanceId: string, query: NormalizedMcpAppReviveQuery) {
@@ -128,12 +190,13 @@ export class McpAppsService {
         if (!toolset?.schema) {
             return null
         }
+        this.assertReviveToken(appInstanceId, query, toolset)
 
         const schema = JSON.parse(toolset.schema) as TMCPSchema
         const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
         const { client, destroy } = this.toolsetService.isPro()
             ? await createProMCPClient(toolset, null, this.commandBus, schema, envState)
-            : await createMCPClient(toolset, schema, envState)
+            : await createMCPClient(toolset, schema, envState, undefined, { appInstanceId })
         if (!client) {
             return null
         }
@@ -145,6 +208,7 @@ export class McpAppsService {
                 await client.close()
                 return null
             }
+            this.assertReviveToken(appInstanceId, query, toolset, toolMeta)
 
             const restored = restoreMcpAppInstance({
                 id: appInstanceId,
@@ -211,6 +275,9 @@ export class McpAppsService {
             toolInfo: {
                 name: instance.toolMeta.displayName,
                 originalName: instance.toolMeta.name,
+                title: resource.title ?? instance.toolMeta.ui?.title,
+                description: resource.description ?? instance.toolMeta.ui?.description,
+                icon: resource.icon ?? instance.toolMeta.ui?.icon,
                 serverName: instance.toolMeta.serverName,
                 toolCallId: instance.toolCallId,
                 toolsetId: instance.toolset.id

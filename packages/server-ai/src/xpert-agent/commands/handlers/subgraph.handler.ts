@@ -134,6 +134,7 @@ import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
+import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -268,16 +269,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 conversationId: options.conversationId,
                 xpertId: xpert.id,
                 agentKey,
+                executionId: execution.id,
                 signal: abortController.signal,
                 env: toEnvState(environment),
                 store: options.store
             })
         )
-        // Clean all toolsets when aborted
-        abortController.signal.addEventListener('abort', () => {
-            for (const toolset of toolsets) {
-                toolset.close().catch((err) => this.#logger.debug(err))
-            }
+        const { closeToolsets, installGraphCloseHook } = createToolsetRuntimeCleanup({
+            toolsets,
+            abortSignal: abortController.signal,
+            rootController,
+            logger: this.#logger
         })
 
         const endNodes = team.agentConfig?.endNodes ?? []
@@ -292,44 +294,50 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const interruptBefore: string[] = []
         const toolsetVarirables: TStateVariable[] = []
         const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
-        for await (const toolset of toolsets) {
-            // Initialize toolset and it's state
-            const items = await toolset.initTools()
-            const _variables = await toolset.getVariables()
-            toolsetVarirables.push(...(_variables ?? []))
-            stateVariables.push(...(_variables ?? []))
-            // Filter available tools by agent
-            const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
-            const filteredItems = filterDisabledTools(
-                items.filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true)),
-                'toolset',
-                toolset.getId(),
-                options.toolPreferences
-            )
-            filteredItems.forEach((tool) => {
-                const lc_name =
-                    tool instanceof DynamicStructuredTool
-                        ? tool.name
-                        : get_lc_unique_name(tool.constructor as typeof Serializable)
-                if (team.agentConfig?.tools?.[lc_name]?.description) {
-                    tool.description = team.agentConfig.tools[lc_name].description
-                }
-                tools.push({
-                    toolset: {
-                        provider: toolset.providerName,
-                        id: toolset.getId(),
-                        title: translate(toolset.getToolTitle(tool.name))
-                    },
-                    caller: agent.key,
-                    tool,
-                    variables: team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name]
-                })
+        try {
+            for await (const toolset of toolsets) {
+                // Initialize toolset and it's state
+                const items = await toolset.initTools()
+                const _variables = await toolset.getVariables()
+                toolsetVarirables.push(...(_variables ?? []))
+                stateVariables.push(...(_variables ?? []))
+                // Filter available tools by agent
+                const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
+                const filteredItems = filterDisabledTools(
+                    items.filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true)),
+                    'toolset',
+                    toolset.getId(),
+                    options.toolPreferences
+                )
+                filteredItems.forEach((tool) => {
+                    const lc_name =
+                        tool instanceof DynamicStructuredTool
+                            ? tool.name
+                            : get_lc_unique_name(tool.constructor as typeof Serializable)
+                    if (team.agentConfig?.tools?.[lc_name]?.description) {
+                        tool.description = team.agentConfig.tools[lc_name].description
+                    }
+                    tools.push({
+                        toolset: {
+                            provider: toolset.providerName,
+                            id: toolset.getId(),
+                            title: translate(toolset.getToolTitle(tool.name))
+                        },
+                        caller: agent.key,
+                        tool,
+                        variables:
+                            team.agentConfig?.tools?.[lc_name]?.memories || team.agentConfig?.toolsMemory?.[lc_name]
+                    })
 
-                // Add sensitive tools into interruptBefore
-                if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
-                    interruptBefore.push(tool.name)
-                }
-            })
+                    // Add sensitive tools into interruptBefore
+                    if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
+                        interruptBefore.push(tool.name)
+                    }
+                })
+            }
+        } catch (error) {
+            await closeToolsets()
+            throw error
         }
 
         // Workflow Task tool
@@ -1611,6 +1619,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             name: agentKey,
             store: options.store
         })
+        installGraphCloseHook(compiledGraph)
 
         return {
             agent,

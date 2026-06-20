@@ -15,6 +15,7 @@ export class ToolsetGetToolsCommand implements ICommand {
             conversationId?: string
             xpertId?: string | null
             agentKey?: string
+            executionId?: string
             signal?: AbortSignal
             env?: Record<string, unknown>
             store?: BaseStore

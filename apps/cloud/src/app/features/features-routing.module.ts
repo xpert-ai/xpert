@@ -1,7 +1,7 @@
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AIPermissionsEnum, AnalyticsPermissionsEnum, authGuard } from '../@core'
+import { AIPermissionsEnum, AnalyticsPermissionsEnum, RolesEnum, authGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
 import { AppService } from '../app.service'
@@ -87,6 +87,19 @@ export const routes: Routes = [
           scopeContext: 'dual-scope',
           permissions: {
             only: [AIPermissionsEnum.XPERT_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'operations',
+        loadComponent: () => import('./operations/mcp-runtimes.component').then((m) => m.McpRuntimesComponent),
+        canActivate: [authGuard, NgxPermissionsGuard],
+        data: {
+          title: 'Operations',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN],
             redirectTo
           }
         }

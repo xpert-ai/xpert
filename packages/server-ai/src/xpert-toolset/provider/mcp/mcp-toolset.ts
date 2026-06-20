@@ -15,7 +15,13 @@ import { Logger } from '@nestjs/common'
 import { createProMCPClient } from './pro'
 import { createMCPClient } from './types'
 import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'
-import { buildMcpAppComponentMessage, isMcpToolVisibleToModel, registerMcpAppInstance } from './app-support'
+import {
+    buildMcpAppComponentMessage,
+    detachMcpAppInstancesForClient,
+    isMcpToolVisibleToModel,
+    registerMcpAppInstance
+} from './app-support'
+import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 
 function isObject(value: unknown): value is object {
     return typeof value === 'object' && value !== null
@@ -87,6 +93,7 @@ function wrapMCPTool(tool: DynamicStructuredTool, client: MultiServerMCPClient, 
         metadata: tool.metadata,
         func: async (input, runManager, config) => {
             const runnableConfig = omitSignalFromRunnableConfig(config)
+            mcpStdioRuntimeManager.touchClient(client)
             const result = await tool.func(input, runManager, runnableConfig)
             const appData = registerMcpAppInstance({
                 client,
@@ -115,6 +122,7 @@ export class MCPToolset extends _BaseToolset {
 
     // MCP Client
     protected client: MultiServerMCPClient = null
+    protected destroy: (() => Promise<void>) | null = null
     constructor(
         protected toolset: IXpertToolset,
         protected params?: TBuiltinToolsetParams
@@ -130,7 +138,7 @@ export class MCPToolset extends _BaseToolset {
     }
 
     async initTools() {
-        const { client } = environment.pro
+        const { client, destroy } = environment.pro
             ? await createProMCPClient(
                   this.toolset,
                   this.params?.signal,
@@ -143,9 +151,11 @@ export class MCPToolset extends _BaseToolset {
                   this.toolset,
                   JSON.parse(this.toolset.schema),
                   this.params.env,
-                  this.params?.xpertId
+                  this.params?.xpertId,
+                  this.params
               )
         this.client = client
+        this.destroy = destroy
         const tools = await this.client.getTools()
         // Filter tools by custom instance config
         const disableToolDefault = this.toolset.options?.disableToolDefault
@@ -158,7 +168,7 @@ export class MCPToolset extends _BaseToolset {
                 if (config) {
                     return isToolEnabled(config, disableToolDefault)
                 }
-                return disableToolDefault
+                return !disableToolDefault
             })
             .map((tool) => wrapMCPTool(tool, client, this.toolset))
         this.tools.forEach((tool) => ((<DynamicStructuredTool>tool).verboseParsingErrors = true))
@@ -200,9 +210,19 @@ export class MCPToolset extends _BaseToolset {
             return
         }
 
-        forceCloseMCPClientTransports(this.client)
-        await this.client.close()
-        forceCloseMCPClientTransports(this.client)
-        this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
+        try {
+            const detachedMcpApps = detachMcpAppInstancesForClient(this.client)
+            if (detachedMcpApps) {
+                this.#logger.debug(`detached ${detachedMcpApps} mcp app instance(s) for '${this.toolset.name}'.`)
+            }
+            forceCloseMCPClientTransports(this.client)
+            await this.destroy?.()
+        } finally {
+            await this.client.close().catch((err) => this.#logger.debug(err))
+            forceCloseMCPClientTransports(this.client)
+            this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
+            this.client = null
+            this.destroy = null
+        }
     }
 }

@@ -1,3 +1,6 @@
+import type { I18nObject } from '../i18n.model'
+import type { IconDefinition } from '../types'
+
 export enum MCPServerType {
   SSE = 'sse',
   STDIO = 'stdio',
@@ -13,6 +16,7 @@ export interface StdioConnection {
   command: string
   args: string[]
   env?: Record<string, string>
+  stderr?: 'pipe' | 'inherit' | 'ignore' | string
   encoding?: string
   encodingErrorHandler?: 'strict' | 'ignore' | 'replace'
 }
@@ -56,11 +60,37 @@ export type TMCPServerReconnect = {
   delayMs?: number
 }
 
+export type TMcpStdioRuntimePolicy = {
+  /**
+   * Runtime provider requested by the toolset or plugin. v1 supports
+   * local-process; sandbox and sidecar are reserved extension points.
+   */
+  provider?: 'local-process' | 'sandbox' | 'sidecar' | string
+  /**
+   * Maximum startup wait time in milliseconds.
+   */
+  startupTimeoutMs?: number
+  /**
+   * Maximum idle lifetime in milliseconds before the host may close the runtime.
+   */
+  idleTimeoutMs?: number
+  /**
+   * Maximum total lifetime in milliseconds.
+   */
+  maxLifetimeMs?: number
+  /**
+   * Optional command allow-list requested by the plugin/toolset. The platform
+   * allow-list remains authoritative.
+   */
+  allowedCommands?: string[]
+}
+
 export type TMCPServer = {
   type: MCPServerType
   command?: string
   args?: string[]
   env?: Record<string, string>
+  stderr?: 'pipe' | 'inherit' | 'ignore' | string
   encoding?: string
   encodingErrorHandler?: string
   /**
@@ -89,6 +119,11 @@ export type TMCPServer = {
    * Init scripts for sandbox
    */
   initScripts?: string
+
+  /**
+   * Requested stdio runtime policy. The platform clamps this policy before use.
+   */
+  runtime?: TMcpStdioRuntimePolicy
 }
 
 export type TMCPSchema = {
@@ -118,6 +153,9 @@ export type TMcpAppPermissions = {
 
 export type TMcpAppUiMeta = {
   resourceUri: string
+  title?: string | I18nObject
+  description?: string | I18nObject
+  icon?: IconDefinition
   /**
    * @deprecated MCP Apps resource security metadata belongs on the resource
    * content item `_meta.ui`. Tool-level values are kept only as a legacy
@@ -147,13 +185,16 @@ export type TMcpToolAppMeta = {
 export type TMcpAppComponentData = {
   type: 'McpApp'
   appInstanceId: string
+  appInstanceToken?: string
   resourceUri: string
   toolName: string
   toolCallId?: string
   toolsetId?: string
   serverName?: string
   executionId?: string
-  title?: string
+  title?: string | I18nObject
+  description?: string | I18nObject
+  icon?: IconDefinition
   csp?: TMcpAppCsp
   permissions?: TMcpAppPermissions
   domain?: string

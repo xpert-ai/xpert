@@ -1,4 +1,11 @@
-import { AiFeatureEnum, AIPermissionsEnum, AnalyticsFeatures, FeatureEnum, RequestScopeLevel } from '../@core/types'
+import {
+  AiFeatureEnum,
+  AIPermissionsEnum,
+  AnalyticsFeatures,
+  FeatureEnum,
+  RequestScopeLevel,
+  RolesEnum
+} from '../@core/types'
 import { getFeatureMenus, getSettingsMenuItems, syncMenuParentStateFromChildren } from './menus'
 
 describe('getSettingsMenuItems', () => {
@@ -42,7 +49,7 @@ describe('getSettingsMenuItems', () => {
 })
 
 describe('getFeatureMenus', () => {
-  it('promotes plugins to the bottom top-level Xpert-gated menu item', () => {
+  it('promotes plugins to a top-level Xpert-gated menu item', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const plugins = menus.find((item) => item.link === '/plugins')
 
@@ -52,9 +59,24 @@ describe('getFeatureMenus', () => {
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
-    expect(menus.at(-1)?.link).toBe('/plugins')
     expect(plugins?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_XPERT)
     expect(plugins?.data?.permissionKeys).toEqual([AIPermissionsEnum.XPERT_EDIT])
+  })
+
+  it('adds Operations beside Plugins for super admins', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const pluginIndex = menus.findIndex((item) => item.link === '/plugins')
+    const operations = menus.find((item) => item.link === '/operations')
+
+    expect(pluginIndex).toBeGreaterThanOrEqual(0)
+    expect(menus[pluginIndex + 1]?.link).toBe('/operations')
+    expect(operations).toMatchObject({
+      title: 'Operations',
+      icon: 'ri-pulse-line',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope'
+    })
+    expect(operations?.data?.permissionKeys).toEqual([RolesEnum.SUPER_ADMIN])
   })
 
   it('points the Data parent menu at the first visible child menu', () => {

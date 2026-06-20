@@ -2,6 +2,9 @@ import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { MCPServerType, type IXpertToolset, type TMCPSchema } from '@xpert-ai/contracts'
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const mockMcpMeta = {
     'xpertai/visualization': {
@@ -39,6 +42,7 @@ type MockMcpClientConstruction = {
 
 const mockConstructedClients: MockMcpClientConstruction[] = []
 const mockLoadedPlugins: Array<Record<string, unknown>> = []
+const tempRoots: string[] = []
 const mockResolveLoadedPluginBundleRoot = jest.fn((plugin: Record<string, unknown>) =>
     typeof plugin.bundleRoot === 'string' ? plugin.bundleRoot : null
 )
@@ -156,6 +160,40 @@ function getCreatedClient(): MockMcpClientConstruction {
     return created
 }
 
+function createLoadedPluginRoot() {
+    const root = mkdtempSync(join(tmpdir(), 'xpert-plugin-echarts-'))
+    mkdirSync(join(root, 'dist'), { recursive: true })
+    writeFileSync(join(root, 'dist', 'mcp-server.js'), '')
+    tempRoots.push(root)
+    return root
+}
+
+function pluginEntryPath(pluginRoot: string) {
+    return realpathSync(join(pluginRoot, 'dist', 'mcp-server.js'))
+}
+
+function getConfiguredMcpServer(created: MockMcpClientConstruction, serverName: string) {
+    const config = created.config as { mcpServers?: Record<string, Record<string, unknown>> }
+    const server = config.mcpServers?.[serverName]
+    if (!server) {
+        throw new Error(`Expected MCP server '${serverName}' to be configured`)
+    }
+    return server
+}
+
+function decodeRunnerSpec(server: Record<string, unknown>) {
+    const encoded = (server.env as Record<string, string> | undefined)?.XPERT_MCP_STDIO_RUNNER_SPEC
+    if (!encoded) {
+        throw new Error('Expected runner spec env to be configured')
+    }
+    return JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')) as {
+        command: string
+        args: string[]
+        cwd: string
+        env: Record<string, string>
+    }
+}
+
 async function expectMcpMetaArtifactBridgeInstalled(tool: MockMcpTool) {
     await expect(tool.func({})).resolves.toEqual(['{"ok":true}', mockMcpMeta])
 }
@@ -165,7 +203,18 @@ describe('MCP client factories', () => {
         mockConstructedClients.length = 0
         mockLoadedPlugins.length = 0
         mockResolveLoadedPluginBundleRoot.mockClear()
+        process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
         jest.clearAllMocks()
+    })
+
+    afterEach(() => {
+        delete process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED
+        while (tempRoots.length) {
+            const root = tempRoots.pop()
+            if (root) {
+                rmSync(root, { recursive: true, force: true })
+            }
+        }
     })
 
     it('configures resource output as artifacts and installs the meta bridge', async () => {
@@ -192,14 +241,15 @@ describe('MCP client factories', () => {
     })
 
     it('resolves plugin-managed MCP server placeholders from the currently loaded plugin root', async () => {
+        const pluginRoot = createLoadedPluginRoot()
         mockLoadedPlugins.push({
             organizationId: 'org-1',
             name: '@xpert-ai/plugin-echarts-mcp-app@runtime__new',
             packageName: '@xpert-ai/plugin-echarts-mcp-app',
-            bundleRoot: '/runtime/new/node_modules/@xpert-ai/plugin-echarts-mcp-app'
+            bundleRoot: pluginRoot
         })
 
-        await createMCPClient(
+        const result = await createMCPClient(
             {
                 ...toolset,
                 tenantId: 'tenant-1',
@@ -228,30 +278,34 @@ describe('MCP client factories', () => {
         )
 
         const created = getCreatedClient()
-        expect(created.config).toMatchObject({
-            mcpServers: {
-                'echarts-drilldown': {
-                    command: 'node',
-                    args: ['/runtime/new/node_modules/@xpert-ai/plugin-echarts-mcp-app/dist/mcp-server.js'],
-                    env: {
-                        ECHARTS_DATA: expect.stringContaining(
-                            '/.xpertai-plugin-data/tenant-1/workspace-1/_xpert-ai_plugin-echarts-mcp-app/echarts-drilldown/cache'
-                        )
-                    }
-                }
+        const server = getConfiguredMcpServer(created, 'echarts-drilldown')
+        const runnerSpec = decodeRunnerSpec(server)
+        expect(server).toMatchObject({
+            command: process.execPath,
+            args: [expect.stringContaining('mcp-stdio-runner.js')]
+        })
+        expect(runnerSpec).toMatchObject({
+            command: process.execPath,
+            args: [pluginEntryPath(pluginRoot)],
+            env: {
+                ECHARTS_DATA: expect.stringContaining(
+                    '/.xpertai-plugin-data/tenant-1/workspace-1/_xpert-ai_plugin-echarts-mcp-app/echarts-drilldown/cache'
+                )
             }
         })
+        await result.destroy?.()
     })
 
     it('rewrites stale plugin runtime roots in existing plugin-managed MCP toolsets', async () => {
+        const pluginRoot = createLoadedPluginRoot()
         mockLoadedPlugins.push({
             organizationId: 'org-1',
             name: '@xpert-ai/plugin-echarts-mcp-app@runtime__new',
             packageName: '@xpert-ai/plugin-echarts-mcp-app',
-            bundleRoot: '/runtime/new/node_modules/@xpert-ai/plugin-echarts-mcp-app'
+            bundleRoot: pluginRoot
         })
 
-        await createMCPClient(
+        const result = await createMCPClient(
             {
                 ...toolset,
                 organizationId: 'org-1',
@@ -277,12 +331,13 @@ describe('MCP client factories', () => {
         )
 
         const created = getCreatedClient()
-        expect(created.config).toMatchObject({
-            mcpServers: {
-                'echarts-drilldown': {
-                    args: ['/runtime/new/node_modules/@xpert-ai/plugin-echarts-mcp-app/dist/mcp-server.js']
-                }
-            }
+        const server = getConfiguredMcpServer(created, 'echarts-drilldown')
+        const runnerSpec = decodeRunnerSpec(server)
+        expect(server).toMatchObject({
+            command: process.execPath,
+            args: [expect.stringContaining('mcp-stdio-runner.js')]
         })
+        expect(runnerSpec.args).toEqual([pluginEntryPath(pluginRoot)])
+        await result.destroy?.()
     })
 })

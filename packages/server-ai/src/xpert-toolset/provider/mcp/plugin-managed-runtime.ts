@@ -9,7 +9,7 @@ type PluginManagedToolsetOptions = {
     componentKey?: string
 }
 
-type PluginRuntimePaths = {
+export type PluginRuntimePaths = {
     pluginRoot: string
     pluginData: string
 }
@@ -69,6 +69,28 @@ function buildPluginDataPath(toolset: Partial<IXpertToolset>, pluginName: string
     )
 }
 
+export function getPluginManagedMcpOptions(toolset: Partial<IXpertToolset>): PluginManagedToolsetOptions | null {
+    return readPluginManagedOptions(toolset)
+}
+
+export function resolvePluginManagedRuntimePaths(toolset: Partial<IXpertToolset>): PluginRuntimePaths | null {
+    const options = readPluginManagedOptions(toolset)
+    if (!options) {
+        return null
+    }
+
+    const loadedPlugin = findLoadedPlugin(options.pluginName, toolset.organizationId)
+    const pluginRoot = loadedPlugin ? resolveLoadedPluginBundleRoot(loadedPlugin) : null
+    if (!pluginRoot) {
+        return null
+    }
+
+    return {
+        pluginRoot,
+        pluginData: buildPluginDataPath(toolset, options.pluginName, options.componentKey)
+    }
+}
+
 function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -121,15 +143,9 @@ export function resolvePluginManagedMcpSchema(toolset: Partial<IXpertToolset>, s
         return schema
     }
 
-    const loadedPlugin = findLoadedPlugin(options.pluginName, toolset.organizationId)
-    const pluginRoot = loadedPlugin ? resolveLoadedPluginBundleRoot(loadedPlugin) : null
-    if (!pluginRoot) {
+    const paths = resolvePluginManagedRuntimePaths(toolset)
+    if (!paths) {
         return schema
-    }
-
-    const paths: PluginRuntimePaths = {
-        pluginRoot,
-        pluginData: buildPluginDataPath(toolset, options.pluginName, options.componentKey)
     }
 
     const resolveServers = (servers?: Record<string, TMCPServer>) => {

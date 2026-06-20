@@ -45,6 +45,7 @@ import {
     SkillRepositoryIndex,
     SkillPackage,
     PluginResourceInstallation,
+    McpRuntimeInstanceEntity,
     AssistantBinding,
     AssistantBindingUserPreference
 } from './internal'
@@ -96,6 +97,7 @@ export const ALL_AI_ENTITIES = [
     SkillRepositoryIndex,
     SkillPackage,
     PluginResourceInstallation,
+    McpRuntimeInstanceEntity,
     AssistantBinding,
     AssistantBindingUserPreference
 ]
