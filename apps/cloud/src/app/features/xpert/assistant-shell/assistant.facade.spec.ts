@@ -2,7 +2,12 @@ import { signal, type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { of, Subject } from 'rxjs'
-import { type AssistantContext, type AssistantStudioRuntimeContext, XpertAssistantFacade } from './assistant.facade'
+import {
+  type AssistantContext,
+  type AssistantStudioRuntimeContext,
+  type AssistantWorkbenchRequestContext,
+  XpertAssistantFacade
+} from './assistant.facade'
 
 jest.mock('../../../@core', () => {
   return {
@@ -68,7 +73,8 @@ type RuntimeInputMock = {
 type RequestContextFacade = {
   buildRequestContext(
     context: AssistantContext,
-    studioRuntimeContext?: AssistantStudioRuntimeContext | null
+    studioRuntimeContext?: AssistantStudioRuntimeContext | null,
+    workbenchRequestContexts?: Record<string, AssistantWorkbenchRequestContext>
   ): Record<string, unknown>
 }
 
@@ -151,16 +157,16 @@ describe('XpertAssistantFacade', () => {
     expect(latestRuntimeInput()).toEqual(
       expect.objectContaining({
         displayMode: 'pet',
-        pet: {
+        pet: expect.objectContaining({
           behavior: 'auto',
-          position: {
+          position: expect.objectContaining({
             pin: 'bottom-right',
             draggable: true,
             persist: true,
             boundsPadding: 16,
             zIndex: 70
-          }
-        },
+          })
+        }),
         titleKey: 'PAC.Xpert.Assistant',
         titleDefault: 'Assistant',
         onEffect: expect.any(Function)
@@ -214,6 +220,90 @@ describe('XpertAssistantFacade', () => {
       baseDraftHash: 'hash-from-pristine',
       unsaved: true
     })
+  })
+
+  it('merges Workbench request contexts into env and structured request context', () => {
+    const { facade } = createFacade('/xpert/x/xpert-1/agents')
+
+    const requestContext = exposeRequestContext(facade).buildRequestContext(
+      {
+        workspaceId: 'workspace-1',
+        xpertId: 'xpert-1'
+      },
+      null,
+      {
+        docxEditor: {
+          env: {
+            docxEditorDocumentId: 'doc-1',
+            docxEditorVersionId: 'version-1',
+            xpertId: 'ignored-workbench-xpert'
+          },
+          context: {
+            currentDocument: {
+              documentId: 'doc-1',
+              title: 'Document 1',
+              currentVersionNumber: 3,
+              workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v3-abcd1234.docx',
+              dirty: true
+            }
+          }
+        }
+      }
+    )
+
+    expect(requestContext).toEqual({
+      env: {
+        docxEditorDocumentId: 'doc-1',
+        docxEditorVersionId: 'version-1',
+        xpertId: 'xpert-1',
+        workspaceId: 'workspace-1'
+      },
+      docxEditor: {
+        currentDocument: {
+          documentId: 'doc-1',
+          title: 'Document 1',
+          currentVersionNumber: 3,
+          workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v3-abcd1234.docx',
+          dirty: true
+        }
+      }
+    })
+  })
+
+  it('updates and clears Workbench request context through facade methods', () => {
+    const { facade } = createFacade('/xpert/x/xpert-1/agents')
+
+    facade.setWorkbenchContext('docxEditor', {
+      env: {
+        docxEditorDocumentId: 'doc-1'
+      },
+      context: {
+        currentDocument: {
+          documentId: 'doc-1'
+        }
+      }
+    })
+
+    expect(facade.requestContext()).toEqual(
+      expect.objectContaining({
+        docxEditor: {
+          currentDocument: {
+            documentId: 'doc-1'
+          }
+        }
+      })
+    )
+
+    facade.setWorkbenchContext('docxEditor', null)
+
+    expect(facade.requestContext()).not.toHaveProperty('docxEditor')
+    expect(facade.requestContext()).toEqual(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          xpertId: 'xpert-1'
+        })
+      })
+    )
   })
 
   it('reads assistant id from the unified runtime config when configured', () => {

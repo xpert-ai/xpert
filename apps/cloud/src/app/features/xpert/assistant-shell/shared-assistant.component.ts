@@ -2,7 +2,10 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, DestroyRef, inject } from '@angular/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
-import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
+import {
+  registerAssistantChatSendMessageCommand,
+  registerAssistantContextSetCommand
+} from '../../assistant/assistant-chat-client-command'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { XpertAssistantFacade } from './assistant.facade'
@@ -38,10 +41,16 @@ export class XpertSharedAssistantComponent {
         openWorkbenchFilePreviewDialog(this.#dialog, file)
       }
     })
+    const unregisterAssistantContext = registerAssistantContextSetCommand(this.#clientCommands, {
+      setContext: (key, context) => {
+        this.#facade.setWorkbenchContext(key, context)
+      }
+    })
 
     this.#destroyRef.onDestroy(() => {
       unregisterAssistant()
       unregisterFileOpen()
+      unregisterAssistantContext()
     })
   }
 }
