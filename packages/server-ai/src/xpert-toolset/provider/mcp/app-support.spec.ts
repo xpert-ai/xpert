@@ -1,7 +1,12 @@
 import type { DynamicStructuredTool } from '@langchain/core/tools'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { IXpertToolset } from '@xpert-ai/contracts'
-import { detachMcpAppInstancesForClient, getMcpAppInstance, registerMcpAppInstance } from './app-support'
+import {
+    detachMcpAppInstancesForClient,
+    getMcpAppInstance,
+    registerMcpAppInstance,
+    verifyMcpAppInstanceToken
+} from './app-support'
 import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 
 function createTool(name: string, resourceUri: string) {
@@ -44,6 +49,7 @@ describe('MCP App instance lifecycle', () => {
 
     afterEach(() => {
         delete process.env.XPERT_MCP_APPS_ENABLED
+        jest.useRealTimers()
     })
 
     it('detaches app instances owned by a closing MCP client so later requests can revive them', () => {
@@ -151,5 +157,45 @@ describe('MCP App instance lifecycle', () => {
         expect(liveInstance?.toolResult?.structuredContent).toMatchObject({
             rows: [{ value: expect.stringContaining('xxx') }]
         })
+    })
+
+    it('allows signed expired tokens to be validated only when expiration is explicitly ignored', () => {
+        jest.useFakeTimers()
+        jest.setSystemTime(new Date('2026-06-20T11:52:24.000Z'))
+
+        const client = {} as MultiServerMCPClient
+        const toolset = createToolset()
+        const app = registerMcpAppInstance({
+            client,
+            toolset,
+            tool: createTool('wiki_links', 'ui://wiki-explorer/mcp-app.html'),
+            toolCallId: 'call_1'
+        })
+
+        expect(app?.appInstanceToken).toBeTruthy()
+
+        jest.setSystemTime(new Date('2026-06-20T12:23:24.000Z'))
+
+        expect(() =>
+            verifyMcpAppInstanceToken(app!.appInstanceToken!, {
+                appInstanceId: app!.appInstanceId,
+                toolsetId: toolset.id,
+                resourceUri: app!.resourceUri,
+                toolCallId: 'call_1'
+            })
+        ).toThrow('MCP App token has expired')
+
+        expect(
+            verifyMcpAppInstanceToken(
+                app!.appInstanceToken!,
+                {
+                    appInstanceId: app!.appInstanceId,
+                    toolsetId: toolset.id,
+                    resourceUri: app!.resourceUri,
+                    toolCallId: 'call_1'
+                },
+                { ignoreExpiration: true }
+            ).appInstanceId
+        ).toBe(app!.appInstanceId)
     })
 })

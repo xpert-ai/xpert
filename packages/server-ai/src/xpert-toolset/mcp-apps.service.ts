@@ -14,11 +14,13 @@ import {
     listMcpToolAppMetadata,
     readMcpAppResource,
     readMcpAppServerResource,
+    refreshMcpAppInstanceToken,
     restoreMcpAppInstance,
     updateMcpAppModelContext,
     verifyMcpAppInstanceToken
 } from './provider/mcp/app-support'
 import type { McpAppInstance } from './provider/mcp/app-support'
+import { ChatMessageService } from '../chat-message/chat-message.service'
 import { createProMCPClient } from './provider/mcp/pro'
 import { createMCPClient } from './provider/mcp/types'
 import { XpertToolsetService } from './xpert-toolset.service'
@@ -31,6 +33,7 @@ export type McpAppReviveQuery = {
     resourceUri?: string | string[]
     title?: string | string[]
     token?: string | string[]
+    messageId?: string | string[]
 }
 
 type NormalizedMcpAppReviveQuery = {
@@ -41,6 +44,7 @@ type NormalizedMcpAppReviveQuery = {
     resourceUri?: string
     title?: string
     token?: string
+    messageId?: string
 }
 
 type JsonRpcRequest = {
@@ -76,8 +80,55 @@ function normalizeReviveQuery(query?: McpAppReviveQuery): NormalizedMcpAppRevive
         toolCallId: readQueryString(query?.toolCallId),
         resourceUri: readQueryString(query?.resourceUri),
         title: readQueryString(query?.title),
-        token: readQueryString(query?.token)
+        token: readQueryString(query?.token),
+        messageId: readQueryString(query?.messageId)
     }
+}
+
+function readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readMcpAppComponentData(value: unknown): Record<string, unknown> | null {
+    if (!isRecord(value)) {
+        return null
+    }
+    if (value.type === 'McpApp') {
+        return value
+    }
+    if (isRecord(value.data) && value.data.type === 'McpApp') {
+        return value.data
+    }
+    return null
+}
+
+function collectMcpAppComponentData(value: unknown, items: Record<string, unknown>[] = []) {
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            collectMcpAppComponentData(item, items)
+        }
+        return items
+    }
+
+    if (!isRecord(value)) {
+        return items
+    }
+
+    const data = readMcpAppComponentData(value)
+    if (data) {
+        items.push(data)
+    }
+
+    if (isRecord(value.data)) {
+        collectMcpAppComponentData(value.data, items)
+    }
+
+    return items
+}
+
+function matchesExpectedValue(actual: string | undefined, expected: Array<string | undefined>) {
+    const expectedValues = expected.filter((value): value is string => Boolean(value))
+    return expectedValues.length === 0 || (Boolean(actual) && expectedValues.includes(actual))
 }
 
 function jsonRpcResult(id: JsonRpcRequest['id'], result: unknown) {
@@ -101,7 +152,8 @@ export class McpAppsService {
     constructor(
         private readonly toolsetService: XpertToolsetService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly messageService: ChatMessageService
     ) {}
 
     private assertEnabled() {
@@ -110,20 +162,41 @@ export class McpAppsService {
         }
     }
 
-    private async getInstance(appInstanceId: string, query?: McpAppReviveQuery) {
+    private async getInstance(
+        appInstanceId: string,
+        query?: McpAppReviveQuery,
+        options?: { allowMessageBootstrap?: boolean }
+    ) {
         this.assertEnabled()
         const normalizedQuery = normalizeReviveQuery(query)
         const instance = getMcpAppInstance(appInstanceId)
         if (instance) {
-            this.assertTokenForInstance(instance, normalizedQuery)
+            await this.assertAccessForInstance(instance, normalizedQuery, options)
             return instance
         }
 
-        const revived = await this.reviveInstance(appInstanceId, normalizedQuery)
+        const revived = await this.reviveInstance(appInstanceId, normalizedQuery, options)
         if (!revived) {
             throw new NotFoundException('MCP App instance was not found or has expired')
         }
         return revived
+    }
+
+    private async assertAccessForInstance(
+        instance: McpAppInstance,
+        query: NormalizedMcpAppReviveQuery,
+        options?: { allowMessageBootstrap?: boolean }
+    ) {
+        try {
+            this.assertTokenForInstance(instance, query)
+            return
+        } catch (error) {
+            if (!options?.allowMessageBootstrap) {
+                throw error
+            }
+        }
+
+        await this.assertMessageBootstrap(instance.id, query, instance.toolset, instance.toolMeta)
     }
 
     private assertTokenForInstance(instance: McpAppInstance, query: NormalizedMcpAppReviveQuery) {
@@ -151,14 +224,90 @@ export class McpAppsService {
         }
     }
 
-    private assertReviveToken(
+    private assertExpiredTokenForBootstrap(
         appInstanceId: string,
         query: NormalizedMcpAppReviveQuery,
         toolset?: McpAppInstance['toolset'],
         toolMeta?: TMcpToolAppMeta
     ) {
         if (!query.token) {
+            return false
+        }
+
+        verifyMcpAppInstanceToken(
+            query.token,
+            {
+                appInstanceId,
+                tenantId: toolset?.tenantId,
+                organizationId: toolset?.organizationId,
+                workspaceId: toolset?.workspaceId,
+                toolsetId: toolset?.id ?? query.toolsetId,
+                serverName: toolMeta?.serverName ?? query.serverName,
+                toolName: toolMeta?.name ?? query.toolName,
+                resourceUri: toolMeta?.ui?.resourceUri ?? query.resourceUri,
+                toolCallId: query.toolCallId
+            },
+            { ignoreExpiration: true }
+        )
+        return true
+    }
+
+    private async assertMessageBootstrap(
+        appInstanceId: string,
+        query: NormalizedMcpAppReviveQuery,
+        toolset?: McpAppInstance['toolset'],
+        toolMeta?: TMcpToolAppMeta
+    ) {
+        let tokenError: unknown
+        try {
+            this.assertExpiredTokenForBootstrap(appInstanceId, query, toolset, toolMeta)
+        } catch (error) {
+            tokenError = error
+        }
+
+        if (!query.messageId) {
+            if (tokenError) {
+                throw new ForbiddenException(getErrorMessage(tokenError))
+            }
             if (isMcpAppTokenRequired()) {
+                throw new ForbiddenException('MCP App message bootstrap metadata is required')
+            }
+            return
+        }
+
+        const message = await this.messageService.findOne(query.messageId).catch(() => null)
+        const components = [
+            ...collectMcpAppComponentData(message?.events),
+            ...collectMcpAppComponentData(message?.content)
+        ]
+        const matched = components.some((data) => {
+            if (readString(data.appInstanceId) !== appInstanceId) {
+                return false
+            }
+
+            return (
+                matchesExpectedValue(readString(data.toolsetId), [toolset?.id, query.toolsetId]) &&
+                matchesExpectedValue(readString(data.serverName), [toolMeta?.serverName, query.serverName]) &&
+                matchesExpectedValue(readString(data.resourceUri), [toolMeta?.ui?.resourceUri, query.resourceUri]) &&
+                matchesExpectedValue(readString(data.toolCallId), [query.toolCallId]) &&
+                matchesExpectedValue(readString(data.toolName), [toolMeta?.name, toolMeta?.displayName, query.toolName])
+            )
+        })
+
+        if (!matched) {
+            throw new ForbiddenException('MCP App message bootstrap metadata was not found')
+        }
+    }
+
+    private assertReviveToken(
+        appInstanceId: string,
+        query: NormalizedMcpAppReviveQuery,
+        toolset?: McpAppInstance['toolset'],
+        toolMeta?: TMcpToolAppMeta,
+        options?: { allowMessageBootstrap?: boolean }
+    ) {
+        if (!query.token) {
+            if (isMcpAppTokenRequired() && !options?.allowMessageBootstrap) {
                 throw new ForbiddenException('MCP App token is required')
             }
             return
@@ -181,7 +330,36 @@ export class McpAppsService {
         }
     }
 
-    private async reviveInstance(appInstanceId: string, query: NormalizedMcpAppReviveQuery) {
+    private async assertReviveAccess(
+        appInstanceId: string,
+        query: NormalizedMcpAppReviveQuery,
+        toolset?: McpAppInstance['toolset'],
+        toolMeta?: TMcpToolAppMeta,
+        options?: { allowMessageBootstrap?: boolean }
+    ) {
+        try {
+            this.assertReviveToken(appInstanceId, query, toolset, toolMeta, options)
+            if (query.token || !isMcpAppTokenRequired()) {
+                return
+            }
+        } catch (error) {
+            if (!options?.allowMessageBootstrap) {
+                throw error
+            }
+        }
+
+        if (!options?.allowMessageBootstrap) {
+            return
+        }
+
+        await this.assertMessageBootstrap(appInstanceId, query, toolset, toolMeta)
+    }
+
+    private async reviveInstance(
+        appInstanceId: string,
+        query: NormalizedMcpAppReviveQuery,
+        options?: { allowMessageBootstrap?: boolean }
+    ) {
         if (!query.toolsetId || !query.resourceUri?.startsWith('ui://')) {
             return null
         }
@@ -190,7 +368,7 @@ export class McpAppsService {
         if (!toolset?.schema) {
             return null
         }
-        this.assertReviveToken(appInstanceId, query, toolset)
+        await this.assertReviveAccess(appInstanceId, query, toolset, undefined, options)
 
         const schema = JSON.parse(toolset.schema) as TMCPSchema
         const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
@@ -208,7 +386,7 @@ export class McpAppsService {
                 await client.close()
                 return null
             }
-            this.assertReviveToken(appInstanceId, query, toolset, toolMeta)
+            await this.assertReviveAccess(appInstanceId, query, toolset, toolMeta, options)
 
             const restored = restoreMcpAppInstance({
                 id: appInstanceId,
@@ -262,11 +440,12 @@ export class McpAppsService {
     }
 
     async getResource(appInstanceId: string, query?: McpAppReviveQuery) {
-        const instance = await this.getInstance(appInstanceId, query)
+        const instance = await this.getInstance(appInstanceId, query, { allowMessageBootstrap: true })
         const resource = await readMcpAppResource(instance)
 
         return {
             ...resource,
+            appInstanceToken: refreshMcpAppInstanceToken(instance),
             resourceUri: resource.uri ?? instance.toolMeta.ui?.resourceUri,
             csp: resource.csp,
             permissions: resource.permissions,

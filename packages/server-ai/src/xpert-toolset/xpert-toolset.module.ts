@@ -18,6 +18,7 @@ import { McpRuntimeController } from './mcp-runtime.controller'
 import { McpRuntimeAuditService } from './mcp-runtime-audit.service'
 import { McpRuntimeInstanceEntity } from './mcp-runtime-instance.entity'
 import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-installation.entity'
+import { ChatMessageModule } from '../chat-message'
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-i
         TenantModule,
         CqrsModule,
         CopilotModule,
+        ChatMessageModule,
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => XpertAgentModule)
     ],

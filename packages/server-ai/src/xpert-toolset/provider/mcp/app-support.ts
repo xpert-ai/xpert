@@ -92,6 +92,10 @@ type McpAppInstanceTokenPayload = {
     exp: number
 }
 
+type VerifyMcpAppInstanceTokenOptions = {
+    ignoreExpiration?: boolean
+}
+
 export type McpAppInstanceTokenExpected = Partial<
     Pick<
         McpAppInstanceTokenPayload,
@@ -175,7 +179,7 @@ function signaturesEqual(left: string, right: string) {
     return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
 }
 
-function createMcpAppInstanceToken(instance: McpAppInstance) {
+export function createMcpAppInstanceToken(instance: McpAppInstance) {
     const payload: McpAppInstanceTokenPayload = {
         v: 1,
         appInstanceId: instance.id,
@@ -194,7 +198,10 @@ function createMcpAppInstanceToken(instance: McpAppInstance) {
     return `${encodedPayload}.${signMcpAppTokenPayload(encodedPayload)}`
 }
 
-function readMcpAppInstanceTokenPayload(token: string): McpAppInstanceTokenPayload {
+function readMcpAppInstanceTokenPayload(
+    token: string,
+    options?: VerifyMcpAppInstanceTokenOptions
+): McpAppInstanceTokenPayload {
     const [encodedPayload, signature, extra] = token.split('.')
     if (!encodedPayload || !signature || extra) {
         throw new Error('Invalid MCP App token')
@@ -207,7 +214,7 @@ function readMcpAppInstanceTokenPayload(token: string): McpAppInstanceTokenPaylo
     if (payload.v !== 1 || !payload.appInstanceId || !Number.isFinite(payload.exp)) {
         throw new Error('Invalid MCP App token payload')
     }
-    if (payload.exp <= Date.now()) {
+    if (!options?.ignoreExpiration && payload.exp <= Date.now()) {
         throw new Error('MCP App token has expired')
     }
     return payload
@@ -233,8 +240,12 @@ function assertTokenField(
     }
 }
 
-export function verifyMcpAppInstanceToken(token: string, expected: McpAppInstanceTokenExpected) {
-    const payload = readMcpAppInstanceTokenPayload(token)
+export function verifyMcpAppInstanceToken(
+    token: string,
+    expected: McpAppInstanceTokenExpected,
+    options?: VerifyMcpAppInstanceTokenOptions
+) {
+    const payload = readMcpAppInstanceTokenPayload(token, options)
     assertTokenField(payload, expected, 'appInstanceId')
     assertTokenField(payload, expected, 'tenantId')
     assertTokenField(payload, expected, 'organizationId')
@@ -245,6 +256,11 @@ export function verifyMcpAppInstanceToken(token: string, expected: McpAppInstanc
     assertTokenField(payload, expected, 'resourceUri')
     assertTokenField(payload, expected, 'toolCallId')
     return payload
+}
+
+export function refreshMcpAppInstanceToken(instance: McpAppInstance, now = Date.now()) {
+    instance.expiresAt = now + MCP_APP_INSTANCE_TTL_MS
+    return createMcpAppInstanceToken(instance)
 }
 
 export function isMcpAppTokenRequired() {

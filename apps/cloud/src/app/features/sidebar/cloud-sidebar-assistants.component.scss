@@ -110,11 +110,15 @@
   height: 2.2rem;
   align-items: center;
   gap: 0.45rem;
-  border: 1px solid var(--color-divider-regular);
   border-radius: 0.5rem;
-  background: var(--color-components-card-bg);
   color: var(--color-text-tertiary);
-  padding: 0 0.9rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+}
+
+.cloud-sidebar-assistants__search:focus-within {
+  background: var(--color-components-card-bg);
+  border-color: var(--color-divider-regular);
 }
 
 .cloud-sidebar-assistants:not(.is-collapsed) .cloud-sidebar-assistants__search,
