@@ -319,8 +319,8 @@
     opacity 160ms ease;
 }
 
-.cloud-sidebar-assistants__item--clawxpert:hover .cloud-sidebar-assistants__settings,
-.cloud-sidebar-assistants__item--clawxpert.is-active .cloud-sidebar-assistants__settings,
+.cloud-sidebar-assistants__item:hover .cloud-sidebar-assistants__settings,
+.cloud-sidebar-assistants__item.is-active .cloud-sidebar-assistants__settings,
 .cloud-sidebar-assistants__settings:focus-visible {
   opacity: 1;
 }

@@ -144,6 +144,28 @@ export type TChatConversationLog = IChatConversation & {
   messageCount: number
 }
 
+export interface IChatConversationReadState extends IBasePerTenantAndOrganizationEntityModel {
+  conversationId: string
+  userId: string
+  lastReadAt: Date | string
+  lastReadMessageId?: string | null
+}
+
+export interface IChatConversationMarkReadRequest {
+  lastReadMessageId?: string | null
+}
+
+export interface IChatConversationUnreadXpertsRequest {
+  xpertIds: string[]
+}
+
+export interface IChatConversationUnreadXpertSummary {
+  xpertId: string
+  unreadMessages: number
+  unreadConversations: number
+  latestUnreadAt?: Date | string | null
+}
+
 // Types
 export type ChatMessage = {
   conversationId: string

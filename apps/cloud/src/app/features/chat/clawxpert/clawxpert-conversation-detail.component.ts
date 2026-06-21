@@ -645,6 +645,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
+  #markReadRequestVersion = 0
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -669,12 +670,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onThreadChange: ({ threadId }) => {
       this.facade.onChatThreadChange(threadId)
     },
-    // onThreadLoadStart: ({ threadId }) => {
-    //   this.facade.onChatThreadChange(threadId)
-    // },
-    // onThreadLoadEnd: ({ threadId }) => {
-    //   this.facade.onChatThreadChange(threadId)
-    // },
+    onThreadLoadEnd: ({ threadId }) => {
+      this.markChatkitThreadRead(threadId)
+    },
     onEffect: (event) => {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
@@ -714,6 +712,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onResponseEnd: () => {
       this.#responseActive.set(false)
       this.facade.patchActiveConversationStatus('idle')
+      this.markChatkitThreadRead(this.facade.threadId() ?? this.resolvedConversation()?.threadId)
     }
   })
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([{ ...INITIAL_WORKSPACE_TAB }])
@@ -1106,6 +1105,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
       await control.setThreadId(threadId)
       this.facade.onChatThreadChange(threadId)
+      if (conversation.id) {
+        this.markConversationRead(conversation.id)
+      } else {
+        this.markChatkitThreadRead(threadId)
+      }
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to open task history conversation.')
     }
@@ -1487,6 +1491,63 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       ...conversation,
       status: 'busy'
     } as IChatConversation
+  }
+
+  private markChatkitThreadRead(threadId: string | null | undefined) {
+    const normalizedThreadId = normalizeConversationThreadId(threadId)
+    if (!normalizedThreadId) {
+      return
+    }
+
+    const requestVersion = ++this.#markReadRequestVersion
+    void this.resolveConversationIdForRead(normalizedThreadId, requestVersion)
+  }
+
+  private async resolveConversationIdForRead(threadId: string, requestVersion: number) {
+    const resolvedConversation = this.resolvedConversation()
+    if (normalizeConversationThreadId(resolvedConversation?.threadId) === threadId && resolvedConversation?.id) {
+      this.markConversationRead(resolvedConversation.id)
+      return
+    }
+
+    let conversationId: string | null = null
+    try {
+      const thread = (await firstValueFrom(this.#threadService.getThread(threadId))) as {
+        metadata?: { id?: string }
+      } | null
+      conversationId = resolveConversationId(thread?.metadata)
+    } catch {
+      conversationId = null
+    }
+
+    if (requestVersion !== this.#markReadRequestVersion) {
+      return
+    }
+
+    if (!conversationId) {
+      try {
+        const conversation = (await firstValueFrom(
+          this.#conversationService.getByThreadId(threadId)
+        )) as IChatConversation | null
+        conversationId = conversation?.id ?? null
+      } catch {
+        conversationId = null
+      }
+    }
+
+    if (requestVersion !== this.#markReadRequestVersion || !conversationId) {
+      return
+    }
+
+    this.markConversationRead(conversationId)
+  }
+
+  private markConversationRead(conversationId: string | null | undefined) {
+    if (!conversationId) {
+      return
+    }
+
+    void firstValueFrom(this.#conversationService.markRead(conversationId)).catch(() => undefined)
   }
 }
 

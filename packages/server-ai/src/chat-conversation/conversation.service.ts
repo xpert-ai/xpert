@@ -1,26 +1,39 @@
 import { BaseStore } from '@langchain/langgraph'
-import { IChatMessage, LongTermMemoryTypeEnum, TFile, TFileDirectory } from '@xpert-ai/contracts'
+import {
+    IChatConversationReadState,
+    IChatConversationUnreadXpertSummary,
+    IChatMessage,
+    LongTermMemoryTypeEnum,
+    TFile,
+    TFileDirectory
+} from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, Repository } from 'typeorm'
+import { DeepPartial, IsNull, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
+import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 
 @Injectable()
-export class ChatConversationService extends TenantOrganizationAwareCrudService<ChatConversation> {
+export class ChatConversationService
+    extends TenantOrganizationAwareCrudService<ChatConversation>
+    implements OnModuleInit
+{
     private readonly logger = new Logger(ChatConversationService.name)
 
     constructor(
         @InjectRepository(ChatConversation)
         public repository: Repository<ChatConversation>,
+        @InjectRepository(ChatConversationReadState)
+        private readonly readStateRepository: Repository<ChatConversationReadState>,
         private readonly messageService: ChatMessageService,
         readonly commandBus: CommandBus,
         readonly queryBus: QueryBus,
@@ -31,6 +44,24 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         super(repository)
     }
 
+    async onModuleInit() {
+        await this.backfillConversationReadStates().catch((error) => {
+            this.logger.warn(`Unable to backfill chat conversation read states: ${error?.message ?? error}`)
+        })
+    }
+
+    override async create(entity: DeepPartial<ChatConversation>, ...options: any[]): Promise<ChatConversation> {
+        const conversation = await super.create(entity, ...options)
+        await this.ensureInitialReadState(conversation).catch((error) => {
+            this.logger.warn(
+                `Unable to initialize read state for conversation ${conversation?.id ?? '(unknown)'}: ${
+                    error?.message ?? error
+                }`
+            )
+        })
+        return conversation
+    }
+
     async findAllByXpert(xpertId: string, options: PaginationParams<ChatConversation>) {
         return this.findAll({
             ...options,
@@ -39,6 +70,97 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 xpertId
             }
         })
+    }
+
+    async getUnreadByXperts(xpertIds: string[]): Promise<IChatConversationUnreadXpertSummary[]> {
+        const normalizedXpertIds = Array.from(
+            new Set(
+                (xpertIds ?? [])
+                    .filter((id): id is string => typeof id === 'string' && !!id.trim())
+                    .map((id) => id.trim())
+            )
+        )
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+
+        if (!tenantId || !userId || normalizedXpertIds.length === 0) {
+            return []
+        }
+
+        const params: unknown[] = [tenantId, userId]
+        const organizationClause = organizationId
+            ? (() => {
+                  params.push(organizationId)
+                  return `c."organizationId" = $${params.length}`
+              })()
+            : `c."organizationId" IS NULL`
+        const xpertPlaceholders = normalizedXpertIds.map((id) => {
+            params.push(id)
+            return `$${params.length}`
+        })
+
+        const rows = (await this.repository.query(
+            `
+                SELECT
+                    c."xpertId" AS "xpertId",
+                    COUNT(m.id)::int AS "unreadMessages",
+                    COUNT(DISTINCT c.id)::int AS "unreadConversations",
+                    MAX(m."createdAt") AS "latestUnreadAt"
+                FROM chat_conversation c
+                INNER JOIN chat_message m
+                    ON m."conversationId" = c.id
+                    AND m.role = 'ai'
+                    AND m."deletedAt" IS NULL
+                LEFT JOIN chat_conversation_read_state rs
+                    ON rs."conversationId" = c.id
+                    AND rs."userId" = $2
+                WHERE
+                    c."tenantId" = $1
+                    AND ${organizationClause}
+                    AND c."createdById" = $2
+                    AND c."xpertId" IN (${xpertPlaceholders.join(', ')})
+                    AND m."createdAt" > COALESCE(rs."lastReadAt", c."createdAt")
+                GROUP BY c."xpertId"
+            `,
+            params
+        )) as Array<{
+            xpertId: string
+            unreadMessages: string | number
+            unreadConversations: string | number
+            latestUnreadAt?: Date | string | null
+        }>
+
+        return rows.map((row) => ({
+            xpertId: row.xpertId,
+            unreadMessages: Number(row.unreadMessages) || 0,
+            unreadConversations: Number(row.unreadConversations) || 0,
+            latestUnreadAt: row.latestUnreadAt ?? null
+        }))
+    }
+
+    async markRead(conversationId: string, lastReadMessageId?: string | null): Promise<IChatConversationReadState> {
+        const userId = RequestContext.currentUserId()
+        if (!userId) {
+            throw new BadRequestException('User is required to update conversation read state')
+        }
+
+        const conversation = await this.findOneByOptions({
+            where: {
+                id: conversationId,
+                createdById: userId
+            } as any
+        })
+        if (!conversation?.id) {
+            throw new BadRequestException('Conversation is required to update read state')
+        }
+
+        const lastReadMessage = await this.resolveLastReadMessage(conversation.id, lastReadMessageId)
+        const lastReadAt = this.normalizeReadAt(
+            lastReadMessage?.createdAt ?? conversation.updatedAt ?? conversation.createdAt
+        )
+
+        return this.saveConversationReadState(conversation, userId, lastReadAt, lastReadMessage?.id ?? null)
     }
 
     async findOneByThreadId(threadId: string) {
@@ -237,6 +359,133 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         }
 
         throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
+    }
+
+    private async ensureInitialReadState(conversation: ChatConversation) {
+        const userId = RequestContext.currentUserId() ?? conversation?.createdById
+        if (!conversation?.id || !userId) {
+            return
+        }
+
+        await this.saveConversationReadState(
+            conversation,
+            userId,
+            this.normalizeReadAt(conversation.createdAt ?? conversation.updatedAt),
+            null
+        )
+    }
+
+    private async resolveLastReadMessage(conversationId: string, messageId?: string | null) {
+        const normalizedMessageId = typeof messageId === 'string' && messageId.trim() ? messageId.trim() : null
+        if (normalizedMessageId) {
+            return this.messageService.findOneByOptions({
+                where: {
+                    id: normalizedMessageId,
+                    conversationId
+                } as any
+            })
+        }
+
+        const result = await this.messageService.findAll({
+            where: {
+                conversationId
+            } as any,
+            order: {
+                createdAt: 'DESC',
+                id: 'DESC'
+            } as any,
+            take: 1
+        })
+
+        return result.items?.[0] ?? null
+    }
+
+    private async saveConversationReadState(
+        conversation: ChatConversation,
+        userId: string,
+        lastReadAt: Date,
+        lastReadMessageId: string | null
+    ) {
+        if (!conversation.id) {
+            throw new BadRequestException('Conversation id is required to update read state')
+        }
+
+        const conversationId = conversation.id
+        const tenantId = conversation.tenantId ?? RequestContext.currentTenantId()
+        const organizationId = conversation.organizationId ?? null
+        const existing = await this.readStateRepository.findOne({
+            where: {
+                tenantId,
+                organizationId: organizationId ? organizationId : IsNull(),
+                conversationId,
+                userId
+            } as any
+        })
+
+        const readState = this.readStateRepository.create({
+            ...(existing ?? {}),
+            tenantId,
+            organizationId,
+            conversationId,
+            userId,
+            lastReadAt,
+            lastReadMessageId
+        } as DeepPartial<ChatConversationReadState>)
+
+        return this.readStateRepository.save(readState)
+    }
+
+    private normalizeReadAt(value: Date | string | null | undefined) {
+        if (!value) {
+            return new Date()
+        }
+
+        return value instanceof Date ? value : new Date(value)
+    }
+
+    private async backfillConversationReadStates() {
+        if (!(await this.tableExists('chat_conversation_read_state'))) {
+            return
+        }
+
+        await this.readStateRepository.query(`
+            INSERT INTO chat_conversation_read_state (
+                "tenantId",
+                "organizationId",
+                "conversationId",
+                "userId",
+                "lastReadAt",
+                "lastReadMessageId",
+                "createdAt",
+                "updatedAt"
+            )
+            SELECT
+                c."tenantId",
+                c."organizationId",
+                c.id,
+                c."createdById",
+                COALESCE(MAX(m."createdAt"), c."updatedAt", c."createdAt"),
+                (array_agg(m.id ORDER BY m."createdAt" DESC NULLS LAST, m.id DESC) FILTER (WHERE m.id IS NOT NULL))[1],
+                NOW(),
+                NOW()
+            FROM chat_conversation c
+            LEFT JOIN chat_message m
+                ON m."conversationId" = c.id
+                AND m."deletedAt" IS NULL
+            WHERE c."createdById" IS NOT NULL
+            GROUP BY c."tenantId", c."organizationId", c.id, c."createdById", c."updatedAt", c."createdAt"
+            ON CONFLICT ("tenantId", "organizationId", "conversationId", "userId") DO NOTHING
+        `)
+    }
+
+    private async tableExists(tableName: string) {
+        const result = (await this.readStateRepository.query(`SELECT to_regclass($1) as "name"`, [
+            tableName
+        ])) as Array<{
+            name?: string | null
+        }>
+
+        return !!result?.[0]?.name
     }
 
     private createEnvironmentVolumeHandle(conversation: ChatConversation, sandboxEnvironmentId: string) {

@@ -2,18 +2,22 @@ import { Injectable } from '@angular/core'
 import {
   API_PREFIX,
   IChatConversation,
+  IChatConversationReadState,
+  IChatConversationUnreadXpertSummary,
   IStorageFile,
   OrganizationBaseCrudService,
   PaginationParams,
   TFileDirectory,
   toHttpParams
 } from '@xpert-ai/cloud/state'
-import { switchMap } from 'rxjs'
+import { Subject, switchMap, tap } from 'rxjs'
 import { TFile } from '../types'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
+  readonly #unreadRefresh = new Subject<void>()
+  readonly unreadRefresh$ = this.#unreadRefresh.asObservable()
 
   constructor() {
     super(API_PREFIX + '/chat-conversation')
@@ -80,6 +84,40 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     )
   }
 
+  getUnreadByXperts(xpertIds: string[], organizationId?: string) {
+    return this.selectOrganizationId().pipe(
+      switchMap(() =>
+        this.httpClient.post<IChatConversationUnreadXpertSummary[]>(
+          this.apiBaseUrl + '/unread/xperts',
+          {
+            xpertIds
+          },
+          {
+            params: appendOrganizationIdQueryParam(null, organizationId)
+          }
+        )
+      )
+    )
+  }
+
+  markRead(id: string, lastReadMessageId?: string | null, organizationId?: string) {
+    return this.httpClient
+      .post<IChatConversationReadState>(
+        this.apiBaseUrl + `/${id}/read-state`,
+        {
+          ...(lastReadMessageId ? { lastReadMessageId } : {})
+        },
+        {
+          params: appendOrganizationIdQueryParam(null, organizationId)
+        }
+      )
+      .pipe(tap(() => this.#unreadRefresh.next()))
+  }
+
+  refreshUnread() {
+    this.#unreadRefresh.next()
+  }
+
   // Files
 
   getFiles(id: string, path = '', organizationId?: string) {
@@ -140,5 +178,4 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
       })
     })
   }
-
 }

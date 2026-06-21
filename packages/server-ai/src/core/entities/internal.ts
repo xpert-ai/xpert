@@ -1,4 +1,5 @@
 export * from '../../chat-conversation/conversation.entity'
+export * from '../../chat-conversation/conversation-read-state.entity'
 export * from '../../chat-conversation/goal/conversation-goal.entity'
 export * from '../../assistant-binding/assistant-binding.entity'
 export * from '../../assistant-binding/assistant-binding-user-preference.entity'

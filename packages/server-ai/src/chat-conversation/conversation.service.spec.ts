@@ -2,6 +2,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         currentUserId: jest.fn(),
+        getOrganizationId: jest.fn(),
         getUser: jest.fn()
     },
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
@@ -60,7 +61,17 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 
 describe('ChatConversationService workspace files', () => {
-    let repository: { findOne: jest.Mock }
+    let repository: { findOne: jest.Mock; query: jest.Mock }
+    let readStateRepository: {
+        create: jest.Mock
+        findOne: jest.Mock
+        save: jest.Mock
+        query: jest.Mock
+    }
+    let messageService: {
+        findAll: jest.Mock
+        findOneByOptions: jest.Mock
+    }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let service: ChatConversationService
     const conversation = {
@@ -76,9 +87,21 @@ describe('ChatConversationService workspace files', () => {
     beforeEach(() => {
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
 
         repository = {
-            findOne: jest.fn()
+            findOne: jest.fn(),
+            query: jest.fn()
+        } as any
+        readStateRepository = {
+            create: jest.fn((entity) => entity),
+            findOne: jest.fn().mockResolvedValue(null),
+            save: jest.fn(async (entity) => entity),
+            query: jest.fn()
+        }
+        messageService = {
+            findAll: jest.fn().mockResolvedValue({ items: [] }),
+            findOneByOptions: jest.fn()
         }
 
         volumeClient = {
@@ -91,7 +114,8 @@ describe('ChatConversationService workspace files', () => {
 
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
-            {} as ChatMessageService,
+            readStateRepository as any,
+            messageService as unknown as ChatMessageService,
             {} as CommandBus,
             {} as QueryBus,
             {} as Queue,
@@ -114,6 +138,102 @@ describe('ChatConversationService workspace files', () => {
             path: 'docs',
             deepth: 2
         })
+    })
+
+    it('aggregates unread ai messages by xpert for the current user and organization', async () => {
+        repository.query.mockResolvedValue([
+            {
+                xpertId: 'xpert-1',
+                unreadMessages: '2',
+                unreadConversations: '1',
+                latestUnreadAt: '2026-06-21T00:00:00.000Z'
+            }
+        ])
+
+        const result = await service.getUnreadByXperts(['xpert-1', 'xpert-1', ''])
+
+        expect(repository.query).toHaveBeenCalledWith(expect.stringContaining(`m.role = 'ai'`), [
+            'tenant-1',
+            'user-1',
+            'org-1',
+            'xpert-1'
+        ])
+        expect(repository.query.mock.calls[0][0]).toContain('c."createdById" = $2')
+        expect(result).toEqual([
+            {
+                xpertId: 'xpert-1',
+                unreadMessages: 2,
+                unreadConversations: 1,
+                latestUnreadAt: '2026-06-21T00:00:00.000Z'
+            }
+        ])
+    })
+
+    it('marks a conversation read at the provided message cursor', async () => {
+        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+            ...conversation,
+            organizationId: 'org-1',
+            createdAt: new Date('2026-06-21T00:00:00.000Z'),
+            updatedAt: new Date('2026-06-21T00:05:00.000Z')
+        } as ChatConversation)
+        messageService.findOneByOptions.mockResolvedValue({
+            id: 'message-1',
+            conversationId: 'conversation-1',
+            createdAt: new Date('2026-06-21T00:10:00.000Z')
+        })
+
+        await service.markRead('conversation-1', 'message-1')
+
+        expect(messageService.findOneByOptions).toHaveBeenCalledWith({
+            where: {
+                id: 'message-1',
+                conversationId: 'conversation-1'
+            }
+        })
+        expect(readStateRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                conversationId: 'conversation-1',
+                userId: 'user-1',
+                lastReadMessageId: 'message-1',
+                lastReadAt: new Date('2026-06-21T00:10:00.000Z')
+            })
+        )
+    })
+
+    it('marks a conversation read at the latest message when no cursor is provided', async () => {
+        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+            ...conversation,
+            organizationId: 'org-1',
+            createdAt: new Date('2026-06-21T00:00:00.000Z')
+        } as ChatConversation)
+        messageService.findAll.mockResolvedValue({
+            items: [
+                {
+                    id: 'latest-message',
+                    conversationId: 'conversation-1',
+                    createdAt: new Date('2026-06-21T00:12:00.000Z')
+                }
+            ]
+        })
+
+        await service.markRead('conversation-1')
+
+        expect(messageService.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    conversationId: 'conversation-1'
+                },
+                take: 1
+            })
+        )
+        expect(readStateRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                lastReadMessageId: 'latest-message',
+                lastReadAt: new Date('2026-06-21T00:12:00.000Z')
+            })
+        )
     })
 
     it('uses the sandbox environment workspace when the conversation has a sandbox environment id', async () => {
@@ -149,9 +269,7 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('returns download targets inside the current conversation workspace', async () => {
-        const findConversation = jest
-            .spyOn(service, 'findOne')
-            .mockResolvedValue(conversation as ChatConversation)
+        const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const getDownloadTarget = jest.spyOn(VolumeSubtreeClient.prototype, 'getDownloadTarget').mockResolvedValue({
             absolutePath: '/workspace/root/docs',
             fileName: 'docs.zip',

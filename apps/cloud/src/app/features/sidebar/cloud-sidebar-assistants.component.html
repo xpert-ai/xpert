@@ -92,7 +92,9 @@
                 >
                   <i class="ri-equalizer-2-line"></i>
                 </button>
-                <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
+                @if (hasClawXpertUnread()) {
+                  <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
+                }
               }
             </div>
           </li>
@@ -100,31 +102,48 @@
 
         @for (xpert of filteredXperts(); track trackAssistant($index, xpert)) {
           <li>
-            <button
-              type="button"
+            <div
               class="cloud-sidebar-assistants__item relative"
               [class.is-active]="isActive(xpert)"
-              [attr.aria-label]="assistantLabel(xpert)"
               [zTooltip]="assistantLabel(xpert)"
               zPosition="right"
               [zDisabled]="!collapsed()"
-              (click)="openAssistant($event, xpert)"
             >
-              <emoji-avatar
-                class="cloud-sidebar-assistants__avatar"
-                [avatar]="xpert.avatar"
-                [alt]="assistantLabel(xpert)"
-                [fallbackLabel]="assistantLabel(xpert)"
-              />
+              <button
+                type="button"
+                class="cloud-sidebar-assistants__item-main"
+                [attr.aria-label]="assistantLabel(xpert)"
+                (click)="openAssistant($event, xpert)"
+              >
+                <emoji-avatar
+                  class="cloud-sidebar-assistants__avatar"
+                  [avatar]="xpert.avatar"
+                  [alt]="assistantLabel(xpert)"
+                  [fallbackLabel]="assistantLabel(xpert)"
+                />
+
+                @if (!collapsed()) {
+                  <span class="cloud-sidebar-assistants__content">
+                    <span class="cloud-sidebar-assistants__name">{{ assistantLabel(xpert) }}</span>
+                    <span class="cloud-sidebar-assistants__description">{{ assistantDescription(xpert) }}</span>
+                  </span>
+                }
+              </button>
 
               @if (!collapsed()) {
-                <span class="cloud-sidebar-assistants__content">
-                  <span class="cloud-sidebar-assistants__name">{{ assistantLabel(xpert) }}</span>
-                  <span class="cloud-sidebar-assistants__description">{{ assistantDescription(xpert) }}</span>
-                </span>
-                <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
+                <button
+                  type="button"
+                  class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
+                  [attr.aria-label]="'PAC.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
+                  (click)="openAssistantSettings($event, xpert)"
+                >
+                  <i class="ri-equalizer-2-line"></i>
+                </button>
+                @if (hasAssistantUnread(xpert)) {
+                  <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
+                }
               }
-            </button>
+            </div>
           </li>
         } @empty {
           @if (!collapsed() && (query() || category() !== 'all')) {

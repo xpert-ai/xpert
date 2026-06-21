@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { AiFeatureEnum, AssistantBindingService, Store } from '../../@core'
+import { AiFeatureEnum, AssistantBindingService, ChatConversationService, Store } from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
@@ -36,6 +36,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
 jest.mock('../../@core', () => {
   class AssistantBindingService {}
+  class ChatConversationService {}
   class Store {}
 
   return {
@@ -54,6 +55,7 @@ jest.mock('../../@core', () => {
       CLAWXPERT: 'clawxpert'
     },
     AssistantBindingService,
+    ChatConversationService,
     Store
   }
 })
@@ -136,6 +138,10 @@ describe('CloudSidebarAssistantsComponent', () => {
     get: jest.Mock
     getAvailableXperts: jest.Mock
   }
+  let conversationService: {
+    getUnreadByXperts: jest.Mock
+    unreadRefresh$: unknown
+  }
   let store: {
     organizationId: string | null
     selectOrganizationId: jest.Mock
@@ -166,6 +172,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         ])
       )
     }
+    conversationService = {
+      getUnreadByXperts: jest.fn(() => of([])),
+      unreadRefresh$: of(undefined)
+    }
     store = {
       organizationId: 'org-1',
       selectOrganizationId: jest.fn(() => of('org-1')),
@@ -183,6 +193,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         {
           provide: AssistantBindingService,
           useValue: assistantBindingService
+        },
+        {
+          provide: ChatConversationService,
+          useValue: conversationService
         },
         {
           provide: Store,
@@ -228,7 +242,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(navigateByUrlSpy).toHaveBeenNthCalledWith(2, '/chat/clawxpert')
   })
 
-  it('keeps normal assistant rows on the assistant workbench route', async () => {
+  it('keeps normal assistant rows on the assistant chat route', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
@@ -237,9 +251,46 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const normalAssistantButton = fixture.nativeElement.querySelector('button.cloud-sidebar-assistants__item')
+    const normalAssistantButton = fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__item-main')[1]
     normalAssistantButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
+  })
+
+  it('routes normal assistant settings to the xpert studio page', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const normalAssistantSettingsButton = fixture.nativeElement.querySelectorAll(
+      '.cloud-sidebar-assistants__settings'
+    )[1]
+    normalAssistantSettingsButton.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
+  })
+
+  it('renders assistant status dots only for assistants with unread messages', async () => {
+    conversationService.getUnreadByXperts.mockReturnValue(
+      of([
+        {
+          xpertId: 'other-xpert',
+          unreadMessages: 2,
+          unreadConversations: 1,
+          latestUnreadAt: '2026-06-21T00:00:00.000Z'
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
   })
 })

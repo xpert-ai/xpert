@@ -1,16 +1,17 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, NgZone, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { forkJoin, of } from 'rxjs'
+import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
   AiFeatureEnum,
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
+  ChatConversationService,
   IAssistantBinding,
   IXpert,
   Store
@@ -66,9 +67,19 @@ export class CloudSidebarAssistantsComponent {
   ]
 
   readonly #assistantBindingService = inject(AssistantBindingService)
+  readonly #conversationService = inject(ChatConversationService)
+  readonly #ngZone = inject(NgZone)
   readonly #router = inject(Router)
   readonly #store = inject(Store)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
+  readonly #unreadPoll$ = new Observable<number>((subscriber) =>
+    this.#ngZone.runOutsideAngular(() => {
+      subscriber.next(0)
+      const intervalId = setInterval(() => subscriber.next(Date.now()), 30_000)
+
+      return () => clearInterval(intervalId)
+    })
+  )
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
@@ -150,6 +161,38 @@ export class CloudSidebarAssistantsComponent {
   readonly filteredXperts = computed(() =>
     filterAssistantXperts(this.xpertsWithoutClawXpert(), this.query(), this.category())
   )
+  readonly unreadXpertIdsRequest = computed(() => {
+    const ids = [this.boundXpert()?.id, ...this.xpertsWithoutClawXpert().map((xpert) => xpert.id)].filter(
+      (id): id is string => typeof id === 'string' && !!id.trim()
+    )
+
+    return Array.from(new Set(ids.map((id) => id.trim()))).join('\n')
+  })
+  readonly unreadSummaries = toSignal(
+    combineLatest([
+      toObservable(this.request),
+      toObservable(this.unreadXpertIdsRequest),
+      merge(this.#unreadPoll$, this.#conversationService.unreadRefresh$)
+    ]).pipe(
+      switchMap(([request, xpertIdsRequest]) => {
+        const xpertIds = xpertIdsRequest ? xpertIdsRequest.split('\n') : []
+        if (!request.enabled || xpertIds.length === 0) {
+          return of([])
+        }
+
+        return this.#conversationService.getUnreadByXperts(xpertIds).pipe(catchError(() => of([])))
+      })
+    ),
+    { initialValue: [] }
+  )
+  readonly unreadXpertIds = computed(
+    () =>
+      new Set(
+        this.unreadSummaries()
+          .filter((summary) => summary.unreadMessages > 0)
+          .map((summary) => summary.xpertId)
+      )
+  )
   readonly clawXpertSearchItem = computed<AssistantXpertLike>(() => {
     const boundXpert = this.boundXpert()
     const label = this.clawXpertLabel()
@@ -211,6 +254,16 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(['/chat/x', routeId, 'c'])
   }
 
+  openAssistantSettings(event: Event, xpert: IXpert) {
+    event.stopPropagation()
+    const xpertId = xpert.id?.trim()
+    if (!xpertId) {
+      return
+    }
+
+    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
+  }
+
   isActive(xpert: IXpert) {
     return isAssistantRouteActive(this.currentUrl(), xpert)
   }
@@ -220,6 +273,14 @@ export class CloudSidebarAssistantsComponent {
     const boundXpert = this.boundXpert()
 
     return isClawXpertRoute(url) || (!!boundXpert && isAssistantRouteActive(url, boundXpert))
+  }
+
+  hasClawXpertUnread() {
+    return this.hasUnread(this.boundXpert()?.id)
+  }
+
+  hasAssistantUnread(xpert: IXpert) {
+    return this.hasUnread(xpert.id)
   }
 
   clawXpertLabel() {
@@ -262,6 +323,10 @@ export class CloudSidebarAssistantsComponent {
 
   trackAssistant(index: number, xpert: IXpert) {
     return xpert.id || xpert.slug || index
+  }
+
+  private hasUnread(xpertId: string | null | undefined) {
+    return typeof xpertId === 'string' && this.unreadXpertIds().has(xpertId)
   }
 }
 
