@@ -153,7 +153,7 @@ describe('ChatHomeComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    expect(navigateSpy).toHaveBeenCalledWith('/chat/x/common')
+    expect(navigateSpy).toHaveBeenCalledWith('/chat/tasks')
   })
 
   it('does not redirect away from ClawXpert while feature hydration is loading', async () => {

@@ -63,7 +63,7 @@ export class ChatHomeComponent {
         return
       }
 
-      void this.#router.navigateByUrl('/chat/x/common')
+      void this.#router.navigateByUrl('/chat/tasks')
     })
 
     effect(() => {

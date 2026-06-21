@@ -26,7 +26,7 @@ function redirectToDefaultChatEntry() {
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) ||
           !store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
         ) {
-          return of(router.createUrlTree(['/chat/x/common']))
+          return of(router.createUrlTree(['/chat/clawxpert']))
         }
 
         if (!store.organizationId) {
@@ -69,25 +69,23 @@ export const routes: Routes = [
       },
       {
         path: 'x/welcome',
-        redirectTo: '/chat/x/common',
+        redirectTo: '/chat/clawxpert',
         pathMatch: 'full'
       },
       {
         path: 'x/common/c/:id',
-        redirectTo: '/chat/x/common',
+        redirectTo: '/chat/clawxpert',
         pathMatch: 'full'
       },
       {
         path: 'x/common/c',
-        redirectTo: '/chat/x/common',
+        redirectTo: '/chat/clawxpert',
         pathMatch: 'full'
       },
       {
         path: 'x/common',
-        component: ChatCommonAssistantComponent,
-        data: {
-          title: 'Common Assistant'
-        }
+        redirectTo: '/chat/clawxpert',
+        pathMatch: 'full'
       },
       {
         matcher: xpertWorkbenchConversationMatcher,
@@ -114,7 +112,9 @@ export const routes: Routes = [
       {
         path: 'clawxpert',
         component: ClawXpertComponent,
-        canActivateChild: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        canActivateChild: [
+          featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT], ['/chat/tasks'])
+        ],
         data: {
           title: 'ClawXpert'
         },
@@ -157,7 +157,7 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: 'x/common',
+        redirectTo: 'clawxpert',
         pathMatch: 'prefix'
       }
     ]
