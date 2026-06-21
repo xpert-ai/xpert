@@ -106,21 +106,37 @@ export class ChatConversationService
                     c."xpertId" AS "xpertId",
                     COUNT(m.id)::int AS "unreadMessages",
                     COUNT(DISTINCT c.id)::int AS "unreadConversations",
-                    MAX(m."createdAt") AS "latestUnreadAt"
+                    MAX(m."createdAt") AS "latestUnreadAt",
+                    (array_agg(c.id ORDER BY m."createdAt" DESC, m.id DESC))[1] AS "latestUnreadConversationId",
+                    (array_agg(c."threadId" ORDER BY m."createdAt" DESC, m.id DESC))[1] AS "latestUnreadThreadId"
                 FROM chat_conversation c
                 INNER JOIN chat_message m
                     ON m."conversationId" = c.id
                     AND m.role = 'ai'
                     AND m."deletedAt" IS NULL
-                LEFT JOIN chat_conversation_read_state rs
-                    ON rs."conversationId" = c.id
-                    AND rs."userId" = $2
+                LEFT JOIN LATERAL (
+                    SELECT
+                        rs."lastReadAt",
+                        rs."lastReadMessageId"
+                    FROM chat_conversation_read_state rs
+                    WHERE
+                        rs."tenantId" = c."tenantId"
+                        AND rs."organizationId" IS NOT DISTINCT FROM c."organizationId"
+                        AND rs."conversationId" = c.id
+                        AND rs."userId" = $2
+                    ORDER BY rs."lastReadAt" DESC NULLS LAST, rs."updatedAt" DESC NULLS LAST, rs.id DESC
+                    LIMIT 1
+                ) rs ON TRUE
+                LEFT JOIN chat_message read_cursor
+                    ON read_cursor.id::text = rs."lastReadMessageId"
+                    AND read_cursor."conversationId" = c.id
+                    AND read_cursor."deletedAt" IS NULL
                 WHERE
                     c."tenantId" = $1
                     AND ${organizationClause}
                     AND c."createdById" = $2
                     AND c."xpertId" IN (${xpertPlaceholders.join(', ')})
-                    AND m."createdAt" > COALESCE(rs."lastReadAt", c."createdAt")
+                    AND m."createdAt" > COALESCE(read_cursor."createdAt", rs."lastReadAt", c."createdAt")
                 GROUP BY c."xpertId"
             `,
             params
@@ -129,13 +145,17 @@ export class ChatConversationService
             unreadMessages: string | number
             unreadConversations: string | number
             latestUnreadAt?: Date | string | null
+            latestUnreadConversationId?: string | null
+            latestUnreadThreadId?: string | null
         }>
 
         return rows.map((row) => ({
             xpertId: row.xpertId,
             unreadMessages: Number(row.unreadMessages) || 0,
             unreadConversations: Number(row.unreadConversations) || 0,
-            latestUnreadAt: row.latestUnreadAt ?? null
+            latestUnreadAt: row.latestUnreadAt ?? null,
+            latestUnreadConversationId: row.latestUnreadConversationId ?? null,
+            latestUnreadThreadId: row.latestUnreadThreadId ?? null
         }))
     }
 

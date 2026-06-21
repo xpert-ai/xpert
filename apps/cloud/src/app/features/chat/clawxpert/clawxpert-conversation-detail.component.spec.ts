@@ -502,6 +502,13 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
   })
 
+  it('marks a route-resolved conversation read without waiting for ChatKit thread load callbacks', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+  })
+
   it('marks a conversation read when ChatKit finishes loading the visible thread', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)

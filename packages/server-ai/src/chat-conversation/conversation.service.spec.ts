@@ -146,7 +146,9 @@ describe('ChatConversationService workspace files', () => {
                 xpertId: 'xpert-1',
                 unreadMessages: '2',
                 unreadConversations: '1',
-                latestUnreadAt: '2026-06-21T00:00:00.000Z'
+                latestUnreadAt: '2026-06-21T00:00:00.000Z',
+                latestUnreadConversationId: 'conversation-unread',
+                latestUnreadThreadId: 'thread-unread'
             }
         ])
 
@@ -159,12 +161,27 @@ describe('ChatConversationService workspace files', () => {
             'xpert-1'
         ])
         expect(repository.query.mock.calls[0][0]).toContain('c."createdById" = $2')
+        expect(repository.query.mock.calls[0][0]).toContain('LEFT JOIN LATERAL')
+        expect(repository.query.mock.calls[0][0]).toContain('rs."tenantId" = c."tenantId"')
+        expect(repository.query.mock.calls[0][0]).toContain(
+            'rs."organizationId" IS NOT DISTINCT FROM c."organizationId"'
+        )
+        expect(repository.query.mock.calls[0][0]).toContain('rs."lastReadMessageId"')
+        expect(repository.query.mock.calls[0][0]).toContain('LEFT JOIN chat_message read_cursor')
+        expect(repository.query.mock.calls[0][0]).toContain('read_cursor.id::text = rs."lastReadMessageId"')
+        expect(repository.query.mock.calls[0][0]).toContain(
+            'm."createdAt" > COALESCE(read_cursor."createdAt", rs."lastReadAt", c."createdAt")'
+        )
+        expect(repository.query.mock.calls[0][0]).toContain('AS "latestUnreadConversationId"')
+        expect(repository.query.mock.calls[0][0]).toContain('AS "latestUnreadThreadId"')
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
                 unreadMessages: 2,
                 unreadConversations: 1,
-                latestUnreadAt: '2026-06-21T00:00:00.000Z'
+                latestUnreadAt: '2026-06-21T00:00:00.000Z',
+                latestUnreadConversationId: 'conversation-unread',
+                latestUnreadThreadId: 'thread-unread'
             }
         ])
     })

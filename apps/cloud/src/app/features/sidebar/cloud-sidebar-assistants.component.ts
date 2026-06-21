@@ -13,6 +13,7 @@ import {
   AssistantBindingService,
   AssistantCode,
   ChatConversationService,
+  IChatConversationUnreadXpertSummary,
   IAssistantBinding,
   IXpert,
   Store
@@ -186,14 +187,22 @@ export class CloudSidebarAssistantsComponent {
     ),
     { initialValue: [] }
   )
+  readonly unreadSummaryList = computed(() => normalizeUnreadSummaries(this.unreadSummaries()))
   readonly unreadXpertIds = computed(
     () =>
       new Set(
-        this.unreadSummaries()
+        this.unreadSummaryList()
           .filter((summary) => summary.unreadMessages > 0)
           .map((summary) => summary.xpertId)
       )
   )
+  readonly unreadSummaryByXpertId = computed(() => {
+    const entries = this.unreadSummaryList()
+      .filter((summary) => summary.unreadMessages > 0)
+      .map((summary) => [summary.xpertId, summary] as const)
+
+    return new Map<string, IChatConversationUnreadXpertSummary>(entries)
+  })
   readonly clawXpertSearchItem = computed<AssistantXpertLike>(() => {
     const boundXpert = this.boundXpert()
     const label = this.clawXpertLabel()
@@ -237,7 +246,14 @@ export class CloudSidebarAssistantsComponent {
 
   openClawXpert(event: Event) {
     event.stopPropagation()
-    void this.#router.navigateByUrl(this.boundXpert() ? '/chat/clawxpert/c' : '/chat/clawxpert')
+    const boundXpert = this.boundXpert()
+    if (!boundXpert) {
+      void this.#router.navigateByUrl('/chat/clawxpert')
+      return
+    }
+
+    const unreadThreadId = this.getLatestUnreadThreadId(boundXpert.id)
+    void this.#router.navigate(unreadThreadId ? ['/chat/clawxpert', 'c', unreadThreadId] : ['/chat/clawxpert', 'c'])
   }
 
   openClawXpertSettings(event: Event) {
@@ -256,7 +272,8 @@ export class CloudSidebarAssistantsComponent {
       return
     }
 
-    void this.#router.navigate(['/chat/x', routeId, 'c'])
+    const unreadThreadId = this.getLatestUnreadThreadId(xpert.id)
+    void this.#router.navigate(unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c'])
   }
 
   openAssistantSettings(event: Event, xpert: IXpert) {
@@ -361,6 +378,16 @@ export class CloudSidebarAssistantsComponent {
     return typeof xpertId === 'string' && this.unreadXpertIds().has(xpertId)
   }
 
+  private getLatestUnreadThreadId(xpertId: string | null | undefined) {
+    if (typeof xpertId !== 'string' || !xpertId.trim()) {
+      return null
+    }
+
+    const summary = this.unreadSummaryByXpertId().get(xpertId)
+    const threadId = summary?.latestUnreadThreadId?.trim()
+    return summary && summary.unreadMessages > 0 && threadId ? threadId : null
+  }
+
   private hasXpertEditPermission() {
     return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
   }
@@ -377,4 +404,25 @@ function normalizeChatPath(url: string) {
 
 function isClawXpertRoute(url: string) {
   return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatPath(url))
+}
+
+function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {
+  if (Array.isArray(value)) {
+    return value.filter(isUnreadSummary)
+  }
+
+  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown }).items)) {
+    return (value as { items: unknown[] }).items.filter(isUnreadSummary)
+  }
+
+  return []
+}
+
+function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertSummary {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as IChatConversationUnreadXpertSummary).xpertId === 'string' &&
+    typeof (value as IChatConversationUnreadXpertSummary).unreadMessages === 'number'
+  )
 }

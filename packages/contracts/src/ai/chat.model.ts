@@ -164,6 +164,8 @@ export interface IChatConversationUnreadXpertSummary {
   unreadMessages: number
   unreadConversations: number
   latestUnreadAt?: Date | string | null
+  latestUnreadConversationId?: string | null
+  latestUnreadThreadId?: string | null
 }
 
 // Types

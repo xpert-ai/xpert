@@ -1440,6 +1440,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       this.syncResolvedConversation(conversationId, conversation ?? baseConversation)
+      this.markConversationRead(conversationId)
       this.contextError.set(null)
     } catch (error) {
       if (isCancelled() || this.facade.threadId() !== threadId) {
@@ -1448,6 +1449,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       if (conversationId) {
         this.syncResolvedConversation(conversationId, baseConversation)
+        this.markConversationRead(conversationId)
       } else {
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)

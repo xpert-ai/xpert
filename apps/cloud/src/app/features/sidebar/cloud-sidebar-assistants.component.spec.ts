@@ -2,7 +2,7 @@ import { Component } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import { AiFeatureEnum, AssistantBindingService, ChatConversationService, Store } from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import {
@@ -143,7 +143,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
   let conversationService: {
     getUnreadByXperts: jest.Mock
-    unreadRefresh$: unknown
+    unreadRefresh$: Subject<void>
   }
   let store: {
     user: { id: string }
@@ -198,7 +198,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     }
     conversationService = {
       getUnreadByXperts: jest.fn(() => of([])),
-      unreadRefresh$: of(undefined)
+      unreadRefresh$: new Subject<void>()
     }
     store = {
       user: { id: 'user-1' },
@@ -256,6 +256,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   it('routes the pinned ClawXpert item to chat and its settings button to configuration', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
     const navigateByUrlSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
 
     fixture.detectChanges()
@@ -265,8 +266,8 @@ describe('CloudSidebarAssistantsComponent', () => {
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-main').click()
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__settings').click()
 
-    expect(navigateByUrlSpy).toHaveBeenNthCalledWith(1, '/chat/clawxpert/c')
-    expect(navigateByUrlSpy).toHaveBeenNthCalledWith(2, '/chat/clawxpert')
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
+    expect(navigateByUrlSpy).toHaveBeenCalledWith('/chat/clawxpert')
   })
 
   it('keeps normal assistant rows on the assistant chat route', async () => {
@@ -282,6 +283,33 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
+  })
+
+  it('opens the latest unread history thread when an assistant has unread messages', async () => {
+    conversationService.getUnreadByXperts.mockReturnValue(
+      of([
+        {
+          xpertId: 'other-xpert',
+          unreadMessages: 1,
+          unreadConversations: 1,
+          latestUnreadAt: '2026-06-21T00:00:00.000Z',
+          latestUnreadConversationId: 'conversation-unread',
+          latestUnreadThreadId: 'thread-unread'
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const normalAssistantButton = fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__item-main')[1]
+    normalAssistantButton.click()
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
   })
 
   it('routes normal assistant settings to the xpert studio page', async () => {
@@ -371,7 +399,9 @@ describe('CloudSidebarAssistantsComponent', () => {
           xpertId: 'other-xpert',
           unreadMessages: 2,
           unreadConversations: 1,
-          latestUnreadAt: '2026-06-21T00:00:00.000Z'
+          latestUnreadAt: '2026-06-21T00:00:00.000Z',
+          latestUnreadConversationId: 'conversation-unread',
+          latestUnreadThreadId: 'thread-unread'
         }
       ])
     )
@@ -382,5 +412,37 @@ describe('CloudSidebarAssistantsComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
+  })
+
+  it('normalizes wrapped unread responses and ignores invalid unread payloads', async () => {
+    conversationService.getUnreadByXperts.mockReturnValueOnce(
+      of({
+        items: [
+          {
+            xpertId: 'other-xpert',
+            unreadMessages: 1,
+            unreadConversations: 1,
+            latestUnreadAt: '2026-06-21T00:00:00.000Z',
+            latestUnreadConversationId: 'conversation-unread',
+            latestUnreadThreadId: 'thread-unread'
+          }
+        ]
+      })
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
+
+    conversationService.getUnreadByXperts.mockReturnValueOnce(of({}))
+    conversationService.unreadRefresh$.next()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(0)
   })
 })
