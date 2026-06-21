@@ -284,6 +284,9 @@ export interface XpertViewClientCommandDefinition {
   permissions?: string[]
 }
 
+export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
+export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
+
 /**
  * Action a host should take when a view host event matches a manifest subscription.
  */

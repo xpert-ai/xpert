@@ -1,9 +1,9 @@
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { Attachment, ChatKitReference, SendUserMessageParams } from '@xpert-ai/chatkit-types'
+import { ASSISTANT_CHAT_SEND_MESSAGE_COMMAND, ASSISTANT_CONTEXT_SET_COMMAND } from '@xpert-ai/contracts'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
-export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
-export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
+export { ASSISTANT_CHAT_SEND_MESSAGE_COMMAND, ASSISTANT_CONTEXT_SET_COMMAND }
 
 export type AssistantContextSetPayload = {
   key: string
