@@ -7,6 +7,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
+  AIPermissionsEnum,
   AiFeatureEnum,
   AssistantBindingScope,
   AssistantBindingService,
@@ -241,6 +242,10 @@ export class CloudSidebarAssistantsComponent {
 
   openClawXpertSettings(event: Event) {
     event.stopPropagation()
+    if (!this.canConfigureClawXpert()) {
+      return
+    }
+
     void this.#router.navigateByUrl('/chat/clawxpert')
   }
 
@@ -256,6 +261,10 @@ export class CloudSidebarAssistantsComponent {
 
   openAssistantSettings(event: Event, xpert: IXpert) {
     event.stopPropagation()
+    if (!this.canEditAssistant(xpert)) {
+      return
+    }
+
     const xpertId = xpert.id?.trim()
     if (!xpertId) {
       return
@@ -281,6 +290,29 @@ export class CloudSidebarAssistantsComponent {
 
   hasAssistantUnread(xpert: IXpert) {
     return this.hasUnread(xpert.id)
+  }
+
+  canConfigureClawXpert() {
+    const boundXpert = this.boundXpert()
+    return !boundXpert || this.canEditAssistant(boundXpert)
+  }
+
+  canEditAssistant(xpert: IXpert | null | undefined) {
+    if (!xpert?.id || !this.hasXpertEditPermission()) {
+      return false
+    }
+
+    const capabilities = xpert.workspace?.capabilities
+    if (capabilities) {
+      return capabilities.canWrite || capabilities.canManage
+    }
+
+    const currentUserId = this.#store.user?.id ?? this.#store.userId
+    if (currentUserId && (xpert.createdById === currentUserId || xpert.workspace?.ownerId === currentUserId)) {
+      return true
+    }
+
+    return !xpert.workspaceId
   }
 
   clawXpertLabel() {
@@ -327,6 +359,10 @@ export class CloudSidebarAssistantsComponent {
 
   private hasUnread(xpertId: string | null | undefined) {
     return typeof xpertId === 'string' && this.unreadXpertIds().has(xpertId)
+  }
+
+  private hasXpertEditPermission() {
+    return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
   }
 }
 

@@ -45,6 +45,9 @@ jest.mock('../../@core', () => {
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT',
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
     },
+    AIPermissionsEnum: {
+      XPERT_EDIT: 'XPERT_EDIT'
+    },
     AssistantBindingScope: {
       USER: 'user'
     },
@@ -143,11 +146,14 @@ describe('CloudSidebarAssistantsComponent', () => {
     unreadRefresh$: unknown
   }
   let store: {
+    user: { id: string }
+    userId: string
     organizationId: string | null
     selectOrganizationId: jest.Mock
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
+    hasPermission: jest.Mock
   }
 
   beforeEach(async () => {
@@ -160,14 +166,32 @@ describe('CloudSidebarAssistantsComponent', () => {
             slug: 'other-assistant',
             title: 'Other Assistant',
             description: 'General workbench assistant',
-            latest: true
+            latest: true,
+            workspaceId: 'workspace-1',
+            workspace: {
+              capabilities: {
+                canRead: true,
+                canRun: true,
+                canWrite: true,
+                canManage: false
+              }
+            }
           },
           {
             id: 'bound-xpert',
             slug: 'personal-assistant',
             title: 'Personal Assistant',
             description: 'Bound ClawXpert assistant',
-            latest: true
+            latest: true,
+            workspaceId: 'workspace-1',
+            workspace: {
+              capabilities: {
+                canRead: true,
+                canRun: true,
+                canWrite: true,
+                canManage: false
+              }
+            }
           }
         ])
       )
@@ -177,13 +201,16 @@ describe('CloudSidebarAssistantsComponent', () => {
       unreadRefresh$: of(undefined)
     }
     store = {
+      user: { id: 'user-1' },
+      userId: 'user-1',
       organizationId: 'org-1',
       selectOrganizationId: jest.fn(() => of('org-1')),
       featureContextHydrated$: of(true),
       featureContextHydrated: true,
       hasFeatureEnabled: jest.fn((feature: string) =>
         [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT].includes(feature as AiFeatureEnum)
-      )
+      ),
+      hasPermission: jest.fn((permission: string) => permission === 'XPERT_EDIT')
     }
 
     await TestBed.configureTestingModule({
@@ -272,6 +299,69 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantSettingsButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
+  })
+
+  it('hides assistant settings when the current user cannot edit the xpert workspace', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'other-xpert',
+          slug: 'other-assistant',
+          title: 'Other Assistant',
+          description: 'Read-only assistant',
+          latest: true,
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: false,
+              canManage: false
+            }
+          }
+        },
+        {
+          id: 'bound-xpert',
+          slug: 'personal-assistant',
+          title: 'Personal Assistant',
+          description: 'Bound read-only assistant',
+          latest: true,
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: false,
+              canManage: false
+            }
+          }
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__settings')).toHaveLength(0)
+
+    fixture.componentInstance.openAssistantSettings(new MouseEvent('click'), {
+      id: 'other-xpert',
+      workspaceId: 'workspace-1',
+      workspace: {
+        capabilities: {
+          canRead: true,
+          canRun: true,
+          canWrite: false,
+          canManage: false
+        }
+      }
+    } as any)
+
+    expect(navigateSpy).not.toHaveBeenCalled()
   })
 
   it('renders assistant status dots only for assistants with unread messages', async () => {

@@ -82,16 +82,18 @@
               </button>
 
               @if (!collapsed()) {
-                <button
-                  type="button"
-                  class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
-                  [attr.aria-label]="
-                    'PAC.Chat.ClawXpert.SidebarSettings' | translate: { Default: 'ClawXpert settings' }
-                  "
-                  (click)="openClawXpertSettings($event)"
-                >
-                  <i class="ri-equalizer-2-line"></i>
-                </button>
+                @if (canConfigureClawXpert()) {
+                  <button
+                    type="button"
+                    class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
+                    [attr.aria-label]="
+                      'PAC.Chat.ClawXpert.SidebarSettings' | translate: { Default: 'ClawXpert settings' }
+                    "
+                    (click)="openClawXpertSettings($event)"
+                  >
+                    <i class="ri-equalizer-2-line"></i>
+                  </button>
+                }
                 @if (hasClawXpertUnread()) {
                   <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
                 }
@@ -131,14 +133,16 @@
               </button>
 
               @if (!collapsed()) {
-                <button
-                  type="button"
-                  class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
-                  [attr.aria-label]="'PAC.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
-                  (click)="openAssistantSettings($event, xpert)"
-                >
-                  <i class="ri-equalizer-2-line"></i>
-                </button>
+                @if (canEditAssistant(xpert)) {
+                  <button
+                    type="button"
+                    class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
+                    [attr.aria-label]="'PAC.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
+                    (click)="openAssistantSettings($event, xpert)"
+                  >
+                    <i class="ri-equalizer-2-line"></i>
+                  </button>
+                }
                 @if (hasAssistantUnread(xpert)) {
                   <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
                 }
