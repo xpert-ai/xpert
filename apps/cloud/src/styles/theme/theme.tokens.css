@@ -52,7 +52,7 @@
   --color-components-input-border-hover: var(--sys-border);
   --color-components-list-option-bg: var(--color-background-default-subtle);
   --color-components-list-option-hover-bg: var(--sys-primary-subtle-hover);
-  --color-components-list-option-active-bg: #f1f5ff;
+  --color-components-list-option-active-bg: color-mix(in oklab, var(--foreground) 8%, var(--sys-surface-subtle));
   --color-components-toggle-bg: var(--sys-primary);
   --color-components-toggle-bg-unchecked: #d9d9dd;
   --color-components-kbd-bg-white: #ffffff1f;
