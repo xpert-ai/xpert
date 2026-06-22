@@ -131,14 +131,21 @@ describe('CopilotCheckpointRetentionService', () => {
         })
         expect(manager.transaction).not.toHaveBeenCalled()
         expect(manager.query.mock.calls.some(([sql]) => sql.includes('DELETE'))).toBe(false)
-        expect(manager.query.mock.calls[0][0]).toContain('r.thread_bytes < $3::bigint')
         expect(manager.query.mock.calls[0][0]).toContain('r.thread_bytes >= $3::bigint AND r.rn > $2::int')
-        expect(manager.query.mock.calls[0][0]).toContain('r."createdAt" < now() - make_interval(days => $1::int)')
+        expect(manager.query.mock.calls[0][0]).toContain('c."createdAt" < now() - make_interval(days => $1::int)')
+        expect(manager.query.mock.calls[0][0]).toContain('candidate_checkpoints AS')
+        expect(manager.query.mock.calls[0][0]).toContain('candidate_writes_size AS')
+        expect(manager.query.mock.calls[0][0]).toContain('oversized_thread_candidates AS')
+        expect(manager.query.mock.calls[0][0]).not.toContain('thread_stats AS')
         expect(manager.query.mock.calls[0][0]).not.toContain('r.rn > $4::int')
         expect(manager.query.mock.calls[0][0]).not.toContain('r.row_bytes >')
         expect(manager.query.mock.calls[0][0]).not.toContain('AND (\n\t\t\tOR')
         expect(manager.query.mock.calls[0][1]).toEqual([60, 10, 5368709120])
-        expect(manager.query.mock.calls[1][1]).toEqual([5368709120, 20])
+        expect(manager.query.mock.calls[1][0]).toContain('HAVING count(*) > $1::int')
+        expect(manager.query.mock.calls[1][0]).toContain(
+            'WHERE checkpoint_bytes + COALESCE(ws.writes_bytes, 0) >= $2::bigint'
+        )
+        expect(manager.query.mock.calls[1][1]).toEqual([10, 5368709120, 20])
     })
 
     it('executes cleanup in batches and deletes writes before checkpoints', async () => {
@@ -183,7 +190,7 @@ describe('CopilotCheckpointRetentionService', () => {
 
         expect(manager.query.mock.calls[0][0]).toContain('c."tenantId"')
         expect(manager.query.mock.calls[0][0]).toContain('w."tenantId"')
-        expect(manager.query.mock.calls[0][0]).toContain('ts."tenantId" IS NOT DISTINCT FROM c."tenantId"')
+        expect(manager.query.mock.calls[0][0]).toContain('otc."tenantId" IS NOT DISTINCT FROM c."tenantId"')
         expect(transactionalManager.query.mock.calls[0][0]).toContain('"tenantId"')
         expect(transactionalManager.query.mock.calls[0][0]).toContain('w."tenantId" IS NOT DISTINCT FROM c."tenantId"')
     })
