@@ -20,10 +20,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, switchMap } from 'rxjs'
 import {
-  ConfigurateMethod,
   getErrorMessage,
   ICopilotProviderModel,
-  injectAiProviders,
   injectCopilotProviderService,
   TCopilotTokenUsage,
   ToastrService
@@ -31,6 +29,7 @@ import {
 import { CopilotProviderModelComponent } from '../copilot-provider-model/model.component'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
 import { customProviderModelDisplayTags, providerModelDisplayTags } from '../model-tags'
+import { canCreateCustomProviderModel } from './provider-schema'
 
 @Component({
   standalone: true,
@@ -54,14 +53,11 @@ import { customProviderModelDisplayTags, providerModelDisplayTags } from '../mod
   }
 })
 export class CopilotProviderComponent {
-  eConfigurateMethod = ConfigurateMethod
-
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly #i18n = new NgmI18nPipe()
   readonly #copilotProviderService = injectCopilotProviderService()
-  readonly aiProviders = injectAiProviders()
 
   // Inputs
   readonly providerId = input<string>()
@@ -90,11 +86,8 @@ export class CopilotProviderComponent {
   readonly icon = computed(() => this.largeIcon() || this.smallIcon())
   readonly label = computed(() => this.copilotProvider()?.provider?.label)
   readonly supported_model_types = computed(() => this.copilotProvider()?.provider?.supported_model_types)
-  readonly configurate_methods = computed(() => this.copilotProvider()?.provider?.configurate_methods)
-  readonly canCustomizableModel = computed(() =>
-    this.configurate_methods()?.includes(ConfigurateMethod.CUSTOMIZABLE_MODEL)
-  )
   readonly provider_credential_schema = computed(() => this.copilotProvider()?.provider?.provider_credential_schema)
+  readonly canCustomizableModel = computed(() => canCreateCustomProviderModel(this.copilotProvider()?.provider))
 
   readonly #models = derivedAsync(() => {
     return this.showModels()
@@ -176,10 +169,14 @@ export class CopilotProviderComponent {
     if (this.readonly()) {
       return
     }
+    const copilotProvider = this.copilotProvider()
+    if (!copilotProvider || !canCreateCustomProviderModel(copilotProvider.provider)) {
+      return
+    }
     this.#dialog
       .open(CopilotProviderModelComponent, {
         data: {
-          provider: this.copilotProvider(),
+          provider: copilotProvider,
           modelId: null
         }
       })
@@ -197,10 +194,14 @@ export class CopilotProviderComponent {
     if (this.readonly()) {
       return
     }
+    const copilotProvider = this.copilotProvider()
+    if (!copilotProvider || !canCreateCustomProviderModel(copilotProvider.provider)) {
+      return
+    }
     this.#dialog
       .open(CopilotProviderModelComponent, {
         data: {
-          provider: this.copilotProvider(),
+          provider: copilotProvider,
           modelId: model.id
         }
       })
