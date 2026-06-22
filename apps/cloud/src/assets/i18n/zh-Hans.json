@@ -3570,6 +3570,8 @@
         "Browser": "浏览器",
         "BrowserLauncherDesc": "打开网站",
         "NewWorkspaceTab": "新增工作区标签",
+        "ShowDetailPanel": "显示工作区面板",
+        "HideDetailPanel": "隐藏工作区面板",
         "FixedViews": "固定视图",
         "NoFixedViews": "暂无固定视图",
         "LoadingFixedViews": "正在加载固定视图…",

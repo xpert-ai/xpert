@@ -2561,6 +2561,8 @@
         "Browser": "瀏覽器",
         "BrowserLauncherDesc": "開啟網站",
         "NewWorkspaceTab": "新增工作區標籤",
+        "ShowDetailPanel": "顯示工作區面板",
+        "HideDetailPanel": "隱藏工作區面板",
         "FixedViews": "固定視圖",
         "NoFixedViews": "暫無固定視圖",
         "LoadingFixedViews": "正在載入固定視圖…",

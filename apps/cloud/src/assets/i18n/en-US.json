@@ -308,6 +308,8 @@
         "Browser": "Browser",
         "BrowserLauncherDesc": "Open website",
         "NewWorkspaceTab": "New workspace tab",
+        "ShowDetailPanel": "Show workspace panel",
+        "HideDetailPanel": "Hide workspace panel",
         "FixedViews": "Fixed Views",
         "NoFixedViews": "No fixed views",
         "LoadingFixedViews": "Loading fixed views...",

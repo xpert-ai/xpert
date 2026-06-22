@@ -82,11 +82,21 @@ jest.mock('@xpert-ai/headless-ui', () => {
   })
   class ZardMenuItemDirective {}
 
+  @Directive({
+    standalone: true,
+    selector: '[zTooltip]'
+  })
+  class ZardTooltipDirective {
+    @Input() zTooltip?: string
+    @Input() zPosition?: string
+  }
+
   return {
     ZardButtonComponent,
     ZardIconComponent,
     ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
-    ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent]
+    ZardTabsImports: [ZardTabNavBarDirective, ZardTabLinkDirective, ZardTabNavPanelComponent],
+    ZardTooltipImports: [ZardTooltipDirective]
   }
 })
 
@@ -271,6 +281,9 @@ type MockChatKitEvent = {
 
 type MockChatKitRuntimeInput = {
   initialThread?: () => string | null
+  layout?: {
+    maxWidth?: number | string
+  }
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
@@ -488,18 +501,47 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('renders the files panel and resolves the current conversation context from the thread', async () => {
+  it('keeps the detail panel closed by default while resolving the current conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed')
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-0')
+    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
+    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('pointer-events-none')
+
+    const hiddenFilesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(hiddenFilesPanel).not.toBeNull()
+    expect((hiddenFilesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe(
+      'conversation-1'
+    )
+    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-100')
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
+  })
+
+  it('limits the embedded ChatKit column width for wide ClawXpert conversations', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().layout).toEqual({
+      maxWidth: '960px'
+    })
   })
 
   it('marks a route-resolved conversation read without waiting for ChatKit thread load callbacks', async () => {
@@ -674,6 +716,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         viewKey: 'bom'
       })
     )
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
   })
 
@@ -706,6 +749,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         icon: TEST_FILE_LIST_ICON
       })
     )
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(outlet).not.toBeNull()
     expect(outlet.componentInstance).toEqual(
       expect.objectContaining({
@@ -787,6 +831,8 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('keeps the active panel open when its tab is clicked again', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
 
     fixture.nativeElement.querySelector('[data-panel-button="files"]').click()
     fixture.detectChanges()
@@ -798,6 +844,8 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('does not pin terminal tabs before the user adds them', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
 
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('[data-panel-button="computer"]')).toBeNull()
@@ -806,6 +854,8 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('allows closing the last remaining workspace tab and shows the empty workspace placeholder', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     const onlyTabId = fixture.componentInstance.activeTabId()
@@ -832,6 +882,8 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   it('opens workspace tabs from the empty workspace placeholder', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     fixture.componentInstance.closeWorkspaceTab(new MouseEvent('click'), fixture.componentInstance.activeTabId())
@@ -884,6 +936,8 @@ describe('ClawXpertConversationDetailComponent', () => {
   it('opens the task maintenance panel from the conversation detail header', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
     ;(fixture.nativeElement.querySelector('[data-open-tasks-panel]') as HTMLButtonElement).click()
     await settle(fixture)
 
@@ -911,6 +965,8 @@ describe('ClawXpertConversationDetailComponent', () => {
       })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
     ;(fixture.nativeElement.querySelector('[data-open-tasks-panel]') as HTMLButtonElement).click()
     await settle(fixture)
@@ -1047,18 +1103,17 @@ describe('ClawXpertConversationDetailComponent', () => {
       throw new Error('Expected xpert-chatkit to render')
     }
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
-    )
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-full')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
     chatkit.dataset.chatMinimizedToPet = 'true'
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[0rem_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
@@ -1067,11 +1122,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
-    )
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-full')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
@@ -1096,6 +1149,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     conversationService.getByThreadId.mockReturnValue(of(null))
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DetailPanelEmptyTitle')
@@ -1129,6 +1184,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     conversationService.getById.mockReturnValue(of(null))
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -1191,6 +1248,8 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(filesPanel).not.toBeNull()
@@ -1227,6 +1286,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -1269,6 +1330,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
@@ -1464,9 +1527,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(filesPanel).not.toBeNull()
-    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -1480,6 +1542,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
     fixture.detectChanges()
 
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
 
     jest.advanceTimersByTime(299)
@@ -1530,6 +1595,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
 
     const runtimeInput = getRuntimeInput()
@@ -1551,6 +1617,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     const preview = fixture.debugElement.query(By.directive(ClawXpertConversationPreviewComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.activeTab()?.kind).toBe('browser')
     expect(preview).not.toBeNull()
     expect(fixture.nativeElement.textContent).toContain('localhost:3000')
@@ -1565,8 +1632,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(filesPanel).not.toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -1577,6 +1644,11 @@ describe('ClawXpertConversationDetailComponent', () => {
       }
     })
     jest.advanceTimersByTime(200)
+    fixture.detectChanges()
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(filesPanel).not.toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -1603,8 +1675,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(filesPanel).not.toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -1639,7 +1711,8 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     jest.advanceTimersByTime(300)
     fixture.detectChanges()
-    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
   it('refreshes the file list for legacy Bash execute log events', async () => {
@@ -1648,8 +1721,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settleWithFakeTimers(fixture)
 
     const runtimeInput = getRuntimeInput()
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(filesPanel).not.toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -1660,6 +1733,11 @@ describe('ClawXpertConversationDetailComponent', () => {
         }
       }
     })
+    fixture.detectChanges()
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(filesPanel).not.toBeNull()
 
     jest.advanceTimersByTime(300)
     fixture.detectChanges()

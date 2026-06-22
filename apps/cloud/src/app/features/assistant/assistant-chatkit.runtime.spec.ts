@@ -115,6 +115,9 @@ describe('assistant chatkit runtime helpers', () => {
         zIndex: 70
       }
     }
+    const layout = {
+      maxWidth: '960px'
+    }
 
     TestBed.configureTestingModule({
       providers: [
@@ -161,6 +164,7 @@ describe('assistant chatkit runtime helpers', () => {
         frameUrl: signal('/chatkit'),
         requestContext,
         displayMode: 'pet',
+        layout,
         pet,
         titleKey: 'PAC.Xpert.Assistant',
         titleDefault: 'Assistant'
@@ -171,6 +175,7 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
+        layout,
         pet,
         request: {
           context: {
@@ -199,6 +204,7 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
+        layout,
         pet,
         request: {
           context: {

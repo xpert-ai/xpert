@@ -3,6 +3,7 @@ import { computed, effect, inject, signal, Signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
+import type { ChatKitOptions } from '@xpert-ai/chatkit-types'
 import { catchError, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -20,7 +21,7 @@ import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantChatKitOptions = Parameters<typeof createChatKit>[0]
+type AssistantChatKitOptions = ChatKitOptions & AssistantChatKitEventHandlers
 type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantChatKitEventHandlers = ChatKitEventHandlers
 type AssistantHostedClientSecret =
@@ -46,6 +47,7 @@ type AssistantRuntimeInput = {
   displayMode?: AssistantHostedChatKitOptions['displayMode']
   history?: AssistantHostedChatKitOptions['history']
   initialThread?: Signal<string | null>
+  layout?: AssistantHostedChatKitOptions['layout']
   pet?: AssistantHostedChatKitOptions['pet']
   titleKey: string
   titleDefault: string
@@ -72,6 +74,7 @@ type AssistantHostedRuntimeInput = {
   displayMode?: AssistantHostedChatKitOptions['displayMode']
   history?: AssistantHostedChatKitOptions['history']
   initialThread?: Signal<string | null>
+  layout?: AssistantHostedChatKitOptions['layout']
   pet?: AssistantHostedChatKitOptions['pet']
   startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
@@ -102,6 +105,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     displayMode: input.displayMode,
     history: input.history,
     initialThread: input.initialThread,
+    layout: input.layout,
     pet: input.pet,
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
@@ -292,6 +296,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       locale: currentLocale,
       theme: currentTheme,
       displayMode: input.displayMode,
+      layout: input.layout,
       pet: input.pet,
       initialThread,
       header: {
