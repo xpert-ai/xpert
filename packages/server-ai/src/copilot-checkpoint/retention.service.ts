@@ -192,6 +192,7 @@ export class CopilotCheckpointRetentionService {
         config: CopilotCheckpointRetentionOptions
     ): Promise<CopilotCheckpointOversizedThread[]> {
         const rows = await this.checkpointRepository.manager.query(buildOversizedThreadsSql(), [
+            config.oversizedMaxPerThread,
             config.threadMaxBytes,
             OVERSIZED_THREAD_REPORT_LIMIT
         ])
@@ -272,29 +273,7 @@ function buildCandidateParams(config: CopilotCheckpointRetentionOptions) {
 
 function buildCandidateCteSql() {
     return `
-WITH checkpoint_writes_size AS (
-	SELECT
-		w."tenantId",
-		w."organizationId",
-		w.thread_id,
-		w.checkpoint_ns,
-		w.checkpoint_id,
-		count(*)::int AS candidate_writes_count,
-		COALESCE(sum(pg_column_size(w.value)), 0)::bigint AS candidate_writes_bytes
-	FROM copilot_checkpoint_writes w
-	GROUP BY w."tenantId", w."organizationId", w.thread_id, w.checkpoint_ns, w.checkpoint_id
-),
-writes_size AS (
-	SELECT
-		w."tenantId",
-		w."organizationId",
-		w.thread_id,
-		w.checkpoint_ns,
-		COALESCE(sum(pg_column_size(w.value)), 0)::bigint AS writes_bytes
-	FROM copilot_checkpoint_writes w
-	GROUP BY w."tenantId", w."organizationId", w.thread_id, w.checkpoint_ns
-),
-latest_keep AS (
+WITH latest_keep AS (
 	SELECT id
 	FROM (
 		SELECT
@@ -317,24 +296,76 @@ execution_keep AS (
 		AND e."checkpointId" = c.checkpoint_id
 	WHERE e."checkpointId" IS NOT NULL
 ),
-thread_stats AS (
+checkpoint_counts AS (
 	SELECT
 		c."tenantId",
 		c."organizationId",
 		c.thread_id,
 		c.checkpoint_ns,
-		count(*)::int AS checkpoint_count,
-		COALESCE(sum(pg_column_size(c.checkpoint)), 0)::bigint AS checkpoint_bytes,
-		COALESCE(ws.writes_bytes, 0)::bigint AS writes_bytes
+		count(*)::int AS checkpoint_count
 	FROM copilot_checkpoint c
-	LEFT JOIN writes_size ws
-		ON ws."tenantId" IS NOT DISTINCT FROM c."tenantId"
-		AND ws."organizationId" IS NOT DISTINCT FROM c."organizationId"
-		AND ws.thread_id = c.thread_id
-		AND ws.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
-	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns, ws.writes_bytes
+	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns
 ),
-ranked AS (
+oversized_thread_candidates AS (
+	SELECT
+		"tenantId",
+		"organizationId",
+		thread_id,
+		checkpoint_ns,
+		checkpoint_count
+	FROM checkpoint_counts
+	WHERE checkpoint_count > $2::int
+),
+oversized_checkpoint_size AS (
+	SELECT
+		c."tenantId",
+		c."organizationId",
+		c.thread_id,
+		c.checkpoint_ns,
+		max(otc.checkpoint_count)::int AS checkpoint_count,
+		COALESCE(sum(pg_column_size(c.checkpoint)), 0)::bigint AS checkpoint_bytes
+	FROM copilot_checkpoint c
+	JOIN oversized_thread_candidates otc
+		ON otc."tenantId" IS NOT DISTINCT FROM c."tenantId"
+		AND otc."organizationId" IS NOT DISTINCT FROM c."organizationId"
+		AND otc.thread_id = c.thread_id
+		AND otc.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
+	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns
+),
+oversized_writes_size AS (
+	SELECT
+		w."tenantId",
+		w."organizationId",
+		w.thread_id,
+		w.checkpoint_ns,
+		COALESCE(sum(pg_column_size(w.value)), 0)::bigint AS writes_bytes
+	FROM copilot_checkpoint_writes w
+	JOIN oversized_thread_candidates otc
+		ON otc."tenantId" IS NOT DISTINCT FROM w."tenantId"
+		AND otc."organizationId" IS NOT DISTINCT FROM w."organizationId"
+		AND otc.thread_id = w.thread_id
+		AND otc.checkpoint_ns IS NOT DISTINCT FROM w.checkpoint_ns
+	GROUP BY w."tenantId", w."organizationId", w.thread_id, w.checkpoint_ns
+),
+oversized_threads AS (
+	SELECT
+		cs."tenantId",
+		cs."organizationId",
+		cs.thread_id,
+		cs.checkpoint_ns,
+		cs.checkpoint_count,
+		cs.checkpoint_bytes,
+		COALESCE(ws.writes_bytes, 0)::bigint AS writes_bytes,
+		(cs.checkpoint_bytes + COALESCE(ws.writes_bytes, 0))::bigint AS thread_bytes
+	FROM oversized_checkpoint_size cs
+	LEFT JOIN oversized_writes_size ws
+		ON ws."tenantId" IS NOT DISTINCT FROM cs."tenantId"
+		AND ws."organizationId" IS NOT DISTINCT FROM cs."organizationId"
+		AND ws.thread_id = cs.thread_id
+		AND ws.checkpoint_ns IS NOT DISTINCT FROM cs.checkpoint_ns
+	WHERE cs.checkpoint_bytes + COALESCE(ws.writes_bytes, 0) >= $3::bigint
+),
+ranked_oversized AS (
 	SELECT
 		c.id,
 		c."tenantId",
@@ -344,28 +375,34 @@ ranked AS (
 		c.checkpoint_id,
 		c."createdAt",
 		pg_column_size(c.checkpoint)::bigint AS row_bytes,
-		COALESCE(cws.candidate_writes_count, 0)::int AS candidate_writes_count,
-		COALESCE(cws.candidate_writes_bytes, 0)::bigint AS candidate_writes_bytes,
 		row_number() OVER (
 			PARTITION BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns
 			ORDER BY c."createdAt" DESC
 		) AS rn,
-		ts.checkpoint_count,
-		(ts.checkpoint_bytes + ts.writes_bytes)::bigint AS thread_bytes
+		ot.thread_bytes
 	FROM copilot_checkpoint c
-	JOIN thread_stats ts
-		ON ts."tenantId" IS NOT DISTINCT FROM c."tenantId"
-		AND ts."organizationId" IS NOT DISTINCT FROM c."organizationId"
-		AND ts.thread_id = c.thread_id
-		AND ts.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
-	LEFT JOIN checkpoint_writes_size cws
-		ON cws."tenantId" IS NOT DISTINCT FROM c."tenantId"
-		AND cws."organizationId" IS NOT DISTINCT FROM c."organizationId"
-		AND cws.thread_id = c.thread_id
-		AND cws.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
-		AND cws.checkpoint_id = c.checkpoint_id
+	JOIN oversized_threads ot
+		ON ot."tenantId" IS NOT DISTINCT FROM c."tenantId"
+		AND ot."organizationId" IS NOT DISTINCT FROM c."organizationId"
+		AND ot.thread_id = c.thread_id
+		AND ot.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
 ),
-delete_candidates AS (
+age_candidates AS (
+	SELECT
+		c.id,
+		c."tenantId",
+		c."organizationId",
+		c.thread_id,
+		c.checkpoint_ns,
+		c.checkpoint_id,
+		c."createdAt",
+		pg_column_size(c.checkpoint)::bigint AS row_bytes
+	FROM copilot_checkpoint c
+	WHERE c."createdAt" < now() - make_interval(days => $1::int)
+		AND NOT EXISTS (SELECT 1 FROM latest_keep keep WHERE keep.id = c.id)
+		AND NOT EXISTS (SELECT 1 FROM execution_keep keep WHERE keep.id = c.id)
+),
+oversized_candidates AS (
 	SELECT
 		r.id,
 		r."tenantId",
@@ -374,19 +411,46 @@ delete_candidates AS (
 		r.checkpoint_ns,
 		r.checkpoint_id,
 		r."createdAt",
-		r.row_bytes,
-		r.candidate_writes_count,
-		r.candidate_writes_bytes
-	FROM ranked r
-	WHERE NOT EXISTS (SELECT 1 FROM latest_keep keep WHERE keep.id = r.id)
+		r.row_bytes
+	FROM ranked_oversized r
+	WHERE (r.thread_bytes >= $3::bigint AND r.rn > $2::int)
+		AND NOT EXISTS (SELECT 1 FROM latest_keep keep WHERE keep.id = r.id)
 		AND NOT EXISTS (SELECT 1 FROM execution_keep keep WHERE keep.id = r.id)
-		AND (
-			(r.thread_bytes >= $3::bigint AND r.rn > $2::int)
-			OR (
-				r.thread_bytes < $3::bigint
-				AND r."createdAt" < now() - make_interval(days => $1::int)
-			)
-		)
+),
+candidate_checkpoints AS (
+	SELECT * FROM age_candidates
+	UNION
+	SELECT * FROM oversized_candidates
+),
+candidate_writes_size AS (
+	SELECT
+		c.id,
+		count(*)::int AS candidate_writes_count,
+		COALESCE(sum(pg_column_size(w.value)), 0)::bigint AS candidate_writes_bytes
+	FROM candidate_checkpoints c
+	JOIN copilot_checkpoint_writes w
+		ON w."tenantId" IS NOT DISTINCT FROM c."tenantId"
+		AND w."organizationId" IS NOT DISTINCT FROM c."organizationId"
+		AND w.thread_id = c.thread_id
+		AND w.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
+		AND w.checkpoint_id = c.checkpoint_id
+	GROUP BY c.id
+),
+delete_candidates AS (
+	SELECT
+		c.id,
+		c."tenantId",
+		c."organizationId",
+		c.thread_id,
+		c.checkpoint_ns,
+		c.checkpoint_id,
+		c."createdAt",
+		c.row_bytes,
+		COALESCE(cws.candidate_writes_count, 0)::int AS candidate_writes_count,
+		COALESCE(cws.candidate_writes_bytes, 0)::bigint AS candidate_writes_bytes
+	FROM candidate_checkpoints c
+	LEFT JOIN candidate_writes_size cws
+		ON cws.id = c.id
 )
 `
 }
@@ -414,7 +478,34 @@ LIMIT $4::int
 
 function buildOversizedThreadsSql() {
     return `
-WITH writes_size AS (
+WITH oversized_thread_candidates AS (
+	SELECT
+		c."tenantId",
+		c."organizationId",
+		c.thread_id,
+		c.checkpoint_ns,
+		count(*)::int AS checkpoint_count
+	FROM copilot_checkpoint c
+	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns
+	HAVING count(*) > $1::int
+),
+checkpoint_size AS (
+	SELECT
+		c."tenantId",
+		c."organizationId",
+		c.thread_id,
+		c.checkpoint_ns,
+		max(otc.checkpoint_count)::int AS checkpoint_count,
+		COALESCE(sum(pg_column_size(c.checkpoint)), 0)::bigint AS checkpoint_bytes
+	FROM copilot_checkpoint c
+	JOIN oversized_thread_candidates otc
+		ON otc."tenantId" IS NOT DISTINCT FROM c."tenantId"
+		AND otc."organizationId" IS NOT DISTINCT FROM c."organizationId"
+		AND otc.thread_id = c.thread_id
+		AND otc.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
+	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns
+),
+writes_size AS (
 	SELECT
 		w."tenantId",
 		w."organizationId",
@@ -422,37 +513,30 @@ WITH writes_size AS (
 		w.checkpoint_ns,
 		COALESCE(sum(pg_column_size(w.value)), 0)::bigint AS writes_bytes
 	FROM copilot_checkpoint_writes w
+	JOIN oversized_thread_candidates otc
+		ON otc."tenantId" IS NOT DISTINCT FROM w."tenantId"
+		AND otc."organizationId" IS NOT DISTINCT FROM w."organizationId"
+		AND otc.thread_id = w.thread_id
+		AND otc.checkpoint_ns IS NOT DISTINCT FROM w.checkpoint_ns
 	GROUP BY w."tenantId", w."organizationId", w.thread_id, w.checkpoint_ns
-),
-thread_stats AS (
-	SELECT
-		c."tenantId",
-		c."organizationId",
-		c.thread_id,
-		c.checkpoint_ns,
-		count(*)::int AS checkpoint_count,
-		COALESCE(sum(pg_column_size(c.checkpoint)), 0)::bigint AS checkpoint_bytes,
-		COALESCE(ws.writes_bytes, 0)::bigint AS writes_bytes
-	FROM copilot_checkpoint c
-	LEFT JOIN writes_size ws
-		ON ws."tenantId" IS NOT DISTINCT FROM c."tenantId"
-		AND ws."organizationId" IS NOT DISTINCT FROM c."organizationId"
-		AND ws.thread_id = c.thread_id
-		AND ws.checkpoint_ns IS NOT DISTINCT FROM c.checkpoint_ns
-	GROUP BY c."tenantId", c."organizationId", c.thread_id, c.checkpoint_ns, ws.writes_bytes
 )
 SELECT
-	"organizationId",
-	thread_id AS "threadId",
-	checkpoint_ns AS "checkpointNs",
-	checkpoint_count AS "checkpointCount",
-	checkpoint_bytes AS "checkpointBytes",
-	writes_bytes AS "writesBytes",
-	(checkpoint_bytes + writes_bytes)::bigint AS "threadBytes"
-FROM thread_stats
-WHERE checkpoint_bytes + writes_bytes >= $1::bigint
-ORDER BY checkpoint_bytes + writes_bytes DESC
-LIMIT $2::int
+	cs."organizationId",
+	cs.thread_id AS "threadId",
+	cs.checkpoint_ns AS "checkpointNs",
+	cs.checkpoint_count AS "checkpointCount",
+	cs.checkpoint_bytes AS "checkpointBytes",
+	COALESCE(ws.writes_bytes, 0)::bigint AS "writesBytes",
+	(cs.checkpoint_bytes + COALESCE(ws.writes_bytes, 0))::bigint AS "threadBytes"
+FROM checkpoint_size cs
+LEFT JOIN writes_size ws
+	ON ws."tenantId" IS NOT DISTINCT FROM cs."tenantId"
+	AND ws."organizationId" IS NOT DISTINCT FROM cs."organizationId"
+	AND ws.thread_id = cs.thread_id
+	AND ws.checkpoint_ns IS NOT DISTINCT FROM cs.checkpoint_ns
+WHERE checkpoint_bytes + COALESCE(ws.writes_bytes, 0) >= $2::bigint
+ORDER BY checkpoint_bytes + COALESCE(ws.writes_bytes, 0) DESC
+LIMIT $3::int
 `
 }
 
