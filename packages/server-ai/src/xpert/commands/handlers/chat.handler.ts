@@ -44,6 +44,7 @@ import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/s
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
+import { appendMessageSteps, sanitizeMessageContentForPersistence } from '../../../chat-message'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
@@ -809,7 +810,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 })
 
                                 applicationMetrics.recordToolComponentMessage(event.data.data, aiMessage.content)
-                                appendMessageContent(aiMessage, event.data.data, messageContext)
+                                appendMessageContent(
+                                    aiMessage,
+                                    sanitizeMessageContentForPersistence(event.data.data),
+                                    messageContext
+                                )
                                 result = appendMessagePlainText(result, event.data.data, messageContext)
                             } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
                                 switch (event.data.event) {
@@ -1085,23 +1090,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             'project.id': options.projectId
         })
     }
-}
-
-function appendMessageSteps(aiMessage: IChatMessage, steps: TChatMessageStep[]) {
-    aiMessage.events ??= []
-    steps.forEach((item) => {
-        if (item.id) {
-            const index = aiMessage.events.findIndex((_) => _.id === item.id)
-            if (index > -1) {
-                aiMessage.events[index] = {
-                    ...aiMessage.events[index],
-                    ...item
-                }
-                return
-            }
-        }
-        aiMessage.events.push(item)
-    })
 }
 
 function isFollowUpConsumedEvent(value: unknown): value is TFollowUpConsumedEvent {

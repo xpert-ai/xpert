@@ -7,6 +7,7 @@ import { RouterModule } from '@nestjs/core'
 import { CommandHandlers } from './commands/handlers'
 import { ChatConversationController } from './conversation.controller'
 import { ChatConversation } from './conversation.entity'
+import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationGoal, ChatConversationGoalService } from './goal'
 import { QueryHandlers } from './queries/handlers'
@@ -20,7 +21,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
 @Module({
     imports: [
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
-        TypeOrmModule.forFeature([ChatConversation, ChatConversationGoal]),
+        TypeOrmModule.forFeature([ChatConversation, ChatConversationGoal, ChatConversationReadState]),
         SharedModule,
         CqrsModule,
 

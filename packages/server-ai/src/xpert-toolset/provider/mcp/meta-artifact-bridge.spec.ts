@@ -16,6 +16,17 @@ const mcpMeta = {
     }
 }
 
+const mcpStructuredArtifact = {
+    structuredContent: {
+        page: {
+            url: 'https://en.wikipedia.org/wiki/Model_Context_Protocol',
+            title: 'Model Context Protocol'
+        },
+        links: [],
+        error: null
+    }
+}
+
 type MockMcpTool = {
     func: jest.Mock<Promise<unknown>, [unknown]>
 }
@@ -23,6 +34,13 @@ type MockMcpTool = {
 describe('MCP meta artifact bridge', () => {
     it('maps MCP _meta directly to the tool artifact slot', () => {
         expect(mapMcpMetaToToolArtifact(['{"ok":true}', []], mcpMeta)).toEqual(['{"ok":true}', mcpMeta])
+    })
+
+    it('maps MCP structuredContent to the tool artifact slot', () => {
+        expect(mapMcpMetaToToolArtifact(['{"ok":true}', []], mcpStructuredArtifact)).toEqual([
+            '{"ok":true}',
+            mcpStructuredArtifact
+        ])
     })
 
     it('keeps existing artifacts and appends MCP _meta when both exist', () => {
@@ -59,6 +77,7 @@ describe('MCP meta artifact bridge', () => {
             callTool: jest.fn(
                 async (): Promise<CallToolResult> => ({
                     content: [{ type: 'text', text: '{"ok":true}' }],
+                    structuredContent: mcpStructuredArtifact.structuredContent,
                     _meta: mcpMeta
                 })
             )
@@ -81,15 +100,23 @@ describe('MCP meta artifact bridge', () => {
         const tools = (await multiServerClient.getTools()) as unknown as MockMcpTool[]
         const result = await tools[0].func({})
 
-        expect(result).toEqual(['{"ok":true}', mcpMeta])
+        expect(result).toEqual([
+            '{"ok":true}',
+            {
+                ...mcpMeta,
+                _meta: mcpMeta,
+                structuredContent: mcpStructuredArtifact.structuredContent
+            }
+        ])
         await expect(multiServerClient.getClient('default')).resolves.toBe(sdkClient)
     })
 
-    it('does not add an artifact when the MCP result has no _meta', async () => {
+    it('adds an artifact when the MCP result has structuredContent without _meta', async () => {
         const sdkClient = {
             callTool: jest.fn(
                 async (): Promise<CallToolResult> => ({
-                    content: [{ type: 'text', text: '{"ok":true}' }]
+                    content: [{ type: 'text', text: '{"ok":true}' }],
+                    structuredContent: mcpStructuredArtifact.structuredContent
                 })
             )
         } as unknown as Client
@@ -111,6 +138,6 @@ describe('MCP meta artifact bridge', () => {
         const tools = (await multiServerClient.getTools()) as unknown as MockMcpTool[]
         const result = await tools[0].func({})
 
-        expect(result).toEqual(['{"ok":true}', []])
+        expect(result).toEqual(['{"ok":true}', mcpStructuredArtifact])
     })
 })

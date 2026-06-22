@@ -88,9 +88,9 @@ describe('assistant chatkit runtime helpers', () => {
 
   it('uses the resolved binding assistantId with the hosted frame url', () => {
     expect(hasCompleteAssistantBinding(createResolvedBinding(), 'https://chatkit.example.com')).toBe(true)
-    expect(hasCompleteAssistantBinding(createResolvedBinding({ assistantId: null }), 'https://chatkit.example.com')).toBe(
-      false
-    )
+    expect(
+      hasCompleteAssistantBinding(createResolvedBinding({ assistantId: null }), 'https://chatkit.example.com')
+    ).toBe(false)
     expect(hasCompleteAssistantBinding(createResolvedBinding(), null)).toBe(false)
   })
 
@@ -184,7 +184,14 @@ describe('assistant chatkit runtime helpers', () => {
 
     requestContext.set({
       env: {
-        workspaceId: 'workspace-2'
+        workspaceId: 'workspace-2',
+        docxEditorDocumentId: 'doc-1'
+      },
+      docxEditor: {
+        currentDocument: {
+          documentId: 'doc-1',
+          title: 'Document 1'
+        }
       }
     })
     flushAngularEffects()
@@ -196,7 +203,14 @@ describe('assistant chatkit runtime helpers', () => {
         request: {
           context: {
             env: {
-              workspaceId: 'workspace-2'
+              workspaceId: 'workspace-2',
+              docxEditorDocumentId: 'doc-1'
+            },
+            docxEditor: {
+              currentDocument: {
+                documentId: 'doc-1',
+                title: 'Document 1'
+              }
             }
           }
         }

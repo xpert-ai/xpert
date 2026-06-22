@@ -70,6 +70,7 @@ export function createToolNode(
                         conversationId,
                         xpertId,
                         agentKey,
+                        executionId,
                         signal: config.signal,
                         env: toEnvState(environment)
                     })

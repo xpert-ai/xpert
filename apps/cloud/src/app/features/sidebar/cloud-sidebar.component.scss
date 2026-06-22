@@ -1,0 +1,74 @@
+@reference "../../../styles/tailwind-reference.css";
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.cloud-sidebar {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sidebar);
+  color: var(--color-text-primary);
+}
+
+.cloud-sidebar__header {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0.8rem 0.625rem 0.65rem;
+}
+
+.cloud-sidebar.is-collapsed .cloud-sidebar__header {
+  display: flex;
+  justify-content: center;
+  padding: 0.7rem 0.5rem 0.5rem;
+}
+
+.cloud-sidebar__scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 0.15rem;
+}
+
+.cloud-sidebar__scroll::-webkit-scrollbar {
+  width: 0.4rem;
+}
+
+.cloud-sidebar__scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent);
+}
+
+.cloud-sidebar__footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--color-divider-regular);
+  padding: 0.45rem 0.5rem 0.55rem;
+}
+
+.cloud-sidebar__utility {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 0.25rem 0.2rem;
+}
+
+.cloud-sidebar.is-collapsed .cloud-sidebar__utility {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.cloud-sidebar__notification {
+  display: flex;
+}
+
+.cloud-sidebar__user {
+  display: block;
+}
+
+.cloud-sidebar:not(.is-collapsed) .cloud-sidebar__user {
+  width: 100%;
+}

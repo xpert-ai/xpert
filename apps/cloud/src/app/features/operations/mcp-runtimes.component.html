@@ -1,0 +1,586 @@
+<div class="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden bg-background-default">
+  <div class="shrink-0 border-b border-divider-regular">
+    <div class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <div class="pac-page-title">
+              {{ 'PAC.Operations.McpRuntimesTitle' | translate: { Default: 'MCP Runtime Operations' } }}
+            </div>
+            <z-badge zType="outline">
+              {{ 'PAC.Operations.SuperAdminOnly' | translate: { Default: 'Super Admin' } }}
+            </z-badge>
+          </div>
+          <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
+            {{
+              'PAC.Operations.McpRuntimesSubtitle'
+                | translate
+                  : {
+                      Default:
+                        'Inspect and stop controlled plugin-managed or custom MCP stdio runtime instances started by toolset initialization.'
+                    }
+            }}
+          </div>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            z-button
+            type="button"
+            zType="secondary"
+            [zLoading]="loading()"
+            [zDisabled]="loading()"
+            (click)="refresh()"
+          >
+            <i class="ri-refresh-line"></i>
+            <span>{{ 'PAC.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-4">
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-content class="px-4 py-3">
+            <div class="text-xs font-medium uppercase text-text-tertiary">
+              {{ 'PAC.Operations.TotalInstances' | translate: { Default: 'Total instances' } }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ runtimes().length }}</div>
+          </z-card-content>
+        </z-card>
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-content class="px-4 py-3">
+            <div class="text-xs font-medium uppercase text-text-tertiary">
+              {{ 'PAC.Operations.ActiveInstances' | translate: { Default: 'Active' } }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-text-success">{{ activeCount() }}</div>
+          </z-card-content>
+        </z-card>
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-content class="px-4 py-3">
+            <div class="text-xs font-medium uppercase text-text-tertiary">
+              {{ 'PAC.Operations.FailedInstances' | translate: { Default: 'Failed' } }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-text-destructive">{{ failedCount() }}</div>
+          </z-card-content>
+        </z-card>
+        <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card-content class="px-4 py-3">
+            <div class="text-xs font-medium uppercase text-text-tertiary">
+              {{ 'PAC.Operations.ClosedInstances' | translate: { Default: 'Closed' } }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-text-tertiary">{{ closedCount() }}</div>
+          </z-card-content>
+        </z-card>
+      </div>
+    </div>
+  </div>
+
+  <div class="shrink-0">
+    <div class="mx-auto flex w-full max-w-screen-2xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+      <div class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_180px_auto]">
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.Workspace' | translate: { Default: 'Workspace' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="filterSelectValue(workspaceId())"
+            [zPlaceholder]="'PAC.Operations.AllWorkspaces' | translate: { Default: 'All workspaces' }"
+            (zSelectionChange)="setFilter('workspaceId', $event)"
+          >
+            <z-select-item [zValue]="allFilterValue">
+              {{ 'PAC.Operations.AllWorkspaces' | translate: { Default: 'All workspaces' } }}
+            </z-select-item>
+            @for (option of filterOptions().workspaces; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.label }}
+              </z-select-item>
+            }
+          </z-select>
+        </label>
+
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.Toolset' | translate: { Default: 'Toolset' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="filterSelectValue(toolsetId())"
+            [zPlaceholder]="'PAC.Operations.AllToolsets' | translate: { Default: 'All toolsets' }"
+            (zSelectionChange)="setFilter('toolsetId', $event)"
+          >
+            <z-select-item [zValue]="allFilterValue">
+              {{ 'PAC.Operations.AllToolsets' | translate: { Default: 'All toolsets' } }}
+            </z-select-item>
+            @for (option of filterOptions().toolsets; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.label }}
+              </z-select-item>
+            }
+          </z-select>
+        </label>
+
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.PluginName' | translate: { Default: 'Plugin name' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="filterSelectValue(pluginName())"
+            [zPlaceholder]="'PAC.Operations.AllPlugins' | translate: { Default: 'All plugins' }"
+            (zSelectionChange)="setFilter('pluginName', $event)"
+          >
+            <z-select-item [zValue]="allFilterValue">
+              {{ 'PAC.Operations.AllPlugins' | translate: { Default: 'All plugins' } }}
+            </z-select-item>
+            @for (option of filterOptions().plugins; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.label }}
+              </z-select-item>
+            }
+          </z-select>
+        </label>
+
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.Execution' | translate: { Default: 'Execution' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="filterSelectValue(executionId())"
+            [zPlaceholder]="'PAC.Operations.AllExecutions' | translate: { Default: 'All executions' }"
+            (zSelectionChange)="setFilter('executionId', $event)"
+          >
+            <z-select-item [zValue]="allFilterValue">
+              {{ 'PAC.Operations.AllExecutions' | translate: { Default: 'All executions' } }}
+            </z-select-item>
+            @for (option of filterOptions().executions; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.label }}
+              </z-select-item>
+            }
+          </z-select>
+        </label>
+
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.AppInstance' | translate: { Default: 'App instance' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="filterSelectValue(appInstanceId())"
+            [zPlaceholder]="'PAC.Operations.AllAppInstances' | translate: { Default: 'All app instances' }"
+            (zSelectionChange)="setFilter('appInstanceId', $event)"
+          >
+            <z-select-item [zValue]="allFilterValue">
+              {{ 'PAC.Operations.AllAppInstances' | translate: { Default: 'All app instances' } }}
+            </z-select-item>
+            @for (option of filterOptions().appInstances; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.label }}
+              </z-select-item>
+            }
+          </z-select>
+        </label>
+
+        <label class="flex min-w-0 flex-col gap-1">
+          <span class="text-xs font-medium uppercase text-text-tertiary">
+            {{ 'PAC.Operations.Status' | translate: { Default: 'Status' } }}
+          </span>
+          <z-select
+            class="w-full"
+            [zValue]="statusFilter()"
+            [zPlaceholder]="'PAC.Operations.Status' | translate: { Default: 'Status' }"
+            (zSelectionChange)="setStatusFilter($event)"
+          >
+            <z-select-item zValue="active">
+              {{ 'PAC.Operations.ActiveOnly' | translate: { Default: 'Active only' } }}
+            </z-select-item>
+            <z-select-item zValue="all">
+              {{ 'PAC.Operations.AllStatuses' | translate: { Default: 'All statuses' } }}
+            </z-select-item>
+            <z-select-item zValue="starting">
+              {{ 'PAC.Operations.RuntimeStatus.starting' | translate: { Default: 'starting' } }}
+            </z-select-item>
+            <z-select-item zValue="running">
+              {{ 'PAC.Operations.RuntimeStatus.running' | translate: { Default: 'running' } }}
+            </z-select-item>
+            <z-select-item zValue="failed">
+              {{ 'PAC.Operations.RuntimeStatus.failed' | translate: { Default: 'failed' } }}
+            </z-select-item>
+            <z-select-item zValue="closing">
+              {{ 'PAC.Operations.RuntimeStatus.closing' | translate: { Default: 'closing' } }}
+            </z-select-item>
+            <z-select-item zValue="closed">
+              {{ 'PAC.Operations.RuntimeStatus.closed' | translate: { Default: 'closed' } }}
+            </z-select-item>
+          </z-select>
+        </label>
+
+        <div class="flex items-end gap-2">
+          <button z-button type="button" [zLoading]="loading()" [zDisabled]="loading()" (click)="refresh()">
+            {{ 'PAC.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+          </button>
+          <button z-button type="button" zType="ghost" [zDisabled]="loading()" (click)="clearFilters()">
+            {{ 'PAC.ACTIONS.Clear' | translate: { Default: 'Clear' } }}
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-text-tertiary">
+        <div class="min-w-0">
+          {{
+            'PAC.Operations.CurrentScopeHint'
+              | translate: { Default: 'Current tenant and current organization are applied automatically.' }
+          }}
+          @if (hasApiFilters()) {
+            {{ 'PAC.Operations.ApiFilterApplied' | translate: { Default: 'Server-side filters are applied.' } }}
+          } @else {
+            {{ 'PAC.Operations.NoApiFilterApplied' | translate: { Default: 'No server-side filter is applied.' } }}
+          }
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          {{ 'PAC.Operations.LastLoaded' | translate: { Default: 'Last loaded' } }}:
+          {{ formatDate(lastLoadedAt()) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-0 flex-1 overflow-auto">
+    <div class="mx-auto w-full max-w-screen-2xl px-4 pb-8 sm:px-6 lg:px-8">
+      @if (error()) {
+        <div
+          class="mb-4 flex items-start gap-2 rounded-lg border border-text-destructive bg-status-error-bg px-4 py-3 text-sm text-text-destructive"
+        >
+          <i class="ri-error-warning-line pt-0.5"></i>
+          <div class="min-w-0 break-words">{{ error() }}</div>
+        </div>
+      }
+
+      <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+        <z-card-content class="p-0">
+          @if (loading() && !runtimes().length) {
+            <div class="flex min-h-[360px] items-center justify-center">
+              <ngm-spin />
+            </div>
+          } @else if (!sortedRuntimes().length) {
+            <div class="flex min-h-[360px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+              <i class="ri-inbox-line text-3xl text-text-tertiary"></i>
+              <div class="text-lg font-semibold text-text-primary">
+                {{ 'PAC.Operations.NoRuntimes' | translate: { Default: 'No MCP runtimes found' } }}
+              </div>
+              <div class="max-w-xl text-sm text-text-tertiary">
+                {{
+                  'PAC.Operations.NoRuntimesHelp'
+                    | translate
+                      : {
+                          Default:
+                            'Runtime instances appear after an MCP toolset initializes a plugin-managed or custom stdio server.'
+                        }
+                }}
+              </div>
+            </div>
+          } @else {
+            <table z-table class="w-full min-w-[1500px] table-fixed text-left text-sm">
+              <thead z-table-header>
+                <tr z-table-row class="border-b bg-components-input-bg-normal hover:bg-components-input-bg-normal">
+                  <th z-table-head class="w-[260px] px-4 py-3" [attr.aria-sort]="ariaSort('runtime')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('runtime')"
+                      (zSortChange)="onSortChange('runtime', $event)"
+                    >
+                      {{ 'PAC.Operations.Runtime' | translate: { Default: 'Runtime' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[120px] px-4 py-3" [attr.aria-sort]="ariaSort('status')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('status')"
+                      (zSortChange)="onSortChange('status', $event)"
+                    >
+                      {{ 'PAC.Operations.Status' | translate: { Default: 'Status' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[250px] px-4 py-3" [attr.aria-sort]="ariaSort('plugin')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('plugin')"
+                      (zSortChange)="onSortChange('plugin', $event)"
+                    >
+                      {{ 'PAC.Operations.PluginServer' | translate: { Default: 'Plugin / Server' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[250px] px-4 py-3" [attr.aria-sort]="ariaSort('scope')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('scope')"
+                      (zSortChange)="onSortChange('scope', $event)"
+                    >
+                      {{ 'PAC.Operations.Scope' | translate: { Default: 'Scope' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[170px] px-4 py-3" [attr.aria-sort]="ariaSort('process')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('process')"
+                      (zSortChange)="onSortChange('process', $event)"
+                    >
+                      {{ 'PAC.Operations.Process' | translate: { Default: 'Process' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[260px] px-4 py-3" [attr.aria-sort]="ariaSort('relations')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('relations')"
+                      (zSortChange)="onSortChange('relations', $event)"
+                    >
+                      {{ 'PAC.Operations.Relations' | translate: { Default: 'Relations' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[180px] px-4 py-3" [attr.aria-sort]="ariaSort('startedAt')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('startedAt')"
+                      (zSortChange)="onSortChange('startedAt', $event)"
+                    >
+                      {{ 'PAC.Operations.Started' | translate: { Default: 'Started' } }}
+                    </button>
+                  </th>
+                  <th z-table-head class="w-[220px] px-4 py-3" [attr.aria-sort]="ariaSort('closeReason')">
+                    <button
+                      z-table-sort-header
+                      [zDirection]="sortDirection('closeReason')"
+                      (zSortChange)="onSortChange('closeReason', $event)"
+                    >
+                      {{ 'PAC.Operations.CloseReason' | translate: { Default: 'Close reason' } }}
+                    </button>
+                  </th>
+                  <th
+                    z-table-head
+                    class="sticky right-0 z-10 w-[190px] border-l border-divider-regular bg-components-input-bg-normal px-4 py-3 text-right"
+                  >
+                    <div class="flex items-center justify-end gap-2">
+                      <span>{{ 'PAC.Operations.Actions' | translate: { Default: 'Actions' } }}</span>
+                      <button
+                        z-button
+                        type="button"
+                        zSize="sm"
+                        zType="destructive"
+                        [zLoading]="killing()"
+                        [zDisabled]="killing() || !actionableCount()"
+                        (click)="killMatching()"
+                      >
+                        <i class="ri-stop-circle-line"></i>
+                        <span>{{ 'PAC.Operations.StopFiltered' | translate: { Default: 'Stop filtered' } }}</span>
+                        @if (actionableCount()) {
+                          <span>({{ actionableCount() }})</span>
+                        }
+                      </button>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body class="divide-y divide-divider-regular">
+                @for (runtime of sortedRuntimes(); track trackByRuntimeId($index, runtime)) {
+                  <tr z-table-row class="align-top hover:bg-hover-bg">
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="min-w-0">
+                        <div class="truncate font-medium text-text-primary" [title]="runtimeTitle(runtime)">
+                          {{ runtimeTitle(runtime) }}
+                        </div>
+                        <div class="mt-1 truncate font-mono text-xs text-text-tertiary" [title]="runtime.id">
+                          {{ friendlyId(runtime.id) }}
+                        </div>
+                        <div class="mt-2 truncate font-mono text-xs text-text-tertiary" [title]="commandLabel(runtime)">
+                          {{ commandLabel(runtime) }}
+                        </div>
+                        <div class="mt-2">
+                          <z-badge zType="outline">
+                            {{ runtimeOriginLabel(runtime) }}
+                          </z-badge>
+                        </div>
+                      </div>
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <z-badge
+                        zType="outline"
+                        [class]="'border px-2 py-1 font-semibold ' + statusClass(runtime.status)"
+                      >
+                        {{ statusLabel(runtime.status) }}
+                      </z-badge>
+                      @if (runtime.live) {
+                        <div class="mt-2">
+                          <z-badge
+                            zType="outline"
+                            class="border-state-success-hover bg-state-success-hover/20 text-text-success"
+                          >
+                            {{ 'PAC.Operations.Live' | translate: { Default: 'live' } }}
+                          </z-badge>
+                        </div>
+                      }
+                      <div class="mt-2 text-xs text-text-tertiary">{{ duration(runtime) }}</div>
+                      @if (runtime.live) {
+                        <div class="mt-2 space-y-1 text-xs text-text-tertiary">
+                          <div class="truncate" [title]="runtime.idleExpiresAt || ''">
+                            {{ idleExpiryLabel(runtime) }}
+                          </div>
+                          <div class="truncate" [title]="runtime.maxLifetimeExpiresAt || ''">
+                            {{ maxLifetimeLabel(runtime) }}
+                          </div>
+                        </div>
+                      }
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="truncate text-text-primary" [title]="runtime.pluginName || '-'">
+                        {{ runtime.pluginName || '-' }}
+                      </div>
+                      <div class="mt-1 truncate text-xs text-text-tertiary" [title]="runtime.serverName">
+                        {{ runtime.serverName }}
+                      </div>
+                      @if (runtime.componentKey) {
+                        <div class="mt-1 truncate text-xs text-text-tertiary" [title]="runtime.componentKey">
+                          {{ 'PAC.Operations.Component' | translate: { Default: 'component' } }}:
+                          {{ runtime.componentKey }}
+                        </div>
+                      }
+                      <div class="mt-2">
+                        <z-badge zType="outline">
+                          {{ pluginRuntimeType(runtime) }}
+                        </z-badge>
+                      </div>
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="space-y-1.5 text-xs text-text-tertiary">
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.TenantShort' | translate: { Default: 'tenant' } }}</span>
+                          <span class="truncate font-medium text-text-secondary" [title]="runtime.tenantId || '-'">
+                            {{
+                              runtime.tenantId
+                                ? ('PAC.Operations.CurrentTenant' | translate: { Default: 'Current tenant' })
+                                : '-'
+                            }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.OrganizationShort' | translate: { Default: 'org' } }}</span>
+                          <span
+                            class="truncate font-medium text-text-secondary"
+                            [title]="runtime.organizationId || '-'"
+                          >
+                            {{
+                              runtime.organizationId
+                                ? ('PAC.Operations.CurrentOrganization'
+                                  | translate: { Default: 'Current organization' })
+                                : '-'
+                            }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.Workspace' | translate: { Default: 'workspace' } }}</span>
+                          <span class="truncate text-text-secondary" [title]="workspaceTitle(runtime.workspaceId)">
+                            {{ workspaceLabel(runtime.workspaceId) }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.Toolset' | translate: { Default: 'toolset' } }}</span>
+                          <span
+                            class="truncate text-text-secondary"
+                            [class.font-mono]="!runtime.toolsetName"
+                            [title]="runtime.toolsetId || '-'"
+                          >
+                            {{ friendlyNameWithId(runtime.toolsetName, runtime.toolsetId) }}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="font-mono text-xs text-text-secondary">{{ pidLabel(runtime) }}</div>
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="space-y-1.5 text-xs text-text-tertiary">
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.Execution' | translate: { Default: 'execution' } }}</span>
+                          <span class="truncate font-mono text-text-secondary" [title]="runtime.executionId || '-'">
+                            {{ friendlyId(runtime.executionId) }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.Conversation' | translate: { Default: 'conversation' } }}</span>
+                          <span class="truncate font-mono text-text-secondary" [title]="runtime.conversationId || '-'">
+                            {{ friendlyId(runtime.conversationId) }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.AppInstanceShort' | translate: { Default: 'app' } }}</span>
+                          <span class="truncate font-mono text-text-secondary" [title]="runtime.appInstanceId || '-'">
+                            {{ friendlyId(runtime.appInstanceId) }}
+                          </span>
+                        </div>
+                        <div class="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2">
+                          <span>{{ 'PAC.Operations.InstallationShort' | translate: { Default: 'install' } }}</span>
+                          <span
+                            class="truncate font-mono text-text-secondary"
+                            [title]="runtime.resourceInstallationId || '-'"
+                          >
+                            {{ friendlyId(runtime.resourceInstallationId) }}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="text-text-secondary">{{ formatDate(runtime.startedAt) }}</div>
+                      @if (runtime.closedAt) {
+                        <div class="mt-1 text-xs text-text-tertiary">
+                          {{ 'PAC.Operations.ClosedAt' | translate: { Default: 'Closed' } }}:
+                          {{ formatDate(runtime.closedAt) }}
+                        </div>
+                      }
+                    </td>
+                    <td z-table-cell class="px-4 py-4">
+                      <div class="line-clamp-2 break-words text-text-tertiary" [title]="runtime.closeReason || ''">
+                        {{ runtime.closeReason || '-' }}
+                      </div>
+                      @if (runtime.stderrTail) {
+                        <details class="mt-2">
+                          <summary
+                            class="cursor-pointer text-xs font-medium text-text-secondary hover:text-text-primary"
+                          >
+                            {{ 'PAC.Operations.StderrTail' | translate: { Default: 'stderr tail' } }}
+                          </summary>
+                          <pre
+                            class="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-background-default-subtle p-3 font-mono text-xs text-text-secondary"
+                            >{{ runtime.stderrTail }}</pre
+                          >
+                        </details>
+                      }
+                    </td>
+                    <td
+                      z-table-cell
+                      class="sticky right-0 border-l border-divider-regular bg-components-card-bg px-4 py-4 text-right"
+                    >
+                      <button
+                        z-button
+                        type="button"
+                        zType="ghost"
+                        zSize="sm"
+                        class="hover:text-text-destructive"
+                        [zLoading]="stoppingRuntimeId() === runtime.id"
+                        [zDisabled]="!canStop(runtime) || stoppingRuntimeId() === runtime.id"
+                        (click)="stopRuntime(runtime)"
+                      >
+                        <i class="ri-stop-circle-line"></i>
+                        <span>{{ 'PAC.Operations.StopAction' | translate: { Default: 'Stop' } }}</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </z-card-content>
+      </z-card>
+    </div>
+  </div>
+</div>

@@ -12,20 +12,35 @@ import { XpertToolsetController } from './xpert-toolset.controller'
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { XpertAgentModule } from '../xpert-agent'
+import { McpAppsController } from './mcp-apps.controller'
+import { McpAppsService } from './mcp-apps.service'
+import { McpRuntimeController } from './mcp-runtime.controller'
+import { McpRuntimeAuditService } from './mcp-runtime-audit.service'
+import { McpRuntimeInstanceEntity } from './mcp-runtime-instance.entity'
+import { PluginResourceInstallation } from '../plugin-resource/plugin-resource-installation.entity'
+import { ChatMessageModule } from '../chat-message'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
-		TypeOrmModule.forFeature([XpertToolset]),
-		DiscoveryModule,
-		TenantModule,
-		CqrsModule,
-		CopilotModule,
-		forwardRef(() => XpertWorkspaceModule),
-		forwardRef(() => XpertAgentModule)
-	],
-	controllers: [XpertToolsetController],
-	providers: [XpertToolsetService, ToolsetRegistry, ...QueryHandlers, ...CommandHandlers],
-	exports: [XpertToolsetService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
+        TypeOrmModule.forFeature([XpertToolset, McpRuntimeInstanceEntity, PluginResourceInstallation]),
+        DiscoveryModule,
+        TenantModule,
+        CqrsModule,
+        CopilotModule,
+        ChatMessageModule,
+        forwardRef(() => XpertWorkspaceModule),
+        forwardRef(() => XpertAgentModule)
+    ],
+    controllers: [XpertToolsetController, McpAppsController, McpRuntimeController],
+    providers: [
+        XpertToolsetService,
+        McpAppsService,
+        McpRuntimeAuditService,
+        ToolsetRegistry,
+        ...QueryHandlers,
+        ...CommandHandlers
+    ],
+    exports: [XpertToolsetService]
 })
 export class XpertToolsetModule {}

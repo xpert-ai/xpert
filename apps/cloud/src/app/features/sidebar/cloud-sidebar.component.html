@@ -1,0 +1,33 @@
+<nav class="cloud-sidebar" [class.is-collapsed]="collapsed()">
+  <header class="cloud-sidebar__header">
+    <pac-cloud-sidebar-identity
+      [collapsed]="collapsed()"
+      (collapsedChange)="collapsedChange.emit($event)"
+      (brandClick)="brandClick.emit()"
+    />
+  </header>
+
+  <div class="cloud-sidebar__scroll">
+    <pac-cloud-sidebar-menu
+      [collapsed]="collapsed()"
+      [isMobile]="isMobile()"
+      [menus]="menus()"
+      (clicked)="collapsedChange.emit(isMobile() ? true : collapsed())"
+    />
+  </div>
+
+  <footer class="cloud-sidebar__footer">
+    <div class="cloud-sidebar__utility">
+      <pac-notification class="cloud-sidebar__notification" />
+    </div>
+
+    @if (user(); as currentUser) {
+      <pac-header-user
+        class="cloud-sidebar__user"
+        [user]="currentUser"
+        [compact]="collapsed()"
+        [fullWidth]="!collapsed()"
+      />
+    }
+  </footer>
+</nav>

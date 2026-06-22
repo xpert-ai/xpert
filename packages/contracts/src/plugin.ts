@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { JsonSchemaObjectType } from './ai/types'
 import type { IXpert } from './ai/xpert.model'
+import type { TMcpStdioRuntimePolicy } from './ai/xpert-tool-mcp.model'
 import type { JSONValue } from './core.model'
 import { IconDefinition, I18nObject } from './types'
 
@@ -150,6 +151,7 @@ export interface XpertPluginMcpServerPolicy {
   enabled?: boolean
   defaultToolsApprovalMode?: PluginMcpToolApprovalMode
   enabledTools?: string[]
+  runtime?: TMcpStdioRuntimePolicy
   tools?: {
     [toolName: string]: {
       approvalMode?: PluginMcpToolApprovalMode

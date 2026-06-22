@@ -1,4 +1,5 @@
 export * from '../../chat-conversation/conversation.entity'
+export * from '../../chat-conversation/conversation-read-state.entity'
 export * from '../../chat-conversation/goal/conversation-goal.entity'
 export * from '../../assistant-binding/assistant-binding.entity'
 export * from '../../assistant-binding/assistant-binding-user-preference.entity'
@@ -43,3 +44,4 @@ export * from '../../skill-repository/repository-index/skill-repository-index.en
 export * from '../../skill-package/skill-package.entity'
 export * from '../../prompt-workflow/prompt-workflow.entity'
 export * from '../../plugin-resource/plugin-resource-installation.entity'
+export * from '../../xpert-toolset/mcp-runtime-instance.entity'

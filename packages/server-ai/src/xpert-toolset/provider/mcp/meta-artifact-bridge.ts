@@ -17,7 +17,7 @@ const bridgedTools = new WeakSet<object>()
 const mcpMetaCaptureStorage = new AsyncLocalStorage<McpMetaCapture>()
 
 type McpMetaCapture = {
-    meta?: CallToolResult['_meta']
+    artifact?: Record<string, unknown>
 }
 
 type ClientContainer = {
@@ -53,25 +53,38 @@ function isMcpToolWithFunc(value: unknown): value is McpToolWithFunc {
     return typeof (value as { func?: unknown }).func === 'function'
 }
 
-function hasMcpMeta(result: CallToolResult): boolean {
-    return result._meta !== undefined
+function createMcpResultArtifact(result: CallToolResult): Record<string, unknown> | undefined {
+    const artifact: Record<string, unknown> = {}
+    if (result._meta !== undefined) {
+        if (isObject(result._meta)) {
+            Object.assign(artifact, result._meta)
+        }
+        artifact._meta = result._meta
+    }
+    if (result.structuredContent !== undefined) {
+        artifact.structuredContent = result.structuredContent
+    }
+    if (result.isError !== undefined) {
+        artifact.isError = result.isError
+    }
+    return Object.keys(artifact).length ? artifact : undefined
 }
 
-export function mapMcpMetaToToolArtifact(toolResult: unknown, meta: CallToolResult['_meta']): unknown {
+export function mapMcpMetaToToolArtifact(toolResult: unknown, mcpArtifact: Record<string, unknown>): unknown {
     if (!Array.isArray(toolResult) || toolResult.length !== 2) {
         return toolResult
     }
 
     const [content, artifact] = toolResult
     if (artifact === undefined || (Array.isArray(artifact) && artifact.length === 0)) {
-        return [content, meta]
+        return [content, mcpArtifact]
     }
 
     if (Array.isArray(artifact)) {
-        return [content, [...artifact, meta]]
+        return [content, [...artifact, mcpArtifact]]
     }
 
-    return [content, [artifact, meta]]
+    return [content, [artifact, mcpArtifact]]
 }
 
 export function installMcpClientMetaArtifactBridge(client: Client): void {
@@ -84,8 +97,9 @@ export function installMcpClientMetaArtifactBridge(client: Client): void {
     client.callTool = (async (...args: Parameters<Client['callTool']>) => {
         const result = await originalCallTool(...args)
         const capture = mcpMetaCaptureStorage.getStore()
-        if (capture && hasMcpMeta(result)) {
-            capture.meta = result._meta
+        const artifact = createMcpResultArtifact(result)
+        if (capture && artifact) {
+            capture.artifact = artifact
         }
         return result
     }) as Client['callTool']
@@ -102,7 +116,7 @@ function installBridgeOnTool(tool: McpToolWithFunc): void {
         const capture: McpMetaCapture = {}
         // Tool calls can overlap; AsyncLocalStorage keeps the captured _meta tied to this call.
         const result = await mcpMetaCaptureStorage.run(capture, () => originalFunc(...args))
-        return capture.meta === undefined ? result : mapMcpMetaToToolArtifact(result, capture.meta)
+        return capture.artifact === undefined ? result : mapMcpMetaToToolArtifact(result, capture.artifact)
     }
 }
 

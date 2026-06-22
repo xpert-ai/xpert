@@ -15,17 +15,24 @@ import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
 import { buildMCPHeaders } from './headers'
 import { installMcpMetaArtifactBridge } from './meta-artifact-bridge'
+import { installMcpToolAppMetadataBridge, installMcpUiClientCapabilitiesBridge } from './app-support'
+import { resolvePluginManagedMcpSchema } from './plugin-managed-runtime'
+import { McpStdioRuntimeHandle, mcpStdioRuntimeManager } from './mcp-stdio-runtime'
+import type { TBuiltinToolsetParams } from '../../../shared'
 
 export async function createMCPClient(
     toolset: Partial<IXpertToolset>,
     schema: TMCPSchema,
     envState: Record<string, unknown>,
-    xpertId?: string
+    xpertId?: string,
+    runtimeContext: Partial<TBuiltinToolsetParams> = {}
 ) {
     const logs: string[] = []
     const mcpServers = {}
+    const stdioRuntimes: McpStdioRuntimeHandle[] = []
     let server: TMCPServer = null
-    const servers = schema.servers ?? schema.mcpServers
+    const resolvedSchema = resolvePluginManagedMcpSchema(toolset, schema)
+    const servers = resolvedSchema.servers ?? resolvedSchema.mcpServers
     // Connect to a remote server via SSE or HTTP
     for await (const serverName of Object.keys(servers)) {
         server = servers[serverName]
@@ -52,6 +59,7 @@ export async function createMCPClient(
                 isNil
             )
         } else if (transport === MCPServerType.STDIO || (!transport && server.command)) {
+            mcpStdioRuntimeManager.assertInitScriptsAllowed(server, name)
             // Starting event
             await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
                 id: toolset.id,
@@ -101,16 +109,29 @@ export async function createMCPClient(
                     }).format(envState)
                 }
             }
-            mcpServers[name] = {
+            const stdioServer: TMCPServer = {
                 ...server,
                 args,
                 restart: server.reconnect
-            }
+            } as TMCPServer
             if (env) {
-                mcpServers[name].env = env
+                stdioServer.env = env
+            }
+            const managed = mcpStdioRuntimeManager.prepareServer(toolset, name, stdioServer, {
+                ...runtimeContext,
+                xpertId: runtimeContext.xpertId ?? xpertId
+            })
+            mcpServers[name] = {
+                ...managed.server,
+                restart: managed.server.reconnect
+            }
+            if (managed.runtime) {
+                stdioRuntimes.push(managed.runtime)
             }
         }
     }
+
+    installMcpUiClientCapabilitiesBridge()
 
     // Create a client
     const client = new MultiServerMCPClient({
@@ -124,7 +145,15 @@ export async function createMCPClient(
     })
 
     installMcpMetaArtifactBridge(client)
-    await client.getTools()
+    installMcpToolAppMetadataBridge(client)
+    try {
+        await client.getTools()
+        mcpStdioRuntimeManager.attachClient(client, stdioRuntimes)
+    } catch (error) {
+        mcpStdioRuntimeManager.failRuntimes(stdioRuntimes, error)
+        await client.close().catch(() => undefined)
+        throw error
+    }
     // Ready event
     await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
         id: toolset.id,
@@ -133,5 +162,11 @@ export async function createMCPClient(
         end_date: new Date().toISOString()
     } as TChatEventMessage)
 
-    return { client, destroy: null, logs }
+    return {
+        client,
+        destroy: async () => {
+            await mcpStdioRuntimeManager.closeClient(client)
+        },
+        logs
+    }
 }

@@ -1,4 +1,11 @@
-import { IPagination, TThreadGoalPatchRequest, TThreadGoalSetRequest } from '@xpert-ai/contracts'
+import {
+    IChatConversationMarkReadRequest,
+    IChatConversationUnreadXpertSummary,
+    IChatConversationUnreadXpertsRequest,
+    IPagination,
+    TThreadGoalPatchRequest,
+    TThreadGoalSetRequest
+} from '@xpert-ai/contracts'
 import {
     CrudController,
     PaginationParams,
@@ -81,6 +88,16 @@ export class ChatConversationController extends CrudController<ChatConversation>
             ...result,
             items: result.items.map((_) => new ChatConversationPublicDTO(_))
         }
+    }
+
+    @Post('unread/xperts')
+    async getUnreadByXperts(
+        @Body() body: IChatConversationUnreadXpertsRequest,
+        @Query('organizationId') organizationId?: string
+    ): Promise<IChatConversationUnreadXpertSummary[]> {
+        return this.organizationScopeService.run(organizationId, () =>
+            this.service.getUnreadByXperts(body?.xpertIds ?? [])
+        )
     }
 
     @ApiOperation({ summary: 'Find by id' })
@@ -186,6 +203,17 @@ export class ChatConversationController extends CrudController<ChatConversation>
             const conversation = await this.service.findOneInOrganizationOrTenant(id)
             return this.goalService.clearGoalFromUser(conversation.id)
         })
+    }
+
+    @Post(':id/read-state')
+    async markRead(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body() body: IChatConversationMarkReadRequest,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, () =>
+            this.service.markRead(id, body?.lastReadMessageId)
+        )
     }
 
     @Post(':id/cancel')

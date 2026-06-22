@@ -26,6 +26,11 @@ import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
     DensityDirective
   ]
 })
+/**
+ * @deprecated Use `CloudSidebarMenuComponent` in
+ * `apps/cloud/src/app/features/sidebar` for the cloud shell menu. This component
+ * remains exported only for compatibility during auth package migration.
+ */
 export class PacMenuGroupComponent {
   isNil = isNil
   readonly #router = inject(Router)

@@ -226,6 +226,7 @@ import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -270,6 +271,7 @@ type MockChatKitEvent = {
 
 type MockChatKitRuntimeInput = {
   initialThread?: () => string | null
+  requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
@@ -354,6 +356,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     xpertId: ReturnType<typeof signal<string | null>>
+    currentWorkspaceId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
@@ -373,6 +376,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   let conversationService: {
     getByThreadId: jest.Mock
     getById: jest.Mock
+    markRead: jest.Mock
   }
   let viewExtensionApi: {
     getSlotViews: jest.Mock
@@ -393,6 +397,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
+      currentWorkspaceId: signal('workspace-1'),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
@@ -444,7 +449,8 @@ describe('ClawXpertConversationDetailComponent', () => {
           status: 'idle',
           messages: []
         } as IChatConversation)
-      )
+      ),
+      markRead: jest.fn(() => of({}))
     }
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
@@ -494,6 +500,92 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+  })
+
+  it('marks a route-resolved conversation read without waiting for ChatKit thread load callbacks', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+  })
+
+  it('marks a conversation read when ChatKit finishes loading the visible thread', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    conversationService.markRead.mockClear()
+
+    runtimeInput.onThreadLoadEnd?.({ threadId: 'thread-1' })
+    await settle(fixture)
+
+    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+  })
+
+  it('passes remote assistant context client commands into the current ChatKit request context', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'doc-1',
+          docxEditorVersionId: 'version-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'doc-1',
+            title: '技术通知单',
+            currentVersionId: 'version-1',
+            currentVersionNumber: 1,
+            workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx',
+            selection: {
+              selectedText: 'selected text'
+            }
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        status: 'updated',
+        key: 'docxEditor'
+      })
+    )
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          xpertId: 'assistant-1',
+          docxEditorDocumentId: 'doc-1',
+          docxEditorVersionId: 'version-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx'
+        }),
+        docxEditor: expect.objectContaining({
+          currentDocument: expect.objectContaining({
+            documentId: 'doc-1',
+            currentVersionId: 'version-1',
+            workspaceFilePath: 'files/docx-editor/documents/doc-1/versions/v1-deadbeef.docx',
+            selection: expect.objectContaining({
+              selectedText: 'selected text'
+            })
+          })
+        })
+      })
+    )
   })
 
   it('filters and orders fixed view menu items from the current bound xpert', async () => {
@@ -827,6 +919,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(tasksPanel).not.toBeNull()
 
     facade.onChatThreadChange.mockClear()
+    conversationService.markRead.mockClear()
     ;(tasksPanel.componentInstance as ChatTasksComponent).conversationSelected.emit({
       id: 'history-conversation-1',
       threadId: 'history-thread-1',
@@ -840,6 +933,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(
       expect.objectContaining({ id: 'history-conversation-1', threadId: 'history-thread-1' })
     )
+    expect(conversationService.markRead).toHaveBeenCalledWith('history-conversation-1')
   })
 
   it('adds a browser tab with the resolved conversation context', async () => {
@@ -912,15 +1006,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     ) as HTMLElement | null
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
     )
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)]'
     )
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-rows-1')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-rows-1')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
-    expect(chatShell?.className).toContain('rounded-3xl')
+    expect(chatShell?.className).toContain('rounded-2xl')
     expect(tabHeader?.className).toContain('py-1.5')
     expect(tabHeader?.className).toContain('items-center')
     expect(tabHeader?.className).not.toContain('pt-4')
@@ -954,19 +1048,19 @@ describe('ClawXpertConversationDetailComponent', () => {
     }
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
     )
-    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
 
     chatkit.dataset.chatMinimizedToPet = 'true'
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('xl:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:w-0')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-0')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
     delete chatkit.dataset.chatMinimizedToPet
@@ -974,10 +1068,10 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
     )
-    expect(fixture.componentInstance.chatShellClasses()).toContain('xl:max-w-[32rem]')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-3xl')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
@@ -1072,12 +1166,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     const runtimeInput = getRuntimeInput()
+    conversationService.markRead.mockClear()
 
     runtimeInput.onResponseStart?.()
     runtimeInput.onResponseEnd?.()
+    await settle(fixture)
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
   })
 
   it('appends workspace file path references to the chatkit composer without sending a message', async () => {

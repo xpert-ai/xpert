@@ -31,6 +31,11 @@ export type AssistantStudioRuntimeContext = {
   unsaved: boolean
 }
 
+export type AssistantWorkbenchRequestContext = {
+  env?: Record<string, string>
+  context?: Record<string, unknown>
+}
+
 type StudioRefreshEvent = {
   xpertId: string | null
   nonce: number
@@ -74,6 +79,7 @@ export class XpertAssistantFacade {
   )
   readonly #xpertWorkspaceCache = signal<Record<string, string | null>>({})
   readonly #studioRuntimeContext = signal<AssistantStudioRuntimeContext | null>(null)
+  readonly #workbenchRequestContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
   readonly #studioRefresh = signal<StudioRefreshEvent | null>(null)
   readonly #promptWorkflowRefresh = signal<PromptWorkflowRefreshEvent | null>(null)
   readonly #workspaceSkillRefresh = signal<WorkspaceSkillRefreshEvent | null>(null)
@@ -94,7 +100,9 @@ export class XpertAssistantFacade {
       xpertId: this.xpertId()
     }
   })
-  readonly requestContext = computed(() => this.buildRequestContext(this.context(), this.#studioRuntimeContext()))
+  readonly requestContext = computed(() =>
+    this.buildRequestContext(this.context(), this.#studioRuntimeContext(), this.#workbenchRequestContexts())
+  )
   readonly runtime = injectAssistantChatkitRuntime({
     assistantCode: this.assistantCode.asReadonly(),
     requestContext: this.requestContext,
@@ -179,6 +187,30 @@ export class XpertAssistantFacade {
     }
 
     this.#studioRuntimeContext.set(null)
+  }
+
+  setWorkbenchContext(key: string, context: AssistantWorkbenchRequestContext | null) {
+    const normalizedKey = key.trim()
+    if (!normalizedKey || normalizedKey === 'env') {
+      return
+    }
+
+    this.#workbenchRequestContexts.update((current) => {
+      if (!context) {
+        if (!current[normalizedKey]) {
+          return current
+        }
+        const next = { ...current }
+        delete next[normalizedKey]
+        return next
+      }
+
+      const normalizedContext = normalizeWorkbenchRequestContext(context)
+      return {
+        ...current,
+        [normalizedKey]: normalizedContext
+      }
+    })
   }
 
   handleEffect(event: ChatKitEffectEvent) {
@@ -280,10 +312,17 @@ export class XpertAssistantFacade {
 
   private buildRequestContext(
     context: AssistantContext,
-    studioRuntimeContext?: AssistantStudioRuntimeContext | null
+    studioRuntimeContext?: AssistantStudioRuntimeContext | null,
+    workbenchRequestContexts: Record<string, AssistantWorkbenchRequestContext> = {}
   ): Record<string, unknown> {
     const requestContext: Record<string, unknown> = {}
     const env: Record<string, string> = {}
+
+    for (const workbenchContext of Object.values(workbenchRequestContexts)) {
+      if (workbenchContext?.env) {
+        Object.assign(env, workbenchContext.env)
+      }
+    }
 
     if (context.workspaceId) {
       env['workspaceId'] = context.workspaceId
@@ -294,6 +333,14 @@ export class XpertAssistantFacade {
 
     if (Object.keys(env).length) {
       requestContext['env'] = env
+    }
+
+    for (const [key, workbenchContext] of Object.entries(workbenchRequestContexts)) {
+      if (key === 'env' || !workbenchContext?.context || !Object.keys(workbenchContext.context).length) {
+        continue
+      }
+
+      requestContext[key] = workbenchContext.context
     }
 
     if (context.xpertId && studioRuntimeContext?.targetXpertId) {
@@ -307,4 +354,26 @@ export class XpertAssistantFacade {
 
     return requestContext
   }
+}
+
+function normalizeWorkbenchRequestContext(context: AssistantWorkbenchRequestContext): AssistantWorkbenchRequestContext {
+  const env = context.env ? normalizeEnv(context.env) : undefined
+  const structured = isRecord(context.context) ? context.context : undefined
+
+  return {
+    ...(env && Object.keys(env).length ? { env } : {}),
+    ...(structured ? { context: structured } : {})
+  }
+}
+
+function normalizeEnv(env: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(env)
+      .map(([key, value]) => [key, typeof value === 'string' ? value.trim() : ''] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }

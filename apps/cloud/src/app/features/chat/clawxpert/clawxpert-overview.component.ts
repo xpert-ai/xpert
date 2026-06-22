@@ -88,26 +88,28 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
     <div class="h-full min-h-0">
       @if (facade.loading()) {
         <div
-          class="flex h-full min-h-[32rem] items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+          class="flex h-full min-h-128 items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary"
         >
           {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
         </div>
       } @else if (!facade.organizationId()) {
-        <div
-          class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-        >
-          <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
-          <div class="mt-4 text-base font-medium text-text-primary">
-            {{
-              'PAC.Chat.ClawXpert.OrganizationRequired'
-                | translate: { Default: 'Select an organization to use ClawXpert' }
-            }}
-          </div>
-          <div class="mt-2 max-w-sm text-sm text-text-secondary">
-            {{
-              'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
-                | translate: { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
-            }}
+        <div class="block w-full h-full min-h-0 animate-pulse p-4">
+          <div
+            class="flex h-full min-h-128 flex-col items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+          >
+            <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
+            <div class="mt-4 text-base font-medium text-text-primary">
+              {{
+                'PAC.Chat.ClawXpert.OrganizationRequired'
+                  | translate: { Default: 'Select an organization to use ClawXpert' }
+              }}
+            </div>
+            <div class="mt-2 max-w-sm text-sm text-text-secondary">
+              {{
+                'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
+                  | translate: { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
+              }}
+            </div>
           </div>
         </div>
       } @else if (facade.viewState() === 'error') {
@@ -152,7 +154,8 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
               <div class="flex rounded-lg border border-border">
-                <button class="flex-1 rounded-l-lg rounded-r-none"
+                <button
+                  class="flex-1 rounded-l-lg rounded-r-none"
                   z-button
                   zType="ghost"
                   displayDensity="cosy"
@@ -212,8 +215,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                     @if (facade.savingCopilotModel()) {
                       <div class="mt-3 text-xs text-text-tertiary">
                         {{
-                          'PAC.Chat.ClawXpert.CopilotModelSaving'
-                            | translate: { Default: 'Saving model selection…' }
+                          'PAC.Chat.ClawXpert.CopilotModelSaving' | translate: { Default: 'Saving model selection…' }
                         }}
                       </div>
                     }
@@ -271,7 +273,6 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
               <button
                 z-button
                 zType="default"
-
                 type="button"
                 class="w-full"
                 [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
@@ -285,10 +286,11 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
                 <button
                   z-button
                   zType="outline"
-
                   type="button"
                   class="w-full"
-                  [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert() || facade.loadingTriggerDraft()"
+                  [disabled]="
+                    facade.viewState() !== 'ready' || facade.publishingXpert() || facade.loadingTriggerDraft()
+                  "
                   (click)="publishXpert()"
                 >
                   <z-icon zType="upload"></z-icon>

@@ -468,6 +468,61 @@ describe('PublishedXpertAccessService', () => {
         expect(qb.getRawMany).toHaveBeenCalled()
     })
 
+    it('enriches listed xperts with current workspace capabilities', async () => {
+        const qb = createQueryBuilderMock({
+            rows: [{ id: 'xpert-1' }]
+        })
+        const repository = {
+            find: jest.fn().mockResolvedValue([
+                {
+                    id: 'xpert-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-requested',
+                    workspaceId: 'workspace-1',
+                    workspace: {
+                        id: 'workspace-1'
+                    },
+                    publishAt: new Date()
+                }
+            ]),
+            createQueryBuilder: jest.fn().mockReturnValue(qb)
+        }
+        const workspaceAccessService = {
+            buildAccess: jest.fn(async (workspace: any) => ({
+                workspace: {
+                    ...workspace,
+                    capabilities: {
+                        canRead: true,
+                        canRun: true,
+                        canWrite: true,
+                        canManage: false
+                    }
+                }
+            }))
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository), workspaceAccessService as any)
+
+        const result = await service.findAccessiblePublishedXperts({
+            where: {
+                type: XpertTypeEnum.Agent,
+                latest: true
+            }
+        })
+
+        expect(repository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                relations: expect.objectContaining({
+                    workspace: expect.objectContaining({
+                        members: true
+                    }),
+                    userGroups: true
+                })
+            })
+        )
+        expect(workspaceAccessService.buildAccess).toHaveBeenCalledWith({ id: 'workspace-1' })
+        expect((result[0].workspace as any).capabilities.canWrite).toBe(true)
+    })
+
     it('includes ordered columns in the distinct select list for PostgreSQL compatibility', async () => {
         const qb = createQueryBuilderMock({
             rows: [{ id: 'xpert-1' }]

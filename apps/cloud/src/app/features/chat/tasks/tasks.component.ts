@@ -1,6 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule, Location } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { Router } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
@@ -22,6 +23,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
 import { XpertTaskDialogComponent, XpertTaskDialogService } from '@cloud/app/@shared/chat'
 import { ZardBadgeComponent, ZardButtonComponent, ZardEmptyComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { buildTaskHistoryConversationRoute } from './tasks.utils'
 
 @Component({
   standalone: true,
@@ -50,6 +52,7 @@ export class ChatTasksComponent {
   readonly dialog = inject(Dialog)
   readonly #taskDialog = inject(XpertTaskDialogService)
   readonly #location = inject(Location)
+  readonly #router = inject(Router)
   readonly paramId = injectParams('id')
   readonly embedded = input(false)
   readonly xpertId = input<string | null>(null)
@@ -157,7 +160,20 @@ export class ChatTasksComponent {
   }
 
   openHistoryConversation(conversation: IChatConversation) {
-    this.conversationSelected.emit(conversation)
+    if (this.embedded()) {
+      this.conversationSelected.emit(conversation)
+      return
+    }
+
+    const route = buildTaskHistoryConversationRoute(conversation, this.taskHistory() ?? this.openedTask())
+    if (!route) {
+      this.#toastr.error('PAC.Chat.ClawXpert.TaskHistoryThreadMissing', 'PAC.TOASTR.TITLE.ERROR', {
+        Default: 'This task history record has no conversation thread.'
+      })
+      return
+    }
+
+    void this.#router.navigate(route)
   }
 
   editTask(task: IXpertTask) {

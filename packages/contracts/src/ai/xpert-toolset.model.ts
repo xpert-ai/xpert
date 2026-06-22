@@ -6,7 +6,7 @@ import { ITag } from '../tag-entity.model'
 import { TCopilotModel } from './copilot-model.model'
 import { Subscriber } from 'rxjs'
 import { I18nObject } from '../types'
-
+import { TMcpStdioRuntimePolicy } from './xpert-tool-mcp.model'
 
 export enum XpertToolsetCategoryEnum {
   BUILTIN = 'builtin',
@@ -71,6 +71,11 @@ export type TXpertToolsetOptions = {
   toolPositions?: Record<string, number>
   disableToolDefault?: boolean
   needSandbox?: boolean
+  /**
+   * Runtime policy requested for MCP stdio toolsets. The server clamps this
+   * policy against platform and tenant-level security settings.
+   */
+  mcpRuntime?: TMcpStdioRuntimePolicy
   [key: string]: any
 }
 
@@ -136,63 +141,63 @@ export enum ApiProviderSchemaType {
   /**
    * Enum class for api provider schema type.
    */
-  OPENAPI = "openapi",
-  SWAGGER = "swagger",
-  OPENAI_PLUGIN = "openai_plugin",
-  OPENAI_ACTIONS = "openai_actions"
+  OPENAPI = 'openapi',
+  SWAGGER = 'swagger',
+  OPENAI_PLUGIN = 'openai_plugin',
+  OPENAI_ACTIONS = 'openai_actions'
 }
 
 export enum ToolTagEnum {
-	SEARCH = 'search',
-	IMAGE = 'image',
-	VIDEOS = 'videos',
-	WEATHER = 'weather',
-	FINANCE = 'finance',
-	DESIGN = 'design',
-	TRAVEL = 'travel',
-	SOCIAL = 'social',
-	NEWS = 'news',
-	MEDICAL = 'medical',
-	PRODUCTIVITY = 'productivity',
-	EDUCATION = 'education',
-	BUSINESS = 'business',
-	ENTERTAINMENT = 'entertainment',
-	UTILITIES = 'utilities',
-	ANALYSIS = 'analysis',
-	SANDBOX = 'sandbox',
-	PROJECT = 'project',
-	AGENT = 'agent',
-	OTHER = 'other'
+  SEARCH = 'search',
+  IMAGE = 'image',
+  VIDEOS = 'videos',
+  WEATHER = 'weather',
+  FINANCE = 'finance',
+  DESIGN = 'design',
+  TRAVEL = 'travel',
+  SOCIAL = 'social',
+  NEWS = 'news',
+  MEDICAL = 'medical',
+  PRODUCTIVITY = 'productivity',
+  EDUCATION = 'education',
+  BUSINESS = 'business',
+  ENTERTAINMENT = 'entertainment',
+  UTILITIES = 'utilities',
+  ANALYSIS = 'analysis',
+  SANDBOX = 'sandbox',
+  PROJECT = 'project',
+  AGENT = 'agent',
+  OTHER = 'other'
 }
 
 export interface IToolTag {
-	name: string
-	label: I18nObject
-	icon: string
+  name: string
+  label: I18nObject
+  icon: string
   description?: I18nObject
 }
 
 export interface IToolProvider {
   not_implemented?: boolean
   pro?: boolean
-  id: string;
-  author: string;
-  name: string; // identifier
-  description: I18nObject;
+  id: string
+  author: string
+  name: string // identifier
+  description: I18nObject
   /**
    * @deprecated use avatar
    */
-  icon?: string;
+  icon?: string
   avatar: TAvatar
-  label: I18nObject; // label
+  label: I18nObject // label
   help_url?: string
-  type: XpertToolsetCategoryEnum;
+  type: XpertToolsetCategoryEnum
   masked_credentials?: Record<string, any>
   original_credentials?: Record<string, any>
   is_team_authorization: boolean
   allow_delete: boolean
   tools?: XpertToolType[]
-  tags: ToolTagEnum[];
+  tags: ToolTagEnum[]
 }
 
 export type TToolCredentials = Record<string, string | number | boolean | any>
@@ -201,12 +206,14 @@ export type TToolsetParams = {
   tenantId: string
   organizationId?: string
   projectId?: string
-	userId?: string
-	xpertId?: string
+  userId?: string
+  xpertId?: string
   conversationId?: string
-	agentKey?: string
-	signal?: AbortSignal
-	env: Record<string, unknown>
+  agentKey?: string
+  executionId?: string
+  appInstanceId?: string
+  signal?: AbortSignal
+  env: Record<string, unknown>
 }
 
 export interface IBaseToolset {
@@ -215,6 +222,6 @@ export interface IBaseToolset {
 
 export type TProgramToolMessage = {
   code: string
-	output: string
+  output: string
   error?: string
 }

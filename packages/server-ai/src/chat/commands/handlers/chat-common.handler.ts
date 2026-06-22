@@ -65,7 +65,11 @@ import { isNil } from 'lodash'
 import { EMPTY, Observable, Subscriber, tap } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
-import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
+import {
+    appendMessageSteps,
+    ChatMessageUpsertCommand,
+    sanitizeMessageContentForPersistence
+} from '../../../chat-message'
 import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
@@ -748,7 +752,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             fallbackStreamId: aiMessage?.id ?? executionId
                         })
 
-                        appendMessageContent(aiMessage as CopilotChatMessage, event.data.data, messageContext)
+                        appendMessageContent(
+                            aiMessage as CopilotChatMessage,
+                            sanitizeMessageContentForPersistence(event.data.data),
+                            messageContext
+                        )
                         result = appendMessagePlainText(result, event.data.data, messageContext)
                     } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
                         switch (event.data.event) {

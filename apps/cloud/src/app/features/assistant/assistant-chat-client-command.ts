@@ -1,8 +1,16 @@
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { Attachment, ChatKitReference, SendUserMessageParams } from '@xpert-ai/chatkit-types'
+import { ASSISTANT_CHAT_SEND_MESSAGE_COMMAND, ASSISTANT_CONTEXT_SET_COMMAND } from '@xpert-ai/contracts'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
-export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
+export { ASSISTANT_CHAT_SEND_MESSAGE_COMMAND, ASSISTANT_CONTEXT_SET_COMMAND }
+
+export type AssistantContextSetPayload = {
+  key: string
+  clear?: boolean
+  env?: Record<string, string>
+  context?: Record<string, unknown>
+}
 
 type HostSendUserMessageParams = SendUserMessageParams & {
   files?: unknown[]
@@ -13,6 +21,10 @@ type AssistantChatSendMessageCommandOptions = {
   getControl: () => ChatKitControl | null | undefined
   isReady?: () => boolean
   unavailableMessage?: string
+}
+
+type AssistantContextSetCommandOptions = {
+  setContext: (key: string, context: Omit<AssistantContextSetPayload, 'key' | 'clear'> | null) => void
 }
 
 export function registerAssistantChatSendMessageCommand(
@@ -47,6 +59,42 @@ export function registerAssistantChatSendMessageCommand(
   })
 }
 
+export function registerAssistantContextSetCommand(
+  registry: ViewClientCommandRegistry,
+  options: AssistantContextSetCommandOptions
+) {
+  return registry.register(ASSISTANT_CONTEXT_SET_COMMAND, async (payload) => {
+    const contextPayload = toAssistantContextSetPayload(payload)
+    if (!contextPayload.key) {
+      return {
+        success: false,
+        code: 'bad_request',
+        message: 'Context key is required.'
+      }
+    }
+
+    if (contextPayload.clear) {
+      options.setContext(contextPayload.key, null)
+      return {
+        success: true,
+        status: 'cleared',
+        key: contextPayload.key
+      }
+    }
+
+    options.setContext(contextPayload.key, {
+      ...(contextPayload.env ? { env: contextPayload.env } : {}),
+      ...(contextPayload.context ? { context: contextPayload.context } : {})
+    })
+
+    return {
+      success: true,
+      status: 'updated',
+      key: contextPayload.key
+    }
+  })
+}
+
 function toSendUserMessageParams(payload: unknown): HostSendUserMessageParams {
   const record = isRecord(payload) ? payload : {}
   const files = toArray(record['files'])
@@ -66,6 +114,19 @@ function toSendUserMessageParams(payload: unknown): HostSendUserMessageParams {
   }
 
   return message
+}
+
+function toAssistantContextSetPayload(payload: unknown): AssistantContextSetPayload {
+  const record = isRecord(payload) ? payload : {}
+  const env = toStringRecord(record['env'])
+  const context = isRecord(record['context']) ? record['context'] : undefined
+
+  return {
+    key: getString(record['key']) ?? '',
+    ...(record['clear'] === true ? { clear: true } : {}),
+    ...(Object.keys(env).length ? { env } : {}),
+    ...(context ? { context } : {})
+  }
 }
 
 function toAttachments(value: unknown): Attachment[] {
@@ -129,6 +190,18 @@ function toArray(value: unknown): unknown[] {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function toStringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, field]) => [key, getString(field)] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+  )
 }
 
 function getString(value: unknown): string | undefined {

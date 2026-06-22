@@ -294,6 +294,8 @@
       "@langchain/core": "0.3.72",
       "langchain": "0.3.31",
       "@modelcontextprotocol/sdk": "1.12.1",
+      "@modelcontextprotocol/ext-apps>@modelcontextprotocol/sdk": "1.29.0",
+      "@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk": "1.29.0",
       "zod": "3.25.67",
       "web-streams-polyfill": "^4.2.0"
     }

@@ -59,7 +59,6 @@ jest.mock('@xpert-ai/cloud/state', () => ({
   CurrentUserHydrationService: class CurrentUserHydrationService {}
 }))
 
-import { ChatCommonAssistantComponent } from './common/common.component'
 import { Injector, runInInjectionContext } from '@angular/core'
 import { Route, Router, UrlSegment, UrlSegmentGroup } from '@angular/router'
 import { Observable, firstValueFrom, of } from 'rxjs'
@@ -129,22 +128,22 @@ describe('chat routes', () => {
     jest.useRealTimers()
   })
 
-  it('routes /chat/x/common to the common assistant component', () => {
+  it('redirects deprecated /chat/x/common to ClawXpert', () => {
     const route = children.find((item) => item.path === 'x/common')
 
-    expect(route?.component).toBe(ChatCommonAssistantComponent)
+    expect(route?.redirectTo).toBe('/chat/clawxpert')
   })
 
-  it('redirects legacy common conversation urls back to /chat/x/common', () => {
+  it('redirects legacy common conversation urls to ClawXpert', () => {
     const route = children.find((item) => item.path === 'x/common/c/:id')
 
-    expect(route?.redirectTo).toBe('/chat/x/common')
+    expect(route?.redirectTo).toBe('/chat/clawxpert')
   })
 
-  it('redirects /chat/x/welcome to /chat/x/common', () => {
+  it('redirects /chat/x/welcome to ClawXpert', () => {
     const route = children.find((item) => item.path === 'x/welcome')
 
-    expect(route?.redirectTo).toBe('/chat/x/common')
+    expect(route?.redirectTo).toBe('/chat/clawxpert')
   })
 
   it('keeps /chat/c/:id on the legacy chat xpert component', () => {
@@ -227,14 +226,14 @@ describe('chat routes', () => {
     expect(result).toBe('/chat/clawxpert')
   })
 
-  it('redirects /chat to the common assistant when ClawXpert is unavailable', async () => {
+  it('redirects /chat to ClawXpert even when ClawXpert availability must be resolved by the child guard', async () => {
     store.hasFeatureEnabled.mockImplementation((feature: string) => feature === 'FEATURE_XPERT')
 
     const route = children.find((item) => item.path === '' && item.canActivate?.length)
     const guard = route?.canActivate?.[0] as () => any
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
-    expect(result).toBe('/chat/x/common')
+    expect(result).toBe('/chat/clawxpert')
     expect(assistantBindingService.get).not.toHaveBeenCalled()
   })
 
@@ -246,7 +245,7 @@ describe('chat routes', () => {
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
     expect(currentUserHydrationService.getFeatureHydration).toHaveBeenCalledWith({ skipSessionCache: true })
-    expect(result).toBe('/chat')
+    expect(result).toBe('/chat/tasks')
   })
 
   it('guards direct ClawXpert child routes when feature hydration fails', async () => {
@@ -256,7 +255,7 @@ describe('chat routes', () => {
     const guard = route?.canActivateChild?.[0] as () => any
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
-    expect(result).toBe('/chat')
+    expect(result).toBe('/chat/tasks')
   })
 
   it('guards direct ClawXpert child routes when feature hydration stays pending', async () => {
@@ -269,22 +268,22 @@ describe('chat routes', () => {
 
     jest.advanceTimersByTime(3000)
 
-    await expect(result).resolves.toBe('/chat')
+    await expect(result).resolves.toBe('/chat/tasks')
   })
 
-  it('redirects /chat to the common assistant when feature hydration fails', async () => {
+  it('redirects /chat to ClawXpert when feature hydration fails', async () => {
     currentUserHydrationService.getFeatureHydration.mockRejectedValue(new Error('hydration failed'))
 
     const route = children.find((item) => item.path === '' && item.canActivate?.length)
     const guard = route?.canActivate?.[0] as () => any
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
-    expect(result).toBe('/chat/x/common')
+    expect(result).toBe('/chat/clawxpert')
     expect(store.hasFeatureEnabled).not.toHaveBeenCalled()
     expect(assistantBindingService.get).not.toHaveBeenCalled()
   })
 
-  it('redirects /chat to the common assistant when feature hydration stays pending', async () => {
+  it('redirects /chat to ClawXpert when feature hydration stays pending', async () => {
     jest.useFakeTimers()
     currentUserHydrationService.getFeatureHydration.mockReturnValue(new Promise(() => {}))
 
@@ -294,14 +293,14 @@ describe('chat routes', () => {
 
     jest.advanceTimersByTime(3000)
 
-    await expect(result).resolves.toBe('/chat/x/common')
+    await expect(result).resolves.toBe('/chat/clawxpert')
     expect(store.hasFeatureEnabled).not.toHaveBeenCalled()
     expect(assistantBindingService.get).not.toHaveBeenCalled()
   })
 
-  it('redirects unknown chat routes to /chat/x/common', () => {
+  it('redirects unknown chat routes to ClawXpert', () => {
     const route = children.find((item) => item.path === '**')
 
-    expect(route?.redirectTo).toBe('x/common')
+    expect(route?.redirectTo).toBe('clawxpert')
   })
 })

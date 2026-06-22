@@ -89,11 +89,6 @@ export type PluginResourceComponentStateInput = {
     agentKey?: string
 }
 
-type PluginRuntimePaths = {
-    pluginRoot: string
-    pluginData: string
-}
-
 type ParsedMcpServer = {
     server: TMCPServer
     policy?: XpertPluginMcpServerPolicy
@@ -621,8 +616,8 @@ export class PluginResourceInstallerService {
     }
 
     private async ensureMcpToolset(runtimeComponent: RuntimeComponent, workspaceId: string, xpertId: string | null) {
-        const runtimePaths = await this.resolveRuntimePaths(runtimeComponent, workspaceId)
-        const parsed = this.parseMcpServer(runtimeComponent, runtimePaths)
+        await this.ensureRuntimePaths(runtimeComponent, workspaceId)
+        const parsed = this.parseMcpServer(runtimeComponent)
         const policy = this.mergeMcpPolicies(parsed.policy, runtimeComponent.policyOverrides)
         const toolset = await this.findPluginManagedToolset(workspaceId, xpertId, runtimeComponent)
         const enabledTools = policy.enabledTools ?? []
@@ -647,11 +642,13 @@ export class PluginResourceInstallerService {
             }),
             options: {
                 disableToolDefault: enabledTools.length > 0,
+                needSandbox: true,
                 pluginManaged: true,
                 pluginName: runtimeComponent.pluginName,
                 componentKey: runtimeComponent.component.componentKey,
                 ...(xpertId ? { xpertId } : {}),
                 definitionHash: runtimeComponent.component.definitionHash,
+                ...(policy.runtime ? { mcpRuntime: policy.runtime } : {}),
                 policy
             },
             tools
@@ -935,11 +932,7 @@ export class PluginResourceInstallerService {
         return dirname(skillFile)
     }
 
-    private async resolveRuntimePaths(
-        runtimeComponent: RuntimeComponent,
-        workspaceId: string
-    ): Promise<PluginRuntimePaths> {
-        const pluginRoot = runtimeComponent.rootDir
+    private async ensureRuntimePaths(runtimeComponent: RuntimeComponent, workspaceId: string): Promise<void> {
         const pluginData = resolve(
             process.cwd(),
             '.xpertai-plugin-data',
@@ -949,13 +942,9 @@ export class PluginResourceInstallerService {
             safePathSegment(runtimeComponent.component.componentKey)
         )
         await mkdir(pluginData, { recursive: true })
-        return {
-            pluginRoot,
-            pluginData
-        }
     }
 
-    private parseMcpServer(runtimeComponent: RuntimeComponent, runtimePaths: PluginRuntimePaths): ParsedMcpServer {
+    private parseMcpServer(runtimeComponent: RuntimeComponent): ParsedMcpServer {
         if (!isObjectValue(runtimeComponent.component.config)) {
             throw new BadRequestException(
                 `MCP component '${runtimeComponent.component.componentKey}' has invalid config`
@@ -970,40 +959,42 @@ export class PluginResourceInstallerService {
                 `MCP component '${runtimeComponent.component.componentKey}' has invalid transport`
             )
         }
+        const policy = this.readMcpPolicy(runtimeComponent.component.config)
 
         const server: TMCPServer = {
             type: serverType,
-            ...(command ? { command: this.replacePluginVariables(command, runtimePaths) } : {}),
-            ...(url ? { url: this.replacePluginVariables(url, runtimePaths) } : {}),
-            ...this.readStringArrayProperty(runtimeComponent.component.config, 'args', runtimePaths),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'env', runtimePaths),
-            ...this.readStringMapProperty(runtimeComponent.component.config, 'headers', runtimePaths),
+            ...(command ? { command } : {}),
+            ...(url ? { url } : {}),
+            ...this.readStringArrayProperty(runtimeComponent.component.config, 'args'),
+            ...this.readStringMapProperty(runtimeComponent.component.config, 'env'),
+            ...this.readStringMapProperty(runtimeComponent.component.config, 'headers'),
             ...(readStringField(runtimeComponent.component.config, 'encoding')
                 ? { encoding: readStringField(runtimeComponent.component.config, 'encoding') }
                 : {}),
             ...(readStringField(runtimeComponent.component.config, 'encodingErrorHandler')
                 ? { encodingErrorHandler: readStringField(runtimeComponent.component.config, 'encodingErrorHandler') }
-                : {})
+                : {}),
+            ...(policy.runtime ? { runtime: policy.runtime } : {})
         }
 
         return {
             server,
-            policy: this.readMcpPolicy(runtimeComponent.component.config)
+            policy
         }
     }
 
-    private readStringArrayProperty(source: object, key: string, runtimePaths: PluginRuntimePaths) {
+    private readStringArrayProperty(source: object, key: string) {
         const value = Reflect.get(source, key)
         if (!Array.isArray(value)) {
             return {}
         }
         const args = value
-            .map((item) => (typeof item === 'string' ? this.replacePluginVariables(item, runtimePaths) : null))
+            .map((item) => (typeof item === 'string' ? item : null))
             .filter((item): item is string => item !== null)
         return args.length ? { [key]: args } : {}
     }
 
-    private readStringMapProperty(source: object, key: 'env' | 'headers', runtimePaths: PluginRuntimePaths) {
+    private readStringMapProperty(source: object, key: 'env' | 'headers') {
         const value = Reflect.get(source, key)
         if (!isObjectValue(value)) {
             return {}
@@ -1011,22 +1002,10 @@ export class PluginResourceInstallerService {
         const entries: Array<[string, string]> = []
         for (const [entryKey, entryValue] of Object.entries(value)) {
             if (typeof entryValue === 'string') {
-                entries.push([entryKey, this.replacePluginVariables(entryValue, runtimePaths)])
+                entries.push([entryKey, entryValue])
             }
         }
         return entries.length ? { [key]: Object.fromEntries(entries) } : {}
-    }
-
-    private replacePluginVariables(value: string, runtimePaths: PluginRuntimePaths) {
-        return value
-            .replace(
-                /\$\{PLUGIN_ROOT\}|\$PLUGIN_ROOT|\$\{XPERT_PLUGIN_ROOT\}|\$XPERT_PLUGIN_ROOT/g,
-                runtimePaths.pluginRoot
-            )
-            .replace(
-                /\$\{PLUGIN_DATA\}|\$PLUGIN_DATA|\$\{XPERT_PLUGIN_DATA\}|\$XPERT_PLUGIN_DATA/g,
-                runtimePaths.pluginData
-            )
     }
 
     private normalizeMcpServerType(value: string | undefined): MCPServerType | null {
@@ -1060,6 +1039,7 @@ export class PluginResourceInstallerService {
             : undefined
         const defaultToolsApprovalMode = readApprovalMode(Reflect.get(policyValue, 'defaultToolsApprovalMode'))
         const toolsValue = Reflect.get(policyValue, 'tools')
+        const runtime = readRuntimePolicy(Reflect.get(policyValue, 'runtime'))
         const tools: XpertPluginMcpServerPolicy['tools'] = {}
         if (isObjectValue(toolsValue)) {
             for (const [toolName, toolPolicy] of Object.entries(toolsValue)) {
@@ -1078,6 +1058,7 @@ export class PluginResourceInstallerService {
                     : undefined,
             defaultToolsApprovalMode,
             enabledTools,
+            runtime,
             tools: Object.keys(tools).length ? tools : undefined
         })
     }
@@ -1091,6 +1072,7 @@ export class PluginResourceInstallerService {
             enabled: override?.enabled ?? base?.enabled,
             defaultToolsApprovalMode: override?.defaultToolsApprovalMode ?? base?.defaultToolsApprovalMode,
             enabledTools: override?.enabledTools ?? base?.enabledTools,
+            runtime: override?.runtime ?? base?.runtime,
             tools: Object.keys(mergedTools).length ? mergedTools : undefined
         })
     }
@@ -1221,11 +1203,42 @@ function readApprovalMode(value: unknown) {
     return undefined
 }
 
+function readPositiveNumberField(value: object, key: string): number | undefined {
+    const field = Reflect.get(value, key)
+    return typeof field === 'number' && Number.isFinite(field) && field > 0 ? field : undefined
+}
+
+function readStringArrayField(value: object, key: string): string[] | undefined {
+    const field = Reflect.get(value, key)
+    if (!Array.isArray(field)) {
+        return undefined
+    }
+    const items = field
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter((item): item is string => Boolean(item))
+    return items.length ? items : undefined
+}
+
+function readRuntimePolicy(value: unknown): XpertPluginMcpServerPolicy['runtime'] | undefined {
+    if (!isObjectValue(value)) {
+        return undefined
+    }
+    const runtime = {
+        provider: readStringField(value, 'provider'),
+        startupTimeoutMs: readPositiveNumberField(value, 'startupTimeoutMs'),
+        idleTimeoutMs: readPositiveNumberField(value, 'idleTimeoutMs'),
+        maxLifetimeMs: readPositiveNumberField(value, 'maxLifetimeMs'),
+        allowedCommands: readStringArrayField(value, 'allowedCommands')
+    }
+    return Object.values(runtime).some((item) => item !== undefined) ? runtime : undefined
+}
+
 function removeUndefinedPolicy(policy: XpertPluginMcpServerPolicy): XpertPluginMcpServerPolicy {
     return {
         ...(typeof policy.enabled === 'boolean' ? { enabled: policy.enabled } : {}),
         ...(policy.defaultToolsApprovalMode ? { defaultToolsApprovalMode: policy.defaultToolsApprovalMode } : {}),
         ...(policy.enabledTools?.length ? { enabledTools: policy.enabledTools } : {}),
+        ...(policy.runtime ? { runtime: policy.runtime } : {}),
         ...(policy.tools && Object.keys(policy.tools).length ? { tools: policy.tools } : {})
     }
 }

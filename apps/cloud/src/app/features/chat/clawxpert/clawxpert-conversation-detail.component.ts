@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
@@ -26,7 +26,11 @@ import {
   getErrorMessage,
   injectToastr
 } from '../../../@core'
-import { registerAssistantChatSendMessageCommand } from '../../assistant/assistant-chat-client-command'
+import {
+  registerAssistantChatSendMessageCommand,
+  registerAssistantContextSetCommand,
+  type AssistantContextSetPayload
+} from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -67,6 +71,7 @@ type ChatKitCodeComposerReference = {
 }
 
 type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
+type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
 type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
 type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
@@ -340,125 +345,124 @@ type ChatKitReferenceComposerControl = {
             </div>
 
             <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div class="min-h-0 flex-1 p-0">
-                @if (!activeTab()) {
+              @if (!activeTab()) {
+                <div
+                  data-empty-workspace-placeholder
+                  class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                >
                   <div
-                    data-empty-workspace-placeholder
-                    class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                    data-empty-workspace-card-grid
+                    class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
                   >
-                    <div
-                      data-empty-workspace-card-grid
-                      class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
+                    <button
+                      type="button"
+                      data-empty-workspace-card="files"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('files')"
                     >
+                      <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      data-empty-workspace-card="browser"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('browser')"
+                    >
+                      <i class="ri-global-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
+                      </div>
+                    </button>
+                    @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
                       <button
                         type="button"
-                        data-empty-workspace-card="files"
+                        data-empty-workspace-card="fixed-view"
+                        [attr.data-fixed-view-key]="fixedView.viewKey"
                         class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('files')"
+                        (click)="openFixedViewTab(fixedView)"
                       >
-                        <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                        <xp-icon
+                          [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                          [size]="32"
+                          class="text-text-tertiary"
+                        />
                         <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
-                        </div>
-                        <div class="mt-2 text-lg text-text-secondary">
-                          {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        data-empty-workspace-card="browser"
-                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('browser')"
-                      >
-                        <i class="ri-global-line text-3xl text-text-tertiary"></i>
-                        <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
-                        </div>
-                        <div class="mt-2 text-lg text-text-secondary">
-                          {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
-                        </div>
-                      </button>
-                      @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                        <button
-                          type="button"
-                          data-empty-workspace-card="fixed-view"
-                          [attr.data-fixed-view-key]="fixedView.viewKey"
-                          class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                          (click)="openFixedViewTab(fixedView)"
-                        >
-                          <xp-icon
-                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
-                            [size]="32"
-                            class="text-text-tertiary"
-                          />
-                          <div class="mt-4 text-xl font-semibold text-text-primary">
-                            {{ fixedView.title }}
-                          </div>
-                          <div class="mt-2 text-lg text-text-secondary">
-                            {{
-                              fixedView.description ||
-                                ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
-                            }}
-                          </div>
-                        </button>
-                      }
-                      <button
-                        type="button"
-                        data-empty-workspace-card="terminal"
-                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="addWorkspaceTab('terminal')"
-                      >
-                        <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
-                        <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                          {{ fixedView.title }}
                         </div>
                         <div class="mt-2 text-lg text-text-secondary">
                           {{
-                            'PAC.Chat.ClawXpert.TerminalLauncherDesc'
-                              | translate: { Default: 'Launch interactive shell' }
+                            fixedView.description ||
+                              ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
                           }}
                         </div>
                       </button>
-                    </div>
-                  </div>
-                } @else if (activeFixedViewTab(); as fixedViewTab) {
-                  @if (fixedViewHostId(); as hostId) {
-                    <xp-extension-host-outlet
-                      class="block h-full min-h-0 overflow-hidden"
-                      mode="single-view"
-                      hostType="agent"
-                      [hostId]="hostId"
-                      [slot]="agentWorkbenchFixedSlot"
-                      [viewKey]="fixedViewTab.viewKey"
-                      [fillAvailableHeight]="true"
-                    />
-                  } @else {
-                    <div
-                      class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                    }
+                    <button
+                      type="button"
+                      data-empty-workspace-card="terminal"
+                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                      (click)="addWorkspaceTab('terminal')"
                     >
-                      {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
-                    </div>
-                  }
-                } @else if (activeTab()?.kind === 'tasks') {
-                  <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                    <pac-chat-tasks
-                      class="block h-full min-h-0"
-                      [embedded]="true"
-                      [xpertId]="facade.xpertId()"
-                      (tasksChanged)="handleTasksChanged()"
-                      (conversationSelected)="openTaskHistoryConversation($event)"
-                    />
+                      <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-xl font-semibold text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                      </div>
+                      <div class="mt-2 text-lg text-text-secondary">
+                        {{
+                          'PAC.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
+                        }}
+                      </div>
+                    </button>
                   </div>
-                } @else if (contextLoading() && !resolvedConversationId()) {
+                </div>
+              } @else if (activeFixedViewTab(); as fixedViewTab) {
+                @if (fixedViewHostId(); as hostId) {
+                  <xp-extension-host-outlet
+                    class="block h-full min-h-0 overflow-hidden"
+                    mode="single-view"
+                    hostType="agent"
+                    [hostId]="hostId"
+                    [slot]="agentWorkbenchFixedSlot"
+                    [viewKey]="fixedViewTab.viewKey"
+                    [fillAvailableHeight]="true"
+                  />
+                } @else {
                   <div
                     class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                   >
-                    {{
-                      'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
-                    }}
+                    {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
                   </div>
-                } @else {
-                  @if (!resolvedConversationId()) {
+                }
+              } @else if (activeTab()?.kind === 'tasks') {
+                <div class="h-full min-h-0 overflow-hidden px-4 py-3">
+                  <pac-chat-tasks
+                    class="block h-full min-h-0"
+                    [embedded]="true"
+                    [xpertId]="facade.xpertId()"
+                    (tasksChanged)="handleTasksChanged()"
+                    (conversationSelected)="openTaskHistoryConversation($event)"
+                  />
+                </div>
+              } @else if (contextLoading() && !resolvedConversationId()) {
+                <div
+                  class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
+                  }}
+                </div>
+              } @else {
+                @if (!resolvedConversationId()) {
+                  <div class="block h-full p-2">
                     <div
                       class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
                     >
@@ -500,47 +504,47 @@ type ChatKitReferenceComposerControl = {
                         }
                       </div>
                     </div>
-                  } @else {
-                    @if (contextError()) {
-                      <div
-                        class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-                      >
-                        {{ contextError() }}
-                      </div>
-                    }
+                  </div>
+                } @else {
+                  @if (contextError()) {
+                    <div
+                      class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                    >
+                      {{ contextError() }}
+                    </div>
+                  }
 
-                    @if (activeTab()?.kind === 'files') {
-                      <pac-clawxpert-conversation-files
-                        class="h-full"
-                        [conversationId]="resolvedConversationId()"
-                        [xpertId]="facade.xpertId()"
-                        [mode]="'editable'"
-                        [reloadKey]="fileListReloadKey()"
-                        (referenceRequest)="handleWorkspaceReference($event)"
-                      />
-                    } @else if (activeTab()?.kind === 'browser') {
-                      <pac-clawxpert-conversation-preview
-                        class="h-full"
-                        [conversationId]="resolvedConversationId()"
-                        [serviceId]="activeBrowserTab()?.serviceId"
-                        [url]="activeBrowserTab()?.url"
-                        [zoom]="activeBrowserTab()?.zoom"
-                        [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
-                        [reloadKey]="activeBrowserTab()?.reloadKey"
-                        (browserStateChange)="updateActiveBrowserTab($event)"
-                        (referenceRequest)="handleElementReference($event)"
-                      />
-                    } @else {
-                      <xp-chat-shared-terminal
-                        class="h-full"
-                        [mode]="'interactive'"
-                        [conversationId]="resolvedConversationId()"
-                        [projectId]="resolvedConversation()?.projectId ?? null"
-                      />
-                    }
+                  @if (activeTab()?.kind === 'files') {
+                    <pac-clawxpert-conversation-files
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [xpertId]="facade.xpertId()"
+                      [mode]="'editable'"
+                      [reloadKey]="fileListReloadKey()"
+                      (referenceRequest)="handleWorkspaceReference($event)"
+                    />
+                  } @else if (activeTab()?.kind === 'browser') {
+                    <pac-clawxpert-conversation-preview
+                      class="h-full p-2 pr-0"
+                      [conversationId]="resolvedConversationId()"
+                      [serviceId]="activeBrowserTab()?.serviceId"
+                      [url]="activeBrowserTab()?.url"
+                      [zoom]="activeBrowserTab()?.zoom"
+                      [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
+                      [reloadKey]="activeBrowserTab()?.reloadKey"
+                      (browserStateChange)="updateActiveBrowserTab($event)"
+                      (referenceRequest)="handleElementReference($event)"
+                    />
+                  } @else {
+                    <xp-chat-shared-terminal
+                      class="h-full"
+                      [mode]="'interactive'"
+                      [conversationId]="resolvedConversationId()"
+                      [projectId]="resolvedConversation()?.projectId ?? null"
+                    />
                   }
                 }
-              </div>
+              }
             </z-tab-nav-panel>
           </div>
         }
@@ -636,31 +640,39 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
+  #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
+  #markReadRequestVersion = 0
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
+  readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
+  readonly assistantRequestContext = computed(() =>
+    buildAssistantRequestContext({
+      workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
+      xpertId: this.facade.xpertId(),
+      contexts: this.#assistantWorkbenchContexts()
+    })
+  )
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.facade.assistantId,
     frameUrl: this.facade.chatkitFrameUrl,
+    requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
       this.facade.onChatThreadChange(threadId)
     },
-    // onThreadLoadStart: ({ threadId }) => {
-    //   this.facade.onChatThreadChange(threadId)
-    // },
-    // onThreadLoadEnd: ({ threadId }) => {
-    //   this.facade.onChatThreadChange(threadId)
-    // },
+    onThreadLoadEnd: ({ threadId }) => {
+      this.markChatkitThreadRead(threadId)
+    },
     onEffect: (event) => {
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
@@ -700,6 +712,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onResponseEnd: () => {
       this.#responseActive.set(false)
       this.facade.patchActiveConversationStatus('idle')
+      this.markChatkitThreadRead(this.facade.threadId() ?? this.resolvedConversation()?.threadId)
     }
   })
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([{ ...INITIAL_WORKSPACE_TAB }])
@@ -748,31 +761,31 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly workspaceLayoutClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
       return this.showDetailPanel()
-        ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_0rem] xl:grid-rows-1'
-        : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_0rem] xl:grid-rows-1'
+        ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1'
+        : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[0rem_0rem] lg:grid-rows-1'
     }
 
     return this.showDetailPanel()
-      ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] xl:grid-rows-1'
-      : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out xl:grid-cols-[0rem_minmax(0,1fr)] xl:grid-rows-1'
+      ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] lg:grid-rows-1'
+      : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1'
   })
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
-      ? 'min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-[120rem] translate-y-0 opacity-100 xl:translate-x-0 xl:translate-y-0'
-      : 'pointer-events-none min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-0 -translate-y-4 opacity-0 xl:max-h-none xl:-translate-x-6 xl:translate-y-0'
+      ? 'min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0'
+      : 'pointer-events-none min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0'
   )
   readonly chatShellClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
-      return 'min-h-0 min-w-0 overflow-visible p-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-0 xl:max-w-0 xl:justify-self-end'
+      return 'min-h-0 min-w-0 overflow-visible p-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-0 lg:max-w-0 lg:justify-self-end'
     }
 
     return this.showDetailPanel()
-      ? 'min-h-0 min-w-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full xl:max-w-[32rem] xl:justify-self-end py-4 px-2'
-      : 'min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out xl:w-full'
+      ? 'min-h-0 min-w-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-full lg:max-w-[32rem] lg:justify-self-end py-4 px-2'
+      : 'min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-full'
   })
   readonly chatSurfaceClasses = computed(() =>
     this.showDetailPanel() && !this.isChatMinimizedToPet()
-      ? 'rounded-3xl bg-components-card-bg shadow-lg border border-border'
+      ? 'rounded-2xl bg-components-card-bg shadow-sm border border-border'
       : ''
   )
 
@@ -781,6 +794,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
+    })
+    this.#unregisterAssistantContextCommand = registerAssistantContextSetCommand(this.#clientCommands, {
+      setContext: (key, context) => {
+        this.setAssistantWorkbenchContext(key, context)
+      }
     })
     this.#unregisterBrowserOpenCommand = this.#clientCommands.register(WORKBENCH_BROWSER_OPEN_COMMAND, (payload) => {
       const target = toWorkbenchBrowserPreviewTarget(payload)
@@ -933,12 +951,39 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   ngOnDestroy() {
     this.#unregisterAssistantCommand?.()
     this.#unregisterAssistantCommand = null
+    this.#unregisterAssistantContextCommand?.()
+    this.#unregisterAssistantContextCommand = null
     this.#unregisterBrowserOpenCommand?.()
     this.#unregisterBrowserOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
+  }
+
+  private setAssistantWorkbenchContext(key: string, context: AssistantWorkbenchRequestContext | null) {
+    const normalizedKey = key.trim()
+    if (!normalizedKey || normalizedKey === 'env') {
+      return
+    }
+
+    this.#assistantWorkbenchContexts.update((current) => {
+      if (!context) {
+        if (!current[normalizedKey]) {
+          return current
+        }
+
+        const next = { ...current }
+        delete next[normalizedKey]
+        return next
+      }
+
+      const normalizedContext = normalizeAssistantWorkbenchContext(context)
+      return {
+        ...current,
+        [normalizedKey]: normalizedContext
+      }
+    })
   }
 
   async handleWorkspaceReference(request: FileWorkbenchReferenceRequest) {
@@ -1060,6 +1105,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
       await control.setThreadId(threadId)
       this.facade.onChatThreadChange(threadId)
+      if (conversation.id) {
+        this.markConversationRead(conversation.id)
+      } else {
+        this.markChatkitThreadRead(threadId)
+      }
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to open task history conversation.')
     }
@@ -1390,6 +1440,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       this.syncResolvedConversation(conversationId, conversation ?? baseConversation)
+      this.markConversationRead(conversationId)
       this.contextError.set(null)
     } catch (error) {
       if (isCancelled() || this.facade.threadId() !== threadId) {
@@ -1398,6 +1449,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       if (conversationId) {
         this.syncResolvedConversation(conversationId, baseConversation)
+        this.markConversationRead(conversationId)
       } else {
         this.resolvedConversationId.set(null)
         this.resolvedConversation.set(null)
@@ -1441,6 +1493,63 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       ...conversation,
       status: 'busy'
     } as IChatConversation
+  }
+
+  private markChatkitThreadRead(threadId: string | null | undefined) {
+    const normalizedThreadId = normalizeConversationThreadId(threadId)
+    if (!normalizedThreadId) {
+      return
+    }
+
+    const requestVersion = ++this.#markReadRequestVersion
+    void this.resolveConversationIdForRead(normalizedThreadId, requestVersion)
+  }
+
+  private async resolveConversationIdForRead(threadId: string, requestVersion: number) {
+    const resolvedConversation = this.resolvedConversation()
+    if (normalizeConversationThreadId(resolvedConversation?.threadId) === threadId && resolvedConversation?.id) {
+      this.markConversationRead(resolvedConversation.id)
+      return
+    }
+
+    let conversationId: string | null = null
+    try {
+      const thread = (await firstValueFrom(this.#threadService.getThread(threadId))) as {
+        metadata?: { id?: string }
+      } | null
+      conversationId = resolveConversationId(thread?.metadata)
+    } catch {
+      conversationId = null
+    }
+
+    if (requestVersion !== this.#markReadRequestVersion) {
+      return
+    }
+
+    if (!conversationId) {
+      try {
+        const conversation = (await firstValueFrom(
+          this.#conversationService.getByThreadId(threadId)
+        )) as IChatConversation | null
+        conversationId = conversation?.id ?? null
+      } catch {
+        conversationId = null
+      }
+    }
+
+    if (requestVersion !== this.#markReadRequestVersion || !conversationId) {
+      return
+    }
+
+    this.markConversationRead(conversationId)
+  }
+
+  private markConversationRead(conversationId: string | null | undefined) {
+    if (!conversationId) {
+      return
+    }
+
+    void firstValueFrom(this.#conversationService.markRead(conversationId)).catch(() => undefined)
   }
 }
 
@@ -1515,6 +1624,73 @@ function hasTaskSummaryRefresh(
   facade: WorkbenchChatFacade
 ): facade is WorkbenchChatFacade & { refreshTaskSummaries(): void } {
   return 'refreshTaskSummaries' in facade && typeof facade.refreshTaskSummaries === 'function'
+}
+
+function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, key: T): string | null {
+  const value = (facade as WorkbenchChatFacade & Record<T, Signal<unknown> | undefined>)[key]
+  if (typeof value !== 'function') {
+    return null
+  }
+  return getString(value()) ?? null
+}
+
+function buildAssistantRequestContext(input: {
+  workspaceId: string | null
+  xpertId: string | null
+  contexts: Record<string, AssistantWorkbenchRequestContext>
+}) {
+  const env: Record<string, string> = {}
+  if (input.workspaceId) {
+    env['workspaceId'] = input.workspaceId
+  }
+  if (input.xpertId) {
+    env['xpertId'] = input.xpertId
+  }
+
+  const requestContext: Record<string, unknown> = {}
+  for (const [key, context] of Object.entries(input.contexts)) {
+    Object.assign(env, normalizeAssistantEnv(context.env))
+    if (isRecord(context.context)) {
+      requestContext[key] = context.context
+    }
+  }
+
+  if (Object.keys(env).length) {
+    requestContext['env'] = env
+  }
+
+  return requestContext
+}
+
+function normalizeAssistantWorkbenchContext(
+  context: AssistantWorkbenchRequestContext
+): AssistantWorkbenchRequestContext {
+  const env = normalizeAssistantEnv(context.env)
+  const structuredContext = isRecord(context.context) ? context.context : undefined
+  return {
+    ...(Object.keys(env).length ? { env } : {}),
+    ...(structuredContext ? { context: structuredContext } : {})
+  }
+}
+
+function normalizeAssistantEnv(env: unknown): Record<string, string> {
+  if (!isRecord(env)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(env)
+      .map(([key, value]) => [key, getString(value)] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
 function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {

@@ -4,7 +4,7 @@ import {
     isTenantSharedXpertWorkspace,
     SecretTokenBindingType
 } from '@xpert-ai/contracts'
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'
 import {
@@ -19,6 +19,7 @@ import {
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
@@ -35,7 +36,9 @@ type PublishedXpertQueryOptions = {
 export class PublishedXpertAccessService {
     constructor(
         @InjectRepository(Xpert)
-        private readonly repository: Repository<Xpert>
+        private readonly repository: Repository<Xpert>,
+        @Optional()
+        private readonly workspaceAccessService?: XpertWorkspaceAccessService
     ) {}
 
     private currentTenantId() {
@@ -313,7 +316,7 @@ export class PublishedXpertAccessService {
         return qb
     }
 
-    private async loadByIds(ids: string[], relations?: string[]) {
+    private async loadByIds(ids: string[], relations?: FindOneOptions<Xpert>['relations']) {
         if (!ids.length) {
             return []
         }
@@ -322,23 +325,50 @@ export class PublishedXpertAccessService {
             where: {
                 id: In(ids)
             },
-            relations: uniq(relations ?? [])
+            relations: Array.isArray(relations) ? uniq(relations) : (relations ?? [])
         })
         const byId = new Map(items.map((item) => [item.id, item]))
 
-        return ids.map((id) => byId.get(id)).filter((item): item is Xpert => !!item)
+        return Promise.all(
+            ids
+                .map((id) => byId.get(id))
+                .filter((item): item is Xpert => !!item)
+                .map((item) => this.enrichWorkspaceAccess(item))
+        )
     }
 
     private normalizeRelations(relations?: FindOneOptions<Xpert>['relations']) {
         if (Array.isArray(relations)) {
-            return uniq([...relations, 'workspace', 'userGroups'])
+            return uniq([...relations, 'workspace', 'workspace.members', 'userGroups'])
         }
 
+        const normalizedRelations = (relations ?? {}) as FindOptionsRelations<Xpert>
+        const workspaceRelations =
+            normalizedRelations.workspace && typeof normalizedRelations.workspace === 'object'
+                ? normalizedRelations.workspace
+                : {}
+
         return {
-            ...((relations ?? {}) as FindOptionsRelations<Xpert>),
-            workspace: true,
+            ...normalizedRelations,
+            workspace: {
+                ...workspaceRelations,
+                members: true
+            },
             userGroups: true
         }
+    }
+
+    private async enrichWorkspaceAccess(xpert: Xpert) {
+        if (!xpert.workspace || !this.workspaceAccessService) {
+            return xpert
+        }
+
+        const access = await this.workspaceAccessService.buildAccess(xpert.workspace).catch(() => null)
+        if (access) {
+            xpert.workspace = access.workspace
+        }
+
+        return xpert
     }
 
     async getPublishedXpertInTenant(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
@@ -375,7 +405,7 @@ export class PublishedXpertAccessService {
 
         return this.loadByIds(
             rows.map((row) => row.id),
-            options?.relations
+            this.normalizeRelations(options?.relations)
         )
     }
 
