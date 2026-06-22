@@ -168,8 +168,9 @@ export class TenantController extends CrudController<Tenant> {
 	@HttpCode(HttpStatus.CREATED)
 	@Post('onboard')
 	async onboardDefault(@Body() entity: ITenantCreateInput): Promise<Tenant> {
-		const defaultTenant = await this.tenantService.findOneOrFailByWhereOptions({name: entity.name})
-		if (defaultTenant.success) {
+		const tenantCount = await this.tenantService.count()
+		const requestedTenant = await this.tenantService.findOneOrFailByWhereOptions({ name: entity.name })
+		if (tenantCount > 0 || requestedTenant.success) {
 			throw new BadRequestException('Tenant already exists');
 		}
 		const preparedEntity = await this.tenantService.prepareTenantCreateInput(entity)
