@@ -1,5 +1,15 @@
 # @xpert-ai/contracts
 
+## 3.13.0
+
+### Minor Changes
+
+- e6528c8: mcp apps
+
+### Patch Changes
+
+- f23228b: client commands for extension view
+
 ## 3.12.1
 
 ### Patch Changes
