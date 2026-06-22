@@ -1,5 +1,13 @@
 # @xpert-ai/copilot
 
+## 3.9.13
+
+### Patch Changes
+
+- Updated dependencies [e6528c8]
+- Updated dependencies [f23228b]
+  - @xpert-ai/contracts@3.13.0
+
 ## 3.9.12
 
 ### Patch Changes

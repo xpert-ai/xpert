@@ -1,5 +1,14 @@
 # @xpert-ai/plugin-sdk
 
+## 3.12.2
+
+### Patch Changes
+
+- f23228b: client commands for extension view
+- Updated dependencies [e6528c8]
+- Updated dependencies [f23228b]
+  - @xpert-ai/contracts@3.13.0
+
 ## 3.12.1
 
 ### Patch Changes

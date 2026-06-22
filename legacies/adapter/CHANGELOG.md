@@ -1,5 +1,14 @@
 # @xpert-ai/adapter
 
+## 9.0.0
+
+### Patch Changes
+
+- Updated dependencies [e6528c8]
+- Updated dependencies [f23228b]
+  - @xpert-ai/contracts@3.13.0
+  - @xpert-ai/plugin-sdk@3.12.2
+
 ## 8.0.1
 
 ### Patch Changes
