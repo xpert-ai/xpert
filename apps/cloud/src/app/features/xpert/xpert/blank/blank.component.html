@@ -194,9 +194,71 @@
                   </div>
                 }
               }
+
+              @if (checkingModelProviders()) {
+                <div class="text-sm text-text-secondary">
+                  {{
+                    'PAC.Xpert.CheckingModelProviders' | translate: { Default: 'Checking available model providers...' }
+                  }}
+                </div>
+              }
             </div>
           </div>
         </z-step>
+
+        @if (needsModelProviderSetup()) {
+          <z-step [label]="'PAC.Xpert.ModelProvider' | translate: { Default: 'Model provider' }">
+            <div class="px-4">
+              <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
+                <div class="text-sm leading-6 text-text-secondary">
+                  {{
+                    'PAC.Xpert.ConfigureModelProviderBeforeBasic'
+                      | translate
+                        : {
+                            Default:
+                              'Configure a primary model provider before entering basic information so this ClawXpert can run immediately after creation.'
+                          }
+                  }}
+                </div>
+
+                @if (modelProviderLoadError()) {
+                  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
+                    <div class="flex items-start gap-3">
+                      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+                      <div class="min-w-0 text-sm leading-6 text-text-secondary">
+                        {{ modelProviderLoadError() }}
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                @if (!canConfigureModelProvider()) {
+                  <div
+                    class="rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm leading-6 text-text-secondary"
+                  >
+                    {{
+                      'PAC.Xpert.ModelProviderPermissionRequired'
+                        | translate
+                          : {
+                              Default:
+                                'Your account cannot configure model providers. Contact an administrator to configure a primary LLM provider before creating ClawXpert.'
+                            }
+                    }}
+                  </div>
+                } @else if (enablingPrimaryCopilot() || !showClawModelProviderForm()) {
+                  <div
+                    class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm text-text-secondary"
+                  >
+                    {{ 'PAC.Xpert.PreparingModelProvider' | translate: { Default: 'Preparing model provider...' } }}
+                    <ngm-spin class="absolute inset-0 flex items-center justify-center" />
+                  </div>
+                } @else {
+                  <pac-copilot-config-form #clawCopilotForm class="w-full" [copilot]="primaryCopilot()" />
+                }
+              </div>
+            </div>
+          </z-step>
+        }
 
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
@@ -523,26 +585,43 @@
             </button>
           }
 
-          @if (stepper.selectedIndex < 4) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              [disabled]="
-                loading() ||
-                (stepper.selectedIndex === 0 && startStepInvalid()) ||
-                (stepper.selectedIndex === 1 && basicStepInvalid()) ||
-                (stepper.selectedIndex === 2 && selectedTriggersInvalid())
-              "
-              (click)="stepper.next()"
-            >
-              {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
-            </button>
+          @if (stepper.selectedIndex < agentLastStepIndex()) {
+            @if (stepper.selectedIndex === agentModelProviderStepIndex()) {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-primary btn-large"
+                [disabled]="clawModelProviderSaveDisabled()"
+                (click)="saveClawModelProviderStep()"
+              >
+                {{ 'PAC.Xpert.SaveModelProviderAndContinue' | translate: { Default: 'Save and continue' } }}
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-primary btn-large"
+                [disabled]="
+                  loading() ||
+                  (stepper.selectedIndex === 0 && (startStepInvalid() || checkingModelProviders())) ||
+                  (stepper.selectedIndex === agentBasicStepIndex() && basicStepInvalid()) ||
+                  (stepper.selectedIndex === agentTriggerStepIndex() && selectedTriggersInvalid())
+                "
+                (click)="stepper.next()"
+              >
+                {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              </button>
+            }
           } @else {
             <button
               type="button"
               class="btn disabled:btn-disabled btn-primary btn-large"
               cdkFocusInitial
-              [disabled]="loading() || startStepInvalid() || basicStepInvalid() || selectedTriggersInvalid()"
+              [disabled]="
+                loading() ||
+                startStepInvalid() ||
+                modelProviderStepInvalid() ||
+                basicStepInvalid() ||
+                selectedTriggersInvalid()
+              "
               (click)="create()"
             >
               <i class="ri-save-line mr-1"></i>

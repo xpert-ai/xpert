@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import {
   ZardComboboxDeprecatedComponent,
   ZardDialogService,
@@ -16,6 +17,8 @@ import {
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  AIPermissionsEnum,
+  CopilotServerService,
   EnvironmentService,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
@@ -23,7 +26,9 @@ import {
   IDocumentUnderstandingProvider,
   I18nObject,
   getErrorMessage,
+  ICopilot,
   ICopilotModel,
+  ICopilotWithProvider,
   isUserAddableAgentMiddleware,
   ISkillPackage,
   ISkillRepositoryIndex,
@@ -60,10 +65,12 @@ import {
   hasJsonSchemaRequiredErrors
 } from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
+import { CopilotConfigFormComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
 import {
   BehaviorSubject,
   catchError,
+  distinctUntilChanged,
   firstValueFrom,
   from,
   map,
@@ -73,6 +80,7 @@ import {
   switchMap,
   take
 } from 'rxjs'
+import { NgxPermissionsService } from 'ngx-permissions'
 import {
   BlankMiddlewareDefinition,
   BlankRepositoryDefaultSelection,
@@ -207,7 +215,6 @@ const UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION: I18nObject = {
     'This middleware comes from the selected template, but is not available in the current runtime. Keep it selected to preserve it in the imported draft, or deselect it to remove it.',
   zh_Hans: '该中间件来自所选模板，但当前运行时不可用。保留勾选会继续带入导入草稿，取消勾选会将其移除。'
 }
-const AGENT_SKILL_STEP_INDEX = 4
 
 const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
@@ -278,6 +285,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     NgmSpinComponent,
     ZardComboboxDeprecatedComponent,
     XpertBasicFormComponent,
+    CopilotConfigFormComponent,
     XpertWorkflowIconComponent,
     BlankTriggerSelectionComponent,
     BlankTemplateSelectionComponent
@@ -302,9 +310,12 @@ export class XpertNewBlankComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly environmentService = inject(EnvironmentService)
+  readonly #copilotServer = inject(CopilotServerService)
+  readonly #permissionsService = inject(NgxPermissionsService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly basicForm = viewChild(XpertBasicFormComponent)
+  readonly clawCopilotForm = viewChild<CopilotConfigFormComponent>('clawCopilotForm')
 
   readonly requestedType = signal(this.#dialogData.type ?? null)
   readonly allowedModes = this.#dialogData.allowedModes ?? null
@@ -319,6 +330,16 @@ export class XpertNewBlankComponent {
     this.lockType ? [this.initialMode] : getBlankWizardAvailableModes(this.requestedType(), this.allowedModes)
   )
   readonly types = model<BlankXpertMode[]>([this.initialMode])
+  readonly selectedMode = computed<BlankXpertMode>(
+    () => this.types()[0] ?? getBlankWizardDefaultMode(this.requestedType(), this.allowedModes)
+  )
+  readonly selectedType = computed(() => getBlankWizardPersistedType(this.selectedMode()))
+  readonly isAgentType = computed(() => this.selectedMode() === XpertTypeEnum.Agent)
+  readonly isWorkflowType = computed(() => this.selectedMode() === BLANK_XPERT_WORKFLOW_MODE)
+  readonly isKnowledgeType = computed(() => this.selectedMode() === XpertTypeEnum.Knowledge)
+  readonly isClawAgentWizard = computed(
+    () => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW && this.isAgentType()
+  )
   readonly startMode = model<BlankXpertStartMode>(this.#dialogData.initialStartMode ?? 'blank')
   readonly workspaceId = model<string | null>(this.#dialogData.workspace?.id ?? this.#selectedWorkspace()?.id ?? null)
   readonly name = model<string>()
@@ -429,6 +450,57 @@ export class XpertNewBlankComponent {
       integration: { service: string }
     }[]
   })
+  readonly modelProviderLoadError = signal<string | null>(null)
+  readonly availableLlmCopilots = toSignal(
+    toObservable(this.isClawAgentWizard).pipe(
+      distinctUntilChanged(),
+      switchMap((enabled) => {
+        if (!enabled) {
+          this.modelProviderLoadError.set(null)
+          return of(null as ICopilotWithProvider[] | null)
+        }
+
+        return this.#copilotServer.getCopilotModels(AiModelTypeEnum.LLM).pipe(
+          map((copilots) => {
+            this.modelProviderLoadError.set(null)
+            return copilots ?? []
+          }),
+          catchError((error) => {
+            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
+            return of([] as ICopilotWithProvider[])
+          })
+        )
+      })
+    ),
+    { initialValue: null as ICopilotWithProvider[] | null }
+  )
+  readonly orgCopilots = toSignal(
+    toObservable(this.isClawAgentWizard).pipe(
+      distinctUntilChanged(),
+      switchMap((enabled) => {
+        if (!enabled) {
+          return of([] as ICopilot[])
+        }
+
+        return this.#copilotServer.refresh$.pipe(
+          switchMap(() => this.#copilotServer.getAllInOrg()),
+          map(({ items }) => items ?? []),
+          catchError((error) => {
+            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
+            return of([] as ICopilot[])
+          })
+        )
+      })
+    ),
+    { initialValue: [] as ICopilot[] }
+  )
+  readonly hasCopilotEditPermission = toSignal(
+    this.#permissionsService.permissions$.pipe(
+      map((permissions) => !!permissions[AIPermissionsEnum.COPILOT_EDIT]),
+      startWith(!!this.#permissionsService.getPermissions()[AIPermissionsEnum.COPILOT_EDIT])
+    ),
+    { initialValue: !!this.#permissionsService.getPermissions()[AIPermissionsEnum.COPILOT_EDIT] }
+  )
   readonly triggerProviderOptions = computed(() =>
     uniqueByName<WorkflowTriggerProviderOption>(
       [CHAT_WORKFLOW_TRIGGER_PROVIDER, ...this.triggerProviders()],
@@ -540,9 +612,27 @@ export class XpertNewBlankComponent {
   readonly initializedWorkspaceSkillDefaultWorkspaces = signal<Set<string>>(new Set())
   readonly workflowActionNodeOptions = WORKFLOW_ACTION_NODE_OPTIONS
   readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
-  readonly selectedMode = computed<BlankXpertMode>(
-    () => this.types()[0] ?? getBlankWizardDefaultMode(this.requestedType(), this.allowedModes)
+  readonly primaryCopilot = computed(
+    () => this.orgCopilots().find((item) => item.role === AiProviderRole.Primary) ?? null
   )
+  readonly hasAvailableLlmProvider = computed(() => (this.availableLlmCopilots()?.length ?? 0) > 0)
+  readonly checkingModelProviders = computed(
+    () => this.isClawAgentWizard() && this.availableLlmCopilots() === null && !this.modelProviderSetupCompleted()
+  )
+  readonly needsModelProviderSetup = computed(
+    () =>
+      this.isClawAgentWizard() &&
+      !this.modelProviderSetupCompleted() &&
+      this.availableLlmCopilots() !== null &&
+      !this.hasAvailableLlmProvider()
+  )
+  readonly canConfigureModelProvider = computed(() => !!this.hasCopilotEditPermission())
+  readonly showClawModelProviderForm = computed(() => !!this.primaryCopilot()?.enabled)
+  readonly agentModelProviderStepIndex = computed(() => (this.needsModelProviderSetup() ? 1 : -1))
+  readonly agentBasicStepIndex = computed(() => (this.needsModelProviderSetup() ? 2 : 1))
+  readonly agentTriggerStepIndex = computed(() => (this.needsModelProviderSetup() ? 3 : 2))
+  readonly agentSkillStepIndex = computed(() => (this.needsModelProviderSetup() ? 5 : 4))
+  readonly agentLastStepIndex = computed(() => (this.needsModelProviderSetup() ? 5 : 4))
   readonly selectedSkills = computed<string[]>(() => {
     const selected = new Set(this.selectedExplicitSkills())
     const repositoryDefault = this.selectedRepositoryDefault()
@@ -562,10 +652,6 @@ export class XpertNewBlankComponent {
     const itemMap = new Map(this.skillState().skills.map((skill) => [skill.id, skill]))
     return this.selectedSkills().map((skillId) => itemMap.get(skillId) ?? { id: skillId, label: skillId })
   })
-  readonly selectedType = computed(() => getBlankWizardPersistedType(this.selectedMode()))
-  readonly isAgentType = computed(() => this.selectedMode() === XpertTypeEnum.Agent)
-  readonly isWorkflowType = computed(() => this.selectedMode() === BLANK_XPERT_WORKFLOW_MODE)
-  readonly isKnowledgeType = computed(() => this.selectedMode() === XpertTypeEnum.Knowledge)
   readonly supportsTemplateStart = computed(() => this.isAgentType() || this.isKnowledgeType())
   readonly templateChoices = computed(() =>
     this.isAgentType()
@@ -640,6 +726,8 @@ export class XpertNewBlankComponent {
   )
 
   readonly loading = signal(false)
+  readonly enablingPrimaryCopilot = signal(false)
+  readonly modelProviderSetupCompleted = signal(false)
 
   refreshWorkspaces() {
     this.#refreshWorkspaces$.next()
@@ -767,6 +855,7 @@ export class XpertNewBlankComponent {
     if (
       this.loading() ||
       this.startStepInvalid() ||
+      this.modelProviderStepInvalid() ||
       this.basicStepInvalid() ||
       (this.isAgentType() && this.selectedTriggersInvalid()) ||
       (this.isKnowledgeType() && this.selectedKnowledgeTriggersInvalid())
@@ -792,6 +881,47 @@ export class XpertNewBlankComponent {
     } finally {
       this.loading.set(false)
     }
+  }
+
+  modelProviderStepInvalid() {
+    if (!this.needsModelProviderSetup()) {
+      return false
+    }
+
+    return (
+      !this.canConfigureModelProvider() ||
+      this.enablingPrimaryCopilot() ||
+      !this.showClawModelProviderForm() ||
+      !this.hasSelectedClawModelProviderModel()
+    )
+  }
+
+  clawModelProviderSaveDisabled() {
+    const form = this.clawCopilotForm()
+    return (
+      this.loading() ||
+      this.enablingPrimaryCopilot() ||
+      !this.canConfigureModelProvider() ||
+      !this.showClawModelProviderForm() ||
+      !form?.canSubmit() ||
+      !form?.hasSelectedModel()
+    )
+  }
+
+  async saveClawModelProviderStep() {
+    const form = this.clawCopilotForm()
+    if (!form || this.clawModelProviderSaveDisabled()) {
+      return
+    }
+
+    const saved = await form.submit()
+    if (!saved) {
+      return
+    }
+
+    this.applyClawModelProviderFormModel()
+    this.modelProviderSetupCompleted.set(true)
+    this.#copilotServer.refresh()
   }
 
   setStartMode(mode: BlankXpertStartMode) {
@@ -1549,11 +1679,49 @@ export class XpertNewBlankComponent {
   }
 
   async onAgentStepChange(event: ZardStepperSelectionEvent) {
-    if (event.selectedIndex !== AGENT_SKILL_STEP_INDEX) {
+    if (event.selectedIndex === this.agentModelProviderStepIndex()) {
+      await this.prepareClawModelProviderStep()
+      return
+    }
+
+    if (event.selectedIndex !== this.agentSkillStepIndex()) {
       return
     }
 
     await this.prepareAgentSkillStep()
+  }
+
+  private async prepareClawModelProviderStep() {
+    if (
+      !this.needsModelProviderSetup() ||
+      !this.canConfigureModelProvider() ||
+      this.enablingPrimaryCopilot() ||
+      this.primaryCopilot()?.enabled
+    ) {
+      return
+    }
+
+    this.enablingPrimaryCopilot.set(true)
+    try {
+      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
+      this.#copilotServer.refresh()
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.enablingPrimaryCopilot.set(false)
+    }
+  }
+
+  private hasSelectedClawModelProviderModel() {
+    const model = this.copilotModel()
+    return !!model?.copilotId && !!model?.model
+  }
+
+  private applyClawModelProviderFormModel() {
+    const model = this.clawCopilotForm()?.formGroup.value.copilotModel as ICopilotModel | null | undefined
+    if (model?.copilotId && model.model) {
+      this.copilotModel.set(model)
+    }
   }
 
   private async prepareAgentSkillStep() {

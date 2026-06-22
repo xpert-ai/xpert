@@ -1,10 +1,13 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Store } from '@xpert-ai/cloud/state'
+import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
-import { of } from 'rxjs'
+import { BehaviorSubject, of } from 'rxjs'
+import { NgxPermissionsService } from 'ngx-permissions'
 import {
-  AiModelTypeEnum,
+  AIPermissionsEnum,
+  CopilotServerService,
   EnvironmentService,
   KnowledgebaseService,
   SkillPackageService,
@@ -17,10 +20,21 @@ import {
   XpertTypeEnum
 } from '../../../../@core'
 import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
-import { BlankXpertDialogData, XpertNewBlankComponent } from './blank.component'
+import { BLANK_XPERT_DIALOG_CATEGORY, BlankXpertDialogData, XpertNewBlankComponent } from './blank.component'
+
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
 
 type BlankSpecContext = {
   component: XpertNewBlankComponent
+  copilotServer: {
+    enableCopilot: jest.Mock
+    getAllInOrg: jest.Mock
+    getCopilotModels: jest.Mock
+    refresh: jest.Mock
+    refresh$: BehaviorSubject<boolean>
+  }
   dialogRef: { close: jest.Mock }
   environmentService: { getDefaultByWorkspace: jest.Mock }
   fixture: ComponentFixture<XpertNewBlankComponent>
@@ -310,9 +324,13 @@ async function createComponent(
     createdXpert?: any
     importedXpert?: any
     installedSkillPackage?: any
+    copilotModels?: any[]
+    copilots?: any[]
     middlewareProviders?: any[]
+    permissions?: string[]
     publishedXpert?: any
     repositories?: any[]
+    sandboxProviders?: any[]
     selectedWorkspace?: any | null
     teamResponse?: any
     triggerProviders?: any[]
@@ -327,10 +345,22 @@ async function createComponent(
   const importedXpert = options?.importedXpert ?? createdXpert
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
   const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
+  let copilots = options?.copilots ?? []
+  const copilotModels = options?.copilotModels ?? [
+    {
+      id: 'copilot-primary',
+      role: AiProviderRole.Primary,
+      providerWithModels: {
+        models: [{ model: 'gpt-4o', model_type: AiModelTypeEnum.LLM }]
+      }
+    }
+  ]
   const middlewareProviders = options?.middlewareProviders ?? []
+  const permissions = options?.permissions ?? [AIPermissionsEnum.COPILOT_EDIT]
   const repositories = options?.repositories ?? [
     { id: 'repo-public', provider: 'workspace-public', name: 'Workspace Shared Skills' }
   ]
+  const sandboxProviders = options?.sandboxProviders ?? []
   const triggerProviders = options?.triggerProviders ?? []
   const workspaceSkills = options?.workspaceSkills ?? []
   const workspaces = options?.workspaces ?? []
@@ -341,6 +371,7 @@ async function createComponent(
   const xpertService = {
     create: jest.fn(() => of(createdXpert)),
     delete: jest.fn(() => of(null)),
+    getSandboxProviders: jest.fn(() => of(sandboxProviders)),
     getTeam: jest.fn(() => of(teamResponse)),
     getTriggerProviders: jest.fn(() => of(triggerProviders)),
     importDSL: jest.fn(() => of(importedXpert)),
@@ -378,6 +409,32 @@ async function createComponent(
   }
   const environmentService = {
     getDefaultByWorkspace: jest.fn(() => of({ id: 'env-1' }))
+  }
+  const copilotRefresh$ = new BehaviorSubject(false)
+  const copilotServer = {
+    refresh$: copilotRefresh$,
+    getCopilotModels: jest.fn(() => of(copilotModels)),
+    getAllInOrg: jest.fn(() => of({ items: copilots })),
+    enableCopilot: jest.fn((role: AiProviderRole) => {
+      const primary = copilots.find((item) => item.role === role)
+      copilots = primary
+        ? copilots.map((item) => (item === primary ? { ...item, enabled: true } : item))
+        : [
+            ...copilots,
+            {
+              id: 'copilot-primary',
+              role,
+              enabled: true
+            }
+          ]
+      return of(null)
+    }),
+    refresh: jest.fn(() => copilotRefresh$.next(true))
+  }
+  const permissionMap = Object.fromEntries(permissions.map((permission) => [permission, true]))
+  const permissionsService = {
+    permissions$: new BehaviorSubject(permissionMap),
+    getPermissions: jest.fn(() => permissionMap)
   }
   const toastr = {
     error: jest.fn(),
@@ -446,6 +503,14 @@ async function createComponent(
         useValue: environmentService
       },
       {
+        provide: CopilotServerService,
+        useValue: copilotServer
+      },
+      {
+        provide: NgxPermissionsService,
+        useValue: permissionsService
+      },
+      {
         provide: ToastrService,
         useValue: toastr
       },
@@ -472,6 +537,7 @@ async function createComponent(
 
   return {
     component,
+    copilotServer,
     dialogRef,
     environmentService,
     fixture,
@@ -490,6 +556,143 @@ describe('XpertNewBlankComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
+  })
+
+  it('shows the ClawXpert model provider step and enables the primary copilot when no LLM provider exists', async () => {
+    const { component, copilotServer, fixture } = await createComponent(
+      {
+        category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        copilotModels: []
+      }
+    )
+
+    expect(component.isClawAgentWizard()).toBe(true)
+    expect(component.needsModelProviderSetup()).toBe(true)
+    expect(component.canConfigureModelProvider()).toBe(true)
+    expect(component.agentModelProviderStepIndex()).toBe(1)
+    expect(component.agentBasicStepIndex()).toBe(2)
+
+    await component.onAgentStepChange({ selectedIndex: component.agentModelProviderStepIndex() } as any)
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(copilotServer.enableCopilot).toHaveBeenCalledWith(AiProviderRole.Primary)
+    expect(copilotServer.refresh).toHaveBeenCalled()
+    expect(component.primaryCopilot()?.enabled).toBe(true)
+  })
+
+  it('saves the ClawXpert model provider form and carries the selected model into basic information', async () => {
+    const selectedModel = {
+      copilotId: 'copilot-primary',
+      modelType: AiModelTypeEnum.LLM,
+      model: 'gpt-4o'
+    }
+    const { component, copilotServer } = await createComponent(
+      {
+        category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        copilots: [
+          {
+            id: 'copilot-primary',
+            role: AiProviderRole.Primary,
+            enabled: true
+          }
+        ],
+        copilotModels: []
+      }
+    )
+    const form = {
+      canSubmit: jest.fn(() => true),
+      hasSelectedModel: jest.fn(() => true),
+      submit: jest.fn(async () => true),
+      formGroup: {
+        value: {
+          copilotModel: selectedModel
+        }
+      }
+    }
+
+    Object.defineProperty(component, 'clawCopilotForm', {
+      configurable: true,
+      value: () => form
+    })
+
+    await component.saveClawModelProviderStep()
+
+    expect(form.submit).toHaveBeenCalled()
+    expect(component.copilotModel()).toEqual(selectedModel)
+    expect(component.modelProviderSetupCompleted()).toBe(true)
+    expect(component.needsModelProviderSetup()).toBe(false)
+    expect(component.agentBasicStepIndex()).toBe(1)
+    expect(copilotServer.refresh).toHaveBeenCalled()
+  })
+
+  it('blocks ClawXpert model provider setup when the account lacks copilot edit permission', async () => {
+    const { component, copilotServer } = await createComponent(
+      {
+        category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        copilotModels: [],
+        permissions: []
+      }
+    )
+
+    expect(component.needsModelProviderSetup()).toBe(true)
+    expect(component.canConfigureModelProvider()).toBe(false)
+    expect(component.modelProviderStepInvalid()).toBe(true)
+
+    await component.onAgentStepChange({ selectedIndex: component.agentModelProviderStepIndex() } as any)
+
+    expect(copilotServer.enableCopilot).not.toHaveBeenCalled()
+  })
+
+  it('keeps the original Agent wizard steps when ClawXpert already has an available LLM provider', async () => {
+    const { component } = await createComponent(
+      {
+        category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        copilotModels: [
+          {
+            id: 'copilot-primary',
+            role: AiProviderRole.Primary,
+            providerWithModels: {
+              models: [{ model: 'gpt-4o', model_type: AiModelTypeEnum.LLM }]
+            }
+          }
+        ]
+      }
+    )
+
+    expect(component.needsModelProviderSetup()).toBe(false)
+    expect(component.agentModelProviderStepIndex()).toBe(-1)
+    expect(component.agentBasicStepIndex()).toBe(1)
+    expect(component.agentSkillStepIndex()).toBe(4)
+    expect(component.agentLastStepIndex()).toBe(4)
+  })
+
+  it('does not add the model provider setup step for non-ClawXpert Agent creation', async () => {
+    const { component } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        copilotModels: []
+      }
+    )
+
+    expect(component.isClawAgentWizard()).toBe(false)
+    expect(component.needsModelProviderSetup()).toBe(false)
+    expect(component.agentModelProviderStepIndex()).toBe(-1)
+    expect(component.agentBasicStepIndex()).toBe(1)
   })
 
   it('blocks submit in publish mode when no workspace is selected', async () => {
