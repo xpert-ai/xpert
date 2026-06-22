@@ -313,4 +313,4 @@ describe('CopilotCheckpointRetentionService', () => {
         expect(queryRunner.query.mock.calls[1][0]).toContain('pg_advisory_unlock')
         expect(queryRunner.release).toHaveBeenCalledTimes(1)
     })
-}
+})
