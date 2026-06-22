@@ -14,10 +14,12 @@ const argv: any = yargs(process.argv).argv
 const command = argv.command
 
 if (command === 'seedModule') {
-  seedModule(pluginConfig).catch((error: any) => {
-    console.log(error)
-    process.exit(1)
-  })
+  seedModule(pluginConfig)
+    .then(() => process.exit(0))
+    .catch((error: any) => {
+      console.log(error)
+      process.exit(1)
+    })
 } else if (command === 'seed') {
   seedDefault(pluginConfig).catch((error: any) => {
     console.log(error)
