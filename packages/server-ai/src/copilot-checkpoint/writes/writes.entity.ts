@@ -7,6 +7,13 @@ import { Column, Entity, Index } from 'typeorm'
 @Entity('copilot_checkpoint_writes')
 @Index(['thread_id', 'checkpoint_ns', 'checkpoint_id'])
 @Index(['organizationId', 'thread_id', 'checkpoint_ns', 'checkpoint_id', 'task_id', 'idx'], {unique: true})
+@Index('IDX_copilot_checkpoint_writes_retention_checkpoint', [
+	'tenantId',
+	'organizationId',
+	'thread_id',
+	'checkpoint_ns',
+	'checkpoint_id'
+])
 export class CopilotCheckpointWrites extends TenantOrganizationBaseEntity implements ICopilotCheckpointWrites {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
