@@ -10,8 +10,10 @@ import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import {
   ZardComboboxDeprecatedComponent,
+  ZardCheckboxComponent,
   ZardDialogService,
   ZardStepperImports,
+  ZardSwitchComponent,
   ZardTooltipImports,
   type ZardStepperSelectionEvent
 } from '@xpert-ai/headless-ui'
@@ -91,7 +93,9 @@ import {
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
   hasBlankWizardSelections,
+  isBlankMiddlewareRequired,
   mergeBlankMiddlewareRequiredFeatures,
+  normalizeBlankMiddlewareRequiredSelections,
   normalizeBlankMiddlewareSelections
 } from './blank-draft.util'
 import {
@@ -283,7 +287,9 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     CdkListboxModule,
     NgmI18nPipe,
     NgmSpinComponent,
+    ZardCheckboxComponent,
     ZardComboboxDeprecatedComponent,
+    ZardSwitchComponent,
     XpertBasicFormComponent,
     CopilotConfigFormComponent,
     XpertWorkflowIconComponent,
@@ -541,6 +547,9 @@ export class XpertNewBlankComponent {
 
     return [...availableProviders, ...unavailableTemplateSelections]
   })
+  readonly filteredMiddlewareProviderOptions = computed(() =>
+    this.middlewareProviderOptions().filter((provider) => matchesMiddlewareSearch(provider, this.middlewareSearch()))
+  )
   readonly dataSourceProviderOptions = computed(() =>
     uniqueByName<{ meta: IDocumentSourceProvider; integration: { service: string } }>(
       this.dataSourceProviders(),
@@ -602,6 +611,8 @@ export class XpertNewBlankComponent {
   readonly selectedExplicitSkills = model<string[]>([])
   readonly selectedRepositoryDefault = signal<BlankRepositoryDefaultSelection | null>(null)
   readonly selectedMiddlewares = model<string[]>([])
+  readonly selectedMiddlewareRequired = signal<Record<string, boolean>>({})
+  readonly middlewareSearch = signal('')
   readonly selectedKnowledgeTriggers = model<BlankTriggerSelection[]>([])
   readonly selectedDataSources = model<string[]>([])
   readonly selectedProcessors = model<string[]>([])
@@ -1022,13 +1033,33 @@ export class XpertNewBlankComponent {
   }
 
   toggleMiddleware(provider: string, enabled: boolean) {
-    this.selectedMiddlewares.set(
-      normalizeBlankMiddlewareSelections(
-        this.toggleValue(this.selectedMiddlewares(), provider, enabled),
-        this.selectedExplicitSkills(),
-        this.selectedRepositoryDefault()
-      )
+    const middlewares = normalizeBlankMiddlewareSelections(
+      this.toggleValue(this.selectedMiddlewares(), provider, enabled),
+      this.selectedExplicitSkills(),
+      this.selectedRepositoryDefault()
     )
+    this.selectedMiddlewares.set(middlewares)
+    this.syncMiddlewareRequiredSelections(middlewares)
+  }
+
+  toggleMiddlewareRequired(provider: string, required: boolean) {
+    if (!this.selectedMiddlewares().includes(provider)) {
+      return
+    }
+
+    this.selectedMiddlewareRequired.update((current) => {
+      const next = { ...current }
+      if (required) {
+        delete next[provider]
+      } else {
+        next[provider] = false
+      }
+      return normalizeBlankMiddlewareRequiredSelections(this.selectedMiddlewares(), next)
+    })
+  }
+
+  isMiddlewareRequired(provider: string) {
+    return isBlankMiddlewareRequired(provider, this.selectedMiddlewareRequired())
   }
 
   toggleSkill(skillId: string, enabled: boolean) {
@@ -1548,7 +1579,8 @@ export class XpertNewBlankComponent {
       triggers: this.selectedTriggers(),
       skills: this.selectedExplicitSkills(),
       repositoryDefault: this.selectedRepositoryDefault(),
-      middlewares: this.selectedMiddlewares()
+      middlewares: this.selectedMiddlewares(),
+      middlewareRequired: this.selectedMiddlewareRequired()
     }
   }
 
@@ -1664,8 +1696,14 @@ export class XpertNewBlankComponent {
   private applyAgentSkillSelections(selections: BlankAgentSkillSelections) {
     this.selectedExplicitSkills.set(selections.skills)
     this.selectedRepositoryDefault.set(cloneRepositoryDefaultSelection(selections.repositoryDefault))
-    this.selectedMiddlewares.set(
-      normalizeBlankMiddlewareSelections(selections.middlewares, selections.skills, selections.repositoryDefault)
+    const middlewares = normalizeBlankMiddlewareSelections(
+      selections.middlewares,
+      selections.skills,
+      selections.repositoryDefault
+    )
+    this.selectedMiddlewares.set(middlewares)
+    this.selectedMiddlewareRequired.set(
+      normalizeBlankMiddlewareRequiredSelections(middlewares, selections.middlewareRequired)
     )
   }
 
@@ -1674,7 +1712,10 @@ export class XpertNewBlankComponent {
     this.applyAgentSkillSelections({
       skills: [],
       repositoryDefault: null,
-      middlewares: this.selectedMiddlewares().filter((provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+      middlewares: this.selectedMiddlewares().filter(
+        (provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+      ),
+      middlewareRequired: this.selectedMiddlewareRequired()
     })
   }
 
@@ -1825,12 +1866,18 @@ export class XpertNewBlankComponent {
   }
 
   private refreshAgentSkillMiddlewareSelections() {
-    this.selectedMiddlewares.set(
-      normalizeBlankMiddlewareSelections(
-        this.selectedMiddlewares(),
-        this.selectedExplicitSkills(),
-        this.selectedRepositoryDefault()
-      )
+    const middlewares = normalizeBlankMiddlewareSelections(
+      this.selectedMiddlewares(),
+      this.selectedExplicitSkills(),
+      this.selectedRepositoryDefault()
+    )
+    this.selectedMiddlewares.set(middlewares)
+    this.syncMiddlewareRequiredSelections(middlewares)
+  }
+
+  private syncMiddlewareRequiredSelections(middlewares = this.selectedMiddlewares()) {
+    this.selectedMiddlewareRequired.set(
+      normalizeBlankMiddlewareRequiredSelections(middlewares, this.selectedMiddlewareRequired())
     )
   }
 }
@@ -1839,6 +1886,7 @@ type BlankAgentSkillSelections = {
   skills: string[]
   repositoryDefault: BlankRepositoryDefaultSelection | null
   middlewares: string[]
+  middlewareRequired?: Record<string, boolean>
 }
 
 function cloneRepositoryDefaultSelection(
@@ -1878,6 +1926,39 @@ function buildBlankWorkspaceSkillState(skills: ISkillPackage[]): BlankSkillState
     })),
     errorMessage: null
   }
+}
+
+function collectI18nTextValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return value.trim() ? [value] : []
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return []
+  }
+
+  return Object.values(value).filter((item): item is string => typeof item === 'string' && !!item.trim())
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function matchesMiddlewareSearch(provider: BlankMiddlewareProviderOption, search: string) {
+  const normalizedSearch = normalizeSearchText(search)
+  if (!normalizedSearch) {
+    return true
+  }
+
+  return normalizeSearchText(
+    [
+      provider.meta.name,
+      ...collectI18nTextValues(provider.meta.label),
+      ...collectI18nTextValues(provider.meta.description)
+    ]
+      .filter(Boolean)
+      .join(' ')
+  ).includes(normalizedSearch)
 }
 
 function normalizeI18nCandidate(value: unknown): string | I18nObject | null {

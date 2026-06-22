@@ -74,7 +74,8 @@ describe('blank draft util', () => {
       triggerProviders: [],
       skills: ['Skill A'],
       repositoryDefault: null,
-      middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
+      middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
+      middlewareRequired: {}
     })
 
     expect(hasBlankWizardSelections()).toBe(false)
@@ -88,7 +89,8 @@ describe('blank draft util', () => {
       triggerProviders: [],
       skills: [],
       repositoryDefault: null,
-      middlewares: ['guard']
+      middlewares: ['guard'],
+      middlewareRequired: {}
     })
     expect(
       normalizeBlankTriggerSelections(
@@ -142,7 +144,8 @@ describe('blank draft util', () => {
         repositoryId: 'repo-public',
         disabledSkillIds: ['skill-b']
       },
-      middlewares: [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
+      middlewares: [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
+      middlewareRequired: {}
     })
     expect(
       hasBlankWizardSelections({
@@ -212,6 +215,26 @@ describe('blank draft util', () => {
     expect(skillsMiddlewareNode!.position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(middlewareNodes[0].position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(draft.team.agent.options.middlewares.order).toEqual(middlewareNodes.map((node) => node.key))
+  })
+
+  it('sets required to false on middleware nodes when the wizard disables always load', async () => {
+    const draft = await buildBlankXpertDraft(createXpert(), {
+      middlewares: ['guard', 'audit'],
+      middlewareRequired: {
+        guard: false,
+        missing: false,
+        audit: true
+      }
+    })
+
+    const middlewareNodes = draft.nodes.filter(
+      (node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+    )
+    const guardNode = middlewareNodes.find((node) => (node.entity as any).provider === 'guard')
+    const auditNode = middlewareNodes.find((node) => (node.entity as any).provider === 'audit')
+
+    expect((guardNode?.entity as any).required).toBe(false)
+    expect((auditNode?.entity as any).required).toBe(true)
   })
 
   it('auto-enables required middleware features while preserving existing feature settings', async () => {

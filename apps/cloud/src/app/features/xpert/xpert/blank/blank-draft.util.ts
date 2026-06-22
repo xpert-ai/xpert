@@ -104,6 +104,7 @@ export type XpertBlankWizardSelections = {
   skills?: string[]
   repositoryDefault?: BlankRepositoryDefaultSelection | null
   middlewares?: string[]
+  middlewareRequired?: Record<string, boolean>
 }
 
 export type KnowledgeBlankWizardSelections = {
@@ -149,12 +150,14 @@ export function normalizeBlankWizardSelections(
 ): Required<XpertBlankWizardSelections> {
   const skills = uniqueStrings(selections?.skills)
   const repositoryDefault = normalizeBlankRepositoryDefaultSelection(selections?.repositoryDefault)
+  const middlewares = normalizeBlankMiddlewareSelections(selections?.middlewares, skills, repositoryDefault)
   return {
     triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     skills,
     repositoryDefault,
-    middlewares: normalizeBlankMiddlewareSelections(selections?.middlewares, skills, repositoryDefault)
+    middlewares,
+    middlewareRequired: normalizeBlankMiddlewareRequiredSelections(middlewares, selections?.middlewareRequired)
   }
 }
 
@@ -292,6 +295,7 @@ export function buildBlankXpertSelectionGraph(
   const middlewareNodes = createMiddlewareNodes(
     agentNode,
     normalized.middlewares,
+    normalized.middlewareRequired,
     normalized.skills,
     normalized.repositoryDefault,
     options?.middlewareDefinitions ?? [],
@@ -755,6 +759,7 @@ function createWorkflowAnswerNode(): TXpertTeamNode<'workflow'> {
 function createMiddlewareNodes(
   agentNode: TXpertTeamNode<'agent'>,
   middlewares: string[],
+  middlewareRequired: Record<string, boolean>,
   skills: string[],
   repositoryDefault: BlankRepositoryDefaultSelection | null,
   middlewareDefinitions: BlankMiddlewareDefinition[],
@@ -787,7 +792,7 @@ function createMiddlewareNodes(
         key,
         title: provider,
         provider,
-        required: true,
+        required: isBlankMiddlewareRequired(provider, middlewareRequired),
         ...(middlewareOptions ? { options: middlewareOptions } : {})
       } as IWFNMiddleware
     }
@@ -853,6 +858,24 @@ export function normalizeBlankMiddlewareSelections(
         : [...visibleMiddlewares, BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
       : visibleMiddlewares
   )
+}
+
+export function normalizeBlankMiddlewareRequiredSelections(
+  middlewares?: string[] | null,
+  middlewareRequired?: Record<string, boolean> | null
+): Record<string, boolean> {
+  const selected = new Set(uniqueStrings(middlewares))
+  return Object.entries(middlewareRequired ?? {}).reduce<Record<string, boolean>>((result, [provider, required]) => {
+    const normalizedProvider = provider?.trim()
+    if (normalizedProvider && selected.has(normalizedProvider) && required === false) {
+      result[normalizedProvider] = false
+    }
+    return result
+  }, {})
+}
+
+export function isBlankMiddlewareRequired(provider: string, middlewareRequired?: Record<string, boolean> | null) {
+  return middlewareRequired?.[provider] !== false
 }
 
 export function mergeBlankMiddlewareRequiredFeatures(

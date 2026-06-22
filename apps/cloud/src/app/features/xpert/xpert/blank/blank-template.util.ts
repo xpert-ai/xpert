@@ -39,7 +39,10 @@ export type BlankKnowledgeTemplateWizardState = {
   selections: Required<KnowledgeBlankWizardSelections>
 }
 
-type BlankAgentTemplateApplyOptions = Pick<BlankXpertDraftBuildOptions, 'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'>
+type BlankAgentTemplateApplyOptions = Pick<
+  BlankXpertDraftBuildOptions,
+  'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'
+>
 
 const KNOWLEDGE_MANAGED_NODE_TYPES = new Set<WorkflowNodeTypeEnum>([
   WorkflowNodeTypeEnum.TRIGGER,
@@ -56,7 +59,9 @@ export function extractTemplateBasicInfo(draft: TXpertTeamDraft): BlankTemplateB
     description: draft.team?.description ?? undefined,
     avatar: cloneMaybe(draft.team?.avatar),
     copilotModel: cloneMaybe(
-      draft.team?.copilotModel ?? getPrimaryAgentNodeMaybe(draft)?.entity?.copilotModel ?? draft.team?.agent?.copilotModel
+      draft.team?.copilotModel ??
+        getPrimaryAgentNodeMaybe(draft)?.entity?.copilotModel ??
+        draft.team?.agent?.copilotModel
     )
   }
 }
@@ -86,7 +91,8 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
       triggers: triggerNodes.map((node) => toTriggerSelection(node.entity)),
       skills: extractExplicitSkillsFromMiddlewares(middlewareNodes),
       repositoryDefault: extractRepositoryDefaultFromMiddlewares(middlewareNodes),
-      middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean)
+      middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean),
+      middlewareRequired: extractMiddlewareRequiredSelections(middlewareNodes)
     })
   }
 }
@@ -225,8 +231,9 @@ function getPrimaryAgentNodeMaybe(draft: TXpertTeamDraft): TXpertTeamNode<'agent
   }
 
   return (
-    draft.nodes.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey) ??
-    null
+    draft.nodes.find(
+      (node): node is TXpertTeamNode<'agent'> => node.type === 'agent' && node.key === primaryAgentKey
+    ) ?? null
   )
 }
 
@@ -304,7 +311,9 @@ function extractExplicitSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workf
   )
 }
 
-function extractRepositoryDefaultFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
+function extractRepositoryDefaultFromMiddlewares(
+  nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>
+) {
   for (const node of nodes) {
     if (node.entity.provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER) {
       continue
@@ -317,6 +326,17 @@ function extractRepositoryDefaultFromMiddlewares(nodes: Array<TXpertTeamNode<'wo
   }
 
   return null
+}
+
+function extractMiddlewareRequiredSelections(
+  nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>
+): Record<string, boolean> {
+  return nodes.reduce<Record<string, boolean>>((result, node) => {
+    if (node.entity.provider && node.entity.required === false) {
+      result[node.entity.provider] = false
+    }
+    return result
+  }, {})
 }
 
 function readSkillsMiddlewareSelection(options: unknown) {
@@ -337,9 +357,7 @@ function readSkillsMiddlewareRepositoryDefault(options: unknown): BlankRepositor
   }
 
   const repositoryId =
-    'repositoryId' in candidate && typeof candidate.repositoryId === 'string'
-      ? candidate.repositoryId.trim()
-      : ''
+    'repositoryId' in candidate && typeof candidate.repositoryId === 'string' ? candidate.repositoryId.trim() : ''
   if (!repositoryId) {
     return null
   }

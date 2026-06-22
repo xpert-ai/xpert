@@ -1215,6 +1215,87 @@ describe('XpertNewBlankComponent', () => {
     expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual(['guard'])
   })
 
+  it('filters middleware picker options by name, label, and description', async () => {
+    const { component } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'MarkItDownMiddleware',
+              label: {
+                en_US: 'MarkItDown Skills',
+                zh_Hans: '文档转换'
+              },
+              description: {
+                en_US: 'Convert PDF and DOCX files into Markdown.'
+              }
+            }
+          },
+          {
+            meta: {
+              name: 'BrowserAutomationMiddleware',
+              label: {
+                en_US: 'Browser Automation'
+              },
+              description: {
+                en_US: 'Run Playwright style browser actions.',
+                zh_Hans: '执行浏览器操作'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    expect(component.filteredMiddlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'MarkItDownMiddleware',
+      'BrowserAutomationMiddleware'
+    ])
+
+    component.middlewareSearch.set('pdf')
+    expect(component.filteredMiddlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'MarkItDownMiddleware'
+    ])
+
+    component.middlewareSearch.set('浏览器')
+    expect(component.filteredMiddlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'BrowserAutomationMiddleware'
+    ])
+
+    component.middlewareSearch.set('missing')
+    expect(component.filteredMiddlewareProviderOptions()).toEqual([])
+
+    component.middlewareSearch.set('')
+    expect(component.filteredMiddlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
+      'MarkItDownMiddleware',
+      'BrowserAutomationMiddleware'
+    ])
+  })
+
+  it('defaults selected middlewares to always load and clears overrides when deselected', async () => {
+    const { component } = await createComponent({
+      type: XpertTypeEnum.Agent
+    })
+
+    component.toggleMiddleware('guard', true)
+    expect(component.selectedMiddlewares()).toEqual(['guard'])
+    expect(component.isMiddlewareRequired('guard')).toBe(true)
+    expect(component.selectedMiddlewareRequired()).toEqual({})
+
+    component.toggleMiddlewareRequired('guard', false)
+    expect(component.isMiddlewareRequired('guard')).toBe(false)
+    expect(component.selectedMiddlewareRequired()).toEqual({
+      guard: false
+    })
+
+    component.toggleMiddleware('guard', false)
+    expect(component.selectedMiddlewares()).toEqual([])
+    expect(component.selectedMiddlewareRequired()).toEqual({})
+  })
+
   it('hides builtin middleware from the middleware picker options', async () => {
     const { component } = await createComponent(
       {
@@ -1296,6 +1377,43 @@ describe('XpertNewBlankComponent', () => {
         enabled: true
       }
     })
+  })
+
+  it('persists middleware always-load overrides when creating a blank xpert', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert,
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'guard',
+              label: {
+                en_US: 'Guard'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    component.toggleMiddleware('guard', true)
+    component.toggleMiddlewareRequired('guard', false)
+
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
+    const guardNode = savedDraft.nodes.find(
+      (node: any) => node.type === 'workflow' && node.entity?.provider === 'guard'
+    )
+
+    expect(guardNode.entity.required).toBe(false)
   })
 
   it('closes with published status after a successful publish flow', async () => {

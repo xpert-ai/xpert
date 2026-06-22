@@ -350,23 +350,65 @@
                   | translate
                     : {
                         Default:
-                          'If a middleware requires xpert features such as sandbox, they will be enabled automatically for this xpert.'
+                          'If a middleware requires Xpert features such as sandbox, they will be enabled automatically for this Xpert.'
+                      }
+              }}
+            </div>
+            <div class="text-xs leading-5 text-text-secondary">
+              {{
+                'PAC.Xpert.MiddlewareRequiredModeHelp'
+                  | translate
+                    : {
+                        Default:
+                          'Selected middlewares default to Always load. Turn it off to create the node without forcing runtime loading; you can continue adjusting it in Studio.'
                       }
               }}
             </div>
 
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (middleware of middlewareProviderOptions(); track middleware.meta.name) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+            <div class="relative max-w-md">
+              <i
+                class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"
+              ></i>
+              <input
+                type="text"
+                class="xp-input w-full pl-9 pr-9 text-sm"
+                [ngModel]="middlewareSearch()"
+                (ngModelChange)="middlewareSearch.set($event)"
+                [placeholder]="
+                  'PAC.Xpert.SearchMiddlewaresPlaceholder'
+                    | translate: { Default: 'Search middleware name or description' }
+                "
+              />
+              @if (middlewareSearch()) {
+                <button
+                  type="button"
+                  class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
+                  [attr.aria-label]="'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' }"
+                  (click)="middlewareSearch.set('')"
                 >
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 shrink-0"
+                  <i class="ri-close-line"></i>
+                </button>
+              }
+            </div>
+
+            <div class="grid gap-2 md:grid-cols-2">
+              @for (middleware of filteredMiddlewareProviderOptions(); track middleware.meta.name) {
+                <div
+                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+                  [class.border-primary-500]="selectedMiddlewares().includes(middleware.meta.name)"
+                  [class.bg-background-default]="selectedMiddlewares().includes(middleware.meta.name)"
+                  (click)="
+                    toggleMiddleware(middleware.meta.name, !selectedMiddlewares().includes(middleware.meta.name))
+                  "
+                >
+                  <z-checkbox
+                    class="mt-1 shrink-0"
+                    displayDensity="compact"
                     [ngModel]="selectedMiddlewares().includes(middleware.meta.name)"
-                    (ngModelChange)="toggleMiddleware(middleware.meta.name, $event)"
+                    (click)="$event.stopPropagation()"
+                    (checkChange)="toggleMiddleware(middleware.meta.name, $event)"
                   />
-                  <div class="min-w-0">
+                  <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
                       <span [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
                         {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
@@ -402,15 +444,39 @@
                       {{ middleware.meta.description ? (middleware.meta.description | i18n) : middleware.meta.name }}
                     </div>
                   </div>
-                </label>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                >
-                  {{
-                    'PAC.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' }
-                  }}
+                  @if (selectedMiddlewares().includes(middleware.meta.name)) {
+                    <div class="ml-auto flex shrink-0 items-center pl-2" (click)="$event.stopPropagation()">
+                      <z-switch
+                        zSize="sm"
+                        [ngModel]="isMiddlewareRequired(middleware.meta.name)"
+                        (ngModelChange)="toggleMiddlewareRequired(middleware.meta.name, $event)"
+                      >
+                        @if (isMiddlewareRequired(middleware.meta.name)) {
+                          {{ 'PAC.Xpert.MiddlewareRequiredBadge' | translate: { Default: 'Always load' } }}
+                        } @else {
+                          {{ 'PAC.Xpert.MiddlewareOptionalBadge' | translate: { Default: 'Manual load' } }}
+                        }
+                      </z-switch>
+                    </div>
+                  }
                 </div>
+              } @empty {
+                @if (middlewareProviderOptions().length) {
+                  <div
+                    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
+                  >
+                    {{ 'PAC.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
+                  </div>
+                } @else {
+                  <div
+                    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
+                  >
+                    {{
+                      'PAC.Workflow.NoMiddlewaresAvailable'
+                        | translate: { Default: 'No middleware providers available' }
+                    }}
+                  </div>
+                }
               }
             </div>
           </div>
