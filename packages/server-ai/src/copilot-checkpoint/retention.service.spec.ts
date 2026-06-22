@@ -221,7 +221,7 @@ describe('CopilotCheckpointRetentionService', () => {
         await expect(service.execute({ batchSize: 1 })).rejects.toThrow('delete failed')
     })
 
-    it('scheduled cleanup is dry-run only unless execute is explicitly enabled', async () => {
+    it('scheduled cleanup skips dry-run unless execute is explicitly enabled', async () => {
         const { service, queryRunner } = createService()
         const dryRun = jest.spyOn(service, 'dryRun')
         const execute = jest.spyOn(service, 'execute').mockResolvedValue({
@@ -234,7 +234,20 @@ describe('CopilotCheckpointRetentionService', () => {
             batchLimitReached: false
         })
 
+        delete process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED
         queryRunner.query.mockResolvedValue([{ locked: true }])
+        await service.runScheduledCleanup()
+        expect(queryRunner.connect).not.toHaveBeenCalled()
+        expect(dryRun).not.toHaveBeenCalled()
+        expect(execute).not.toHaveBeenCalled()
+
+        process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED = 'false'
+        await service.runScheduledCleanup()
+        expect(queryRunner.connect).not.toHaveBeenCalled()
+        expect(dryRun).not.toHaveBeenCalled()
+        expect(execute).not.toHaveBeenCalled()
+
+        process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED = 'true'
         dryRun.mockResolvedValueOnce({
             mode: 'dry-run',
             checkpointCount: 1,
@@ -243,29 +256,9 @@ describe('CopilotCheckpointRetentionService', () => {
             oversizedThreads: []
         })
         await service.runScheduledCleanup()
+        expect(dryRun).toHaveBeenCalledTimes(1)
         expect(execute).not.toHaveBeenCalled()
 
-        dryRun.mockResolvedValueOnce({
-            mode: 'dry-run',
-            checkpointCount: 1,
-            writesCount: 1,
-            estimatedBytes: 1024,
-            oversizedThreads: [
-                {
-                    organizationId: 'org-1',
-                    threadId: 'thread-large',
-                    checkpointNs: '',
-                    checkpointCount: 1,
-                    checkpointBytes: 1,
-                    writesBytes: 1,
-                    threadBytes: 2
-                }
-            ]
-        })
-        await service.runScheduledCleanup()
-        expect(execute).not.toHaveBeenCalled()
-
-        process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED = 'true'
         dryRun.mockResolvedValueOnce({
             mode: 'dry-run',
             checkpointCount: 1,
@@ -291,6 +284,7 @@ describe('CopilotCheckpointRetentionService', () => {
         const { service, queryRunner } = createService()
         const dryRun = jest.spyOn(service, 'dryRun')
 
+        process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED = 'true'
         queryRunner.query.mockResolvedValueOnce([{ locked: false }])
 
         await service.runScheduledCleanup()
@@ -308,6 +302,7 @@ describe('CopilotCheckpointRetentionService', () => {
             oversizedThreads: []
         })
 
+        process.env.COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED = 'true'
         queryRunner.query.mockResolvedValueOnce([{ locked: true }]).mockResolvedValueOnce([{ unlocked: true }])
 
         await service.runScheduledCleanup()
@@ -318,4 +313,4 @@ describe('CopilotCheckpointRetentionService', () => {
         expect(queryRunner.query.mock.calls[1][0]).toContain('pg_advisory_unlock')
         expect(queryRunner.release).toHaveBeenCalledTimes(1)
     })
-})
+}
