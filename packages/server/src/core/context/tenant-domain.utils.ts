@@ -1,5 +1,7 @@
 import { Request } from 'express'
 
+const RESERVED_TENANT_DOMAIN_LABELS = new Set(['app', 'api', 'www'])
+
 function normalizeHeaderValue(value: string) {
   return value
     .split(',')
@@ -65,7 +67,12 @@ export function extractTenantDomainFromHostname(hostname: string | undefined): s
     return null
   }
 
-  return parts[0] || null
+  const tenantDomain = parts[0] || null
+  if (!tenantDomain || RESERVED_TENANT_DOMAIN_LABELS.has(tenantDomain)) {
+    return null
+  }
+
+  return tenantDomain
 }
 
 export function resolveTenantDomainFromRequest(request: Request): string | null {

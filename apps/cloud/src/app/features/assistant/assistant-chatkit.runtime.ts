@@ -12,6 +12,7 @@ import {
   Store,
   type IResolvedAssistantBinding,
   getErrorMessage,
+  normalizeApiBaseUrl,
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
@@ -462,11 +463,12 @@ function buildAssistantClientSecret(secret: string, organizationId?: string | nu
 }
 
 function normalizeBaseUrl(baseUrl?: string | null) {
-  if (!baseUrl) {
+  const apiBaseUrl = normalizeApiBaseUrl(baseUrl)
+  if (!apiBaseUrl) {
     return ''
   }
 
-  const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  const normalized = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl
   if (normalized.startsWith('http')) {
     return normalized
   }

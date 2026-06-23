@@ -36,4 +36,10 @@ describe('tenant-domain utils', () => {
     expect(resolveTenantDomainFromRequest(originOnlyRequest)).toBe('tenant-origin')
     expect(resolveTenantDomainFromRequest(localhostRequest)).toBeNull()
   })
+
+  it('ignores reserved application host labels', () => {
+    expect(resolveTenantDomainFromRequest({ headers: { host: 'app.xpertai.cn' } } as any)).toBeNull()
+    expect(resolveTenantDomainFromRequest({ headers: { host: 'api.xpertai.cn' } } as any)).toBeNull()
+    expect(resolveTenantDomainFromRequest({ headers: { host: 'shenzhen.app.xpertai.cn' } } as any)).toBe('shenzhen')
+  })
 })

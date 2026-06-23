@@ -1,4 +1,5 @@
 import { firstValueFrom, Observable } from 'rxjs'
+import { normalizeApiBaseUrl } from './providers/url'
 import { ToastrService } from './services'
 import { getErrorMessage } from './types'
 
@@ -59,5 +60,11 @@ export function isUUID(id: string) {
 }
 
 export function getWebSocketUrl(url: string) {
-  return (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + url.replace('http:', '').replace('https:', '')
+  const normalizedUrl = normalizeApiBaseUrl(url)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  if (!normalizedUrl) {
+    return `${protocol}//${window.location.host}`
+  }
+
+  return protocol + normalizedUrl.replace('http:', '').replace('https:', '')
 }

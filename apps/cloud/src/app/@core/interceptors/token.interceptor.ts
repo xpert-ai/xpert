@@ -5,6 +5,7 @@ import { AuthStrategy } from '../auth'
 import { Store } from '../services/store.service'
 
 const ANONYMOUS_AUTH_PATHS = new Set([
+  '/api/auth/login',
   '/api/auth/sso/providers',
   '/api/auth/sso/bind/challenge',
   '/api/auth/sso/bind/complete',
