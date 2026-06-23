@@ -10,7 +10,7 @@ export default [
     component: CopilotComponent,
     canActivate: [NgxPermissionsGuard],
     data: {
-      title: 'Settings / Copilot',
+      title: 'Model Providers',
       permissions: {
         only: [AIPermissionsEnum.COPILOT_EDIT],
         redirectTo: '/settings'
@@ -28,17 +28,17 @@ export default [
       },
       {
         path: 'usages',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/settings/copilot/basic'])],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
         loadComponent: () => import('./usages/usages.component').then((m) => m.CopilotUsagesComponent)
       },
       {
         path: 'users',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/settings/copilot/basic'])],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
         loadComponent: () => import('./users/users.component').then((m) => m.CopilotUsersComponent)
       },
       {
         path: 'overview',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/settings/copilot/basic'])],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
         loadComponent: () => import('./overview/overview.component').then((m) => m.CopilotOverviewComponent)
       }
     ]

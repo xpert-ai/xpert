@@ -34,14 +34,14 @@ describe('copilot setting routes', () => {
     const children = copilotRoute?.children ?? []
     const monitoringRoutes = ['usages', 'users', 'overview'].map((path) => children.find((route) => route.path === path))
 
-    expect(featureGate).toHaveBeenCalledWith(['FEATURE_COPILOT_MONITORING'], ['/settings/copilot/basic'])
+    expect(featureGate).toHaveBeenCalledWith(['FEATURE_COPILOT_MONITORING'], ['/copilot/basic'])
     monitoringRoutes.forEach((route) => {
       expect(route).toEqual(
         expect.objectContaining({
           canActivate: expect.arrayContaining([
             {
               featureKeys: ['FEATURE_COPILOT_MONITORING'],
-              redirectCommands: ['/settings/copilot/basic']
+              redirectCommands: ['/copilot/basic']
             }
           ])
         })

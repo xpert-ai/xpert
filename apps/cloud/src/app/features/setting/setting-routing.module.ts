@@ -213,9 +213,39 @@ const routes: Routes = [
       },
       {
         path: 'copilot',
-        loadChildren: () => import('./copilot/routing').then((m) => m.default),
+        children: [
+          {
+            path: '',
+            redirectTo: '/copilot',
+            pathMatch: 'full'
+          },
+          {
+            path: 'basic',
+            redirectTo: '/copilot/basic',
+            pathMatch: 'full'
+          },
+          {
+            path: 'usages',
+            redirectTo: '/copilot/usages',
+            pathMatch: 'full'
+          },
+          {
+            path: 'users',
+            redirectTo: '/copilot/users',
+            pathMatch: 'full'
+          },
+          {
+            path: 'overview',
+            redirectTo: '/copilot/overview',
+            pathMatch: 'full'
+          },
+          {
+            path: '**',
+            redirectTo: '/copilot'
+          }
+        ],
         data: {
-          title: 'settings/copilot',
+          title: 'copilot',
           scopeContext: 'dual-scope'
         }
       },
