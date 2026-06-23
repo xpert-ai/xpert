@@ -156,7 +156,7 @@ jest.mock('../preview/file-preview-content.component', () => {
   class FilePreviewContentComponent {
     @Input() previewKind?: unknown
     @Input() content?: string | null
-    @Input() documentHtml?: string | null
+    @Input() documentBlob?: Blob | null
     @Input() downloadable?: boolean
     @Input() error?: string | null
     @Input() filePath?: string | null

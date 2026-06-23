@@ -17,6 +17,7 @@ import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { FileEditorSelection } from '../editor/editor.component'
+import { FileDocxPreviewComponent } from './file-docx-preview.component'
 import { FileHtmlPreviewComponent } from './file-html-preview.component'
 import { FilePreviewKind, SpreadsheetPreview } from './file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from './preview-selection.utils'
@@ -31,7 +32,15 @@ type FilePreviewReferenceSelection = {
   standalone: true,
   selector: 'pac-file-preview-content',
   templateUrl: './file-preview-content.component.html',
-  imports: [TranslateModule, MarkdownModule, SafePipe, NgmSpinComponent, NgmTableComponent, FileHtmlPreviewComponent],
+  imports: [
+    TranslateModule,
+    MarkdownModule,
+    SafePipe,
+    NgmSpinComponent,
+    NgmTableComponent,
+    FileDocxPreviewComponent,
+    FileHtmlPreviewComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FilePreviewContentComponent {
@@ -39,7 +48,7 @@ export class FilePreviewContentComponent {
 
   readonly previewKind = input<FilePreviewKind>('unsupported')
   readonly content = input<string | null>(null)
-  readonly documentHtml = input<string | null>(null)
+  readonly documentBlob = input<Blob | null>(null)
   readonly downloadable = input(false)
   readonly error = input<string | null>(null)
   readonly filePath = input<string | null>(null)
@@ -55,7 +64,7 @@ export class FilePreviewContentComponent {
   readonly htmlInspectModeChange = output<boolean>()
   readonly referenceSelection = output<FileEditorSelection>()
 
-  readonly hasDocumentHtml = computed(() => this.previewKind() === 'document' && !!this.documentHtml())
+  readonly hasDocumentBlob = computed(() => this.previewKind() === 'document' && !!this.documentBlob())
   readonly documentPreviewReferenceable = computed(
     () => this.referenceable() && this.previewKind() === 'document' && !this.loading()
   )
@@ -78,7 +87,7 @@ export class FilePreviewContentComponent {
   readonly #resetDocumentSelectionEffect = effect(() => {
     this.previewKind()
     this.content()
-    this.documentHtml()
+    this.documentBlob()
     this.loading()
     this.referenceable()
     this.documentPreviewSelection.set(null)

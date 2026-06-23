@@ -91,7 +91,13 @@ function App() {
 
     const loadData = React.useCallback(
         async (
-            options: { documentId?: string; nextPage?: number; nextParentId?: string | null; nextKbId?: string } = {}
+            options: {
+                documentId?: string
+                chunkId?: string
+                nextPage?: number
+                nextParentId?: string | null
+                nextKbId?: string
+            } = {}
         ) => {
             if (!ready) {
                 return
@@ -110,7 +116,8 @@ function App() {
                     parameters: compact({
                         knowledgebaseId: resolvedKbId,
                         parentId: options.nextParentId === undefined ? parentId : options.nextParentId,
-                        documentId: options.documentId
+                        documentId: options.documentId,
+                        chunkId: options.chunkId
                     })
                 })
                 const summary = data.summary ?? {}
@@ -216,6 +223,7 @@ function App() {
                     setPage(1)
                     void loadData({
                         documentId: target.documentId,
+                        chunkId: target.chunkId,
                         nextParentId: null,
                         nextKbId: target.knowledgebaseId
                     })
@@ -504,12 +512,6 @@ function App() {
                                 {viewMode === 'documents' && selectedRows.length ? (
                                     <Badge variant="secondary" className="rounded-md">
                                         {selectedRows.length} {t('selected')}
-                                    </Badge>
-                                ) : null}
-                                {viewMode === 'graph' && graph ? (
-                                    <Badge variant="secondary" className="rounded-md">
-                                        {graph.entityCount ?? graph.totalNodes ?? 0} {t('entities')} ·{' '}
-                                        {graph.relationCount ?? graph.totalEdges ?? 0} {t('relations')}
                                     </Badge>
                                 ) : null}
                             </div>

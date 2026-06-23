@@ -99,8 +99,13 @@ describe('KnowledgeWorkbenchService', () => {
             expect.objectContaining({
                 chunkId: 'chunk-1',
                 documentId: 'doc-1',
+                knowledgebaseId: 'kb-1',
                 documentName: '质量手册.pdf',
                 fileUrl: 'https://files.local/doc-1.pdf',
+                citationLabel: '⟦1⟧',
+                citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1',
+                citationMarkdown:
+                    '[⟦1⟧](xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1)',
                 snippet: '质量控制内容'
             })
         ])
@@ -123,6 +128,72 @@ describe('KnowledgeWorkbenchService', () => {
                 documentIds: ['doc-x']
             })
         ).rejects.toThrow("Document 'doc-x' is not available in the selected knowledgebase")
+    })
+
+    it('includes the highlighted citation chunk in document preview when it is outside the initial preview window', async () => {
+        const { service, documentService } = createService()
+        documentService.findAll.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'doc-1',
+                    knowledgebaseId: 'kb-1',
+                    sourceType: 'local-file',
+                    type: 'docx',
+                    name: '操作手册.docx',
+                    fileUrl: 'https://files.local/doc-1.docx'
+                }
+            ],
+            total: 1
+        })
+        documentService.getChunks
+            .mockResolvedValueOnce({
+                items: [
+                    {
+                        id: 'db-chunk-1',
+                        documentId: 'doc-1',
+                        pageContent: '首屏 chunk',
+                        metadata: {
+                            chunkId: 'chunk-1'
+                        }
+                    }
+                ],
+                total: 8
+            })
+            .mockResolvedValueOnce({
+                items: [
+                    {
+                        id: 'db-chunk-8',
+                        documentId: 'doc-1',
+                        pageContent: '引用目标 chunk',
+                        metadata: {
+                            chunkId: 'chunk-8'
+                        }
+                    }
+                ],
+                total: 1
+            })
+        documentService.previewFile.mockResolvedValueOnce([])
+
+        const preview = await service.getDocumentPreview('doc-1', ['kb-1'], 'chunk-8')
+
+        expect(documentService.getChunks).toHaveBeenNthCalledWith(2, 'doc-1', {
+            skip: 0,
+            take: 1,
+            filter: {
+                metadata: expect.anything()
+            }
+        })
+        expect(preview.chunks).toEqual([
+            expect.objectContaining({
+                chunkId: 'chunk-1',
+                pageContent: '首屏 chunk'
+            }),
+            expect.objectContaining({
+                chunkId: 'chunk-8',
+                pageContent: '引用目标 chunk'
+            })
+        ])
+        expect(preview.totalChunks).toBe(8)
     })
 
     it('loads graph summary for a connected graph-enabled knowledgebase', async () => {

@@ -1,46 +1,51 @@
 import { Test, TestingModule } from '@nestjs/testing'
+import { AIModelProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { AIModelModule } from './ai-model.module'
 import { AIProvidersService } from './ai-model.service'
-import { OpenAIProvider } from './model_providers/openai/openai'
-import { ModelType } from './entities'
-import { OpenAILargeLanguageModel } from './model_providers/openai/llm/llm'
 
 describe('AIProviderModule', () => {
-	let provider: AIProvidersService
+    let provider: AIProvidersService
+    let pluginProviderRegistry: { get: jest.Mock }
+    let pluginProvider: { getProviderSchema: jest.Mock }
 
     beforeAll(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-			imports: [AIModelModule],
-			providers: []
-		}).compile()
+        pluginProvider = {
+            getProviderSchema: jest.fn()
+        }
+        pluginProviderRegistry = {
+            get: jest.fn((name: string) => {
+                if (name === 'plugin-provider') {
+                    return pluginProvider
+                }
+                throw new Error('No plugin provider')
+            })
+        }
 
-		provider = module.get<AIProvidersService>(AIProvidersService)
+        const module: TestingModule = await Test.createTestingModule({
+            imports: [AIModelModule]
+        })
+            .overrideProvider(AIModelProviderRegistry)
+            .useValue(pluginProviderRegistry)
+            .compile()
+
+        provider = module.get<AIProvidersService>(AIProvidersService)
     })
 
-	beforeEach(async () => {
-		//
-	})
+    beforeEach(async () => {
+        //
+    })
 
-	it('should be defined', () => {
-		expect(provider).toBeDefined()
-	})
+    it('should be defined', () => {
+        expect(provider).toBeDefined()
+    })
 
-	it('should get OpenAIProvider instance', async () => {
-		const modelInstance = provider.getProvider('openai')
-		expect(modelInstance).toBeInstanceOf(OpenAIProvider)
-	})
+    it('should not include removed built-in providers', async () => {
+        expect(provider.getProvider('jina')).toBeUndefined()
+        expect(provider.getProvider('ollama')).toBeUndefined()
+    })
 
-    it('should get OpenAILargeLanguageModel instance', async () => {
-		const modelInstance = provider.getProvider('openai')
-        const llmModel = modelInstance.getModelManager(ModelType.LLM)
-		expect(llmModel).toBeInstanceOf(OpenAILargeLanguageModel)
-	})
-
-	it('should get model predefinedModels', async () => {
-		const modelInstance = provider.getProvider('openai')
-        const llmModel = modelInstance.getModelManager(ModelType.LLM)
-		const models = llmModel.predefinedModels()
-		console.log(models)
-		expect(models).not.toBeNull()
-	})
+    it('should resolve plugin model providers', async () => {
+        expect(provider.getProvider('plugin-provider')).toBe(pluginProvider)
+        expect(pluginProviderRegistry.get).toHaveBeenCalledWith('plugin-provider', undefined)
+    })
 })

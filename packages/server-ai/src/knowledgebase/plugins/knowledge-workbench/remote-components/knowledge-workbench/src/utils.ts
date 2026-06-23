@@ -23,6 +23,15 @@ export function isCompletedStatus(status: string) {
 }
 
 export function extractCitationTarget(event: any) {
+    if (event?.type === 'assistant.citation.open') {
+        const data = getUnknownRecord(event?.data)
+        return {
+            knowledgebaseId: getStringValue(data?.knowledgebaseId),
+            documentId: getStringValue(data?.documentId),
+            chunkId: getStringValue(data?.chunkId)
+        }
+    }
+
     const output = parseMaybeJson(event?.data?.output)
     const citations = Array.isArray(output?.citations)
         ? output.citations

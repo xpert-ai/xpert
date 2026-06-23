@@ -102,6 +102,9 @@ function createService() {
                     chunkId: 'chunk-1',
                     documentId: 'doc-1',
                     documentName: '质量手册.pdf',
+                    citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1',
+                    citationMarkdown:
+                        '[⟦1⟧](xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1)',
                     snippet: '质量控制内容'
                 }
             ],
@@ -111,6 +114,9 @@ function createService() {
                     chunkId: 'chunk-1',
                     documentId: 'doc-1',
                     documentName: '质量手册.pdf',
+                    citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1',
+                    citationMarkdown:
+                        '[⟦1⟧](xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-1)',
                     snippet: '质量控制内容'
                 }
             ],

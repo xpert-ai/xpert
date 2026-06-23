@@ -171,7 +171,8 @@ export class KnowledgeWorkbenchMiddleware implements IAgentMiddlewareStrategy<Re
                             citations: result.citations.map((citation) => ({
                                 chunkId: citation.chunkId,
                                 documentId: citation.documentId,
-                                documentName: citation.documentName
+                                documentName: citation.documentName,
+                                citationUrl: citation.citationUrl
                             }))
                         }
                     }
@@ -180,7 +181,7 @@ export class KnowledgeWorkbenchMiddleware implements IAgentMiddlewareStrategy<Re
             {
                 name: KNOWLEDGE_WORKBENCH_SEARCH_TOOL,
                 description:
-                    'Search the knowledgebases connected to this assistant and return source-aware chunks. Defaults to the documents selected in the Knowledgebase Workbench context. Always cite returned documentName/documentId/chunkId when answering.',
+                    'Search the knowledgebases connected to this assistant and return source-aware chunks. Defaults to the documents selected in the Knowledgebase Workbench context. When a chunk is used to support an answer, append its citationMarkdown immediately after the supported sentence or paragraph.',
                 schema: searchKnowledgeWorkbenchSchema
             }
         )

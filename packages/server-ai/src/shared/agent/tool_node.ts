@@ -1,28 +1,23 @@
-import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import {
-  BaseMessage,
-  ToolMessage,
-  AIMessage,
-  isBaseMessage,
-} from "@langchain/core/messages";
-import { RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
-import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
-import { Command, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
-import { END, Send } from "@langchain/langgraph";
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@xpert-ai/contracts";
-import { getErrorMessage } from "@xpert-ai/server-common";
-import { RunnableCallable } from "./utils";
-import { setContextVariable } from "@langchain/core/context";
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { BaseMessage, ToolMessage, AIMessage, isBaseMessage } from '@langchain/core/messages'
+import { RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'
+import { DynamicTool, StructuredToolInterface } from '@langchain/core/tools'
+import { Command, isCommand, isGraphInterrupt, MessagesAnnotation } from '@langchain/langgraph'
+import { END, Send } from '@langchain/langgraph'
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { RunnableCallable } from './utils'
+import { setContextVariable } from '@langchain/core/context'
 
 export type ToolNodeOptions = {
-  name?: string;
-  tags?: string[];
-  handleToolErrors?: boolean;
-  /**
-   * A mapping of tool names to their toolset names.
-   */
-  toolsets: Record<string, {provider: string; toolsetId: string}>;
-};
+    name?: string
+    tags?: string[]
+    handleToolErrors?: boolean
+    /**
+     * A mapping of tool names to their toolset names.
+     */
+    toolsets: Record<string, { provider: string; toolsetId: string }>
+}
 
 /**
  * A node that runs the tools requested in the last AIMessage. It can be used
@@ -80,7 +75,7 @@ export type ToolNodeOptions = {
  * import { ToolNode } from "@langchain/langgraph/prebuilt";
  * import { tool } from "@langchain/core/tools";
  * import { z } from "zod";
- * import { ChatAnthropic } from "@langchain/anthropic";
+ * import { createChatModel } from "./your-model-provider";
  *
  * const getWeather = tool((input) => {
  *   if (["sf", "san francisco"].includes(input.location.toLowerCase())) {
@@ -97,10 +92,7 @@ export type ToolNodeOptions = {
  * });
  *
  * const tools = [getWeather];
- * const modelWithTools = new ChatAnthropic({
- *   model: "claude-3-haiku-20240307",
- *   temperature: 0
- * }).bindTools(tools);
+ * const modelWithTools = createChatModel().bindTools(tools);
  *
  * const toolNodeForGraph = new ToolNode(tools)
  *
@@ -143,161 +135,138 @@ export type ToolNodeOptions = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ToolNode<T = any> extends RunnableCallable<T, T> {
+    lc_namespace: string[]
+    tools: (StructuredToolInterface | DynamicTool | RunnableToolLike)[]
 
-  lc_namespace: string[];
-  tools: (StructuredToolInterface | DynamicTool | RunnableToolLike)[];
+    handleToolErrors = true
 
-  handleToolErrors = true;
+    trace = false
 
-  trace = false;
+    toolsets: ToolNodeOptions['toolsets'] = {}
 
-  toolsets: ToolNodeOptions['toolsets'] = {};
-
-  constructor(
-    tools: (StructuredToolInterface | DynamicTool | RunnableToolLike)[],
-    options?: ToolNodeOptions
-  ) {
-    const { name, tags, handleToolErrors, toolsets } = options ?? {};
-    super({ name, tags, func: (input, config) => this.run(input, config) });
-    this.tools = tools;
-    this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
-    this.toolsets = toolsets
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async run(input: any, config: RunnableConfig): Promise<T> {
-    // We set a context variable before invoking the tool node and running our tool.
-    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input)
-    
-    const message = Array.isArray(input)
-      ? input[input.length - 1]
-      : input.messages[input.messages.length - 1];
-
-    if (message?._getType() !== "ai") {
-      throw new Error("ToolNode only accepts AIMessages as input.");
+    constructor(tools: (StructuredToolInterface | DynamicTool | RunnableToolLike)[], options?: ToolNodeOptions) {
+        const { name, tags, handleToolErrors, toolsets } = options ?? {}
+        super({ name, tags, func: (input, config) => this.run(input, config) })
+        this.tools = tools
+        this.handleToolErrors = handleToolErrors ?? this.handleToolErrors
+        this.toolsets = toolsets
     }
 
-    const outputs = await Promise.all(
-      (message as AIMessage).tool_calls?.map(async (call) => {
-        const tool = this.tools.find((tool) => tool.name === call.name);
-        try {
-          if (tool === undefined) {
-            throw new Error(`Tool "${call.name}" not found.`);
-          }
-          const output = await tool.invoke(
-            { ...call, type: "tool_call" },
-            {
-              ...config,
-              metadata: {
-                ...config.metadata,
-                tool_call_id: call.id,
-                toolset: this.toolsets[tool.name]?.provider,
-                toolsetId: this.toolsets[tool.name]?.toolsetId
-              }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async run(input: any, config: RunnableConfig): Promise<T> {
+        // We set a context variable before invoking the tool node and running our tool.
+        setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input)
+
+        const message = Array.isArray(input) ? input[input.length - 1] : input.messages[input.messages.length - 1]
+
+        if (message?._getType() !== 'ai') {
+            throw new Error('ToolNode only accepts AIMessages as input.')
+        }
+
+        const outputs = await Promise.all(
+            (message as AIMessage).tool_calls?.map(async (call) => {
+                const tool = this.tools.find((tool) => tool.name === call.name)
+                try {
+                    if (tool === undefined) {
+                        throw new Error(`Tool "${call.name}" not found.`)
+                    }
+                    const output = await tool.invoke(
+                        { ...call, type: 'tool_call' },
+                        {
+                            ...config,
+                            metadata: {
+                                ...config.metadata,
+                                tool_call_id: call.id,
+                                toolset: this.toolsets[tool.name]?.provider,
+                                toolsetId: this.toolsets[tool.name]?.toolsetId
+                            }
+                        }
+                    )
+                    if ((isBaseMessage(output) && output._getType() === 'tool') || isCommand(output)) {
+                        return output
+                    } else {
+                        return new ToolMessage({
+                            name: tool.name,
+                            content: typeof output === 'string' ? output : JSON.stringify(output),
+                            tool_call_id: call.id
+                        })
+                    }
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } catch (e: any) {
+                    if (!this.handleToolErrors) {
+                        throw e
+                    }
+                    if (isGraphInterrupt(e)) {
+                        // `NodeInterrupt` errors are a breakpoint to bring a human into the loop.
+                        // As such, they are not recoverable by the agent and shouldn't be fed
+                        // back. Instead, re-throw these errors even when `handleToolErrors = true`.
+                        throw e
+                    }
+
+                    await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_ERROR, {
+                        toolCall: call,
+                        error: getErrorMessage(e)
+                    })
+
+                    return new ToolMessage({
+                        content: `Error: ${e.message}\n Please fix your mistakes.`,
+                        name: call.name,
+                        tool_call_id: call.id ?? ''
+                    })
+                }
+            }) ?? []
+        )
+
+        // Preserve existing behavior for non-command tool outputs for backwards compatibility
+        if (!outputs.some(isCommand)) {
+            return (Array.isArray(input) ? outputs : { messages: outputs }) as T
+        }
+
+        // Handle mixed Command and non-Command outputs
+        const combinedOutputs: ({ messages: BaseMessage[] } | BaseMessage[] | Command)[] = []
+        let parentCommand: Command | null = null
+
+        for (const output of outputs) {
+            if (isCommand(output)) {
+                if (
+                    output.graph === Command.PARENT &&
+                    Array.isArray(output.goto) &&
+                    output.goto.every((send) => _isSend(send))
+                ) {
+                    if (parentCommand) {
+                        ;(parentCommand.goto as Send[]).push(...(output.goto as Send[]))
+                    } else {
+                        parentCommand = new Command({
+                            graph: Command.PARENT,
+                            goto: output.goto
+                        })
+                    }
+                } else {
+                    combinedOutputs.push(output)
+                }
+            } else {
+                combinedOutputs.push(Array.isArray(input) ? [output] : { messages: [output] })
             }
-          );
-          if (
-            (isBaseMessage(output) && output._getType() === "tool") ||
-            isCommand(output)
-          ) {
-            return output;
-          } else {
-            return new ToolMessage({
-              name: tool.name,
-              content:
-                typeof output === "string" ? output : JSON.stringify(output),
-              tool_call_id: call.id,
-            });
-          }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-          if (!this.handleToolErrors) {
-            throw e;
-          }
-          if (isGraphInterrupt(e)) {
-            // `NodeInterrupt` errors are a breakpoint to bring a human into the loop.
-            // As such, they are not recoverable by the agent and shouldn't be fed
-            // back. Instead, re-throw these errors even when `handleToolErrors = true`.
-            throw e;
-          }
-
-           await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_ERROR, {
-                toolCall: call,
-                error: getErrorMessage(e)
-              })
-
-          return new ToolMessage({
-            content: `Error: ${e.message}\n Please fix your mistakes.`,
-            name: call.name,
-            tool_call_id: call.id ?? "",
-          });
         }
-      }) ?? []
-    );
 
-    // Preserve existing behavior for non-command tool outputs for backwards compatibility
-    if (!outputs.some(isCommand)) {
-      return (Array.isArray(input) ? outputs : { messages: outputs }) as T;
-    }
-
-    // Handle mixed Command and non-Command outputs
-    const combinedOutputs: (
-      | { messages: BaseMessage[] }
-      | BaseMessage[]
-      | Command
-    )[] = [];
-    let parentCommand: Command | null = null;
-
-    for (const output of outputs) {
-      if (isCommand(output)) {
-        if (
-          output.graph === Command.PARENT &&
-          Array.isArray(output.goto) &&
-          output.goto.every((send) => _isSend(send))
-        ) {
-          if (parentCommand) {
-            (parentCommand.goto as Send[]).push(...(output.goto as Send[]));
-          } else {
-            parentCommand = new Command({
-              graph: Command.PARENT,
-              goto: output.goto,
-            });
-          }
-        } else {
-          combinedOutputs.push(output);
+        if (parentCommand) {
+            combinedOutputs.push(parentCommand)
         }
-      } else {
-        combinedOutputs.push(
-          Array.isArray(input) ? [output] : { messages: [output] }
-        );
-      }
-    }
 
-    if (parentCommand) {
-      combinedOutputs.push(parentCommand);
+        return combinedOutputs as T
     }
-
-    return combinedOutputs as T;
-  }
 }
 
-export function toolsCondition(
-  state: BaseMessage[] | typeof MessagesAnnotation.State
-): "tools" | typeof END {
-  const message = Array.isArray(state)
-    ? state[state.length - 1]
-    : state.messages[state.messages.length - 1];
+export function toolsCondition(state: BaseMessage[] | typeof MessagesAnnotation.State): 'tools' | typeof END {
+    const message = Array.isArray(state) ? state[state.length - 1] : state.messages[state.messages.length - 1]
 
-  if (
-    "tool_calls" in message &&
-    ((message as AIMessage).tool_calls?.length ?? 0) > 0
-  ) {
-    return "tools";
-  } else {
-    return END;
-  }
+    if ('tool_calls' in message && ((message as AIMessage).tool_calls?.length ?? 0) > 0) {
+        return 'tools'
+    } else {
+        return END
+    }
 }
 
 export function _isSend(x: unknown): x is Send {
-  return x instanceof Send;
+    return x instanceof Send
 }

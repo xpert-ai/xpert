@@ -47,6 +47,23 @@ export function WorkbenchPreviewPanel({
     onToggleDocument: (row: DocumentRow) => void
 }) {
     const previewChunks = preview ? (preview.chunks?.length ? preview.chunks : (preview.transformedPreview ?? [])) : []
+    const chunkRefs = React.useRef<Record<string, HTMLElement | null>>({})
+    const previewChunkIds = previewChunks.map((chunk, index) => chunk.chunkId || chunk.id || String(index)).join('|')
+
+    React.useEffect(() => {
+        if (!highlightedChunkId) {
+            return
+        }
+
+        const frame = window.requestAnimationFrame(() => {
+            chunkRefs.current[highlightedChunkId]?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            })
+        })
+
+        return () => window.cancelAnimationFrame(frame)
+    }, [highlightedChunkId, preview?.document.id, previewChunkIds])
 
     return (
         <Card className="min-h-0 gap-0 overflow-hidden rounded-lg py-0">
@@ -60,7 +77,7 @@ export function WorkbenchPreviewPanel({
                 />
             ) : preview ? (
                 <>
-                    <CardHeader className="flex min-h-14 flex-row items-center justify-between gap-3 border-b px-3 py-2">
+                    <CardHeader className="flex min-h-14 flex-row items-center justify-between gap-3 border-b px-3 !pb-0 pt-2">
                         <div className="grid min-w-0 gap-1">
                             <CardTitle className="truncate font-medium">
                                 {preview.document.name || preview.document.id}
@@ -74,11 +91,11 @@ export function WorkbenchPreviewPanel({
                                 value={previewMode}
                                 onValueChange={(value) => onPreviewModeChange(value === 'text' ? 'text' : 'markdown')}
                             >
-                                <TabsList className="h-8" variant="line">
-                                    <TabsTrigger value="markdown" className="px-2">
+                                <TabsList className="h-9 rounded-full bg-muted/70 p-1">
+                                    <TabsTrigger value="markdown" className="rounded-full px-3">
                                         {t('markdown')}
                                     </TabsTrigger>
-                                    <TabsTrigger value="text" className="px-2">
+                                    <TabsTrigger value="text" className="rounded-full px-3">
                                         {t('rawText')}
                                     </TabsTrigger>
                                 </TabsList>
@@ -106,10 +123,21 @@ export function WorkbenchPreviewPanel({
                                 {previewChunks.map((chunk, index) => (
                                     <article
                                         key={chunk.chunkId || chunk.id || index}
+                                        ref={(node) => {
+                                            const ids = [chunk.chunkId, chunk.id].filter((id): id is string => !!id)
+                                            for (const id of ids) {
+                                                if (node) {
+                                                    chunkRefs.current[id] = node
+                                                } else {
+                                                    delete chunkRefs.current[id]
+                                                }
+                                            }
+                                        }}
+                                        data-chunk-id={chunk.chunkId || chunk.id}
                                         className={
                                             chunk.chunkId && highlightedChunkId === chunk.chunkId
-                                                ? 'rounded-lg border border-primary bg-primary/10'
-                                                : 'rounded-lg border bg-muted/30'
+                                                ? 'scroll-mt-3 rounded-lg border border-primary bg-primary/10'
+                                                : 'scroll-mt-3 rounded-lg border bg-muted/30'
                                         }
                                     >
                                         <header className="flex items-center justify-between gap-2 border-b px-3 py-2 font-medium">

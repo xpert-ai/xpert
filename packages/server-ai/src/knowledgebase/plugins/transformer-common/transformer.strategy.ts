@@ -15,9 +15,6 @@ import {
     TDocumentAsset,
     XpFileSystem
 } from '@xpert-ai/plugin-sdk'
-import fs from 'fs'
-import mammoth from 'mammoth'
-import TurndownService from 'turndown'
 import { randomUUID } from 'crypto'
 import fsPromises from 'fs/promises'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
@@ -126,12 +123,9 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                 case 'doc':
                     data = await this.processDoc(fileAbsPath)
                     break
-                case 'docx': {
-                    const { chunks, imageAssets } = await this.processDocx(fileAbsPath, xpFileSystem)
-                    data = chunks
-                    imageAssets.forEach((asset) => assets.push(asset))
+                case 'docx':
+                    data = await this.processDoc(fileAbsPath)
                     break
-                }
                 case 'pptx':
                     data = await this.processPPT(fileAbsPath)
                     break
@@ -356,77 +350,6 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             })
         ]
     }
-
-    /**
-     * Parse DOCX => Markdown + Extract Images + Return LangChain Documents
-     */
-    async processDocx(
-        filePath: string,
-        xpFileSystem: XpFileSystem
-    ): Promise<{ chunks: Document[]; imageAssets: TDocumentAsset[] }> {
-        const imageOutputDir = xpFileSystem.fullPath('images')
-
-        if (!fs.existsSync(imageOutputDir)) {
-            fs.mkdirSync(imageOutputDir, { recursive: true })
-        }
-
-        const imageAssets: TDocumentAsset[] = []
-        const result = await mammoth.convertToHtml(
-            { path: filePath },
-            {
-                convertImage: mammoth.images.imgElement(async (image) => {
-                    // Reading image binary
-                    const imageBuffer = await image.read()
-                    const ext = image.contentType?.split('/')[1] ?? 'png'
-
-                    // Random filename
-                    const fileName = `${randomUUID()}.${ext}`
-
-                    // Save to disk
-                    const url = await xpFileSystem.writeFile(`images/${fileName}`, imageBuffer)
-
-                    imageAssets.push({
-                        type: 'image',
-                        filePath: `images/${fileName}`,
-                        url: url
-                    })
-
-                    // Returns the src path used internally by the HTML.
-                    return {
-                        src: url // Used to generate HTML/Markdown
-                    }
-                })
-            }
-        )
-
-        const html = result.value // HTML text
-
-        // --- 2) HTML → Markdown ---
-        const md = htmlToMarkdown(html)
-
-        // --- 3) Generate LangChain Document[] ---
-        const chunks: Document<ChunkMetadata>[] = [
-            new Document<ChunkMetadata>({
-                pageContent: md,
-                metadata: {
-                    chunkId: uuid()
-                    // source: filePath,
-                }
-            })
-        ]
-
-        return { chunks, imageAssets: imageAssets }
-    }
-}
-
-/**
- * Convert html → markdown
- */
-function htmlToMarkdown(html: string): string {
-    const turndown = new TurndownService()
-    const md = turndown.turndown(html)
-
-    return md
 }
 
 function toChunkDocuments(documents: DocumentInterface[]): Document<ChunkMetadata>[] {

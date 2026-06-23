@@ -1,7 +1,9 @@
 import { signal, type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
+import { ASSISTANT_CITATION_OPEN_EVENT, KNOWLEDGEBASE_OPEN_CITATION_EFFECT } from '@xpert-ai/contracts'
 import { of, Subject } from 'rxjs'
+import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import {
   type AssistantContext,
   type AssistantStudioRuntimeContext,
@@ -302,6 +304,35 @@ describe('XpertAssistantFacade', () => {
         env: expect.objectContaining({
           xpertId: 'xpert-1'
         })
+      })
+    )
+  })
+
+  it('publishes knowledgebase citation effects to Workbench host events', () => {
+    createFacade('/xpert/x/xpert-1/agents')
+    const hostEvents = TestBed.inject(ViewHostEventBus)
+    const publish = jest.spyOn(hostEvents, 'publish')
+
+    latestRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-1',
+        documentId: 'doc-1',
+        chunkId: 'chunk-1'
+      }
+    })
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ASSISTANT_CITATION_OPEN_EVENT,
+        source: 'chatkit',
+        hostType: 'agent',
+        hostId: 'xpert-1',
+        data: {
+          knowledgebaseId: 'kb-1',
+          documentId: 'doc-1',
+          chunkId: 'chunk-1'
+        }
       })
     )
   })

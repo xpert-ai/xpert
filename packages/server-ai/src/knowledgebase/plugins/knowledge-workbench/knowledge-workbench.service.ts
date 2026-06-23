@@ -17,13 +17,14 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { In, ILike, IsNull } from 'typeorm'
+import { In, ILike, IsNull, Raw } from 'typeorm'
 import { GetKnowledgebaseDocumentStatusCommand, UploadKnowledgebaseDocumentFileCommand } from '../../commands'
 import { KnowledgeSearchQuery } from '../../queries'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
 import { KnowledgeGraphViewQuery } from '../../../graphrag/queries'
+import { addKnowledgebaseCitationLink } from '../../citation'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 20
@@ -108,6 +109,9 @@ export type KnowledgeWorkbenchCitation = {
     relevanceScore?: number
     snippet: string
     metadata?: unknown
+    citationLabel?: string
+    citationUrl?: string
+    citationMarkdown?: string
 }
 
 export type KnowledgeWorkbenchSearchResult = {
@@ -175,6 +179,7 @@ export class KnowledgeWorkbenchService {
 
         const parentId = getStringInput(query.parameters, 'parentId')
         const documentId = getStringInput(query.parameters, 'documentId')
+        const chunkId = getStringInput(query.parameters, 'chunkId')
         if (getStringInput(query.parameters, 'table') === 'graph') {
             return {
                 items: [],
@@ -208,7 +213,7 @@ export class KnowledgeWorkbenchService {
         })
 
         const selectedDocument = documentId
-            ? await this.getDocumentPreview(documentId, allowedKnowledgebaseIds).catch(() => undefined)
+            ? await this.getDocumentPreview(documentId, allowedKnowledgebaseIds, chunkId).catch(() => undefined)
             : undefined
 
         return {
@@ -388,7 +393,7 @@ export class KnowledgeWorkbenchService {
         }
     }
 
-    async getDocumentPreview(documentId: string, allowedKnowledgebaseIds: string[]) {
+    async getDocumentPreview(documentId: string, allowedKnowledgebaseIds: string[], targetChunkId?: string) {
         const document = await this.findDocumentInScope(documentId, allowedKnowledgebaseIds)
         const chunksResult = await this.documentService.getChunks(document.id, {
             skip: 0,
@@ -396,6 +401,24 @@ export class KnowledgeWorkbenchService {
         } as any)
 
         const chunks = normalizeChunkPage(chunksResult)
+        if (
+            targetChunkId &&
+            !chunks.items.some(
+                (chunk) => chunk.id === targetChunkId || getStringField(chunk.metadata, 'chunkId') === targetChunkId
+            )
+        ) {
+            const targetResult = await this.documentService.getChunks(document.id, {
+                skip: 0,
+                take: 1,
+                filter: {
+                    metadata: Raw((alias) => `${alias} ->> 'chunkId' = :targetChunkId`, { targetChunkId })
+                }
+            } as any)
+            const targetChunk = normalizeChunkPage(targetResult).items[0]
+            if (targetChunk) {
+                chunks.items.push(targetChunk)
+            }
+        }
         const transformedPreview = await this.documentService
             .previewFile(document.id)
             .then((docs) =>
@@ -477,7 +500,9 @@ export class KnowledgeWorkbenchService {
             )
         }
 
-        const citations = dedupeAndSortCitations(docs).slice(0, topK)
+        const citations = dedupeAndSortCitations(docs)
+            .slice(0, topK)
+            .map((citation, index) => addCitationLink({ ...citation, index: index + 1 }, knowledgebaseId))
         return {
             query: input.query,
             knowledgebaseId,
@@ -788,6 +813,13 @@ function toCitation(doc: DocumentInterface<DocumentMetadata>, index: number): Kn
         snippet: trimSnippet(doc.pageContent, 1200),
         metadata
     }
+}
+
+function addCitationLink(
+    citation: KnowledgeWorkbenchCitation,
+    fallbackKnowledgebaseId: string
+): KnowledgeWorkbenchCitation {
+    return addKnowledgebaseCitationLink(citation, fallbackKnowledgebaseId)
 }
 
 function isFolderDocument(document: Partial<IKnowledgeDocument> | null | undefined) {

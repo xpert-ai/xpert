@@ -1,4 +1,8 @@
-import { WORKBENCH_NAVIGATION_OPEN_COMMAND, XpertResolvedViewHostContext } from '@xpert-ai/contracts'
+import {
+    ASSISTANT_CITATION_OPEN_EVENT,
+    WORKBENCH_NAVIGATION_OPEN_COMMAND,
+    XpertResolvedViewHostContext
+} from '@xpert-ai/contracts'
 import {
     AGENT_WORKBENCH_FIXED_SLOT,
     AGENT_WORKBENCH_MAIN_SLOT,
@@ -60,10 +64,23 @@ describe('KnowledgeWorkbenchViewProvider', () => {
         expect(manifest.actions?.find((action) => action.key === 'upload_document')?.transport).toBe('file')
     })
 
-    it('subscribes to knowledge workbench tool completion events', () => {
+    it('subscribes to knowledge workbench tool completion and citation open events', () => {
         const provider = createProvider()
         const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_MAIN_SLOT)
 
+        expect(manifest.hostEvents?.subscriptions).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    event: ASSISTANT_CITATION_OPEN_EVENT,
+                    filter: {
+                        sources: ['chatkit']
+                    },
+                    action: {
+                        type: 'forward'
+                    }
+                })
+            ])
+        )
         expect(manifest.hostEvents?.subscriptions?.[0]).toEqual(
             expect.objectContaining({
                 event: 'assistant.tool.completed',

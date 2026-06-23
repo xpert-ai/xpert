@@ -10,7 +10,8 @@ import type {
   I18nObject,
   TChatElementReference,
   TChatFileElementReference,
-  XpertExtensionViewManifest
+  XpertExtensionViewManifest,
+  XpertViewHostEventMessage
 } from '@xpert-ai/contracts'
 import {
   ZardButtonComponent,
@@ -40,6 +41,7 @@ import {
   type AssistantContextSetPayload
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import { registerWorkbenchNavigationOpenCommand } from '../../assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
@@ -74,6 +76,7 @@ const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+const KNOWLEDGEBASE_WORKBENCH_VIEW_KEY = 'knowledgebase_workbench'
 const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
 const DEFAULT_FIXED_VIEW_ICON = {
   type: 'font',
@@ -726,6 +729,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
+      const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
+        hostType: 'agent',
+        hostId: this.facade.xpertId(),
+        threadId: this.facade.threadId()
+      })
+      if (citationEvent) {
+        this.publishKnowledgebaseCitationEvent(citationEvent)
+      }
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
@@ -1432,6 +1443,38 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (nextFixedTabs.length > 0) {
       this.openDetailPanel()
     }
+  }
+
+  private publishKnowledgebaseCitationEvent(event: XpertViewHostEventMessage) {
+    const shouldRepublish = this.focusKnowledgebaseWorkbenchTab()
+    this.#hostEvents.publish(event)
+
+    if (shouldRepublish && typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        this.#hostEvents.publish({
+          ...event,
+          id: `${event.id}:deferred`
+        })
+      }, 180)
+    }
+  }
+
+  private focusKnowledgebaseWorkbenchTab() {
+    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    if (existing) {
+      const wasActive = this.activeTabId() === existing.id
+      this.activeTabId.set(existing.id)
+      this.openDetailPanel()
+      return !wasActive
+    }
+
+    const menuItem = this.fixedViewMenuItems().find((item) => item.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    if (!menuItem) {
+      return false
+    }
+
+    this.openFixedViewTab(menuItem)
+    return true
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {

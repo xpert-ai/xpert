@@ -1,14 +1,14 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { FilePreviewContentComponent } from '../../@shared/files/preview/file-preview-content.component'
+import { createFilePreviewState, toFilePreviewSource } from '../../@shared/files/preview/file-preview.utils'
 
 import type { WorkbenchOpenFile } from './workbench-file-open-client-command'
-
-type PreviewKind = 'pdf' | 'image' | 'text' | 'unknown'
 
 @Component({
   standalone: true,
   selector: 'xp-workbench-file-preview-dialog',
+  imports: [FilePreviewContentComponent],
   template: `
     <section
       class="flex max-h-[90vh] w-[min(1120px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg text-text-primary shadow-2xl"
@@ -18,8 +18,14 @@ type PreviewKind = 'pdf' | 'image' | 'text' | 'unknown'
           <div
             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
           >
-            @if (kind() === 'image') {
+            @if (previewKind() === 'image') {
               <i class="ri-image-line text-lg"></i>
+            } @else if (previewKind() === 'spreadsheet') {
+              <i class="ri-table-line text-lg"></i>
+            } @else if (previewKind() === 'document') {
+              <i class="ri-file-word-line text-lg"></i>
+            } @else if (previewKind() === 'pdf') {
+              <i class="ri-file-pdf-2-line text-lg"></i>
             } @else {
               <i class="ri-file-text-line text-lg"></i>
             }
@@ -60,61 +66,19 @@ type PreviewKind = 'pdf' | 'image' | 'text' | 'unknown'
         </div>
       </header>
 
-      <div class="min-h-0 flex-1 bg-background-default-subtle">
-        @switch (kind()) {
-          @case ('pdf') {
-            <iframe
-              class="block h-[72vh] min-h-[520px] w-full border-0 bg-components-card-bg"
-              [src]="safePreviewUrl()"
-              [title]="file.name || 'Source document'"
-            ></iframe>
-          }
-          @case ('image') {
-            <div class="flex h-[72vh] min-h-[520px] items-center justify-center overflow-auto p-4">
-              <img
-                class="max-h-full max-w-full object-contain"
-                [src]="previewUrl()"
-                [alt]="file.name || 'Source document'"
-              />
-            </div>
-          }
-          @case ('text') {
-            <div class="h-[72vh] min-h-[520px] overflow-auto bg-components-card-bg">
-              @if (textLoading()) {
-                <div class="flex h-full items-center justify-center gap-2 text-sm text-text-secondary">
-                  <i class="ri-loader-4-line animate-spin"></i>
-                  <span>Loading preview...</span>
-                </div>
-              } @else if (textError()) {
-                <div class="flex h-full items-center justify-center gap-2 px-4 text-sm text-text-destructive">
-                  <i class="ri-error-warning-line"></i>
-                  <span>{{ textError() }}</span>
-                </div>
-              } @else {
-                <pre class="min-h-full whitespace-pre-wrap p-4 text-xs leading-5 text-text-primary">{{
-                  textContent()
-                }}</pre>
-              }
-            </div>
-          }
-          @default {
-            <div
-              class="flex h-[60vh] min-h-[360px] flex-col items-center justify-center gap-3 px-6 text-center text-sm text-text-secondary"
-            >
-              <i class="ri-file-text-line text-4xl"></i>
-              <div>This file type cannot be previewed inline.</div>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-lg border border-divider-regular px-3 py-2 text-text-primary transition-colors hover:bg-hover-bg"
-                (click)="openExternal()"
-              >
-                <i class="ri-external-link-line"></i>
-                <span>Open file</span>
-              </button>
-            </div>
-          }
-        }
-      </div>
+      <pac-file-preview-content
+        class="flex flex-col h-[72vh] min-h-0 flex-1 overflow-hidden bg-components-card-bg"
+        [content]="previewContent()"
+        [documentBlob]="previewData().documentBlob"
+        [downloadable]="true"
+        [error]="previewError()"
+        [fileName]="file.name || 'Source document'"
+        [loading]="previewLoading()"
+        [previewKind]="previewKind()"
+        [spreadsheet]="spreadsheet()"
+        [url]="previewUrl()"
+        (download)="downloadFile()"
+      />
     </section>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -122,23 +86,22 @@ type PreviewKind = 'pdf' | 'image' | 'text' | 'unknown'
 export class WorkbenchFilePreviewDialogComponent {
   readonly file = inject<WorkbenchOpenFile>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
-  readonly #sanitizer = inject(DomSanitizer)
-
-  readonly textLoading = signal(false)
-  readonly textContent = signal<string | null>(null)
-  readonly textError = signal<string | null>(null)
 
   readonly previewUrl = computed(() => this.file.previewUrl || this.file.url)
-  readonly kind = computed(() => resolvePreviewKind(this.file))
-  readonly safePreviewUrl = computed<SafeResourceUrl>(() =>
-    this.#sanitizer.bypassSecurityTrustResourceUrl(this.previewUrl())
+  readonly previewSource = computed(() =>
+    toFilePreviewSource({
+      mimeType: this.file.mimeType,
+      name: this.file.name,
+      url: this.previewUrl()
+    })
   )
-
-  constructor() {
-    if (this.kind() === 'text') {
-      void this.loadTextPreview()
-    }
-  }
+  readonly previewState = createFilePreviewState(this.previewSource, loadTextPreview)
+  readonly previewContent = this.previewState.content
+  readonly previewData = this.previewState.previewData
+  readonly previewError = this.previewState.previewError
+  readonly previewKind = this.previewState.previewKind
+  readonly previewLoading = this.previewState.previewLoading
+  readonly spreadsheet = this.previewState.spreadsheet
 
   close() {
     this.#dialogRef.close()
@@ -148,22 +111,17 @@ export class WorkbenchFilePreviewDialogComponent {
     window.open(this.previewUrl(), '_blank', 'noopener,noreferrer')
   }
 
-  async loadTextPreview() {
-    this.textLoading.set(true)
-    this.textContent.set(null)
-    this.textError.set(null)
-
-    try {
-      const response = await fetch(this.previewUrl())
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-      this.textContent.set(await response.text())
-    } catch (error) {
-      this.textError.set(error instanceof Error ? error.message : String(error))
-    } finally {
-      this.textLoading.set(false)
+  downloadFile() {
+    if (typeof document === 'undefined') {
+      this.openExternal()
+      return
     }
+
+    const anchor = document.createElement('a')
+    anchor.href = this.previewUrl()
+    anchor.download = this.file.name || 'source-document'
+    anchor.rel = 'noopener noreferrer'
+    anchor.click()
   }
 }
 
@@ -177,22 +135,11 @@ export function openWorkbenchFilePreviewDialog(dialog: Dialog, file: WorkbenchOp
   })
 }
 
-function resolvePreviewKind(file: WorkbenchOpenFile): PreviewKind {
-  const mimeType = file.mimeType?.toLowerCase()
-  const extension = getFileExtension(file.name)
-  if (mimeType === 'application/pdf' || extension === 'pdf') {
-    return 'pdf'
+async function loadTextPreview(url: string) {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
   }
-  if (mimeType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) {
-    return 'image'
-  }
-  if (mimeType?.startsWith('text/') || ['txt', 'md', 'csv', 'json', 'xml', 'log', 'yaml', 'yml'].includes(extension)) {
-    return 'text'
-  }
-  return 'unknown'
-}
 
-function getFileExtension(name: string): string {
-  const match = /\.([^.?#/]+)(?:[?#].*)?$/.exec(name)
-  return match ? match[1].toLowerCase() : ''
+  return response.text()
 }

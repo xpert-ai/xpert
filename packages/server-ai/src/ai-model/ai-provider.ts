@@ -2,152 +2,135 @@ import { Embeddings } from '@langchain/core/embeddings'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIModelEntity, AiModelTypeEnum, IAiProviderEntity, ICopilotModel, ProviderModel } from '@xpert-ai/contracts'
-import { ConfigService } from '@xpert-ai/server-config'
-import { loadYamlFile } from '@xpert-ai/server-core'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { IAIModel, IAIModelProviderStrategy, IRerank, RerankModel } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import * as path from 'path'
 import { AIModel } from './ai-model'
-import { AIProviderRegistry } from './registry'
 import { TextEmbeddingModelManager } from './types/text-embedding-model'
-import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
+import { TChatModelOptions } from './types/types'
 import { AiModelNotFoundException } from '../core/errors'
 import { TextToSpeechModel } from './tts'
 import { SpeechToTextModel } from './speech2text'
 
 @Injectable()
 export abstract class ModelProvider implements IAIModelProviderStrategy {
-	public logger = new Logger(this.constructor.name)
+    public logger = new Logger(this.constructor.name)
 
-	@Inject(ConfigService)
-	protected readonly configService: ConfigService
+    meta: IAiProviderEntity
+    protected providerSchema: IAiProviderEntity | null = null
 
-	meta: IAiProviderEntity
-	protected providerSchema: IAiProviderEntity | null = null
+    protected modelManagers?: Map<AiModelTypeEnum, IAIModel> = new Map()
 
-	protected modelManagers?: Map<AiModelTypeEnum, IAIModel> = new Map()
+    constructor(public name: string) {}
 
-	constructor(public name: string) {
-		AIProviderRegistry.getInstance().registerProvider(this)
-	}
+    async validateCredentials(credentials: Record<string, any>): Promise<void> {
+        await this.validateProviderCredentials(credentials)
+    }
 
-	async validateCredentials(credentials: Record<string, any>): Promise<void> {
-		await this.validateProviderCredentials(credentials)
-	}
+    abstract getAuthorization(credentials: Record<string, any>): string
+    abstract getBaseUrl(credentials: Record<string, any>): string
+    abstract validateProviderCredentials(credentials: Record<string, any>): Promise<void>
 
-	abstract getAuthorization(credentials: Record<string, any>): string;
-	abstract getBaseUrl(credentials: Record<string, any>): string;
-	abstract validateProviderCredentials(credentials: Record<string, any>): Promise<void>
+    getProviderServerPath() {
+        return ''
+    }
 
-	getProviderServerPath() {
-		return path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath, this.name)
-	}
+    getProviderSchema(): IAiProviderEntity {
+        if (this.providerSchema) {
+            return this.providerSchema
+        }
+        throw new Error(`Provider schema is not available for legacy built-in provider '${this.name}'.`)
+    }
 
-	getProviderSchema(): IAiProviderEntity {
-		if (this.providerSchema) {
-			return this.providerSchema
-		}
+    async getModels(modelType: AiModelTypeEnum): Promise<AIModelEntity[]> {
+        const providerSchema = this.getProviderSchema()
+        if (!providerSchema.supported_model_types.includes(modelType)) {
+            return []
+        }
 
-		const yamlPath = path.join(this.getProviderServerPath(), `${this.name}.yaml`)
+        const modelInstance = this.getModelManager(modelType)
+        return modelInstance.predefinedModels()
+    }
 
-		const yamlData = loadYamlFile(yamlPath, this.logger) as Record<string, any>
+    registerAIModelInstance(modelType: AiModelTypeEnum, modelInstance: AIModel): void {
+        this.modelManagers.set(modelType, modelInstance)
+    }
 
-		try {
-			this.providerSchema = yamlData as IAiProviderEntity
-		} catch (e) {
-			throw new Error(`Invalid provider schema for ${this.name}: ${e.message}`)
-		}
+    getModelManager<T extends IAIModel>(modelType: AiModelTypeEnum): T {
+        const modelInstance = this.modelManagers.get(modelType)
 
-		return this.providerSchema
-	}
+        if (!modelInstance) {
+            throw new AiModelNotFoundException(t('server-ai:Error.AIModelInstanceNotFound', { modelType }))
+        }
 
-	async getModels(modelType: AiModelTypeEnum): Promise<AIModelEntity[]> {
-		const providerSchema = this.getProviderSchema()
-		if (!providerSchema.supported_model_types.includes(modelType)) {
-			return []
-		}
+        return modelInstance as T
+    }
 
-		const modelInstance = this.getModelManager(modelType)
-		return modelInstance.predefinedModels()
-	}
+    /**
+     * Get provider models.
+     * @param modelType - model type
+     * @param onlyActive - only active models
+     * @return provider models
+     */
+    getProviderModels(modelType?: AiModelTypeEnum, onlyActive = false): ProviderModel[] {
+        let modelTypes: AiModelTypeEnum[] = []
+        if (modelType) {
+            modelTypes.push(modelType)
+        } else {
+            modelTypes = this.getProviderSchema().supported_model_types
+        }
 
-	registerAIModelInstance(modelType: AiModelTypeEnum, modelInstance: AIModel): void {
-		this.modelManagers.set(modelType, modelInstance)
-	}
+        const providerModels: AIModelEntity[] = this.getSystemProviderModels(modelTypes)
 
-	getModelManager<T extends IAIModel>(modelType: AiModelTypeEnum): T {
-		const modelInstance = this.modelManagers.get(modelType)
+        if (onlyActive) {
+            // providerModels = providerModels.filter(m => m.status === ModelStatus.ACTIVE);
+        }
 
-		if (!modelInstance) {
-			throw new AiModelNotFoundException(t('server-ai:Error.AIModelInstanceNotFound', { modelType }))
-		}
+        // Resort providerModels
+        return providerModels.sort((a, b) => a.model_type.localeCompare(b.model_type))
+    }
 
-		return modelInstance as T
-	}
+    getSystemProviderModels(modelTypes: AiModelTypeEnum[]) {
+        const models = []
+        modelTypes?.forEach((modelType) => {
+            const modelManager = this.modelManagers.get(modelType)
+            if (modelManager) {
+                models.push(...modelManager.predefinedModels())
+            }
+        })
+        return models
+    }
 
-	/**
-	 * Get provider models.
-	 * @param modelType - model type
-	 * @param onlyActive - only active models
-	 * @return provider models
-	 */
-	getProviderModels(modelType?: AiModelTypeEnum, onlyActive = false): ProviderModel[] {
-		let modelTypes: AiModelTypeEnum[] = []
-		if (modelType) {
-			modelTypes.push(modelType)
-		} else {
-			modelTypes = this.getProviderSchema().supported_model_types
-		}
+    getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
+        return this.getModelManager(AiModelTypeEnum.LLM)?.getChatModel(copilotModel, options)
+    }
 
-		const providerModels: AIModelEntity[] = this.getSystemProviderModels(modelTypes)
+    async getModelInstance(
+        type: AiModelTypeEnum,
+        copilotModel: ICopilotModel,
+        options?: TChatModelOptions
+    ): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank> {
+        switch (type) {
+            case AiModelTypeEnum.LLM:
+                return this.getModelManager(type)?.getChatModel(copilotModel, options)
+            case AiModelTypeEnum.TEXT_EMBEDDING:
+                if (!copilotModel.options) {
+                    const predefinedModels = await this.getModels(AiModelTypeEnum.TEXT_EMBEDDING)
+                    const modelName = copilotModel.model || copilotModel.copilot.copilotModel?.model
+                    copilotModel.options = predefinedModels.find((_) => _.model === modelName)?.model_properties
+                }
+                return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(
+                    copilotModel,
+                    options
+                )
+            case AiModelTypeEnum.TTS:
+                return this.getModelManager<TextToSpeechModel>(type)?.getChatModel(copilotModel, options)
+            case AiModelTypeEnum.SPEECH2TEXT:
+                return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
+            case AiModelTypeEnum.RERANK:
+                return this.getModelManager<RerankModel>(type)?.getReranker(copilotModel, options)
+        }
 
-		if (onlyActive) {
-			// providerModels = providerModels.filter(m => m.status === ModelStatus.ACTIVE);
-		}
-
-		// Resort providerModels
-		return providerModels.sort((a, b) => a.model_type.localeCompare(b.model_type))
-	}
-
-	getSystemProviderModels(modelTypes: AiModelTypeEnum[]) {
-		const models = []
-		modelTypes?.forEach((modelType) => {
-			const modelManager = this.modelManagers.get(modelType)
-			if (modelManager) {
-				models.push(...modelManager.predefinedModels())
-			}
-		})
-		return models
-	}
-
-	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
-		return this.getModelManager(AiModelTypeEnum.LLM)?.getChatModel(copilotModel, options)
-	}
-
-	async getModelInstance(
-		type: AiModelTypeEnum,
-		copilotModel: ICopilotModel,
-		options?: TChatModelOptions
-	): Promise<BaseLanguageModel | BaseChatModel | Embeddings | IRerank> {
-		switch (type) {
-			case AiModelTypeEnum.LLM:
-				return this.getModelManager(type)?.getChatModel(copilotModel, options)
-			case AiModelTypeEnum.TEXT_EMBEDDING:
-				if (!copilotModel.options) {
-					const predefinedModels = await this.getModels(AiModelTypeEnum.TEXT_EMBEDDING)
-					const modelName = copilotModel.model || copilotModel.copilot.copilotModel?.model
-					copilotModel.options = predefinedModels.find((_) => _.model === modelName)?.model_properties
-				}
-				return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(copilotModel, options)
-			case AiModelTypeEnum.TTS:
-				return this.getModelManager<TextToSpeechModel>(type)?.getChatModel(copilotModel, options)
-			case AiModelTypeEnum.SPEECH2TEXT:
-				return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
-			case AiModelTypeEnum.RERANK:
-				return this.getModelManager<RerankModel>(type)?.getReranker(copilotModel, options)
-		}
-		
-		return null
-	}
+        return null
+    }
 }

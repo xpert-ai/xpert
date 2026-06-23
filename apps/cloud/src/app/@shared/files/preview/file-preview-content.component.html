@@ -61,19 +61,20 @@
         />
       }
       @case ('document') {
-        <div #documentPreviewHost class="relative h-full overflow-auto" data-file-preview-document-host="true">
-          @if (hasDocumentHtml()) {
-            <article
-              #documentPreviewBody
-              data-file-preview-document-body="true"
-              class="mx-auto max-w-3xl text-text-primary shadow-sm leading-7 [&_a]:text-text-primary [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-divider-regular [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_h1]:mt-2 [&_h1]:mb-6 [&_h1]:text-3xl [&_h1]:font-semibold [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_hr]:my-8 [&_hr]:border-divider-regular [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-4 [&_pre]:my-6 [&_pre]:overflow-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-divider-regular [&_pre]:bg-background-default-subtle [&_pre]:p-4 [&_table]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-divider-regular [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-divider-regular [&_th]:bg-background-default-subtle [&_th]:px-3 [&_th]:py-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
-              [innerHTML]="documentHtml()"
-            ></article>
+        <div
+          #documentPreviewHost
+          class="relative h-full min-h-0 overflow-x-auto overflow-y-auto"
+          data-file-preview-document-host="true"
+        >
+          @if (hasDocumentBlob()) {
+            <div #documentPreviewBody data-file-preview-document-body="true" class="min-h-full">
+              <pac-file-docx-preview class="block min-h-full" [documentBlob]="documentBlob()" [fileName]="fileName()" />
+            </div>
           } @else {
             <pre
               #documentPreviewBody
               data-file-preview-document-body="true"
-              class="overflow-auto px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-text-primary font-sans"
+              class="min-h-full px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-text-primary font-sans"
               >{{ content() ?? '' }}</pre
             >
           }

@@ -8,7 +8,7 @@ import {
 } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
-import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
+import { DynamicStructuredTool, StructuredToolInterface, tool } from '@langchain/core/tools'
 import {
     Annotation,
     BaseStore,
@@ -73,6 +73,7 @@ import {
 import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
+import { formatKnowledgebaseRetrievalToolOutput } from '../../../knowledgebase/citation'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
@@ -901,11 +902,18 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             toolsTitleMap[knowledgeToolName] = translate({ zh_Hans: '知识检索', en_US: 'Knowledge Retrieval' })
             toolsetsMap[knowledgeToolName] = { provider: 'knowledge', toolsetId: null }
             tools.push(
-                retriever.asTool({
-                    name: knowledgeToolName,
-                    description: 'Get information about question.',
-                    schema: z.string()
-                }) as any
+                tool(
+                    async (query) => {
+                        const chunks = await retriever.invoke(query)
+                        return formatKnowledgebaseRetrievalToolOutput(chunks)
+                    },
+                    {
+                        name: knowledgeToolName,
+                        description:
+                            'Get information about question. The result includes chunks and citations. When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph.',
+                        schema: z.string()
+                    }
+                ) as any
             )
         }
 

@@ -3,6 +3,7 @@ import { createRequire } from 'module'
 import { dirname, join } from 'path'
 import {
     ASSISTANT_CONTEXT_SET_COMMAND,
+    ASSISTANT_CITATION_OPEN_EVENT,
     I18nObject,
     IconDefinition,
     JsonSchemaObjectType,
@@ -209,6 +210,16 @@ export class KnowledgeWorkbenchViewProvider implements IXpertViewExtensionProvid
                             action: {
                                 type: 'forward',
                                 debounceMs: 1000
+                            }
+                        },
+                        {
+                            key: 'knowledge-workbench-citation-open',
+                            event: ASSISTANT_CITATION_OPEN_EVENT,
+                            filter: {
+                                sources: ['chatkit']
+                            },
+                            action: {
+                                type: 'forward'
                             }
                         }
                     ]
