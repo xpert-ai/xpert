@@ -138,6 +138,11 @@ export class CopilotCheckpointRetentionService {
 
     @Cron('0 0 3 * * *')
     async runScheduledCleanup(): Promise<void> {
+        if (!readBooleanEnv('COPILOT_CHECKPOINT_RETENTION_EXECUTE_ENABLED', false)) {
+            this.#logger.log('checkpoint retention scheduled cleanup disabled')
+            return
+        }
+
         const queryRunner = this.checkpointRepository.manager.connection.createQueryRunner()
         let connected = false
 

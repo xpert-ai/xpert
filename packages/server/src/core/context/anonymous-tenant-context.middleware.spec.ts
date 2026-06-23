@@ -17,6 +17,9 @@ import {
 import { AnonymousTenantContextMiddleware } from './anonymous-tenant-context.middleware'
 
 describe('AnonymousTenantContextMiddleware', () => {
+  type MiddlewareRequest = Parameters<AnonymousTenantContextMiddleware['use']>[0]
+  type MiddlewareResponse = Parameters<AnonymousTenantContextMiddleware['use']>[1]
+
   const resolution: AnonymousTenantResolution = {
     tenant: null,
     tenantId: 'tenant-1',
@@ -32,7 +35,9 @@ describe('AnonymousTenantContextMiddleware', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    middleware = new AnonymousTenantContextMiddleware(resolver as any)
+    middleware = new AnonymousTenantContextMiddleware(
+      resolver as unknown as ConstructorParameters<typeof AnonymousTenantContextMiddleware>[0]
+    )
   })
 
   it('injects tenant headers for supported anonymous login routes', async () => {
@@ -40,10 +45,10 @@ describe('AnonymousTenantContextMiddleware', () => {
       method: 'GET',
       originalUrl: '/api/lark-identity/login/start',
       headers: {}
-    } as any
+    } as MiddlewareRequest
     const next = jest.fn()
 
-    await middleware.use(request, {} as any, next)
+    await middleware.use(request, {} as MiddlewareResponse, next)
 
     expect(resolver.resolve).toHaveBeenCalledWith(request)
     expect(request.headers['tenant-id']).toBe('tenant-1')
@@ -52,15 +57,54 @@ describe('AnonymousTenantContextMiddleware', () => {
     expect(next).toHaveBeenCalledWith()
   })
 
+  it('injects only tenant headers for password login requests', async () => {
+    const request = {
+      method: 'POST',
+      originalUrl: '/api/auth/login',
+      headers: {}
+    } as MiddlewareRequest
+    const next = jest.fn()
+
+    await middleware.use(request, {} as MiddlewareResponse, next)
+
+    expect(resolver.resolve).toHaveBeenCalledWith(request)
+    expect(request.headers['tenant-id']).toBe('tenant-1')
+    expect(request.headers['organization-id']).toBeUndefined()
+    expect(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY]).toEqual(resolution)
+    expect(next).toHaveBeenCalledWith()
+  })
+
+  it('does not inject fallback tenant headers for password login requests', async () => {
+    const fallbackResolution = {
+      ...resolution,
+      fallbackApplied: true
+    }
+    resolver.resolve.mockResolvedValueOnce(fallbackResolution)
+    const request = {
+      method: 'POST',
+      originalUrl: '/api/auth/login',
+      headers: {}
+    } as MiddlewareRequest
+    const next = jest.fn()
+
+    await middleware.use(request, {} as MiddlewareResponse, next)
+
+    expect(resolver.resolve).toHaveBeenCalledWith(request)
+    expect(request.headers['tenant-id']).toBeUndefined()
+    expect(request.headers['organization-id']).toBeUndefined()
+    expect(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY]).toEqual(fallbackResolution)
+    expect(next).toHaveBeenCalledWith()
+  })
+
   it('does not resolve tenant context for unrelated routes', async () => {
     const request = {
       method: 'GET',
       originalUrl: '/api/auth/login',
       headers: {}
-    } as any
+    } as MiddlewareRequest
     const next = jest.fn()
 
-    await middleware.use(request, {} as any, next)
+    await middleware.use(request, {} as MiddlewareResponse, next)
 
     expect(resolver.resolve).not.toHaveBeenCalled()
     expect(request.headers['tenant-id']).toBeUndefined()

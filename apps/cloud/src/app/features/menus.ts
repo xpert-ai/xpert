@@ -227,7 +227,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
           pathMatch: 'prefix',
           data: {
             translationKey: 'Recent Chats',
-            activePathPrefixes: ['/chat/c']
+            activePathPrefixes: ['/chat/c'],
+            inactivePathPrefixes: ['/chat/tasks']
           }
         },
         {

@@ -19,6 +19,7 @@ import {
   CoreModule,
   LOCALE_DEFAULT,
   LanguageInterceptor,
+  normalizeApiBaseUrl,
   TenantInterceptor,
   TokenInterceptor,
   UpdateService
@@ -117,7 +118,7 @@ function detectSubjectType(subject) {
     { provide: PureAbility, useExisting: Ability },
     {
       provide: PAC_API_BASE_URL,
-      useValue: environment.API_BASE_URL
+      useValue: normalizeApiBaseUrl(environment.API_BASE_URL)
     },
     provideUiI18nAdapterFactory(createUiI18nAdapter, [I18nService]),
     {
