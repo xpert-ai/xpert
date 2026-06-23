@@ -52,6 +52,23 @@ describe('AnonymousTenantContextMiddleware', () => {
     expect(next).toHaveBeenCalledWith()
   })
 
+  it('injects only tenant headers for password login requests', async () => {
+    const request = {
+      method: 'POST',
+      originalUrl: '/api/auth/login',
+      headers: {}
+    } as any
+    const next = jest.fn()
+
+    await middleware.use(request, {} as any, next)
+
+    expect(resolver.resolve).toHaveBeenCalledWith(request)
+    expect(request.headers['tenant-id']).toBe('tenant-1')
+    expect(request.headers['organization-id']).toBeUndefined()
+    expect(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY]).toEqual(resolution)
+    expect(next).toHaveBeenCalledWith()
+  })
+
   it('does not resolve tenant context for unrelated routes', async () => {
     const request = {
       method: 'GET',

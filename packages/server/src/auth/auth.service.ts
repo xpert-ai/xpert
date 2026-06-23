@@ -33,6 +33,7 @@ import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
 import { OrganizationService } from '../organization/organization.service'
+import { getFirstHeaderValue, RequestContext } from '../core/context'
 
 
 @Injectable()
@@ -79,11 +80,13 @@ export class AuthService extends SocialAuthService {
 	 */
 	async login(email: string, password: string): Promise<IAuthResponse | null> {
 		const normalizedIdentifier = email?.trim().toLowerCase()
+		const tenantId = this.getLoginTenantId()
+		const tenantFilter = tenantId ? { tenantId } : {}
 		const user = await this.userService.findOneByOptions(
 			{
 				where: [
-					{ email: normalizedIdentifier, emailVerified: true },
-					{ username: normalizedIdentifier }
+					{ email: normalizedIdentifier, emailVerified: true, ...tenantFilter },
+					{ username: normalizedIdentifier, ...tenantFilter }
 				],
 				relations: ['role', 'role.rolePermissions', 'employee'],
 				order: {
@@ -103,6 +106,11 @@ export class AuthService extends SocialAuthService {
 			token,
 			refreshToken
 		};
+	}
+
+	private getLoginTenantId() {
+		const request = RequestContext.currentRequest()
+		return getFirstHeaderValue(request?.headers?.['tenant-id']) ?? null
 	}
 
 	async requestPassword(

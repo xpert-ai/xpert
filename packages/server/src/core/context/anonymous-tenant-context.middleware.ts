@@ -24,7 +24,7 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
         req.headers['tenant-id'] = resolution.tenantId
       }
 
-      if (resolution.organizationId) {
+      if (resolution.organizationId && !this.isPasswordLoginRequest(req)) {
         req.headers['organization-id'] = resolution.organizationId
       }
 
@@ -35,6 +35,10 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
   }
 
   private shouldResolve(request: Request) {
+    if (this.isPasswordLoginRequest(request)) {
+      return true
+    }
+
     if (request.method !== 'GET') {
       return false
     }
@@ -50,6 +54,14 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
     }
 
     return /^\/(?:api\/)?[^/]+\/login\/start$/.test(path)
+  }
+
+  private isPasswordLoginRequest(request: Request) {
+    const path = getNormalizedRequestPath(request)
+    return (
+      request.method === 'POST' &&
+      (path === '/api/auth/login' || path === '/auth/login')
+    )
   }
 
   private hasExplicitTenantContext(request: Request) {
