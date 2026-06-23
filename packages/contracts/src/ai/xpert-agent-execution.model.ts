@@ -71,7 +71,7 @@ export type TXpertAgentExecution = TXpertExecution & {
   outputTokens?: number
   outputUnitPrice?: number
   outputPriceUnit?: number
-  
+
   /**
    * Latest operation when interrupted
    */
@@ -91,7 +91,7 @@ export type TXpertAgentExecution = TXpertExecution & {
 
 /**
  * Execution of agent or workflow nodes.
- * 
+ *
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IXpertAgentExecution extends IBasePerTenantAndOrganizationEntityModel, TXpertAgentExecution {
@@ -117,9 +117,30 @@ export type TAgentExecutionMetadata = {
   /**
    * AI model provider
    */
-  provider: string
+  provider?: string
   /**
    * AI Model
    */
-  model: string
+  model?: string
+  triggerSource?: 'integration' | 'channel' | 'api' | 'job' | 'trigger' | string
+  sourceIntegrationId?: string
+  integrationId?: string
+  channelType?: string
+  channelSource?: string
+  from?: string
+  fromEndUserId?: string
+  channelUserId?: string
+  uuid?: string
+  ownerWxid?: string
+  contactId?: string
+  chatId?: string
+  chatType?: string
+  senderId?: string
+  sourceMessageLogIds?: string[]
+  handoffMessageId?: string
+  handoffTraceId?: string
+  handoffParentMessageId?: string
+  runtimePrincipalType?: string
+  runtimePrincipalXpertId?: string
+  [key: string]: unknown
 }

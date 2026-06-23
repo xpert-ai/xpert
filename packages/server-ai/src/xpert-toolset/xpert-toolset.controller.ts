@@ -297,6 +297,8 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
                                             data: data
                                         }
                                     } as MessageEvent)
+                                } else if (eventName === ChatMessageEventTypeEnum.ON_TOOL_MESSAGE) {
+                                    this.#logger.debug(`Unprocessed tool message event in xpert agent: ${runId}`)
                                 } else {
                                     this.#logger.warn(`Unprocessed custom event in xpert agent: ${eventName} ${runId}`)
                                 }

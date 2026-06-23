@@ -31,6 +31,12 @@ export type TChatConversationOptions = {
   runtimeCapabilities?: RuntimeCapabilitiesSelection
 }
 
+export type TChatConversationSourceAudit = {
+  sourceIntegrationId?: string | null
+  channelType?: string | null
+  sourceMessageLogIds?: string[]
+}
+
 export type TChatConversationStatus = 'idle' | 'busy' | 'interrupted' | 'error'
 export type TToolCallType = 'agent' | 'tool'
 export type TChatFrom =
@@ -43,7 +49,7 @@ export type TChatFrom =
   | 'feishu'
   | 'lark'
   | 'dingtalk'
-  | 'wecom'
+  | 'wechat'
 
 /**
  * Operation for interrupt
@@ -94,6 +100,10 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    */
   options?: TChatConversationOptions
   /**
+   * Stable source audit information for background/channel-triggered conversations.
+   */
+  sourceAudit?: TChatConversationSourceAudit | null
+  /**
    * Error message when status is error
    */
   error?: string
@@ -142,6 +152,9 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
 
 export type TChatConversationLog = IChatConversation & {
   messageCount: number
+  sourceIntegrationId?: string | null
+  channelType?: string | null
+  sourceMessageLogIds?: string[]
 }
 
 export interface IChatConversationReadState extends IBasePerTenantAndOrganizationEntityModel {

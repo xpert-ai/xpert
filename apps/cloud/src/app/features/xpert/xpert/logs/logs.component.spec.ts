@@ -77,11 +77,12 @@ function createConversation(overrides: Partial<TChatConversationLog> = {}): TCha
   }
 }
 
-async function setup(options?: { conversations?: TChatConversationLog[] }) {
+async function setup(options?: { conversations?: TChatConversationLog[]; response?: unknown }) {
   const latestXpert = signal({ id: 'xpert-1' })
   const conversations = options?.conversations ?? [createConversation()]
+  const response = options?.response ?? { items: conversations, total: conversations.length }
   const xpertService = {
-    getConversations: jest.fn(() => of({ items: conversations, total: conversations.length }))
+    getConversations: jest.fn(() => of(response))
   }
   const conversationService = {
     cancelConversation: jest.fn(() => of({ canceledExecutionIds: ['execution-1'] }))
@@ -197,6 +198,56 @@ describe('XpertLogsComponent', () => {
         .map((column) => column.key)
         .slice(0, 3)
     ).toEqual(['title', 'threadId', 'createdBy'])
+  })
+
+  it('keeps audit columns hidden by default and renders them when enabled', async () => {
+    const context = await setup({
+      conversations: [
+        createConversation({
+          sourceIntegrationId: 'integration-1',
+          channelType: 'wechat',
+          sourceMessageLogIds: ['message-log-1', 'message-log-2']
+        })
+      ]
+    })
+    fixture = context.fixture
+
+    const sourceIntegrationColumn = context.component.logColumns.find((column) => column.key === 'sourceIntegrationId')
+    const channelTypeColumn = context.component.logColumns.find((column) => column.key === 'channelType')
+    const sourceMessageLogIdsColumn = context.component.logColumns.find(
+      (column) => column.key === 'sourceMessageLogIds'
+    )
+
+    expect(sourceIntegrationColumn).toBeDefined()
+    expect(channelTypeColumn).toBeDefined()
+    expect(sourceMessageLogIdsColumn).toBeDefined()
+
+    if (!sourceIntegrationColumn || !channelTypeColumn || !sourceMessageLogIdsColumn) {
+      return
+    }
+
+    expect(context.component.isColumnVisible(sourceIntegrationColumn)).toBe(false)
+    expect(context.component.isColumnVisible(channelTypeColumn)).toBe(false)
+    expect(context.component.isColumnVisible(sourceMessageLogIdsColumn)).toBe(false)
+
+    context.component.setColumnVisible(sourceIntegrationColumn, true)
+    context.component.setColumnVisible(channelTypeColumn, true)
+    context.component.setColumnVisible(sourceMessageLogIdsColumn, true)
+    fixture.detectChanges()
+
+    const text = fixture.nativeElement.textContent
+    expect(text).toContain('integration-1')
+    expect(text).toContain('wechat')
+    expect(text).toContain('message-log-1, message-log-2')
+  })
+
+  it('keeps the table stable when the logs response has no items array', async () => {
+    const context = await setup({ response: { total: 3 } })
+    fixture = context.fixture
+
+    expect(context.component.conversations()).toEqual([])
+    expect(context.component.total()).toBe(3)
+    expect(fixture.nativeElement.textContent).toContain('PAC.Xpert.NoLogs')
   })
 
   it('persists manual column resizing', async () => {

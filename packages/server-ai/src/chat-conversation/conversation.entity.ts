@@ -6,6 +6,7 @@ import {
     IXpertProject,
     IXpertTask,
     TChatConversationOptions,
+    TChatConversationSourceAudit,
     TChatConversationStatus,
     TChatFrom,
     TSensitiveOperation
@@ -41,6 +42,12 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
     @IsOptional()
     @Column({ type: 'json', nullable: true })
     options?: TChatConversationOptions
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    sourceAudit?: TChatConversationSourceAudit | null
 
     @ApiProperty({ type: () => String })
     @IsString()

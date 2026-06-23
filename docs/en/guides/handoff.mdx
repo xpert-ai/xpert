@@ -25,3 +25,36 @@ A `HandoffMessage` should include at least:
 - `businessKey`, `traceId`
 - `attempt`, `maxAttempts`, `enqueuedAt`
 - `payload`
+
+## Agent Chat Dispatch Runtime Principal
+
+`agent.chat_dispatch.v1` is used when plugins, triggers, scheduled tasks, or other background events asynchronously dispatch work to a target Xpert. When the event has no real logged-in user, callers should not infer an executor from the trigger binding, Integration creator, or external sender. Instead, declare the runtime technical principal in `payload.options.runtimePrincipal`:
+
+```ts
+{
+  request,
+  options: {
+    xpertId,
+    from: 'wechat',
+    fromEndUserId: '<external-channel-user>',
+    runtimePrincipal: {
+      type: 'assistant',
+      xpertId,
+      sourceIntegrationId: '<integration-id>'
+    }
+  },
+  callback
+}
+```
+
+When `runtimePrincipal.type === 'assistant'`, the handoff processor ensures and loads the technical account for the target Assistant/Xpert:
+
+- the technical account is `xpert.userId`; if missing, `XpertPrincipalService` lazily creates a `UserType.COMMUNICATION` user and binds it back to the Xpert
+- the internal principal uses `apiKey.type = assistant`, `apiKey.entityId = xpertId`, and `apiKey.userId = xpert.userId`
+- `tenant-id` and `organization-id` come from the target Xpert's actual scope, not from handoff headers as an authorization source
+- external channel users belong in `fromEndUserId`, `channelUserId`, or business metadata, not in the platform executor
+- `sourceIntegrationId` is for audit and troubleshooting only; it does not mean the Agent runs as `integration.userId`
+
+The handoff processor persists source fields such as `sourceIntegrationId`, `integrationId`, `channelType`, `fromEndUserId`, `channelUserId`, `sourceMessageLogIds`, `handoffMessageId`, and `handoffTraceId` into the root `xpert_agent_execution.metadata`. To troubleshoot which Integration triggered an Agent run, inspect execution metadata first; plugin-owned message logs remain the channel-level inbound/outbound audit trail.
+
+`headers.userId` remains only as a legacy fallback: it is used when there is no `runtimePrincipal` and the caller explicitly supplies a user. Unattended background triggers, plugin webhooks, and integration inbound flows should use the Assistant runtime principal.

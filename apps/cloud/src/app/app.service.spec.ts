@@ -1,12 +1,16 @@
 import { DOCUMENT } from '@angular/common'
 import { TestBed } from '@angular/core/testing'
-import { BehaviorSubject, of, Subject } from 'rxjs'
+import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { TranslateService } from '@ngx-translate/core'
 import { ThemesEnum, normalizeTheme } from '@xpert-ai/ocap-angular/core'
 import { Store } from '@xpert-ai/cloud/state'
 import { AppService } from './app.service'
 import { I18nService } from './@shared/i18n'
+
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
 
 class MockStore {
   private preferredThemeSubject = new BehaviorSubject<ThemesEnum>(ThemesEnum.default)
@@ -37,6 +41,10 @@ class MockStore {
 
   hasFeatureEnabled() {
     return false
+  }
+
+  selectHasFeatureEnabled() {
+    return of(false)
   }
 }
 
@@ -93,6 +101,7 @@ describe('AppService', () => {
   let service: AppService
   let store: MockStore
   let translate: MockTranslateService
+  let i18n: { preferredLanguage$: Observable<string>; useLanguage: jest.Mock }
   let matchMediaController: MatchMediaController
 
   const setup = (initialDark = false, preferredLanguage: string | null = null) => {
@@ -101,12 +110,17 @@ describe('AppService', () => {
     matchMediaController = new MatchMediaController()
     matchMediaController.install(initialDark)
 
+    i18n = {
+      preferredLanguage$: of('en'),
+      useLanguage: jest.fn()
+    }
+
     TestBed.configureTestingModule({
       providers: [
         AppService,
         { provide: DOCUMENT, useValue: document },
         { provide: Store, useClass: MockStore },
-        { provide: I18nService, useValue: { preferredLanguage$: of('en') } },
+        { provide: I18nService, useValue: i18n },
         { provide: TranslateService, useClass: MockTranslateService },
         {
           provide: BreakpointObserver,
@@ -157,6 +171,7 @@ describe('AppService', () => {
     setup(false, 'zh-CN')
 
     expect(translate.currentLang).toBe('zh-Hans')
+    expect(i18n.useLanguage).toHaveBeenCalledWith('zh-Hans')
     expect(document.documentElement.lang).toBe('zh-Hans')
   })
 
@@ -166,6 +181,7 @@ describe('AppService', () => {
     store.preferredLanguage = 'zh-CN'
 
     expect(translate.currentLang).toBe('zh-Hans')
+    expect(i18n.useLanguage).toHaveBeenCalledWith('zh-Hans')
     expect(document.documentElement.lang).toBe('zh-Hans')
   })
 })

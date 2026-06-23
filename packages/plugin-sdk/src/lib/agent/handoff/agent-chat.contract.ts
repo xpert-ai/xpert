@@ -1,4 +1,4 @@
-import { TChatOptions, TChatRequest } from '@xpert-ai/contracts'
+import { TChatOptions, TChatRequest, TChatRuntimePrincipal, TChatSourceAuditOptions } from '@xpert-ai/contracts'
 import { defineAgentMessageType } from './message-type'
 
 export const AGENT_CHAT_DISPATCH_MESSAGE_TYPE = defineAgentMessageType('chat_dispatch', 1)
@@ -17,20 +17,24 @@ export interface AgentChatRedisPubSubCallbackTarget {
 
 export type AgentChatCallbackTarget = AgentChatHandoffMessageCallbackTarget | AgentChatRedisPubSubCallbackTarget
 
+export type AgentChatRuntimePrincipal = TChatRuntimePrincipal
+
 export interface AgentChatDispatchPayload extends Record<string, unknown> {
   request: TChatRequest
-  options: TChatOptions & {
-    xpertId?: string
-    isDraft?: boolean
-    from?: string
-    fromEndUserId?: string
-    execution?: { id: string }
-    streamPersistence?: {
-      transport: 'redis-stream'
-      threadId?: string | null
-      runId?: string | null
+  options: TChatOptions &
+    TChatSourceAuditOptions & {
+      xpertId?: string
+      isDraft?: boolean
+      from?: string
+      fromEndUserId?: string
+      runtimePrincipal?: AgentChatRuntimePrincipal
+      execution?: { id: string }
+      streamPersistence?: {
+        transport: 'redis-stream'
+        threadId?: string | null
+        runId?: string | null
+      }
     }
-  }
   callback: AgentChatCallbackTarget
   executionId?: string
 }

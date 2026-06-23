@@ -10,6 +10,7 @@ export type XpertPrincipalTarget = {
     id?: string | null
     tenantId?: string | null
     organizationId?: string | null
+    createdById?: string | null
     userId?: string | null
     user?: IUser | null
     slug?: string | null

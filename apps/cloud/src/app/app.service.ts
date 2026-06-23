@@ -100,6 +100,7 @@ export class AppService extends ComponentStore<PACAppState> {
     this.translate.setDefaultLang('en')
     // the lang to use, if the lang isn't available, it will use the current loader to get them
     this.translate.use(initialLanguage)
+    this.#i18n.useLanguage(initialLanguage)
 
     this.#document.documentElement.lang = initialLanguage
 
@@ -108,6 +109,7 @@ export class AppService extends ComponentStore<PACAppState> {
       .subscribe((language) => {
         const normalizedLanguage = normalizeLanguageCode(language, this.translate.currentLang || LanguagesEnum.English)
         this.translate.use(normalizedLanguage)
+        this.#i18n.useLanguage(normalizedLanguage)
         this.#document.documentElement.lang = normalizedLanguage
       })
 

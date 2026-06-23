@@ -7,37 +7,39 @@ import { XpertIdentiDto } from '../../xpert/dto'
 
 @Expose()
 export class XpertAgentExecutionDTO {
-
     @Expose()
-	tokens?: number
+    tokens?: number
 
     @Expose()
     messages?: StoredMessage[]
 
-	@Expose()
-	@Transform(({ value }) => value?.map((_) => new XpertAgentExecutionDTO(_)))
-	subExecutions?: IXpertAgentExecution[]
+    @Expose()
+    metadata?: IXpertAgentExecution['metadata']
 
-	@Expose()
-	@Transform(({ value }) => new UserPublicDTO(value))
-	createdBy: IUser
+    @Expose()
+    @Transform(({ value }) => value?.map((_) => new XpertAgentExecutionDTO(_)))
+    subExecutions?: IXpertAgentExecution[]
 
-	// Temporary properties
-	@Expose()
-	totalTokens?: number
+    @Expose()
+    @Transform(({ value }) => new UserPublicDTO(value))
+    createdBy: IUser
 
-	@Expose()
-	summary?: string
+    // Temporary properties
+    @Expose()
+    totalTokens?: number
 
-	@Transform(({value}) => value ? new XpertAgentIdentiDto(value) : null)
-	@Expose()
-	agent?: IXpertAgent
+    @Expose()
+    summary?: string
 
-	@Transform(({value}) => value ? new XpertIdentiDto(value) : null)
-	@Expose()
-	xpert?: IXpert
+    @Transform(({ value }) => (value ? new XpertAgentIdentiDto(value) : null))
+    @Expose()
+    agent?: IXpertAgent
 
-	constructor(partial: Partial<XpertAgentExecutionDTO>) {
-		Object.assign(this, partial)
-	}
+    @Transform(({ value }) => (value ? new XpertIdentiDto(value) : null))
+    @Expose()
+    xpert?: IXpert
+
+    constructor(partial: Partial<XpertAgentExecutionDTO>) {
+        Object.assign(this, partial)
+    }
 }

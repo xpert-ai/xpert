@@ -62,10 +62,14 @@
   </div>
 </div>
 
-<z-tab-nav-panel #tabPanel class="pac-page-body">
+<z-tab-nav-panel #tabPanel class="pac-page-body" [class.pac-integration-detail-panel]="viewKey()">
   @if (viewKey(); as viewKey) {
     @if (activeHostId(); as hostId) {
-      <pac-settings-integration-extension-view [hostId]="hostId" [viewKey]="viewKey" />
+      <pac-settings-integration-extension-view
+        class="block h-full min-h-0 overflow-hidden"
+        [hostId]="hostId"
+        [viewKey]="viewKey"
+      />
     }
   } @else {
     <pac-settings-integration-configuration />

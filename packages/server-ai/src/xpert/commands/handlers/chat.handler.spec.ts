@@ -191,10 +191,28 @@ describe('XpertChatHandler', () => {
                 },
                 {
                     xpertId: 'xpert-1',
+                    from: 'wechat',
+                    fromEndUserId: 'wxid-user',
+                    runtimePrincipal: {
+                        type: 'assistant',
+                        xpertId: 'xpert-1',
+                        sourceIntegrationId: 'integration-1'
+                    },
+                    integrationId: 'integration-1',
+                    channelType: 'wechat_personal',
+                    channelSource: 'wechat_webhook',
+                    channelUserId: 'wxid-user',
+                    contactId: 'room-1@chatroom',
+                    chatId: 'room-1@chatroom',
+                    chatType: 'group',
+                    senderId: 'wxid-user',
+                    sourceMessageLogIds: ['inbound-log-1', 'inbound-log-1', 'inbound-log-2'],
+                    handoffMessageId: 'handoff-1',
+                    handoffTraceId: 'trace-1',
                     streamPersistence: {
                         transport: 'redis-stream'
                     }
-                } as any
+                }
             )
         )
 
@@ -222,6 +240,14 @@ describe('XpertChatHandler', () => {
         expect(commands.some((command) => command instanceof ChatConversationUpsertCommand && !command.entity.id)).toBe(
             true
         )
+        const createConversationCommand = commands.find(
+            (command) => command instanceof ChatConversationUpsertCommand && !command.entity.id
+        ) as ChatConversationUpsertCommand
+        expect(createConversationCommand.entity.sourceAudit).toEqual({
+            sourceIntegrationId: 'integration-1',
+            channelType: 'wechat',
+            sourceMessageLogIds: ['inbound-log-1', 'inbound-log-2']
+        })
         expect(
             commands.some((command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human')
         ).toBe(true)
@@ -237,13 +263,33 @@ describe('XpertChatHandler', () => {
                     command.entity.status === 'thinking'
             )
         ).toBe(true)
-        expect(
-            commands.some(
-                (command) =>
-                    command instanceof XpertAgentExecutionUpsertCommand &&
-                    command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
-            )
-        ).toBe(true)
+        const runningExecutionCommand = commands.find(
+            (command) =>
+                command instanceof XpertAgentExecutionUpsertCommand &&
+                command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
+        ) as XpertAgentExecutionUpsertCommand
+        expect(runningExecutionCommand).toBeDefined()
+        expect(runningExecutionCommand.execution.metadata).toEqual(
+            expect.objectContaining({
+                triggerSource: 'integration',
+                sourceIntegrationId: 'integration-1',
+                integrationId: 'integration-1',
+                channelType: 'wechat',
+                channelSource: 'wechat_webhook',
+                from: 'wechat',
+                fromEndUserId: 'wxid-user',
+                channelUserId: 'wxid-user',
+                contactId: 'room-1@chatroom',
+                chatId: 'room-1@chatroom',
+                chatType: 'group',
+                senderId: 'wxid-user',
+                sourceMessageLogIds: ['inbound-log-1', 'inbound-log-2'],
+                handoffMessageId: 'handoff-1',
+                handoffTraceId: 'trace-1',
+                runtimePrincipalType: 'assistant',
+                runtimePrincipalXpertId: 'xpert-1'
+            })
+        )
 
         const agentCommand = commands.find(
             (command) => command instanceof XpertAgentChatCommand

@@ -1,51 +1,44 @@
-import { LanguageModelLike } from '@langchain/core/language_models/base';
-import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages';
-import { DynamicStructuredTool, DynamicTool, StructuredToolInterface } from '@langchain/core/tools';
-import type { ToolCall, ToolMessage } from "@langchain/core/messages/tool";
+import { LanguageModelLike } from '@langchain/core/language_models/base'
+import { AIMessage, BaseMessage, SystemMessage } from '@langchain/core/messages'
+import { DynamicStructuredTool, DynamicTool, StructuredToolInterface } from '@langchain/core/tools'
+import type { ToolCall, ToolMessage } from '@langchain/core/messages/tool'
 import { InferInteropZodOutput, InteropZodObject } from '@langchain/core/utils/types'
-import { RunnableToolLike } from '@langchain/core/runnables';
-import { Command } from '@langchain/langgraph';
-import { AgentBuiltInState, Runtime } from './runtime';
-import { PromiseOrValue } from '../../types';
+import { RunnableToolLike } from '@langchain/core/runnables'
+import { Command } from '@langchain/langgraph'
+import type { JsonSchemaObjectType } from '@xpert-ai/contracts'
+import { AgentBuiltInState, Runtime } from './runtime'
+import { PromiseOrValue } from '../../types'
 
+export type ServerTool = Record<string, unknown>
+export type ClientTool = StructuredToolInterface | DynamicTool | RunnableToolLike
 
-export type ServerTool = Record<string, unknown>;
-export type ClientTool =
-  | StructuredToolInterface
-  | DynamicTool
-  | RunnableToolLike;
-
-export type NormalizedSchemaInput<
-  TSchema extends InteropZodObject | undefined | never = any
-> = [TSchema] extends [never]
+export type NormalizedSchemaInput<TSchema extends InteropZodObject | undefined | never = any> = [TSchema] extends [
+  never
+]
   ? AgentBuiltInState
   : TSchema extends InteropZodObject
-  ? InferInteropZodOutput<TSchema> & AgentBuiltInState
-  : TSchema extends Record<string, unknown>
-  ? TSchema & AgentBuiltInState
-  : AgentBuiltInState;
+    ? InferInteropZodOutput<TSchema> & AgentBuiltInState
+    : TSchema extends Record<string, unknown>
+      ? TSchema & AgentBuiltInState
+      : AgentBuiltInState
 
-type NormalizeContextSchema<
-  TContextSchema extends InteropZodObject | undefined = undefined
-> = TContextSchema extends InteropZodObject
-  ? InferInteropZodOutput<TContextSchema>
-  : never;
+type NormalizeContextSchema<TContextSchema extends InteropZodObject | undefined = undefined> =
+  TContextSchema extends InteropZodObject ? InferInteropZodOutput<TContextSchema> : never
 
 /**
  * jump targets (user facing)
  */
-export const JUMP_TO_TARGETS = ["model", "tools", "end"] as const;
-export type JumpToTarget = (typeof JUMP_TO_TARGETS)[number];
-
+export const JUMP_TO_TARGETS = ['model', 'tools', 'end'] as const
+export type JumpToTarget = (typeof JUMP_TO_TARGETS)[number]
 
 /**
  * Result type for middleware functions.
  */
 export type MiddlewareResult<TState> =
   | (TState & {
-      jumpTo?: JumpToTarget;
+      jumpTo?: JumpToTarget
     })
-  | void;
+  | void
 
 /**
  * Handler function type for the beforeAgent hook.
@@ -58,23 +51,19 @@ export type MiddlewareResult<TState> =
 type BeforeAgentHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
-) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;
+) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>
 
 /**
  * Hook type for the beforeAgent lifecycle event.
  * Can be either a handler function or an object with a handler and optional jump targets.
  * This hook is called once at the start of the agent invocation.
  */
-export type BeforeAgentHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> =
+export type BeforeAgentHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> =
   | BeforeAgentHandler<TSchema, TContext>
   | {
-      hook: BeforeAgentHandler<TSchema, TContext>;
-      canJumpTo?: JumpToTarget[];
-    };
-
+      hook: BeforeAgentHandler<TSchema, TContext>
+      canJumpTo?: JumpToTarget[]
+    }
 
 /**
  * Handler function type for the beforeModel hook.
@@ -87,23 +76,19 @@ export type BeforeAgentHook<
 export type BeforeModelHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
-) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;
+) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>
 
 /**
  * Hook type for the beforeModel lifecycle event.
  * Can be either a handler function or an object with a handler and optional jump targets.
  * This hook is called before each model invocation.
  */
-export type BeforeModelHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> =
+export type BeforeModelHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> =
   | BeforeModelHandler<TSchema, TContext>
   | {
-      hook: BeforeModelHandler<TSchema, TContext>;
-      canJumpTo?: JumpToTarget[];
-    };
-
+      hook: BeforeModelHandler<TSchema, TContext>
+      canJumpTo?: JumpToTarget[]
+    }
 
 /**
  * Handler function type for the afterModel hook.
@@ -117,23 +102,19 @@ export type BeforeModelHook<
 export type AfterModelHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
-) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;
+) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>
 
 /**
  * Hook type for the afterModel lifecycle event.
  * Can be either a handler function or an object with a handler and optional jump targets.
  * This hook is called after each model invocation.
  */
-export type AfterModelHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> =
+export type AfterModelHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> =
   | AfterModelHandler<TSchema, TContext>
   | {
-      hook: AfterModelHandler<TSchema, TContext>;
-      canJumpTo?: JumpToTarget[];
-    };
-
+      hook: AfterModelHandler<TSchema, TContext>
+      canJumpTo?: JumpToTarget[]
+    }
 
 /**
  * Handler function type for the afterAgent hook.
@@ -146,22 +127,19 @@ export type AfterModelHook<
 type AfterAgentHandler<TSchema, TContext> = (
   state: TSchema,
   runtime: TContext
-) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>;
+) => PromiseOrValue<MiddlewareResult<Partial<TSchema>>>
 
 /**
  * Hook type for the afterAgent lifecycle event.
  * Can be either a handler function or an object with a handler and optional jump targets.
  * This hook is called once at the end of the agent invocation.
  */
-export type AfterAgentHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> =
+export type AfterAgentHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> =
   | AfterAgentHandler<TSchema, TContext>
   | {
-      hook: AfterAgentHandler<TSchema, TContext>;
-      canJumpTo?: JumpToTarget[];
-    };
+      hook: AfterAgentHandler<TSchema, TContext>
+      canJumpTo?: JumpToTarget[]
+    }
 
 /**
  * Configuration for modifying a model call at runtime.
@@ -170,18 +148,15 @@ export type AfterAgentHook<
  * @template TState - The agent's state type, must extend Record<string, unknown>. Defaults to Record<string, unknown>.
  * @template TContext - The runtime context type for accessing metadata and control flow. Defaults to unknown.
  */
-export interface ModelRequest<
-  TState extends Record<string, unknown> = Record<string, unknown>,
-  TContext = unknown
-> {
+export interface ModelRequest<TState extends Record<string, unknown> = Record<string, unknown>, TContext = unknown> {
   /**
    * The model to use for this step.
    */
-  model: LanguageModelLike;
+  model: LanguageModelLike
   /**
    * The messages to send to the model.
    */
-  messages: BaseMessage[];
+  messages: BaseMessage[]
 
   systemMessage?: SystemMessage
 
@@ -193,21 +168,17 @@ export interface ModelRequest<
    * - `"required"`: means the model must call one or more tools.
    * - `{ type: "function", function: { name: string } }`: The model will use the specified function.
    */
-  toolChoice?:
-    | "auto"
-    | "none"
-    | "required"
-    | { type: "function"; function: { name: string } };
+  toolChoice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } }
 
   /**
    * The tools to make available for this step.
    */
-  tools: (ServerTool | ClientTool)[];
+  tools: (ServerTool | ClientTool)[]
 
   /**
    * The current agent state (includes both middleware state and built-in state).
    */
-  state: TState & AgentBuiltInState;
+  state: TState & AgentBuiltInState
 
   /**
    * The runtime context containing metadata, signal, writer, interrupt, etc.
@@ -222,10 +193,9 @@ export interface ModelRequest<
  * @param request - The model request containing model, messages, systemPrompt, tools, state, and runtime
  * @returns The AI message response from the model
  */
-export type WrapModelCallHandler<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> = (request: ModelRequest<NormalizedSchemaInput<TSchema>, TContext>) => PromiseOrValue<AIMessage>;
+export type WrapModelCallHandler<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> = (
+  request: ModelRequest<NormalizedSchemaInput<TSchema>, TContext>
+) => PromiseOrValue<AIMessage>
 
 /**
  * Wrapper function type for the wrapModelCall hook.
@@ -240,75 +210,61 @@ export type WrapModelCallHandler<
  * @param handler - The function that invokes the model. Call this with a ModelRequest to get the response
  * @returns The AI message response from the model (or a modified version)
  */
-export type WrapModelCallHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> = (
+export type WrapModelCallHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> = (
   request: ModelRequest<NormalizedSchemaInput<TSchema>, TContext>,
   handler: WrapModelCallHandler<TSchema, TContext>
-) => PromiseOrValue<AIMessage>;
-
+) => PromiseOrValue<AIMessage>
 
 /**
  * Represents a tool call request for the wrapToolCall hook.
  * Contains the tool call information along with the agent's current state and runtime.
  */
-export interface ToolCallRequest<
-  TState extends Record<string, unknown> = Record<string, unknown>,
-  TContext = unknown
-> {
+export interface ToolCallRequest<TState extends Record<string, unknown> = Record<string, unknown>, TContext = unknown> {
   /**
    * The tool call to be executed
    */
-  toolCall: ToolCall;
+  toolCall: ToolCall
   /**
    * The BaseTool instance being invoked.
    * Provides access to tool metadata like name, description, schema, etc.
    */
-  tool: ClientTool | ServerTool;
+  tool: ClientTool | ServerTool
   /**
    * The current agent state (includes both middleware state and built-in state).
    */
-  state: TState & AgentBuiltInState;
+  state: TState & AgentBuiltInState
   /**
    * The runtime context containing metadata, signal, writer, interrupt, etc.
    */
-  runtime: Runtime<TContext>;
+  runtime: Runtime<TContext>
 }
 
 /**
  * Handler function type for wrapping tool calls.
  * Takes a tool call request and returns the tool result or a command.
  */
-export type ToolCallHandler<
-  TSchema extends Record<string, unknown> = AgentBuiltInState,
-  TContext = unknown
-> = (
+export type ToolCallHandler<TSchema extends Record<string, unknown> = AgentBuiltInState, TContext = unknown> = (
   request: ToolCallRequest<TSchema, TContext>
-) => PromiseOrValue<ToolMessage | Command>;
+) => PromiseOrValue<ToolMessage | Command>
 
 /**
  * Wrapper function type for the wrapToolCall hook.
  * Allows middleware to intercept and modify tool execution.
  */
-export type WrapToolCallHook<
-  TSchema extends InteropZodObject | undefined = undefined,
-  TContext = unknown
-> = (
+export type WrapToolCallHook<TSchema extends InteropZodObject | undefined = undefined, TContext = unknown> = (
   request: ToolCallRequest<NormalizedSchemaInput<TSchema>, TContext>,
   handler: ToolCallHandler<NormalizedSchemaInput<TSchema>, TContext>
-) => PromiseOrValue<ToolMessage | Command>;
+) => PromiseOrValue<ToolMessage | Command>
 
 export interface AgentMiddleware<
   TSchema extends InteropZodObject | undefined = any,
-  TContextSchema extends
-    | InteropZodObject
-    | undefined = any,
-  TFullContext = any> {
+  TContextSchema extends InteropZodObject | undefined = any,
+  TFullContext = any
+> {
   /**
    * The name of the middleware.
    */
-  name: string;
+  name: string
   /**
    * The schema of the middleware state. Middleware state is persisted between multiple invocations. It can be either:
    * - A Zod object
@@ -316,7 +272,14 @@ export interface AgentMiddleware<
    * - A Zod default object
    * - Undefined
    */
-  stateSchema?: TSchema;
+  stateSchema?: TSchema
+
+  /**
+   * Optional JSON schema used by host form renderers for middleware state.
+   * Keep runtime validation and state typing in `stateSchema`; use this field
+   * only for form/UI metadata such as i18n labels and x-ui extensions.
+   */
+  stateFormSchema?: JsonSchemaObjectType
 
   /**
    * The schema of the middleware context. Middleware context is read-only and not persisted between multiple invocations. It can be either:
@@ -325,7 +288,7 @@ export interface AgentMiddleware<
    * - A Zod default object
    * - Undefined
    */
-  contextSchema?: TContextSchema;
+  contextSchema?: TContextSchema
 
   tools?: DynamicStructuredTool[]
 
@@ -426,8 +389,5 @@ export interface AgentMiddleware<
    * }
    * ```
    */
-  wrapToolCall?: WrapToolCallHook<
-    TSchema,
-    NormalizeContextSchema<TContextSchema>
-  >;
+  wrapToolCall?: WrapToolCallHook<TSchema, NormalizeContextSchema<TContextSchema>>
 }

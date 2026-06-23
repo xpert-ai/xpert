@@ -611,6 +611,9 @@
       "AgentToolReturnVariable": "Variable",
       "AgentToolReturnTemplate": "Template",
       "AgentToolReturnTemplateTooltip": "Write a Mustache template for the tool result. Use the variable picker to insert workflow values.",
+      "SourceIntegrationId": "Source Integration",
+      "ChannelType": "Channel Type",
+      "SourceMessageLogIds": "Source Message Logs",
       "End": "End",
       "EndTool": "End point tool. The conversation ends when the tool completes."
     },

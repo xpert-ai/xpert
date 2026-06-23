@@ -651,6 +651,41 @@ export type TChatOptions = {
   context?: Record<string, unknown>
 }
 
+export type TChatRuntimePrincipal = {
+  type: 'assistant'
+  xpertId?: string
+  sourceIntegrationId?: string | null
+}
+
+export type TChatSourceAuditOptions = {
+  runtimePrincipal?: TChatRuntimePrincipal
+  /**
+   * Integration that caused this background run. Kept separate from the
+   * execution principal, which is normally the assistant technical account.
+   */
+  sourceIntegrationId?: string | null
+  integrationId?: string | null
+  channelType?: string | null
+  channelSource?: string | null
+  channel_source?: string | null
+  channelUserId?: string | null
+  uuid?: string | null
+  ownerWxid?: string | null
+  contactId?: string | null
+  contact_id?: string | null
+  chatId?: string | null
+  chat_id?: string | null
+  chatType?: string | null
+  chat_type?: string | null
+  senderId?: string | null
+  sender_id?: string | null
+  sourceMessageLogIds?: string[]
+  currentInboundLogIds?: string[]
+  handoffMessageId?: string | null
+  handoffTraceId?: string | null
+  handoffParentMessageId?: string | null
+}
+
 /**
  * Knowledgebase retrieval settings
  */

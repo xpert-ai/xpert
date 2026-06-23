@@ -13,6 +13,7 @@ import { SchedulerRegistry } from '@nestjs/schedule'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { of } from 'rxjs'
+import { z } from 'zod'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { XpertChatCommand } from '../xpert/commands'
@@ -205,7 +206,28 @@ describe('XpertTaskService', () => {
                 properties: {
                     xpert_task_uuid: {
                         type: 'string',
-                        title: 'wx2.0 Account UUID'
+                        title: {
+                            en_US: 'wx2.0 Account UUID',
+                            zh_Hans: 'wx2.0 账号 UUID'
+                        },
+                        'x-ui': {
+                            component: 'remoteSelect'
+                        }
+                    },
+                    xpert_task_chat_type: {
+                        type: 'string',
+                        enum: ['private', 'group'],
+                        title: {
+                            en_US: 'Chat Type',
+                            zh_Hans: '会话类型'
+                        },
+                        'x-ui': {
+                            enumLabels: {
+                                group: {
+                                    zh_Hans: '群聊'
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -291,13 +313,39 @@ function createScheduleStateMiddlewareStrategy() {
     return {
         createMiddleware: jest.fn(async () => ({
             name: 'ExampleScheduleMiddleware',
-            stateSchema: {
+            stateSchema: z.object({
+                xpert_task_uuid: z.string().describe('wx2.0 Account UUID'),
+                xpert_task_chat_type: z.enum(['private', 'group']).optional().describe('Chat Type'),
+                contact_id: z.string().describe('Regular runtime state, not schedule task configurable')
+            }),
+            stateFormSchema: {
                 type: 'object',
-                required: ['xpert_task_uuid', 'contact_id'],
+                required: ['xpert_task_uuid'],
                 properties: {
                     xpert_task_uuid: {
                         type: 'string',
-                        description: 'wx2.0 Account UUID'
+                        title: {
+                            en_US: 'wx2.0 Account UUID',
+                            zh_Hans: 'wx2.0 账号 UUID'
+                        },
+                        'x-ui': {
+                            component: 'remoteSelect'
+                        }
+                    },
+                    xpert_task_chat_type: {
+                        type: 'string',
+                        enum: ['private', 'group'],
+                        title: {
+                            en_US: 'Chat Type',
+                            zh_Hans: '会话类型'
+                        },
+                        'x-ui': {
+                            enumLabels: {
+                                group: {
+                                    zh_Hans: '群聊'
+                                }
+                            }
+                        }
                     },
                     contact_id: {
                         type: 'string',

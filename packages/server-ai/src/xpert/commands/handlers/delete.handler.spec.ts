@@ -78,7 +78,7 @@ describe('XpertDeleteHandler', () => {
                     type: 'workflow',
                     entity: {
                         type: 'trigger',
-                        from: 'wecom',
+                        from: 'wechat',
                         config: {
                             enabled: true,
                             integrationId: 'integration-1'

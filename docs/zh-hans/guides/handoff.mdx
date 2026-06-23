@@ -25,3 +25,36 @@
 - `businessKey`, `traceId`
 - `attempt`, `maxAttempts`, `enqueuedAt`
 - `payload`
+
+## Agent Chat Dispatch 的运行身份
+
+`agent.chat_dispatch.v1` 用于把插件、触发器、定时任务等后台事件异步派发到目标 Xpert。后台事件没有真实登录用户时，不应从 trigger binding、integration 创建人或外部 sender 推断执行用户，而应在 `payload.options.runtimePrincipal` 中声明运行时技术主体：
+
+```ts
+{
+  request,
+  options: {
+    xpertId,
+    from: 'wechat',
+    fromEndUserId: '<external-channel-user>',
+    runtimePrincipal: {
+      type: 'assistant',
+      xpertId,
+      sourceIntegrationId: '<integration-id>'
+    }
+  },
+  callback
+}
+```
+
+当 `runtimePrincipal.type === 'assistant'` 时，handoff processor 会用目标 `xpertId` 确保并加载该 Assistant/Xpert 的技术账号：
+
+- 技术账号来自 `xpert.userId`，没有时由 `XpertPrincipalService` 懒创建 `UserType.COMMUNICATION` 用户并回写到 Xpert。
+- 内部 principal 使用 `apiKey.type = assistant`、`apiKey.entityId = xpertId`、`apiKey.userId = xpert.userId`。
+- `tenant-id` 和 `organization-id` 来自目标 Xpert 的真实 scope，不信任 handoff header 中的 organization 作为授权来源。
+- 外部渠道用户只放入 `fromEndUserId`、`channelUserId` 或业务 metadata，不作为平台执行用户。
+- `sourceIntegrationId` 只用于审计和排障，不表示使用 `integration.userId` 执行 Agent。
+
+handoff processor 会把 `sourceIntegrationId`、`integrationId`、`channelType`、`fromEndUserId`、`channelUserId`、`sourceMessageLogIds`、`handoffMessageId` 和 `handoffTraceId` 等来源字段写入 root `xpert_agent_execution.metadata`。排查某次 Agent run 的触发来源时，应优先查 execution metadata；插件自己的消息日志继续用于通道级收发审计。
+
+`headers.userId` 仅保留为 legacy fallback：只有没有 `runtimePrincipal` 且调用方显式传入用户时才按旧逻辑执行。通用后台触发、插件 webhook、integration inbound 等无人值守场景应使用 Assistant runtime principal。

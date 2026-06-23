@@ -65,6 +65,7 @@ import {
     normalizeRuntimeCapabilitiesSelection,
     TRuntimeCapabilitiesSelection
 } from '../../../shared/agent/runtime-capabilities'
+import { buildChatConversationSourceAudit, buildChatSourceExecutionMetadata } from '../../../shared/agent/source-audit'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
@@ -177,6 +178,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             request.action === 'follow_up' ? (hydratedRequest as Extract<TChatRequest, { action: 'follow_up' }>) : null
         const { options } = c
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
+        const conversationSourceAudit = buildChatConversationSourceAudit(options)
         const metricStart = Date.now()
         const metricAction = request.action
         const metricFrom = from
@@ -408,6 +410,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     )
                 )
 
+                if (conversationSourceAudit) {
+                    conversation = await this.commandBus.execute(
+                        new ChatConversationUpsertCommand(
+                            {
+                                id: conversation.id,
+                                sourceAudit: buildChatConversationSourceAudit(options, conversation.sourceAudit)
+                            },
+                            messageRelations()
+                        )
+                    )
+                }
+
                 if (
                     request.action === 'send' &&
                     requestedSandboxEnvironmentId &&
@@ -451,6 +465,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       }
                                     : {})
                             },
+                            ...(conversationSourceAudit ? { sourceAudit: conversationSourceAudit } : {}),
                             from,
                             fromEndUserId
                         },
@@ -553,6 +568,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             // New execution (Run) in thread
+            const executionMetadata = buildChatSourceExecutionMetadata(options)
             execution = await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
                     ...(execution ?? {}),
@@ -560,7 +576,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     agentKey: xpert.agent.key,
                     inputs: input,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
-                    threadId: conversation.threadId
+                    threadId: conversation.threadId,
+                    ...(executionMetadata ? { metadata: executionMetadata } : {})
                 })
             )
             executionId = execution.id

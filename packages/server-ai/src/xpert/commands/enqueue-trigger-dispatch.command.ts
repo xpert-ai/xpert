@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_HUMAN, TChatFrom } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -12,19 +12,19 @@ import { ICommand } from '@nestjs/cqrs'
  *   trigger dispatches with a shared execution path.
  */
 export class XpertEnqueueTriggerDispatchCommand implements ICommand {
-	static readonly type = '[Xpert Trigger] Enqueue Trigger Dispatch'
+    static readonly type = '[Xpert Trigger] Enqueue Trigger Dispatch'
 
-	constructor(
-		public readonly xpertId: string,
-		public readonly userId: string,
-		public readonly state: {
-			[STATE_VARIABLE_HUMAN]: Record<string, any>
-			[key: string]: any
-		},
-		public readonly params: {
-			isDraft: boolean
-			from: unknown
-			executionId?: string
-		}
-	) {}
+    constructor(
+        public readonly xpertId: string,
+        public readonly userId: string | null,
+        public readonly state: {
+            [STATE_VARIABLE_HUMAN]: Record<string, any>
+            [key: string]: any
+        },
+        public readonly params: {
+            isDraft: boolean
+            from: TChatFrom
+            executionId?: string
+        }
+    ) {}
 }

@@ -465,6 +465,9 @@ describe('RemoteComponentRendererComponent', () => {
     await flushRemoteEntry(fixture)
 
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    expect(frame.classList.contains('h-full')).toBe(true)
+    expect(frame.style.height).toBe('')
+
     jest.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
       top: 100,
       left: 0,

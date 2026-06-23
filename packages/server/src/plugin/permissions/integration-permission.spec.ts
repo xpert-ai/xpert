@@ -32,30 +32,30 @@ describe('PluginIntegrationPermissionService', () => {
 
 		await expect(
 			service.ensureWebhookCredential('integration-1', {
-				provider: 'wechat_personal',
+				provider: 'test_wechat',
 				rotateIfRevoked: true
 			})
 		).resolves.toBe(credentialResult)
 		await expect(
 			service.rotateWebhookCredential('integration-1', {
-				provider: 'wechat_personal'
+				provider: 'test_wechat'
 			})
 		).resolves.toEqual(expect.objectContaining({ token: 'pwh_rotated_secret' }))
 		await expect(
 			service.revokeWebhookCredential('integration-1', {
-				provider: 'wechat_personal'
+				provider: 'test_wechat'
 			})
 		).resolves.toBe(true)
 
 		expect(webhookCredentialService.ensureCredential).toHaveBeenCalledWith('integration-1', {
-			provider: 'wechat_personal',
+			provider: 'test_wechat',
 			rotateIfRevoked: true
 		})
 		expect(webhookCredentialService.rotateCredential).toHaveBeenCalledWith('integration-1', {
-			provider: 'wechat_personal'
+			provider: 'test_wechat'
 		})
 		expect(webhookCredentialService.revokeCredential).toHaveBeenCalledWith('integration-1', {
-			provider: 'wechat_personal'
+			provider: 'test_wechat'
 		})
 	})
 
@@ -75,7 +75,7 @@ describe('PluginIntegrationPermissionService', () => {
 	it('still exposes scoped integration reads for plugin configuration flows', async () => {
 		const integration = {
 			id: 'integration-1',
-			provider: 'wechat_personal'
+			provider: 'test_wechat'
 		}
 		const integrationService = {
 			readOneById: jest.fn().mockResolvedValue(integration),
@@ -95,7 +95,7 @@ describe('PluginIntegrationPermissionService', () => {
 		const service = new PluginIntegrationPermissionService(moduleRef as never)
 
 		await expect(service.read('integration-1')).resolves.toBe(integration)
-		await expect(service.findAll({ where: { provider: 'wechat_personal' } })).resolves.toEqual({
+		await expect(service.findAll({ where: { provider: 'test_wechat' } })).resolves.toEqual({
 			items: [integration],
 			total: 1
 		})

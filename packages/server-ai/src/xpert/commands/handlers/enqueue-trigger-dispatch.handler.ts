@@ -15,19 +15,6 @@ import { AGENT_CHAT_CALLBACK_NOOP_MESSAGE_TYPE } from '../../../handoff/plugins/
 import { XpertService } from '../../xpert.service'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 
-const ALLOWED_CHAT_FROM = new Set<string>([
-    'platform',
-    'webapp',
-    'debugger',
-    'knowledge',
-    'job',
-    'api',
-    'feishu',
-    'lark',
-    'dingtalk',
-    'wecom'
-])
-
 @Injectable()
 @CommandHandler(XpertEnqueueTriggerDispatchCommand)
 export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<XpertEnqueueTriggerDispatchCommand> {
@@ -49,7 +36,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
             throw new Error(`Missing tenantId for xpert "${xpertId}"`)
         }
 
-        const resolvedUserId = userId || xpert.createdById
+        const resolvedUserId = userId || null
         let language: string | undefined
         if (resolvedUserId) {
             try {
@@ -62,7 +49,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
             }
         }
 
-        const from = this.normalizeChatFrom(params.from)
+        const from = params.from
         const source = this.toRunSource(from)
         const runId = `xpert-trigger-${randomUUID()}`
         const sessionKey = params.executionId ?? `${xpertId}:trigger:${runId}`
@@ -89,6 +76,14 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
                 options: {
                     xpertId,
                     from,
+                    ...(!resolvedUserId
+                        ? {
+                              runtimePrincipal: {
+                                  type: 'assistant',
+                                  xpertId
+                              }
+                          }
+                        : {}),
                     ...(params.isDraft ? { isDraft: true } : {}),
                     ...(params.executionId ? { execution: { id: params.executionId } } : {})
                 } as AgentChatDispatchPayload['options'],
@@ -115,13 +110,6 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
         return {
             input: ''
         }
-    }
-
-    private normalizeChatFrom(from: unknown): TChatFrom {
-        if (typeof from === 'string' && ALLOWED_CHAT_FROM.has(from)) {
-            return from as TChatFrom
-        }
-        return 'job'
     }
 
     private toRunSource(from: TChatFrom): RunSource {

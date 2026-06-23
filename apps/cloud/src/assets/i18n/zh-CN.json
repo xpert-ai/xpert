@@ -1904,6 +1904,9 @@
       "AgentToolReturnVariable": "变量",
       "AgentToolReturnTemplate": "模版",
       "AgentToolReturnTemplateTooltip": "编写工具结果的 Mustache 模版，并通过变量选择器插入工作流变量。",
+      "SourceIntegrationId": "来源集成",
+      "ChannelType": "渠道类型",
+      "SourceMessageLogIds": "来源消息日志",
       "End": "终点",
       "EndTool": "终点工具，完成时对话运行结束"
     },

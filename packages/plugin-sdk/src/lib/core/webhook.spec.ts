@@ -9,7 +9,7 @@ describe('PluginWebhookAuthGuard', () => {
     Reflect.defineMetadata(
       PLUGIN_WEBHOOK_AUTH_METADATA_KEY,
       {
-        provider: 'wechat_personal',
+        provider: 'test_wechat',
         integrationParam: 'integrationId',
         secretQueryParam: 'secret'
       },
@@ -61,7 +61,7 @@ describe('PluginWebhookAuthGuard', () => {
     expect(authService.validateWebhookSecret).toHaveBeenCalledWith({
       integrationId: 'integration-1',
       secret: 'opaque-secret',
-      provider: 'wechat_personal'
+      provider: 'test_wechat'
     })
     expect(request.user).toEqual(
       expect.objectContaining({
