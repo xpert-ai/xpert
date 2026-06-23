@@ -453,7 +453,7 @@ export class ChatInputComponent {
   }
 
   navigateCopilot() {
-    this.#router.navigate(['/settings/copilot'])
+    this.#router.navigate(['/copilot'])
   }
 
   toggleCanvas() {

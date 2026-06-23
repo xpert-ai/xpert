@@ -9,7 +9,7 @@ export interface CloudSidebarMenuGroup {
   items: CloudMenuItem[]
 }
 
-const MANAGEMENT_MENU_ORDER = ['/plugins', '/operations', '/settings/copilot/basic', '/settings'] as const
+const MANAGEMENT_MENU_ORDER = ['/plugins', '/operations', '/copilot/basic', '/settings'] as const
 
 export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSidebarMenuGroup[] {
   const visibleMenus = (menus ?? []).filter((menu) => !menu.hidden)

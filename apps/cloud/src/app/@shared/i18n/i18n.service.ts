@@ -15,14 +15,14 @@ import { normalizeLanguageCode } from '../../@core/config'
 export class I18nService {
   readonly store = inject(Store)
   readonly #translate = inject(TranslateService)
-  
+
   // Obserables
   readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(
     map((lang) => normalizeLanguageCode(lang, this.#translate.currentLang))
   )
 
   get currentLanguage(): string {
-    return i18next.language
+    return normalizeLanguageCode(this.#translate.currentLang || i18next.language)
   }
 
   get initialized(): boolean {
@@ -30,7 +30,10 @@ export class I18nService {
   }
 
   // Signals
-  readonly language = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)))
+  readonly language = toSignal(
+    this.#translate.onLangChange.pipe(map(({ lang }) => normalizeLanguageCode(lang, this.#translate.currentLang))),
+    { initialValue: normalizeLanguageCode(this.#translate.currentLang || i18next.language) }
+  )
 
   /**
    * Translate in `i18next`
@@ -40,12 +43,19 @@ export class I18nService {
   }
 
   /**
+   * Change language for `i18next`.
+   */
+  useLanguage(language: string) {
+    return i18next.changeLanguage(normalizeLanguageCode(language))
+  }
+
+  /**
    * Change language for `i18next` and `store`
    */
   changeLanguage(language: string) {
     const lang = normalizeLanguageCode(language)
     this.store.preferredLanguage = lang
-    return i18next.changeLanguage(lang)
+    return this.useLanguage(lang)
   }
 
   /**
@@ -64,18 +74,18 @@ export class I18nService {
 
   /**
    * Compatible with both `i18next` and `@ngx-translate` frameworks, distinguished by whether there is a `namespace` in key or params.
-   * 
+   *
    * ```javascript
    * translate('ns:key', {Default: 'default value'}) // i18next
    * translate('key', {ns:'name', Default: 'default value'}) // i18next
    * translate('pac.key', {Default: 'default value'}) // @ngx-translate
    * ```
-   * 
-   * @param key 
-   * @param options 
-   * @returns 
+   *
+   * @param key
+   * @param options
+   * @returns
    */
-  translate(key: string, options?: {ns?: string; Default?: string;} & Record<string, string>): string {
+  translate(key: string, options?: { ns?: string; Default?: string } & Record<string, unknown>): string {
     if (!key) {
       return ''
     }
@@ -84,7 +94,7 @@ export class I18nService {
       return this.#translate.instant(key, options)
     }
 
-    return i18next.t(key, options) as string || options?.Default
+    return (i18next.t(key, options) as string) || options?.Default
   }
 }
 

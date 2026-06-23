@@ -24,6 +24,9 @@ import { getErrorMessage } from '@cloud/app/@core/types'
     } @else if (mode() === 'single-view') {
       @if (selectedView(); as view) {
         <xp-view-renderer
+          class="block min-h-0"
+          [class.h-full]="fillAvailableHeight()"
+          [class.overflow-hidden]="fillAvailableHeight()"
           [hostType]="hostType()"
           [hostId]="hostId()"
           [manifest]="view"

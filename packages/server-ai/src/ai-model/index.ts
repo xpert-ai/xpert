@@ -1,6 +1,5 @@
 export * from './entities/index'
 export * from './types/types'
-export * from './model_providers/index'
 export * from './ai-model.module'
 export * from './ai-model.service'
 export * from './queries/index'

@@ -1,84 +1,62 @@
-import { AIModelProviderNotFoundException, AIModelProviderRegistry, IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
-import { ConfigService } from '@xpert-ai/server-config'
+import {
+    AIModelProviderNotFoundException,
+    AIModelProviderRegistry,
+    IAIModelProviderStrategy
+} from '@xpert-ai/plugin-sdk'
 import { Injectable, Inject } from '@nestjs/common'
 import { t } from 'i18next'
-import * as path from 'path'
-import { ModelProvider } from './ai-provider'
-import { AIProviderRegistry } from './registry'
 import { ProviderCredentialSchemaValidator } from './schema_validators/'
-import { ModelProvidersFolderPath } from './types/types'
-import { getPositionMap } from '../core/utils'
 
 @Injectable()
 export class AIProvidersService {
-	@Inject(ConfigService)
-	protected readonly configService: ConfigService
+    @Inject(AIModelProviderRegistry)
+    private readonly strategyRegistry: AIModelProviderRegistry
 
-	@Inject(AIModelProviderRegistry)
-	private readonly strategyRegistry: AIModelProviderRegistry
+    /**
+     * Find available model provider from plugin strategies.
+     *
+     * @param name
+     * @param throwError
+     * @returns
+     */
+    getProvider(name: string, throwError = false, organizationId?: string): IAIModelProviderStrategy | undefined {
+        if (name) {
+            try {
+                return this.strategyRegistry.get(name, organizationId)
+            } catch (error) {
+                //
+            }
+        }
+        if (throwError) {
+            throw new AIModelProviderNotFoundException(t('server-ai:Error.AIModelProviderNotFound', { name }))
+        }
+        return undefined
+    }
 
-	private registry = AIProviderRegistry.getInstance()
+    async providerCredentialsValidate(
+        provider: string,
+        credentials: Record<string, any>
+    ): Promise<Record<string, any>> {
+        // Get the provider instance
+        const modelProviderInstance = this.getProvider(provider, true)
 
-	private positions: Record<string, number> = null
+        // Get the provider schema
+        const providerSchema = modelProviderInstance.getProviderSchema()
 
-	/**
-	 * Find available Model Provider from plugin strategy first, then from built-in providers
-	 * 
-	 * @param name 
-	 * @param throwError 
-	 * @returns 
-	 */
-	getProvider(name: string, throwError = false, organizationId?: string): IAIModelProviderStrategy | undefined {
-		let provider: IAIModelProviderStrategy | undefined = null
-		if (name) {
-			try {
-				provider = this.strategyRegistry.get(name, organizationId)
-			} catch (error) {
-				provider = this.registry.getProvider(name)
-			}
-		}
-		if (!provider && throwError) {
-			throw new AIModelProviderNotFoundException(
-					t('server-ai:Error.AIModelProviderNotFound', { name })
-				  )
-		}
-		return provider
-	}
+        // Get provider_credential_schema and validate credentials according to the rules
+        const providerCredentialSchema = providerSchema.provider_credential_schema
 
-	getAllProviders(): ModelProvider[] {
-		return this.registry.getAllProviders()
-	}
+        if (!providerCredentialSchema) {
+            throw new Error(`Provider ${provider} does not have provider_credential_schema`)
+        }
 
-	getPositionMap() {
-		if (!this.positions) {
-			const positionFolder = path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath)
-			this.positions = getPositionMap(positionFolder)
-		}
+        // Validate the provider credential schema
+        const validator = new ProviderCredentialSchemaValidator(providerCredentialSchema)
+        const filteredCredentials = validator.validateAndFilter(credentials)
 
-		return this.positions
-	}
+        // Validate credentials, throw an exception if validation fails
+        await modelProviderInstance.validateProviderCredentials(filteredCredentials)
 
-	async providerCredentialsValidate(provider: string, credentials: Record<string, any>): Promise<Record<string, any>> {
-		// Get the provider instance
-		const modelProviderInstance = this.getProvider(provider, true)
-
-		// Get the provider schema
-		const providerSchema = modelProviderInstance.getProviderSchema()
-
-		// Get provider_credential_schema and validate credentials according to the rules
-		const providerCredentialSchema = providerSchema.provider_credential_schema
-
-		if (!providerCredentialSchema) {
-			throw new Error(`Provider ${provider} does not have provider_credential_schema`)
-		}
-
-		// Validate the provider credential schema
-		const validator = new ProviderCredentialSchemaValidator(providerCredentialSchema)
-		const filteredCredentials = validator.validateAndFilter(credentials)
-
-		// Validate credentials, throw an exception if validation fails
-		await modelProviderInstance.validateProviderCredentials(filteredCredentials)
-
-		return filteredCredentials
-	}
+        return filteredCredentials
+    }
 }

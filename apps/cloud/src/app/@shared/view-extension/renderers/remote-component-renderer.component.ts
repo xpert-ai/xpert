@@ -49,8 +49,10 @@ type RemoteComponentMessage = {
     } @else {
       <iframe
         #frame
-        class="block min-h-full w-full border-0"
-        [style.height.px]="height()"
+        class="block w-full border-0"
+        [class.h-full]="fillAvailableHeight()"
+        [class.min-h-full]="!fillAvailableHeight()"
+        [style.height.px]="fillAvailableHeight() ? null : height()"
         [attr.title]="manifest().title.en_US"
         [src]="entryUrl() | safe: 'resourceUrl'"
         sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"

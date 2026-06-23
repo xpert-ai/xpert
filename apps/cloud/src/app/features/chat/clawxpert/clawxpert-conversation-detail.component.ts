@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common'
+import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
+import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
@@ -8,9 +10,16 @@ import type {
   I18nObject,
   TChatElementReference,
   TChatFileElementReference,
-  XpertExtensionViewManifest
+  XpertExtensionViewManifest,
+  XpertViewHostEventMessage
 } from '@xpert-ai/contracts'
-import { ZardButtonComponent, ZardIconComponent, ZardMenuImports, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardTabsImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { IconComponent } from '../../../@shared/avatar'
@@ -32,6 +41,10 @@ import {
   type AssistantContextSetPayload
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
+import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
+import { registerWorkbenchNavigationOpenCommand } from '../../assistant/workbench-navigation-open-client-command'
+import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -51,9 +64,19 @@ import { createAssistantToolCompletedHostEvent } from './assistant-tool-host-eve
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
+const CLAWXPERT_CHATKIT_MAX_WIDTH = '960px'
+const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
+  'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
+const CHAT_SHELL_TRANSITION_CLASSES =
+  'transition-[width,max-width,padding,opacity,transform,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none will-change-transform'
+const DETAIL_PANEL_SHELL_TRANSITION_CLASSES =
+  'transition-[max-height,opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
+const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
+  'transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
 const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
   'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
 const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
+const KNOWLEDGEBASE_WORKBENCH_VIEW_KEY = 'knowledgebase_workbench'
 const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
 const DEFAULT_FIXED_VIEW_ICON = {
   type: 'font',
@@ -137,6 +160,7 @@ type ChatKitReferenceComposerControl = {
     ZardIconComponent,
     ...ZardMenuImports,
     ...ZardTabsImports,
+    ...ZardTooltipImports,
     ClawXpertConversationFilesComponent,
     ClawXpertConversationPreviewComponent,
     ChatTasksComponent,
@@ -147,412 +171,436 @@ type ChatKitReferenceComposerControl = {
   template: `
     <div [class]="workspaceLayoutClasses()">
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
-        @if (showDetailPanel()) {
-          <div class="flex h-full min-h-0 flex-col overflow-hidden">
-            <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
-              <nav
-                z-tab-nav-bar
-                [tabPanel]="tabPanel"
-                color="accent"
-                alignTabs="start"
-                stretchTabs="false"
-                disableRipple
-                zSize="sm"
-                class="m-0 min-w-0 max-w-full shrink border-0 p-0"
-              >
-                @for (tab of workspaceTabs(); track tab.id; let last = $last) {
-                  <button
-                    z-tab-link
-                    type="button"
-                    [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
-                    [attr.data-tab-id]="tab.id"
-                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
-                    [active]="activeTabId() === tab.id"
-                    (click)="selectTab(tab.id)"
-                  >
-                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
-                      <span
-                        class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
-                      >
-                        @switch (tab.kind) {
-                          @case ('files') {
-                            <i class="ri-folder-3-line shrink-0 text-lg"></i>
-                          }
-                          @case ('terminal') {
-                            <i class="ri-terminal-window-line shrink-0 text-lg"></i>
-                          }
-                          @case ('tasks') {
-                            <i class="ri-calendar-line shrink-0 text-lg"></i>
-                          }
-                          @case ('browser') {
-                            <i class="ri-global-line shrink-0 text-lg"></i>
-                          }
-                          @case ('fixed-view') {
-                            <xp-icon
-                              [icon]="tab.icon ?? defaultFixedViewIcon"
-                              [size]="18"
-                              class="shrink-0 text-text-primary"
-                            />
-                          }
+        <div [class]="detailPanelContentClasses()">
+          <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
+            <nav
+              z-tab-nav-bar
+              [tabPanel]="tabPanel"
+              color="accent"
+              alignTabs="start"
+              stretchTabs="false"
+              disableRipple
+              zSize="sm"
+              class="m-0 min-w-0 max-w-full shrink border-0 p-0"
+            >
+              @for (tab of workspaceTabs(); track tab.id; let last = $last) {
+                <button
+                  z-tab-link
+                  type="button"
+                  [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
+                  [attr.data-tab-id]="tab.id"
+                  class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                  [active]="activeTabId() === tab.id"
+                  (click)="selectTab(tab.id)"
+                >
+                  <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
+                    <span
+                      class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
+                    >
+                      @switch (tab.kind) {
+                        @case ('files') {
+                          <i class="ri-folder-3-line shrink-0 text-lg"></i>
                         }
-                      </span>
-                      <span
-                        role="button"
-                        tabindex="0"
-                        [attr.data-close-tab]="tab.id"
-                        class="absolute inset-0 flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-                        (click)="closeWorkspaceTab($event, tab.id)"
-                        (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                        (keydown.space)="closeWorkspaceTab($event, tab.id)"
-                      >
-                        <i class="ri-close-line text-sm"></i>
-                      </span>
+                        @case ('terminal') {
+                          <i class="ri-terminal-window-line shrink-0 text-lg"></i>
+                        }
+                        @case ('tasks') {
+                          <i class="ri-calendar-line shrink-0 text-lg"></i>
+                        }
+                        @case ('browser') {
+                          <i class="ri-global-line shrink-0 text-lg"></i>
+                        }
+                        @case ('fixed-view') {
+                          <xp-icon
+                            [icon]="tab.icon ?? defaultFixedViewIcon"
+                            [size]="18"
+                            class="shrink-0 text-text-primary"
+                          />
+                        }
+                      }
                     </span>
-                    @switch (tab.kind) {
-                      @case ('files') {
-                        <span class="truncate">{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                      }
-                      @case ('terminal') {
-                        <span class="truncate">
-                          {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
-                        </span>
-                      }
-                      @case ('tasks') {
-                        <span class="truncate">{{ 'PAC.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
-                      }
-                      @case ('browser') {
-                        <span class="max-w-[12rem] truncate">
-                          {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
-                        </span>
-                      }
-                      @case ('fixed-view') {
-                        <span class="max-w-[12rem] truncate">
-                          {{ tab.title }}
-                        </span>
-                      }
+                    <span
+                      role="button"
+                      tabindex="0"
+                      [attr.data-close-tab]="tab.id"
+                      class="absolute inset-0 flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                      (click)="closeWorkspaceTab($event, tab.id)"
+                      (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                      (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                    >
+                      <i class="ri-close-line text-sm"></i>
+                    </span>
+                  </span>
+                  @switch (tab.kind) {
+                    @case ('files') {
+                      <span class="truncate">{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                     }
+                    @case ('terminal') {
+                      <span class="truncate">
+                        {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                      </span>
+                    }
+                    @case ('tasks') {
+                      <span class="truncate">{{ 'PAC.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
+                    }
+                    @case ('browser') {
+                      <span class="max-w-[12rem] truncate">
+                        {{ tab.displayUrl || ('PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
+                      </span>
+                    }
+                    @case ('fixed-view') {
+                      <span class="max-w-[12rem] truncate">
+                        {{ tab.title }}
+                      </span>
+                    }
+                  }
 
-                    @if (!last) {
-                      <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
+                  @if (!last) {
+                    <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
+                  }
+                </button>
+              }
+            </nav>
+
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon"
+              data-add-workspace-tab
+              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:text-text-primary"
+              [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
+              z-menu
+              [zMenuTriggerFor]="workspaceTabMenu"
+            >
+              <i class="ri-add-line text-lg"></i>
+            </button>
+
+            <ng-template #workspaceTabMenu>
+              <div z-menu-content class="w-52">
+                <button type="button" z-menu-item data-add-files-tab (click)="addWorkspaceTab('files')">
+                  <span class="flex items-center gap-2">
+                    <i class="ri-folder-3-line text-base"></i>
+                    <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
+                  </span>
+                </button>
+                <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
+                  <span class="flex items-center gap-2">
+                    <i class="ri-global-line text-base"></i>
+                    <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
+                  </span>
+                </button>
+                <button type="button" z-menu-item data-add-terminal-tab (click)="addWorkspaceTab('terminal')">
+                  <span class="flex items-center gap-2">
+                    <i class="ri-terminal-window-line text-base"></i>
+                    <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
+                  </span>
+                </button>
+                @if (fixedViewMenuVisible()) {
+                  <div class="my-1 border-t border-divider-regular"></div>
+                  <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
+                    {{ 'PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
+                  </div>
+                  @if (loadingFixedViews()) {
+                    <button type="button" z-menu-item disabled data-fixed-views-loading>
+                      <span class="flex items-center gap-2 text-text-tertiary">
+                        <i class="ri-loader-4-line text-base"></i>
+                        <span>
+                          {{
+                            'PAC.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' }
+                          }}
+                        </span>
+                      </span>
+                    </button>
+                  } @else if (fixedViewError()) {
+                    <button type="button" z-menu-item disabled data-fixed-views-error>
+                      <span class="flex items-center gap-2 text-text-tertiary">
+                        <i class="ri-error-warning-line text-base"></i>
+                        <span>
+                          {{
+                            'PAC.Chat.ClawXpert.FixedViewsLoadFailed'
+                              | translate: { Default: 'Failed to load fixed views' }
+                          }}
+                        </span>
+                      </span>
+                    </button>
+                  } @else {
+                    @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
+                      <button
+                        type="button"
+                        z-menu-item
+                        data-add-fixed-view-tab
+                        [attr.data-fixed-view-key]="fixedView.viewKey"
+                        (click)="openFixedViewTab(fixedView)"
+                      >
+                        <span class="flex min-w-0 items-center gap-2">
+                          <xp-icon
+                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
+                            [size]="16"
+                            class="shrink-0 text-text-primary"
+                          />
+                          <span class="min-w-0 truncate">{{ fixedView.title }}</span>
+                        </span>
+                      </button>
                     }
-                  </button>
+                  }
                 }
-              </nav>
+              </div>
+            </ng-template>
 
+            <div class="ml-auto flex shrink-0 items-center justify-end">
               <button
                 z-button
                 type="button"
                 zType="ghost"
                 zSize="icon"
-                data-add-workspace-tab
-                class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:text-text-primary"
-                [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
-                z-menu
-                [zMenuTriggerFor]="workspaceTabMenu"
+                data-open-tasks-panel
+                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50"
+                [class.bg-hover-bg]="activeTab()?.kind === 'tasks'"
+                [class.text-text-primary]="activeTab()?.kind === 'tasks'"
+                [disabled]="!facade.xpertId()"
+                [title]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
+                [zTooltip]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
+                zPosition="bottom"
+                (click)="openTasksTab()"
               >
-                <i class="ri-add-line text-lg"></i>
+                <i class="ri-calendar-line text-lg"></i>
               </button>
-
-              <ng-template #workspaceTabMenu>
-                <div z-menu-content class="w-52">
-                  <button type="button" z-menu-item data-add-files-tab (click)="addWorkspaceTab('files')">
-                    <span class="flex items-center gap-2">
-                      <i class="ri-folder-3-line text-base"></i>
-                      <span>{{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                    </span>
-                  </button>
-                  <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
-                    <span class="flex items-center gap-2">
-                      <i class="ri-global-line text-base"></i>
-                      <span>{{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
-                    </span>
-                  </button>
-                  <button type="button" z-menu-item data-add-terminal-tab (click)="addWorkspaceTab('terminal')">
-                    <span class="flex items-center gap-2">
-                      <i class="ri-terminal-window-line text-base"></i>
-                      <span>{{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
-                    </span>
-                  </button>
-                  @if (fixedViewMenuVisible()) {
-                    <div class="my-1 border-t border-divider-regular"></div>
-                    <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
-                      {{ 'PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
-                    </div>
-                    @if (loadingFixedViews()) {
-                      <button type="button" z-menu-item disabled data-fixed-views-loading>
-                        <span class="flex items-center gap-2 text-text-tertiary">
-                          <i class="ri-loader-4-line text-base"></i>
-                          <span>
-                            {{
-                              'PAC.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' }
-                            }}
-                          </span>
-                        </span>
-                      </button>
-                    } @else if (fixedViewError()) {
-                      <button type="button" z-menu-item disabled data-fixed-views-error>
-                        <span class="flex items-center gap-2 text-text-tertiary">
-                          <i class="ri-error-warning-line text-base"></i>
-                          <span>
-                            {{
-                              'PAC.Chat.ClawXpert.FixedViewsLoadFailed'
-                                | translate: { Default: 'Failed to load fixed views' }
-                            }}
-                          </span>
-                        </span>
-                      </button>
-                    } @else {
-                      @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                        <button
-                          type="button"
-                          z-menu-item
-                          data-add-fixed-view-tab
-                          [attr.data-fixed-view-key]="fixedView.viewKey"
-                          (click)="openFixedViewTab(fixedView)"
-                        >
-                          <span class="flex min-w-0 items-center gap-2">
-                            <xp-icon
-                              [icon]="fixedView.icon ?? defaultFixedViewIcon"
-                              [size]="16"
-                              class="shrink-0 text-text-primary"
-                            />
-                            <span class="min-w-0 truncate">{{ fixedView.title }}</span>
-                          </span>
-                        </button>
-                      }
-                    }
-                  }
-                </div>
-              </ng-template>
-
-              <div class="ml-auto flex shrink-0 items-center justify-end">
-                <button
-                  z-button
-                  type="button"
-                  zType="ghost"
-                  zSize="icon"
-                  data-open-tasks-panel
-                  class="flex !h-9 !w-12 items-center justify-center rounded-2xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50"
-                  [class.bg-hover-bg]="activeTab()?.kind === 'tasks'"
-                  [class.text-text-primary]="activeTab()?.kind === 'tasks'"
-                  [disabled]="!facade.xpertId()"
-                  [title]="'PAC.Chat.Tasks' | translate: { Default: 'Tasks' }"
-                  (click)="openTasksTab()"
-                >
-                  <i class="ri-calendar-line text-lg"></i>
-                </button>
-              </div>
+              <button
+                z-button
+                type="button"
+                zType="ghost"
+                zSize="icon"
+                data-toggle-detail-panel
+                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+                [title]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                [zTooltip]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                zPosition="bottom"
+                (click)="toggleDetailPanel()"
+              >
+                <i class="ri-side-bar-line text-lg"></i>
+              </button>
             </div>
+          </div>
 
-            <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-              @if (!activeTab()) {
+          <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
+            @if (!activeTab()) {
+              <div
+                data-empty-workspace-placeholder
+                class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+              >
                 <div
-                  data-empty-workspace-placeholder
-                  class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
+                  data-empty-workspace-card-grid
+                  class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
                 >
-                  <div
-                    data-empty-workspace-card-grid
-                    class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
+                  <button
+                    type="button"
+                    data-empty-workspace-card="files"
+                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                    (click)="addWorkspaceTab('files')"
                   >
+                    <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                    <div class="mt-4 text-xl font-semibold text-text-primary">
+                      {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
+                    </div>
+                    <div class="mt-2 text-lg text-text-secondary">
+                      {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    data-empty-workspace-card="browser"
+                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                    (click)="addWorkspaceTab('browser')"
+                  >
+                    <i class="ri-global-line text-3xl text-text-tertiary"></i>
+                    <div class="mt-4 text-xl font-semibold text-text-primary">
+                      {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
+                    </div>
+                    <div class="mt-2 text-lg text-text-secondary">
+                      {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
+                    </div>
+                  </button>
+                  @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
                     <button
                       type="button"
-                      data-empty-workspace-card="files"
+                      data-empty-workspace-card="fixed-view"
+                      [attr.data-fixed-view-key]="fixedView.viewKey"
                       class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                      (click)="addWorkspaceTab('files')"
+                      (click)="openFixedViewTab(fixedView)"
                     >
-                      <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
+                      <xp-icon [icon]="fixedView.icon ?? defaultFixedViewIcon" [size]="32" class="text-text-tertiary" />
                       <div class="mt-4 text-xl font-semibold text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
-                      </div>
-                      <div class="mt-2 text-lg text-text-secondary">
-                        {{ 'PAC.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      data-empty-workspace-card="browser"
-                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                      (click)="addWorkspaceTab('browser')"
-                    >
-                      <i class="ri-global-line text-3xl text-text-tertiary"></i>
-                      <div class="mt-4 text-xl font-semibold text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
-                      </div>
-                      <div class="mt-2 text-lg text-text-secondary">
-                        {{ 'PAC.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
-                      </div>
-                    </button>
-                    @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                      <button
-                        type="button"
-                        data-empty-workspace-card="fixed-view"
-                        [attr.data-fixed-view-key]="fixedView.viewKey"
-                        class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                        (click)="openFixedViewTab(fixedView)"
-                      >
-                        <xp-icon
-                          [icon]="fixedView.icon ?? defaultFixedViewIcon"
-                          [size]="32"
-                          class="text-text-tertiary"
-                        />
-                        <div class="mt-4 text-xl font-semibold text-text-primary">
-                          {{ fixedView.title }}
-                        </div>
-                        <div class="mt-2 text-lg text-text-secondary">
-                          {{
-                            fixedView.description ||
-                              ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
-                          }}
-                        </div>
-                      </button>
-                    }
-                    <button
-                      type="button"
-                      data-empty-workspace-card="terminal"
-                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                      (click)="addWorkspaceTab('terminal')"
-                    >
-                      <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
-                      <div class="mt-4 text-xl font-semibold text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                        {{ fixedView.title }}
                       </div>
                       <div class="mt-2 text-lg text-text-secondary">
                         {{
-                          'PAC.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
+                          fixedView.description ||
+                            ('PAC.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
                         }}
                       </div>
                     </button>
-                  </div>
-                </div>
-              } @else if (activeFixedViewTab(); as fixedViewTab) {
-                @if (fixedViewHostId(); as hostId) {
-                  <xp-extension-host-outlet
-                    class="block h-full min-h-0 overflow-hidden"
-                    mode="single-view"
-                    hostType="agent"
-                    [hostId]="hostId"
-                    [slot]="agentWorkbenchFixedSlot"
-                    [viewKey]="fixedViewTab.viewKey"
-                    [fillAvailableHeight]="true"
-                  />
-                } @else {
-                  <div
-                    class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+                  }
+                  <button
+                    type="button"
+                    data-empty-workspace-card="terminal"
+                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
+                    (click)="addWorkspaceTab('terminal')"
                   >
-                    {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
-                  </div>
-                }
-              } @else if (activeTab()?.kind === 'tasks') {
-                <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                  <pac-chat-tasks
-                    class="block h-full min-h-0"
-                    [embedded]="true"
-                    [xpertId]="facade.xpertId()"
-                    (tasksChanged)="handleTasksChanged()"
-                    (conversationSelected)="openTaskHistoryConversation($event)"
-                  />
+                    <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
+                    <div class="mt-4 text-xl font-semibold text-text-primary">
+                      {{ 'PAC.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
+                    </div>
+                    <div class="mt-2 text-lg text-text-secondary">
+                      {{
+                        'PAC.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
+                      }}
+                    </div>
+                  </button>
                 </div>
-              } @else if (contextLoading() && !resolvedConversationId()) {
+              </div>
+            } @else if (activeFixedViewTab(); as fixedViewTab) {
+              @if (fixedViewHostId(); as hostId) {
+                <xp-extension-host-outlet
+                  class="block h-full min-h-0 overflow-hidden"
+                  mode="single-view"
+                  hostType="agent"
+                  [hostId]="hostId"
+                  [slot]="agentWorkbenchFixedSlot"
+                  [viewKey]="fixedViewTab.viewKey"
+                  [fillAvailableHeight]="true"
+                />
+              } @else {
                 <div
                   class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
                 >
-                  {{
-                    'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' }
-                  }}
+                  {{ 'PAC.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
                 </div>
-              } @else {
-                @if (!resolvedConversationId()) {
-                  <div class="block h-full p-2">
-                    <div
-                      class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                    >
-                      <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
-                      <div class="mt-4 text-base font-medium text-text-primary">
+              }
+            } @else if (activeTab()?.kind === 'tasks') {
+              <div class="h-full min-h-0 overflow-hidden px-4 py-3">
+                <pac-chat-tasks
+                  class="block h-full min-h-0"
+                  [embedded]="true"
+                  [xpertId]="facade.xpertId()"
+                  (tasksChanged)="handleTasksChanged()"
+                  (conversationSelected)="openTaskHistoryConversation($event)"
+                />
+              </div>
+            } @else if (contextLoading() && !resolvedConversationId()) {
+              <div
+                class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+              >
+                {{ 'PAC.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
+              </div>
+            } @else {
+              @if (!resolvedConversationId()) {
+                <div class="block h-full p-2">
+                  <div
+                    class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+                  >
+                    <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
+                    <div class="mt-4 text-base font-medium text-text-primary">
+                      {{
+                        'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
+                          | translate: { Default: 'Start a conversation to unlock workspace tools' }
+                      }}
+                    </div>
+                    <div class="mt-2 max-w-sm text-sm text-text-secondary">
+                      @if (activeTab()?.kind === 'files') {
                         {{
-                          'PAC.Chat.ClawXpert.DetailPanelEmptyTitle'
-                            | translate: { Default: 'Start a conversation to unlock workspace tools' }
+                          'PAC.Chat.ClawXpert.FilesEmptyDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
+                                }
                         }}
-                      </div>
-                      <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                        @if (activeTab()?.kind === 'files') {
-                          {{
-                            'PAC.Chat.ClawXpert.FilesEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
-                                  }
-                          }}
-                        } @else if (activeTab()?.kind === 'browser') {
-                          {{
-                            'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
-                                  }
-                          }}
-                        } @else {
-                          {{
-                            'PAC.Chat.ClawXpert.TerminalEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
-                                  }
-                          }}
-                        }
-                      </div>
+                      } @else if (activeTab()?.kind === 'browser') {
+                        {{
+                          'PAC.Chat.ClawXpert.PreviewDetailEmptyDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
+                                }
+                        }}
+                      } @else {
+                        {{
+                          'PAC.Chat.ClawXpert.TerminalEmptyDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
+                                }
+                        }}
+                      }
                     </div>
                   </div>
-                } @else {
-                  @if (contextError()) {
-                    <div
-                      class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-                    >
-                      {{ contextError() }}
-                    </div>
-                  }
+                </div>
+              } @else {
+                @if (contextError()) {
+                  <div
+                    class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
+                  >
+                    {{ contextError() }}
+                  </div>
+                }
 
-                  @if (activeTab()?.kind === 'files') {
-                    <pac-clawxpert-conversation-files
-                      class="h-full p-2 pr-0"
-                      [conversationId]="resolvedConversationId()"
-                      [xpertId]="facade.xpertId()"
-                      [mode]="'editable'"
-                      [reloadKey]="fileListReloadKey()"
-                      (referenceRequest)="handleWorkspaceReference($event)"
-                    />
-                  } @else if (activeTab()?.kind === 'browser') {
-                    <pac-clawxpert-conversation-preview
-                      class="h-full p-2 pr-0"
-                      [conversationId]="resolvedConversationId()"
-                      [serviceId]="activeBrowserTab()?.serviceId"
-                      [url]="activeBrowserTab()?.url"
-                      [zoom]="activeBrowserTab()?.zoom"
-                      [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
-                      [reloadKey]="activeBrowserTab()?.reloadKey"
-                      (browserStateChange)="updateActiveBrowserTab($event)"
-                      (referenceRequest)="handleElementReference($event)"
-                    />
-                  } @else {
-                    <xp-chat-shared-terminal
-                      class="h-full"
-                      [mode]="'interactive'"
-                      [conversationId]="resolvedConversationId()"
-                      [projectId]="resolvedConversation()?.projectId ?? null"
-                    />
-                  }
+                @if (activeTab()?.kind === 'files') {
+                  <pac-clawxpert-conversation-files
+                    class="h-full p-2 pr-0"
+                    [conversationId]="resolvedConversationId()"
+                    [xpertId]="facade.xpertId()"
+                    [mode]="'editable'"
+                    [reloadKey]="fileListReloadKey()"
+                    (referenceRequest)="handleWorkspaceReference($event)"
+                  />
+                } @else if (activeTab()?.kind === 'browser') {
+                  <pac-clawxpert-conversation-preview
+                    class="h-full p-2 pr-0"
+                    [conversationId]="resolvedConversationId()"
+                    [serviceId]="activeBrowserTab()?.serviceId"
+                    [url]="activeBrowserTab()?.url"
+                    [zoom]="activeBrowserTab()?.zoom"
+                    [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
+                    [reloadKey]="activeBrowserTab()?.reloadKey"
+                    (browserStateChange)="updateActiveBrowserTab($event)"
+                    (referenceRequest)="handleElementReference($event)"
+                  />
+                } @else {
+                  <xp-chat-shared-terminal
+                    class="h-full"
+                    [mode]="'interactive'"
+                    [conversationId]="resolvedConversationId()"
+                    [projectId]="resolvedConversation()?.projectId ?? null"
+                  />
                 }
               }
-            </z-tab-nav-panel>
-          </div>
-        }
+            }
+          </z-tab-nav-panel>
+        </div>
       </section>
 
       <section [class]="chatShellClasses()">
+        @if (!showDetailPanel() && !isChatMinimizedToPet()) {
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon"
+            data-toggle-detail-panel
+            class="absolute left-3 top-3 z-20 flex !h-9 !w-9 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg/90 text-text-secondary shadow-sm backdrop-blur transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+            [title]="'PAC.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
+            [zTooltip]="'PAC.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
+            zPosition="bottom"
+            (click)="toggleDetailPanel()"
+          >
+            <i class="ri-side-bar-line text-lg"></i>
+          </button>
+        }
         <div
-          class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform]"
+          class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform] duration-500 ease-out motion-reduce:transition-none"
           [class]="chatSurfaceClasses()"
         >
           <div class="min-h-0 flex-1">
@@ -638,10 +686,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #hostEvents = inject(ViewHostEventBus)
+  readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
+  #unregisterFileOpenCommand: (() => void) | null = null
+  #unregisterNavigationOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
@@ -665,6 +717,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
     initialThread: this.facade.threadId,
+    layout: {
+      maxWidth: CLAWXPERT_CHATKIT_MAX_WIDTH
+    },
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
@@ -674,6 +729,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
+      const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
+        hostType: 'agent',
+        hostId: this.facade.xpertId(),
+        threadId: this.facade.threadId()
+      })
+      if (citationEvent) {
+        this.publishKnowledgebaseCitationEvent(citationEvent)
+      }
       if (shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
@@ -757,31 +820,39 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly contextError = signal<string | null>(null)
   readonly isChatMinimizedToPet = signal(false)
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
-  readonly showDetailPanel = computed(() => this.workspaceTabs().length === 0 || !!this.activePanel())
+  readonly detailPanelVisible = signal(false)
+  readonly showDetailPanel = computed(
+    () => this.detailPanelVisible() && (this.workspaceTabs().length === 0 || !!this.activePanel())
+  )
   readonly workspaceLayoutClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
       return this.showDetailPanel()
-        ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1'
-        : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[0rem_0rem] lg:grid-rows-1'
+        ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
+        : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
     }
 
     return this.showDetailPanel()
-      ? 'grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] lg:grid-rows-1'
-      : 'grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] transition-[grid-template-columns,grid-template-rows,gap] duration-300 ease-out lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1'
+      ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] lg:grid-rows-1`
+      : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
   })
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
-      ? 'min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0'
-      : 'pointer-events-none min-h-0 min-w-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0'
+      ? `min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
+      : `pointer-events-none min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0`
+  )
+  readonly detailPanelContentClasses = computed(() =>
+    this.showDetailPanel()
+      ? `flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
+      : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
   )
   readonly chatShellClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
-      return 'min-h-0 min-w-0 overflow-visible p-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-0 lg:max-w-0 lg:justify-self-end'
+      return `relative min-h-0 min-w-0 overflow-visible p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
     }
 
     return this.showDetailPanel()
-      ? 'min-h-0 min-w-0 transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-full lg:max-w-[32rem] lg:justify-self-end py-4 px-2'
-      : 'min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none transition-[border-color,background-color,box-shadow,border-radius,transform] duration-300 ease-out lg:w-full'
+      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[32rem] lg:justify-self-end py-4 px-2`
+      : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
   })
   readonly chatSurfaceClasses = computed(() =>
     this.showDetailPanel() && !this.isChatMinimizedToPet()
@@ -816,6 +887,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         tabId: tab.id,
         url: tab.url ?? tab.displayUrl
       }
+    })
+    this.#unregisterFileOpenCommand = registerWorkbenchFileOpenCommand(this.#clientCommands, {
+      openFile: (file) => {
+        openWorkbenchFilePreviewDialog(this.#dialog, file)
+      }
+    })
+    this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
+      navigate: (commands) => this.#router.navigate(commands)
     })
 
     effect((onCleanup) => {
@@ -955,6 +1034,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterAssistantContextCommand = null
     this.#unregisterBrowserOpenCommand?.()
     this.#unregisterBrowserOpenCommand = null
+    this.#unregisterFileOpenCommand?.()
+    this.#unregisterFileOpenCommand = null
+    this.#unregisterNavigationOpenCommand?.()
+    this.#unregisterNavigationOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
@@ -1013,6 +1096,27 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     await this.attachComposerReferences([toPageElementQuoteReference(request)])
   }
 
+  toggleDetailPanel() {
+    if (this.showDetailPanel()) {
+      this.closeDetailPanel()
+      return
+    }
+
+    this.openDetailPanel()
+  }
+
+  openDetailPanel() {
+    const tabs = this.workspaceTabs()
+    if (tabs.length > 0 && !tabs.some((tab) => tab.id === this.activeTabId())) {
+      this.activeTabId.set(tabs[0].id)
+    }
+    this.detailPanelVisible.set(true)
+  }
+
+  closeDetailPanel() {
+    this.detailPanelVisible.set(false)
+  }
+
   selectPanel(panel: ClawXpertStaticTabId | 'preview') {
     if (panel === 'preview') {
       this.openBrowserTabFromSandboxEvent()
@@ -1034,6 +1138,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     this.activeTabId.set(tabId)
+    this.openDetailPanel()
   }
 
   addWorkspaceTab(kind: ClawXpertAddableWorkspaceTabKind) {
@@ -1051,6 +1156,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
+    this.openDetailPanel()
     return tab
   }
 
@@ -1058,6 +1164,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const existing = this.workspaceTabs().find((tab) => tab.kind === 'tasks')
     if (existing) {
       this.activeTabId.set(existing.id)
+      this.openDetailPanel()
       return existing
     }
 
@@ -1068,6 +1175,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
+    this.openDetailPanel()
     return tab
   }
 
@@ -1119,6 +1227,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const existing = this.fixedViewTabs().find((tab) => tab.viewKey === fixedView.viewKey)
     if (existing) {
       this.activeTabId.set(existing.id)
+      this.openDetailPanel()
       return existing
     }
 
@@ -1126,6 +1235,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
+    this.openDetailPanel()
     return tab
   }
 
@@ -1143,6 +1253,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.workspaceTabs.update((tabs) => [...tabs, tab])
     this.activeTabId.set(tab.id)
+    this.openDetailPanel()
     return tab
   }
 
@@ -1184,6 +1295,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         ...(target.url !== undefined ? { url: target.url } : {})
       })
       this.activeTabId.set(matchedTab.id)
+      this.openDetailPanel()
       return matchedTab
     }
 
@@ -1195,6 +1307,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         ...(target.url !== undefined ? { url: target.url } : {})
       })
       this.activeTabId.set(reusableTab.id)
+      this.openDetailPanel()
       return reusableTab
     }
 
@@ -1326,6 +1439,42 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     ) {
       this.activeTabId.set(nextFixedTabs[0]?.id ?? nextTabs[0]?.id ?? '')
     }
+
+    if (nextFixedTabs.length > 0) {
+      this.openDetailPanel()
+    }
+  }
+
+  private publishKnowledgebaseCitationEvent(event: XpertViewHostEventMessage) {
+    const shouldRepublish = this.focusKnowledgebaseWorkbenchTab()
+    this.#hostEvents.publish(event)
+
+    if (shouldRepublish && typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        this.#hostEvents.publish({
+          ...event,
+          id: `${event.id}:deferred`
+        })
+      }, 180)
+    }
+  }
+
+  private focusKnowledgebaseWorkbenchTab() {
+    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    if (existing) {
+      const wasActive = this.activeTabId() === existing.id
+      this.activeTabId.set(existing.id)
+      this.openDetailPanel()
+      return !wasActive
+    }
+
+    const menuItem = this.fixedViewMenuItems().find((item) => item.viewKey === KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    if (!menuItem) {
+      return false
+    }
+
+    this.openFixedViewTab(menuItem)
+    return true
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
@@ -1376,11 +1525,25 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private scheduleWorkspaceFileListRefresh() {
+    this.openDetailPanelForWorkspaceFileEvent()
     this.clearScheduledWorkspaceFileListRefresh()
     this.#workspaceFileRefreshTimer = setTimeout(() => {
       this.#workspaceFileRefreshTimer = null
       this.fileListReloadKey.update((value) => value + 1)
     }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
+  }
+
+  private openDetailPanelForWorkspaceFileEvent() {
+    const filesTab = this.workspaceTabs().find((tab) => tab.kind === 'files')
+    if (filesTab) {
+      if (!this.showDetailPanel()) {
+        this.activeTabId.set(filesTab.id)
+      }
+      this.openDetailPanel()
+      return
+    }
+
+    this.addWorkspaceTab('files')
   }
 
   private clearScheduledWorkspaceFileListRefresh() {

@@ -1,4 +1,4 @@
-import { ICopilot, ILLMUsage, ParameterType } from "@xpert-ai/contracts"
+import { ICopilot, ILLMUsage, ParameterType } from '@xpert-ai/contracts'
 
 export const PROVIDE_AI_MODEL_LLM = 'provide_ai_model_llm'
 export const PROVIDE_AI_MODEL_MODERATION = 'provide_ai_model_moderation'
@@ -8,20 +8,18 @@ export const PROVIDE_AI_MODEL_TTS = 'provide_ai_model_tts'
 export const PROVIDE_AI_MODEL_RERANK = 'provide_ai_model_rerank'
 
 export type TChatModelOptions = {
-    modelProperties: Record<string, any>;
+    modelProperties: Record<string, any>
     handleLLMTokens: (input: {
-        copilot: ICopilot;
-        model?: string;
-        usage?: ILLMUsage;
+        copilot: ICopilot
+        model?: string
+        usage?: ILLMUsage
         /**
          * @deprecated use usage
          */
         tokenUsed?: number
-    }) => void;
+    }) => void
     verbose: boolean
 }
-
-export const ModelProvidersFolderPath = 'packages/server-ai/src/ai-model/model_providers'
 
 export const CommonParameterRules = [
     {
@@ -32,14 +30,15 @@ export const CommonParameterRules = [
         },
         type: ParameterType.FLOAT,
         help: {
-            zh_Hans: '控制模型输出的随机性。较高的值（例如 1.0）使响应更具创意，而较低的值（例如 0.1）使响应更具确定性和重点性。',
+            zh_Hans:
+                '控制模型输出的随机性。较高的值（例如 1.0）使响应更具创意，而较低的值（例如 0.1）使响应更具确定性和重点性。',
             en_US: `Controls the randomness of the model's output. A higher value (e.g., 1.0) makes responses more creative, while a lower value (e.g., 0.1) makes them more deterministic and focused.`
         },
         required: false,
         default: 0.2,
         min: 0,
         max: 1,
-        precision: 0.1,
+        precision: 0.1
     },
     {
         label: {
@@ -56,13 +55,13 @@ export const CommonParameterRules = [
         min: 0,
         max: 10,
         precision: 0,
-        name: 'maxRetries',
-    },
+        name: 'maxRetries'
+    }
 ]
 
 export function mergeCredentials(credentials, modelProperties) {
     return {
         ...(credentials ?? {}),
-        ...(modelProperties ?? {}),
+        ...(modelProperties ?? {})
     }
 }

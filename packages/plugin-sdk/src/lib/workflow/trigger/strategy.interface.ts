@@ -30,14 +30,14 @@ export interface IWorkflowTriggerStrategy<T> {
 
   /**
    * Initialize the trigger when publish xpert workflow
-   * 
-   * @param payload 
-   * @param callback 
+   *
+   * @param payload
+   * @param callback
    */
-  publish(payload: TWorkflowTriggerParams<T>, callback: (payload: any) => void): Promise<any> | void
+  publish(payload: TWorkflowTriggerParams<T>, callback: (payload: any) => Promise<void> | void): Promise<any> | void
 
   /**
    * Stop the trigger
    */
-  stop(payload: TWorkflowTriggerParams<T>): void;
+  stop(payload: TWorkflowTriggerParams<T>): void
 }

@@ -1,18 +1,18 @@
-import { getEnvironmentVariable } from "@langchain/core/utils/env";
-import { StructuredTool } from "@langchain/core/tools";
+import { getEnvironmentVariable } from '@langchain/core/utils/env'
+import { StructuredTool } from '@langchain/core/tools'
 import z from 'zod'
 
-type ZodObjectAny = z.ZodObject<any, any, any, any>;
+type ZodObjectAny = z.ZodObject<any, any, any, any>
 
-type JSONPrimitive = string | number | boolean | null;
-type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+type JSONPrimitive = string | number | boolean | null
+type JSONValue = JSONPrimitive | JSONObject | JSONArray
 interface JSONObject {
-  [key: string]: JSONValue;
+    [key: string]: JSONValue
 }
 interface JSONArray extends Array<JSONValue> {}
 
 function isJSONObject(value: JSONValue): value is JSONObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 /**
@@ -27,8 +27,8 @@ function isJSONObject(value: JSONValue): value is JSONObject {
  *
  */
 export type SearchApiParameters = {
-  [key: string]: JSONValue;
-};
+    [key: string]: JSONValue
+}
 
 /**
  * SearchApi Class Definition.
@@ -47,7 +47,7 @@ export type SearchApiParameters = {
  *     ["ai", "Answer the following questions using a bulleted list markdown format.""],
  *     ["human", "{input}"],
  *   ]),
- *   new ChatOpenAI({ temperature: 0 }),
+ *   createChatModel(),
  *   (input: BaseMessageChunk) => ({
  *     log: "test",
  *     returnValues: {
@@ -66,148 +66,134 @@ export type SearchApiParameters = {
  * ```
  */
 export class SearchApi extends StructuredTool {
-  
-  static lc_name() {
-    return "google_search_api";
-  }
-
-  /**
-   * Converts the SearchApi instance to JSON. This method is not implemented
-   * and will throw an error if called.
-   * @returns Throws an error.
-   */
-  toJSON() {
-    return this.toJSONNotImplemented();
-  }
-
-  protected apiKey: string;
-
-  protected params: Partial<SearchApiParameters>;
-  schema: ZodObjectAny | z.ZodEffects<ZodObjectAny, any, { [x: string]: any; }>;
-
-  constructor(
-    apiKey: string | undefined = getEnvironmentVariable("SEARCHAPI_API_KEY"),
-    params: Partial<SearchApiParameters> = {}
-  ) {
-    super()
-
-    if (!apiKey) {
-      throw new Error(
-        "SearchApi requires an API key. Please set it as SEARCHAPI_API_KEY in your .env file, or pass it as a parameter to the SearchApi constructor."
-      );
+    static lc_name() {
+        return 'google_search_api'
     }
 
-    this.apiKey = apiKey;
-    this.params = params;
-    this.schema = z.object({
-      query: z.string().describe(`Defines the search query you want to search`),
-      engine: z.enum(['google', 'google_news']).optional().default('google').describe(`Search engine`)
-    })
-  }
-
-  name = "search";
-
-  /**
-   * Builds a URL for the SearchApi request.
-   * @param parameters The parameters for the request.
-   * @returns A string representing the built URL.
-   */
-  protected buildUrl(searchQuery: string, engine?: string): string {
-    const preparedParams: [string, string][] = Object.entries({
-      engine: engine ?? "google",
-      api_key: this.apiKey,
-      ...this.params,
-      q: searchQuery,
-    })
-      .filter(
-        ([key, value]) =>
-          value !== undefined && value !== null && key !== "apiKey"
-      )
-      .map(([key, value]) => [key, `${value}`]);
-
-    const searchParams = new URLSearchParams(preparedParams);
-    return `https://www.searchapi.io/api/v1/search?${searchParams}`;
-  }
-
-  /** @ignore */
-  /**
-   * Calls the SearchAPI.
-   *
-   * Accepts an input query and fetches the result from SearchApi.
-   *
-   * @param {string} input - Search query.
-   * @returns {string} - Formatted search results or an error message.
-   *
-   * NOTE: This method is the core search handler and processes various types
-   * of search results including Google organic results, videos, jobs, and images.
-   */
-  async _call(params: {query: string; engine: string;}) {
-    const resp = await fetch(this.buildUrl(params.query, params.engine));
-
-    const json = await resp.json();
-
-    if (json.error) {
-      throw new Error(
-        `Failed to load search results from SearchApi due to: ${json.error}`
-      );
+    /**
+     * Converts the SearchApi instance to JSON. This method is not implemented
+     * and will throw an error if called.
+     * @returns Throws an error.
+     */
+    toJSON() {
+        return this.toJSONNotImplemented()
     }
 
-    // Google Search results
-    if (json.answer_box?.answer) {
-      return json.answer_box.answer;
+    protected apiKey: string
+
+    protected params: Partial<SearchApiParameters>
+    schema: ZodObjectAny | z.ZodEffects<ZodObjectAny, any, { [x: string]: any }>
+
+    constructor(
+        apiKey: string | undefined = getEnvironmentVariable('SEARCHAPI_API_KEY'),
+        params: Partial<SearchApiParameters> = {}
+    ) {
+        super()
+
+        if (!apiKey) {
+            throw new Error(
+                'SearchApi requires an API key. Please set it as SEARCHAPI_API_KEY in your .env file, or pass it as a parameter to the SearchApi constructor.'
+            )
+        }
+
+        this.apiKey = apiKey
+        this.params = params
+        this.schema = z.object({
+            query: z.string().describe(`Defines the search query you want to search`),
+            engine: z.enum(['google', 'google_news']).optional().default('google').describe(`Search engine`)
+        })
     }
 
-    if (json.answer_box?.snippet) {
-      return json.answer_box.snippet;
+    name = 'search'
+
+    /**
+     * Builds a URL for the SearchApi request.
+     * @param parameters The parameters for the request.
+     * @returns A string representing the built URL.
+     */
+    protected buildUrl(searchQuery: string, engine?: string): string {
+        const preparedParams: [string, string][] = Object.entries({
+            engine: engine ?? 'google',
+            api_key: this.apiKey,
+            ...this.params,
+            q: searchQuery
+        })
+            .filter(([key, value]) => value !== undefined && value !== null && key !== 'apiKey')
+            .map(([key, value]) => [key, `${value}`])
+
+        const searchParams = new URLSearchParams(preparedParams)
+        return `https://www.searchapi.io/api/v1/search?${searchParams}`
     }
 
-    if (json.knowledge_graph?.description) {
-      return json.knowledge_graph.description;
+    /** @ignore */
+    /**
+     * Calls the SearchAPI.
+     *
+     * Accepts an input query and fetches the result from SearchApi.
+     *
+     * @param {string} input - Search query.
+     * @returns {string} - Formatted search results or an error message.
+     *
+     * NOTE: This method is the core search handler and processes various types
+     * of search results including Google organic results, videos, jobs, and images.
+     */
+    async _call(params: { query: string; engine: string }) {
+        const resp = await fetch(this.buildUrl(params.query, params.engine))
+
+        const json = await resp.json()
+
+        if (json.error) {
+            throw new Error(`Failed to load search results from SearchApi due to: ${json.error}`)
+        }
+
+        // Google Search results
+        if (json.answer_box?.answer) {
+            return json.answer_box.answer
+        }
+
+        if (json.answer_box?.snippet) {
+            return json.answer_box.snippet
+        }
+
+        if (json.knowledge_graph?.description) {
+            return json.knowledge_graph.description
+        }
+
+        // Organic results (Google, Google News)
+        if (json.organic_results) {
+            const snippets = json.organic_results.filter((r: JSONObject) => r.snippet).map((r: JSONObject) => r.snippet)
+            return snippets.join('\n')
+        }
+
+        // Google Jobs results
+        if (json.jobs) {
+            const jobDescriptions = json.jobs
+                .slice(0, 1)
+                .filter((r: JSONObject) => r.description)
+                .map((r: JSONObject) => r.description)
+            return jobDescriptions.join('\n')
+        }
+
+        // Google Videos results
+        if (json.videos) {
+            const videoInfo = json.videos
+                .filter((r: JSONObject) => r.title && r.link)
+                .map((r: JSONObject) => `Title: "${r.title}" Link: ${r.link}`)
+            return videoInfo.join('\n')
+        }
+
+        // Google Images results
+        if (json.images) {
+            const image_results = json.images.slice(0, 15)
+            const imageInfo = image_results
+                .filter((r: JSONObject) => r.title && r.original && isJSONObject(r.original) && r.original.link)
+                .map((r: JSONObject) => `Title: "${r.title}" Link: ${(r.original as JSONObject).link}`)
+            return imageInfo.join('\n')
+        }
+
+        return 'No good search result found'
     }
 
-    // Organic results (Google, Google News)
-    if (json.organic_results) {
-      const snippets = json.organic_results
-        .filter((r: JSONObject) => r.snippet)
-        .map((r: JSONObject) => r.snippet);
-      return snippets.join("\n");
-    }
-
-    // Google Jobs results
-    if (json.jobs) {
-      const jobDescriptions = json.jobs
-        .slice(0, 1)
-        .filter((r: JSONObject) => r.description)
-        .map((r: JSONObject) => r.description);
-      return jobDescriptions.join("\n");
-    }
-
-    // Google Videos results
-    if (json.videos) {
-      const videoInfo = json.videos
-        .filter((r: JSONObject) => r.title && r.link)
-        .map((r: JSONObject) => `Title: "${r.title}" Link: ${r.link}`);
-      return videoInfo.join("\n");
-    }
-
-    // Google Images results
-    if (json.images) {
-      const image_results = json.images.slice(0, 15);
-      const imageInfo = image_results
-        .filter(
-          (r: JSONObject) =>
-            r.title && r.original && isJSONObject(r.original) && r.original.link
-        )
-        .map(
-          (r: JSONObject) =>
-            `Title: "${r.title}" Link: ${(r.original as JSONObject).link}`
-        );
-      return imageInfo.join("\n");
-    }
-
-    return "No good search result found";
-  }
-
-  description =
-    "a search engine. useful for when you need to answer questions about current events. input should be a search query.";
+    description =
+        'a search engine. useful for when you need to answer questions about current events. input should be a search query.'
 }

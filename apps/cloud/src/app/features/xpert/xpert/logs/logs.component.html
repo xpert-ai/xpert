@@ -176,6 +176,23 @@
                         {{ sourceLabelKey(conv.from) | translate: { Default: sourceDefaultLabel(conv.from) } }}
                       </z-badge>
                     }
+                    @case ('sourceIntegrationId') {
+                      <code class="block truncate text-xs text-text-secondary" [title]="conv.sourceIntegrationId || ''">
+                        {{ conv.sourceIntegrationId || '-' }}
+                      </code>
+                    }
+                    @case ('channelType') {
+                      @if (conv.channelType) {
+                        <z-badge zType="outline">{{ conv.channelType }}</z-badge>
+                      } @else {
+                        <span class="text-text-tertiary">-</span>
+                      }
+                    }
+                    @case ('sourceMessageLogIds') {
+                      <code class="block truncate text-xs text-text-secondary" [title]="sourceMessageLogIdsText(conv)">
+                        {{ sourceMessageLogIdsText(conv) || '-' }}
+                      </code>
+                    }
                     @case ('fromEndUser') {
                       <div
                         class="min-w-0 truncate"

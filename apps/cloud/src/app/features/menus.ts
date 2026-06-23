@@ -227,7 +227,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
           pathMatch: 'prefix',
           data: {
             translationKey: 'Recent Chats',
-            activePathPrefixes: ['/chat/c']
+            activePathPrefixes: ['/chat/c'],
+            inactivePathPrefixes: ['/chat/tasks']
           }
         },
         {
@@ -393,8 +394,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings',
-        inactivePathPrefixes: ['/settings/copilot']
+        translationKey: 'Settings'
       }
     },
     {
@@ -423,7 +423,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'Model Providers',
       icon: 'psychology',
-      link: '/settings/copilot/basic',
+      link: '/copilot/basic',
       pathMatch: 'prefix',
       admin: true,
       scopeContext: 'dual-scope',
@@ -431,7 +431,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         translationKey: 'AI Copilot',
         featureKey: AiFeatureEnum.FEATURE_COPILOT,
         permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
-        activePathPrefixes: ['/settings/copilot']
+        activePathPrefixes: ['/copilot']
       }
     }
   ]

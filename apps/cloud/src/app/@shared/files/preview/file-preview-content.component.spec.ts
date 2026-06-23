@@ -108,6 +108,24 @@ jest.mock('./file-html-preview.component', () => {
   }
 })
 
+jest.mock('./file-docx-preview.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'pac-file-docx-preview',
+    template: '<div data-docx-preview="true"><h1>Executive summary</h1><p>Next steps</p></div>'
+  })
+  class FileDocxPreviewComponent {
+    @Input() documentBlob?: Blob | null
+    @Input() fileName?: string
+  }
+
+  return {
+    FileDocxPreviewComponent
+  }
+})
+
 describe('FilePreviewContentComponent', () => {
   const originalCreateObjectURL = URL.createObjectURL
   const originalRevokeObjectURL = URL.revokeObjectURL
@@ -141,15 +159,20 @@ describe('FilePreviewContentComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('renders extracted document previews', () => {
+  it('renders docx previews with the dedicated renderer', () => {
+    const documentBlob = new Blob(['docx'], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
     const fixture = TestBed.createComponent(FilePreviewContentComponent)
     fixture.componentRef.setInput('fileName', 'proposal.docx')
     fixture.componentRef.setInput('previewKind', 'document')
-    fixture.componentRef.setInput('documentHtml', '<h1>Executive summary</h1><p>Next steps</p>')
+    fixture.componentRef.setInput('documentBlob', documentBlob)
     fixture.detectChanges()
 
+    const docxPreview = fixture.debugElement.query(By.css('pac-file-docx-preview'))
+    expect(docxPreview).not.toBeNull()
+    expect(docxPreview.componentInstance.documentBlob).toBe(documentBlob)
     expect(fixture.nativeElement.textContent).toContain('Executive summary')
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Executive summary')
   })
 
   it('renders html previews through the dedicated html preview component and forwards events', () => {
@@ -199,7 +222,7 @@ describe('FilePreviewContentComponent', () => {
     fixture.componentRef.setInput('previewKind', 'document')
     fixture.componentRef.setInput('referenceable', true)
     fixture.componentRef.setInput('content', 'Executive summary\n\nNext steps')
-    fixture.componentRef.setInput('documentHtml', '<h1>Executive summary</h1><p>Next steps</p>')
+    fixture.componentRef.setInput('documentBlob', new Blob(['docx']))
     fixture.detectChanges()
 
     const host = fixture.nativeElement.querySelector('[data-file-preview-document-host="true"]') as HTMLElement

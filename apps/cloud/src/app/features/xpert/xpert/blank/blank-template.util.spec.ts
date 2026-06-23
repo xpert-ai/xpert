@@ -362,6 +362,19 @@ describe('blank template util', () => {
     expect(state.selections.skills).toEqual(['writer'])
     expect(state.selections.repositoryDefault).toBeNull()
     expect(state.selections.middlewares).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER, 'audit'])
+    expect(state.selections.middlewareRequired).toEqual({})
+  })
+
+  it('extracts middleware always-load overrides from agent templates', () => {
+    const draft = createAgentTemplateDraft()
+    const guardNode = draft.nodes.find((node) => node.key === 'Middleware_guard')
+    ;(guardNode!.entity as any).required = false
+
+    const state = extractAgentTemplateWizardState(draft)
+
+    expect(state.selections.middlewareRequired).toEqual({
+      guard: false
+    })
   })
 
   it('falls back to the primary agent model when the template team model is missing', () => {
@@ -453,6 +466,26 @@ describe('blank template util', () => {
     expect(result.nodes.some((node) => node.key === 'Answer_keep')).toBe(true)
     expect(result.nodes.some((node) => node.key === 'Middleware_audit')).toBe(false)
     expect(result.team.agent?.options?.middlewares?.order).toEqual(middlewareNodes.map((node) => node.key))
+  })
+
+  it('applies middleware always-load overrides back onto the template', () => {
+    const result = applyAgentTemplateWizardState(createAgentTemplateDraft(), {
+      skills: [],
+      repositoryDefault: null,
+      middlewares: ['guard', 'audit'],
+      middlewareRequired: {
+        guard: false
+      }
+    })
+
+    const middlewareNodes = result.nodes.filter(
+      (node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+    )
+    const guardNode = middlewareNodes.find((node) => (node.entity as any).provider === 'guard')
+    const auditNode = middlewareNodes.find((node) => (node.entity as any).provider === 'audit')
+
+    expect((guardNode?.entity as any).required).toBe(false)
+    expect((auditNode?.entity as any).required).toBe(true)
   })
 
   it('extracts and reapplies repository-backed default skill selections', () => {

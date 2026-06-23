@@ -18,7 +18,8 @@ import {
   RolesEnum,
   Store,
   ToastrService,
-  getErrorMessage
+  getErrorMessage,
+  normalizeApiBaseUrl
 } from '../../../@core'
 import { ASSISTANT_REGISTRY, type AssistantRegistryItem } from '../../assistant/assistant.registry'
 
@@ -397,11 +398,12 @@ function buildAssistantRuntimeApiUrl(baseUrl?: string | null) {
 }
 
 function normalizeAssistantBaseUrl(baseUrl?: string | null) {
-  if (!baseUrl) {
+  const apiBaseUrl = normalizeApiBaseUrl(baseUrl)
+  if (!apiBaseUrl) {
     return ''
   }
 
-  const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  const normalized = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl
   if (normalized.startsWith('http')) {
     return normalized
   }

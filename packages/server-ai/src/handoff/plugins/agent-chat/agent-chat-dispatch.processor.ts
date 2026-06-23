@@ -1,6 +1,8 @@
 import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Optional } from '@nestjs/common'
+import { ModuleRef } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
+import { ApiKeyBindingType, IApiKey, IApiPrincipal, IUser, RequestScopeLevel, UserType } from '@xpert-ai/contracts'
 import {
     HandoffMessage,
     HandoffProcessorStrategy,
@@ -16,8 +18,15 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import type { Observable } from 'rxjs'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
+import { XpertPrincipalService, XpertPrincipalTarget } from '../../../xpert/xpert-principal.service'
 import { HandoffQueueService } from '../../message-queue.service'
 import { AgentChatRealtimeService } from '../../agent-chat-realtime.service'
+import { normalizeChatSourceAuditOptions } from '../../../shared/agent/source-audit'
+
+type RuntimeRequestContext = {
+    user?: IApiPrincipal | { id: string; tenantId: string }
+    headers: Record<string, string>
+}
 
 @Injectable()
 @HandoffProcessorStrategy(AGENT_CHAT_DISPATCH_MESSAGE_TYPE, {
@@ -32,7 +41,9 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
     constructor(
         private readonly commandBus: CommandBus,
         private readonly handoffQueueService: HandoffQueueService,
-        private readonly agentChatRealtime: AgentChatRealtimeService
+        private readonly agentChatRealtime: AgentChatRealtimeService,
+        @Optional()
+        private readonly moduleRef?: ModuleRef
     ) {}
 
     async process(message: HandoffMessage<AgentChatDispatchPayload>, ctx: ProcessContext): Promise<ProcessResult> {
@@ -65,8 +76,16 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         )
         try {
             return await this.runTaskWithRequestContext(message, async () => {
+                const chatOptions = normalizeChatSourceAuditOptions({
+                    options: message.payload.options,
+                    headers: message.headers,
+                    callbackContext: message.payload.callback?.context,
+                    messageId: message.id,
+                    traceId: message.traceId,
+                    parentMessageId: message.parentMessageId
+                })
                 const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-                    new XpertChatCommand(request, options)
+                    new XpertChatCommand(request, chatOptions)
                 )
                 if (this.isRedisPubSubCallback(callback)) {
                     await this.forwardRealtimeEvents(message, callback, observable, ctx)
@@ -76,8 +95,16 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 return { status: 'ok' }
             })
         } catch (error) {
+            const reason = this.getErrorMessage(error)
             if (this.isRedisPubSubCallback(callback)) {
-                return this.deadResult(message, callback, this.getErrorMessage(error))
+                return this.deadResult(message, callback, reason)
+            }
+            if (this.isHandoffMessageCallback(callback)) {
+                await this.enqueueCallbackError(message, callback, reason)
+                return {
+                    status: 'dead',
+                    reason
+                }
             }
             throw error
         }
@@ -110,6 +137,22 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             error,
             context: callback.context
         })
+    }
+
+    private async enqueueCallbackError(
+        sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
+        callback: AgentChatHandoffMessageCallbackTarget,
+        error: string
+    ) {
+        await this.handoffQueueService.enqueue(
+            this.buildCallbackMessage(sourceMessage, callback, {
+                kind: 'error',
+                sourceMessageId: sourceMessage.id,
+                sequence: 1,
+                error,
+                context: callback.context
+            })
+        )
     }
 
     private async forwardStreamEvents(
@@ -336,11 +379,32 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         message: HandoffMessage<AgentChatDispatchPayload>,
         task: () => Promise<ProcessResult>
     ): Promise<ProcessResult> {
+        const runtimeContext = await this.resolveRuntimeRequestContext(message)
+        if (runtimeContext) {
+            return this.withRequestContext(runtimeContext, task)
+        }
+
+        return task()
+    }
+
+    private async resolveRuntimeRequestContext(
+        message: HandoffMessage<AgentChatDispatchPayload>
+    ): Promise<RuntimeRequestContext | null> {
+        const runtimePrincipal = message.payload?.options?.runtimePrincipal as
+            | { type?: unknown; xpertId?: unknown }
+            | undefined
+        if (runtimePrincipal) {
+            if (runtimePrincipal.type !== 'assistant') {
+                throw new Error(`Unsupported agent chat runtime principal: ${String(runtimePrincipal.type)}`)
+            }
+            return this.resolveAssistantRuntimeContext(message)
+        }
+
         const userId = this.toNonEmptyString(message.headers?.userId)
         const organizationId = this.toNonEmptyString(message.headers?.organizationId)
         const language = this.toNonEmptyString(message.headers?.language)
         if (!userId && !organizationId && !language) {
-            return task()
+            return null
         }
 
         const headers: Record<string, string> = {
@@ -355,18 +419,118 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
               }
             : undefined
 
+        return {
+            user,
+            headers
+        }
+    }
+
+    private async resolveAssistantRuntimeContext(
+        message: HandoffMessage<AgentChatDispatchPayload>
+    ): Promise<RuntimeRequestContext> {
+        const payloadXpertId = this.toNonEmptyString(message.payload?.options?.xpertId)
+        const runtimePrincipal = message.payload?.options?.runtimePrincipal as { xpertId?: unknown } | undefined
+        const principalXpertId = this.toNonEmptyString(runtimePrincipal?.xpertId) ?? payloadXpertId
+        if (!principalXpertId) {
+            throw new Error('Missing xpertId for assistant runtime principal')
+        }
+        if (payloadXpertId && principalXpertId !== payloadXpertId) {
+            throw new Error('Assistant runtime principal xpertId must match dispatch xpertId')
+        }
+
+        const principalService = this.resolveXpertPrincipalService()
+        if (!principalService) {
+            throw new Error('Xpert principal service is not available for assistant runtime principal')
+        }
+
+        const { xpert, user } = await principalService.ensurePrincipalUserByXpertId({
+            xpertId: principalXpertId,
+            tenantId: message.tenantId
+        })
+        const tenantId = this.toNonEmptyString(xpert.tenantId) ?? message.tenantId
+        if (tenantId !== message.tenantId) {
+            throw new Error('Assistant runtime principal tenantId must match handoff message tenantId')
+        }
+
+        const organizationId = this.toNonEmptyString(xpert.organizationId)
+        const language =
+            this.toNonEmptyString(message.headers?.language) ?? this.toNonEmptyString(user.preferredLanguage)
+        const headers: Record<string, string> = {
+            ['tenant-id']: tenantId,
+            ['x-scope-level']: organizationId ? RequestScopeLevel.ORGANIZATION : RequestScopeLevel.TENANT,
+            ...(organizationId ? { ['organization-id']: organizationId } : {}),
+            ...(language ? { language } : {})
+        }
+
+        return {
+            user: this.buildAssistantApiPrincipal({
+                xpertId: principalXpertId,
+                xpert,
+                user,
+                tenantId,
+                organizationId
+            }),
+            headers
+        }
+    }
+
+    private buildAssistantApiPrincipal(input: {
+        xpertId: string
+        xpert: XpertPrincipalTarget
+        user: IUser
+        tenantId: string
+        organizationId?: string
+    }): IApiPrincipal {
+        const apiKey: IApiKey = {
+            token: `internal:assistant-runtime:${input.xpertId}`,
+            name: `assistant-runtime:${input.xpertId}`,
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: input.xpertId,
+            tenantId: input.tenantId,
+            organizationId: input.organizationId ?? null,
+            createdById: input.xpert.createdById ?? undefined,
+            userId: input.user.id,
+            user: input.user
+        }
+
+        return {
+            ...input.user,
+            id: input.user.id,
+            tenantId: input.tenantId,
+            type: input.user.type ?? UserType.COMMUNICATION,
+            apiKey,
+            ownerUserId: input.xpert.createdById ?? null,
+            apiKeyUserId: input.user.id,
+            requestedUserId: null,
+            requestedOrganizationId: input.organizationId ?? null,
+            principalType: 'api_key'
+        }
+    }
+
+    private resolveXpertPrincipalService(): XpertPrincipalService | null {
+        try {
+            return this.moduleRef?.get(XpertPrincipalService, { strict: false }) ?? null
+        } catch {
+            return null
+        }
+    }
+
+    private async withRequestContext(
+        context: RuntimeRequestContext,
+        task: () => Promise<ProcessResult>
+    ): Promise<ProcessResult> {
         return new Promise<ProcessResult>((resolve, reject) => {
             runWithRequestContext(
                 {
-                    user,
-                    headers
+                    user: context.user,
+                    headers: context.headers
                 },
                 {},
                 () => {
                     _runWithRequestContext(
                         {
-                            user,
-                            headers
+                            user: context.user,
+                            headers: context.headers
                         },
                         () => {
                             task().then(resolve).catch(reject)
@@ -385,6 +549,14 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         callback: AgentChatCallbackTarget | undefined
     ): callback is Extract<AgentChatCallbackTarget, { transport: 'redis-pubsub' }> {
         return callback?.transport === 'redis-pubsub'
+    }
+
+    private isHandoffMessageCallback(
+        callback: AgentChatCallbackTarget | undefined
+    ): callback is AgentChatHandoffMessageCallbackTarget {
+        return (
+            !!callback && callback.transport !== 'redis-pubsub' && 'messageType' in callback && !!callback.messageType
+        )
     }
 
     private getErrorMessage(error: unknown): string {

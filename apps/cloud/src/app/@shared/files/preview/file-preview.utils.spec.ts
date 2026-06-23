@@ -5,10 +5,6 @@ import {
   toFilePreviewSource
 } from './file-preview.utils'
 
-jest.mock('mammoth', () => ({
-  convertToHtml: jest.fn()
-}))
-
 describe('shared file preview utils', () => {
   const originalFetch = global.fetch
 
@@ -48,27 +44,17 @@ describe('shared file preview utils', () => {
     ).toBe('spreadsheet')
   })
 
-  it('loads docx rich preview html from the browser preview url', async () => {
-    const { convertToHtml } = await import('mammoth')
+  it('loads docx preview blobs from the browser preview url', async () => {
+    const blob = new Blob(['docx'], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(16))
+      blob: jest.fn().mockResolvedValue(blob)
     } as Response)
-    ;(convertToHtml as jest.Mock).mockResolvedValue({
-      value: '<h1>Executive summary</h1><p>Next steps</p>'
-    })
 
-    await expect(loadDocumentPreview('/api/files/proposal.docx')).resolves.toContain('Executive summary')
+    await expect(loadDocumentPreview('/api/files/proposal.docx')).resolves.toBe(blob)
     expect(global.fetch).toHaveBeenCalledWith('/api/files/proposal.docx')
-    expect(convertToHtml).toHaveBeenCalledWith(
-      expect.objectContaining({
-        arrayBuffer: expect.any(ArrayBuffer)
-      }),
-      expect.objectContaining({
-        idPrefix: 'xp-docx-',
-        ignoreEmptyParagraphs: false
-      })
-    )
   })
 
   it('loads xlsx previews as a raw spreadsheet grid so template files remain previewable', async () => {

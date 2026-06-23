@@ -80,7 +80,10 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
         return items
     }
 
-    async publish(payload: TWorkflowTriggerParams<TScheduleTriggerConfig>, callback: (payload: any) => void) {
+    async publish(
+        payload: TWorkflowTriggerParams<TScheduleTriggerConfig>,
+        callback: (payload: any) => Promise<void> | void
+    ) {
         const config = payload.config
         const xpertId = payload.xpertId
         const agentKey = payload.agentKey
@@ -98,15 +101,21 @@ export class ScheduleTriggerStrategy implements IWorkflowTriggerStrategy<TSchedu
         if (config.enabled) {
             const job = new CronJob(config.cron, () => {
                 if (callback) {
-                    callback({
-                        xpertId,
-                        agentKey,
-                        from: ScheduleTrigger,
-                        state: {
-                            [STATE_VARIABLE_HUMAN]: {
-                                input: config.task
+                    Promise.resolve(
+                        callback({
+                            xpertId,
+                            agentKey,
+                            from: 'job',
+                            state: {
+                                [STATE_VARIABLE_HUMAN]: {
+                                    input: config.task
+                                }
                             }
-                        }
+                        })
+                    ).catch((error) => {
+                        this.#logger.error(
+                            `Scheduled job '${jobName}' callback failed: ${(error as Error)?.message ?? error}`
+                        )
                     })
                 }
             })

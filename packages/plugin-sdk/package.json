@@ -16,6 +16,7 @@
     "directory": "dist"
   },
   "dependencies": {
+    "@langchain/openai": "0.6.9",
     "@xpert-ai/contracts": "workspace:*",
     "js-tiktoken": "^1.0.21"
   },

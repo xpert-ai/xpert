@@ -2,3 +2,7 @@
 :host {
   @apply relative flex min-h-0 w-full flex-col overflow-hidden;
 }
+
+.pac-integration-detail-panel {
+  @apply min-h-0 overflow-hidden;
+}

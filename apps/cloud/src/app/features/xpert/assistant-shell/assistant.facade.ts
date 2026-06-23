@@ -4,8 +4,10 @@ import { NavigationEnd, Router } from '@angular/router'
 import { injectWorkspace } from '@xpert-ai/cloud/state'
 import { ChatKitPetOptions } from '@xpert-ai/chatkit-types'
 import { AssistantCode, XpertAPIService } from '../../../@core'
+import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { distinctUntilChanged, EMPTY, filter, map, startWith, switchMap } from 'rxjs'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
+import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import {
   type ChatKitEffectEvent,
   type ChatKitPromptWorkflowEffect,
@@ -66,6 +68,7 @@ export class XpertAssistantFacade {
   readonly #router = inject(Router)
   readonly #xpertService = inject(XpertAPIService)
   readonly #selectedWorkspace = injectWorkspace()
+  readonly #hostEvents = inject(ViewHostEventBus)
 
   readonly assistantCode = signal(AssistantCode.XPERT_SHARED)
 
@@ -214,6 +217,15 @@ export class XpertAssistantFacade {
   }
 
   handleEffect(event: ChatKitEffectEvent) {
+    const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
+      hostType: 'agent',
+      hostId: this.context().xpertId
+    })
+    if (citationEvent) {
+      this.#hostEvents.publish(citationEvent)
+      return
+    }
+
     switch (event.name) {
       case 'navigate_to_studio': {
         const xpertId = getChatKitEffectXpertId(event)

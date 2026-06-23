@@ -159,6 +159,41 @@ Operational rules:
 - do not add `PluginWebhookAuthGuard` as a global bootstrap guard; attach it to webhook routes with `@UseGuards()`
 - if the external system supports signed headers, a plugin may add provider-specific signature checks after this guard, but the Xpert principal should still come from the scoped webhook credential
 
+## Webhook to Background Agent Runtime Identity
+
+The principal resolved by `PluginWebhookAuthGuard` is the communication technical identity for the current Integration. It is used for inbound authentication, tenant/organization context, and channel audit. It is not the executor for background Agent runs.
+
+When a plugin dispatches an Agent from a webhook, long connection, or external message callback, it should convert the event into an `agent.chat_dispatch.v1` handoff message and declare the target Assistant technical account in `payload.options.runtimePrincipal`:
+
+```ts
+options: {
+  xpertId,
+  from: '<chat-source>',
+  fromEndUserId: '<external-user-id>',
+  runtimePrincipal: {
+    type: 'assistant',
+    xpertId,
+    sourceIntegrationId: integrationId
+  },
+  integrationId,
+  channelType: '<plugin-provider>',
+  channelUserId: '<external-user-id>'
+}
+```
+
+When the host receives `runtimePrincipal.type = 'assistant'`, it uses `XpertPrincipalService` to ensure the target `xpert.userId` exists and runs the Agent as an internal `assistant` API principal. That principal has `apiKey.entityId = xpertId`, `apiKey.userId = xpert.userId`, and `requestedOrganizationId` from the target Xpert's actual organization scope.
+
+Plugins should also put channel audit fields in `options`, such as `integrationId`, `channelType`, `channelUserId`, and `sourceMessageLogIds`. The host persists these fields together with `runtimePrincipal.sourceIntegrationId` and the handoff trace into the root `xpert_agent_execution.metadata`, so Agent logs or run APIs can answer which Integration triggered a run.
+
+Keep the identity boundaries explicit:
+
+- `integration.userId`: Integration/webhook/API communication identity for inbound auth and channel audit
+- `xpert.userId`: Assistant/Agent background runtime identity for unattended Agent execution
+- external sender / end user: `fromEndUserId`, `channelUserId`, message context, or business metadata only
+- `trigger binding.createdById`, `integration.createdById`, and `integration.updatedById`: configuration audit fields, not inferred background Agent executors
+
+Only legacy flows that are explicitly initiated by a logged-in platform user should continue to use the `headers.userId` fallback. Plugin webhook and integration inbound flows should not write a human config owner, Integration technical account, or external channel user as the Agent executor.
+
 ## Plugin configuration support
 
 If a plugin needs user-managed configuration:

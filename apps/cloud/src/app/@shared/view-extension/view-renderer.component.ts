@@ -119,6 +119,9 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
           }
           @case ('remote_component') {
             <xp-remote-component-renderer
+              class="block overflow-hidden"
+              [class.min-h-0]="fillAvailableHeight()"
+              [class.flex-1]="fillAvailableHeight()"
               [hostType]="hostType()"
               [hostId]="hostId()"
               [manifest]="manifest()"

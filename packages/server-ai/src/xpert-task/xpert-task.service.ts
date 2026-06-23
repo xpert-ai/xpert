@@ -2197,7 +2197,12 @@ async function discoverScheduleStateSchemaFromGraph(
                     runtime: {}
                 } as any)
             )
-            const schema = pickScheduleTaskPropertiesSchema(normalizeJsonSchema(middleware.stateSchema))
+            const schema = pickScheduleTaskPropertiesSchema(
+                mergeStateSchemas(
+                    normalizeJsonSchema(middleware.stateSchema),
+                    normalizeJsonSchema(middleware.stateFormSchema)
+                )
+            )
             if (schema) {
                 schemas.push(schema)
             }
@@ -2287,7 +2292,10 @@ function mergeStateSchemas(...schemas: Array<JsonSchemaObjectType | null | undef
             continue
         }
         for (const [key, property] of Object.entries(schema.properties)) {
-            properties[key] = property
+            properties[key] = mergeJsonSchemaValue(
+                properties[key],
+                property
+            ) as JsonSchemaObjectType['properties'][string]
         }
         for (const key of schema.required ?? []) {
             required.add(key)
@@ -2301,6 +2309,20 @@ function mergeStateSchemas(...schemas: Array<JsonSchemaObjectType | null | undef
               ...(required.size ? { required: Array.from(required) } : {})
           }
         : null
+}
+
+function mergeJsonSchemaValue(base: unknown, override: unknown): unknown {
+    if (!isObject(base) || !isObject(override)) {
+        return override ?? base
+    }
+
+    const result: Record<string, unknown> = { ...(base as Record<string, unknown>) }
+    for (const [key, value] of Object.entries(override as Record<string, unknown>)) {
+        const existing = result[key]
+        result[key] = isObject(existing) && isObject(value) ? mergeJsonSchemaValue(existing, value) : value
+    }
+
+    return result
 }
 
 function applyScheduleStateSchemaTitles(schema: JsonSchemaObjectType): JsonSchemaObjectType {

@@ -159,6 +159,41 @@ export class MyProviderPlugin {}
 - 不要把 `PluginWebhookAuthGuard` 加成全局 bootstrap guard，应通过 `@UseGuards()` 只挂到 webhook route 上
 - 如果外部系统支持签名 header，插件可以在该 guard 之后再做 provider-specific 签名校验，但 Xpert principal 仍应来自 scoped webhook credential
 
+## Webhook 到后台 Agent 的运行身份
+
+`PluginWebhookAuthGuard` 解析出的 principal 是当前 Integration 的通信技术主体，用于入站鉴权、租户/组织上下文和通道审计。它不等同于后台 Agent 的执行身份。
+
+插件在 webhook、长连接或外部消息回调中派发 Agent 时，应把外部事件转换成 `agent.chat_dispatch.v1` handoff message，并在 `payload.options.runtimePrincipal` 中声明目标 Assistant 技术账号：
+
+```ts
+options: {
+  xpertId,
+  from: '<chat-source>',
+  fromEndUserId: '<external-user-id>',
+  runtimePrincipal: {
+    type: 'assistant',
+    xpertId,
+    sourceIntegrationId: integrationId
+  },
+  integrationId,
+  channelType: '<plugin-provider>',
+  channelUserId: '<external-user-id>'
+}
+```
+
+宿主收到 `runtimePrincipal.type = 'assistant'` 后，会用 `XpertPrincipalService` 确保目标 `xpert.userId` 存在，并以内置 `assistant` API principal 执行 Agent。这个 principal 的 `apiKey.entityId` 是 `xpertId`，`apiKey.userId` 是 `xpert.userId`，`requestedOrganizationId` 来自目标 Xpert 的真实组织 scope。
+
+插件还应把通道审计字段放在 `options` 中，例如 `integrationId`、`channelType`、`channelUserId`、`sourceMessageLogIds`。宿主会把这些字段连同 `runtimePrincipal.sourceIntegrationId` 和 handoff trace 写入 root `xpert_agent_execution.metadata`，用于在 Agent 日志或 run API 中反查“这次执行由哪个 Integration 触发”。
+
+身份边界应保持清晰：
+
+- `integration.userId`：Integration/webhook/API 通信主体，只负责入站鉴权和通道审计
+- `xpert.userId`：Assistant/Agent 后台运行主体，用于无人值守触发的 Agent 执行
+- 外部 sender / end user：只作为 `fromEndUserId`、`channelUserId`、消息上下文或业务 metadata
+- `trigger binding.createdById`、`integration.createdById`、`integration.updatedById`：配置审计字段，不应被推断为后台 Agent executor
+
+只有明确由平台登录用户发起、并且调用方显式传入用户的旧流程，才继续使用 `headers.userId` legacy fallback。插件 webhook 和 integration inbound 场景不应把人类配置者、Integration 技术账号或外部渠道用户写成 Agent 执行用户。
+
 ## 插件配置支持
 
 如果插件需要用户可管理配置：

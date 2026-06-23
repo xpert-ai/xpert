@@ -6,15 +6,15 @@ import { ExtensionHostOutletComponent } from 'apps/cloud/src/app/@shared/view-ex
   selector: 'pac-settings-integration-extension-view',
   imports: [ExtensionHostOutletComponent],
   template: `
-    <div class="p-4">
-      <xp-extension-host-outlet
-        mode="single-view"
-        hostType="integration"
-        [hostId]="hostId()"
-        slot="detail.main_tabs"
-        [viewKey]="viewKey()"
-      />
-    </div>
+    <xp-extension-host-outlet
+      class="block h-full min-h-0 overflow-hidden"
+      mode="single-view"
+      hostType="integration"
+      [hostId]="hostId()"
+      slot="detail.main_tabs"
+      [viewKey]="viewKey()"
+      [fillAvailableHeight]="true"
+    />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

@@ -76,6 +76,7 @@ describe('getFeatureMenus', () => {
     expect(chat?.expanded).toBe(true)
     expect(chat?.children?.map((item) => item.link)).toEqual(['/chat', '/chat/tasks'])
     expect(chat?.children?.map((item) => item.title)).toEqual(['最近会话', '任务'])
+    expect(chat?.children?.[0]?.data?.inactivePathPrefixes).toEqual(['/chat/tasks'])
   })
 
   it('adds MCP Monitor beside Plugins for super admins', () => {
@@ -97,8 +98,7 @@ describe('getFeatureMenus', () => {
 
   it('promotes model providers to the management menu with the original copilot gate', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
-    const modelProviders = menus.find((item) => item.link === '/settings/copilot/basic')
-    const settings = menus.find((item) => item.link === '/settings')
+    const modelProviders = menus.find((item) => item.link === '/copilot/basic')
 
     expect(modelProviders).toMatchObject({
       title: 'Model Providers',
@@ -110,8 +110,7 @@ describe('getFeatureMenus', () => {
     expect(modelProviders?.data?.translationKey).toBe('AI Copilot')
     expect(modelProviders?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_COPILOT)
     expect(modelProviders?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
-    expect(modelProviders?.data?.activePathPrefixes).toEqual(['/settings/copilot'])
-    expect(settings?.data?.inactivePathPrefixes).toEqual(['/settings/copilot'])
+    expect(modelProviders?.data?.activePathPrefixes).toEqual(['/copilot'])
   })
 
   it('points the Data parent menu at the first visible child menu', () => {

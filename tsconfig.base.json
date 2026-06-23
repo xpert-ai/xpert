@@ -48,6 +48,7 @@
       "@xpert-ai/server-common": ["packages/common/src/index.ts"],
       "@xpert-ai/server-config": ["packages/config/src/index.ts"],
       "@xpert-ai/server-core": ["packages/server/src/index.ts"],
+      "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
       "@xpert-ai/store": ["packages/store/src/index.ts"],
       "@xpert-ai/story": ["libs/story-angular/src/index.ts"],
       "@xpert-ai/story/*": ["libs/story-angular/*/index.ts", "libs/story-angular/*"],

@@ -24,7 +24,6 @@ import {
     START,
     StateGraph
 } from '@langchain/langgraph'
-import { ChatOpenAI } from '@langchain/openai'
 import {
     agentLabel,
     agentUniqueName,
@@ -2078,8 +2077,11 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
     let structuredChatModel = null
     let jsonSchema: string = null
     if (withTools.length) {
-        if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
-            structuredChatModel = chatModel.bindTools(withTools, { parallel_tool_calls: false })
+        if (agent.options?.parallelToolCalls === false && supportsParallelToolCallsParam(chatModel)) {
+            const bindOptions = { parallel_tool_calls: false } as Parameters<BaseChatModel['bindTools']>[1] & {
+                parallel_tool_calls: false
+            }
+            structuredChatModel = chatModel.bindTools(withTools, bindOptions)
         } else {
             structuredChatModel = chatModel.bindTools(withTools)
         }
@@ -2100,6 +2102,14 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
         structuredChatModel,
         jsonSchema
     }
+}
+
+function supportsParallelToolCallsParam(chatModel: BaseChatModel) {
+    return getChatModelName(chatModel) === 'ChatOpenAI'
+}
+
+function getChatModelName(chatModel: BaseChatModel) {
+    return (chatModel as { lc_name?: () => string }).lc_name?.() || chatModel.constructor?.name
 }
 
 function stringifyStructuredResponse(response: unknown) {

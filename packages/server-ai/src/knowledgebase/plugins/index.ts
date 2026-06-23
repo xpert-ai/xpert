@@ -12,6 +12,7 @@ export * from './local-files.strategy'
 export * from './source/index'
 export * from './knowledgebase/index'
 export * from './chunker/index'
+export * from './knowledge-workbench'
 
 export const Validators = [
     WorkflowSourceNodeValidator,

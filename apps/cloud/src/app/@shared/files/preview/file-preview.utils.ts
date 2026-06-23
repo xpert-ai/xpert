@@ -50,7 +50,7 @@ export type SpreadsheetPreview = {
 
 export type FilePreviewData = {
   content: string | null
-  documentHtml: string | null
+  documentBlob: Blob | null
   error: string | null
   spreadsheet: SpreadsheetPreview | null
 }
@@ -83,7 +83,7 @@ const TEXT_MIME_TYPES = new Set(['application/markdown', 'text/markdown', 'text/
 export function createEmptyFilePreviewData(): FilePreviewData {
   return {
     content: null,
-    documentHtml: null,
+    documentBlob: null,
     error: null,
     spreadsheet: null
   }
@@ -187,28 +187,13 @@ export async function loadSpreadsheetPreview(
   }
 }
 
-export async function loadDocumentPreview(url: string): Promise<string> {
+export async function loadDocumentPreview(url: string): Promise<Blob> {
   const response = await fetch(url)
   if (!response.ok) {
     throw new Error(`Failed to fetch document preview: ${response.status}`)
   }
 
-  const arrayBuffer = await response.arrayBuffer()
-  const mammoth = await import('mammoth')
-  const result = await mammoth.convertToHtml(
-    { arrayBuffer },
-    {
-      idPrefix: 'xp-docx-',
-      ignoreEmptyParagraphs: false
-    }
-  )
-
-  const html = normalizeDocumentPreviewHtml(result.value)
-  if (!html) {
-    throw new Error('Failed to generate document preview')
-  }
-
-  return html
+  return response.blob()
 }
 
 export function createFilePreviewState(
@@ -240,7 +225,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: currentSource.contents,
-          documentHtml: null,
+          documentBlob: null,
           error: null,
           spreadsheet: null
         })
@@ -251,7 +236,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: null,
-          documentHtml: null,
+          documentBlob: null,
           error: 'missing-url',
           spreadsheet: null
         })
@@ -267,7 +252,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content,
-            documentHtml: null,
+            documentBlob: null,
             error: null,
             spreadsheet: null
           })
@@ -280,7 +265,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
-            documentHtml: null,
+            documentBlob: null,
             error: 'load-failed',
             spreadsheet: null
           })
@@ -294,7 +279,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: currentSource.contents,
-          documentHtml: null,
+          documentBlob: null,
           error: currentSource.contents !== null ? null : 'missing-preview-content',
           spreadsheet: null
         })
@@ -303,14 +288,14 @@ export function createFilePreviewState(
 
       previewLoading.set(true)
       void loadDocumentPreview(currentSource.url)
-        .then((documentHtml) => {
+        .then((documentBlob) => {
           if (!active) {
             return
           }
 
           previewData.set({
             content: currentSource.contents,
-            documentHtml,
+            documentBlob,
             error: null,
             spreadsheet: null
           })
@@ -323,7 +308,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: currentSource.contents,
-            documentHtml: null,
+            documentBlob: null,
             error: currentSource.contents !== null ? null : 'load-failed',
             spreadsheet: null
           })
@@ -336,7 +321,7 @@ export function createFilePreviewState(
       previewLoading.set(false)
       previewData.set({
         content: currentSource.contents,
-        documentHtml: null,
+        documentBlob: null,
         error: currentSource.contents !== null ? null : 'missing-preview-content',
         spreadsheet: null
       })
@@ -348,7 +333,7 @@ export function createFilePreviewState(
         previewLoading.set(false)
         previewData.set({
           content: null,
-          documentHtml: null,
+          documentBlob: null,
           error: 'missing-url',
           spreadsheet: null
         })
@@ -364,7 +349,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
-            documentHtml: null,
+            documentBlob: null,
             error: null,
             spreadsheet
           })
@@ -377,7 +362,7 @@ export function createFilePreviewState(
 
           previewData.set({
             content: null,
-            documentHtml: null,
+            documentBlob: null,
             error: 'load-failed',
             spreadsheet: null
           })
@@ -478,11 +463,6 @@ function normalizeMimeType(value?: string | null) {
 }
 
 function normalizeUrl(value?: string | null) {
-  const normalized = value?.trim()
-  return normalized || null
-}
-
-function normalizeDocumentPreviewHtml(value?: string | null) {
   const normalized = value?.trim()
   return normalized || null
 }

@@ -19,6 +19,7 @@ import { instanceToPlain } from 'class-transformer'
 import { omit } from 'lodash'
 import z from 'zod'
 import { DocumentChunkDTO } from '../knowledge-document/dto'
+import { formatKnowledgebaseRetrievalToolOutput } from './citation'
 import { KnowledgebaseGetOneQuery, KnowledgeSearchQuery } from './queries'
 
 /**
@@ -85,7 +86,7 @@ export class KnowledgeRetriever extends BaseRetriever {
     }
 
     async retrieve(query: string, filter?: Record<string, any>, filtering_conditions?: TWFCase): Promise<Document[]> {
-        this.metadata.knowledgebaseId = this.knowledgebaseId
+        this.metadata = { ...(this.metadata ?? {}), knowledgebaseId: this.knowledgebaseId }
 
         try {
             const results = await this.queryBus.execute<KnowledgeSearchQuery, DocumentInterface<DocumentMetadata>[]>(
@@ -191,14 +192,15 @@ export class KnowledgeRetriever extends BaseRetriever {
                     }
                 })
 
-                return chunks.map((chunk) => chunk.pageContent)
+                return formatKnowledgebaseRetrievalToolOutput(chunks, this.knowledgebaseId)
             },
             {
                 ...toolOptions,
                 name: toolOptions?.name ?? `retriever-${this.knowledgebaseId}`,
                 description:
                     `Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` +
-                    knowledgebase.description,
+                    knowledgebase.description +
+                    `. The result includes chunks and citations. When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph.`,
                 schema: z.object({
                     ...schema,
                     input: z.string().describe(`key information of question`)

@@ -59,6 +59,9 @@ const LOG_COLUMN_KEYS = [
   'title',
   'createdBy',
   'from',
+  'sourceIntegrationId',
+  'channelType',
+  'sourceMessageLogIds',
   'fromEndUser',
   'messageCount',
   'status',
@@ -123,6 +126,30 @@ const LOG_COLUMNS: readonly LogColumn[] = [
     defaultLabel: 'Chat From',
     width: 140,
     minWidth: 120
+  },
+  {
+    key: 'sourceIntegrationId',
+    labelKey: 'PAC.Xpert.SourceIntegrationId',
+    defaultLabel: 'Source Integration',
+    width: 260,
+    minWidth: 180,
+    defaultVisible: false
+  },
+  {
+    key: 'channelType',
+    labelKey: 'PAC.Xpert.ChannelType',
+    defaultLabel: 'Channel Type',
+    width: 160,
+    minWidth: 130,
+    defaultVisible: false
+  },
+  {
+    key: 'sourceMessageLogIds',
+    labelKey: 'PAC.Xpert.SourceMessageLogIds',
+    defaultLabel: 'Source Message Logs',
+    width: 300,
+    minWidth: 200,
+    defaultVisible: false
   },
   {
     key: 'fromEndUser',
@@ -221,7 +248,7 @@ const SOURCE_OPTIONS: readonly {
   { value: 'feishu', labelKey: 'PAC.Xpert.ChatFromFeishu', defaultLabel: 'Feishu' },
   { value: 'lark', labelKey: 'PAC.Xpert.ChatFromLark', defaultLabel: 'Lark' },
   { value: 'dingtalk', labelKey: 'PAC.Xpert.ChatFromDingtalk', defaultLabel: 'DingTalk' },
-  { value: 'wecom', labelKey: 'PAC.Xpert.ChatFromWecom', defaultLabel: 'WeCom' }
+  { value: 'wechat', labelKey: 'PAC.Xpert.ChatFromWechat', defaultLabel: 'WeChat' }
 ]
 
 function isObjectLike(value: unknown): value is object {
@@ -336,6 +363,17 @@ function getErrorText(error: unknown): string {
   }
 
   return ''
+}
+
+function normalizeConversationResult(value: unknown): { items: TChatConversationLog[]; total: number } {
+  const items =
+    isObjectLike(value) && Array.isArray(Reflect.get(value, 'items'))
+      ? (Reflect.get(value, 'items') as TChatConversationLog[])
+      : []
+  const rawTotal = isObjectLike(value) ? Reflect.get(value, 'total') : undefined
+  const total = typeof rawTotal === 'number' && Number.isFinite(rawTotal) ? rawTotal : items.length
+
+  return { items, total }
 }
 
 @Component({
@@ -480,18 +518,20 @@ export class XpertLogsComponent {
     const page = reset ? 0 : this.currentPage()
 
     try {
-      const result = await firstValueFrom(
-        this.xpertService.getConversations(
-          xpertId,
-          {
-            relations: ['createdBy'],
-            where: this.buildWhere(),
-            order: { updatedAt: OrderTypeEnum.DESC },
-            take: this.pageSize,
-            skip: page * this.pageSize
-          },
-          this.timeRange(),
-          this.searchText()
+      const result = normalizeConversationResult(
+        await firstValueFrom(
+          this.xpertService.getConversations(
+            xpertId,
+            {
+              relations: ['createdBy'],
+              where: this.buildWhere(),
+              order: { updatedAt: OrderTypeEnum.DESC },
+              take: this.pageSize,
+              skip: page * this.pageSize
+            },
+            this.timeRange(),
+            this.searchText()
+          )
         )
       )
 
@@ -499,7 +539,7 @@ export class XpertLogsComponent {
         return
       }
 
-      this.conversations.update((state) => (reset ? result.items : [...state, ...result.items]))
+      this.conversations.update((state) => (reset ? result.items : [...(state ?? []), ...result.items]))
       this.total.set(result.total)
       this.currentPage.set(page + 1)
       if (result.items.length < this.pageSize || (page + 1) * this.pageSize >= result.total) {
@@ -731,6 +771,10 @@ export class XpertLogsComponent {
 
   sourceDefaultLabel(source: TChatFrom | null | undefined) {
     return SOURCE_OPTIONS.find((option) => option.value === source)?.defaultLabel ?? source ?? ''
+  }
+
+  sourceMessageLogIdsText(conversation: TChatConversationLog) {
+    return conversation.sourceMessageLogIds?.join(', ') ?? ''
   }
 
   timeRangeLabel(option: (typeof TimeRangeOptions)[number]) {

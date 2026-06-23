@@ -78,6 +78,7 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=12288"}
 ENV NODE_ENV=${NODE_ENV:-production}
 
 ENV API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
+    WEBAPP_API_BASE_URL=${WEBAPP_API_BASE_URL:-} \
     HOST=${HOST:-0.0.0.0} \
     PORT=${PORT:-80} \
     DEMO=${DEMO:-false}

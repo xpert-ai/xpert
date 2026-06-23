@@ -104,6 +104,15 @@ export const routes: Routes = [
           }
         }
       },
+      {
+        path: 'copilot',
+        loadChildren: () => import('./setting/copilot/routing').then((m) => m.default),
+        canActivate: [authGuard],
+        data: {
+          title: 'Model Providers',
+          scopeContext: 'dual-scope'
+        }
+      },
 
       // BI Routers
       // {

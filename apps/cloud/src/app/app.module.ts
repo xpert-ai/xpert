@@ -11,7 +11,7 @@ import { NxCoreModule } from '@xpert-ai/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxPermissionsModule } from 'ngx-permissions'
-import { provideUiI18nAdapterFactory, provideZard, type UiI18nAdapter, ZardToastComponent } from '@xpert-ai/headless-ui'
+import { provideUiI18nAdapterFactory, provideZard, ZardToastComponent } from '@xpert-ai/headless-ui'
 import {
   APIInterceptor,
   AppInitService,
@@ -19,6 +19,7 @@ import {
   CoreModule,
   LOCALE_DEFAULT,
   LanguageInterceptor,
+  normalizeApiBaseUrl,
   TenantInterceptor,
   TokenInterceptor,
   UpdateService
@@ -28,7 +29,7 @@ import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { PAC_API_BASE_URL } from '@xpert-ai/cloud/auth'
 import { environment } from '../environments/environment'
-import { I18nService, initI18n } from './@shared/i18n'
+import { createUiI18nAdapter, I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 
 const TYPE_KEY = '__subject__'
@@ -65,7 +66,7 @@ function detectSubjectType(subject) {
       // Register the ServiceWorker as soon as the app is stable
       // or after 30 seconds (whichever comes first).
       registrationStrategy: 'registerWhenStable:30000'
-    }),
+    })
   ],
   providers: [
     provideHttpClient(withInterceptorsFromDi()),
@@ -111,36 +112,22 @@ function detectSubjectType(subject) {
     {
       provide: APP_INITIALIZER,
       useFactory: () => () => initI18n(),
-      multi: true,
+      multi: true
     },
     { provide: Ability, useValue: new Ability([], { detectSubjectType }) },
     { provide: PureAbility, useExisting: Ability },
     {
       provide: PAC_API_BASE_URL,
-      useValue: environment.API_BASE_URL
+      useValue: normalizeApiBaseUrl(environment.API_BASE_URL)
     },
-    provideUiI18nAdapterFactory(
-      (i18nService: I18nService): UiI18nAdapter => ({
-        language: i18nService.language,
-        getLanguage: () => i18nService.currentLanguage,
-        translate: (key, options) =>
-          i18nService.translate(
-            key,
-            options as {
-              ns?: string
-              Default?: string
-            } & Record<string, string>
-          )
-      }),
-      [I18nService]
-    ),
+    provideUiI18nAdapterFactory(createUiI18nAdapter, [I18nService]),
     {
       provide: APP_INITIALIZER,
       useFactory: initializeCustomElements,
       multi: true,
       deps: [CustomElementsService]
     },
-    provideChatMarkdown(),
+    provideChatMarkdown()
 
     // {
     //   provide: ErrorHandler,
