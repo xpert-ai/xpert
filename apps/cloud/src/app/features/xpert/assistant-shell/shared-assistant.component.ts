@@ -1,5 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, DestroyRef, inject } from '@angular/core'
+import { Router } from '@angular/router'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
@@ -7,6 +8,7 @@ import {
   registerAssistantContextSetCommand
 } from '../../assistant/assistant-chat-client-command'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
+import { registerWorkbenchNavigationOpenCommand } from '../../assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { XpertAssistantFacade } from './assistant.facade'
 
@@ -27,6 +29,7 @@ export class XpertSharedAssistantComponent {
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #destroyRef = inject(DestroyRef)
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
 
   readonly control = this.#facade.control
   readonly status = this.#facade.status
@@ -46,11 +49,15 @@ export class XpertSharedAssistantComponent {
         this.#facade.setWorkbenchContext(key, context)
       }
     })
+    const unregisterNavigationOpen = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
+      navigate: (commands) => this.#router.navigate(commands)
+    })
 
     this.#destroyRef.onDestroy(() => {
       unregisterAssistant()
       unregisterFileOpen()
       unregisterAssistantContext()
+      unregisterNavigationOpen()
     })
   }
 }

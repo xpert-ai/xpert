@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common'
+import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
+import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type {
@@ -38,6 +40,9 @@ import {
   type AssistantContextSetPayload
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
+import { registerWorkbenchNavigationOpenCommand } from '../../assistant/workbench-navigation-open-client-command'
+import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -678,10 +683,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #hostEvents = inject(ViewHostEventBus)
+  readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
+  #unregisterFileOpenCommand: (() => void) | null = null
+  #unregisterNavigationOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
@@ -868,6 +877,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         url: tab.url ?? tab.displayUrl
       }
     })
+    this.#unregisterFileOpenCommand = registerWorkbenchFileOpenCommand(this.#clientCommands, {
+      openFile: (file) => {
+        openWorkbenchFilePreviewDialog(this.#dialog, file)
+      }
+    })
+    this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
+      navigate: (commands) => this.#router.navigate(commands)
+    })
 
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
@@ -1006,6 +1023,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterAssistantContextCommand = null
     this.#unregisterBrowserOpenCommand?.()
     this.#unregisterBrowserOpenCommand = null
+    this.#unregisterFileOpenCommand?.()
+    this.#unregisterFileOpenCommand = null
+    this.#unregisterNavigationOpenCommand?.()
+    this.#unregisterNavigationOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)

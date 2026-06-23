@@ -19,7 +19,7 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@xpert-ai/core'
 import { isNil } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -39,6 +39,7 @@ import { debounceTime, fromEvent } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 import { registerWorkbenchFileOpenCommand } from '../../features/assistant/workbench-file-open-client-command'
+import { registerWorkbenchNavigationOpenCommand } from '../../features/assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../features/assistant/workbench-file-preview-dialog.component'
 
 @Component({
@@ -73,6 +74,7 @@ export class XpertChatAppComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
 
   readonly idleLayout = input<'xpert' | 'welcome'>('xpert')
   readonly paramRole = injectParams('name')
@@ -167,6 +169,9 @@ export class XpertChatAppComponent {
         openWorkbenchFilePreviewDialog(this.#dialog, file)
       }
     })
+    const unregisterNavigationOpen = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
+      navigate: (commands) => this.#router.navigate(commands)
+    })
 
     effect(() => {
       const resolvedXpert = this.xpert()
@@ -228,6 +233,7 @@ export class XpertChatAppComponent {
 
     this.#destroyRef.onDestroy(() => {
       unregisterFileOpen()
+      unregisterNavigationOpen()
       this.homeService.canvasOpened.set(null)
     })
 

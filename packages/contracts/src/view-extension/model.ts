@@ -286,6 +286,7 @@ export interface XpertViewClientCommandDefinition {
 
 export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
 export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
+export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
 
 /**
  * Action a host should take when a view host event matches a manifest subscription.

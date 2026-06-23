@@ -1,51 +1,51 @@
 {
-	"name": "server-ai",
-	"$schema": "../../node_modules/nx/schemas/project-schema.json",
-	"sourceRoot": "packages/server-ai/src",
-	"projectType": "library",
-	"targets": {
-		"build": {
-			"executor": "@nx/js:tsc",
-			"outputs": ["{options.outputPath}"],
-			"options": {
-				"outputPath": "dist/packages/server-ai",
-				"tsConfig": "packages/server-ai/tsconfig.lib.json",
-				"packageJson": "packages/server-ai/package.json",
-				"main": "packages/server-ai/src/index.ts",
-				"assets": [
-					{
-						"glob": "**/*.(csv|json|js|svg|png|jpg|yaml|yml|py|sh|md|txt)",
-						"input": "packages/server-ai/",
-						"output": "./"
-					}
-				]
-			}
-		},
-		"publish": {
-			"executor": "nx:run-commands",
-			"options": {
-				"command": "node tools/scripts/publish.mjs server {args.ver} {args.tag}"
-			},
-			"dependsOn": [
-				{
-					"target": "build"
-				}
-			]
-		},
-		"lint": {
-			"executor": "@nx/eslint:lint",
-			"outputs": ["{options.outputFile}"],
-			"options": {
-				"lintFilePatterns": ["packages/server-ai/**/*.ts"]
-			}
-		},
-		"test": {
-			"executor": "@nx/jest:jest",
-			"outputs": ["{workspaceRoot}/coverage/packages/server-ai"],
-			"options": {
-				"jestConfig": "packages/server-ai/jest.config.ts"
-			}
-		}
-	},
-	"tags": []
+    "name": "server-ai",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "packages/server-ai/src",
+    "projectType": "library",
+    "targets": {
+        "build": {
+            "executor": "@nx/js:tsc",
+            "outputs": ["{options.outputPath}"],
+            "options": {
+                "outputPath": "dist/packages/server-ai",
+                "tsConfig": "packages/server-ai/tsconfig.lib.json",
+                "packageJson": "packages/server-ai/package.json",
+                "main": "packages/server-ai/src/index.ts",
+                "assets": [
+                    {
+                        "glob": "**/*.(csv|json|js|css|svg|png|jpg|yaml|yml|py|sh|md|txt)",
+                        "input": "packages/server-ai/",
+                        "output": "./"
+                    }
+                ]
+            }
+        },
+        "publish": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "node tools/scripts/publish.mjs server {args.ver} {args.tag}"
+            },
+            "dependsOn": [
+                {
+                    "target": "build"
+                }
+            ]
+        },
+        "lint": {
+            "executor": "@nx/eslint:lint",
+            "outputs": ["{options.outputFile}"],
+            "options": {
+                "lintFilePatterns": ["packages/server-ai/**/*.ts"]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": ["{workspaceRoot}/coverage/packages/server-ai"],
+            "options": {
+                "jestConfig": "packages/server-ai/jest.config.ts"
+            }
+        }
+    },
+    "tags": []
 }

@@ -1,0 +1,3 @@
+@import '../../../../../../../shadcn-ui/src/styles.css';
+
+@source "./src/**/*.{ts,tsx}";
