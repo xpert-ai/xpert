@@ -76,6 +76,7 @@ describe('getFeatureMenus', () => {
     expect(chat?.expanded).toBe(true)
     expect(chat?.children?.map((item) => item.link)).toEqual(['/chat', '/chat/tasks'])
     expect(chat?.children?.map((item) => item.title)).toEqual(['最近会话', '任务'])
+    expect(chat?.children?.[0]?.data?.inactivePathPrefixes).toEqual(['/chat/tasks'])
   })
 
   it('adds MCP Monitor beside Plugins for super admins', () => {
