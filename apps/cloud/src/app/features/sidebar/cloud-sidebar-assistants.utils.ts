@@ -9,8 +9,6 @@ export interface AssistantXpertLike {
   tags?: Array<{ name?: unknown; label?: unknown }>
 }
 
-export type AssistantCategory = 'all' | 'office' | 'data' | 'mcp' | 'personal'
-
 export function normalizeAssistantXperts<T extends AssistantXpertLike>(
   items: T[] | { items?: T[] } | null | undefined
 ) {
@@ -30,15 +28,16 @@ export function normalizeAssistantXperts<T extends AssistantXpertLike>(
 export function filterAssistantXperts<T extends AssistantXpertLike>(
   items: T[],
   query: string,
-  category: AssistantCategory = 'all'
+  category = 'all'
 ) {
   const keyword = query.trim().toLowerCase()
 
-  return items.filter(
-    (xpert) =>
-      (category === 'all' || assistantMatchesCategory(xpert, category)) &&
-      (!keyword || getAssistantSearchText(xpert).toLowerCase().includes(keyword))
-  )
+  return items.filter((xpert) => {
+    const matchesCategory = category === 'all' || assistantMatchesTag(xpert, category)
+    const matchesKeyword = !keyword || getAssistantSearchText(xpert).toLowerCase().includes(keyword)
+
+    return matchesCategory && matchesKeyword
+  })
 }
 
 export function getAssistantRouteId(xpert: AssistantXpertLike) {
@@ -64,21 +63,9 @@ export function isAssistantRouteActive(url: string, xpert: AssistantXpertLike) {
   return !!routeId && normalizeChatPath(url).startsWith(`/chat/x/${encodeURIComponent(routeId)}/c`)
 }
 
-export function assistantMatchesCategory(xpert: AssistantXpertLike, category: AssistantCategory) {
-  const text = getAssistantSearchText(xpert).toLowerCase()
-
-  switch (category) {
-    case 'office':
-      return /office|docx|word|sheet|excel|ppt|presentation|document|文档|表格|演示/.test(text)
-    case 'data':
-      return /data|bi|chart|echarts|semantic|ontology|model|数据|图表|指标|模型/.test(text)
-    case 'mcp':
-      return /mcp|tool|tools|toolset|工具/.test(text)
-    case 'personal':
-      return /personal|wechat|微信|个人|crm|客户/.test(text)
-    default:
-      return true
-  }
+function assistantMatchesTag(xpert: AssistantXpertLike, tagName: string) {
+  const normalizedTagName = normalizeAssistantTagValue(tagName)
+  return getAssistantTagNames(xpert).some((tag) => normalizeAssistantTagValue(tag) === normalizedTagName)
 }
 
 function getAssistantSearchText(xpert: AssistantXpertLike) {
@@ -86,24 +73,22 @@ function getAssistantSearchText(xpert: AssistantXpertLike) {
     getAssistantLabel(xpert),
     getAssistantDescription(xpert),
     xpert.slug,
-    ...(xpert.tags?.map((tag) => stringifyAssistantTagValue(tag.name) || stringifyAssistantTagValue(tag.label)) ?? [])
+    ...getAssistantTagNames(xpert)
   ]
     .filter(Boolean)
     .join(' ')
 }
 
-function stringifyAssistantTagValue(value: unknown) {
-  if (typeof value === 'string') {
-    return value
-  }
+export function getAssistantTagNames(xpert: AssistantXpertLike) {
+  return (
+    xpert.tags
+      ?.map((tag) => tag.name)
+      .filter((name): name is string => typeof name === 'string' && !!name.trim()) ?? []
+  )
+}
 
-  if (!value || typeof value !== 'object') {
-    return ''
-  }
-
-  return Object.values(value as Record<string, unknown>)
-    .filter((item): item is string => typeof item === 'string')
-    .join(' ')
+function normalizeAssistantTagValue(value: string) {
+  return value.trim().toLowerCase()
 }
 
 function normalizeChatPath(url: string) {

@@ -144,15 +144,11 @@
 
 .cloud-sidebar-assistants__filters {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   gap: 0.45rem;
-  overflow-x: auto;
+  overflow-x: visible;
   padding: 0.1rem 0 0.15rem;
-  scrollbar-width: none;
-}
-
-.cloud-sidebar-assistants__filters::-webkit-scrollbar {
-  display: none;
 }
 
 .cloud-sidebar-assistants__filter {

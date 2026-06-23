@@ -22,11 +22,11 @@ import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.c
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
   type AssistantXpertLike,
-  type AssistantCategory,
   filterAssistantXperts,
   getAssistantDescription,
   getAssistantLabel,
   getAssistantRouteId,
+  getAssistantTagNames,
   isAssistantRouteActive,
   normalizeAssistantXperts
 } from './cloud-sidebar-assistants.utils'
@@ -34,16 +34,15 @@ import {
 export type CloudSidebarAssistantState = {
   items: IXpert[]
   binding: IAssistantBinding | null
-  loading: boolean
 }
 
 const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
   items: [],
-  binding: null,
-  loading: false
+  binding: null
 }
 
 const CLAWXPERT_FALLBACK_ID = '__clawxpert__'
+const ALL_ASSISTANT_CATEGORY = 'all'
 
 @Component({
   standalone: true,
@@ -59,14 +58,7 @@ export class CloudSidebarAssistantsComponent {
 
   readonly expanded = signal(true)
   readonly query = signal('')
-  readonly category = signal<AssistantCategory>('all')
-  readonly categories: Array<{ value: AssistantCategory; labelKey: string; labelDefault: string }> = [
-    { value: 'all', labelKey: 'PAC.Assistant.CategoryAll', labelDefault: '全部' },
-    { value: 'office', labelKey: 'PAC.Assistant.CategoryOffice', labelDefault: 'Office' },
-    { value: 'data', labelKey: 'PAC.Assistant.CategoryData', labelDefault: '数据' },
-    { value: 'mcp', labelKey: 'PAC.Assistant.CategoryMcp', labelDefault: 'MCP' },
-    { value: 'personal', labelKey: 'PAC.Assistant.CategoryPersonal', labelDefault: '个人' }
-  ]
+  readonly category = signal(ALL_ASSISTANT_CATEGORY)
 
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
@@ -131,15 +123,10 @@ export class CloudSidebarAssistantsComponent {
             ({ binding, items }) =>
               ({
                 binding,
-                items: normalizeAssistantXperts(items),
-                loading: false
+                items: normalizeAssistantXperts(items)
               }) satisfies CloudSidebarAssistantState
           ),
-          startWith({
-            items: [],
-            binding: null,
-            loading: true
-          } satisfies CloudSidebarAssistantState),
+          startWith(EMPTY_ASSISTANT_STATE),
           catchError(() => of(EMPTY_ASSISTANT_STATE))
         )
       })
@@ -160,8 +147,33 @@ export class CloudSidebarAssistantsComponent {
     const boundId = this.boundXpert()?.id
     return boundId ? this.xperts().filter((xpert) => xpert.id !== boundId) : this.xperts()
   })
+  readonly categories = computed(() => {
+    const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
+      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: '全部' }
+    ]
+    const seen = new Set<string>([ALL_ASSISTANT_CATEGORY])
+
+    for (const xpert of [this.clawXpertSearchItem(), ...this.xpertsWithoutClawXpert()]) {
+      for (const tag of getAssistantTagNames(xpert)) {
+        const label = tag.trim()
+        const value = label.toLowerCase()
+        if (!label || seen.has(value)) {
+          continue
+        }
+
+        seen.add(value)
+        categories.push({ value, labelDefault: label })
+      }
+    }
+
+    return categories
+  })
+  readonly activeCategory = computed(() => {
+    const category = this.category()
+    return this.categories().some((item) => item.value === category) ? category : ALL_ASSISTANT_CATEGORY
+  })
   readonly filteredXperts = computed(() =>
-    filterAssistantXperts(this.xpertsWithoutClawXpert(), this.query(), this.category())
+    filterAssistantXperts(this.xpertsWithoutClawXpert(), this.query(), this.activeCategory())
   )
   readonly unreadXpertIdsRequest = computed(() => {
     const ids = [this.boundXpert()?.id, ...this.xpertsWithoutClawXpert().map((xpert) => xpert.id)].filter(
@@ -214,14 +226,14 @@ export class CloudSidebarAssistantsComponent {
       slug: boundXpert?.slug ?? 'clawxpert',
       name: boundXpert?.name ?? label,
       title: label,
-      description: [description, 'ClawXpert', 'personal', '个人', '配置'].filter(Boolean).join(' '),
-      tags: [{ name: 'clawxpert' }, { name: 'personal' }, ...(boundXpert?.tags ?? [])]
+      description: [description, 'ClawXpert', '配置'].filter(Boolean).join(' '),
+      tags: boundXpert?.tags ?? []
     }
   })
   readonly showClawXpertEntry = computed(() => {
     return (
       this.request().enabled &&
-      filterAssistantXperts([this.clawXpertSearchItem()], this.query(), this.category()).length > 0
+      filterAssistantXperts([this.clawXpertSearchItem()], this.query(), this.activeCategory()).length > 0
     )
   })
   readonly assistantCount = computed(() => this.xpertsWithoutClawXpert().length + (this.request().enabled ? 1 : 0))
@@ -236,13 +248,10 @@ export class CloudSidebarAssistantsComponent {
       return this.assistantLabel(activeXpert)
     }
 
-    return this.assistantLabel(this.xperts()[0]) || ''
+    const firstXpert = this.xperts()[0]
+    return firstXpert ? this.assistantLabel(firstXpert) : ''
   })
-  readonly shouldRender = computed(() => {
-    const state = this.state()
-
-    return this.request().enabled && (state.loading || state.items.length > 0 || this.showClawXpertEntry())
-  })
+  readonly shouldRender = computed(() => this.request().enabled)
 
   openClawXpert(event: Event) {
     event.stopPropagation()
@@ -366,7 +375,7 @@ export class CloudSidebarAssistantsComponent {
     this.expanded.update((expanded) => !expanded)
   }
 
-  selectCategory(category: AssistantCategory) {
+  selectCategory(category: string) {
     this.category.set(category)
   }
 

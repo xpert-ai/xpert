@@ -114,12 +114,70 @@ describe('cloud sidebar assistants helpers', () => {
 
   it('filters assistants by label or description', () => {
     const items = [
-      xpert({ id: 'office', title: 'Office Assistant', description: 'Word and sheets' }),
-      xpert({ id: 'tools', title: 'MCP Tools', description: 'Workspace calls' })
+      xpert({ id: 'documents', title: 'Documents Assistant', description: 'Word and sheets' }),
+      xpert({ id: 'tools', title: 'Tool Runner', description: 'Workspace calls' })
     ]
 
-    expect(filterAssistantXperts(items, 'sheet').map((item) => item.id)).toEqual(['office'])
-    expect(filterAssistantXperts(items, 'mcp').map((item) => item.id)).toEqual(['tools'])
+    expect(filterAssistantXperts(items, 'sheet').map((item) => item.id)).toEqual(['documents'])
+    expect(filterAssistantXperts(items, 'tool').map((item) => item.id)).toEqual(['tools'])
+  })
+
+  it('matches assistant categories from tag names instead of label or description keywords', () => {
+    const items = [
+      xpert({ id: 'finance', title: 'General Assistant', tags: [{ name: 'Finance' }] }),
+      xpert({ id: 'support', title: 'General Assistant', tags: [{ name: 'Support' }] }),
+      xpert({
+        id: 'untagged',
+        title: 'Finance Support Assistant',
+        description: 'report ticket workflow',
+        tags: []
+      })
+    ]
+
+    expect(filterAssistantXperts(items, '', 'finance').map((item) => item.id)).toEqual(['finance'])
+    expect(filterAssistantXperts(items, '', 'support').map((item) => item.id)).toEqual(['support'])
+  })
+
+  it('does not use tag labels as category identity', () => {
+    const items = [xpert({ id: 'localized-tag', tags: [{ name: 'finance', label: { zh: '财务' } }] })]
+
+    expect(filterAssistantXperts(items, '', 'finance').map((item) => item.id)).toEqual(['localized-tag'])
+    expect(filterAssistantXperts(items, '', '财务')).toEqual([])
+  })
+
+  it('matches exact normalized tag names without aliases', () => {
+    const items = [xpert({ id: 'localized-tag', tags: [{ name: '财务' }] })]
+
+    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
+    expect(filterAssistantXperts(items, '', '财务').map((item) => item.id)).toEqual(['localized-tag'])
+  })
+
+  it('does not infer categories from titles or descriptions', () => {
+    const items = [
+      xpert({
+        id: 'keyword-only',
+        title: 'Finance Support Assistant',
+        description: 'Handles finance tickets',
+        tags: []
+      })
+    ]
+
+    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
+    expect(filterAssistantXperts(items, '', 'support')).toEqual([])
+  })
+
+  it('keeps untagged assistants visible only in the all category', () => {
+    const items = [
+      xpert({
+        id: 'untagged',
+        title: 'Finance Support Assistant',
+        description: 'report ticket workflow'
+      })
+    ]
+
+    expect(filterAssistantXperts(items, '', 'all').map((item) => item.id)).toEqual(['untagged'])
+    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
+    expect(filterAssistantXperts(items, '', 'support')).toEqual([])
   })
 
   it('matches the active assistant route', () => {
@@ -251,6 +309,136 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(names).toEqual(['Personal Assistant', 'Other Assistant'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('2')
+  })
+
+  it('builds category filters from assistant tags', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'other-xpert',
+          slug: 'other-assistant',
+          title: 'Other Assistant',
+          latest: true,
+          tags: [{ name: 'Finance' }, { name: 'Support' }],
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: true,
+              canManage: false
+            }
+          }
+        },
+        {
+          id: 'bound-xpert',
+          slug: 'personal-assistant',
+          title: 'Personal Assistant',
+          latest: true,
+          tags: [{ name: 'Team' }],
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: true,
+              canManage: false
+            }
+          }
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.categories().map((category) => category.value)).toEqual([
+      'all',
+      'team',
+      'finance',
+      'support'
+    ])
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__filter')).map((item) =>
+        item.textContent.trim()
+      )
+    ).toEqual(['PAC.Assistant.CategoryAll', 'Team', 'Finance', 'Support'])
+  })
+
+  it('keeps the assistant section visible when the selected category no longer exists', async () => {
+    assistantBindingService.get.mockReturnValue(of(null))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.componentInstance.selectCategory('missing-tag')
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeCategory()).toBe('all')
+    expect(fixture.componentInstance.shouldRender()).toBe(true)
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filter.is-active').textContent.trim()).toBe(
+      'PAC.Assistant.CategoryAll'
+    )
+  })
+
+  it('does not show the empty state when a tag only matches the pinned ClawXpert assistant', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'other-xpert',
+          slug: 'other-assistant',
+          title: 'Other Assistant',
+          latest: true,
+          tags: [{ name: 'Finance' }],
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: true,
+              canManage: false
+            }
+          }
+        },
+        {
+          id: 'bound-xpert',
+          slug: 'personal-assistant',
+          title: 'Personal Assistant',
+          latest: true,
+          tags: [{ name: 'Team' }],
+          workspaceId: 'workspace-1',
+          workspace: {
+            capabilities: {
+              canRead: true,
+              canRun: true,
+              canWrite: true,
+              canManage: false
+            }
+          }
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.componentInstance.selectCategory('team')
+    fixture.detectChanges()
+
+    const names = Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+      item.textContent.trim()
+    )
+
+    expect(names).toEqual(['Personal Assistant'])
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__empty')).toBeNull()
   })
 
   it('routes the pinned ClawXpert item to chat and its settings button to configuration', async () => {

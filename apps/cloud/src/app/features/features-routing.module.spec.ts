@@ -72,4 +72,12 @@ describe('features routing', () => {
     expect(route?.data?.scopeContext).toBe('dual-scope')
     expect(route?.data?.permissions?.only).toEqual(['SUPER_ADMIN'])
   })
+
+  it('mounts model providers at the top-level /copilot route', () => {
+    const route = children.find((item) => item.path === 'copilot')
+
+    expect(route?.loadChildren).toEqual(expect.any(Function))
+    expect(route?.data?.title).toBe('Model Providers')
+    expect(route?.data?.scopeContext).toBe('dual-scope')
+  })
 })

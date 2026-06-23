@@ -27,7 +27,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       menu({ title: 'Data', link: '/data' }),
       menu({ title: 'MCP Monitor', link: '/operations' }),
       menu({ title: 'Plugins', link: '/plugins' }),
-      menu({ title: 'Model Providers', link: '/settings/copilot/basic', admin: true }),
+      menu({ title: 'Model Providers', link: '/copilot/basic', admin: true }),
       menu({ title: 'Explore', link: '/explore' })
     ])
 
@@ -40,7 +40,7 @@ describe('buildCloudSidebarMenuGroups', () => {
     expect(groups.find((group) => group.key === 'management')?.items.map((item) => item.link)).toEqual([
       '/plugins',
       '/operations',
-      '/settings/copilot/basic',
+      '/copilot/basic',
       '/settings'
     ])
   })
