@@ -8,7 +8,16 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiKeyBindingType, getErrorMessage, injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../../@core'
+import { environment } from '@cloud/environments/environment'
+import {
+  ApiKeyBindingType,
+  getErrorMessage,
+  injectApiBaseUrl,
+  injectToastr,
+  resolveAbsoluteApiUrl,
+  routeAnimations,
+  XpertAPIService
+} from '../../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -41,7 +50,7 @@ export class XpertKBAPIComponent {
   // Inputs
   readonly id = input<string>('')
 
-  readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
+  readonly apiUrl = computed(() => resolveAbsoluteApiUrl('/api/ai/', environment.API_BASE_URL))
   readonly small = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

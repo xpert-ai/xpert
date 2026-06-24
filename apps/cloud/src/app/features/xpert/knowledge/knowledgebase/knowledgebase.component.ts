@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { environment } from '@cloud/environments/environment'
 import { injectExportXpertDsl, XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { OverlayAnimation1 } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmCopyComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
@@ -17,11 +18,11 @@ import { catchError, EMPTY } from 'rxjs'
 import {
   ApiKeyBindingType,
   getErrorMessage,
-  injectApiBaseUrl,
   injectHelpWebsite,
   IXpert,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
+  resolveAbsoluteApiUrl,
   routeAnimations,
   ToastrService
 } from '../../../../@core'
@@ -61,7 +62,6 @@ export class KnowledgebaseComponent {
   readonly i18nService = injectI18nService()
   readonly exportXpertDsl = injectExportXpertDsl()
   readonly confirmDelete = injectConfirmDelete()
-  readonly apiBaseUrl = injectApiBaseUrl()
   readonly apiHelpUrl = injectHelpWebsite('/docs/ai/knowledge/api/')
 
   readonly #knowledgebase = myRxResource({
@@ -119,7 +119,7 @@ export class KnowledgebaseComponent {
   readonly #loading = signal(false)
   readonly loading = computed(() => this.#loading() || this.#knowledgebase.status() === 'loading')
 
-  readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
+  readonly apiUrl = computed(() => resolveAbsoluteApiUrl('/api/ai/', environment.API_BASE_URL))
 
   readonly apiEnabled = linkedModel({
     initialValue: null,

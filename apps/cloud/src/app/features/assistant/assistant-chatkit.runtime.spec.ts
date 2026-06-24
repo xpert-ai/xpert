@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { createChatKit } from '@xpert-ai/chatkit-angular'
 import { of } from 'rxjs'
@@ -37,7 +38,17 @@ jest.mock('../../@core', () => ({
   },
   Store: class Store {},
   ToastrService: class ToastrService {},
-  getErrorMessage: jest.fn((error?: { message?: string }) => error?.message ?? '')
+  getErrorMessage: jest.fn((error?: { message?: string }) => error?.message ?? ''),
+  resolveAbsoluteApiBaseUrl: jest.fn((value?: string | null) => {
+    const normalized = value?.trim()
+    if (!normalized || ['same-origin', 'self', '/'].includes(normalized.toLowerCase())) {
+      return window.location.origin
+    }
+    if (normalized.startsWith('//')) {
+      return `${window.location.protocol}${normalized.replace(/\/+$/, '')}`
+    }
+    return normalized.replace(/\/+$/, '')
+  })
 }))
 
 jest.mock('@xpert-ai/chatkit-angular', () => ({
@@ -70,8 +81,11 @@ function flushAngularEffects() {
 }
 
 describe('assistant chatkit runtime helpers', () => {
+  const originalApiBaseUrl = environment.API_BASE_URL
+
   beforeEach(() => {
     jest.clearAllMocks()
+    environment.API_BASE_URL = originalApiBaseUrl
   })
 
   afterEach(() => {
@@ -220,6 +234,71 @@ describe('assistant chatkit runtime helpers', () => {
             }
           }
         }
+      })
+    )
+  })
+
+  it('passes an absolute same-origin API URL to ChatKit', () => {
+    environment.API_BASE_URL = 'same-origin'
+    const createChatKitMock = createChatKit as jest.Mock
+    createChatKitMock.mockReturnValue({
+      setOptions: jest.fn()
+    })
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: DOCUMENT,
+          useValue: document
+        },
+        {
+          provide: TranslateService,
+          useValue: {
+            currentLang: 'en',
+            instant: (_key: string, params?: { Default?: string }) => params?.Default ?? _key
+          }
+        },
+        {
+          provide: ToastrService,
+          useValue: {
+            error: jest.fn()
+          }
+        },
+        {
+          provide: AppService,
+          useValue: {
+            lang: signal('en'),
+            theme$: signal({ primary: 'light' })
+          }
+        },
+        {
+          provide: Store,
+          useValue: {
+            token: 'token-1',
+            token$: of('token-1'),
+            organizationId: 'org-1',
+            selectOrganizationId: () => of('org-1')
+          }
+        }
+      ]
+    })
+
+    TestBed.runInInjectionContext(() => {
+      injectHostedAssistantChatkitControl({
+        identity: signal('xpert_shared'),
+        assistantId: signal('assistant-1'),
+        frameUrl: signal('/chatkit'),
+        titleKey: 'PAC.Xpert.Assistant',
+        titleDefault: 'Assistant'
+      })
+    })
+    flushAngularEffects()
+
+    expect(createChatKitMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        api: expect.objectContaining({
+          apiUrl: `${window.location.origin}/api/ai`
+        })
       })
     )
   })

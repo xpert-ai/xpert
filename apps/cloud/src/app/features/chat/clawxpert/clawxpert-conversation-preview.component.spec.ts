@@ -1,5 +1,6 @@
 jest.mock('../../../@core', () => ({
-  injectApiBaseUrl: () => 'http://localhost:3000',
+  injectApiBaseUrl: () => '',
+  resolveAbsoluteApiBaseUrl: () => 'http://localhost:3000',
   injectToastr: () => ({
     warning: jest.fn()
   })

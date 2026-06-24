@@ -13,7 +13,7 @@ import {
   Store,
   type IResolvedAssistantBinding,
   getErrorMessage,
-  normalizeApiBaseUrl,
+  resolveAbsoluteApiBaseUrl,
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
@@ -452,8 +452,7 @@ function normalizeRgbColor(value: string) {
 }
 
 function buildAssistantApiUrl(baseUrl?: string | null) {
-  const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
-  return normalizedBaseUrl ? `${normalizedBaseUrl}/api/ai` : '/api/ai'
+  return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
 }
 
 function buildAssistantClientSecret(secret: string, organizationId?: string | null): AssistantHostedClientSecret {
@@ -465,23 +464,4 @@ function buildAssistantClientSecret(secret: string, organizationId?: string | nu
     secret,
     organizationId
   }
-}
-
-function normalizeBaseUrl(baseUrl?: string | null) {
-  const apiBaseUrl = normalizeApiBaseUrl(baseUrl)
-  if (!apiBaseUrl) {
-    return ''
-  }
-
-  const normalized = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl
-  if (normalized.startsWith('http')) {
-    return normalized
-  }
-
-  if (normalized.startsWith('//')) {
-    const protocol = typeof window === 'undefined' ? 'https:' : window.location.protocol
-    return `${protocol}${normalized}`
-  }
-
-  return normalized
 }
