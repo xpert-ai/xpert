@@ -8,12 +8,13 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { environment } from '@cloud/environments/environment'
 import {
   ApiKeyBindingType,
   derivedHelpUrl,
   getErrorMessage,
-  injectApiBaseUrl,
   injectToastr,
+  resolveAbsoluteApiUrl,
   routeAnimations,
   TChatApi,
   XpertAPIService
@@ -47,13 +48,12 @@ export class XpertAPIComponent {
   readonly #route = inject(ActivatedRoute)
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
-  readonly apiBaseUrl = injectApiBaseUrl()
   readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1/post-apiaiv1kb`)
 
   readonly xpert = this.xpertComponent.latestXpert
 
   readonly avatar = computed(() => this.xpert()?.avatar)
-  readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
+  readonly apiUrl = computed(() => resolveAbsoluteApiUrl('/api/ai/', environment.API_BASE_URL))
   readonly api = computed(() => this.xpert()?.api)
   readonly enabledApi = computed(() => !this.api()?.disabled)
   readonly small = input<boolean, boolean | string>(false, {

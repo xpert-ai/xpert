@@ -19,7 +19,7 @@ import {
   Store,
   ToastrService,
   getErrorMessage,
-  normalizeApiBaseUrl
+  resolveAbsoluteApiBaseUrl
 } from '../../../@core'
 import { ASSISTANT_REGISTRY, type AssistantRegistryItem } from '../../assistant/assistant.registry'
 
@@ -393,27 +393,7 @@ export class AssistantsSettingsFacade {
 }
 
 function buildAssistantRuntimeApiUrl(baseUrl?: string | null) {
-  const normalizedBaseUrl = normalizeAssistantBaseUrl(baseUrl)
-  return normalizedBaseUrl ? `${normalizedBaseUrl}/api/ai` : '/api/ai'
-}
-
-function normalizeAssistantBaseUrl(baseUrl?: string | null) {
-  const apiBaseUrl = normalizeApiBaseUrl(baseUrl)
-  if (!apiBaseUrl) {
-    return ''
-  }
-
-  const normalized = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl
-  if (normalized.startsWith('http')) {
-    return normalized
-  }
-
-  if (normalized.startsWith('//')) {
-    const protocol = typeof window === 'undefined' ? 'https:' : window.location.protocol
-    return `${protocol}${normalized}`
-  }
-
-  return normalized
+  return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
 }
 
 function sanitizeConfiguredFrameUrl(frameUrl?: string | null) {
