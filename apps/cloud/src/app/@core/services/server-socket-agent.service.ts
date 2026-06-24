@@ -183,20 +183,18 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     }
 
     if (options.url === 'ping') {
-      throw new Error('Method not implemented.')
+      url = semanticModel.dataSource?.id
+        ? `${API_DATA_SOURCE}/${semanticModel.dataSource.id}/ping`
+        : `${API_DATA_SOURCE}/ping`
+      method = 'POST'
 
-      // url = semanticModel.dataSource?.id
-      //   ? `${API_DATA_SOURCE}/${semanticModel.dataSource.id}/ping`
-      //   : `${API_DATA_SOURCE}/ping`
-      // method = 'POST'
-
-      // try {
-      //   return await firstValueFrom(this.httpClient.post(url, body, { params }))
-      // } catch (err) {
-      //   const message = getErrorMessage(err)
-      //   this.error$.next(message)
-      //   throw new Error(message)
-      // }
+      try {
+        return await firstValueFrom(this.httpClient.post(url, body, { params }))
+      } catch (err) {
+        const message = getErrorMessage(err)
+        this.error$.next(message)
+        throw new Error(message)
+      }
     } else {
       if (semanticModel.type === 'XMLA') {
         /**
