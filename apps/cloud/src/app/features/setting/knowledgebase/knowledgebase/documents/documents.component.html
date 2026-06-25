@@ -47,11 +47,7 @@
 
     <tbody z-table-body>
       @for (element of data(); track element.id) {
-        <tr
-          z-table-row
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement?.id === element.id"
-        >
+        <tr z-table-row class="example-element-row" [class.example-expanded-row]="expandedElement?.id === element.id">
           @for (column of columnsToDisplay; track column.name) {
             <td z-table-cell>
               @if (column.name === 'name') {
@@ -102,7 +98,9 @@
                 zSize="icon"
                 zShape="circle"
                 aria-label="expand row"
-                (click)="expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()"
+                (click)="
+                  expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()
+                "
               >
                 @if (expandedElement?.id === element.id) {
                   <z-icon zType="keyboard_arrow_up"></z-icon>
@@ -160,7 +158,7 @@
                   'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
                 "
                 zPosition="top"
-                (click)="deleteDocument(element.id, element.storageFile)"
+                (click)="deleteDocument(element)"
               >
                 <z-icon zType="delete"></z-icon>
               </button>
@@ -213,7 +211,11 @@
         </tr>
       } @empty {
         <tr z-table-row>
-          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="py-8 text-center text-muted-foreground">
+          <td
+            z-table-cell
+            [attr.colspan]="columnsToDisplayWithExpand.length"
+            class="py-8 text-center text-muted-foreground"
+          >
             {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
           </td>
         </tr>

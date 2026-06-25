@@ -66,13 +66,17 @@ export class KnowledgeDocumentChunkComponent {
 
   readonly documentId = this.paramId
   readonly documentId$ = toObservable(this.paramId)
+  readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly document = toSignal(
-    this.documentId$.pipe(
-      filter(nonBlank),
-      switchMap((id) => this.knowledgeDocumentService.getById(id))
+    this.refresh$.pipe(
+      switchMap(() =>
+        this.documentId$.pipe(
+          filter(nonBlank),
+          switchMap((id) => this.knowledgeDocumentService.getById(id))
+        )
+      )
     )
   )
-  readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
   readonly docEnabled = model(false)
@@ -103,6 +107,15 @@ export class KnowledgeDocumentChunkComponent {
       //
     }
   })
+  readonly lastIncrementalSyncView = computed(() => {
+    const sync = this.document()?.metadata?.lastIncrementalSync
+    return sync
+      ? {
+          ...sync,
+          processedAtText: this.formatProcessedAt(sync.processedAt)
+        }
+      : null
+  })
   readonly chunkMetadataEntries = computed(() => this.toMetadataEntries(this.metadataChunk()?.metadata))
   readonly chunkMetadataJson = computed(() => this.toJsonText(this.metadataChunk()?.metadata ?? {}))
 
@@ -124,6 +137,15 @@ export class KnowledgeDocumentChunkComponent {
 
   refresh() {
     this.refresh$.next(true)
+  }
+
+  private handleMutationError(error: { status?: number }) {
+    this.#toastr.error(getErrorMessage(error))
+    if (error?.status === 409) {
+      this.reset()
+      this.onIntersection()
+      this.refresh()
+    }
   }
 
   close() {
@@ -210,27 +232,20 @@ export class KnowledgeDocumentChunkComponent {
       this.knowledgeDocumentService
         .updateChunk(this.documentId(), this.editChunk().id, {
           metadata: this.editChunk().metadata,
-          pageContent: this.editChunk().pageContent
+          pageContent: this.editChunk().pageContent,
+          version: this.editChunk().version
         })
         .subscribe({
           next: () => {
             this.loading.set(false)
-            this.#chunks.update((chunks) => {
-              return chunks.map((_) => {
-                if (_.id === this.editChunk().id) {
-                  return {
-                    ..._,
-                    ...this.editChunk()
-                  }
-                }
-                return _
-              })
-            })
+            this.reset()
+            this.onIntersection()
+            this.refresh()
             this.cancelEdit()
           },
           error: (error) => {
             this.loading.set(false)
-            this.#toastr.error(getErrorMessage(error))
+            this.handleMutationError(error)
           }
         })
     } else {
@@ -240,10 +255,11 @@ export class KnowledgeDocumentChunkComponent {
           this.reset()
           this.onIntersection()
           this.cancelEdit()
+          this.refresh()
         },
         error: (error) => {
           this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
+          this.handleMutationError(error)
         }
       })
     }
@@ -252,28 +268,20 @@ export class KnowledgeDocumentChunkComponent {
   enableChunk(chunk: IKnowledgeDocumentChunk, event: boolean) {
     this.loading.set(true)
     this.knowledgeDocumentService
-      .updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } as IDocChunkMetadata })
+      .updateChunk(this.documentId(), chunk.id, {
+        metadata: { enabled: event } as IDocChunkMetadata,
+        version: chunk.version
+      })
       .subscribe({
         next: () => {
           this.loading.set(false)
-          this.#chunks.update((chunks) => {
-            return chunks.map((_) => {
-              if (_.id === chunk.id) {
-                return {
-                  ..._,
-                  metadata: {
-                    ..._.metadata,
-                    enabled: event
-                  }
-                }
-              }
-              return _
-            })
-          })
+          this.reset()
+          this.onIntersection()
+          this.refresh()
         },
         error: (error) => {
           this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
+          this.handleMutationError(error)
         }
       })
   }
@@ -288,29 +296,33 @@ export class KnowledgeDocumentChunkComponent {
         value: chunk.id,
         information: chunk.pageContent.substring(0, 100)
       },
-      this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id)
+      this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id, chunk.version)
     ).subscribe({
       next: () => {
         this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
         this.total.update((total) => total - 1)
+        this.refresh()
       },
       error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
+        this.handleMutationError(error)
       }
     })
   }
 
   updateDoc(entity: Partial<IKnowledgeDocument>) {
     this.loading.set(true)
-    this.knowledgeDocumentService.update(this.document().id, entity).subscribe({
-      next: () => {
-        this.loading.set(false)
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.knowledgeDocumentService
+      .update(this.document().id, { ...entity, version: entity.version ?? this.document().version })
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.refresh()
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.handleMutationError(error)
+        }
+      })
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -345,16 +357,18 @@ export class KnowledgeDocumentChunkComponent {
     this.loading.set(true)
     this.knowledgeDocumentService
       .update(this.document().id, {
-        metadata: this.metadata()
+        metadata: this.metadata(),
+        version: this.document().version
       })
       .subscribe({
         next: () => {
           this.loading.set(false)
           this.editMetadata.set(false)
+          this.refresh()
         },
         error: (error) => {
           this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
+          this.handleMutationError(error)
         }
       })
   }
@@ -403,6 +417,15 @@ export class KnowledgeDocumentChunkComponent {
       return String(value)
     }
     return this.toJsonText(value)
+  }
+
+  private formatProcessedAt(value: string | null | undefined) {
+    if (!value) {
+      return '-'
+    }
+
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
   }
 
   private toJsonText(value: unknown) {

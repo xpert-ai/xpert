@@ -34,7 +34,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     NgmSpinComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
-]
+  ]
 })
 export class KnowledgeDocumentSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType
@@ -86,7 +86,7 @@ export class KnowledgeDocumentSettingsComponent {
   processDocuments() {
     this.kDocumentAPI
       .updateBulk(
-        this.documents().map((doc) => pick(doc, ['id', 'parserConfig', 'options', 'disabled'])),
+        this.documents().map((doc) => pick(doc, ['id', 'parserConfig', 'options', 'disabled', 'version'])),
         true
       )
       .subscribe({

@@ -10,8 +10,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
-import {
 import { ZardDialogService } from '@xpert-ai/headless-ui'
+import {
   getErrorMessage,
   IDocumentChunk,
   KnowledgeDocumentService,
@@ -76,7 +76,7 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   }
 
   deleteChunk(chunk: IDocumentChunk) {
-    this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id).subscribe({
+    this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id, chunk.version).subscribe({
       next: () => {
         this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
       },

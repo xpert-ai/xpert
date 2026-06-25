@@ -8,7 +8,7 @@ import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledg
 import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardFormImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardFormImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { omit } from 'lodash-es'
 import { filter, finalize, switchMap, take, timer } from 'rxjs'
@@ -54,7 +54,8 @@ function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseSt
     NgmSelectComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
-    KnowledgeRetrievalSettingsComponent
+    KnowledgeRetrievalSettingsComponent,
+    ZardSwitchComponent
   ],
   animations: [routeAnimations]
 })
@@ -101,6 +102,7 @@ export class KnowledgeConfigurationComponent {
   })
   readonly embeddingModelDraftChanged = computed(() => this.embeddingModelChanged())
   readonly permission = attrModel(this.knowledgebaseModel, 'permission')
+  readonly incrementalSyncEnabled = attrModel(this.knowledgebaseModel, 'incrementalSyncEnabled')
   readonly parserConfig = attrModel(this.knowledgebaseModel, 'parserConfig')
   readonly chunkSize = attrModel(this.parserConfig, 'chunkSize')
   readonly chunkOverlap = attrModel(this.parserConfig, 'chunkOverlap')

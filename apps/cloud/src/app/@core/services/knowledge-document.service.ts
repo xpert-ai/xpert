@@ -33,9 +33,15 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     })
   }
 
-  deleteBulk(ids: string[]) {
+  delete(id: string, version?: number) {
+    return this.httpClient.delete(`${this.apiBaseUrl}/${id}`, {
+      params: version ? { version } : undefined
+    })
+  }
+
+  deleteBulk(documents: Pick<IKnowledgeDocument, 'id' | 'version'>[]) {
     return this.httpClient.delete(this.apiBaseUrl + '/bulk', {
-      body: { ids }
+      body: { documents }
     })
   }
 
@@ -92,13 +98,18 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   getChunks(id: string, params: { take: number; skip: number; search?: string }) {
-    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
-      params: new HttpParams().append('data', JSON.stringify(params))
-    })
+    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(
+      this.apiBaseUrl + `/${id}` + '/chunk',
+      {
+        params: new HttpParams().append('data', JSON.stringify(params))
+      }
+    )
   }
 
-  deleteChunk(documentId: string, id: string) {
-    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
+  deleteChunk(documentId: string, id: string, version?: number) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, {
+      params: version ? { version } : undefined
+    })
   }
 
   createChunk(documentId: string, chunk: Partial<IKnowledgeDocumentChunk>) {
