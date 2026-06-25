@@ -295,7 +295,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         usedFileNames: Set<string>,
         usedFilePaths: Set<string>
     ): Promise<OriginalFileDownloadTarget | null> {
-        if (!document || document.sourceType === KDocumentSourceType.FOLDER || isSystemManagedDocument(document)) {
+        if (
+            !document ||
+            document.sourceType === KDocumentSourceType.FOLDER ||
+            isSystemManagedDocument(document)
+        ) {
             return null
         }
 
@@ -326,10 +330,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         return {
             absolutePath: workArea.volume.path(filePath),
-            fileName: getUniqueFileName(
-                document.name || path.basename(filePath) || `${document.id}.download`,
-                usedFileNames
-            ),
+            fileName: getUniqueFileName(document.name || path.basename(filePath) || `${document.id}.download`, usedFileNames),
             mimeType: document.mimeType || 'application/octet-stream'
         }
     }

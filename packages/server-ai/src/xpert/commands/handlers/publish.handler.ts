@@ -105,10 +105,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
-                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(
-                    xpert.workspaceId,
-                    commandProfile
-                )
+                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(xpert.workspaceId, commandProfile)
             }
         }
         this.check(draft)
