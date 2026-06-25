@@ -27,6 +27,10 @@ describe('TenantService', () => {
     expect(resolveTenantFromHostname('shenzhen.app.xpertai.cn')).toBe('shenzhen')
   })
 
+  it('ignores non-app hosted domains', () => {
+    expect(resolveTenantFromHostname('shenzhen.api.xpertai.cn')).toBeNull()
+  })
+
   it('uses localStorage when the current host does not resolve to a tenant subdomain', () => {
     localStorage.setItem('tenant', 'local')
 

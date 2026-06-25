@@ -1,9 +1,9 @@
 import { environment } from '../../../environments/environment'
+import { resolveTenantFromHostname } from '../services/tenant-hostname'
 
 const baseUrl = environment.API_BASE_URL
 const SAME_ORIGIN_API_BASE_URLS = new Set(['same-origin', 'self', '/'])
 const TENANT_API_BASE_URL_TOKEN = '{tenant}'
-const RESERVED_TENANT_DOMAIN_LABELS = new Set(['app', 'api', 'www'])
 
 export function normalizeApiBaseUrl(value?: string | null, hostname = getCurrentHostname()) {
   const normalized = value?.trim()
@@ -64,37 +64,10 @@ export function resolveTenantApiBaseUrl(value: string, hostname = getCurrentHost
     return value
   }
 
-  const tenantDomain = extractTenantDomainFromHostname(hostname)
+  const tenantDomain = resolveTenantFromHostname(hostname)
   if (tenantDomain) {
     return value.split(TENANT_API_BASE_URL_TOKEN).join(tenantDomain)
   }
 
   return value.split(`${TENANT_API_BASE_URL_TOKEN}.`).join('').split(TENANT_API_BASE_URL_TOKEN).join('')
-}
-
-function extractTenantDomainFromHostname(hostname: string | undefined) {
-  if (!hostname) {
-    return null
-  }
-
-  const normalized = hostname.trim().toLowerCase()
-  if (!normalized || normalized === 'localhost') {
-    return null
-  }
-
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(normalized) || normalized.includes(':')) {
-    return null
-  }
-
-  const parts = normalized.split('.').filter(Boolean)
-  if (parts.length < 2) {
-    return null
-  }
-
-  const tenantDomain = parts[0] || null
-  if (!tenantDomain || RESERVED_TENANT_DOMAIN_LABELS.has(tenantDomain)) {
-    return null
-  }
-
-  return tenantDomain
 }

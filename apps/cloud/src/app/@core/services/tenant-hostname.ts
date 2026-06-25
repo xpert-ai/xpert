@@ -8,7 +8,7 @@ export function resolveTenantFromHostname(hostname: string): string | null {
 
   const parts = host.split('.')
   // e.g. foo.app.xpertai.cn => ['foo','app','xpertai','cn']
-  if (parts.length >= 4) {
+  if (parts.length >= 4 && parts[1]?.toLowerCase() === 'app') {
     const sub = parts[0]
     if (sub && sub.toLowerCase() !== 'app') {
       return sub

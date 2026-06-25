@@ -59,4 +59,10 @@ describe('resolveTenantApiBaseUrl', () => {
     expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'app.xpertai.cn')).toBe('https://api.xpertai.cn')
     expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'localhost')).toBe('https://api.xpertai.cn')
   })
+
+  it('falls back to the base API domain for non-tenant app hostnames', () => {
+    expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'staging.xpertai.cn')).toBe(
+      'https://api.xpertai.cn'
+    )
+  })
 })
