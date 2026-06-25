@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core'
 import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { catchError, firstValueFrom, map, of, shareReplay } from 'rxjs'
 import { ITenant, ITenantCreateInput, ITenantSetting } from '../types'
+import { resolveTenantFromHostname } from './tenant-hostname'
 
 @Injectable({ providedIn: 'root' })
 export class TenantService {
@@ -12,9 +13,9 @@ export class TenantService {
   API_URL = `${API_PREFIX}/tenant`
 
   readonly #isOnboarded = this.http.get(`${this.API_URL}/onboard`).pipe(
-    map((result) => ({tenant: result})),
-    catchError((err) => of({error: err})),
-    shareReplay<{tenant?: ITenant; error?: Error}>(1)
+    map((result) => ({ tenant: result })),
+    catchError((err) => of({ error: err })),
+    shareReplay<{ tenant?: ITenant; error?: Error }>(1)
   )
 
   create(createInput: ITenantCreateInput): Promise<ITenant> {
@@ -53,15 +54,10 @@ export class TenantService {
     }
 
     // 2) subdomain: <tenant>.app.xpertai.cn
-    const host = window.location.hostname
-    const parts = host.split('.')
-    // e.g. foo.app.xpertai.cn => ['foo','app','xpertai','cn']
-    if (parts.length >= 4) {
-      const sub = parts[0]
-      if (sub && sub !== 'app') {
-        this.setTenant(sub)
-        return sub
-      }
+    const sub = resolveTenantFromHostname(window.location.hostname)
+    if (sub) {
+      this.setTenant(sub)
+      return sub
     }
 
     // 3) localStorage fallback
