@@ -4,74 +4,100 @@ import { FormsModule } from '@angular/forms'
 import { XpertListViewSchema, XpertViewActionDefinition } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import {
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardEmptyComponent,
+  ZardInputDirective,
+  ZardLoaderComponent
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-list-view-renderer',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    NgmI18nPipe,
+    ZardButtonComponent,
+    ...ZardCardImports,
+    ZardEmptyComponent,
+    ZardInputDirective,
+    ZardLoaderComponent
+  ],
   template: `
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3 p-4">
       @if (schema().search?.enabled) {
         <div class="flex items-center gap-2">
           <input
-            class="xp-input flex-1 rounded-full border-divider-regular text-sm text-text-primary"
+            z-input
+            zSize="sm"
+            class="flex-1"
             [(ngModel)]="searchText"
-            [placeholder]="(schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })"
+            [placeholder]="
+              (schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })
+            "
             (keyup.enter)="applySearch.emit(searchText.trim())"
           />
-          <button
-            type="button"
-            class="rounded-full border border-divider-regular px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-            (click)="applySearch.emit(searchText.trim())"
-          >
+          <button z-button type="button" zType="default" zSize="sm" (click)="applySearch.emit(searchText.trim())">
             {{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
           </button>
         </div>
       }
 
-      <div class="rounded-2xl border border-divider-regular bg-components-card-bg">
-        @if (loading()) {
-          <div class="px-4 py-6 text-sm text-text-tertiary">{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</div>
-        } @else if (!items().length) {
-          <div class="px-4 py-6 text-sm text-text-tertiary">{{ 'PAC.ViewExtension.NoData' | translate: { Default: 'No data' } }}</div>
-        } @else {
-          @for (item of items(); track trackRow(item)) {
-            <div class="flex items-start justify-between gap-3 border-b border-divider-subtle px-4 py-4 last:border-b-0">
-              <div class="min-w-0">
-                <div class="truncate font-medium text-text-primary">{{ getValue(item, schema().item.titleKey) }}</div>
-                @if (schema().item.subtitleKey; as subtitleKey) {
-                  <div class="truncate text-sm text-text-secondary">{{ getValue(item, subtitleKey) }}</div>
-                }
-                @if (schema().item.descriptionKey; as descriptionKey) {
-                  <div class="mt-1 whitespace-pre-wrap text-sm text-text-tertiary">{{ getValue(item, descriptionKey) }}</div>
-                }
-              </div>
-
-              @if (rowActions().length) {
-                <div class="flex shrink-0 gap-2">
-                  @for (action of rowActions(); track action.key) {
-                    <button
-                      type="button"
-                      class="rounded-full border border-divider-regular px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-                      (click)="runAction.emit({ action, targetId: trackRow(item) })"
-                    >
-                      {{ action.label | i18n }}
-                    </button>
+      <z-card class="gap-0 rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none">
+        <z-card-content class="p-0">
+          @if (loading()) {
+            <div class="flex items-center gap-2 px-4 py-6 text-sm text-text-tertiary">
+              <z-loader zSize="sm" />
+              <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
+            </div>
+          } @else if (!items().length) {
+            <div class="px-4 py-8">
+              <z-empty zIcon="inbox" [zTitle]="'PAC.ViewExtension.NoData' | translate: { Default: 'No data' }" />
+            </div>
+          } @else {
+            @for (item of items(); track trackRow(item)) {
+              <div
+                class="flex items-start justify-between gap-3 border-b border-divider-subtle px-4 py-4 last:border-b-0"
+              >
+                <div class="min-w-0">
+                  <div class="truncate font-medium text-text-primary">{{ getValue(item, schema().item.titleKey) }}</div>
+                  @if (schema().item.subtitleKey; as subtitleKey) {
+                    <div class="truncate text-sm text-text-secondary">{{ getValue(item, subtitleKey) }}</div>
+                  }
+                  @if (schema().item.descriptionKey; as descriptionKey) {
+                    <div class="mt-1 whitespace-pre-wrap text-sm text-text-tertiary">
+                      {{ getValue(item, descriptionKey) }}
+                    </div>
                   }
                 </div>
-              }
-            </div>
+
+                @if (rowActions().length) {
+                  <div class="flex shrink-0 gap-2">
+                    @for (action of rowActions(); track action.key) {
+                      <button
+                        z-button
+                        type="button"
+                        zType="outline"
+                        zSize="xs"
+                        (click)="runAction.emit({ action, targetId: trackRow(item) })"
+                      >
+                        {{ action.label | i18n }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
-        }
-      </div>
+        </z-card-content>
+      </z-card>
 
       @if (schema().pagination?.enabled && page() * pageSize() < total()) {
         <div class="flex justify-center">
-          <button
-            type="button"
-            class="rounded-full border border-divider-regular px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-            (click)="changePage.emit(page() + 1)"
-          >
+          <button z-button type="button" zType="outline" zSize="sm" (click)="changePage.emit(page() + 1)">
             {{ 'PAC.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
           </button>
         </div>

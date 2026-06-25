@@ -15,7 +15,7 @@ export async function initI18next(baseDir: string) {
 			fallbackLng: 'en',
 			fallbackNS: 'common',
 			defaultNS: 'common',
-			preload: ['en', 'en-US', 'zh-Hans'],
+			preload: ['en', 'en-US', 'zh-Hans', 'zh-Hant'],
 			ns: ['core', 'sql', 'xmla', 'common', 'server', 'server-ai', 'analytics'], // list your namespaces
 			backend: {
 				loadPath: path.resolve(baseDir, '{{ns}}/src/i18n/{{lng}}.json')

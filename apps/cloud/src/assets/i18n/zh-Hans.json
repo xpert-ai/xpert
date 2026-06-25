@@ -4387,7 +4387,17 @@
       "Empty": "暂无扩展视图",
       "Search": "搜索",
       "NoData": "暂无数据",
-      "Total": "总数"
+      "Total": "总数",
+      "Errors": {
+        "QueryParameters": "此视图不支持查询参数",
+        "Pagination": "此视图不支持分页",
+        "Cursor": "此视图不支持游标查询",
+        "Search": "此视图不支持搜索",
+        "Sorting": "此视图不支持排序",
+        "Filters": "此视图不支持筛选",
+        "Selection": "此视图不支持选中项查询",
+        "Parameterized": "此视图不支持参数化查询"
+      }
     },
     "Xpert": {
       "AgentRunStatusReplied": "已回复",
@@ -5611,6 +5621,18 @@
         "SelectTimeZone": "选择一个时区",
         "Currency": "币种"
       }
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "此视图不支持查询参数",
+      "Pagination": "此视图不支持分页",
+      "Cursor": "此视图不支持游标查询",
+      "Search": "此视图不支持搜索",
+      "Sorting": "此视图不支持排序",
+      "Filters": "此视图不支持筛选",
+      "Selection": "此视图不支持选中项查询",
+      "Parameterized": "此视图不支持参数化查询"
     }
   },
   "AUTH": {

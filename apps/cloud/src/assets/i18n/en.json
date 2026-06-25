@@ -1512,6 +1512,25 @@
     "XProject": {
       "NoExperts": "No experts found"
     },
+    "ViewExtension": {
+      "DetailTabHint": "This area displays integration extension details through the platform declarative view system.",
+      "Unsupported": "Unsupported view type",
+      "NotFound": "View not found",
+      "Empty": "No extension views available",
+      "Search": "Search",
+      "NoData": "No data",
+      "Total": "Total",
+      "Errors": {
+        "QueryParameters": "This view does not support query parameters",
+        "Pagination": "This view does not support pagination",
+        "Cursor": "This view does not support cursor queries",
+        "Search": "This view does not support search",
+        "Sorting": "This view does not support sorting",
+        "Filters": "This view does not support filters",
+        "Selection": "This view does not support selection queries",
+        "Parameterized": "This view does not support parameterized queries"
+      }
+    },
     "Xpert": {
       "Xpert": "Xpert",
       "Task": "Task",
@@ -1783,6 +1802,18 @@
       "OwnerPlaceholder": "Select owner",
       "NoOwner": "No owner assigned",
       "Untitled": "Untitled certification"
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "This view does not support query parameters",
+      "Pagination": "This view does not support pagination",
+      "Cursor": "This view does not support cursor queries",
+      "Search": "This view does not support search",
+      "Sorting": "This view does not support sorting",
+      "Filters": "This view does not support filters",
+      "Selection": "This view does not support selection queries",
+      "Parameterized": "This view does not support parameterized queries"
     }
   },
   "STORY_DESIGNER": {

@@ -5,5 +5,17 @@
 		"PluginInstallFailed": "Failed to install plugin {{pluginName}}: {{errorMessage}}",
 		"PluginNamesRequired": "Plugin names are required",
 		"PluginSystemUninstallForbidden": "Plugin {{name}} is a system plugin and cannot be uninstalled"
+	},
+	"ViewExtension": {
+		"Errors": {
+			"QueryParameters": "This view does not support query parameters",
+			"Pagination": "This view does not support pagination",
+			"Cursor": "This view does not support cursor queries",
+			"Search": "This view does not support search",
+			"Sorting": "This view does not support sorting",
+			"Filters": "This view does not support filters",
+			"Selection": "This view does not support selection queries",
+			"Parameterized": "This view does not support parameterized queries"
+		}
 	}
 }

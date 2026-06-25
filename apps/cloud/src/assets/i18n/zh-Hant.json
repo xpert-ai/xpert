@@ -3269,6 +3269,25 @@
       "WebhookUrl": "回調地址",
       "AddIntegrationHelp": "了解更多關於自定義集成的信息"
     },
+    "ViewExtension": {
+      "DetailTabHint": "這裡將通過平台聲明式視圖系統展示此集成的擴展信息。",
+      "Unsupported": "不支持的視圖類型",
+      "NotFound": "未找到視圖",
+      "Empty": "暫無擴展視圖",
+      "Search": "搜索",
+      "NoData": "暫無數據",
+      "Total": "總數",
+      "Errors": {
+        "QueryParameters": "此視圖不支持查詢參數",
+        "Pagination": "此視圖不支持分頁",
+        "Cursor": "此視圖不支持游標查詢",
+        "Search": "此視圖不支持搜索",
+        "Sorting": "此視圖不支持排序",
+        "Filters": "此視圖不支持篩選",
+        "Selection": "此視圖不支持選中項查詢",
+        "Parameterized": "此視圖不支持參數化查詢"
+      }
+    },
     "Xpert": {
       "AgentRunStatusReplied": "已回覆",
       "ExportXpertDSL": "導出數字專家 DSL",
@@ -4311,6 +4330,18 @@
         "SelectTimeZone": "選擇一個時區",
         "Currency": "幣種"
       }
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "此視圖不支持查詢參數",
+      "Pagination": "此視圖不支持分頁",
+      "Cursor": "此視圖不支持游標查詢",
+      "Search": "此視圖不支持搜索",
+      "Sorting": "此視圖不支持排序",
+      "Filters": "此視圖不支持篩選",
+      "Selection": "此視圖不支持選中項查詢",
+      "Parameterized": "此視圖不支持參數化查詢"
     }
   },
   "AUTH": {
