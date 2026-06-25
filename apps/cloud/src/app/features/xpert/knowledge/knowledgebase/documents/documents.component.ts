@@ -223,6 +223,7 @@ export class KnowledgeDocumentsComponent {
                   'progress',
                   'sourceConfig',
                   'folder',
+                  'version',
                   'metadata'
                 ],
                 where,
@@ -311,11 +312,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   canDownloadOriginalFile(doc: IKnowledgeDocument) {
-    return (
-      doc.sourceType !== KDocumentSourceType.FOLDER &&
-      !isSystemManagedDocument(doc) &&
-      !!doc.filePath
-    )
+    return doc.sourceType !== KDocumentSourceType.FOLDER && !isSystemManagedDocument(doc) && !!doc.filePath
   }
 
   isOriginalFileDownloading(id: string) {
@@ -438,7 +435,7 @@ export class KnowledgeDocumentsComponent {
         this.refresh()
       },
       error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
@@ -469,14 +466,14 @@ export class KnowledgeDocumentsComponent {
         value: doc.id,
         information: doc.name
       },
-      this.knowledgeDocumentAPI.delete(doc.id)
+      this.knowledgeDocumentAPI.delete(doc.id, doc.version)
     ).subscribe({
       next: () => {
         this.knowledgebaseComponent.documentNum.update((num) => num - 1)
         this.refresh()
       },
       error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
@@ -484,14 +481,15 @@ export class KnowledgeDocumentsComponent {
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
     this.knowledgeDocumentAPI
       .update(document.id, {
+        version: document.version,
         parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig']
       })
       .subscribe({
         next: () => {
-          //
+          this.refresh()
         },
         error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
+          this.handleMutationError(err)
         }
       })
   }
@@ -531,16 +529,30 @@ export class KnowledgeDocumentsComponent {
     }
   }
 
+  selectedDocuments() {
+    return this.selectionModel.selected
+      .map((id) => this.#data().find((document) => document.id === id))
+      .filter((document): document is IKnowledgeDocument => !!document)
+  }
+
+  private handleMutationError(err: { status?: number }) {
+    this.#toastr.error(getErrorMessage(err))
+    if (err?.status === 409) {
+      this.refresh()
+    }
+  }
+
   updateDocument(id: string, changes: Partial<IKnowledgeDocument>) {
+    const document = this.#data().find((item) => item.id === id)
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.update(id, changes).subscribe({
+    this.knowledgeDocumentAPI.update(id, { ...changes, version: changes.version ?? document?.version }).subscribe({
       next: () => {
         this.isLoading.set(false)
         this.refresh()
       },
       error: (err) => {
         this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
@@ -550,7 +562,7 @@ export class KnowledgeDocumentsComponent {
       return
     }
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.deleteBulk(this.selectionModel.selected).subscribe({
+    this.knowledgeDocumentAPI.deleteBulk(this.selectedDocuments()).subscribe({
       next: () => {
         this.isLoading.set(false)
         this.knowledgebaseComponent.documentNum.update((num) => num - this.selectionModel.selected.length)
@@ -559,7 +571,7 @@ export class KnowledgeDocumentsComponent {
       },
       error: (err) => {
         this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
@@ -567,7 +579,9 @@ export class KnowledgeDocumentsComponent {
   enableSelected() {
     this.isLoading.set(true)
     this.knowledgeDocumentAPI
-      .updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: false })))
+      .updateBulk(
+        this.selectedDocuments().map((document) => ({ id: document.id, disabled: false, version: document.version }))
+      )
       .subscribe({
         next: () => {
           this.isLoading.set(false)
@@ -576,24 +590,28 @@ export class KnowledgeDocumentsComponent {
         },
         error: (err) => {
           this.isLoading.set(false)
-          this.#toastr.error(getErrorMessage(err))
+          this.handleMutationError(err)
         }
       })
   }
 
   disableSelected() {
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.updateBulk(this.selectionModel.selected.map((id) => ({ id, disabled: true }))).subscribe({
-      next: () => {
-        this.isLoading.set(false)
-        this.selectionModel.clear()
-        this.refresh()
-      },
-      error: (err) => {
-        this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.knowledgeDocumentAPI
+      .updateBulk(
+        this.selectedDocuments().map((document) => ({ id: document.id, disabled: true, version: document.version }))
+      )
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false)
+          this.selectionModel.clear()
+          this.refresh()
+        },
+        error: (err) => {
+          this.isLoading.set(false)
+          this.handleMutationError(err)
+        }
+      })
   }
 
   renameDoc(doc: IKnowledgeDocument) {
@@ -603,42 +621,42 @@ export class KnowledgeDocumentsComponent {
         value: doc.name
       },
       (name: string) => {
-        return name ? this.knowledgeDocumentAPI.update(doc.id, { name }) : EMPTY
+        return name ? this.knowledgeDocumentAPI.update(doc.id, { name, version: doc.version }) : EMPTY
       }
     ).subscribe({
       next: () => {
         this.refresh()
       },
       error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
 
   enableDoc(doc: IKnowledgeDocument) {
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.update(doc.id, { disabled: false }).subscribe({
+    this.knowledgeDocumentAPI.update(doc.id, { disabled: false, version: doc.version }).subscribe({
       next: () => {
         this.isLoading.set(false)
         this.refresh()
       },
       error: (err) => {
         this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }
 
   disableDoc(doc: IKnowledgeDocument) {
     this.isLoading.set(true)
-    this.knowledgeDocumentAPI.update(doc.id, { disabled: true }).subscribe({
+    this.knowledgeDocumentAPI.update(doc.id, { disabled: true, version: doc.version }).subscribe({
       next: () => {
         this.isLoading.set(false)
         this.refresh()
       },
       error: (err) => {
         this.isLoading.set(false)
-        this.#toastr.error(getErrorMessage(err))
+        this.handleMutationError(err)
       }
     })
   }

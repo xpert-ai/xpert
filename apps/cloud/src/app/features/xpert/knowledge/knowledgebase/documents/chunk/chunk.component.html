@@ -186,6 +186,63 @@
       </div>
 
       <div class="flex flex-col gap-y-1 p-4 overflow-auto grow">
+        @if (lastIncrementalSyncView(); as sync) {
+          <div class="mb-4 rounded-lg border border-divider-subtle bg-components-panel-bg p-3">
+            <div class="mb-2 flex items-center gap-x-1 text-text-secondary system-xs-semibold-uppercase">
+              <i class="ri-refresh-line"></i>
+              <span>
+                {{ 'PAC.Knowledgebase.LastIncrementalSync' | translate: { Default: 'Recent Incremental Update' } }}
+              </span>
+            </div>
+            <div class="grid grid-cols-[128px_1fr] gap-x-2 gap-y-1">
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.IncrementalSyncMode' | translate: { Default: 'Mode' } }}
+              </div>
+              <div class="text-sm text-text-secondary">
+                @switch (sync.mode) {
+                  @case ('full') {
+                    {{ 'PAC.Knowledgebase.IncrementalSyncModeFull' | translate: { Default: 'Full' } }}
+                  }
+                  @case ('incremental') {
+                    {{ 'PAC.Knowledgebase.IncrementalSyncModeIncremental' | translate: { Default: 'Incremental' } }}
+                  }
+                  @default {
+                    {{ 'PAC.Knowledgebase.IncrementalSyncModeSkipped' | translate: { Default: 'Skipped' } }}
+                  }
+                }
+              </div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.TotalChunks' | translate: { Default: 'Total Chunks' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.total }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.SkippedChunks' | translate: { Default: 'Skipped Chunks' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.skipped }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.AddedChunks' | translate: { Default: 'Added Chunks' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.added }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.UpdatedChunks' | translate: { Default: 'Updated Chunks' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.updated }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.DeletedChunks' | translate: { Default: 'Deleted Chunks' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.deleted }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.EmbeddingTokens' | translate: { Default: 'Embedding Tokens' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.embeddingTokens }}</div>
+              <div class="text-sm font-medium text-text-tertiary">
+                {{ 'PAC.Knowledgebase.ProcessedAt' | translate: { Default: 'Processed At' } }}
+              </div>
+              <div class="text-sm text-text-secondary">{{ sync.processedAtText }}</div>
+            </div>
+          </div>
+        }
+
         @for (field of metadataSchema(); track field.key) {
           <div class="flex items-start space-x-2">
             <div class="text-sm font-medium w-[128px] shrink-0 items-center truncate py-1 text-text-tertiary">
