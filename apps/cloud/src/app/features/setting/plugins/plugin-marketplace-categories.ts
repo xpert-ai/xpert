@@ -1,7 +1,7 @@
 import { PluginMarketplaceCategory, PluginTargetAppMarketplaceMetadata, PluginTargetAppMeta } from '@xpert-ai/contracts'
 
-export const PLUGIN_MARKETPLACE_TARGET_APP = 'data-xpert'
-export const PLUGIN_MARKETPLACE_TARGET_APPS = [PLUGIN_MARKETPLACE_TARGET_APP, 'xpert'] as const
+export const PLUGIN_MARKETPLACE_TARGET_APP = 'xpert'
+export const PLUGIN_MARKETPLACE_TARGET_APPS = [PLUGIN_MARKETPLACE_TARGET_APP, 'data-xpert'] as const
 
 export type PluginMarketplaceCategorizedItem = {
   category?: string | null
