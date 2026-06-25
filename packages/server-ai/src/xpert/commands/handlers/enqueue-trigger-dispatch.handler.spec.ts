@@ -7,7 +7,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
     function createHandler() {
         const xpertService = {
             repository: {
-                findOne: jest.fn()
+            findOne: jest.fn()
             }
         }
         const userService = {

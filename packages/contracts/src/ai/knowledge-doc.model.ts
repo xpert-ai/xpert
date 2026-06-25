@@ -113,7 +113,7 @@ export type TDocSourceConfig = {
 
 export type TKnowledgeDocument = {
   disabled?: boolean
-
+  
   knowledgebaseId?: string
 
   /**
@@ -216,8 +216,8 @@ export type TKnowledgeDocument = {
   integration?: IIntegration
 
   /**
-   * @deprecated use chunks instead
-   */
+	 * @deprecated use chunks instead
+	 */
   pages?: IKnowledgeDocumentPage[]
 
   chunks?: IKnowledgeDocumentChunk[]
@@ -234,7 +234,7 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
   knowledgebase?: IKnowledgebase
 
   draft?: TKnowledgeDocument
-
+  
   metadata?: T
 }
 
@@ -248,7 +248,7 @@ export interface StandardDocumentMetadata {
   uploadTime?: string // Upload time in ISO format
   lastUpdatedTime?: string // Last updated time
   source?: string // Source, e.g. "Local File" / "Web Import" / "API"
-
+  
   // ---- Technical Parameters ----
   segmentRule?: string // Segmentation rule, e.g. "General"
   segmentLength?: number // Maximum segment length (token or char)
@@ -349,7 +349,7 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
       zh_Hans: '技术参数'
     },
     fields: [
-      {
+       {
         key: 'tokens',
         label: { en_US: 'Tokens', zh_Hans: '词元' },
         type: 'number'
@@ -359,36 +359,36 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
       //   label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
       //   type: 'string'
       // },
-      //     {
-      //       key: 'segmentLength',
-      //       label: { en_US: 'Segment Length', zh_Hans: '段落长度' },
-      //       type: 'number'
-      //     },
-      //     {
-      //       key: 'averageSegmentLength',
-      //       label: { en_US: 'Average Segment Length', zh_Hans: '平均段落长度' },
-      //       type: 'string'
-      //     },
-      //     {
-      //       key: 'segmentCount',
-      //       label: { en_US: 'Segment Count', zh_Hans: '段落数量' },
-      //       type: 'number'
-      //     },
-      //     {
-      //       key: 'recallRate',
-      //       label: { en_US: 'Recall Count', zh_Hans: '召回次数' },
-      //       type: 'string'
-      //     },
-      //     {
-      //       key: 'embedTime',
-      //       label: { en_US: 'Embedding Time', zh_Hans: '嵌入时间' },
-      //       type: 'string'
-      //     },
-      //     {
-      //       key: 'embedCost',
-      //       label: { en_US: 'Embedding Cost', zh_Hans: '嵌入花费' },
-      //       type: 'string'
-      //     }
+  //     {
+  //       key: 'segmentLength',
+  //       label: { en_US: 'Segment Length', zh_Hans: '段落长度' },
+  //       type: 'number'
+  //     },
+  //     {
+  //       key: 'averageSegmentLength',
+  //       label: { en_US: 'Average Segment Length', zh_Hans: '平均段落长度' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'segmentCount',
+  //       label: { en_US: 'Segment Count', zh_Hans: '段落数量' },
+  //       type: 'number'
+  //     },
+  //     {
+  //       key: 'recallRate',
+  //       label: { en_US: 'Recall Count', zh_Hans: '召回次数' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'embedTime',
+  //       label: { en_US: 'Embedding Time', zh_Hans: '嵌入时间' },
+  //       type: 'string'
+  //     },
+  //     {
+  //       key: 'embedCost',
+  //       label: { en_US: 'Embedding Cost', zh_Hans: '嵌入花费' },
+  //       type: 'string'
+  //     }
     ]
   }
 ] as const

@@ -10,26 +10,26 @@ import { DocumentSimpleDTO } from './doc-simple.dto'
  */
 @Exclude()
 export class DocumentChunkDTO {
-    @Expose()
-    @ApiProperty({ type: () => String })
-    @IsNotEmpty()
-    @IsString()
-    id: string
+	@Expose()
+	@ApiProperty({ type: () => String })
+	@IsNotEmpty()
+	@IsString()
+	id: string
 
-    @Expose()
-    @ApiProperty({ type: () => String })
-    @IsNotEmpty()
-    @IsString()
-    pageContent: string
+	@Expose()
+	@ApiProperty({ type: () => String })
+	@IsNotEmpty()
+	@IsString()
+	pageContent: string
 
-    @Expose()
-    @ApiProperty({ type: () => Object })
-    @IsNotEmpty()
-    @IsJSON()
-    metadata: IDocChunkMetadata
+	@Expose()
+	@ApiProperty({ type: () => Object })
+	@IsNotEmpty()
+	@IsJSON()
+	metadata: IDocChunkMetadata
 
-    @Expose()
-    @ApiProperty({ type: () => String })
+	@Expose()
+	@ApiProperty({ type: () => String })
     contentHash?: string | null
 
     @Expose()
@@ -38,18 +38,18 @@ export class DocumentChunkDTO {
 
     @Expose()
     @ApiProperty({ type: () => String })
-    @IsNotEmpty()
-    @IsString()
-    collection_id: string
+	@IsNotEmpty()
+	@IsString()
+	collection_id: string
 
-    @Expose()
-    document?: DocumentSimpleDTO
+	@Expose()
+	document?: DocumentSimpleDTO
 
-    constructor(partial: DeepPartial<DocumentChunkDTO>) {
-        Object.assign(this, partial)
-        this.id = partial.id || partial.metadata.chunkId
-        if (partial.document) {
-            this.document = new DocumentSimpleDTO(partial.document)
-        }
-    }
+	constructor(partial: DeepPartial<DocumentChunkDTO>) {
+		Object.assign(this, partial)
+		this.id = partial.id || partial.metadata.chunkId
+		if (partial.document) {
+			this.document = new DocumentSimpleDTO(partial.document)
+		}
+	}
 }

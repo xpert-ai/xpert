@@ -15,28 +15,28 @@ function assertExpectedVersion(version: number | null | undefined) {
 
 @Injectable()
 export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudService<KnowledgeDocumentChunk> {
-    readonly #logger = new Logger(KnowledgeDocumentChunkService.name)
+	readonly #logger = new Logger(KnowledgeDocumentChunkService.name)
 
-    @Inject(DataSource)
-    private readonly dataSource: DataSource
+	@Inject(DataSource)
+	private readonly dataSource: DataSource
 
-    constructor(
-        @InjectRepository(KnowledgeDocumentChunk)
-        repo: Repository<KnowledgeDocumentChunk>
-    ) {
-        super(repo)
-    }
+	constructor(
+		@InjectRepository(KnowledgeDocumentChunk)
+		repo: Repository<KnowledgeDocumentChunk>
+	) {
+		super(repo)
+	}
 
-    async findAncestors(id: string) {
-        const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocumentChunk)
-        const entity = await treeRepo.findOneBy({ id })
-        const parents = await treeRepo.findAncestors(entity, { depth: 5 })
-        return parents
-    }
+	async findAncestors(id: string) {
+		const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocumentChunk)
+		const entity = await treeRepo.findOneBy({ id })
+		const parents = await treeRepo.findAncestors(entity, { depth: 5 })
+		return parents
+	}
 
-    async deleteByDocumentId(documentId: string) {
-        return super.delete({ documentId })
-    }
+	async deleteByDocumentId(documentId: string) {
+		return super.delete({ documentId })
+	}
 
     async updateWithVersion(id: string, entity: Partial<IKnowledgeDocumentChunk>, expectedVersion: number) {
         assertExpectedVersion(expectedVersion)
@@ -65,9 +65,9 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
     /**
      * Create or update chunks in batches.
-     *
-     * @param chunks
-     * @returns
+     * 
+     * @param chunks 
+     * @returns 
      */
     async upsertBulk(chunks: IKnowledgeDocumentChunk[]) {
         const entities: KnowledgeDocumentChunk[] = []
@@ -83,7 +83,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
             if (chunk.metadata.parentId) {
                 const parentChunk = chunkMap.get(chunk.metadata.parentId)
                 if (!parentChunk) return null
-
+                
                 if (parentChunk.id) {
                     return parentChunk
                 }
@@ -149,7 +149,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
     /**
      * Find all chunks that need embedding.
-     *
+     * 
      * @param chunks Embedding candidate chunks
      */
     findAllEmbeddingNodes(chunks: IKnowledgeDocumentChunk[]) {
@@ -163,7 +163,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
         // For original text chunks, only keep leaf nodes for embedding
         const textLeaves = this.findAllLeaves(originalChunks)
         embeddingChunks.push(...textLeaves)
-
+        
         // For media chunks, keep all for embedding
         embeddingChunks.push(...mediaChunks)
 

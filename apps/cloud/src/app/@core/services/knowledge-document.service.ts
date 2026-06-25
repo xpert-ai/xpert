@@ -101,7 +101,7 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(
       this.apiBaseUrl + `/${id}` + '/chunk',
       {
-        params: new HttpParams().append('data', JSON.stringify(params))
+      params: new HttpParams().append('data', JSON.stringify(params))
       }
     )
   }

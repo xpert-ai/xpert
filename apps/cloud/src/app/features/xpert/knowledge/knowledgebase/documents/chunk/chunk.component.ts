@@ -70,11 +70,11 @@ export class KnowledgeDocumentChunkComponent {
   readonly document = toSignal(
     this.refresh$.pipe(
       switchMap(() =>
-        this.documentId$.pipe(
-          filter(nonBlank),
-          switchMap((id) => this.knowledgeDocumentService.getById(id))
-        )
-      )
+    this.documentId$.pipe(
+      filter(nonBlank),
+      switchMap((id) => this.knowledgeDocumentService.getById(id))
+    )
+  )
     )
   )
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
@@ -314,15 +314,15 @@ export class KnowledgeDocumentChunkComponent {
     this.knowledgeDocumentService
       .update(this.document().id, { ...entity, version: entity.version ?? this.document().version })
       .subscribe({
-        next: () => {
-          this.loading.set(false)
+      next: () => {
+        this.loading.set(false)
           this.refresh()
-        },
-        error: (error) => {
-          this.loading.set(false)
+      },
+      error: (error) => {
+        this.loading.set(false)
           this.handleMutationError(error)
-        }
-      })
+      }
+    })
   }
 
   @HostListener('window:keydown', ['$event'])

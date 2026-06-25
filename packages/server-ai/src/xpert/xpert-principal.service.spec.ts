@@ -129,7 +129,7 @@ function createService() {
     const xpertService = {
         repository: {
             createQueryBuilder: jest.fn(() => query),
-            update: jest.fn()
+        update: jest.fn()
         }
     }
     const userService = {

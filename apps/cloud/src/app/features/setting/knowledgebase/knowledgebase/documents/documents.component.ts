@@ -164,11 +164,11 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
             data.map(
               (item) =>
                 ({
-                  ...item,
-                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-                    locale: getDateLocale(this.translateService.currentLang)
-                  }),
-                  parserConfig: item.parserConfig ?? {}
+            ...item,
+            createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+              locale: getDateLocale(this.translateService.currentLang)
+            }),
+            parserConfig: item.parserConfig ?? {}
                 }) as IKnowledgeDocument
             )
           )

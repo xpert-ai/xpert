@@ -113,10 +113,10 @@ describe('KnowledgeDocumentService original file downloads', () => {
 
         await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual(
             [
-                expect.objectContaining({
-                    absolutePath: '/knowledge-volume/files/local.txt',
-                    fileName: 'local.txt'
-                })
+            expect.objectContaining({
+                absolutePath: '/knowledge-volume/files/local.txt',
+                fileName: 'local.txt'
+            })
             ]
         )
     })

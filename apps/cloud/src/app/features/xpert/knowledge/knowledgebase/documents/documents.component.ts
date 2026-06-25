@@ -602,16 +602,16 @@ export class KnowledgeDocumentsComponent {
         this.selectedDocuments().map((document) => ({ id: document.id, disabled: true, version: document.version }))
       )
       .subscribe({
-        next: () => {
-          this.isLoading.set(false)
-          this.selectionModel.clear()
-          this.refresh()
-        },
-        error: (err) => {
-          this.isLoading.set(false)
+      next: () => {
+        this.isLoading.set(false)
+        this.selectionModel.clear()
+        this.refresh()
+      },
+      error: (err) => {
+        this.isLoading.set(false)
           this.handleMutationError(err)
-        }
-      })
+      }
+    })
   }
 
   renameDoc(doc: IKnowledgeDocument) {

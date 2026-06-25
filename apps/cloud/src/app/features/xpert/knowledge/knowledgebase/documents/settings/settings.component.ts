@@ -34,7 +34,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     NgmSpinComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
-  ]
+]
 })
 export class KnowledgeDocumentSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType

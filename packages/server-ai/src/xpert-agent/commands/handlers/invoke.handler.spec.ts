@@ -19,7 +19,7 @@ jest.mock('@xpert-ai/server-core', () => ({
             return (result as Promise<unknown>).finally(() => {
                 mockServerCoreRequestContextActive = false
             })
-        }
+    }
         mockServerCoreRequestContextActive = false
         return result
     })

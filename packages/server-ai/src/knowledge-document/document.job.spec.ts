@@ -240,7 +240,7 @@ describe('KnowledgeDocumentConsumer', () => {
                         deleted: 0,
                         embeddingTokens: 0,
                         processedAt: expect.any(String)
-                    })
+})
                 })
             })
         )
