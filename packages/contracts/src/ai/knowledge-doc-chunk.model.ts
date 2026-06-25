@@ -40,13 +40,14 @@ export interface IDocChunkMetadata {
   [key: string]: any
 }
 
-
 /**
  * Segmented chunk of a knowledge document
  */
 export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = any>
-  extends DocumentInterface<Metadata>,
-    IBasePerTenantAndOrganizationEntityModel {
+  extends DocumentInterface<Metadata>, IBasePerTenantAndOrganizationEntityModel {
+  contentHash?: string | null
+  version?: number
+
   documentId?: string
   document?: IKnowledgeDocument
   knowledgebaseId?: string
@@ -56,10 +57,9 @@ export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = an
   children?: IKnowledgeDocumentChunk<Metadata>[]
 }
 
-
 /**
  * Build a hierarchical tree structure from a flat list of DocumentInterface objects,
- * and 
+ * and
  *
  * @template Metadata - Type of metadata, defaults to IDocChunkMetadata
  * @param documents - A flat array of DocumentInterface objects
@@ -69,7 +69,7 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
   documents: DocumentInterface<Metadata>[]
 ): DocumentInterface<Metadata>[] {
   if (!documents || documents.length === 0) return []
-  
+
   // Step 1. Build a lookup map for quick access by chunkId
   const map = new Map<string, DocumentInterface<Metadata>>()
   for (const doc of documents) {
@@ -92,13 +92,11 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
       roots.push(doc)
     }
   }
-  
+
   return roots
 }
 
-function getChunkNodeId<Metadata extends IDocChunkMetadata>(
-  document: DocumentInterface<Metadata>
-): string | undefined {
+function getChunkNodeId<Metadata extends IDocChunkMetadata>(document: DocumentInterface<Metadata>): string | undefined {
   if (document.metadata?.chunkId) {
     return document.metadata.chunkId
   }
@@ -112,9 +110,9 @@ function getChunkNodeId<Metadata extends IDocChunkMetadata>(
 
 /**
  * Find all leaf nodes (nodes without children).
- * 
- * @param roots 
- * @returns 
+ *
+ * @param roots
+ * @returns
  */
 export function collectTreeLeaves(roots: IKnowledgeDocumentChunk[]) {
   const leaves: IKnowledgeDocumentChunk[] = []
