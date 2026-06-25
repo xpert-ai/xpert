@@ -176,7 +176,6 @@ export class KnowledgeDocumentConsumer {
                             status: KBDocumentStatusEnum.EMBEDDING,
                             progress: 0,
                             draft: null,
-                            contentHash: syncResult.contentHash,
                             processingHash,
                             sourceHash,
                             chunkNum: syncResult.chunks.length,
@@ -256,6 +255,7 @@ export class KnowledgeDocumentConsumer {
                         processDuration,
                         processDuation: processDuration,
                         progress: 100,
+                        ...(syncResult ? { contentHash: syncResult.contentHash } : {}),
                         processingHash,
                         sourceHash
                     },

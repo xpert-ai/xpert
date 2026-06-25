@@ -1357,16 +1357,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     private async deleteResolvedDocument(document: KnowledgeDocument, expectedVersion?: number) {
         await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
         if (expectedVersion) {
+            await this.deleteDocumentArtifacts(document)
             const result = await this.repository.delete({ id: document.id, version: expectedVersion })
             if (!result.affected) {
                 throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
             }
-            await this.deleteDocumentArtifacts(document)
+            await this.updateDocumentNumAfterDelete(document)
             return result
         }
 
         await this.deleteDocumentArtifacts(document)
-        return await super.delete(document.id)
+        const result = await super.delete(document.id)
+        await this.updateDocumentNumAfterDelete(document)
+        return result
     }
 
     private async deleteDocumentArtifacts(document: KnowledgeDocument) {
@@ -1382,7 +1385,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         } catch (error) {
             this.#logger.warn(`Failed to clear GraphRAG data for document '${document.id}': ${getErrorMessage(error)}`)
         }
+    }
 
+    private async updateDocumentNumAfterDelete(document: KnowledgeDocument) {
         const nextDocumentNum =
             document.knowledgebase.documents.filter(isCountableDocument).length -
             (isCountableDocument(document) ? 1 : 0)

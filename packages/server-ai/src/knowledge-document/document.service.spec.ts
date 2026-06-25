@@ -205,7 +205,8 @@ describe('KnowledgeDocumentService optimistic locks', () => {
         )
     })
 
-    it('does not delete vectors or graph data when a delete version conflict is detected at write time', async () => {
+    it('does not delete vectors or graph data when a delete version conflict is detected before cleanup', async () => {
+        const deleteDocumentRow = jest.fn()
         const deleteKnowledgeDocument = jest.fn()
         const clearGraph = jest.fn()
         const updateKnowledgebase = jest.fn()
@@ -213,7 +214,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
             repo: {
                 findOne: jest.fn(async () => ({
                     id: 'doc-1',
-                    version: 3,
+                    version: 4,
                     knowledgebaseId: 'kb-1',
                     knowledgebase: {
                         id: 'kb-1',
@@ -221,7 +222,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                         documents: [{ id: 'doc-1' }]
                     }
                 })),
-                delete: jest.fn(async () => ({ affected: 0, raw: [] }))
+                delete: deleteDocumentRow
             },
             knowledgebaseService: {
                 assertNotRebuilding: jest.fn(),
@@ -240,8 +241,52 @@ describe('KnowledgeDocumentService optimistic locks', () => {
 
         await expect(service.deleteWithVersion('doc-1', 3)).rejects.toBeInstanceOf(ConflictException)
 
+        expect(deleteDocumentRow).not.toHaveBeenCalled()
         expect(deleteKnowledgeDocument).not.toHaveBeenCalled()
         expect(clearGraph).not.toHaveBeenCalled()
+        expect(updateKnowledgebase).not.toHaveBeenCalled()
+    })
+
+    it('does not delete the versioned document row when vector cleanup fails', async () => {
+        const deleteDocumentRow = jest.fn(async () => ({ affected: 1, raw: [] }))
+        const deleteKnowledgeDocument = jest.fn(async () => {
+            throw new Error('vector cleanup failed')
+        })
+        const updateKnowledgebase = jest.fn()
+        const service = createService([], {
+            repo: {
+                findOne: jest.fn(async () => ({
+                    id: 'doc-1',
+                    version: 3,
+                    sourceType: DocumentTypeEnum.FILE,
+                    knowledgebaseId: 'kb-1',
+                    knowledgebase: {
+                        id: 'kb-1',
+                        documentNum: 1,
+                        documents: [{ id: 'doc-1', sourceType: DocumentTypeEnum.FILE }]
+                    }
+                })),
+                delete: deleteDocumentRow
+            },
+            knowledgebaseService: {
+                assertNotRebuilding: jest.fn(),
+                getActiveVectorStore: jest.fn(
+                    async () =>
+                        ({
+                            deleteKnowledgeDocument
+                        }) as unknown as KnowledgeDocumentStore
+                ),
+                update: updateKnowledgebase
+            },
+            commandBus: {
+                execute: jest.fn()
+            }
+        })
+
+        await expect(service.deleteWithVersion('doc-1', 3)).rejects.toThrow('vector cleanup failed')
+
+        expect(deleteKnowledgeDocument).toHaveBeenCalled()
+        expect(deleteDocumentRow).not.toHaveBeenCalled()
         expect(updateKnowledgebase).not.toHaveBeenCalled()
     })
 })

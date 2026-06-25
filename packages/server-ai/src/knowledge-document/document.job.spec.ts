@@ -452,4 +452,93 @@ describe('KnowledgeDocumentConsumer', () => {
             ])
         )
     })
+
+    it('writes document content hash only after embedding batches complete', async () => {
+        const document = {
+            id: 'doc-1',
+            name: 'policy.md',
+            knowledgebaseId: 'knowledgebase-id',
+            sourceHash: 'source-hash',
+            processingHash: 'old-processing-hash',
+            contentHash: 'old-content-hash',
+            metadata: { owner: 'alice' },
+            parserId: 'default',
+            parserConfig: {},
+            type: 'md',
+            filePath: 'policy.md'
+        } satisfies Partial<IKnowledgeDocument>
+        const chunks = [{ id: 'chunk-added', pageContent: 'added content', metadata: { chunkId: 'chunk-added' } }]
+        const vectorStore = {
+            embeddingModel: 'embedding-model',
+            addKnowledgeDocument: jest.fn()
+        }
+        const knowledgebaseService = {
+            getActiveVectorStore: jest.fn(async () => vectorStore)
+        }
+        const documentService = {
+            findOne: jest.fn(async () => document),
+            findAllEmbeddingNodes: jest.fn(async () => chunks),
+            save: jest.fn(),
+            updateChunkMetadataBulk: jest.fn(),
+            syncChunksIncrementally: jest.fn(async () => ({
+                chunks,
+                embeddingChunks: chunks,
+                removedChunks: [],
+                contentHash: 'new-content-hash',
+                contentChanged: true,
+                statistics: {
+                    total: 1,
+                    skipped: 0,
+                    added: 1,
+                    updated: 0,
+                    deleted: 0
+                }
+            })),
+            update: jest.fn()
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                if (command instanceof KnowledgeDocLoadCommand) {
+                    return { chunks }
+                }
+                return {}
+            })
+        }
+        const consumer = new KnowledgeDocumentConsumer(
+            null,
+            knowledgebaseService as unknown as KnowledgebaseService,
+            documentService as unknown as KnowledgeDocumentService,
+            {} as unknown as UserService,
+            commandBus as unknown as CommandBus
+        )
+        const job = {
+            id: 'job-1',
+            data: {
+                userId: 'user-id',
+                docs: [document]
+            }
+        } as unknown as Job<{ userId: string; docs: IKnowledgeDocument[] }>
+
+        await consumer._processJob(
+            {
+                id: 'knowledgebase-id',
+                tenantId: 'tenant-id',
+                organizationId: 'organization-id',
+                parserConfig: { embeddingBatchSize: 10 },
+                copilotModel: { copilot: { id: 'copilot-id' } }
+            } as unknown as IKnowledgebase,
+            [document as unknown as IKnowledgeDocument],
+            job
+        )
+
+        const embeddingStartUpdate = documentService.update.mock.calls.find(
+            ([, updates]) => updates.status === KBDocumentStatusEnum.EMBEDDING && updates.progress === 0
+        )
+        expect(embeddingStartUpdate?.[1]).not.toHaveProperty('contentHash')
+
+        const finishUpdate = documentService.update.mock.calls.find(
+            ([, updates]) => updates.status === KBDocumentStatusEnum.FINISH
+        )
+        expect(finishUpdate?.[1]).toEqual(expect.objectContaining({ contentHash: 'new-content-hash' }))
+    })
 })

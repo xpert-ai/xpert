@@ -200,7 +200,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                             status: KBDocumentStatusEnum.EMBEDDING,
                                             progress: 0,
                                             draft: null,
-                                            contentHash: syncResult.contentHash,
                                             processingHash,
                                             sourceHash,
                                             chunkNum: syncResult.chunks.length,
@@ -271,6 +270,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                         status: KBDocumentStatusEnum.FINISH,
                                         processMsg: '',
                                         progress: 100,
+                                        ...(syncResult ? { contentHash: syncResult.contentHash } : {}),
                                         processingHash,
                                         sourceHash
                                     },

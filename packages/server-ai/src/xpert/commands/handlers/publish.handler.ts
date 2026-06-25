@@ -26,6 +26,7 @@ import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertAgentService } from '../../../xpert-agent'
 import { EventName_XpertPublished } from '../../types'
 import { PromptWorkflowService } from '../../../prompt-workflow'
+import { XpertPrincipalService } from '../../xpert-principal.service'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -37,7 +38,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
         private readonly eventEmitter: EventEmitter2,
-        private readonly promptWorkflowService?: PromptWorkflowService
+        private readonly promptWorkflowService?: PromptWorkflowService,
+        private readonly xpertPrincipalService?: XpertPrincipalService
     ) {}
 
     public async execute(command: XpertPublishCommand): Promise<Xpert> {
@@ -103,7 +105,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
-                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(xpert.workspaceId, commandProfile)
+                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(
+                    xpert.workspaceId,
+                    commandProfile
+                )
             }
         }
         this.check(draft)
@@ -345,6 +350,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
         const _xpert = await this.xpertService.save(xpert)
+        await this.ensurePrincipalUserForScheduledTriggers(_xpert)
 
         // Publish triggers
         await this.commandBus.execute(
@@ -357,6 +363,46 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         await this.eventEmitter.emitAsync(EventName_XpertPublished, _xpert)
 
         return _xpert
+    }
+
+    private async ensurePrincipalUserForScheduledTriggers(xpert: Xpert) {
+        if (xpert.userId || !this.xpertPrincipalService || !this.hasEnabledScheduleTrigger(xpert.graph)) {
+            return
+        }
+
+        const principalUser = await this.xpertPrincipalService.ensurePrincipalUser(xpert)
+        xpert.userId = principalUser.id
+    }
+
+    private hasEnabledScheduleTrigger(graph?: TXpertGraph | null) {
+        return (
+            graph?.nodes?.some((node) => {
+                const entity = node.entity
+                if (node.type !== 'workflow' || !this.isTriggerEntity(entity)) {
+                    return false
+                }
+
+                const config = entity.config
+                return (
+                    entity.from === 'schedule' &&
+                    typeof config === 'object' &&
+                    config !== null &&
+                    'enabled' in config &&
+                    config.enabled === true
+                )
+            }) ?? false
+        )
+    }
+
+    private isTriggerEntity(
+        entity: unknown
+    ): entity is { type: WorkflowNodeTypeEnum.TRIGGER; from?: unknown; config?: unknown } {
+        return (
+            typeof entity === 'object' &&
+            entity !== null &&
+            'type' in entity &&
+            entity.type === WorkflowNodeTypeEnum.TRIGGER
+        )
     }
 
     check(draft: TXpertTeamDraft) {
