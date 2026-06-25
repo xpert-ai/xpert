@@ -312,7 +312,11 @@ export class KnowledgeDocumentsComponent {
   }
 
   canDownloadOriginalFile(doc: IKnowledgeDocument) {
-    return doc.sourceType !== KDocumentSourceType.FOLDER && !isSystemManagedDocument(doc) && !!doc.filePath
+    return (
+      doc.sourceType !== KDocumentSourceType.FOLDER &&
+      !isSystemManagedDocument(doc) &&
+      !!doc.filePath
+    )
   }
 
   isOriginalFileDownloading(id: string) {
