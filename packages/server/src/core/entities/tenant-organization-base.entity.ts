@@ -1,24 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Column, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm';
-import { IsOptional, IsString } from 'class-validator';
-import {
-	IOrganization,
-	IBasePerTenantAndOrganizationEntityModel
-} from '@xpert-ai/contracts';
-import { Organization, TenantBaseEntity } from '../entities/internal';
+import { ApiProperty } from '@nestjs/swagger'
+import { Column, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
+import { IsOptional, IsString } from 'class-validator'
+import { IOrganization, IBasePerTenantAndOrganizationEntityModel } from '@xpert-ai/contracts'
+import { TenantBaseEntity } from './tenant-base.entity'
 
 export abstract class TenantOrganizationBaseEntity
 	extends TenantBaseEntity
-	implements IBasePerTenantAndOrganizationEntityModel {
-	@ApiProperty({ type: () => Organization, readOnly: true })
-	@ManyToOne(() => Organization, {
+	implements IBasePerTenantAndOrganizationEntityModel
+{
+	@ApiProperty({ type: () => Object, readOnly: true })
+	@ManyToOne('Organization', {
 		nullable: true,
 		onUpdate: 'CASCADE',
 		onDelete: 'CASCADE'
 	})
 	@JoinColumn()
 	@IsOptional()
-	organization?: IOrganization;
+	organization?: IOrganization
 
 	@ApiProperty({ type: () => String, readOnly: true })
 	@RelationId((it: TenantOrganizationBaseEntity) => it.organization)
@@ -26,5 +24,5 @@ export abstract class TenantOrganizationBaseEntity
 	@IsOptional()
 	@Index()
 	@Column({ nullable: true })
-	organizationId?: string;
+	organizationId?: string
 }

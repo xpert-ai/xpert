@@ -1,0 +1,282 @@
+# Managed Connection 托管连接
+
+`ManagedConnection` 是平台用于管理插件长生命周期连接的公共能力。它适用于“连接由某个 API 实例持有，但需要在多 Pod 部署中全局可见、可诊断、可管理、可跨实例路由操作”的场景。
+
+它不叫 `Runtime`，也不限定为 WebSocket。它的边界更明确：托管连接是一类需要心跳、租约、管理动作和 owner Pod 命令路由的长生命周期连接或桥接进程。
+
+典型场景：
+
+- 微信反向隧道客户端。
+- 企业微信、飞书等消息桥接客户端。
+- SSE 长连接。
+- TCP tunnel sidecar。
+- Worker bridge 进程。
+- 插件自定义长连接传输。
+
+## 为什么需要
+
+单 API 进程里，插件可以把已连接 client 放在内存 Map 中。生产环境通常是 Kubernetes 多 Pod，请求和管理界面不一定落到持有 socket 的那个 Pod。如果没有共享注册表和命令路由，会出现：
+
+- 管理界面只能看到当前 Pod 上的连接。
+- 管理员断开、诊断等操作落到非 owner Pod 时失败。
+- 出站请求被发到错误 Pod。
+- Pod 崩溃后只剩内存状态，缺少全局可见的审计记录。
+
+Managed Connection 通过以下组合解决：
+
+- **Postgres 注册表**：负责全局可见、状态、租约、metadata 和审计快照。
+- **Redis request/reply 路由**：负责低延迟把命令转发给持有连接的 owner Pod。
+- **实例心跳**：用于识别当前 API 实例是否还存活。
+- **Plugin SDK token**：插件只依赖平台能力，不自行建连接表或 Redis channel。
+
+## 架构
+
+服务端模块是 `ManagedConnectionModule`。
+
+主要 provider：
+
+- `ManagedConnectionRegistryService`：注册和更新连接记录。
+- `ConnectionCommandRouterService`：把命令调用到连接 owner Pod。
+- `InstanceRegistryService`：生成 API 实例 ID，并维护实例心跳。
+- `ManagedConnectionCleanupService`：定期把过期租约标记为 stale。
+
+数据流：
+
+1. 插件在某个 API Pod 上接受一个长连接客户端。
+2. 插件调用 `register()`，写入 `pluginName`、`connectionType`、`connectionKey`、传输类型、metadata 和租约 TTL。
+3. 插件通过 `heartbeat()` 或 `syncMetadata()` 续租并同步状态。
+4. 管理界面通过 `list()` 读取当前插件或组织下的全局连接。
+5. 管理动作调用 `invokeOwner()`。
+6. 如果 owner 是当前 Pod，router 直接调用本地 handler。
+7. 如果 owner 是其他 Pod，router 通过 Redis command channel 发送命令，并等待 reply channel 返回结果。
+8. 如果连接不再续租且 `leaseExpiresAt < now`，清理任务把它标记为 `stale`。
+
+## 注册表模型
+
+`ManagedConnectionEntity` 保存：
+
+- `pluginName`：插件包名或平台内置插件名。
+- `connectionType`：插件定义的连接类型，例如 `wechat_tunnel`。
+- `connectionKey`：稳定连接 ID，例如 tunnel client id。
+- `transportType`：`websocket`、`socket_io`、`sse`、`tcp_tunnel`、`worker` 或 `custom`。
+- `direction`：`inbound`、`outbound` 或 `internal`。
+- `ownerInstanceId`：当前持有 live socket 或桥接进程的 API 实例。
+- `status`：`connected`、`disconnected`、`stale` 或 `error`。
+- `connectedAt`、`lastSeenAt`、`leaseExpiresAt`、`disconnectedAt`。
+- `remoteAddress`。
+- `metadata`：插件自定义 JSON，例如绑定账号、诊断字段。
+- `lastError`。
+- `tenantId`、`organizationId`：用于租户/组织范围查询和管理筛选。
+
+连接唯一身份是 `pluginName + connectionType + connectionKey`。`tenantId` 和 `organizationId` 是查询范围字段，不参与连接身份唯一性判断，因为连接可能先注册，后续插件才解析出业务归属。
+
+## SDK 接口
+
+插件应依赖 SDK token，不直接依赖 server class：
+
+```ts
+import {
+  CONNECTION_COMMAND_ROUTER_TOKEN,
+  MANAGED_CONNECTION_REGISTRY_TOKEN,
+  type ConnectionCommandRouter,
+  type ManagedConnectionRegistry
+} from '@xpert-ai/plugin-sdk'
+
+const registry = ctx.resolve<ManagedConnectionRegistry>(MANAGED_CONNECTION_REGISTRY_TOKEN)
+const router = ctx.resolve<ConnectionCommandRouter>(CONNECTION_COMMAND_ROUTER_TOKEN)
+```
+
+传输类型：
+
+```ts
+type ManagedConnectionTransportType = 'websocket' | 'socket_io' | 'sse' | 'tcp_tunnel' | 'worker' | 'custom'
+```
+
+方向类型：
+
+```ts
+type ManagedConnectionDirection = 'inbound' | 'outbound' | 'internal'
+```
+
+- `inbound`：平台接受外部 client 连接，例如微信 sidecar tunnel。
+- `outbound`：平台主动连接并持有外部服务连接，例如 Lark/飞书长连接。
+- `internal`：平台内部 worker、bridge 或 stream。
+
+注册连接：
+
+```ts
+await registry.register({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  connectionType: 'wechat_tunnel',
+  connectionKey: tunnelClientId,
+  transportType: 'socket_io',
+  direction: 'inbound',
+  tenantId,
+  organizationId,
+  remoteAddress,
+  metadata: {
+    clientName,
+    bindings,
+    bindingCount: bindings.length
+  },
+  leaseTtlMs: 90_000
+})
+```
+
+续租与同步 metadata：
+
+```ts
+await registry.heartbeat({
+  pluginName,
+  connectionType,
+  connectionKey,
+  metadata: {
+    lastPingAt: new Date().toISOString()
+  },
+  leaseTtlMs
+})
+
+await registry.syncMetadata({
+  pluginName,
+  connectionType,
+  connectionKey,
+  tenantId,
+  organizationId,
+  metadata: {
+    bindings,
+    lastSyncAt: new Date().toISOString()
+  }
+})
+```
+
+查询连接：
+
+```ts
+const clients = await registry.list({
+  pluginName,
+  connectionType: 'wechat_tunnel',
+  direction: 'inbound',
+  organizationId,
+  limit: 200
+})
+```
+
+## 命令路由
+
+每个 Pod 上的插件为同一个 `connectionType` 注册 handler：
+
+```ts
+router.registerHandler('wechat_tunnel', async (request) => {
+  if (request.command === 'disconnect') {
+    return { disconnected: disconnectLocalClient(request.connectionKey) }
+  }
+
+  if (request.command === 'http_request') {
+    return sendLocalTunnelRequest(request.connectionKey, request.payload)
+  }
+
+  throw new Error(`Unsupported command ${request.command}`)
+})
+```
+
+任意 Pod 都可以调用当前 owner：
+
+```ts
+await router.invokeOwner(
+  'wechat_tunnel',
+  tunnelClientId,
+  'disconnect',
+  { reason: 'admin_requested' },
+  { pluginName, timeoutMs: 30_000 }
+)
+```
+
+router 会先从 registry 查 active owner。如果 owner 是当前实例，则不经过 Redis，直接执行本地 handler。如果 owner 是其他实例，则发布 JSON 命令到：
+
+```text
+managed-connection:commands:<ownerInstanceId>
+```
+
+owner 执行命令后，把结果发布到调用方 reply channel：
+
+```text
+managed-connection:replies:<callerInstanceId>:<requestId>
+```
+
+## 微信隧道示例
+
+微信插件使用 Managed Connection 管理反向隧道客户端：
+
+- `connectionType = 'wechat_tunnel'`
+- `transportType = 'socket_io'`
+- `direction = 'inbound'`
+- `connectionKey = tunnelClientId`
+- `metadata.bindings = [{ uuid, wxid }]`
+- 配置页的 tunnel clients 从全局 registry 读取
+- 账号行只展示轻量隧道绑定状态
+- 断开连接使用 `invokeOwner('wechat_tunnel', clientId, 'disconnect')`
+- tunnel HTTP RPC 在 owner socket 位于其他 Pod 时使用 `invokeOwner('wechat_tunnel', clientId, 'http_request')`
+
+这样微信业务语义仍保留在插件 metadata 中，平台只负责连接可见性、租约和跨实例路由。
+
+## 飞书长连接示例
+
+飞书插件使用 Managed Connection 管理主动连到 OpenAPI 的长连接：
+
+- `connectionType = 'lark_long_connection'`
+- `transportType = 'websocket'`
+- `direction = 'outbound'`
+- `connectionKey = appKey`
+- `metadata.integrationIds` 记录共享同一长连接的 integration
+- integration extension view 展示连接 owner、最近心跳、租约和最近错误
+- 重连和断开动作在 live WebSocket 位于其他 Pod 时通过 owner routing 执行
+
+原有飞书 Redis lock 仍负责避免重复 owner。Managed Connection 负责增加全局可见性、租约状态和跨 Pod 管理能力。
+
+## 插件设计约定
+
+- 只要连接是长生命周期且 owner Pod 相关，就不要再为每个插件单独建连接表。
+- 使用 `pluginName + connectionType + connectionKey` 作为稳定身份。
+- 插件业务字段放入 `metadata`，不要为每个插件向平台 schema 添加强字段。
+- metadata 应保持小而可运维：绑定关系、client 名称、外部实例 ID、最近同步时间、诊断错误。
+- 多 Pod 在线状态以租约为准。
+- 管理动作应放在连接管理区，而不是混入业务行。例如断开 tunnel client 应放在连接面板，不应放在每个账号行。
+- registry/router 不可用时要返回明确错误。队列化业务流可按自身策略重试。
+
+## 状态语义
+
+- `connected`：owner 已知，且租约未过期。
+- `stale`：租约已过期；owner 可能崩溃，也可能失去 Redis/Postgres 访问。
+- `disconnected`：插件或管理员主动关闭连接。
+- `error`：预留给非普通断开的插件或平台错误状态。
+
+如果 Pod 崩溃，连接会在租约过期前继续可见，这是预期行为。租约 TTL 应根据心跳频率和可接受 stale 窗口来设置。
+
+## 运维说明
+
+- Postgres 是全局列表和审计快照的数据源。
+- Redis Pub/Sub 只用于低延迟 owner 命令，不是持久状态源。
+- 第一版表示当前 API 集群和数据库范围内可见的连接。
+- 跨区域或跨集群管理应增加更高层 broker 或命令网关，不应让每个插件自行发明路由机制。
+
+## 测试清单
+
+平台侧测试应覆盖：
+
+- 注册连接和 owner 写入
+- heartbeat 续租
+- metadata 同步
+- 过期租约标记 stale
+- tenant/organization 范围查询
+- 本实例 router 直连执行
+- 跨实例 Redis request/reply 路由
+- owner 不存在和命令超时
+
+插件侧测试应覆盖：
+
+- client 连接时 register
+- ping/pong 时 heartbeat
+- 插件业务 bindings 同步到 metadata
+- 管理列表从全局 registry 读取
+- 断开连接走 owner 路由
+- 业务 RPC 在 owner 为本地时直写 socket，在 owner 为远端时走 `invokeOwner()`

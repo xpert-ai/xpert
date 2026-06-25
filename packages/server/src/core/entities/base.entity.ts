@@ -1,9 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import {
-	BaseEntityModel as IBaseEntityModel,
-	ID,
-	IUser,
-} from '@xpert-ai/contracts'
+import { BaseEntityModel as IBaseEntityModel, ID, IUser } from '@xpert-ai/contracts'
 import { IsOptional, IsString } from 'class-validator'
 import {
 	Column,
@@ -12,9 +8,8 @@ import {
 	ManyToOne,
 	PrimaryGeneratedColumn,
 	RelationId,
-	UpdateDateColumn,
+	UpdateDateColumn
 } from 'typeorm'
-import { User } from './internal'
 import { Transform } from 'class-transformer'
 import { UserPublicDTO } from '../dto/user-public.dto'
 
@@ -24,16 +19,16 @@ export abstract class Model {
 			// Iterate over the key-value pairs in the input object
 			for (const [key, value] of Object.entries(input)) {
 				// Assign the value to the corresponding property in this instance
-				(this as any)[key] = value;
+				;(this as any)[key] = value
 			}
 		}
 	}
 
 	/**
 	 * @deprecated Because the input parameters of the constructor cannot be assigned to this
-	 * 
-	 * @param input 
-	 * @returns 
+	 *
+	 * @param input
+	 * @returns
 	 */
 	instanceOf?(input?: any) {
 		if (input) {
@@ -59,9 +54,9 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 
 	// @ApiProperty({ type: () => User, readOnly: true })
 	@Transform(({ value }) => value && new UserPublicDTO(value))
-	@ManyToOne(() => User, {
+	@ManyToOne('User', {
 		nullable: true,
-		onDelete: 'RESTRICT',
+		onDelete: 'RESTRICT'
 	})
 	@JoinColumn()
 	@IsOptional()
@@ -76,9 +71,9 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 
 	// @ApiProperty({ type: () => User, readOnly: true })
 	@Transform(({ value }) => value && new UserPublicDTO(value))
-	@ManyToOne(() => User, {
+	@ManyToOne('User', {
 		nullable: true,
-		onDelete: 'RESTRICT',
+		onDelete: 'RESTRICT'
 	})
 	@JoinColumn()
 	@IsOptional()
@@ -87,7 +82,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	@ApiProperty({
 		type: 'string',
 		format: 'date-time',
-		example: '2018-11-21T06:20:32.232Z',
+		example: '2018-11-21T06:20:32.232Z'
 	})
 	@CreateDateColumn({
 		type: 'timestamptz'
@@ -97,7 +92,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	@ApiProperty({
 		type: 'string',
 		format: 'date-time',
-		example: '2018-11-21T06:20:32.232Z',
+		example: '2018-11-21T06:20:32.232Z'
 	})
 	@UpdateDateColumn({
 		type: 'timestamptz'

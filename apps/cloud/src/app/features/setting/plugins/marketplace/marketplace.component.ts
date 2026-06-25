@@ -39,7 +39,7 @@ import { mergeMarketplaceContributions } from '../plugin-marketplace-metadata'
 
 type MarketplaceSourceType = 'url' | 'github' | 'git'
 const DEFAULT_REGISTRY_TARGET_APP_META = `{
-  "data-xpert": {
+  "xpert": {
     "types": ["business-app"],
     "marketplace": {
       "category": "developer-tools",
@@ -78,6 +78,7 @@ export class PluginsMarketplaceComponent {
     }),
     loader: ({ request }) =>
       this.pluginAPI.getMarketplace({
+        targetApp: PLUGIN_MARKETPLACE_TARGET_APP,
         ...(request.sourceId ? { sourceId: request.sourceId } : {})
       })
   })

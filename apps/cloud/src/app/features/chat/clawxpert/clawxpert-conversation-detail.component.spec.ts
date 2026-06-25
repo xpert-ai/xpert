@@ -12,6 +12,10 @@ jest.mock('../../../@core', () => ({
   })
 }))
 
+jest.mock('../../assistant/workbench-file-preview-dialog.component', () => ({
+  openWorkbenchFilePreviewDialog: jest.fn()
+}))
+
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
@@ -1093,15 +1097,19 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(addTabButton?.className).toContain('rounded-xl')
   })
 
-  it('collapses the chat shell when ChatKit minimizes into the pet overlay', async () => {
+  it('opens the workspace panel and hides its close button when ChatKit minimizes into the pet overlay', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
     const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    const showDetailPanelButton = fixture.nativeElement.querySelector(
+      '[data-toggle-detail-panel]'
+    ) as HTMLElement | null
     expect(chatkit).not.toBeNull()
     if (!chatkit) {
       throw new Error('Expected xpert-chatkit to render')
     }
+    expect(showDetailPanelButton).not.toBeNull()
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
@@ -1112,8 +1120,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_0rem]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[0rem_0rem]')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).toBeNull()
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
@@ -1122,9 +1132,13 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-full')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).not.toBeNull()
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+    )
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
