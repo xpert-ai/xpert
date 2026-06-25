@@ -1,0 +1,282 @@
+# Managed Connection
+
+`ManagedConnection` is the platform capability for managing long-lived plugin connections that are held by one API instance but must be visible and controllable across a multi-pod deployment.
+
+It is intentionally not named `Runtime` and is not limited to WebSocket. The scope is narrower and clearer: a managed connection is a long-lifecycle connection or bridge that needs heartbeat, lease tracking, administrator actions, and owner-pod command routing.
+
+Typical examples:
+
+- WeChat reverse tunnel clients.
+- WeCom or Lark bridge clients.
+- Server-sent event streams.
+- TCP tunnel sidecars.
+- Worker bridge processes.
+- Custom long-lived plugin transports.
+
+## Why It Exists
+
+In a single API process, a plugin can keep connected clients in memory. In a production Kubernetes deployment, requests and admin views may land on a different pod than the pod holding the socket. Without a shared registry and command router:
+
+- an admin page can only see clients connected to the current pod
+- disconnect or diagnose actions fail when the socket owner is another pod
+- an outbound request can be routed to the wrong pod
+- pod crashes leave stale in-memory state with no global audit trail
+
+Managed Connection solves this with:
+
+- **Postgres registry** for global visibility, status, lease, metadata, and audit-friendly records.
+- **Redis request/reply routing** for low-latency commands to the owner pod.
+- **Instance heartbeat** so the platform can distinguish active owners from stale records.
+- **Plugin SDK tokens** so plugins use a capability instead of creating ad hoc tables or Redis channels.
+
+## Architecture
+
+The server-side module is `ManagedConnectionModule`.
+
+Main providers:
+
+- `ManagedConnectionRegistryService`: stores and updates connection records.
+- `ConnectionCommandRouterService`: invokes a command on the pod that owns a connection.
+- `InstanceRegistryService`: assigns the API instance id and keeps the instance heartbeat alive.
+- `ManagedConnectionCleanupService`: marks expired leases as stale.
+
+The data flow is:
+
+1. A plugin accepts a long-lived client connection on one API pod.
+2. The plugin calls `register()` with `pluginName`, `connectionType`, `connectionKey`, transport, owner metadata, and lease TTL.
+3. The plugin refreshes the record through `heartbeat()` or `syncMetadata()`.
+4. Admin UI reads `list()` to show all known connections for the plugin or organization.
+5. Admin actions call `invokeOwner()`.
+6. If the owner is the current pod, the router calls the local handler directly.
+7. If the owner is another pod, the router publishes a Redis command to that owner instance and waits on a reply channel.
+8. If a connection stops heartbeating and `leaseExpiresAt < now`, cleanup marks it as `stale`.
+
+## Registry Model
+
+`ManagedConnectionEntity` stores:
+
+- `pluginName`: plugin package or platform-owned plugin name.
+- `connectionType`: plugin-defined logical type, such as `wechat_tunnel`.
+- `connectionKey`: stable connection id, such as a tunnel client id.
+- `transportType`: `websocket`, `socket_io`, `sse`, `tcp_tunnel`, `worker`, or `custom`.
+- `direction`: `inbound`, `outbound`, or `internal`.
+- `ownerInstanceId`: API pod that currently owns the live socket or process.
+- `status`: `connected`, `disconnected`, `stale`, or `error`.
+- `connectedAt`, `lastSeenAt`, `leaseExpiresAt`, `disconnectedAt`.
+- `remoteAddress`.
+- `metadata`: plugin-defined JSON, for example bindings or diagnostic fields.
+- `lastError`.
+- `tenantId`, `organizationId` for scoped listing and admin filtering.
+
+The unique identity is `pluginName + connectionType + connectionKey`. Tenant and organization are searchable scope fields, not the connection identity, because a connection may register before the plugin has resolved its business scope.
+
+## SDK Interface
+
+Plugins should depend on SDK tokens, not server classes:
+
+```ts
+import {
+  CONNECTION_COMMAND_ROUTER_TOKEN,
+  MANAGED_CONNECTION_REGISTRY_TOKEN,
+  type ConnectionCommandRouter,
+  type ManagedConnectionRegistry
+} from '@xpert-ai/plugin-sdk'
+
+const registry = ctx.resolve<ManagedConnectionRegistry>(MANAGED_CONNECTION_REGISTRY_TOKEN)
+const router = ctx.resolve<ConnectionCommandRouter>(CONNECTION_COMMAND_ROUTER_TOKEN)
+```
+
+Transport types:
+
+```ts
+type ManagedConnectionTransportType = 'websocket' | 'socket_io' | 'sse' | 'tcp_tunnel' | 'worker' | 'custom'
+```
+
+Direction values:
+
+```ts
+type ManagedConnectionDirection = 'inbound' | 'outbound' | 'internal'
+```
+
+- `inbound`: the platform accepts an external client connection, such as a WeChat sidecar tunnel.
+- `outbound`: the platform dials and holds an external service connection, such as a Lark/Feishu long connection.
+- `internal`: the platform manages an internal worker, bridge, or stream.
+
+Register a connection:
+
+```ts
+await registry.register({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  connectionType: 'wechat_tunnel',
+  connectionKey: tunnelClientId,
+  transportType: 'socket_io',
+  direction: 'inbound',
+  tenantId,
+  organizationId,
+  remoteAddress,
+  metadata: {
+    clientName,
+    bindings,
+    bindingCount: bindings.length
+  },
+  leaseTtlMs: 90_000
+})
+```
+
+Refresh heartbeat and metadata:
+
+```ts
+await registry.heartbeat({
+  pluginName,
+  connectionType,
+  connectionKey,
+  metadata: {
+    lastPingAt: new Date().toISOString()
+  },
+  leaseTtlMs
+})
+
+await registry.syncMetadata({
+  pluginName,
+  connectionType,
+  connectionKey,
+  tenantId,
+  organizationId,
+  metadata: {
+    bindings,
+    lastSyncAt: new Date().toISOString()
+  }
+})
+```
+
+List visible connections:
+
+```ts
+const clients = await registry.list({
+  pluginName,
+  connectionType: 'wechat_tunnel',
+  direction: 'inbound',
+  organizationId,
+  limit: 200
+})
+```
+
+## Command Routing
+
+A plugin registers one handler per `connectionType` on each pod:
+
+```ts
+router.registerHandler('wechat_tunnel', async (request) => {
+  if (request.command === 'disconnect') {
+    return { disconnected: disconnectLocalClient(request.connectionKey) }
+  }
+
+  if (request.command === 'http_request') {
+    return sendLocalTunnelRequest(request.connectionKey, request.payload)
+  }
+
+  throw new Error(`Unsupported command ${request.command}`)
+})
+```
+
+Then any pod can invoke the current owner:
+
+```ts
+await router.invokeOwner(
+  'wechat_tunnel',
+  tunnelClientId,
+  'disconnect',
+  { reason: 'admin_requested' },
+  { pluginName, timeoutMs: 30_000 }
+)
+```
+
+The router first asks the registry for the active owner. If the owner is local, no Redis hop is used. If the owner is remote, it publishes a JSON command envelope to:
+
+```text
+managed-connection:commands:<ownerInstanceId>
+```
+
+The owner handles the command and publishes a result to the caller's reply channel:
+
+```text
+managed-connection:replies:<callerInstanceId>:<requestId>
+```
+
+## WeChat Tunnel Example
+
+The WeChat plugin uses Managed Connection for reverse tunnel clients:
+
+- `connectionType = 'wechat_tunnel'`
+- `transportType = 'socket_io'`
+- `direction = 'inbound'`
+- `connectionKey = tunnelClientId`
+- `metadata.bindings = [{ uuid, wxid }]`
+- config page tunnel clients are read from the global registry
+- account rows show a lightweight tunnel binding status
+- disconnect uses `invokeOwner('wechat_tunnel', clientId, 'disconnect')`
+- tunnel HTTP RPC uses `invokeOwner('wechat_tunnel', clientId, 'http_request')` when the owner socket is on another pod
+
+This keeps WeChat-specific business meaning in plugin metadata while the platform owns global connection visibility and routing.
+
+## Lark Long Connection Example
+
+The Lark plugin uses Managed Connection for outbound OpenAPI long connections:
+
+- `connectionType = 'lark_long_connection'`
+- `transportType = 'websocket'`
+- `direction = 'outbound'`
+- `connectionKey = appKey`
+- `metadata.integrationIds` records which integrations share the same long connection
+- the integration extension view shows connection owner, heartbeat, lease, and recent errors
+- reconnect and disconnect actions use owner routing when the live WebSocket is held by another pod
+
+The existing Lark Redis lock still prevents duplicate long-connection owners. Managed Connection adds global visibility, lease status, and cross-pod administration.
+
+## Design Rules for Plugins
+
+- Do not create plugin-specific connection tables when the connection is long-lived and owner-pod-specific.
+- Use `pluginName + connectionType + connectionKey` as the stable identity.
+- Put business-specific fields in `metadata`; do not request new platform columns for every plugin.
+- Keep metadata small and operational: bindings, client name, external instance id, last sync timestamps, diagnostic error.
+- Use leases as the source of truth for online status in multi-pod mode.
+- Keep management actions connection-level, not business-row-level. For example, disconnect a tunnel client from the connection panel, not from every account row.
+- Make registry/router failure explicit. If a command cannot reach the owner, return a clear operational error and let queue-based business flows retry when appropriate.
+
+## Failure Semantics
+
+- `connected`: the owner is known and the lease has not expired.
+- `stale`: the last lease expired; the owner may have crashed or lost Redis/Postgres access.
+- `disconnected`: the plugin or administrator closed the connection.
+- `error`: reserved for plugin or platform errors that are not ordinary disconnects.
+
+If a pod crashes, the connection stays visible until the lease expires. This is expected. Choose the lease TTL based on heartbeat cadence and acceptable stale-window duration.
+
+## Operational Notes
+
+- Postgres is the source for global listing and audit-friendly snapshots.
+- Redis Pub/Sub is used only for low-latency owner commands; it is not the durable state store.
+- The first implementation represents connections visible to the current API cluster and database.
+- Cross-region or cross-cluster routing should add a higher-level broker or command gateway rather than making plugins invent their own routing.
+
+## Test Checklist
+
+Platform tests should cover:
+
+- register and owner assignment
+- heartbeat lease extension
+- metadata sync
+- stale cleanup
+- tenant and organization scoped listing
+- local router dispatch
+- remote Redis request/reply routing
+- owner missing and command timeout
+
+Plugin tests should cover:
+
+- register on client connect
+- heartbeat on ping/pong
+- metadata sync for plugin-specific bindings
+- admin list reads from global registry
+- disconnect uses owner routing
+- business RPC falls back to local socket when owner is local and routes through `invokeOwner()` when owner is remote

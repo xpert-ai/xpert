@@ -42,4 +42,5 @@ export * from '../../plugin/plugin-instance.entity'
 export * from '../../plugin/plugin-marketplace-registry-item.entity'
 export * from '../../plugin/plugin-marketplace-source.entity'
 export * from '../../account-binding/external-identity-binding.entity'
+export * from '../../managed-connection/managed-connection.entity'
 //core subscribers

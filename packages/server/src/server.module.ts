@@ -41,6 +41,7 @@ import { AccountBindingModule } from './account-binding'
 import { PluginWebhookCredentialService } from './plugin/plugin-webhook-credential.service'
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin/plugin-webhook.tokens'
 import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
+import { ManagedConnectionModule } from './managed-connection'
 
 @Module({
 	imports: [
@@ -88,7 +89,8 @@ import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 		CustomSmtpModule,
 		LanguageModule,
 		StorageFileModule,
-		IntegrationModule
+		IntegrationModule,
+		ManagedConnectionModule
 	],
 	controllers: [AppController],
 	providers: [
