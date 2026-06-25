@@ -354,6 +354,38 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
+        const createGraphEvents = () =>
+            graph.streamEvents(graphInput, {
+                version: 'v2',
+                configurable: {
+                    ...config,
+                    tenantId: tenantId,
+                    organizationId: organizationId,
+                    language: languageCode,
+                    userId,
+                    executionId: execution.id,
+                    rootExecutionId,
+                    xpertId: xpert.id,
+                    agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+                    rootAgentKey: agent.key,
+                    sandbox: sandboxContext,
+                    copilotModel,
+                    ...(runtimeContext ? { context: runtimeContext } : {}),
+                    /**
+                     * @deprecated use customEvents instead
+                     */
+                    subscriber
+                },
+                recursionLimit,
+                maxConcurrency: team.agentConfig?.maxConcurrency,
+                metadata: {
+                    agentKey: agent.key,
+                    executionId: execution.id,
+                    rootExecutionId
+                },
+                signal: abortController.signal
+                // debug: true
+            })
         const contentStream = from(
             streamWithCurrentRequestContext(
                 {
@@ -361,38 +393,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     organizationId,
                     language: languageCode
                 },
-                () =>
-                    graph.streamEvents(graphInput, {
-                        version: 'v2',
-                        configurable: {
-                            ...config,
-                            tenantId: tenantId,
-                            organizationId: organizationId,
-                            language: languageCode,
-                            userId,
-                            executionId: execution.id,
-                            rootExecutionId,
-                            xpertId: xpert.id,
-                            agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
-                            rootAgentKey: agent.key,
-                            sandbox: sandboxContext,
-                            copilotModel,
-                            ...(runtimeContext ? { context: runtimeContext } : {}),
-                            /**
-                             * @deprecated use customEvents instead
-                             */
-                            subscriber
-                        },
-                        recursionLimit,
-                        maxConcurrency: team.agentConfig?.maxConcurrency,
-                        metadata: {
-                            agentKey: agent.key,
-                            executionId: execution.id,
-                            rootExecutionId
-                        },
-                        signal: abortController.signal
-                        // debug: true
-                    })
+                createGraphEvents
             )
         ).pipe(
             map(
