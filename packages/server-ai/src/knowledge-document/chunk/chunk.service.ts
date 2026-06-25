@@ -7,7 +7,7 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { KnowledgeDocumentChunk } from './chunk.entity'
 import { TDocChunkMetadata } from '../types'
 
-function assertExpectedVersion(version: number | null | undefined) {
+function assertExpectedVersion(version: number | null | undefined): asserts version is number {
     if (!Number.isInteger(version) || version <= 0) {
         throw new BadRequestException('version is required')
     }
@@ -15,28 +15,28 @@ function assertExpectedVersion(version: number | null | undefined) {
 
 @Injectable()
 export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudService<KnowledgeDocumentChunk> {
-	readonly #logger = new Logger(KnowledgeDocumentChunkService.name)
+    readonly #logger = new Logger(KnowledgeDocumentChunkService.name)
 
-	@Inject(DataSource)
-	private readonly dataSource: DataSource
+    @Inject(DataSource)
+    private readonly dataSource: DataSource
 
-	constructor(
-		@InjectRepository(KnowledgeDocumentChunk)
-		repo: Repository<KnowledgeDocumentChunk>
-	) {
-		super(repo)
-	}
+    constructor(
+        @InjectRepository(KnowledgeDocumentChunk)
+        repo: Repository<KnowledgeDocumentChunk>
+    ) {
+        super(repo)
+    }
 
-	async findAncestors(id: string) {
-		const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocumentChunk)
-		const entity = await treeRepo.findOneBy({ id })
-		const parents = await treeRepo.findAncestors(entity, { depth: 5 })
-		return parents
-	}
+    async findAncestors(id: string) {
+        const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocumentChunk)
+        const entity = await treeRepo.findOneBy({ id })
+        const parents = await treeRepo.findAncestors(entity, { depth: 5 })
+        return parents
+    }
 
-	async deleteByDocumentId(documentId: string) {
-		return super.delete({ documentId })
-	}
+    async deleteByDocumentId(documentId: string) {
+        return super.delete({ documentId })
+    }
 
     async updateWithVersion(id: string, entity: Partial<IKnowledgeDocumentChunk>, expectedVersion: number) {
         assertExpectedVersion(expectedVersion)
@@ -63,16 +63,36 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
         return result
     }
 
+    async updateMetadataBulk(chunks: Pick<IKnowledgeDocumentChunk, 'id' | 'metadata'>[]) {
+        if (!chunks?.length) {
+            return []
+        }
+
+        return await Promise.all(
+            chunks.map((chunk) => {
+                if (!chunk.id) {
+                    throw new BadRequestException('chunk id is required')
+                }
+
+                const patch = {
+                    metadata: chunk.metadata,
+                    updatedById: RequestContext.currentUserId()
+                } as QueryDeepPartialEntity<KnowledgeDocumentChunk>
+                return this.repository.update({ id: chunk.id }, patch)
+            })
+        )
+    }
+
     /**
      * Create or update chunks in batches.
-     * 
-     * @param chunks 
-     * @returns 
+     *
+     * @param chunks
+     * @returns
      */
     async upsertBulk(chunks: IKnowledgeDocumentChunk[]) {
         const entities: KnowledgeDocumentChunk[] = []
         const chunkMap = new Map<string, IKnowledgeDocumentChunk>()
-        chunks.forEach(chunk => {
+        chunks.forEach((chunk) => {
             if (chunk.metadata.chunkId) {
                 chunkMap.set(chunk.metadata.chunkId, chunk)
             }
@@ -83,7 +103,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
             if (chunk.metadata.parentId) {
                 const parentChunk = chunkMap.get(chunk.metadata.parentId)
                 if (!parentChunk) return null
-                
+
                 if (parentChunk.id) {
                     return parentChunk
                 }
@@ -113,7 +133,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
                     relations: ['parent'],
                     select: {
                         parent: {
-                            id: true,
+                            id: true
                         }
                     }
                 })
@@ -138,8 +158,8 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
     findAllLeaves(chunks: IKnowledgeDocumentChunk[]) {
         const leaves: IKnowledgeDocumentChunk[] = []
-        chunks.forEach(chunk => {
-            const isLeaf = !chunks.some(c => c.parent && c.parent.id === chunk.id)
+        chunks.forEach((chunk) => {
+            const isLeaf = !chunks.some((c) => c.parent && c.parent.id === chunk.id)
             if (isLeaf) {
                 leaves.push(chunk)
             }
@@ -149,19 +169,21 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
     /**
      * Find all chunks that need embedding.
-     * 
+     *
      * @param chunks Embedding candidate chunks
      */
     findAllEmbeddingNodes(chunks: IKnowledgeDocumentChunk[]) {
-        const originalChunks = chunks.filter(chunk => !chunk.metadata.mediaType || chunk.metadata.mediaType === 'text')
-        const mediaChunks = chunks.filter(chunk => chunk.metadata.mediaType && chunk.metadata.mediaType !== 'text')
+        const originalChunks = chunks.filter(
+            (chunk) => !chunk.metadata.mediaType || chunk.metadata.mediaType === 'text'
+        )
+        const mediaChunks = chunks.filter((chunk) => chunk.metadata.mediaType && chunk.metadata.mediaType !== 'text')
 
         const embeddingChunks: IKnowledgeDocumentChunk[] = []
 
         // For original text chunks, only keep leaf nodes for embedding
         const textLeaves = this.findAllLeaves(originalChunks)
         embeddingChunks.push(...textLeaves)
-        
+
         // For media chunks, keep all for embedding
         embeddingChunks.push(...mediaChunks)
 

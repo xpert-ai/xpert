@@ -6,7 +6,7 @@ import { XpertEnqueueTriggerDispatchHandler } from './enqueue-trigger-dispatch.h
 describe('XpertEnqueueTriggerDispatchHandler', () => {
     function createHandler() {
         const xpertService = {
-            findTriggerDispatchTarget: jest.fn()
+            findOneByIdWithinTenant: jest.fn()
         }
         const userService = {
             findOne: jest.fn().mockResolvedValue({
@@ -32,7 +32,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('enqueues explicit-user trigger dispatch with legacy user headers', async () => {
         const { handler, xpertService, handoffQueue } = createHandler()
-        xpertService.findTriggerDispatchTarget.mockResolvedValue({
+        xpertService.findOneByIdWithinTenant.mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -66,7 +66,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('uses assistant runtime principal when trigger dispatch has no explicit user', async () => {
         const { handler, xpertService, userService, handoffQueue } = createHandler()
-        xpertService.findTriggerDispatchTarget.mockResolvedValue({
+        xpertService.findOneByIdWithinTenant.mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -112,7 +112,9 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('throws when xpert does not exist', async () => {
         const { handler, xpertService } = createHandler()
-        xpertService.findTriggerDispatchTarget.mockResolvedValue(null)
+        xpertService.findOneByIdWithinTenant.mockRejectedValue(
+            new Error(`Not found xpert 'xpert-404' in current tenant`)
+        )
 
         await expect(
             handler.execute(
@@ -130,6 +132,6 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
                     }
                 )
             )
-        ).rejects.toThrow('Xpert "xpert-404" not found')
+        ).rejects.toThrow(`Not found xpert 'xpert-404' in current tenant`)
     })
 })

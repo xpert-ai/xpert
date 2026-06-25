@@ -111,12 +111,14 @@ describe('KnowledgeDocumentService original file downloads', () => {
             }
         ])
 
-        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual([
-            expect.objectContaining({
-                absolutePath: '/knowledge-volume/files/local.txt',
-                fileName: 'local.txt'
-            })
-        ])
+        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual(
+            [
+                expect.objectContaining({
+                    absolutePath: '/knowledge-volume/files/local.txt',
+                    fileName: 'local.txt'
+                })
+            ]
+        )
     })
 
     it('deduplicates selected documents that reference the same original file path', async () => {
@@ -701,5 +703,109 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             updated: 1,
             deleted: 1
         })
+    })
+
+    it('adds stored chunk versions to vector search results', async () => {
+        const vectorStore = {
+            getChunks: jest.fn(async () => ({
+                items: [
+                    {
+                        pageContent: 'matched chunk',
+                        metadata: {
+                            chunkId: 'chunk-1'
+                        }
+                    }
+                ],
+                total: 1
+            }))
+        }
+        const service = createService([], {
+            knowledgebaseService: {
+                getActiveVectorStore: jest.fn(async () => vectorStore)
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            id: 'doc-1',
+            knowledgebase: {}
+        } as KnowledgeDocument)
+        Object.assign(service, {
+            chunkService: {
+                findAll: jest.fn(async () => ({
+                    items: [
+                        {
+                            id: 'chunk-1',
+                            version: 7,
+                            contentHash: 'chunk-content-hash'
+                        }
+                    ]
+                }))
+            }
+        })
+
+        const result = await service.getChunks('doc-1', {
+            search: 'matched',
+            skip: 0,
+            take: 20
+        })
+
+        expect(result.items[0]).toEqual(
+            expect.objectContaining({
+                id: 'chunk-1',
+                version: 7,
+                contentHash: 'chunk-content-hash'
+            })
+        )
+    })
+
+    it('checks all bulk versions before updating any document', async () => {
+        const service = createService([], {
+            repo: {
+                findAndCount: jest.fn(async () => [
+                    [
+                        {
+                            id: 'doc-1',
+                            version: 2,
+                            knowledgebaseId: 'kb-1'
+                        }
+                    ],
+                    1
+                ])
+            },
+            knowledgebaseService: {
+                assertNotRebuilding: jest.fn()
+            }
+        })
+        const updateWithVersion = jest.spyOn(service, 'updateWithVersion')
+
+        await expect(service.updateBulkWithVersion([{ id: 'doc-1', version: 1 }])).rejects.toBeInstanceOf(
+            ConflictException
+        )
+        expect(updateWithVersion).not.toHaveBeenCalled()
+    })
+
+    it('checks all bulk versions before deleting any document', async () => {
+        const service = createService([], {
+            repo: {
+                findAndCount: jest.fn(async () => [
+                    [
+                        {
+                            id: 'doc-1',
+                            version: 2,
+                            knowledgebaseId: 'kb-1'
+                        }
+                    ],
+                    1
+                ])
+            },
+            knowledgebaseService: {
+                assertNotRebuilding: jest.fn()
+            }
+        })
+        const deleteWithVersion = jest.spyOn(service, 'deleteWithVersion')
+
+        await expect(service.deleteBulkWithVersion([{ id: 'doc-1', version: 1 }])).rejects.toBeInstanceOf(
+            ConflictException
+        )
+        expect(deleteWithVersion).not.toHaveBeenCalled()
     })
 })

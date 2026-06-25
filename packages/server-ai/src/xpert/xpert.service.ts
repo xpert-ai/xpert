@@ -236,24 +236,6 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return entity
     }
 
-    async findTriggerDispatchTarget(id: string): Promise<Pick<Xpert, 'id' | 'tenantId' | 'organizationId'> | null> {
-        const tenantId = RequestContext.currentTenantId()
-
-        // Internal trigger dispatch only needs routing scope and can run without
-        // a request user that has workspace read access.
-        return this.repository.findOne({
-            select: {
-                id: true,
-                tenantId: true,
-                organizationId: true
-            },
-            where: {
-                id,
-                ...(tenantId ? { tenantId } : {})
-            }
-        })
-    }
-
     async save(entity: Xpert) {
         return await super.save({
             ...entity,

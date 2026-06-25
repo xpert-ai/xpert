@@ -240,7 +240,7 @@ describe('KnowledgeDocumentConsumer', () => {
                         deleted: 0,
                         embeddingTokens: 0,
                         processedAt: expect.any(String)
-})
+                    })
                 })
             })
         )
@@ -274,6 +274,7 @@ describe('KnowledgeDocumentConsumer', () => {
             findOne: jest.fn(async () => document),
             findAllEmbeddingNodes: jest.fn(async () => document.chunks),
             save: jest.fn(),
+            updateChunkMetadataBulk: jest.fn(),
             syncChunksIncrementally: jest.fn(async () => ({
                 chunks: document.chunks,
                 embeddingChunks: [],
@@ -362,6 +363,7 @@ describe('KnowledgeDocumentConsumer', () => {
             findOne: jest.fn(async () => document),
             findAllEmbeddingNodes: jest.fn(async () => allChunks),
             save: jest.fn(),
+            updateChunkMetadataBulk: jest.fn(),
             syncChunksIncrementally: jest.fn(async () => ({
                 chunks: allChunks,
                 embeddingChunks,
@@ -435,6 +437,19 @@ describe('KnowledgeDocumentConsumer', () => {
                     })
                 })
             })
+        )
+        expect(documentService.updateChunkMetadataBulk).toHaveBeenCalledWith(
+            embeddingChunks.map((chunk) => ({
+                id: chunk.id,
+                metadata: chunk.metadata
+            }))
+        )
+        expect(documentService.save).not.toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: 'chunk-added'
+                })
+            ])
         )
     })
 })

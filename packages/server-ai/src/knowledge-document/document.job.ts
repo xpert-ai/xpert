@@ -173,8 +173,8 @@ export class KnowledgeDocumentConsumer {
                     await this.updateDocumentProcessingMetadata(
                         document.id,
                         {
-                        status: KBDocumentStatusEnum.EMBEDDING,
-                        progress: 0,
+                            status: KBDocumentStatusEnum.EMBEDDING,
+                            progress: 0,
                             draft: null,
                             contentHash: syncResult.contentHash,
                             processingHash,
@@ -197,7 +197,7 @@ export class KnowledgeDocumentConsumer {
                             tokenUsed += chunk.metadata.tokens
                         })
                         embeddingTokenUsed += tokenUsed
-                        await this.documentService.save(
+                        await this.documentService.updateChunkMetadataBulk(
                             batch.map((chunk) => ({
                                 id: chunk.id,
                                 metadata: chunk.metadata
@@ -236,7 +236,7 @@ export class KnowledgeDocumentConsumer {
                         await this.updateDocumentProcessingMetadata(
                             doc.id,
                             {
-                            status: KBDocumentStatusEnum.EMBEDDING,
+                                status: KBDocumentStatusEnum.EMBEDDING,
                                 progress: Number(progress)
                             },
                             { tokens: totalTokenUsed }
@@ -251,11 +251,11 @@ export class KnowledgeDocumentConsumer {
                 await this.updateDocumentProcessingMetadata(
                     doc.id,
                     {
-                    status: KBDocumentStatusEnum.FINISH,
-                    processMsg: '',
-                    processDuration,
-                    processDuation: processDuration,
-                    progress: 100,
+                        status: KBDocumentStatusEnum.FINISH,
+                        processMsg: '',
+                        processDuration,
+                        processDuation: processDuration,
+                        progress: 100,
                         processingHash,
                         sourceHash
                     },

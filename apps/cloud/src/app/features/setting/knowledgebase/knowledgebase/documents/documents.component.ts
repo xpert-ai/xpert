@@ -2,7 +2,12 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ZardDialogService, ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
+import {
+  ZardDialogService,
+  ZardPaginatorComponent,
+  ZardProgressCircleComponent,
+  type ZardTableSortDirection
+} from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
   NgmCommonModule,
@@ -26,6 +31,7 @@ import {
 } from 'rxjs'
 import {
   getDateLocale,
+  getErrorMessage,
   IKnowledgeDocument,
   IStorageFile,
   KnowledgeDocumentService,
@@ -155,13 +161,18 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
           })
         )
         .subscribe((data) =>
-          this.data.set(data.map((item) => ({
-            ...item,
-            createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-              locale: getDateLocale(this.translateService.currentLang)
-            }),
-            parserConfig: item.parserConfig ?? {}
-          }) as IKnowledgeDocument))
+          this.data.set(
+            data.map(
+              (item) =>
+                ({
+                  ...item,
+                  createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
+                    locale: getDateLocale(this.translateService.currentLang)
+                  }),
+                  parserConfig: item.parserConfig ?? {}
+                }) as IKnowledgeDocument
+            )
+          )
         )
     })
 
@@ -180,6 +191,13 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   refresh() {
     this.refresh$.next(true)
+  }
+
+  private handleMutationError(err: { status?: number }) {
+    this._toastrService.error(getErrorMessage(err))
+    if (err?.status === 409) {
+      this.refresh()
+    }
   }
 
   onSortChange(columnName: string, direction: ZardTableSortDirection) {
@@ -219,7 +237,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: (files: IKnowledgeDocument[]) => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -236,7 +256,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -250,7 +272,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -260,7 +284,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
       next: () => {
         this.refresh()
       },
-      error: (err) => {}
+      error: (err) => {
+        this.handleMutationError(err)
+      }
     })
   }
 
@@ -277,7 +303,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -294,7 +322,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 }

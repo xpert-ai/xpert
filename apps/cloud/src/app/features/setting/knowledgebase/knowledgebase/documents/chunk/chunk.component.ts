@@ -71,6 +71,20 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
     this.refresh$.next(true)
   }
 
+  reset() {
+    this.currentPage.set(0)
+    this.done.set(false)
+    this.chunks.set([])
+  }
+
+  private handleMutationError(error: { status?: number }) {
+    this._toastrService.error(getErrorMessage(error))
+    if (error?.status === 409) {
+      this.reset()
+      this.loadMore()
+    }
+  }
+
   close() {
     this.#router.navigate(['..'], { relativeTo: this.#route })
   }
@@ -81,7 +95,7 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
         this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
       },
       error: (error) => {
-        this._toastrService.error(getErrorMessage(error))
+        this.handleMutationError(error)
       }
     })
   }

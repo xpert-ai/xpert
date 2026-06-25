@@ -1,7 +1,6 @@
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import {
-    IDocChunkMetadata,
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentPage,
@@ -13,7 +12,15 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { BadRequestException, ConflictException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import {
+    BadRequestException,
+    ConflictException,
+    forwardRef,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException
+} from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
@@ -57,6 +64,16 @@ type IncrementalChunkMatch = {
     incoming: IKnowledgeDocumentChunk<TDocChunkMetadata>
     chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>
     previous?: IKnowledgeDocumentChunk<TDocChunkMetadata>
+}
+
+type VersionedKnowledgeDocumentInput = {
+    id?: string
+    version?: number
+}
+
+type VersionedKnowledgeDocument = {
+    id: string
+    version: number
 }
 
 export type IncrementalDocumentSyncItemResult = {
@@ -139,10 +156,14 @@ function popFirstAvailable(
     return null
 }
 
-function assertExpectedVersion(version: number | null | undefined) {
+function assertExpectedVersion(version: number | null | undefined): asserts version is number {
     if (!Number.isInteger(version) || version <= 0) {
         throw new BadRequestException('version is required')
     }
+}
+
+function getChunkStoredId(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'id' | 'metadata'>) {
+    return getChunkMetadata(chunk).chunkId || chunk.id
 }
 
 function canSkipProcessedDocument(
@@ -274,11 +295,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         usedFileNames: Set<string>,
         usedFilePaths: Set<string>
     ): Promise<OriginalFileDownloadTarget | null> {
-        if (
-            !document ||
-            document.sourceType === KDocumentSourceType.FOLDER ||
-            isSystemManagedDocument(document)
-        ) {
+        if (!document || document.sourceType === KDocumentSourceType.FOLDER || isSystemManagedDocument(document)) {
             return null
         }
 
@@ -309,7 +326,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         return {
             absolutePath: workArea.volume.path(filePath),
-            fileName: getUniqueFileName(document.name || path.basename(filePath) || `${document.id}.download`, usedFileNames),
+            fileName: getUniqueFileName(
+                document.name || path.basename(filePath) || `${document.id}.download`,
+                usedFileNames
+            ),
             mimeType: document.mimeType || 'application/octet-stream'
         }
     }
@@ -567,6 +587,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         if (!entities?.length) {
             return
         }
+        await this.assertBulkDocumentVersions(entities)
         await Promise.all(entities.map((entity) => this.updateWithVersion(entity.id, entity, entity.version)))
     }
 
@@ -589,7 +610,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             return
         }
 
-        const versionedDocuments = documents.map((document) => {
+        const versionedDocuments = await this.assertBulkDocumentVersions(documents)
+
+        for await (const document of versionedDocuments) {
+            await this.deleteWithVersion(document.id, document.version)
+        }
+    }
+
+    private normalizeVersionedDocuments(documents: VersionedKnowledgeDocumentInput[]): VersionedKnowledgeDocument[] {
+        return documents.map((document) => {
             if (!document.id) {
                 throw new BadRequestException('id is required')
             }
@@ -599,10 +628,39 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 version: document.version
             }
         })
+    }
 
-        for await (const document of versionedDocuments) {
-            await this.deleteWithVersion(document.id, document.version)
+    private async assertBulkDocumentVersions(
+        documents: VersionedKnowledgeDocumentInput[]
+    ): Promise<VersionedKnowledgeDocument[]> {
+        const versionedDocuments = this.normalizeVersionedDocuments(documents)
+        const ids = uniq(versionedDocuments.map((document) => document.id))
+        const { items } = await this.findAll({
+            where: { id: In(ids) },
+            select: {
+                id: true,
+                version: true,
+                knowledgebaseId: true
+            }
+        })
+        const currentById = new Map(items.map((document) => [document.id, document]))
+
+        for (const document of versionedDocuments) {
+            const current = currentById.get(document.id)
+            if (!current) {
+                throw new NotFoundException(`Knowledge document "${document.id}" not found`)
+            }
+            if (current.version !== document.version) {
+                throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
+            }
         }
+
+        const knowledgebaseIds = uniq(compact(items.map((document) => document.knowledgebaseId)))
+        await Promise.all(
+            knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))
+        )
+
+        return versionedDocuments
     }
 
     async updateWithVersion(id: string, entity: Partial<IKnowledgeDocument>, expectedVersion?: number) {
@@ -715,9 +773,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             }
         } else {
             const result = await vectorStore.getChunks(id, params)
+            const items = await this.attachStoredChunkState(
+                result.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+            )
+            const resultWithStoredChunkState = {
+                ...result,
+                items
+            }
             // @todo
             if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild) {
-                const ids = uniq(compact(result.items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]))
+                const ids = uniq(compact(items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]))
                 if (ids.length) {
                     const pages = await this.pageRepository.find({
                         where: {
@@ -730,13 +795,45 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                         order: { createdAt: 'DESC' }
                     })
                     return {
-                        items: mergeParentChildChunks(pages, result.items as Document<ChunkMetadata>[])
+                        items: mergeParentChildChunks(pages, items as Document<ChunkMetadata>[])
                     }
                 }
             }
 
-            return result
+            return resultWithStoredChunkState
         }
+    }
+
+    private async attachStoredChunkState(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]) {
+        const ids = uniq(compact(chunks.map((chunk) => getChunkStoredId(chunk))))
+        if (!ids.length) {
+            return chunks
+        }
+
+        const { items } = await this.chunkService.findAll({
+            where: { id: In(ids) },
+            select: {
+                id: true,
+                version: true,
+                contentHash: true
+            }
+        })
+        const storedById = new Map(items.map((chunk) => [chunk.id, chunk]))
+
+        return chunks.map((chunk) => {
+            const storedId = getChunkStoredId(chunk)
+            const stored = storedId ? storedById.get(storedId) : null
+            if (!stored) {
+                return chunk
+            }
+
+            return {
+                ...chunk,
+                id: stored.id,
+                version: stored.version,
+                contentHash: stored.contentHash
+            }
+        })
     }
 
     /**
@@ -1157,6 +1254,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
     async findAllEmbeddingNodes(document: IKnowledgeDocument) {
         return this.chunkService.findAllEmbeddingNodes(document.chunks)
+    }
+
+    async updateChunkMetadataBulk(chunks: Pick<IKnowledgeDocumentChunk, 'id' | 'metadata'>[]) {
+        return this.chunkService.updateMetadataBulk(chunks)
     }
 
     async getDocumentVectorStore(id: string) {

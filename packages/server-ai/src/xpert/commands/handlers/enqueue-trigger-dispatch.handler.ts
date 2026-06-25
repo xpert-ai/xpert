@@ -1,7 +1,7 @@
 import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { UserService } from '@xpert-ai/server-core'
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
@@ -28,10 +28,9 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
 
     async execute(command: XpertEnqueueTriggerDispatchCommand): Promise<void> {
         const { xpertId, userId, state, params } = command
-        const xpert = await this.xpertService.findTriggerDispatchTarget(xpertId)
-        if (!xpert) {
-            throw new NotFoundException(`Xpert "${xpertId}" not found`)
-        }
+        const xpert = await this.xpertService.findOneByIdWithinTenant(xpertId, {
+            select: ['id', 'tenantId', 'organizationId']
+        })
         if (!xpert.tenantId) {
             throw new Error(`Missing tenantId for xpert "${xpertId}"`)
         }

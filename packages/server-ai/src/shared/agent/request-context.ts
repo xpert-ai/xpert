@@ -2,12 +2,12 @@ import type { IUser } from '@xpert-ai/contracts'
 import { runWithRequestContext as runWithPluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { RequestContext, runWithRequestContext as runWithLegacyRequestContext } from '@xpert-ai/server-core'
 
-export type AgentRequestContextSnapshot = {
+type AgentRequestContextSnapshot = {
     user: IUser | null
     headers: Record<string, string>
 }
 
-export function captureAgentRequestContext(input: {
+function captureAgentRequestContext(input: {
     tenantId: string
     organizationId?: string | null
     language?: string | null
@@ -33,7 +33,7 @@ export function streamWithCurrentRequestContext<T>(
     return streamWithCapturedRequestContext(captureAgentRequestContext(input), createEvents)
 }
 
-export function streamWithCapturedRequestContext<T>(
+function streamWithCapturedRequestContext<T>(
     context: AgentRequestContextSnapshot,
     createEvents: () => AsyncIterable<T>
 ): AsyncIterable<T> {
@@ -69,7 +69,7 @@ export function streamWithCapturedRequestContext<T>(
     }
 }
 
-export function runWithCapturedAgentRequestContext<T>(
+function runWithCapturedAgentRequestContext<T>(
     context: AgentRequestContextSnapshot,
     task: () => T | Promise<T>
 ): Promise<T> {

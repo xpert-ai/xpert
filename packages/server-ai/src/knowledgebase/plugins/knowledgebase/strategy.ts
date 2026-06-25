@@ -197,8 +197,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                     await this.updateDocumentProcessingMetadata(
                                         document.id,
                                         {
-                                        status: KBDocumentStatusEnum.EMBEDDING,
-                                        progress: 0,
+                                            status: KBDocumentStatusEnum.EMBEDDING,
+                                            progress: 0,
                                             draft: null,
                                             contentHash: syncResult.contentHash,
                                             processingHash,
@@ -223,7 +223,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                             tokenUsed += chunk.metadata.tokens
                                         })
                                         embeddingTokenUsed += tokenUsed
-                                        await this.documentService.save(
+                                        await this.documentService.updateChunkMetadataBulk(
                                             batch.map((chunk) => ({
                                                 id: chunk.id,
                                                 metadata: chunk.metadata
@@ -255,8 +255,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                         await this.updateDocumentProcessingMetadata(
                                             document.id,
                                             {
-                                            status: KBDocumentStatusEnum.EMBEDDING,
-                                            progress: Number(progress)
+                                                status: KBDocumentStatusEnum.EMBEDDING,
+                                                progress: Number(progress)
                                             },
                                             { tokens: totalTokenUsed }
                                         )
@@ -268,9 +268,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                 await this.updateDocumentProcessingMetadata(
                                     document.id,
                                     {
-                                    status: KBDocumentStatusEnum.FINISH,
-                                    processMsg: '',
-                                    progress: 100,
+                                        status: KBDocumentStatusEnum.FINISH,
+                                        processMsg: '',
+                                        progress: 100,
                                         processingHash,
                                         sourceHash
                                     },
