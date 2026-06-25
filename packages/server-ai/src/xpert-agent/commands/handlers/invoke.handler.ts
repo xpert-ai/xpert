@@ -55,6 +55,7 @@ import {
 import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
+import { streamWithCurrentRequestContext } from '../../../shared/agent/request-context'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
 
@@ -353,7 +354,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
-        const contentStream = from(
+        const createGraphEvents = () =>
             graph.streamEvents(graphInput, {
                 version: 'v2',
                 configurable: {
@@ -385,6 +386,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 signal: abortController.signal
                 // debug: true
             })
+        const contentStream = from(
+            streamWithCurrentRequestContext(
+                {
+                    tenantId,
+                    organizationId,
+                    language: languageCode
+                },
+                createGraphEvents
+            )
         ).pipe(
             map(
                 createMapStreamEvents(this.#logger, subscriber, {

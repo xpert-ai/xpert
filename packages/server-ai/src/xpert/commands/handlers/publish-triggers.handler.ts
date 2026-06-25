@@ -4,6 +4,11 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { HandoffMessage, IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { HandoffQueueService } from '../../../handoff/message-queue.service'
+import {
+    captureAgentRequestContext,
+    runWithCapturedAgentRequestContext
+} from '../../../shared/agent/request-context'
+import type { AgentRequestContextSnapshot } from '../../../shared/agent/request-context'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 
@@ -53,6 +58,12 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         const { xpert, options } = command
         const strict = options?.strict ?? false
         const providers = options?.providers?.length ? new Set(options.providers) : null
+        const requestContext = captureAgentRequestContext({
+            user: options?.context?.user,
+            tenantId: options?.context?.tenantId ?? xpert.tenantId,
+            organizationId: options?.context?.organizationId ?? xpert.organizationId,
+            language: options?.context?.language
+        })
 
         const previousSnapshots = this.buildTriggerSnapshotMap(options?.previousGraph, providers)
         const currentSnapshots = this.buildTriggerSnapshotMap(xpert.graph, providers)
@@ -95,11 +106,11 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             }
 
             try {
-                await this.publishTriggerWithProvider(provider, xpert, changed.current.trigger)
+                await this.publishTriggerWithProvider(provider, xpert, changed.current.trigger, requestContext)
             } catch (error) {
                 let rollbackError: unknown
                 try {
-                    await this.publishTriggerWithProvider(provider, xpert, changed.previous.trigger)
+                    await this.publishTriggerWithProvider(provider, xpert, changed.previous.trigger, requestContext)
                 } catch (innerError) {
                     rollbackError = innerError
                     this.#logger.error(
@@ -125,7 +136,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             }
 
             try {
-                await this.publishTriggerWithProvider(provider, xpert, added.trigger)
+                await this.publishTriggerWithProvider(provider, xpert, added.trigger, requestContext)
             } catch (error) {
                 if (strict) {
                     throw error
@@ -156,7 +167,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         await this.commandBus.execute(
             new XpertEnqueueTriggerDispatchCommand(xpert.id, null, payload.state, {
                 isDraft: false,
-                from: payload.from,
+                from: trigger.from,
                 executionId: payload.executionId
             })
         )
@@ -194,7 +205,8 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
     private async publishTriggerWithProvider(
         provider: IWorkflowTriggerStrategy<any>,
         xpert: IXpert,
-        trigger: IWFNTrigger
+        trigger: IWFNTrigger,
+        requestContext: AgentRequestContextSnapshot
     ): Promise<void> {
         await Promise.resolve(
             provider.publish(
@@ -203,7 +215,9 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
                     config: trigger.config
                 },
                 (payload) => {
-                    return this.handleTriggerPayload(xpert, trigger, payload).catch((error) => {
+                    return runWithCapturedAgentRequestContext(requestContext, () =>
+                        this.handleTriggerPayload(xpert, trigger, payload)
+                    ).catch((error) => {
                         this.#logger.error(
                             `Trigger "${trigger.from}" callback failed for xpert "${xpert.id}": ${getErrorMessage(error)}`
                         )

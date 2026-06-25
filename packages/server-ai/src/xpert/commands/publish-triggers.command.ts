@@ -1,4 +1,4 @@
-import { IXpert, TXpertGraph } from '@xpert-ai/contracts'
+import type { IUser, IXpert, TXpertGraph } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -20,6 +20,12 @@ export class XpertPublishTriggersCommand implements ICommand {
 			strict?: boolean
 			previousGraph?: TXpertGraph
 			providers?: string[]
+			context?: {
+				user?: IUser | null
+				tenantId?: string | null
+				organizationId?: string | null
+				language?: string | null
+			}
 		}
 	) {}
 }
