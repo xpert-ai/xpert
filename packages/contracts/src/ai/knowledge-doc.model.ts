@@ -227,8 +227,7 @@ export type TKnowledgeDocument = {
 /**
  * Document, include file, web pages, folder, virtual, etc.
  */
-export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata>
-  extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
+export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata> extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
   knowledgebase?: IKnowledgebase
@@ -243,22 +242,22 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
  */
 export interface StandardDocumentMetadata {
   // ---- Document Info ----
-  originalFileName?: string // Original file name, e.g. "Complex_SQL_QA.markdown"
-  originalFileSize?: string | null // Original file size (if missing, display as "-")
-  uploadTime?: string // Upload time in ISO format
-  lastUpdatedTime?: string // Last updated time
-  source?: string // Source, e.g. "Local File" / "Web Import" / "API"
+  originalFileName?: string;          // Original file name, e.g. "Complex_SQL_QA.markdown"
+  originalFileSize?: string | null;   // Original file size (if missing, display as "-")
+  uploadTime?: string;                // Upload time in ISO format
+  lastUpdatedTime?: string;           // Last updated time
+  source?: string;                    // Source, e.g. "Local File" / "Web Import" / "API"
   
   // ---- Technical Parameters ----
-  segmentRule?: string // Segmentation rule, e.g. "General"
-  segmentLength?: number // Maximum segment length (token or char)
-  averageSegmentLength?: string // Average segment length
-  segmentCount?: number // Number of segments
-  recallRate?: string // Recall count statistics, e.g. "0.00% (0/11)"
-  embedTime?: string // Embedding time, e.g. "1.99 sec"
-  embedCost?: string | null // Embedding cost (if none, display as "-")
-  tokens?: number // Number of tokens in the document
-  lastIncrementalSync?: KnowledgeDocumentLastIncrementalSync
+  segmentRule?: string;               // Segmentation rule, e.g. "General"
+  segmentLength?: number;             // Maximum segment length (token or char)
+  averageSegmentLength?: string;      // Average segment length
+  segmentCount?: number;              // Number of segments
+  recallRate?: string;                // Recall count statistics, e.g. "0.00% (0/11)"
+  embedTime?: string;                 // Embedding time, e.g. "1.99 sec"
+  embedCost?: string | null;          // Embedding cost (if none, display as "-")
+  tokens?: number;                    // Number of tokens in the document
+  lastIncrementalSync?: KnowledgeDocumentLastIncrementalSync;
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
@@ -267,13 +266,18 @@ export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
 
 // export type Metadata = any
 
-export interface IKnowledgeDocumentCreateInput extends IKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {}
+export interface IKnowledgeDocumentCreateInput
+	extends IKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {}
 
-export interface IKnowledgeDocumentUpdateInput extends Partial<IKnowledgeDocumentCreateInput> {
-  id?: string
+export interface IKnowledgeDocumentUpdateInput
+	extends Partial<IKnowledgeDocumentCreateInput> {
+	id?: string;
 }
 
-export interface IKnowledgeDocumentFindInput extends IBasePerTenantAndOrganizationEntityModel, IKnowledgeDocument {}
+export interface IKnowledgeDocumentFindInput
+	extends IBasePerTenantAndOrganizationEntityModel,
+		IKnowledgeDocument {}
+
 
 export function isDocumentSheet(type: string): boolean {
   return ['csv', 'xls', 'xlsx', 'ods', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(type)
@@ -292,15 +296,11 @@ export function isAudioType(type: string): boolean {
 }
 
 export function classificateDocumentCategory(entity: Partial<IKnowledgeDocument>): KBDocumentCategoryEnum {
-  return isDocumentSheet(entity.type)
-    ? KBDocumentCategoryEnum.Sheet
-    : isImageType(entity.type)
-      ? KBDocumentCategoryEnum.Image
-      : isVideoType(entity.type)
-        ? KBDocumentCategoryEnum.Video
-        : isAudioType(entity.type)
-          ? KBDocumentCategoryEnum.Audio
-          : KBDocumentCategoryEnum.Text
+  return isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : 
+									isImageType(entity.type) ? KBDocumentCategoryEnum.Image : 
+									isVideoType(entity.type) ? KBDocumentCategoryEnum.Video :
+									isAudioType(entity.type) ? KBDocumentCategoryEnum.Audio :
+									KBDocumentCategoryEnum.Text
 }
 
 /**
@@ -319,7 +319,7 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
         key: 'title',
         label: { en_US: 'Original File Name', zh_Hans: '原始文件名称' },
         type: 'string'
-      }
+      },
       // {
       //   key: 'originalFileSize',
       //   label: { en_US: 'Original File Size', zh_Hans: '原始文件大小' },
@@ -353,7 +353,7 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
         key: 'tokens',
         label: { en_US: 'Tokens', zh_Hans: '词元' },
         type: 'number'
-      }
+      },
       // {
       //   key: 'segmentRule',
       //   label: { en_US: 'Segmentation Rule', zh_Hans: '分段规则' },
@@ -391,6 +391,6 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
   //     }
     ]
   }
-] as const
+] as const;
 
-export type StandardMetadataFieldKey = (typeof STANDARD_METADATA_FIELDS)[number]['fields'][number]['key']
+export type StandardMetadataFieldKey = typeof STANDARD_METADATA_FIELDS[number]['fields'][number]['key'];

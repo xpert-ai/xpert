@@ -26,8 +26,8 @@ import {
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
     getXpertAgentRecursionLimit,
-    IXpert,
-    IUser
+    IUser,
+    IXpert
 } from '@xpert-ai/contracts'
 import { isNil } from '@xpert-ai/copilot'
 import { runWithRequestContext as runWithPluginRequestContext } from '@xpert-ai/plugin-sdk'

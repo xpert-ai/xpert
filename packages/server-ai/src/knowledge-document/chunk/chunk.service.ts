@@ -72,7 +72,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
     async upsertBulk(chunks: IKnowledgeDocumentChunk[]) {
         const entities: KnowledgeDocumentChunk[] = []
         const chunkMap = new Map<string, IKnowledgeDocumentChunk>()
-        chunks.forEach((chunk) => {
+        chunks.forEach(chunk => {
             if (chunk.metadata.chunkId) {
                 chunkMap.set(chunk.metadata.chunkId, chunk)
             }
@@ -113,7 +113,7 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
                     relations: ['parent'],
                     select: {
                         parent: {
-                            id: true
+                            id: true,
                         }
                     }
                 })
@@ -138,8 +138,8 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
     findAllLeaves(chunks: IKnowledgeDocumentChunk[]) {
         const leaves: IKnowledgeDocumentChunk[] = []
-        chunks.forEach((chunk) => {
-            const isLeaf = !chunks.some((c) => c.parent && c.parent.id === chunk.id)
+        chunks.forEach(chunk => {
+            const isLeaf = !chunks.some(c => c.parent && c.parent.id === chunk.id)
             if (isLeaf) {
                 leaves.push(chunk)
             }
@@ -153,10 +153,8 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
      * @param chunks Embedding candidate chunks
      */
     findAllEmbeddingNodes(chunks: IKnowledgeDocumentChunk[]) {
-        const originalChunks = chunks.filter(
-            (chunk) => !chunk.metadata.mediaType || chunk.metadata.mediaType === 'text'
-        )
-        const mediaChunks = chunks.filter((chunk) => chunk.metadata.mediaType && chunk.metadata.mediaType !== 'text')
+        const originalChunks = chunks.filter(chunk => !chunk.metadata.mediaType || chunk.metadata.mediaType === 'text')
+        const mediaChunks = chunks.filter(chunk => chunk.metadata.mediaType && chunk.metadata.mediaType !== 'text')
 
         const embeddingChunks: IKnowledgeDocumentChunk[] = []
 

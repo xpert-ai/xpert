@@ -98,12 +98,9 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
   }
 
   getChunks(id: string, params: { take: number; skip: number; search?: string }) {
-    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(
-      this.apiBaseUrl + `/${id}` + '/chunk',
-      {
+    return this.httpClient.get<{ items: IKnowledgeDocumentChunk[]; total: number }>(this.apiBaseUrl + `/${id}` + '/chunk', {
       params: new HttpParams().append('data', JSON.stringify(params))
-      }
-    )
+    })
   }
 
   deleteChunk(documentId: string, id: string, version?: number) {

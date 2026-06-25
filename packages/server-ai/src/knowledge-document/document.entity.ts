@@ -14,7 +14,7 @@ import {
 	TKnowledgeDocument,
 	DocumentSourceProviderCategoryEnum,
 	DocumentTypeEnum,
-    KnowledgeDocumentMetadata
+	KnowledgeDocumentMetadata,
 } from '@xpert-ai/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
@@ -47,10 +47,7 @@ import {
 @Index('IDX_knowledge_document_kb_source_hash', ['knowledgebaseId', 'sourceHash'])
 @Index('IDX_knowledge_document_kb_source_key', ['knowledgebaseId', 'sourceType', 'sourceKey'])
 @Tree('closure-table') 
-export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata>
-    extends TenantOrganizationBaseEntity
-    implements IKnowledgeDocument<T>
-{
+export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata> extends TenantOrganizationBaseEntity implements IKnowledgeDocument<T> {
 	@ApiProperty({ type: () => Boolean })
 	@IsBoolean()
 	@IsOptional()
@@ -128,7 +125,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 
 	@ApiProperty({ type: () => StorageFile, readOnly: true })
 	@ManyToOne(() => StorageFile, {
-        nullable: true
+		nullable: true,
 	})
 	@JoinColumn()
 	@IsOptional()
@@ -286,7 +283,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@ApiPropertyOptional({ type: () => KnowledgeDocument, description: 'Parent document' })
 	@IsOptional()
 	@TreeParent()
-    parent: KnowledgeDocument
+	parent: KnowledgeDocument;
 
 	/*
     |--------------------------------------------------------------------------

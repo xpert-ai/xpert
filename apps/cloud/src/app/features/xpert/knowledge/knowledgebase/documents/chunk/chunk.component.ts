@@ -232,8 +232,8 @@ export class KnowledgeDocumentChunkComponent {
       this.knowledgeDocumentService
         .updateChunk(this.documentId(), this.editChunk().id, {
           metadata: this.editChunk().metadata,
-          pageContent: this.editChunk().pageContent,
-          version: this.editChunk().version
+          version: this.editChunk().version,
+          pageContent: this.editChunk().pageContent
         })
         .subscribe({
           next: () => {
@@ -357,8 +357,8 @@ export class KnowledgeDocumentChunkComponent {
     this.loading.set(true)
     this.knowledgeDocumentService
       .update(this.document().id, {
-        metadata: this.metadata(),
-        version: this.document().version
+        version: this.document().version,
+        metadata: this.metadata()
       })
       .subscribe({
         next: () => {

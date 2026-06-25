@@ -1,6 +1,6 @@
+import { Document } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { Command, END } from '@langchain/langgraph'
-import { Document } from '@langchain/core/documents'
 import {
 	channelName,
 	IEnvironment,
@@ -127,8 +127,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 
 	constructor(
 		private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
-    ) {}
+		private readonly queryBus: QueryBus) {}
 
 	create(payload: {
 		graph: TXpertGraph
@@ -184,27 +183,25 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						if (cachedDocuments?.length) {
 							// Create as formal documents during non-testing phases
 							const task = await this.taskService.findOne(knowledgeTaskId, { relations: ['documents'] })
-                            const _docs =
-                                task.context?.documents?.filter((doc) => cachedDocuments.includes(doc.id)) ?? []
+							const _docs = task.context?.documents?.filter(doc => cachedDocuments.includes(doc.id)) ?? []
 							if (isTest) {
 								return {
 									state: {
 										[channelName(node.key)]: {
 											[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(_docs),
 											[ERROR_CHANNEL_NAME]: null
-                                        }
+										},
 									}
 								}
 							}
 
 							if (task.context?.documents) {
 								if (_docs.length > 0) {
-                                    documents = await this.documentService.createBulk(
-                                        _docs.map((doc) => {
+									documents = await this.documentService.createBulk(_docs.map((doc) => {
 										return {
 											...omit(doc, 'id'),
 											sourceConfig: {
-                                                    key: node.key
+												key: node.key,
 											},
 											status: KBDocumentStatusEnum.WAITING,
 											knowledgebaseId,
@@ -212,16 +209,15 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 											// pages: doc.pages?.map(page => omit(page, 'id')),
 											tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 										}
-                                        })
-                                    )
+									}))
 								}
 							} else {
-                                documents = task.documents.filter((doc) => cachedDocuments.includes(doc.id))
-                                documents.forEach((doc) => {
+								documents = task.documents.filter(doc => cachedDocuments.includes(doc.id))
+								documents.forEach(doc => {
 									doc.sourceType = entity.provider as DocumentSourceProviderCategoryEnum
 									doc.sourceConfig = { key: node.key }
 									doc.status = KBDocumentStatusEnum.RUNNING
-                                    if (doc.tasks?.findIndex((t) => t.id === knowledgeTaskId) < 0) {
+									if (doc.tasks?.findIndex(t => t.id === knowledgeTaskId) < 0) {
 										doc.tasks.push({id: knowledgeTaskId} as IKnowledgebaseTask)
 									}
 								})
@@ -235,7 +231,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									[channelName(node.key)]: {
 										[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
 										[ERROR_CHANNEL_NAME]: null
-                                    }
+									},
 								},
 								output: documents?.map((doc) => {
 									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
@@ -265,35 +261,26 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						}
 						
 						// Transform parameters with state
-                        const parameters = entity.config
-                            ? await deepTransformValue(entity.config, async (v) => {
-                                  return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(
-                                      stateEnv
-                                  )
-                              })
-                            : {}
+						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
+							return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
+						}) : {}
 
-                        const results = await strategy.loadDocuments(
-                            {
+						const results = await strategy.loadDocuments({
 							...parameters,
 							[STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN]
-                            },
-                            permissions
-                        )
+						}, permissions)
 
-                        documents = results.map(
-                            (doc) =>
-                                ({
+						documents = results.map((doc) => ({
 							id: doc.id || shortuuid(),
 							sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
-                                    sourceKey: resolveWorkflowSourceDocumentSourceKey({
-                                        document: doc,
-                                        sourceType: entity.provider,
-                                        sourceConfigKey: node.key
-                                    }),
-                                    sourceConfig: {
-                                        key: node.key
-                                    },
+							sourceKey: resolveWorkflowSourceDocumentSourceKey({
+								document: doc,
+								sourceType: entity.provider,
+								sourceConfigKey: node.key
+							}),
+							sourceConfig: {
+								key: node.key
+							},
 							type: doc.metadata.type,
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,
@@ -302,22 +289,20 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 							mimeType: doc.metadata.mimeType,
 							status: KBDocumentStatusEnum.WAITING,
 							metadata: doc.metadata,
-                                    draft: doc.pageContent
-                                        ? {
+							draft: doc.pageContent ?
+								{
 									chunks: [
 										{
 											pageContent: doc.pageContent,
 											metadata: {
 												...(doc.metadata || {}),
-                                                          chunkId: shortuuid()
-                                                      }
+												chunkId: shortuuid(),
+											},
 										}
 									]
-                                          }
-                                        : null,
-                                    parent: folderId ? { id: folderId } : null
-                                }) as IKnowledgeDocument
-                        )
+								} : null,
+							parent: folderId ? { id: folderId } : null,
+						} as IKnowledgeDocument))
 						
 						if (isTest) {
 							if (!knowledgeTaskId) {
@@ -334,8 +319,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 								await this.taskService.upsertDocuments(knowledgeTaskId, documents)
 							}
 						} else {
-                            documents = await this.documentService.createBulk(
-                                documents.map((doc) => {
+							documents = await this.documentService.createBulk(documents.map((doc) => {
 								return {
 									...omit(doc, 'id'),
 									status: KBDocumentStatusEnum.WAITING,
@@ -344,19 +328,18 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 									// pages: doc.pages?.map(page => omit(page, 'id')),
 									tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
 								}
-                                })
-                            )
+							}))
 						}
 
 						return {
 							state: {
 								[channelName(node.key)]: {
-                                    [DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents ?? results),
+									[DOCUMENTS_CHANNEL_NAME]: serializeDocuments((documents ?? results)),
 									[ERROR_CHANNEL_NAME]: null
 								},
 								[KnowledgebaseChannel]: {
 									[KnowledgeTask]: knowledgeTaskId,
-                                    knowledgebaseId
+									knowledgebaseId,
 								}
 							},
 							output: (documents ?? results).map((doc) => {
@@ -372,20 +355,16 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						subscriber: subscriber,
 						execution,
 						catchError: async (error) => {
-                            await this.taskService.update(knowledgeTaskId, {
-                                status: 'failed',
-                                error: getErrorMessage(error)
-                            })
+							await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
 						}
-                    }
-                )()
+					})()
 			}),
 			ends: [END],
 			navigator: async (state, config) => {
 				if (state[channelName(node.key)]['error']) {
 					return (
-                        graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)
-                            ?.to ?? END
+						graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+						END
 					)
 				}
 
@@ -411,7 +390,7 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 					en_US: 'Error info',
 					zh_Hans: '错误信息'
 				}
-            }
+			},
 		]
 	}
 }

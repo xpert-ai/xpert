@@ -481,8 +481,8 @@ export class KnowledgeDocumentsComponent {
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
     this.knowledgeDocumentAPI
       .update(document.id, {
-        parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig'],
-        version: document.version
+        version: document.version,
+        parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig']
       })
       .subscribe({
         next: () => {

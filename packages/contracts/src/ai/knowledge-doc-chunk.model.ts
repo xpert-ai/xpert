@@ -40,11 +40,13 @@ export interface IDocChunkMetadata {
   [key: string]: any
 }
 
+
 /**
  * Segmented chunk of a knowledge document
  */
 export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = any>
-  extends DocumentInterface<Metadata>, IBasePerTenantAndOrganizationEntityModel {
+  extends DocumentInterface<Metadata>,
+    IBasePerTenantAndOrganizationEntityModel {
   contentHash?: string | null
   version?: number
 
@@ -56,6 +58,7 @@ export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = an
   parent?: IKnowledgeDocumentChunk<Metadata>
   children?: IKnowledgeDocumentChunk<Metadata>[]
 }
+
 
 /**
  * Build a hierarchical tree structure from a flat list of DocumentInterface objects,
@@ -96,7 +99,9 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
   return roots
 }
 
-function getChunkNodeId<Metadata extends IDocChunkMetadata>(document: DocumentInterface<Metadata>): string | undefined {
+function getChunkNodeId<Metadata extends IDocChunkMetadata>(
+  document: DocumentInterface<Metadata>
+): string | undefined {
   if (document.metadata?.chunkId) {
     return document.metadata.chunkId
   }

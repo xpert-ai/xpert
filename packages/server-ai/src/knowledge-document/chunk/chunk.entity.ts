@@ -67,7 +67,7 @@ export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetad
 	@ApiPropertyOptional({ type: () => KnowledgeDocumentChunk, description: 'Parent document chunk' })
 	@IsOptional()
 	@TreeParent()
-    parent: KnowledgeDocumentChunk<T>
+	parent: KnowledgeDocumentChunk<T>;
 
 	/*
 	|--------------------------------------------------------------------------

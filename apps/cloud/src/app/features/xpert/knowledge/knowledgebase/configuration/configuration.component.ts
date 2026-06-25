@@ -54,8 +54,8 @@ function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseSt
     NgmSelectComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
-    KnowledgeRetrievalSettingsComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    KnowledgeRetrievalSettingsComponent
   ],
   animations: [routeAnimations]
 })

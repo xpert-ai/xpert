@@ -76,16 +76,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		private readonly integrationService: IntegrationService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-        @InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue
+		@InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue,
 	) {
 		super(service)
 	}
 
 	@Post('bulk')
-    async createBulk(
-        @Body() entities: Partial<IKnowledgeDocument>[],
-        @Query('process', ParseBoolPipe) process?: boolean
-    ) {
+	async createBulk(@Body() entities: Partial<IKnowledgeDocument>[], @Query('process', ParseBoolPipe) process?: boolean) {
 		entities.forEach((entity) => {
 			entity.status = KBDocumentStatusEnum.WAITING
 			entity.progress = 0
@@ -105,10 +102,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	 * @param process 
 	 */
 	@Put('bulk')
-    async updateBulk(
-        @Body() entities: Partial<IKnowledgeDocument>[],
-        @Query('process', ParseBoolPipe) process?: boolean
-    ) {
+	async updateBulk(@Body() entities: Partial<IKnowledgeDocument>[], @Query('process', ParseBoolPipe) process?: boolean) {
 		if (process) {
 			entities.forEach((entity) => {
 				entity.status = KBDocumentStatusEnum.WAITING
@@ -118,7 +112,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		}
         await this.service.updateBulkWithVersion(entities)
 		if (process) {
-            await this.service.startProcessing(entities.map((doc) => doc.id))
+			await this.service.startProcessing(entities.map(doc => doc.id))
 		}
 	}
 
@@ -195,19 +189,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		entity.parserConfig ??= {}
 		try {
-            entity.category ??= isDocumentSheet(entity.type)
-                ? KBDocumentCategoryEnum.Sheet
-                : isImageType(entity.type)
-                  ? KBDocumentCategoryEnum.Image
-                  : isVideoType(entity.type)
-                    ? KBDocumentCategoryEnum.Video
-                    : isAudioType(entity.type)
-                      ? KBDocumentCategoryEnum.Audio
-                      : KBDocumentCategoryEnum.Text
-            const result = await this.commandBus.execute<
-                KnowledgeDocLoadCommand,
-                { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
-            >(new KnowledgeDocLoadCommand({ doc: entity as IKnowledgeDocument, stage: 'test' }))
+			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : 
+									isImageType(entity.type) ? KBDocumentCategoryEnum.Image : 
+									isVideoType(entity.type) ? KBDocumentCategoryEnum.Video :
+									isAudioType(entity.type) ? KBDocumentCategoryEnum.Audio :
+									KBDocumentCategoryEnum.Text
+			const result = await this.commandBus.execute<KnowledgeDocLoadCommand, { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }>(
+				new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument, stage: 'test'}))
 			return buildChunkTree(result.chunks)
 		} catch(err) {
 			console.error(err)
@@ -231,10 +219,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	}
 
 	@Post('web/:type/load')
-    async loadRagWeb(
-        @Param('type') type: string,
-        @Body() body: { webOptions: TRagWebOptions; integration: IIntegration }
-    ) {
+	async loadRagWeb(@Param('type') type: string, @Body() body: {webOptions: TRagWebOptions; integration: IIntegration}) {
 		if (body.integration) {
 			body.integration = await this.integrationService.findOne(body.integration.id)
 		}

@@ -111,14 +111,12 @@ describe('KnowledgeDocumentService original file downloads', () => {
             }
         ])
 
-        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual(
-            [
+        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual([
             expect.objectContaining({
                 absolutePath: '/knowledge-volume/files/local.txt',
                 fileName: 'local.txt'
             })
-            ]
-        )
+        ])
     })
 
     it('deduplicates selected documents that reference the same original file path', async () => {

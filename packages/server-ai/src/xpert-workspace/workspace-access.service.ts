@@ -71,10 +71,7 @@ export class XpertWorkspaceAccessService {
 		return access
 	}
 
-    async assertCanRead(
-        workspaceId: string,
-        options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }
-    ) {
+	async assertCanRead(workspaceId: string, options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }) {
 		return this.assertCan(workspaceId, 'read', options)
 	}
 
@@ -82,17 +79,11 @@ export class XpertWorkspaceAccessService {
 		return this.assertCan(workspaceId, 'run', options)
 	}
 
-    async assertCanWrite(
-        workspaceId: string,
-        options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }
-    ) {
+	async assertCanWrite(workspaceId: string, options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }) {
 		return this.assertCan(workspaceId, 'write', options)
 	}
 
-    async assertCanManage(
-        workspaceId: string,
-        options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }
-    ) {
+	async assertCanManage(workspaceId: string, options?: { relations?: FindOptionsRelations<XpertWorkspace> | string[] }) {
 		return this.assertCan(workspaceId, 'manage', options)
 	}
 
@@ -216,7 +207,9 @@ export class XpertWorkspaceAccessService {
 					scopeQb
 						.where(
 							new Brackets((orgQb) => {
-                                orgQb.where('workspace.organizationId = :organizationId', { organizationId }).andWhere(
+								orgQb
+									.where('workspace.organizationId = :organizationId', { organizationId })
+									.andWhere(
 										new Brackets((memberQb) => {
 											memberQb
 												.where('workspace.ownerId = :ownerId', { ownerId: userId })
