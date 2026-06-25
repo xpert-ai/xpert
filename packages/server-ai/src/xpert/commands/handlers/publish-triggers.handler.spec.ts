@@ -38,7 +38,7 @@ describe('XpertPublishTriggersHandler', () => {
         }
     }
 
-    it('publish callback adds trigger job', async () => {
+    it('publish callback enqueues dispatch with workflow trigger source', async () => {
         const { handler, triggerRegistry, commandBus } = createHandler()
         triggerRegistry.get.mockReturnValue({
             publish: jest.fn((_params, callback) => {
@@ -64,8 +64,8 @@ describe('XpertPublishTriggersHandler', () => {
                                 type: 'workflow',
                                 entity: {
                                     type: 'trigger',
-                                    from: 'lark',
-                                    config: { enabled: true, integrationId: 'integration-1' }
+                                    from: 'schedule',
+                                    config: { enabled: true, cron: '* * * * *', task: 'tick' }
                                 }
                             }
                         ]
@@ -92,7 +92,7 @@ describe('XpertPublishTriggersHandler', () => {
                 }),
                 params: expect.objectContaining({
                     isDraft: false,
-                    from: 'job'
+                    from: 'schedule'
                 })
             })
         )

@@ -3,14 +3,35 @@ jest.mock('isolated-vm', () => ({
     Isolate: class Isolate {}
 }))
 
+let mockServerCoreRequestContextActive = false
+
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         getOrganizationId: jest.fn(),
         currentUserId: jest.fn(),
         currentUser: jest.fn()
-    }
+    },
+    runWithRequestContext: jest.fn((_request: unknown, next: () => unknown) => {
+        mockServerCoreRequestContextActive = true
+        const result = next()
+        if (result && typeof Reflect.get(Object(result), 'then') === 'function') {
+            return (result as Promise<unknown>).finally(() => {
+                mockServerCoreRequestContextActive = false
+            })
+        }
+        mockServerCoreRequestContextActive = false
+        return result
+    })
 }))
+
+jest.mock('@xpert-ai/plugin-sdk', () => {
+    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
+    return {
+        ...actual,
+        runWithRequestContext: jest.fn((_request: unknown, _response: unknown, next: () => unknown) => next())
+    }
+})
 
 jest.mock('@xpert-ai/copilot', () => ({
     AgentRecursionLimit: 25,
@@ -267,6 +288,55 @@ describe('XpertAgentInvokeHandler', () => {
             conversationId: undefined,
             environmentId: undefined
         })
+    })
+
+    it('keeps server request context active while graph events are iterated', async () => {
+        const contextStates: boolean[] = []
+        const graph = createGraph(
+            (async function* () {
+                contextStates.push(mockServerCoreRequestContextActive)
+                yield { event: 'on_chain_stream', data: {} }
+            })()
+        )
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'run with context'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(contextStates).toEqual([true])
     })
 
     it('merges soul and profile into resume command updates', async () => {

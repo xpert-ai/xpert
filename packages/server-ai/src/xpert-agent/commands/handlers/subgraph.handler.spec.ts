@@ -381,6 +381,143 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             })
         )
     })
+
+    it('uses the runtime trigger source as the hidden agent start node', async () => {
+        const graph = {
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'agent-1',
+                    entity: {
+                        key: 'agent-1',
+                        name: 'Hidden Agent',
+                        title: 'Hidden Agent',
+                        toolsetIds: [],
+                        knowledgebaseIds: [],
+                        options: {
+                            hidden: true
+                        },
+                        team: {
+                            id: 'xpert-1',
+                            workspaceId: 'workspace-1',
+                            agentConfig: {}
+                        }
+                    }
+                },
+                {
+                    type: 'workflow',
+                    key: 'trigger-1',
+                    entity: {
+                        key: 'trigger-1',
+                        type: WorkflowNodeTypeEnum.TRIGGER,
+                        from: 'schedule'
+                    }
+                }
+            ],
+            connections: []
+        }
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command.constructor.name === 'ToolsetGetToolsCommand') {
+                    return []
+                }
+
+                if (command.constructor.name === 'CreateWorkflowNodeCommand') {
+                    return {
+                        workflowNode: {
+                            graph: RunnableLambda.from(() => ({})),
+                            ends: []
+                        },
+                        nextNodes: []
+                    }
+                }
+
+                throw new Error(`Unexpected command: ${command.constructor.name}`)
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (command) => {
+                if (command.constructor.name === 'GetXpertWorkflowQuery') {
+                    return {
+                        agent: graph.nodes[0].entity,
+                        graph,
+                        next: [],
+                        fail: []
+                    }
+                }
+
+                throw new Error(`Unexpected query: ${command.constructor.name}`)
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                api: {}
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        Object.defineProperty(handler, 'agentMiddlewareRegistry', {
+            value: {
+                get: jest.fn().mockReturnValue({
+                    createMiddleware: jest.fn().mockReturnValue({
+                        name: 'ClientToolMiddleware',
+                        tools: [
+                            tool(async () => '', {
+                                name: 'file_search',
+                                description: 'Search files.',
+                                schema: z.object({
+                                    query: z.string()
+                                })
+                            })
+                        ]
+                    })
+                })
+            }
+        })
+
+        await expect(
+            handler.execute(
+                new XpertAgentSubgraphCommand(
+                    'agent-1',
+                    {
+                        id: 'xpert-1',
+                        workspaceId: 'workspace-1'
+                    },
+                    {
+                        isStart: true,
+                        isDraft: true,
+                        mute: [],
+                        store: null,
+                        subscriber: null,
+                        execution: {
+                            id: 'execution-1'
+                        } as IXpertAgentExecution,
+                        rootController: new AbortController(),
+                        signal: new AbortController().signal,
+                        channel: channelName('agent-1'),
+                        thread_id: 'thread-1',
+                        environment: {
+                            variables: []
+                        } as IEnvironment,
+                        from: 'schedule'
+                    }
+                )
+            )
+        ).resolves.toEqual(
+            expect.objectContaining({
+                graph: expect.any(Object)
+            })
+        )
+
+        const workflowCommands = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .filter((command) => command.constructor.name === 'CreateWorkflowNodeCommand')
+        expect(workflowCommands).toHaveLength(1)
+        expect(workflowCommands[0].node.key).toBe('trigger-1')
+    })
 })
 
 describe('XpertAgentSubgraphHandler file understanding middleware', () => {

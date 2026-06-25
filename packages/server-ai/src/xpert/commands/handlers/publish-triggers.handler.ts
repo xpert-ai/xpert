@@ -156,7 +156,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         await this.commandBus.execute(
             new XpertEnqueueTriggerDispatchCommand(xpert.id, null, payload.state, {
                 isDraft: false,
-                from: payload.from,
+                from: trigger.from,
                 executionId: payload.executionId
             })
         )

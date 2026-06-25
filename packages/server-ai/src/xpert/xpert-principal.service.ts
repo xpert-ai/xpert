@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import type { IUser } from '@xpert-ai/contracts'
 import { UserService } from '@xpert-ai/server-core'
-import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 
 const XPERT_PRINCIPAL_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
@@ -81,11 +80,6 @@ export class XpertPrincipalService {
             thirdPartyId: this.buildPrincipalThirdPartyId(xpertId),
             username: this.normalizeString(xpert.slug) || xpertId
         })
-
-        await this.xpertService.update(xpertId, {
-            user,
-            userId: user.id
-        } as Partial<Xpert>)
 
         return user
     }

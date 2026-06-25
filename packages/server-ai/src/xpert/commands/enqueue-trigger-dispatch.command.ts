@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN, TChatFrom } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -23,7 +23,7 @@ export class XpertEnqueueTriggerDispatchCommand implements ICommand {
         },
         public readonly params: {
             isDraft: boolean
-            from: TChatFrom
+            from: string
             executionId?: string
         }
     ) {}

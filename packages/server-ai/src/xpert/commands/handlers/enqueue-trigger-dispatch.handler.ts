@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN, TChatFrom } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { UserService } from '@xpert-ai/server-core'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
@@ -28,7 +28,11 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
 
     async execute(command: XpertEnqueueTriggerDispatchCommand): Promise<void> {
         const { xpertId, userId, state, params } = command
-        const xpert = await this.xpertService.findOne(xpertId)
+        const xpert = await this.xpertService.repository.findOne({
+            where: {
+                id: xpertId
+            }
+        })
         if (!xpert) {
             throw new NotFoundException(`Xpert "${xpertId}" not found`)
         }
@@ -112,7 +116,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
         }
     }
 
-    private toRunSource(from: TChatFrom): RunSource {
+    private toRunSource(from: string): RunSource {
         switch (from) {
             case 'api':
                 return 'api'

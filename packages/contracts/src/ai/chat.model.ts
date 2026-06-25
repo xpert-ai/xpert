@@ -45,6 +45,7 @@ export type TChatFrom =
   | 'debugger'
   | 'knowledge'
   | 'job'
+  | 'schedule'
   | 'api'
   | 'feishu'
   | 'lark'
