@@ -2,6 +2,7 @@ import { Document } from '@langchain/core/documents'
 import {
     IKnowledgebase,
     IKnowledgeDocument,
+    KnowledgeDocumentLastIncrementalSync,
     KBDocumentStatusEnum,
     KnowledgeDocumentMetadata
 } from '@xpert-ai/contracts'
@@ -16,7 +17,8 @@ import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgeGraphEnqueueCommand } from '../graphrag/commands'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocLoadCommand } from './commands'
-import { KnowledgeDocumentService } from './document.service'
+import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
+import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 
 @Processor({
@@ -119,7 +121,36 @@ export class KnowledgeDocumentConsumer {
             try {
                 // Start processing
                 processBeginAt = new Date()
-                await this.documentService.update(document.id, { processBeginAt })
+                const processingHash = computeKnowledgeDocumentProcessingHash(document)
+                const sourceHash = resolveKnowledgeDocumentSourceHash(document)
+                await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
+
+                if (
+                    document.status === KBDocumentStatusEnum.FINISH &&
+                    document.processingHash === processingHash &&
+                    document.contentHash
+                ) {
+                    const processDuration = new Date().getTime() - processBeginAt.getTime()
+                    await this.updateDocumentProcessingMetadata(
+                        document.id,
+                        {
+                            status: KBDocumentStatusEnum.FINISH,
+                            processMsg: '',
+                            processDuration,
+                            processDuation: processDuration,
+                            progress: 100,
+                            processingHash,
+                            sourceHash
+                        },
+                        {
+                            lastIncrementalSync: this.createSkippedIncrementalSyncMetadata(document)
+                        }
+                    )
+                    this.logger.debug(
+                        `[Job: entity '${job.id}'] Document '${document.id}' unchanged; skipped embedding.`
+                    )
+                    continue
+                }
 
                 const data = await this.commandBus.execute<
                     KnowledgeDocLoadCommand,
@@ -127,19 +158,32 @@ export class KnowledgeDocumentConsumer {
                 >(new KnowledgeDocLoadCommand({ doc: document, stage: 'prod' }))
 
                 let chunks = data?.chunks // .map(transformDocument2Chunk)
-                let docTokenUsed = 0
+                let totalTokenUsed = 0
+                let embeddingTokenUsed = 0
+                let syncResult: IncrementalChunkSyncResult | null = null
                 if (chunks) {
                     this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
-                    document.chunks = await this.documentService.coverChunks({ ...document, chunks }, vectorStore)
-                    await this.documentService.update(document.id, {
-                        status: KBDocumentStatusEnum.EMBEDDING,
-                        progress: 0,
-                        draft: null
-                    })
-                    chunks = await this.documentService.findAllEmbeddingNodes(document)
-
-                    // Clear history chunks
-                    await vectorStore.deleteKnowledgeDocument(document)
+                    syncResult = await this.documentService.syncChunksIncrementally(
+                        { ...document, chunks },
+                        vectorStore
+                    )
+                    document.chunks = syncResult.chunks
+                    chunks = syncResult.embeddingChunks as Document<ChunkMetadata>[]
+                    totalTokenUsed = await this.countEmbeddingTokens(document)
+                    await this.updateDocumentProcessingMetadata(
+                        document.id,
+                        {
+                            status: KBDocumentStatusEnum.EMBEDDING,
+                            progress: 0,
+                            draft: null,
+                            contentHash: syncResult.contentHash,
+                            processingHash,
+                            sourceHash,
+                            chunkNum: syncResult.chunks.length,
+                            tokenNum: totalTokenUsed
+                        },
+                        { tokens: totalTokenUsed }
+                    )
                     const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
                     let count = 0
                     while (batchSize * count < chunks.length) {
@@ -152,7 +196,13 @@ export class KnowledgeDocumentConsumer {
                             chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
                             tokenUsed += chunk.metadata.tokens
                         })
-                        docTokenUsed += tokenUsed
+                        embeddingTokenUsed += tokenUsed
+                        await this.documentService.updateChunkMetadataBulk(
+                            batch.map((chunk) => ({
+                                id: chunk.id,
+                                metadata: chunk.metadata
+                            }))
+                        )
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
                                 tenantId: knowledgebase.tenantId,
@@ -179,28 +229,43 @@ export class KnowledgeDocumentConsumer {
                                 processDuration,
                                 processDuation: processDuration,
                                 progress: Number(progress),
-                                metadata: { ...doc.metadata, tokens: docTokenUsed }
+                                metadata: { ...doc.metadata, tokens: totalTokenUsed }
                             })
                             return
                         }
-                        await this.documentService.update(doc.id, {
-                            status: KBDocumentStatusEnum.EMBEDDING,
-                            progress: Number(progress),
-                            metadata: { ...doc.metadata, tokens: docTokenUsed }
-                        })
+                        await this.updateDocumentProcessingMetadata(
+                            doc.id,
+                            {
+                                status: KBDocumentStatusEnum.EMBEDDING,
+                                progress: Number(progress)
+                            },
+                            { tokens: totalTokenUsed }
+                        )
+                    }
+                    if (syncResult.contentChanged) {
+                        await this.enqueueGraphIndex(knowledgebase, document.id, job.data.userId)
                     }
                 }
 
                 const processDuration = new Date().getTime() - processBeginAt.getTime()
-                await this.documentService.update(doc.id, {
-                    status: KBDocumentStatusEnum.FINISH,
-                    processMsg: '',
-                    processDuration,
-                    processDuation: processDuration,
-                    progress: 100,
-                    metadata: { ...doc.metadata, tokens: docTokenUsed }
-                })
-                await this.enqueueGraphIndex(knowledgebase, document.id, job.data.userId)
+                await this.updateDocumentProcessingMetadata(
+                    doc.id,
+                    {
+                        status: KBDocumentStatusEnum.FINISH,
+                        processMsg: '',
+                        processDuration,
+                        processDuation: processDuration,
+                        progress: 100,
+                        processingHash,
+                        sourceHash
+                    },
+                    {
+                        tokens: totalTokenUsed,
+                        lastIncrementalSync: syncResult
+                            ? this.createIncrementalSyncMetadata(document, syncResult, embeddingTokenUsed)
+                            : this.createSkippedIncrementalSyncMetadata(document)
+                    }
+                )
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
@@ -217,6 +282,67 @@ export class KnowledgeDocumentConsumer {
         }
 
         return {}
+    }
+
+    private async countEmbeddingTokens(document: IKnowledgeDocument) {
+        const chunks = await this.documentService.findAllEmbeddingNodes(document)
+        return chunks.reduce((tokens, chunk) => {
+            const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
+            return tokens + countTokensSafe(contentForEmbedding)
+        }, 0)
+    }
+
+    private createSkippedIncrementalSyncMetadata(
+        document: Pick<IKnowledgeDocument<KnowledgeDocumentMetadata>, 'chunks' | 'chunkNum'>
+    ): KnowledgeDocumentLastIncrementalSync {
+        const total = document.chunks?.length ?? document.chunkNum ?? 0
+        return {
+            mode: 'skipped',
+            total,
+            skipped: total,
+            added: 0,
+            updated: 0,
+            deleted: 0,
+            embeddingTokens: 0,
+            processedAt: new Date().toISOString()
+        }
+    }
+
+    private createIncrementalSyncMetadata(
+        document: Pick<IKnowledgeDocument<KnowledgeDocumentMetadata>, 'contentHash'>,
+        syncResult: IncrementalChunkSyncResult,
+        embeddingTokens: number
+    ): KnowledgeDocumentLastIncrementalSync {
+        const mode = !syncResult.contentChanged ? 'skipped' : document.contentHash ? 'incremental' : 'full'
+        return {
+            mode,
+            total: syncResult.statistics.total,
+            skipped: syncResult.statistics.skipped,
+            added: syncResult.statistics.added,
+            updated: syncResult.statistics.updated,
+            deleted: syncResult.statistics.deleted,
+            embeddingTokens,
+            processedAt: new Date().toISOString()
+        }
+    }
+
+    private async updateDocumentProcessingMetadata(
+        documentId: string,
+        updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>,
+        metadataPatch?: Partial<KnowledgeDocumentMetadata>
+    ) {
+        if (!metadataPatch) {
+            return await this.documentService.update(documentId, updates)
+        }
+
+        const current = await this.documentService.findOne(documentId, { select: { id: true, metadata: true } })
+        return await this.documentService.update(documentId, {
+            ...updates,
+            metadata: {
+                ...(current.metadata ?? {}),
+                ...metadataPatch
+            }
+        })
     }
 
     private async enqueueGraphIndex(knowledgebase: IKnowledgebase, documentId: string, userId?: string) {

@@ -2,14 +2,25 @@ import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xp
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
+import { IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    ManyToOne,
+    RelationId,
+    Tree,
+    TreeChildren,
+    TreeParent,
+    VersionColumn
+} from 'typeorm'
 import { KnowledgeDocument } from '../document.entity'
 import { Knowledgebase } from '../../core/entities/internal'
 import { TDocChunkMetadata } from '../types'
 
-
 @Entity('knowledge_document_chunk')
+@Index('IDX_knowledge_document_chunk_doc_content_hash', ['documentId', 'contentHash'])
 @Tree('closure-table') 
 export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetadata>
 	extends TenantOrganizationBaseEntity
@@ -30,6 +41,18 @@ export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetad
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
+	@Column({ type: 'varchar', nullable: true, length: 64 })
+	contentHash?: string | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@Optional()
+	@VersionColumn({ type: 'int', default: 1 })
+	version?: number
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
 	@Column({ nullable: true })
 	status?: string
 
@@ -45,7 +68,6 @@ export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetad
 	@IsOptional()
 	@TreeParent()
 	parent: KnowledgeDocumentChunk<T>;
-
 
 	/*
 	|--------------------------------------------------------------------------
