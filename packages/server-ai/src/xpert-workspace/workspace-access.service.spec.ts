@@ -110,7 +110,7 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 
-    it('allows assistant api key principals to read and run their bound xpert workspace without a persisted xpert user', async () => {
+	it('allows assistant api key principals to read and run their bound xpert workspace without a persisted xpert user', async () => {
 		const principal = {
 			id: 'assistant-user-1',
 			tenantId: 'tenant-1',
@@ -125,7 +125,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-            userId: null,
 			workspaceId: 'workspace-1'
 		})
 
@@ -161,7 +160,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-service-user-1',
 			workspaceId: 'workspace-1'
 		})
 
@@ -236,7 +234,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-service-user-1',
 			workspaceId: 'workspace-2'
 		})
 
@@ -303,7 +300,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-user-1',
 			workspaceId: 'workspace-2'
 		})
 
@@ -324,7 +320,7 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 
-    it('does not grant assistant api key access when the current user does not match the api key principal user', async () => {
+	it('does not grant assistant api key access when the current user does not match the api key principal user', async () => {
 		const principal = {
 			id: 'user-1',
 			tenantId: 'tenant-1',
@@ -339,7 +335,40 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-            userId: null,
+			workspaceId: 'workspace-1'
+		})
+
+		const workspace = Object.assign(new XpertWorkspace(), {
+			id: 'workspace-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			ownerId: 'owner-1',
+			settings: { access: { visibility: 'private' } },
+			members: []
+		})
+
+		await expect(service.getCapabilities(workspace)).resolves.toEqual({
+			canRead: false,
+			canRun: false,
+			canWrite: false,
+			canManage: false
+		})
+	})
+
+	it('does not grant assistant api key access when the api key principal user cannot be resolved', async () => {
+		const principal = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			role: { name: RolesEnum.VIEWER },
+			apiKey: {
+				type: ApiKeyBindingType.ASSISTANT,
+				entityId: 'xpert-1'
+			},
+			principalType: 'api_key'
+		} as IApiPrincipal
+		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
+		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
+		xpertQueryBuilder.getRawOne.mockResolvedValue({
 			workspaceId: 'workspace-1'
 		})
 

@@ -273,10 +273,10 @@ export class XpertWorkspaceAccessService {
 			return null
 		}
 
-        const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey.userId ?? null
-        if (!isPublicXpertClientSecret && apiKeyUserId && apiKeyUserId !== userId) {
-            return null
-        }
+		const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey.userId ?? null
+		if (!isPublicXpertClientSecret && (!apiKeyUserId || apiKeyUserId !== userId)) {
+			return null
+		}
 
 		const query = this.workspaceRepository.manager
 			.createQueryBuilder()
@@ -292,7 +292,7 @@ export class XpertWorkspaceAccessService {
 				.andWhere(`COALESCE((xpert.app)::jsonb ->> 'public', 'false') = 'true'`)
 		}
 
-        const xpert = await query.limit(1).getRawOne<{ workspaceId?: string | null }>()
+		const xpert = await query.limit(1).getRawOne<{ workspaceId?: string | null }>()
 		if (!xpert?.workspaceId) {
 			return null
 		}
