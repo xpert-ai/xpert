@@ -59,8 +59,8 @@ export function isUUID(id: string) {
   return uuidRegex.test(id)
 }
 
-export function getWebSocketUrl(url: string) {
-  const normalizedUrl = normalizeApiBaseUrl(url)
+export function getWebSocketUrl(url: string, hostname?: string) {
+  const normalizedUrl = normalizeApiBaseUrl(url, hostname)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   if (!normalizedUrl) {
     return `${protocol}//${window.location.host}`
