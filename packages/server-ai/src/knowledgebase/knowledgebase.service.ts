@@ -61,7 +61,7 @@ import {
 import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { DataSource, FindOptionsWhere, In, IsNull, Not, QueryFailedError, Repository } from 'typeorm'
+import { DataSource, DeleteResult, FindOptionsWhere, In, IsNull, Not, QueryFailedError, Repository } from 'typeorm'
 import {
     CopilotModelGetChatModelQuery,
     CopilotModelGetEmbeddingsQuery,
@@ -89,7 +89,7 @@ import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity
 import { TDocChunkMetadata } from '../knowledge-document/types'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
-import { XpertEnqueueTriggerDispatchCommand } from '../xpert/commands'
+import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from '../xpert/commands'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
@@ -246,6 +246,53 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
 
         return await super.create(entity)
+    }
+
+    async delete(criteria: string | FindOptionsWhere<Knowledgebase>): Promise<DeleteResult> {
+        if (typeof criteria !== 'string') {
+            return super.delete(criteria)
+        }
+
+        const knowledgebase = await this.findOneByIdString(criteria, {
+            relations: ['pipeline']
+        })
+        if (knowledgebase.workspaceId) {
+            await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
+        }
+        await this.cleanupPipelineBeforeDelete(knowledgebase)
+
+        return super.delete(criteria)
+    }
+
+    private async cleanupPipelineBeforeDelete(knowledgebase: Knowledgebase): Promise<void> {
+        const pipeline = knowledgebase.pipeline
+        if (!pipeline?.id) {
+            return
+        }
+
+        if (pipeline.publishAt && pipeline.graph?.nodes?.length) {
+            await this.commandBus.execute(
+                new XpertPublishTriggersCommand(
+                    {
+                        ...pipeline,
+                        graph: {
+                            nodes: [],
+                            connections: []
+                        }
+                    },
+                    {
+                        strict: false,
+                        previousGraph: pipeline.graph
+                    }
+                )
+            )
+        }
+
+        await this.xpertService.update(pipeline.id, {
+            active: false,
+            publishAt: null,
+            deletedAt: new Date()
+        })
     }
 
     async createExternal(entity: Partial<IKnowledgebase>) {
