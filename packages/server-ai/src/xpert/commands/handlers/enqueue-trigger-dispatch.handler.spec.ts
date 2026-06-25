@@ -6,9 +6,7 @@ import { XpertEnqueueTriggerDispatchHandler } from './enqueue-trigger-dispatch.h
 describe('XpertEnqueueTriggerDispatchHandler', () => {
     function createHandler() {
         const xpertService = {
-            repository: {
-            findOne: jest.fn()
-            }
+            findTriggerDispatchTarget: jest.fn()
         }
         const userService = {
             findOne: jest.fn().mockResolvedValue({
@@ -34,7 +32,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('enqueues explicit-user trigger dispatch with legacy user headers', async () => {
         const { handler, xpertService, handoffQueue } = createHandler()
-        xpertService.repository.findOne.mockResolvedValue({
+        xpertService.findTriggerDispatchTarget.mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -68,7 +66,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('uses assistant runtime principal when trigger dispatch has no explicit user', async () => {
         const { handler, xpertService, userService, handoffQueue } = createHandler()
-        xpertService.repository.findOne.mockResolvedValue({
+        xpertService.findTriggerDispatchTarget.mockResolvedValue({
             id: 'xpert-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -114,7 +112,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
 
     it('throws when xpert does not exist', async () => {
         const { handler, xpertService } = createHandler()
-        xpertService.repository.findOne.mockResolvedValue(null)
+        xpertService.findTriggerDispatchTarget.mockResolvedValue(null)
 
         await expect(
             handler.execute(

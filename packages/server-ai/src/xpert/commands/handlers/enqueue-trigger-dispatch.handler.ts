@@ -28,11 +28,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
 
     async execute(command: XpertEnqueueTriggerDispatchCommand): Promise<void> {
         const { xpertId, userId, state, params } = command
-        const xpert = await this.xpertService.repository.findOne({
-            where: {
-                id: xpertId
-            }
-        })
+        const xpert = await this.xpertService.findTriggerDispatchTarget(xpertId)
         if (!xpert) {
             throw new NotFoundException(`Xpert "${xpertId}" not found`)
         }

@@ -188,6 +188,34 @@ describe('XpertService command facade', () => {
 		)
 	})
 
+	it('loads only trigger dispatch routing scope within the current tenant', async () => {
+		const { repository, service } = createService()
+		const currentTenantIdSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+		repository.findOne.mockResolvedValue({
+			id: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+
+		await expect(service.findTriggerDispatchTarget('xpert-1')).resolves.toEqual({
+			id: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+		expect(repository.findOne).toHaveBeenCalledWith({
+			select: {
+				id: true,
+				tenantId: true,
+				organizationId: true
+			},
+			where: {
+				id: 'xpert-1',
+				tenantId: 'tenant-1'
+			}
+		})
+		currentTenantIdSpy.mockRestore()
+	})
+
 	it('does not materialize graph fields when a draft patch only updates team', async () => {
 		const { repository, service } = createService()
 		const currentUserIdSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
