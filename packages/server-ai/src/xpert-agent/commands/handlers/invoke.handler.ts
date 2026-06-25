@@ -26,12 +26,10 @@ import {
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
     getXpertAgentRecursionLimit,
-    IUser,
     IXpert
 } from '@xpert-ai/contracts'
 import { isNil } from '@xpert-ai/copilot'
-import { runWithRequestContext as runWithPluginRequestContext } from '@xpert-ai/plugin-sdk'
-import { RequestContext, runWithRequestContext as runWithLegacyRequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -57,13 +55,9 @@ import {
 import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
+import { streamWithCurrentRequestContext } from '../../../shared/agent/request-context'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
-
-type RequestContextSnapshot = {
-    user: IUser | null
-    headers: Record<string, string>
-}
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -360,44 +354,45 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
-        const requestContext = this.captureRequestContext({
-            tenantId,
-            organizationId,
-            language: languageCode
-        })
         const contentStream = from(
-            this.streamGraphEventsWithRequestContext(requestContext, () =>
-            graph.streamEvents(graphInput, {
-                version: 'v2',
-                configurable: {
-                    ...config,
-                    tenantId: tenantId,
-                    organizationId: organizationId,
-                    language: languageCode,
-                    userId,
-                    executionId: execution.id,
-                    rootExecutionId,
-                    xpertId: xpert.id,
-                    agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
-                    rootAgentKey: agent.key,
-                    sandbox: sandboxContext,
-                    copilotModel,
-                    ...(runtimeContext ? { context: runtimeContext } : {}),
-                    /**
-                     * @deprecated use customEvents instead
-                     */
-                    subscriber
+            streamWithCurrentRequestContext(
+                {
+                    tenantId,
+                    organizationId,
+                    language: languageCode
                 },
-                recursionLimit,
-                maxConcurrency: team.agentConfig?.maxConcurrency,
-                metadata: {
-                    agentKey: agent.key,
-                    executionId: execution.id,
-                    rootExecutionId
-                },
-                signal: abortController.signal
-                // debug: true
-            })
+                () =>
+                    graph.streamEvents(graphInput, {
+                        version: 'v2',
+                        configurable: {
+                            ...config,
+                            tenantId: tenantId,
+                            organizationId: organizationId,
+                            language: languageCode,
+                            userId,
+                            executionId: execution.id,
+                            rootExecutionId,
+                            xpertId: xpert.id,
+                            agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+                            rootAgentKey: agent.key,
+                            sandbox: sandboxContext,
+                            copilotModel,
+                            ...(runtimeContext ? { context: runtimeContext } : {}),
+                            /**
+                             * @deprecated use customEvents instead
+                             */
+                            subscriber
+                        },
+                        recursionLimit,
+                        maxConcurrency: team.agentConfig?.maxConcurrency,
+                        metadata: {
+                            agentKey: agent.key,
+                            executionId: execution.id,
+                            rootExecutionId
+                        },
+                        signal: abortController.signal
+                        // debug: true
+                    })
             )
         ).pipe(
             map(
@@ -517,79 +512,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             'thread.id': thread_id,
             'xpert.id': xpert.id,
             'sandbox.enabled': Boolean(sandboxContext)
-        })
-    }
-
-    private captureRequestContext(input: {
-        tenantId: string
-        organizationId?: string | null
-        language?: string | null
-    }): RequestContextSnapshot {
-        return {
-            user: RequestContext.currentUser(),
-            headers: {
-                ['tenant-id']: input.tenantId,
-                ...(input.organizationId ? { ['organization-id']: input.organizationId } : {}),
-                ...(input.language ? { language: input.language } : {})
-            }
-        }
-    }
-
-    private streamGraphEventsWithRequestContext<T>(
-        context: RequestContextSnapshot,
-        createEvents: () => AsyncIterable<T>
-    ): AsyncIterable<T> {
-        let iterator: AsyncIterator<T> | null = null
-        return {
-            [Symbol.asyncIterator]: () => ({
-                next: () =>
-                    this.runWithCapturedRequestContext(context, () => {
-                        iterator ??= createEvents()[Symbol.asyncIterator]()
-                        return iterator.next()
-                    }),
-                return: (value?: unknown) =>
-                    this.runWithCapturedRequestContext(context, async () => {
-                        if (!iterator?.return) {
-                            return {
-                                done: true,
-                                value: value as T
-                            } satisfies IteratorReturnResult<T>
-                        }
-
-                        return iterator.return(value as T)
-                    }),
-                throw: (error?: unknown) =>
-                    this.runWithCapturedRequestContext(context, async () => {
-                        if (!iterator?.throw) {
-                            throw error
-                        }
-
-                        return iterator.throw(error)
-                    })
-            })
-        }
-    }
-
-    private runWithCapturedRequestContext<T>(context: RequestContextSnapshot, task: () => T | Promise<T>): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
-            runWithPluginRequestContext(
-                {
-                    user: context.user ?? undefined,
-                    headers: context.headers
-                },
-                {},
-                () => {
-                    return runWithLegacyRequestContext(
-                        {
-                            user: context.user ?? undefined,
-                            headers: context.headers
-                        },
-                        () => {
-                            return Promise.resolve().then(task).then(resolve).catch(reject)
-                        }
-                    )
-                }
-            )
         })
     }
 
