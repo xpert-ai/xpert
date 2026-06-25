@@ -68,7 +68,7 @@ const CLAWXPERT_CHATKIT_MAX_WIDTH = '960px'
 const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
   'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
 const CHAT_SHELL_TRANSITION_CLASSES =
-  'transition-[width,max-width,padding,opacity,transform,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none will-change-transform'
+  'transition-[width,max-width,padding,opacity,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none'
 const DETAIL_PANEL_SHELL_TRANSITION_CLASSES =
   'transition-[max-height,opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
 const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
@@ -366,20 +366,22 @@ type ChatKitReferenceComposerControl = {
               >
                 <i class="ri-calendar-line text-lg"></i>
               </button>
-              <button
-                z-button
-                type="button"
-                zType="ghost"
-                zSize="icon"
-                data-toggle-detail-panel
-                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-                [title]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
-                [zTooltip]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
-                zPosition="bottom"
-                (click)="toggleDetailPanel()"
-              >
-                <i class="ri-side-bar-line text-lg"></i>
-              </button>
+              @if (!isChatMinimizedToPet()) {
+                <button
+                  z-button
+                  type="button"
+                  zType="ghost"
+                  zSize="icon"
+                  data-toggle-detail-panel
+                  class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+                  [title]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                  [zTooltip]="'PAC.Chat.ClawXpert.HideDetailPanel' | translate: { Default: 'Hide workspace panel' }"
+                  zPosition="bottom"
+                  (click)="toggleDetailPanel()"
+                >
+                  <i class="ri-side-bar-line text-lg"></i>
+                </button>
+              }
             </div>
           </div>
 
@@ -847,7 +849,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
   readonly chatShellClasses = computed(() => {
     if (this.isChatMinimizedToPet()) {
-      return `relative min-h-0 min-w-0 overflow-visible p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
+      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
     }
 
     return this.showDetailPanel()
@@ -929,7 +931,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
       const syncMinimizedToPetState = () => {
-        this.isChatMinimizedToPet.set(chatkitElement.dataset.chatMinimizedToPet === 'true')
+        const minimizedToPet = chatkitElement.dataset.chatMinimizedToPet === 'true'
+        this.isChatMinimizedToPet.set(minimizedToPet)
+        if (minimizedToPet) {
+          this.openDetailPanel()
+        }
       }
 
       syncMinimizedToPetState()
