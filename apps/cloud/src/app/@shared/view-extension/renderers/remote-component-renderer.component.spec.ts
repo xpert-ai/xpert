@@ -14,7 +14,7 @@ jest.mock('@cloud/app/@core', () => {
 })
 
 import { TestBed } from '@angular/core/testing'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
@@ -163,6 +163,30 @@ describe('RemoteComponentRendererComponent', () => {
     await expect(readBlobText(blob)).resolves.toBe(remoteHtml)
     expect(frame.getAttribute('src')).toBe('blob:remote-component-entry-1')
     expect(frame.hasAttribute('srcdoc')).toBe(false)
+  })
+
+  it('does not render a remote component iframe before the entry URL is ready', async () => {
+    const entry$ = new Subject<string>()
+    api.getRemoteComponentEntry.mockReturnValue(entry$)
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
+    expect(fixture.nativeElement.innerHTML).not.toContain('src="null"')
+
+    entry$.next('<!doctype html><html><body></body></html>')
+    entry$.complete()
+    await fixture.whenStable()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    expect(frame.getAttribute('src')).toBe('blob:remote-component-entry-1')
+    expect(api.getRemoteComponentEntry).toHaveBeenCalledTimes(1)
   })
 
   it('allows same-origin access inside sandboxed remote component iframes', async () => {
