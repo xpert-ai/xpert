@@ -1,4 +1,4 @@
-import { normalizeApiBaseUrl, resolveAbsoluteApiBaseUrl, resolveAbsoluteApiUrl } from './url'
+import { normalizeApiBaseUrl, resolveAbsoluteApiBaseUrl, resolveAbsoluteApiUrl, resolveTenantApiBaseUrl } from './url'
 
 describe('normalizeApiBaseUrl', () => {
   it('treats same-origin sentinels as an empty API base URL', () => {
@@ -9,6 +9,16 @@ describe('normalizeApiBaseUrl', () => {
 
   it('keeps explicit API origins without a trailing slash', () => {
     expect(normalizeApiBaseUrl('https://api.xpertai.cn/')).toBe('https://api.xpertai.cn')
+  })
+
+  it('resolves tenant API templates from tenant app hostnames', () => {
+    expect(normalizeApiBaseUrl('https://{tenant}.api.xpertai.cn/', 'shenzhen.app.xpertai.cn')).toBe(
+      'https://shenzhen.api.xpertai.cn'
+    )
+  })
+
+  it('falls back to the base API domain for reserved app hostnames', () => {
+    expect(normalizeApiBaseUrl('https://{tenant}.api.xpertai.cn/', 'app.xpertai.cn')).toBe('https://api.xpertai.cn')
   })
 })
 
@@ -35,5 +45,24 @@ describe('resolveAbsoluteApiUrl', () => {
 
   it('appends API paths to explicit API origins', () => {
     expect(resolveAbsoluteApiUrl('/api/ai/', 'https://api.xpertai.cn/')).toBe('https://api.xpertai.cn/api/ai/')
+  })
+})
+
+describe('resolveTenantApiBaseUrl', () => {
+  it('resolves tenant API templates from tenant app hostnames', () => {
+    expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'shenzhen.app.xpertai.cn')).toBe(
+      'https://shenzhen.api.xpertai.cn'
+    )
+  })
+
+  it('falls back to the base API domain when the hostname has no tenant label', () => {
+    expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'app.xpertai.cn')).toBe('https://api.xpertai.cn')
+    expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'localhost')).toBe('https://api.xpertai.cn')
+  })
+
+  it('falls back to the base API domain for non-tenant app hostnames', () => {
+    expect(resolveTenantApiBaseUrl('https://{tenant}.api.xpertai.cn', 'staging.xpertai.cn')).toBe(
+      'https://api.xpertai.cn'
+    )
   })
 })
