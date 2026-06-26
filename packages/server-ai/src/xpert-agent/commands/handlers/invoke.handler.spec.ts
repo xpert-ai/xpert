@@ -3,35 +3,14 @@ jest.mock('isolated-vm', () => ({
     Isolate: class Isolate {}
 }))
 
-let mockServerCoreRequestContextActive = false
-
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         getOrganizationId: jest.fn(),
         currentUserId: jest.fn(),
         currentUser: jest.fn()
-    },
-    runWithRequestContext: jest.fn((_request: unknown, next: () => unknown) => {
-        mockServerCoreRequestContextActive = true
-        const result = next()
-        if (result && typeof Reflect.get(Object(result), 'then') === 'function') {
-            return (result as Promise<unknown>).finally(() => {
-                mockServerCoreRequestContextActive = false
-            })
-        }
-        mockServerCoreRequestContextActive = false
-        return result
-    })
-}))
-
-jest.mock('@xpert-ai/plugin-sdk', () => {
-    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
-    return {
-        ...actual,
-        runWithRequestContext: jest.fn((_request: unknown, _response: unknown, next: () => unknown) => next())
     }
-})
+}))
 
 jest.mock('@xpert-ai/copilot', () => ({
     AgentRecursionLimit: 25,
@@ -92,11 +71,9 @@ jest.mock('../../../knowledgebase', () => ({
 
 import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
-import { Observable, Subscriber } from 'rxjs'
+import { Observable } from 'rxjs'
 import { Command } from '@langchain/langgraph'
-import { InMemoryStore } from '@langchain/langgraph-checkpoint'
 import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
-import type { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
@@ -290,58 +267,6 @@ describe('XpertAgentInvokeHandler', () => {
             conversationId: undefined,
             environmentId: undefined
         })
-    })
-
-    it('keeps server request context active while graph events are iterated', async () => {
-        const contextStates: boolean[] = []
-        const graph = createGraph(
-            (async function* () {
-                contextStates.push(mockServerCoreRequestContextActive)
-                yield { event: 'on_chain_stream', data: {} }
-            })()
-        )
-
-        commandBus.execute.mockImplementation(async (command) => {
-            if (command instanceof CompileGraphCommand) {
-                return createCompiledGraph(graph)
-            }
-            return null
-        })
-
-        const invokeOptions: ConstructorParameters<typeof XpertAgentInvokeCommand>[3] = {
-            isDraft: true,
-            thread_id: 'thread-1',
-            execution: {
-                id: 'execution-1',
-                threadId: 'thread-1'
-            } as IXpertAgentExecution,
-            rootExecutionId: 'execution-1',
-            subscriber: new Subscriber<MessageEvent>({
-                next: jest.fn(),
-                error: jest.fn(),
-                complete: jest.fn()
-            }),
-            store: new InMemoryStore()
-        }
-
-        const stream = await handler.execute(
-            new XpertAgentInvokeCommand(
-                {
-                    human: {
-                        input: 'run with context'
-                    }
-                },
-                'agent-1',
-                {
-                    id: 'xpert-1'
-                },
-                invokeOptions
-            )
-        )
-
-        await consumeStream(stream)
-
-        expect(contextStates).toEqual([true])
     })
 
     it('merges soul and profile into resume command updates', async () => {

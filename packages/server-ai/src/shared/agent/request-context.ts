@@ -26,53 +26,6 @@ export function captureAgentRequestContext(input: {
     }
 }
 
-export function streamWithCurrentRequestContext<T>(
-    input: {
-        tenantId: string
-        organizationId?: string | null
-        language?: string | null
-    },
-    createEvents: () => AsyncIterable<T>
-): AsyncIterable<T> {
-    return streamWithCapturedRequestContext(captureAgentRequestContext(input), createEvents)
-}
-
-function streamWithCapturedRequestContext<T>(
-    context: AgentRequestContextSnapshot,
-    createEvents: () => AsyncIterable<T>
-): AsyncIterable<T> {
-    let iterator: AsyncIterator<T> | null = null
-
-    return {
-        [Symbol.asyncIterator]: () => ({
-            next: () =>
-                runWithCapturedAgentRequestContext(context, () => {
-                    iterator ??= createEvents()[Symbol.asyncIterator]()
-                    return iterator.next()
-                }),
-            return: (value?: unknown) =>
-                runWithCapturedAgentRequestContext(context, async () => {
-                    if (!iterator?.return) {
-                        return {
-                            done: true,
-                            value: value as T
-                        } satisfies IteratorReturnResult<T>
-                    }
-
-                    return iterator.return(value as T)
-                }),
-            throw: (error?: unknown) =>
-                runWithCapturedAgentRequestContext(context, async () => {
-                    if (!iterator?.throw) {
-                        throw error
-                    }
-
-                    return iterator.throw(error)
-                })
-        })
-    }
-}
-
 export function runWithCapturedAgentRequestContext<T>(
     context: AgentRequestContextSnapshot,
     task: () => T | Promise<T>
