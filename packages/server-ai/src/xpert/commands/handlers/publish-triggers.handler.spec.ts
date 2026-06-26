@@ -1,10 +1,43 @@
 import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE } from '@xpert-ai/plugin-sdk'
-import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
+import {
+    LanguagesEnum,
+    RolesEnum,
+    STATE_VARIABLE_HUMAN,
+    WorkflowNodeTypeEnum,
+    XpertTypeEnum,
+    type IWFNTrigger,
+    type NodeOf,
+    type TXpertGraph
+} from '@xpert-ai/contracts'
+import { RequestContext, runWithRequestContext } from '@xpert-ai/server-core'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertPublishTriggersHandler } from './publish-triggers.handler'
 
 describe('XpertPublishTriggersHandler', () => {
+    function runWithTriggerContext<T>(callback: () => Promise<T>): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            runWithRequestContext(
+                {
+                    headers: {
+                        ['organization-id']: 'org-1'
+                    },
+                    user: {
+                        id: 'user-1',
+                        tenantId: 'tenant-1',
+                        preferredLanguage: LanguagesEnum.English,
+                        role: {
+                            name: RolesEnum.ADMIN
+                        }
+                    }
+                },
+                () => {
+                    callback().then(resolve).catch(reject)
+                }
+            )
+        })
+    }
+
     function createHandler() {
         const triggerRegistry = { get: jest.fn() }
         const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
@@ -20,25 +53,83 @@ describe('XpertPublishTriggersHandler', () => {
         }
     }
 
-    function triggerNode(from: string, config: Record<string, unknown>) {
+    function triggerNode(from: string, config: Record<string, unknown>, index: number): NodeOf<'workflow'> {
+        const key = `Trigger_${index + 1}`
+        const entity: IWFNTrigger = {
+            id: key,
+            key,
+            type: WorkflowNodeTypeEnum.TRIGGER,
+            from,
+            config
+        }
+
         return {
+            key,
             type: 'workflow',
-            entity: {
-                type: 'trigger',
-                from,
-                config
-            }
+            position: {
+                x: 0,
+                y: index * 120
+            },
+            entity
         }
     }
 
-    function graphWith(...triggers: Array<{ from: string; config: Record<string, unknown> }>) {
+    function graphWith(...triggers: Array<{ from: string; config: Record<string, unknown> }>): TXpertGraph {
         return {
-            nodes: triggers.map((trigger) => triggerNode(trigger.from, trigger.config)),
+            nodes: triggers.map((trigger, index) => triggerNode(trigger.from, trigger.config, index)),
             connections: []
         }
     }
 
-    it('publish callback adds trigger job', async () => {
+    it('runs delayed trigger callback in the captured publish request context', async () => {
+        const { handler, triggerRegistry, commandBus } = createHandler()
+        let publishedCallback: ((payload: unknown) => Promise<void> | void) | undefined
+        commandBus.execute.mockImplementation(async () => {
+            expect(RequestContext.currentTenantId()).toBe('tenant-1')
+            expect(RequestContext.getOrganizationId()).toBe('org-1')
+            expect(RequestContext.currentUserId()).toBe('user-1')
+        })
+        triggerRegistry.get.mockReturnValue({
+            publish: jest.fn((_params, callback) => {
+                publishedCallback = callback
+            }),
+            stop: jest.fn()
+        })
+
+        await runWithTriggerContext(() =>
+            handler.execute(
+                new XpertPublishTriggersCommand(
+                    {
+                        id: 'xpert-1',
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        slug: 'xpert-1',
+                        name: 'Xpert',
+                        type: XpertTypeEnum.Agent,
+                        graph: graphWith({
+                            from: 'schedule',
+                            config: { enabled: true, cron: '* * * * *', task: 'tick' }
+                        })
+                    },
+                    {
+                        strict: true
+                    }
+                )
+            )
+        )
+
+        await Promise.resolve(
+            publishedCallback?.({
+                state: {
+                    [STATE_VARIABLE_HUMAN]: {
+                        input: 'trigger callback'
+                    }
+                }
+            })
+        )
+    })
+
+    it('publish callback enqueues dispatch with workflow trigger source', async () => {
         const { handler, triggerRegistry, commandBus } = createHandler()
         triggerRegistry.get.mockReturnValue({
             publish: jest.fn((_params, callback) => {
@@ -64,8 +155,8 @@ describe('XpertPublishTriggersHandler', () => {
                                 type: 'workflow',
                                 entity: {
                                     type: 'trigger',
-                                    from: 'lark',
-                                    config: { enabled: true, integrationId: 'integration-1' }
+                                    from: 'schedule',
+                                    config: { enabled: true, cron: '* * * * *', task: 'tick' }
                                 }
                             }
                         ]
@@ -92,7 +183,7 @@ describe('XpertPublishTriggersHandler', () => {
                 }),
                 params: expect.objectContaining({
                     isDraft: false,
-                    from: 'job'
+                    from: 'schedule'
                 })
             })
         )

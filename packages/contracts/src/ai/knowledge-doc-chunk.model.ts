@@ -47,6 +47,9 @@ export interface IDocChunkMetadata {
 export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = any>
   extends DocumentInterface<Metadata>,
     IBasePerTenantAndOrganizationEntityModel {
+  contentHash?: string | null
+  version?: number
+
   documentId?: string
   document?: IKnowledgeDocument
   knowledgebaseId?: string

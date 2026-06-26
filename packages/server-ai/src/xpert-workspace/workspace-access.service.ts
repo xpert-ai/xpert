@@ -293,7 +293,9 @@ export class XpertWorkspaceAccessService {
 			return null
 		}
 
-		if (!isPublicXpertClientSecret && xpert.userId !== userId) {
+		const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey.userId ?? null
+		const principalUserId = xpert.userId || apiKeyUserId
+		if (!isPublicXpertClientSecret && (!principalUserId || principalUserId !== userId)) {
 			return null
 		}
 

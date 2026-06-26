@@ -10,8 +10,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
-import {
 import { ZardDialogService } from '@xpert-ai/headless-ui'
+import {
   getErrorMessage,
   IDocumentChunk,
   KnowledgeDocumentService,
@@ -71,17 +71,31 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
     this.refresh$.next(true)
   }
 
+  reset() {
+    this.currentPage.set(0)
+    this.done.set(false)
+    this.chunks.set([])
+  }
+
+  private handleMutationError(error: { status?: number }) {
+    this._toastrService.error(getErrorMessage(error))
+    if (error?.status === 409) {
+      this.reset()
+      this.loadMore()
+    }
+  }
+
   close() {
     this.#router.navigate(['..'], { relativeTo: this.#route })
   }
 
   deleteChunk(chunk: IDocumentChunk) {
-    this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id).subscribe({
+    this.knowledgeDocumentService.deleteChunk(chunk.metadata.knowledgeId, chunk.id, chunk.version).subscribe({
       next: () => {
         this.chunks.update((items) => items.filter((item) => item.id !== chunk.id))
       },
       error: (error) => {
-        this._toastrService.error(getErrorMessage(error))
+        this.handleMutationError(error)
       }
     })
   }

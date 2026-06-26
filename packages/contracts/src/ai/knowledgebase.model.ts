@@ -152,6 +152,11 @@ export type TKnowledgebase = {
    */
   apiEnabled?: boolean
 
+  /**
+   * Enable source matching for newly ingested documents.
+   */
+  incrementalSyncEnabled?: boolean
+
   documents?: IKnowledgeDocument[]
 
   integrationId?: string

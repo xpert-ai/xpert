@@ -9,7 +9,7 @@ import {
 } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
-import { IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator'
 
 @Expose()
 export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
@@ -72,6 +72,15 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
         }
     })
     parserConfig?: KnowledgebaseParserConfig
+
+    @ApiProperty({
+        type: () => Boolean,
+        description: 'Enable source matching for newly ingested documents',
+        default: false
+    })
+    @IsBoolean()
+    @IsOptional()
+    incrementalSyncEnabled?: boolean
 
     @ApiProperty({ type: 'string', format: 'uuid', description: 'Integration ID of knowledge base system' })
     @IsUUID('4')

@@ -59,6 +59,38 @@
   <div class="flex gap-x-1">
     <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
       <div class="font-semibold text-text-secondary">
+        {{ 'PAC.Knowledgebase.DocumentsSettings' | translate: { Default: 'Document Settings' } }}
+      </div>
+    </div>
+    <div class="grow flex flex-col space-y-2">
+      <div class="flex items-center justify-between gap-x-3 py-1">
+        <label class="flex items-center gap-x-1 text-text-secondary">
+          <span>
+            {{ 'PAC.Knowledgebase.SourceDocumentUpdate' | translate: { Default: 'Update matching source documents' } }}
+          </span>
+          <i
+            class="ri-information-line text-text-tertiary"
+            [zTooltip]="
+              'PAC.Knowledgebase.SourceDocumentUpdateTooltip'
+                | translate
+                  : {
+                      Default:
+                        'When importing documents, match existing documents by source and update or skip matching sources. Existing documents are not scanned automatically.'
+                    }
+            "
+            zPosition="top"
+          ></i>
+        </label>
+        <z-switch [(ngModel)]="incrementalSyncEnabled" zSize="sm" />
+      </div>
+    </div>
+  </div>
+
+  <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+  <div class="flex gap-x-1">
+    <div class="flex items-center shrink-0 w-[180px] h-7 pt-1">
+      <div class="font-semibold text-text-secondary">
         {{ 'PAC.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
       </div>
     </div>

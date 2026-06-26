@@ -116,4 +116,30 @@ describe('KnowledgeDocumentStore vector ids', () => {
 			}
 		)
 	})
+
+	it('deletes multiple chunks by collection-scoped physical vector ids', async () => {
+		const deleteDocuments = jest.fn()
+		const collectionName = 'active-collection'
+		const chunkIds = ['066d9749-8c7b-4e83-9e2a-7d6cf2b8133d', '95fa4eb5-7cef-4b6d-92ad-6efbbf7f04aa']
+		const store = new KnowledgeDocumentStore(
+			{
+				id: 'knowledgebase-id',
+				name: 'Knowledgebase',
+				type: null
+			},
+			{
+				delete: deleteDocuments
+			} as unknown as VectorStore,
+			undefined,
+			{
+				vectorIdCollectionName: collectionName
+			}
+		)
+
+		await store.deleteChunks(chunkIds)
+
+		expect(deleteDocuments).toHaveBeenCalledWith({
+			ids: chunkIds.map((chunkId) => createCollectionScopedVectorId(collectionName, chunkId))
+		})
+	})
 })
