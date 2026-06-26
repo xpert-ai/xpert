@@ -127,6 +127,7 @@
                 "pages": [
                   "zh-hans/solutions/declarative-extended-view-system",
                   "zh-hans/solutions/user-me-loading-optimization",
+                  "zh-hans/solutions/tenant-domain-routing",
                   "zh-hans/solutions/browser-automation-reading-layer"
                 ]
               }

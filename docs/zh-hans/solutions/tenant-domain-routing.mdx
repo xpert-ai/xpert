@@ -1,0 +1,181 @@
+---
+title: '租户域名路由方案'
+description: '说明租户前端域名、租户 API 域名、默认租户登录和后端 Host 解析的判断规则。'
+---
+
+# 1. 方案定位
+
+Xpert Cloud 支持同一个自然人邮箱在多个租户下分别拥有账号。
+
+因此，登录时不能只依赖邮箱判断用户归属，还需要先根据访问域名确定当前请求属于哪个租户。
+
+本方案说明租户域名路由的统一口径：
+
+- 带租户子域名时，进入对应租户
+- 不带租户子域名时，进入默认租户
+- 后端按域名层级解析租户，不写死 `app`、`api`、`www` 等服务名
+- 前端运行时可以从租户前端域名推导租户 API 域名
+
+---
+
+# 2. 适用范围
+
+本方案适用于云端部署中的租户域名访问方式。
+
+当前重点覆盖：
+
+- 浏览器访问 `app.xpertai.cn` 和 `{tenant}.app.xpertai.cn`
+- 浏览器运行时 API base 解析
+- API 服务接收 `api.xpertai.cn` 和 `{tenant}.api.xpertai.cn`
+- password login 的租户范围判断
+- 匿名租户上下文解析
+
+不属于本方案重点：
+
+- 租户创建流程
+- 用户和组织权限模型
+- 自定义独立域名绑定
+- DNS、证书和网关转发的具体运维步骤
+
+---
+
+# 3. 域名约定
+
+云端部署使用两类服务域名：
+
+| 用途     | 无租户域名       | 租户域名                  |
+| -------- | ---------------- | ------------------------- |
+| 前端应用 | `app.xpertai.cn` | `{tenant}.app.xpertai.cn` |
+| API 服务 | `api.xpertai.cn` | `{tenant}.api.xpertai.cn` |
+
+示例：
+
+```text
+app.xpertai.cn              -> 默认租户入口
+api.xpertai.cn              -> 默认租户 API
+shenzhen.app.xpertai.cn     -> shenzhen 租户前端入口
+shenzhen.api.xpertai.cn     -> shenzhen 租户 API
+```
+
+---
+
+# 4. 后端租户解析规则
+
+后端从请求 Host 中解析租户域名。
+
+解析规则按 hostname 标签层级判断，不按固定服务名判断。
+
+规则如下：
+
+- hostname 为空、`localhost`、IPv4 或包含端口形式的非法 hostname，不解析租户
+- hostname 拆分后少于 4 段，不解析租户
+- hostname 拆分后达到 4 段或更多，取第一段作为租户域名
+
+示例：
+
+```text
+foo.xpertai.cn              -> 不解析租户
+app.xpertai.cn              -> 不解析租户
+api.xpertai.cn              -> 不解析租户
+shenzhen.app.xpertai.cn     -> tenant domain: shenzhen
+shenzhen.api.xpertai.cn     -> tenant domain: shenzhen
+```
+
+这里的关键点是“层级”，不是服务名。
+
+`app.xpertai.cn` 和 `api.xpertai.cn` 不解析租户，是因为它们只有三段 hostname 标签；不是因为代码写死了 `app` 或 `api`。
+
+---
+
+# 5. 前端 API Base 解析
+
+云端租户 API 部署可以配置：
+
+```bash
+WEBAPP_API_BASE_URL=https://{tenant}.api.xpertai.cn
+```
+
+前端运行时保留 `{tenant}` 作为模板。
+
+当用户打开租户前端域名时：
+
+```text
+shenzhen.app.xpertai.cn
+```
+
+前端解析出租户 `shenzhen`，并把 API base 解析为：
+
+```text
+https://shenzhen.api.xpertai.cn
+```
+
+当用户打开不带租户的前端域名时：
+
+```text
+app.xpertai.cn
+```
+
+前端没有租户可替换，API base 回退为：
+
+```text
+https://api.xpertai.cn
+```
+
+---
+
+# 6. 登录租户范围
+
+password login 必须在确定的租户范围内查找账号。
+
+判断口径如下：
+
+| 访问入口                  | API Host                  | 登录账号范围 |
+| ------------------------- | ------------------------- | ------------ |
+| `{tenant}.app.xpertai.cn` | `{tenant}.api.xpertai.cn` | 只查对应租户 |
+| `app.xpertai.cn`          | `api.xpertai.cn`          | 只查默认租户 |
+| 直接请求 `api.xpertai.cn` | `api.xpertai.cn`          | 只查默认租户 |
+
+如果同一个邮箱在多个租户下都有账号，域名决定本次登录查哪个租户：
+
+```text
+shenzhen.app.xpertai.cn     -> 只查 shenzhen 租户账号
+app.xpertai.cn              -> 只查默认租户账号
+api.xpertai.cn              -> 只查默认租户账号
+```
+
+租户域名下如果没有对应账号，登录失败，不回退到默认租户。
+
+---
+
+# 7. 部署配置要点
+
+租户 API 域名部署需要同时配置浏览器 API base 和 CORS。
+
+示例：
+
+```bash
+WEBAPP_API_BASE_URL=https://{tenant}.api.xpertai.cn
+CORS_ALLOW_ORIGINS=https://app.xpertai.cn,https://*.app.xpertai.cn
+```
+
+部署侧还需要保证：
+
+- `*.app.xpertai.cn` 可以访问前端应用
+- `*.api.xpertai.cn` 可以访问 API 服务
+- 网关向 API 转发时保留原始 Host 或等价的 forwarded host
+- 浏览器来源 `https://*.app.xpertai.cn` 被 API CORS 允许
+
+---
+
+# 8. 核对口径
+
+后续评审和排查时，可以按下面的口径判断行为是否正确：
+
+- `api.xpertai.cn` 不解析租户
+- `app.xpertai.cn` 不解析租户
+- `foo.xpertai.cn` 不解析租户
+- `shenzhen.app.xpertai.cn` 解析租户为 `shenzhen`
+- `shenzhen.api.xpertai.cn` 解析租户为 `shenzhen`
+- 默认域名登录只查默认租户账号
+- 租户域名登录只查对应租户账号
+- 后端租户解析逻辑不能依赖 `app`、`api`、`www` 这类硬编码服务名
