@@ -170,6 +170,7 @@
       "DATA_SOURCES": "Data Sources",
       "Docs": "Docs",
       "INDICATOR": "Indicator",
+      "ArrayItemTitle": "Item {{index}}",
       "Items": "items",
       "MODEL_TYPE": "Model Type",
       "MODIFY": "Modify",

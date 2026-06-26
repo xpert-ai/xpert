@@ -679,6 +679,7 @@
       "LearnMore": "了解更多",
       "NameRequired": "名称必输",
       "AddItem": "添加项",
+      "ArrayItemTitle": "第 {{index}} 项",
       "Configured": "已配置",
       "Checklist": "检查清单",
       "ChecklistTip": "确保发布前所有问题都已解决",
@@ -4056,6 +4057,18 @@
       "ChunkMetadata": "分块元数据",
       "NoMetadata": "暂无元数据",
       "MetadataJson": "元数据 JSON",
+      "LastIncrementalSync": "最近增量更新",
+      "IncrementalSyncMode": "模式",
+      "IncrementalSyncModeFull": "全量",
+      "IncrementalSyncModeIncremental": "增量",
+      "IncrementalSyncModeSkipped": "已跳过",
+      "TotalChunks": "总切片",
+      "SkippedChunks": "跳过切片",
+      "AddedChunks": "新增切片",
+      "UpdatedChunks": "更新切片",
+      "DeletedChunks": "删除切片",
+      "EmbeddingTokens": "嵌入词元",
+      "ProcessedAt": "处理时间",
       "AddField": "添加字段",
       "Metadata": "元数据",
       "RelevanceScore": "相关性得分",
@@ -4071,6 +4084,8 @@
       "CreateEmptyKnowledgebase": "创建空知识库",
       "CreateEmptyKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",
       "DocumentsSettings": "文档设置",
+      "SourceDocumentUpdate": "同源文档更新",
+      "SourceDocumentUpdateTooltip": "导入文档时按来源匹配已有文档；来源相同则更新或跳过，只处理新增或变化内容，不会自动扫描已有文档。",
       "ProcessDocuments": "处理文档",
       "KnowledgebaseSettings": "知识库设置",
       "KnowledgebaseSettingsDescription": "在这里，您可以修改此知识库的属性和检索设置。",
@@ -4387,7 +4402,17 @@
       "Empty": "暂无扩展视图",
       "Search": "搜索",
       "NoData": "暂无数据",
-      "Total": "总数"
+      "Total": "总数",
+      "Errors": {
+        "QueryParameters": "此视图不支持查询参数",
+        "Pagination": "此视图不支持分页",
+        "Cursor": "此视图不支持游标查询",
+        "Search": "此视图不支持搜索",
+        "Sorting": "此视图不支持排序",
+        "Filters": "此视图不支持筛选",
+        "Selection": "此视图不支持选中项查询",
+        "Parameterized": "此视图不支持参数化查询"
+      }
     },
     "Xpert": {
       "AgentRunStatusReplied": "已回复",
@@ -5611,6 +5636,18 @@
         "SelectTimeZone": "选择一个时区",
         "Currency": "币种"
       }
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "此视图不支持查询参数",
+      "Pagination": "此视图不支持分页",
+      "Cursor": "此视图不支持游标查询",
+      "Search": "此视图不支持搜索",
+      "Sorting": "此视图不支持排序",
+      "Filters": "此视图不支持筛选",
+      "Selection": "此视图不支持选中项查询",
+      "Parameterized": "此视图不支持参数化查询"
     }
   },
   "AUTH": {

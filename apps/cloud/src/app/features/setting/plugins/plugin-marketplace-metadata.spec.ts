@@ -37,7 +37,7 @@ describe('plugin marketplace metadata', () => {
         name: '@xpert-ai/plugin-finance',
         packageName: '@xpert-ai/plugin-finance',
         targetAppMeta: {
-          'data-xpert': {
+          xpert: {
             marketplace: {
               category: 'finance'
             }
@@ -67,7 +67,7 @@ describe('plugin marketplace metadata', () => {
       {
         name: '@xpert-ai/plugin-finance',
         targetAppMeta: {
-          'data-xpert': {
+          xpert: {
             marketplace: {
               category: 'finance'
             }
@@ -82,7 +82,7 @@ describe('plugin marketplace metadata', () => {
           displayName: 'Communication plugin',
           description: 'Communication plugin',
           targetAppMeta: {
-            'data-xpert': {
+            xpert: {
               marketplace: {
                 category: 'communication'
               }

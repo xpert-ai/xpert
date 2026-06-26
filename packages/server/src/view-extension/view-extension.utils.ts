@@ -20,6 +20,7 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { LanguagesEnum } from '@xpert-ai/contracts'
+import i18next from 'i18next'
 import { RequestContext } from '../core/context'
 
 const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>([
@@ -50,6 +51,28 @@ const ALLOWED_QUERY_KEYS = new Set([
 	'selectionId',
 	'parameters'
 ])
+
+const VIEW_EXTENSION_QUERY_ERROR_KEYS = {
+	queryParameters: 'ViewExtension.Errors.QueryParameters',
+	pagination: 'ViewExtension.Errors.Pagination',
+	cursor: 'ViewExtension.Errors.Cursor',
+	search: 'ViewExtension.Errors.Search',
+	sorting: 'ViewExtension.Errors.Sorting',
+	filters: 'ViewExtension.Errors.Filters',
+	selection: 'ViewExtension.Errors.Selection',
+	parameterized: 'ViewExtension.Errors.Parameterized'
+} as const
+
+const VIEW_EXTENSION_QUERY_ERROR_DEFAULTS: Record<keyof typeof VIEW_EXTENSION_QUERY_ERROR_KEYS, string> = {
+	queryParameters: 'This view does not support query parameters',
+	pagination: 'This view does not support pagination',
+	cursor: 'This view does not support cursor queries',
+	search: 'This view does not support search',
+	sorting: 'This view does not support sorting',
+	filters: 'This view does not support filters',
+	selection: 'This view does not support selection queries',
+	parameterized: 'This view does not support parameterized queries'
+}
 
 export function buildBaseViewHostContext(hostType: string, hostId: string): XpertViewHostContext {
 	const tenantId = RequestContext.currentTenantId()
@@ -161,41 +184,53 @@ export function validateQuery(query: XpertViewQuery, dataSource: XpertViewDataSo
 
 	if (!schema) {
 		if (hasQuery) {
-			throw new BadRequestException('This view does not support query parameters')
+			throwViewExtensionQueryException('queryParameters')
 		}
 
 		return query
 	}
 
 	if (!schema.supportsPagination && (query.page !== undefined || query.pageSize !== undefined)) {
-		throw new BadRequestException('This view does not support pagination')
+		throwViewExtensionQueryException('pagination')
 	}
 
 	if (!schema.supportsCursor && query.cursor) {
-		throw new BadRequestException('This view does not support cursor queries')
+		throwViewExtensionQueryException('cursor')
 	}
 
 	if (!schema.supportsSearch && query.search) {
-		throw new BadRequestException('This view does not support search')
+		throwViewExtensionQueryException('search')
 	}
 
 	if (!schema.supportsSort && (query.sortBy || query.sortDirection)) {
-		throw new BadRequestException('This view does not support sorting')
+		throwViewExtensionQueryException('sorting')
 	}
 
 	if (!schema.supportsFilter && query.filters?.length) {
-		throw new BadRequestException('This view does not support filters')
+		throwViewExtensionQueryException('filters')
 	}
 
 	if (!schema.supportsSelection && query.selectionId) {
-		throw new BadRequestException('This view does not support selection queries')
+		throwViewExtensionQueryException('selection')
 	}
 
 	if (!schema.supportsParameters && Object.keys(query.parameters ?? {}).length > 0) {
-		throw new BadRequestException('This view does not support parameterized queries')
+		throwViewExtensionQueryException('parameterized')
 	}
 
 	return query
+}
+
+function throwViewExtensionQueryException(key: keyof typeof VIEW_EXTENSION_QUERY_ERROR_KEYS): never {
+	const i18nKey = VIEW_EXTENSION_QUERY_ERROR_KEYS[key]
+	const message = i18next.t(`server:${i18nKey}`, {
+		defaultValue: VIEW_EXTENSION_QUERY_ERROR_DEFAULTS[key]
+	})
+
+	throw new BadRequestException({
+		message,
+		i18nKey
+	})
 }
 
 export function parseViewQuery(input: Record<string, string | string[] | undefined>): XpertViewQuery {

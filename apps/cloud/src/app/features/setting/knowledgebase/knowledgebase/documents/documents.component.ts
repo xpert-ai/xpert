@@ -26,6 +26,7 @@ import {
 } from 'rxjs'
 import {
   getDateLocale,
+  getErrorMessage,
   IKnowledgeDocument,
   IStorageFile,
   KnowledgeDocumentService,
@@ -182,6 +183,13 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
     this.refresh$.next(true)
   }
 
+  private handleMutationError(err: { status?: number }) {
+    this._toastrService.error(getErrorMessage(err))
+    if (err?.status === 409) {
+      this.refresh()
+    }
+  }
+
   onSortChange(columnName: string, direction: ZardTableSortDirection) {
     const nextDirection = direction || 'desc'
     this.sortState.set({
@@ -219,33 +227,44 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: (files: IKnowledgeDocument[]) => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
-  deleteDocument(id: string, storageFile: IStorageFile) {
+  deleteDocument(document: IKnowledgeDocument) {
     this.#confirmDelete
       .confirm({
-        value: id,
-        information: `${storageFile.originalName}`
+        value: document.id,
+        information: `${document.storageFile?.originalName}`
       })
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.delete(id) : EMPTY)))
+      .pipe(
+        switchMap((confirm) => (confirm ? this.knowledgeDocumentService.delete(document.id, document.version) : EMPTY))
+      )
       .subscribe({
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
     this.knowledgeDocumentService
       .update(document.id, {
-        parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig']
+        parserConfig: { ...(document.parserConfig ?? {}), ...config } as IKnowledgeDocument['parserConfig'],
+        version: document.version
       })
       .subscribe({
-        next: () => {},
-        error: (err) => {}
+        next: () => {
+          this.refresh()
+        },
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -255,7 +274,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
       next: () => {
         this.refresh()
       },
-      error: (err) => {}
+      error: (err) => {
+        this.handleMutationError(err)
+      }
     })
   }
 
@@ -272,7 +293,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 
@@ -289,7 +312,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.handleMutationError(err)
+        }
       })
   }
 }

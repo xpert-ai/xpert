@@ -232,6 +232,7 @@
       "LearnMore": "了解更多",
       "NameRequired": "名稱必輸",
       "AddItem": "添加項",
+      "ArrayItemTitle": "第 {{index}} 項",
       "Configured": "已配置",
       "Checklist": "檢查清單",
       "ChecklistTip": "確保發布前所有問題都已解決",
@@ -3036,6 +3037,21 @@
       "Knowledgebase": "知識庫",
       "KnowledgebaseSettings": "知識庫設置",
       "KnowledgebaseSettingsDescription": "在這裏，您可以修改此知識庫的屬性和檢索設置。",
+      "DocumentsSettings": "文檔設置",
+      "SourceDocumentUpdate": "同源文檔更新",
+      "SourceDocumentUpdateTooltip": "導入文檔時按來源匹配已有文檔；來源相同則更新或跳過，只處理新增或變化內容，不會自動掃描已有文檔。",
+      "LastIncrementalSync": "最近增量更新",
+      "IncrementalSyncMode": "模式",
+      "IncrementalSyncModeFull": "全量",
+      "IncrementalSyncModeIncremental": "增量",
+      "IncrementalSyncModeSkipped": "已跳過",
+      "TotalChunks": "總切片",
+      "SkippedChunks": "跳過切片",
+      "AddedChunks": "新增切片",
+      "UpdatedChunks": "更新切片",
+      "DeletedChunks": "刪除切片",
+      "EmbeddingTokens": "嵌入詞元",
+      "ProcessedAt": "處理時間",
       "NameAndIcon": "名稱和圖標",
       "ModelConfiguration": "模型配置",
       "RetrievalSettings": "檢索設置",
@@ -3268,6 +3284,25 @@
       "ConfirmDeleteIntegration": "確定刪除此集成",
       "WebhookUrl": "回調地址",
       "AddIntegrationHelp": "了解更多關於自定義集成的信息"
+    },
+    "ViewExtension": {
+      "DetailTabHint": "這裡將通過平台聲明式視圖系統展示此集成的擴展信息。",
+      "Unsupported": "不支持的視圖類型",
+      "NotFound": "未找到視圖",
+      "Empty": "暫無擴展視圖",
+      "Search": "搜索",
+      "NoData": "暫無數據",
+      "Total": "總數",
+      "Errors": {
+        "QueryParameters": "此視圖不支持查詢參數",
+        "Pagination": "此視圖不支持分頁",
+        "Cursor": "此視圖不支持游標查詢",
+        "Search": "此視圖不支持搜索",
+        "Sorting": "此視圖不支持排序",
+        "Filters": "此視圖不支持篩選",
+        "Selection": "此視圖不支持選中項查詢",
+        "Parameterized": "此視圖不支持參數化查詢"
+      }
     },
     "Xpert": {
       "AgentRunStatusReplied": "已回覆",
@@ -4311,6 +4346,18 @@
         "SelectTimeZone": "選擇一個時區",
         "Currency": "幣種"
       }
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "此視圖不支持查詢參數",
+      "Pagination": "此視圖不支持分頁",
+      "Cursor": "此視圖不支持游標查詢",
+      "Search": "此視圖不支持搜索",
+      "Sorting": "此視圖不支持排序",
+      "Filters": "此視圖不支持篩選",
+      "Selection": "此視圖不支持選中項查詢",
+      "Parameterized": "此視圖不支持參數化查詢"
     }
   },
   "AUTH": {

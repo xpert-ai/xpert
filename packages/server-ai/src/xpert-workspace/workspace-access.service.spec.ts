@@ -110,7 +110,7 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 
-	it('allows assistant api key technical principals to read and run their workspace', async () => {
+	it('allows assistant api key principals to read and run their bound xpert workspace without a persisted xpert user', async () => {
 		const principal = {
 			id: 'assistant-user-1',
 			tenantId: 'tenant-1',
@@ -125,7 +125,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-user-1',
 			workspaceId: 'workspace-1'
 		})
 
@@ -146,6 +145,78 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 
+	it('uses persisted xpert user before the assistant api key principal user when both are available', async () => {
+		const principal = {
+			id: 'xpert-user-1',
+			tenantId: 'tenant-1',
+			role: { name: RolesEnum.VIEWER },
+			apiKey: {
+				type: ApiKeyBindingType.ASSISTANT,
+				entityId: 'xpert-1'
+			},
+			apiKeyUserId: 'assistant-user-1',
+			principalType: 'api_key'
+		} as IApiPrincipal
+		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
+		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
+		xpertQueryBuilder.getRawOne.mockResolvedValue({
+			userId: 'xpert-user-1',
+			workspaceId: 'workspace-1'
+		})
+
+		const workspace = Object.assign(new XpertWorkspace(), {
+			id: 'workspace-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			ownerId: 'owner-1',
+			settings: { access: { visibility: 'private' } },
+			members: []
+		})
+
+		await expect(service.getCapabilities(workspace)).resolves.toEqual({
+			canRead: true,
+			canRun: true,
+			canWrite: false,
+			canManage: false
+		})
+	})
+
+	it('does not fall back to the assistant api key principal user when the xpert has a different persisted user', async () => {
+		const principal = {
+			id: 'assistant-user-1',
+			tenantId: 'tenant-1',
+			role: { name: RolesEnum.VIEWER },
+			apiKey: {
+				type: ApiKeyBindingType.ASSISTANT,
+				entityId: 'xpert-1'
+			},
+			apiKeyUserId: 'assistant-user-1',
+			principalType: 'api_key'
+		} as IApiPrincipal
+		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
+		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
+		xpertQueryBuilder.getRawOne.mockResolvedValue({
+			userId: 'xpert-user-1',
+			workspaceId: 'workspace-1'
+		})
+
+		const workspace = Object.assign(new XpertWorkspace(), {
+			id: 'workspace-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			ownerId: 'owner-1',
+			settings: { access: { visibility: 'private' } },
+			members: []
+		})
+
+		await expect(service.getCapabilities(workspace)).resolves.toEqual({
+			canRead: false,
+			canRun: false,
+			canWrite: false,
+			canManage: false
+		})
+	})
+
 	it('allows public xpert client secrets to read and run their bound workspace', async () => {
 		const principal = {
 			id: 'anonymous-user-1',
@@ -161,7 +232,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-service-user-1',
 			workspaceId: 'workspace-1'
 		})
 
@@ -236,7 +306,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-service-user-1',
 			workspaceId: 'workspace-2'
 		})
 
@@ -303,7 +372,6 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-user-1',
 			workspaceId: 'workspace-2'
 		})
 
@@ -324,7 +392,7 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 
-	it('does not grant assistant api key access when the current user is not the xpert technical account', async () => {
+	it('does not grant assistant api key access when the current user does not match the api key principal user', async () => {
 		const principal = {
 			id: 'user-1',
 			tenantId: 'tenant-1',
@@ -339,7 +407,40 @@ describe('XpertWorkspaceAccessService', () => {
 		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
 		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
 		xpertQueryBuilder.getRawOne.mockResolvedValue({
-			userId: 'assistant-user-1',
+			workspaceId: 'workspace-1'
+		})
+
+		const workspace = Object.assign(new XpertWorkspace(), {
+			id: 'workspace-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			ownerId: 'owner-1',
+			settings: { access: { visibility: 'private' } },
+			members: []
+		})
+
+		await expect(service.getCapabilities(workspace)).resolves.toEqual({
+			canRead: false,
+			canRun: false,
+			canWrite: false,
+			canManage: false
+		})
+	})
+
+	it('does not grant assistant api key access when the api key principal user cannot be resolved', async () => {
+		const principal = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			role: { name: RolesEnum.VIEWER },
+			apiKey: {
+				type: ApiKeyBindingType.ASSISTANT,
+				entityId: 'xpert-1'
+			},
+			principalType: 'api_key'
+		} as IApiPrincipal
+		;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
+		;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
+		xpertQueryBuilder.getRawOne.mockResolvedValue({
 			workspaceId: 'workspace-1'
 		})
 

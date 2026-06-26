@@ -1,4 +1,6 @@
 import { XpertExtensionViewManifest, XpertResolvedViewHostContext, XpertViewQuery } from '@xpert-ai/contracts'
+import path from 'node:path'
+import i18next from 'i18next'
 import {
 	isManifestActiveForContext,
 	normalizeManifest,
@@ -6,6 +8,8 @@ import {
 	splitPublicViewKey,
 	validateQuery
 } from './view-extension.utils'
+import { RequestContext } from '../core/context'
+import { initI18next } from '../bootstrap/i18next'
 
 describe('view extension utils', () => {
 	const text = (en_US: string, zh_Hans?: string) => ({
@@ -51,6 +55,16 @@ describe('view extension utils', () => {
 			}
 		]
 	}
+
+	beforeAll(async () => {
+		if (!i18next.isInitialized) {
+			await initI18next(path.resolve(__dirname, '../../..'))
+		}
+	})
+
+	afterEach(() => {
+		jest.restoreAllMocks()
+	})
 
 	it('normalizes manifests into public view keys and default action placement', () => {
 		const normalized = normalizeManifest(manifest, 'provider_a', context, 'detail.main_tabs')
@@ -118,13 +132,17 @@ describe('view extension utils', () => {
 			search: 'john'
 		}
 
-		expect(() =>
+		const queryParametersError = catchHttpResponse(() =>
 			validateQuery(query, {
 				mode: 'platform'
 			})
-		).toThrow('This view does not support query parameters')
+		)
+		expect(queryParametersError).toMatchObject({
+			message: 'This view does not support query parameters',
+			i18nKey: 'ViewExtension.Errors.QueryParameters'
+		})
 
-		expect(() =>
+		const selectionError = catchHttpResponse(() =>
 			validateQuery(
 				{
 					selectionId: 'row-1'
@@ -136,7 +154,34 @@ describe('view extension utils', () => {
 					}
 				}
 			)
-		).toThrow('This view does not support selection queries')
+		)
+		expect(selectionError).toMatchObject({
+			message: 'This view does not support selection queries',
+			i18nKey: 'ViewExtension.Errors.Selection'
+		})
+	})
+
+	it('localizes unsupported query capability errors at the source', () => {
+		jest.spyOn(RequestContext, 'getLanguageCode').mockReturnValue('zh-Hans' as never)
+
+		const error = catchHttpResponse(() =>
+			validateQuery(
+				{
+					sortBy: 'name'
+				},
+				{
+					mode: 'platform',
+					querySchema: {
+						supportsPagination: true
+					}
+				}
+			)
+		)
+
+		expect(error).toMatchObject({
+			message: '此视图不支持排序',
+			i18nKey: 'ViewExtension.Errors.Sorting'
+		})
 	})
 
 	it('rejects unsupported schema and action placement declarations', () => {
@@ -264,3 +309,20 @@ describe('view extension utils', () => {
 		).toBe(false)
 	})
 })
+
+function catchHttpResponse(fn: () => unknown): Record<string, unknown> {
+	try {
+		fn()
+	} catch (error) {
+		if (error && typeof error === 'object' && 'getResponse' in error) {
+			const response = (error as { getResponse(): unknown }).getResponse()
+			if (response && typeof response === 'object') {
+				return response as Record<string, unknown>
+			}
+		}
+
+		throw error
+	}
+
+	throw new Error('Expected function to throw')
+}

@@ -1,4 +1,4 @@
-import { STATE_VARIABLE_HUMAN, TChatFrom } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_HUMAN, type IWFNTrigger } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { UserService } from '@xpert-ai/server-core'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
@@ -112,7 +112,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
         }
     }
 
-    private toRunSource(from: TChatFrom): RunSource {
+    private toRunSource(from: IWFNTrigger['from']): RunSource {
         switch (from) {
             case 'api':
                 return 'api'

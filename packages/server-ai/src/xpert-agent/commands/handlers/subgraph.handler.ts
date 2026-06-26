@@ -721,7 +721,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }
 
             if (hiddenAgent) {
-                startNodes = getWorkflowTriggers(graph, 'chat').map((n) => n.key)
+                const runtimeTriggerNodes = options.from
+                    ? getWorkflowTriggers(graph, options.from).map((n) => n.key)
+                    : []
+                startNodes = runtimeTriggerNodes.length
+                    ? runtimeTriggerNodes
+                    : getWorkflowTriggers(graph, 'chat').map((n) => n.key)
             } else {
                 startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
             }

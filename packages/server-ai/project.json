@@ -7,6 +7,12 @@
         "build": {
             "executor": "@nx/js:tsc",
             "outputs": ["{options.outputPath}"],
+            "dependsOn": [
+                "^build",
+                {
+                    "target": "build-remote-components"
+                }
+            ],
             "options": {
                 "outputPath": "dist/packages/server-ai",
                 "tsConfig": "packages/server-ai/tsconfig.lib.json",
@@ -19,6 +25,17 @@
                         "output": "./"
                     }
                 ]
+            }
+        },
+        "build-remote-components": {
+            "executor": "nx:run-commands",
+            "outputs": [
+                "{projectRoot}/src/**/remote-components/**/app.js",
+                "{projectRoot}/src/**/remote-components/**/app.css"
+            ],
+            "options": {
+                "command": "node packages/server-ai/scripts/build-remote-components.mjs",
+                "cwd": "."
             }
         },
         "publish": {

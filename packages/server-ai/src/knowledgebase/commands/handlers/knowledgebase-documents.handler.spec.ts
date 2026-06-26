@@ -30,13 +30,20 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
             assertNotRebuilding: jest.fn()
         }
         const documentService = {
-            createBulk: jest.fn(async (drafts: any[]) => {
+            createBulkWithIncrementalSync: jest.fn(async (drafts: any[]) => {
                 createdDrafts.push(...drafts)
-                return drafts.map((draft, index) => ({
+                const documents = drafts.map((draft, index) => ({
                     ...draft,
                     id: `doc-${index + 1}`,
                     status: 'waiting'
                 }))
+                return {
+                    documents,
+                    processableIds: documents.map((doc) => doc.id),
+                    skippedIds: [],
+                    updatedIds: [],
+                    createdIds: documents.map((doc) => doc.id)
+                }
             }),
             startProcessing: jest.fn(async () => []),
             findAncestors: jest.fn()
@@ -156,13 +163,20 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
                 assertNotRebuilding: jest.fn()
             } as any,
             {
-                createBulk: jest.fn(async (drafts: any[]) => {
+                createBulkWithIncrementalSync: jest.fn(async (drafts: any[]) => {
                     createdDrafts.push(...drafts)
-                    return drafts.map((draft, index) => ({
+                    const documents = drafts.map((draft, index) => ({
                         ...draft,
                         id: `doc-${index + 1}`,
                         status: 'waiting'
                     }))
+                    return {
+                        documents,
+                        processableIds: documents.map((doc) => doc.id),
+                        skippedIds: [],
+                        updatedIds: [],
+                        createdIds: documents.map((doc) => doc.id)
+                    }
                 }),
                 startProcessing: jest.fn(async () => []),
                 findAncestors: jest.fn()
@@ -224,13 +238,20 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
                 assertNotRebuilding: jest.fn()
             } as any,
             {
-                createBulk: jest.fn(async (drafts: any[]) => {
+                createBulkWithIncrementalSync: jest.fn(async (drafts: any[]) => {
                     createdDrafts.push(...drafts)
-                    return drafts.map((draft, index) => ({
+                    const documents = drafts.map((draft, index) => ({
                         ...draft,
                         id: `doc-${index + 1}`,
                         status: 'waiting'
                     }))
+                    return {
+                        documents,
+                        processableIds: documents.map((doc) => doc.id),
+                        skippedIds: [],
+                        updatedIds: [],
+                        createdIds: documents.map((doc) => doc.id)
+                    }
                 }),
                 startProcessing: jest.fn(async () => []),
                 findAncestors: jest.fn()
@@ -293,13 +314,20 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
                 assertNotRebuilding: jest.fn()
             } as any,
             {
-                createBulk: jest.fn(async (drafts: any[]) => {
+                createBulkWithIncrementalSync: jest.fn(async (drafts: any[]) => {
                     createdDrafts.push(...drafts)
-                    return drafts.map((draft, index) => ({
+                    const documents = drafts.map((draft, index) => ({
                         ...draft,
                         id: `doc-${index + 1}`,
                         status: 'waiting'
                     }))
+                    return {
+                        documents,
+                        processableIds: documents.map((doc) => doc.id),
+                        skippedIds: [],
+                        updatedIds: [],
+                        createdIds: documents.map((doc) => doc.id)
+                    }
                 }),
                 startProcessing: jest.fn(async () => []),
                 findAncestors: jest.fn()

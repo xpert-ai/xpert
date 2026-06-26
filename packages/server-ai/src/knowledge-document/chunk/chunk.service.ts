@@ -1,10 +1,17 @@
 import { IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
-import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { BadRequestException, ConflictException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { KnowledgeDocumentChunk } from './chunk.entity'
 import { TDocChunkMetadata } from '../types'
+
+function assertExpectedVersion(version: number | null | undefined): asserts version is number {
+    if (!Number.isInteger(version) || version <= 0) {
+        throw new BadRequestException('version is required')
+    }
+}
 
 @Injectable()
 export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudService<KnowledgeDocumentChunk> {
@@ -29,6 +36,51 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
 
 	async deleteByDocumentId(documentId: string) {
 		return super.delete({ documentId })
+	}
+
+	async updateWithVersion(id: string, entity: Partial<IKnowledgeDocumentChunk>, expectedVersion: number) {
+		assertExpectedVersion(expectedVersion)
+		const changes = { ...entity }
+		delete changes.version
+		const patch = {
+			...changes,
+			id,
+			updatedById: RequestContext.currentUserId()
+		} as QueryDeepPartialEntity<KnowledgeDocumentChunk>
+		const result = await this.repository.update({ id, version: expectedVersion }, patch)
+		if (!result.affected) {
+			throw new ConflictException('Knowledge document chunk has been modified. Refresh and try again.')
+		}
+		return result
+	}
+
+	async deleteWithVersion(id: string, expectedVersion: number) {
+		assertExpectedVersion(expectedVersion)
+		const result = await this.repository.delete({ id, version: expectedVersion })
+		if (!result.affected) {
+			throw new ConflictException('Knowledge document chunk has been modified. Refresh and try again.')
+		}
+		return result
+	}
+
+	async updateMetadataBulk(chunks: Pick<IKnowledgeDocumentChunk, 'id' | 'metadata'>[]) {
+		if (!chunks?.length) {
+			return []
+		}
+
+		return await Promise.all(
+			chunks.map((chunk) => {
+				if (!chunk.id) {
+					throw new BadRequestException('chunk id is required')
+				}
+
+				const patch = {
+					metadata: chunk.metadata,
+					updatedById: RequestContext.currentUserId()
+				} as QueryDeepPartialEntity<KnowledgeDocumentChunk>
+				return this.repository.update({ id: chunk.id }, patch)
+			})
+		)
 	}
 
     /**

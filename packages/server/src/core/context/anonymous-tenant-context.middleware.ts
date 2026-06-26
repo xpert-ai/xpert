@@ -21,7 +21,7 @@ export class AnonymousTenantContextMiddleware implements NestMiddleware {
       const isPasswordLoginRequest = this.isPasswordLoginRequest(req)
       req[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY] = resolution
 
-      if (resolution.tenantId && (!isPasswordLoginRequest || !resolution.fallbackApplied)) {
+      if (resolution.tenantId) {
         req.headers['tenant-id'] = resolution.tenantId
       }
 

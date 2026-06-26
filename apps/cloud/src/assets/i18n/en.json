@@ -216,6 +216,7 @@
       "DATA_SOURCES": "Data Sources",
       "Docs": "Docs",
       "INDICATOR": "Indicator",
+      "ArrayItemTitle": "Item {{index}}",
       "Items": "items",
       "MODEL_TYPE": "Model Type",
       "MODIFY": "Modify",
@@ -1512,6 +1513,25 @@
     "XProject": {
       "NoExperts": "No experts found"
     },
+    "ViewExtension": {
+      "DetailTabHint": "This area displays integration extension details through the platform declarative view system.",
+      "Unsupported": "Unsupported view type",
+      "NotFound": "View not found",
+      "Empty": "No extension views available",
+      "Search": "Search",
+      "NoData": "No data",
+      "Total": "Total",
+      "Errors": {
+        "QueryParameters": "This view does not support query parameters",
+        "Pagination": "This view does not support pagination",
+        "Cursor": "This view does not support cursor queries",
+        "Search": "This view does not support search",
+        "Sorting": "This view does not support sorting",
+        "Filters": "This view does not support filters",
+        "Selection": "This view does not support selection queries",
+        "Parameterized": "This view does not support parameterized queries"
+      }
+    },
     "Xpert": {
       "Xpert": "Xpert",
       "Task": "Task",
@@ -1707,10 +1727,25 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "DocumentsSettings": "Document Settings",
+      "SourceDocumentUpdate": "Update matching source documents",
+      "SourceDocumentUpdateTooltip": "When importing documents, match existing documents by source and update or skip matching sources. Existing documents are not scanned automatically.",
       "MetadataFields": "Metadata Fields",
       "ChunkMetadata": "Chunk Metadata",
       "NoMetadata": "No metadata",
       "MetadataJson": "Metadata JSON",
+      "LastIncrementalSync": "Recent Incremental Update",
+      "IncrementalSyncMode": "Mode",
+      "IncrementalSyncModeFull": "Full",
+      "IncrementalSyncModeIncremental": "Incremental",
+      "IncrementalSyncModeSkipped": "Skipped",
+      "TotalChunks": "Total Chunks",
+      "SkippedChunks": "Skipped Chunks",
+      "AddedChunks": "Added Chunks",
+      "UpdatedChunks": "Updated Chunks",
+      "DeletedChunks": "Deleted Chunks",
+      "EmbeddingTokens": "Embedding Tokens",
+      "ProcessedAt": "Processed At",
       "DownloadOriginalFile": "Download original file",
       "DownloadOriginalFiles": "Download originals",
       "NoOriginalFilesToDownload": "No downloadable original files are available.",
@@ -1783,6 +1818,18 @@
       "OwnerPlaceholder": "Select owner",
       "NoOwner": "No owner assigned",
       "Untitled": "Untitled certification"
+    }
+  },
+  "ViewExtension": {
+    "Errors": {
+      "QueryParameters": "This view does not support query parameters",
+      "Pagination": "This view does not support pagination",
+      "Cursor": "This view does not support cursor queries",
+      "Search": "This view does not support search",
+      "Sorting": "This view does not support sorting",
+      "Filters": "This view does not support filters",
+      "Selection": "This view does not support selection queries",
+      "Parameterized": "This view does not support parameterized queries"
     }
   },
   "STORY_DESIGNER": {

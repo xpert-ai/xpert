@@ -10,13 +10,15 @@ import {
   XpertTableViewSchema,
   XpertViewActionDefinition,
   XpertViewDataResult,
-  XpertViewQuery
+  XpertViewQuery,
+  XpertViewQuerySchema
 } from '@xpert-ai/contracts'
 import { injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '@cloud/app/@core/types'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
 import { StatsViewRendererComponent } from './renderers/stats-view-renderer.component'
 import { TableViewRendererComponent } from './renderers/table-view-renderer.component'
 import { ListViewRendererComponent } from './renderers/list-view-renderer.component'
@@ -31,6 +33,8 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
     CommonModule,
     TranslateModule,
     NgmI18nPipe,
+    ZardButtonComponent,
+    ...ZardCardImports,
     StatsViewRendererComponent,
     TableViewRendererComponent,
     ListViewRendererComponent,
@@ -39,15 +43,11 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
     RemoteComponentRendererComponent
   ],
   template: `
-    <div [class]="fillAvailableHeight() ? 'flex h-full min-h-0 flex-col gap-4' : 'flex flex-col gap-4'">
+    <div [class]="fillAvailableHeight() ? 'flex h-full min-h-0 flex-col' : 'flex flex-col'">
       @if (toolbarActions().length) {
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 px-4 pt-2">
           @for (action of toolbarActions(); track action.key) {
-            <button
-              type="button"
-              class="rounded-full border border-divider-regular px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-              (click)="executeAction(action)"
-            >
+            <button z-button type="button" zType="outline" zSize="lg" zShape="circle" (click)="executeAction(action)">
               {{ action.label | i18n }}
             </button>
           }
@@ -55,10 +55,16 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
       }
 
       @if (error()) {
-        <div
-          class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
-        >
-          {{ error() }}
+        <div class="p-4">
+          <z-card class="gap-0 rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none">
+            <z-card-content class="px-4 py-5 text-sm text-text-tertiary">
+              @if (errorI18nKey(); as key) {
+                {{ key | translate: { Default: error() } }}
+              } @else {
+                {{ error() }}
+              }
+            </z-card-content>
+          </z-card>
         </div>
       } @else {
         @switch (manifest().view.type) {
@@ -131,10 +137,12 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
             />
           }
           @default {
-            <div
-              class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary"
-            >
-              {{ 'PAC.ViewExtension.Unsupported' | translate: { Default: 'Unsupported view schema' } }}
+            <div class="p-4">
+              <z-card class="gap-0 rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none">
+                <z-card-content class="px-4 py-5 text-sm text-text-tertiary">
+                  {{ 'PAC.ViewExtension.Unsupported' | translate: { Default: 'Unsupported view schema' } }}
+                </z-card-content>
+              </z-card>
             </div>
           }
         }
@@ -157,6 +165,7 @@ export class ViewRendererComponent {
 
   readonly loading = signal(false)
   readonly error = signal<string | null>(null)
+  readonly errorI18nKey = signal<string | null>(null)
   readonly data = signal<XpertViewDataResult>({})
   readonly query = signal<XpertViewQuery>({})
 
@@ -165,27 +174,25 @@ export class ViewRendererComponent {
   readonly items = signal<unknown[]>([])
 
   constructor() {
-    effect(
-      () => {
-        const manifest = this.manifest()
-        const defaultPageSize = this.defaultPageSize()
+    effect(() => {
+      const manifest = this.manifest()
+      const defaultPageSize = this.defaultPageSize()
 
-        this.items.set([])
-        this.data.set({})
-        this.error.set(null)
+      this.items.set([])
+      this.data.set({})
+      this.error.set(null)
+      this.errorI18nKey.set(null)
 
-        if (manifest.view.type === 'table' || manifest.view.type === 'list') {
-          this.query.set({
-            page: 1,
-            pageSize: defaultPageSize
-          })
-          return
-        }
+      if (manifest.view.type === 'table' || manifest.view.type === 'list') {
+        this.query.set({
+          page: 1,
+          pageSize: defaultPageSize
+        })
+        return
+      }
 
-        this.query.set({})
-      },
-      { allowSignalWrites: true }
-    )
+      this.query.set({})
+    })
 
     effect(() => {
       this.hostType()
@@ -367,10 +374,11 @@ export class ViewRendererComponent {
     const requestId = ++this.requestId
     this.loading.set(true)
     this.error.set(null)
+    this.errorI18nKey.set(null)
 
     try {
       const manifest = this.manifest()
-      const query = this.query()
+      const query = normalizeViewQuery(this.query(), manifest.dataSource.querySchema)
       const data = await firstValueFrom(this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query))
 
       if (requestId !== this.requestId) {
@@ -391,6 +399,7 @@ export class ViewRendererComponent {
       }
 
       this.error.set(getErrorMessage(error))
+      this.errorI18nKey.set(getErrorI18nKey(error))
       if (!force) {
         this.items.set([])
         this.data.set({})
@@ -401,6 +410,69 @@ export class ViewRendererComponent {
       }
     }
   }
+}
+
+function normalizeViewQuery(query: XpertViewQuery, schema?: XpertViewQuerySchema): XpertViewQuery {
+  if (!schema) {
+    return {}
+  }
+
+  const next: XpertViewQuery = {}
+
+  if (schema.supportsPagination) {
+    if (query.page !== undefined) {
+      next.page = query.page
+    }
+    if (query.pageSize !== undefined) {
+      next.pageSize = query.pageSize
+    }
+  }
+
+  if (schema.supportsCursor && query.cursor) {
+    next.cursor = query.cursor
+  }
+
+  if (schema.supportsSearch && query.search) {
+    next.search = query.search
+  }
+
+  if (schema.supportsSort) {
+    if (query.sortBy) {
+      next.sortBy = query.sortBy
+    }
+    if (query.sortDirection) {
+      next.sortDirection = query.sortDirection
+    }
+  }
+
+  if (schema.supportsFilter && query.filters?.length) {
+    next.filters = query.filters
+  }
+
+  if (schema.supportsSelection && query.selectionId) {
+    next.selectionId = query.selectionId
+  }
+
+  if (schema.supportsParameters && query.parameters && Object.keys(query.parameters).length) {
+    next.parameters = query.parameters
+  }
+
+  return next
+}
+
+function getErrorI18nKey(error: unknown) {
+  const responseError = getObjectProperty(error, 'error')
+  const i18nKey = getObjectProperty(responseError, 'i18nKey') ?? getObjectProperty(error, 'i18nKey')
+
+  return typeof i18nKey === 'string' && i18nKey.trim().length > 0 ? i18nKey.trim() : null
+}
+
+function getObjectProperty(value: unknown, key: string): unknown {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  return Reflect.get(value, key)
 }
 
 function getNavigationUrl(value: unknown) {

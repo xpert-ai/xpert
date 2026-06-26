@@ -6,6 +6,15 @@
     "license": "AGPL-3.0",
     "dependencies": {
         "@xpert-ai/chatkit-types": "0.3.11",
+        "@xpert-ai/contracts": "workspace:*",
+        "@xpert-ai/copilot": "workspace:*",
+        "@xpert-ai/ocap-core": "workspace:*",
+        "@xpert-ai/plugin-sdk": "workspace:*",
+        "@xpert-ai/server-auth": "workspace:*",
+        "@xpert-ai/server-common": "workspace:*",
+        "@xpert-ai/server-config": "workspace:*",
+        "@xpert-ai/server-core": "workspace:*",
+        "@xpert-ai/shadcn-ui": "workspace:*",
         "@apidevtools/swagger-parser": "^10.1.0",
         "@langchain/exa": "0.1.0",
         "@langchain/core": "0.3.72",
@@ -57,6 +66,7 @@
     "devDependencies": {
         "@babel/preset-env": "7.26.9",
         "@types/cron": "1.7.3",
+        "@types/multer": "^1.4.7",
         "@types/turndown": "5.0.5",
         "babel-jest": "29.7.0"
     }

@@ -522,7 +522,7 @@ export interface IWFNAgentTool extends IWFNAgentWorkflow {
 
 export interface IWFNTrigger extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.TRIGGER
-  from: 'chat' | 'integration' | 'scheduler'
+  from: string
   parameters?: TXpertParameter[]
   config?: any
 }

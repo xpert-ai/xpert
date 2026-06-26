@@ -171,6 +171,14 @@ export class KnowledgeDocumentStore {
         return await this.vStore.delete({ ids: [this.createVectorId(id)] })
     }
 
+    async deleteChunks(ids: string[]) {
+        if (!ids.length) {
+            return
+        }
+
+        return await this.vStore.delete({ ids: ids.map((id) => this.createVectorId(id)) })
+    }
+
     async updateChunk(id: string, chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>, document: IKnowledgeDocument) {
         const _chunk = await this.getChunk(id)
         await this.deleteChunk(id)

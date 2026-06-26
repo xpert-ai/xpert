@@ -72,4 +72,28 @@ describe('JSONSchemaPropertyComponent', () => {
 
     expect(fixture.componentInstance.objectCollapsed()).toBe(false)
   })
+
+  it('expands array object items by default and exposes an item title', () => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+
+    fixture.componentRef.setInput('schema', {
+      type: 'object',
+      properties: {
+        mode: {
+          type: 'string'
+        }
+      }
+    })
+    fixture.componentRef.setInput('arrayItem', true)
+    fixture.componentRef.setInput('arrayIndex', 2)
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.collapsibleObject()).toBe(true)
+    expect(fixture.componentInstance.objectCollapsed()).toBe(false)
+    expect(fixture.componentInstance.label()).toBeUndefined()
+    expect(fixture.componentInstance.arrayItemTitleParams()).toEqual({
+      Default: 'Item 3',
+      index: 3
+    })
+  })
 })

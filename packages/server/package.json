@@ -72,6 +72,7 @@
 		"semver": "^7.7.4",
 		"sharp": "^0.33.5",
 		"swagger-ui-express": "^4.1.6",
+		"tslib": "^2.3.0",
 		"typeorm": "^0.3.24",
 		"underscore": "^1.13.1",
 		"unzipper": "^0.12.3",

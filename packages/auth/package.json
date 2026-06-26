@@ -20,7 +20,8 @@
     "passport-linkedin-oauth2": "^2.0.0",
     "passport-oauth2": "^1.6.1",
     "passport-twitter": "^1.0.4",
-    "pkginfo": "^0.4.1"
+    "pkginfo": "^0.4.1",
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^3.0.0",

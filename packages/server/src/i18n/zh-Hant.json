@@ -1,0 +1,21 @@
+{
+	"Error": {
+		"PluginPackageNameRequired": "插件包名不能為空",
+		"PluginSystemLevelInstallForbidden": "插件 {{name}} 為系統級插件，不能透過此 API 安裝",
+		"PluginInstallFailed": "安裝插件 {{pluginName}} 失敗：{{errorMessage}}",
+		"PluginNamesRequired": "插件名稱不能為空",
+		"PluginSystemUninstallForbidden": "插件 {{name}} 為系統插件，不能卸載"
+	},
+	"ViewExtension": {
+		"Errors": {
+			"QueryParameters": "此視圖不支持查詢參數",
+			"Pagination": "此視圖不支持分頁",
+			"Cursor": "此視圖不支持游標查詢",
+			"Search": "此視圖不支持搜索",
+			"Sorting": "此視圖不支持排序",
+			"Filters": "此視圖不支持篩選",
+			"Selection": "此視圖不支持選中項查詢",
+			"Parameterized": "此視圖不支持參數化查詢"
+		}
+	}
+}

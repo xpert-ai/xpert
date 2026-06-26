@@ -4,7 +4,7 @@
  * - `depends` reads sibling values from `context.model` and emits flat key/value params for remote selects.
  * - Do not add integration-specific widgets or query-shape exceptions in this layer.
  */
-import { booleanAttribute, Component, computed, inject, input, signal } from '@angular/core'
+import { booleanAttribute, Component, OnInit, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -53,7 +53,7 @@ type JsonSchemaTypeWithUi = JsonSchema7Type & {
     '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`
   }
 })
-export class JSONSchemaPropertyComponent {
+export class JSONSchemaPropertyComponent implements OnInit {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
   readonly widgetRegistry? = inject(JsonSchemaWidgetStrategyRegistry, { optional: true })
@@ -69,6 +69,11 @@ export class JSONSchemaPropertyComponent {
     transform: booleanAttribute
   })
   readonly context = input<Record<string, unknown> | undefined>(undefined)
+  readonly arrayItem = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
+  readonly arrayIndex = input<number>()
+  readonly removeItem = output<void>()
 
   // Attrs
   get invalid() {
@@ -104,6 +109,11 @@ export class JSONSchemaPropertyComponent {
   })
 
   readonly default = computed(() => this.meta()?.default)
+  readonly arrayItemPosition = computed(() => (this.arrayIndex() ?? 0) + 1)
+  readonly arrayItemTitleParams = computed(() => ({
+    Default: `Item ${this.arrayItemPosition()}`,
+    index: this.arrayItemPosition()
+  }))
 
   readonly properties = computed(
     () =>
@@ -165,6 +175,12 @@ export class JSONSchemaPropertyComponent {
         })
       }
     })
+  }
+
+  ngOnInit() {
+    if (this.arrayItem()) {
+      this.objectCollapsed.set(false)
+    }
   }
 
   update(value: unknown) {

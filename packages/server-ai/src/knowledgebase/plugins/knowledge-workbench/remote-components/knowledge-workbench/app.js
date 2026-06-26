@@ -8869,18 +8869,20 @@
         return Hu('executeAction', { actionKey: t, input: e, parameters: a }, 'actionResult')
     }
     function Mw(t, e, a, r) {
-        return e.arrayBuffer().then((n) =>
-            Hu(
-                'executeFileAction',
-                {
-                    actionKey: t,
-                    input: a,
-                    parameters: r,
-                    file: { name: e.name, type: e.type, size: e.size, buffer: n }
-                },
-                'fileActionResult'
+        return e
+            .arrayBuffer()
+            .then((n) =>
+                Hu(
+                    'executeFileAction',
+                    {
+                        actionKey: t,
+                        input: a,
+                        parameters: r,
+                        file: { name: e.name, type: e.type, size: e.size, buffer: n }
+                    },
+                    'fileActionResult'
+                )
             )
-        )
     }
     function Uu(t, e) {
         return Hu('invokeClientCommand', { commandKey: t, payload: e }, 'clientCommandResult')
@@ -13761,7 +13763,7 @@
                 htmlFlowData: k,
                 htmlText: o(Ue, i),
                 htmlTextData: k,
-                image: o(Be),
+                image: o(Oe),
                 label: i,
                 link: o(Ee),
                 listItem: o(De),
@@ -13841,17 +13843,17 @@
                 if (Z[Le][1].type === 'listOrdered' || Z[Le][1].type === 'listUnordered')
                     if (Z[Le][0] === 'enter') be.push(Le)
                     else {
-                        let xe = be.pop()
-                        Le = n(Z, xe, Le)
+                        let ve = be.pop()
+                        Le = n(Z, ve, Le)
                     }
             for (Le = -1; ++Le < Z.length; ) {
-                let xe = e[Z[Le][0]]
-                _S.call(xe, Z[Le][1].type) &&
-                    xe[Z[Le][1].type].call(Object.assign({ sliceSerialize: Z[Le][2].sliceSerialize }, Ce), Z[Le][1])
+                let ve = e[Z[Le][0]]
+                _S.call(ve, Z[Le][1].type) &&
+                    ve[Z[Le][1].type].call(Object.assign({ sliceSerialize: Z[Le][2].sliceSerialize }, Ce), Z[Le][1])
             }
             if (Ce.tokenStack.length > 0) {
-                let xe = Ce.tokenStack[Ce.tokenStack.length - 1]
-                ;(xe[1] || VS).call(Ce, void 0, xe[0])
+                let ve = Ce.tokenStack[Ce.tokenStack.length - 1]
+                ;(ve[1] || VS).call(Ce, void 0, ve[0])
             }
             for (
                 ie.position = {
@@ -13867,7 +13869,7 @@
         function n(Z, ie, Ce) {
             let be = ie - 1,
                 Le = -1,
-                xe = !1,
+                ve = !1,
                 re,
                 B,
                 $,
@@ -13904,7 +13906,7 @@
                             let ce = Z[H]
                             if (ce[1].type === 'lineEnding' || ce[1].type === 'lineEndingBlank') {
                                 if (ce[0] === 'exit') continue
-                                ;(B && ((Z[B][1].type = 'lineEndingBlank'), (xe = !0)),
+                                ;(B && ((Z[B][1].type = 'lineEndingBlank'), (ve = !0)),
                                     (ce[1].type = 'lineEnding'),
                                     (B = H))
                             } else if (
@@ -13930,7 +13932,7 @@
                     }
                 }
             }
-            return ((Z[ie][1]._spread = xe), Ce)
+            return ((Z[ie][1]._spread = ve), Ce)
         }
         function o(Z, ie) {
             return Ce
@@ -14035,7 +14037,7 @@
             let Ce = this.stack[this.stack.length - 1].children,
                 be = Ce[Ce.length - 1]
             ;((!be || be.type !== 'text') &&
-                ((be = Fe()), (be.position = { start: un(Z.start), end: void 0 }), Ce.push(be)),
+                ((be = Be()), (be.position = { start: un(Z.start), end: void 0 }), Ce.push(be)),
                 this.stack.push(be))
         }
         function b(Z) {
@@ -14176,7 +14178,7 @@
         function Ue() {
             return { type: 'html', value: '' }
         }
-        function Be() {
+        function Oe() {
             return { type: 'image', title: null, url: '', alt: null }
         }
         function Ee() {
@@ -14194,7 +14196,7 @@
         function We() {
             return { type: 'strong', children: [] }
         }
-        function Fe() {
+        function Be() {
             return { type: 'text', value: '' }
         }
         function qe() {
@@ -18315,7 +18317,7 @@
     function xi() {
         return Od
     }
-    function ge(t) {
+    function xe(t) {
         let e = Od.startsWith('zh') ? 'zh_Hans' : 'en_US'
         return GR[e][t] ?? GR.en_US[t]
     }
@@ -18505,7 +18507,7 @@
         return Number.isNaN(e.getTime()) ? 0 : e.getTime()
     }
     function QR(t) {
-        return xi().startsWith('zh') ? `${t}${ge('items')}` : `${t} ${ge('items')}`
+        return xi().startsWith('zh') ? `${t}${xe('items')}` : `${t} ${xe('items')}`
     }
     var Wl = M(() => {
         ho()
@@ -18621,7 +18623,7 @@
                               'justify-self-end rounded-full transition-opacity',
                               a ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
                           ),
-                          'aria-label': ge('selected'),
+                          'aria-label': xe('selected'),
                           onClick: n,
                           children: a ? P(jn, { className: 'size-4' }) : P(an, { className: 'size-4' })
                       })
@@ -18656,7 +18658,7 @@
                   })
     }
     function bU(t) {
-        if (t.isFolder) return { key: 'folder', label: ge('folder'), short: '', badgeClass: '' }
+        if (t.isFolder) return { key: 'folder', label: xe('folder'), short: '', badgeClass: '' }
         let e = `${t.type ?? ''} ${t.mimeType ?? ''} ${t.name ?? ''}`.toLowerCase()
         return e.includes('pdf')
             ? { key: 'pdf', label: 'PDF', short: 'PDF', badgeClass: 'bg-red-500' }
@@ -18672,7 +18674,7 @@
                       ? { key: 'text', label: 'TEXT', short: 'T', badgeClass: 'bg-slate-500' }
                       : {
                             key: 'file',
-                            label: (t.type || ge('document')).toUpperCase(),
+                            label: (t.type || xe('document')).toUpperCase(),
                             short: 'F',
                             badgeClass: 'bg-muted-foreground'
                         }
@@ -18681,7 +18683,7 @@
         if (t.isFolder) {
             let a = t.chunkNum ?? t.tokenNum
             return {
-                primary: typeof a == 'number' && a > 0 ? QR(a) : ge('folder'),
+                primary: typeof a == 'number' && a > 0 ? QR(a) : xe('folder'),
                 secondary: `${zh(t.updatedAt)}${xi().startsWith('zh') ? '\u66F4\u65B0' : ' updated'}`
             }
         }
@@ -20422,7 +20424,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         a < 0 ? (a = 0) : a > 1 && (a = 1)
         var i = eA(t, n),
             l = eA(e, n)
-        if (ve(i) && ve(l)) return JT(o, i, l, a, r)
+        if (ge(i) && ge(l)) return JT(o, i, l, a, r)
         if (gt(i) && gt(l)) {
             for (var s = [], u = 0; u < l.length; u++) {
                 var d = i[u],
@@ -20503,7 +20505,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         return ((i.progress = h), h)
     }
     function Yl(t, e) {
-        return t == null || e == null ? !1 : ve(t) && ve(e) ? !0 : !!(t && e)
+        return t == null || e == null ? !1 : ge(t) && ge(e) ? !0 : !!(t && e)
     }
     function XG(t, e, a, r) {
         var n = e._private
@@ -21785,7 +21787,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         gt,
         ut,
         NU,
-        ve,
+        ge,
         qU,
         uf,
         Aa,
@@ -22539,11 +22541,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 (NU = function (e) {
                     return e != null && Gt(e) === EA
                 }),
-                (ve = function (e) {
+                (ge = function (e) {
                     return e != null && Gt(e) === Gt(1) && !isNaN(e)
                 }),
                 (qU = function (e) {
-                    return ve(e) && Math.floor(e) === e
+                    return ge(e) && Math.floor(e) === e
                 }),
                 (uf = function (e) {
                     if (OU !== 'undefined') return e != null && e instanceof HTMLElement
@@ -22573,7 +22575,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     return typeof HTMLElement > 'u' ? !1 : e instanceof HTMLElement
                 }),
                 (UU = function (e) {
-                    return ut(e) && ve(e.x1) && ve(e.x2) && ve(e.y1) && ve(e.y2)
+                    return ut(e) && ge(e.x1) && ge(e.x2) && ge(e.y1) && ge(e.y2)
                 }),
                 (VU = function (e) {
                     return NU(e) && St(e.then)
@@ -23723,30 +23725,30 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             }))
                         for (
                             var v = f.length,
-                                x = function (Be) {
-                                    var Ee = m.get(Be.id())
-                                    return (Ee || ((Ee = {}), m.set(Be.id(), Ee)), Ee)
+                                x = function (Oe) {
+                                    var Ee = m.get(Oe.id())
+                                    return (Ee || ((Ee = {}), m.set(Oe.id(), Ee)), Ee)
                                 },
-                                y = function (Be) {
-                                    return (ze(Be) ? u.$(Be) : Be)[0]
+                                y = function (Oe) {
+                                    return (ze(Oe) ? u.$(Oe) : Oe)[0]
                                 },
-                                L = function (Be) {
-                                    return x(y(Be)).dist
+                                L = function (Oe) {
+                                    return x(y(Oe)).dist
                                 },
-                                I = function (Be) {
+                                I = function (Oe) {
                                     for (
                                         var Ee = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : i,
-                                            he = y(Be),
+                                            he = y(Oe),
                                             De = [],
                                             Me = he;
                                         ;
                                     ) {
                                         if (Me == null) return a.spawn()
                                         var We = x(Me),
-                                            Fe = We.edge,
+                                            Be = We.edge,
                                             qe = We.pred
                                         if ((De.unshift(Me[0]), Me.same(Ee) && De.length > 0)) break
-                                        ;(Fe != null && De.unshift(Fe), (Me = qe))
+                                        ;(Be != null && De.unshift(Be), (Me = qe))
                                     }
                                     return s.spawn(De)
                                 },
@@ -23760,11 +23762,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         }
                         for (
                             var k = !1,
-                                b = function (Be, Ee, he, De, Me, We) {
-                                    var Fe = De.dist + We
-                                    Fe < Me.dist &&
+                                b = function (Oe, Ee, he, De, Me, We) {
+                                    var Be = De.dist + We
+                                    Be < Me.dist &&
                                         !he.same(De.edge) &&
-                                        ((Me.dist = Fe), (Me.pred = Be), (Me.edge = he), (k = !0))
+                                        ((Me.dist = Be), (Me.pred = Oe), (Me.edge = he), (k = !0))
                                 },
                                 A = 1;
                             A < p;
@@ -25471,7 +25473,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         n.some(function (o) {
                             return o === r
                         }) ||
-                            ve(r) ||
+                            ge(r) ||
                             It(
                                 'Preference must be one of ['
                                     .concat(
@@ -27100,7 +27102,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 (gD = function (e, a, r) {
                     var n,
                         o = ze(e),
-                        i = ve(e),
+                        i = ge(e),
                         l = ze(r),
                         s,
                         u,
@@ -27679,8 +27681,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     var n
                     if (
                         (ut(e)
-                            ? ((n = { x: ve(e.x) ? e.x : 0, y: ve(e.y) ? e.y : 0 }), (r = a))
-                            : ze(e) && ve(a) && ((n = { x: 0, y: 0 }), (n[e] = a)),
+                            ? ((n = { x: ge(e.x) ? e.x : 0, y: ge(e.y) ? e.y : 0 }), (r = a))
+                            : ze(e) && ge(a) && ((n = { x: 0, y: 0 }), (n[e] = a)),
                         n != null)
                     ) {
                         var o = this.cy()
@@ -27698,7 +27700,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     return this
                 },
                 silentShift: function (e, a) {
-                    return (ut(e) ? this.shift(e, !0) : ze(e) && ve(a) && this.shift(e, a, !0), this)
+                    return (ut(e) ? this.shift(e, !0) : ze(e) && ge(a) && this.shift(e, a, !0), this)
                 },
                 renderedPosition: function (e, a) {
                     var r = this[0],
@@ -28016,11 +28018,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             break
                                     }
                                 }
-                                var J = function (Ue, Be) {
+                                var J = function (Ue, Oe) {
                                         return (
                                             (Ue = Ue - K),
-                                            (Be = Be - oe),
-                                            { x: Ue * Q - Be * ne + K, y: Ue * ne + Be * Q + oe }
+                                            (Oe = Oe - oe),
+                                            { x: Ue * Q - Oe * ne + K, y: Ue * ne + Oe * Q + oe }
                                         )
                                     },
                                     V = J(A, R),
@@ -29930,7 +29932,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         g = m.data
                     if ((p.clearTraversalCache(), !(!e && !m.removed))) {
                         if (g.id === void 0) g.id = KA()
-                        else if (ve(g.id)) g.id = '' + g.id
+                        else if (ge(g.id)) g.id = '' + g.id
                         else if (Cn(g.id) || !ze(g.id)) {
                             ;(It('Can not create element with invalid string ID `' + g.id + '`'), c())
                             continue
@@ -29948,7 +29950,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         for (var x = p, y = ['source', 'target'], L = y.length, I = !1, C = 0; C < L; C++) {
                             var w = y[C],
                                 S = g[w]
-                            ;(ve(S) && (S = g[w] = '' + g[w]),
+                            ;(ge(S) && (S = g[w] = '' + g[w]),
                                 S == null || S === ''
                                     ? (It('Can not create edge `' + h + '` with unspecified ' + w), (I = !0))
                                     : r.hasElementWithId(S) ||
@@ -29970,7 +29972,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 for (var A = 0; A < o.length; A++) {
                     var D = o[A],
                         R = D._private.data
-                    ve(R.parent) && (R.parent = '' + R.parent)
+                    ge(R.parent) && (R.parent = '' + R.parent)
                     var F = R.parent,
                         O = F != null
                     if (O || D._private.parent) {
@@ -30807,7 +30809,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         }
                         if (v == null) return (g(), !1)
                         var L
-                        if (ve(v)) {
+                        if (ge(v)) {
                             var I = r.fieldMax - r.fieldMin
                             I === 0 ? (L = 0) : (L = (v - r.fieldMin) / I)
                         } else
@@ -30941,9 +30943,9 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 v = void 0,
                                 x = 1e-6
                             m &&
-                                (ve(m.pfValue) && ve(g.pfValue)
+                                (ge(m.pfValue) && ge(g.pfValue)
                                     ? ((h = g.pfValue - m.pfValue), (v = m.pfValue + x * h))
-                                    : ve(m.value) && ve(g.value)
+                                    : ge(m.value) && ge(g.value)
                                       ? ((h = g.value - m.value), (v = m.value + x * h))
                                       : gt(m.value) &&
                                         gt(g.value) &&
@@ -31173,7 +31175,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         var l = i.value,
                             s = i.units,
                             u = i.strValue
-                        if (a && o.number && l != null && ve(l)) {
+                        if (a && o.number && l != null && ge(l)) {
                             var d = t.cy().zoom(),
                                 f = function (h) {
                                     return h * d
@@ -32599,8 +32601,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     ;((o = e[0]),
                                         (i = o.x),
                                         (l = o.y),
-                                        ve(i) && (a.x = i),
-                                        ve(l) && (a.y = l),
+                                        ge(i) && (a.x = i),
+                                        ge(l) && (a.y = l),
                                         this.emit('pan viewport'))
                                 }
                                 break
@@ -32608,7 +32610,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 if (!this._private.panningEnabled) return this
                                 ;((r = e[0]),
                                     (n = e[1]),
-                                    (r === 'x' || r === 'y') && ve(n) && (a[r] = n),
+                                    (r === 'x' || r === 'y') && ge(n) && (a[r] = n),
                                     this.emit('pan viewport'))
                                 break
                         }
@@ -32629,14 +32631,14 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     ((l = r[0]),
                                     (s = l.x),
                                     (u = l.y),
-                                    ve(s) && (n.x += s),
-                                    ve(u) && (n.y += u),
+                                    ge(s) && (n.x += s),
+                                    ge(u) && (n.y += u),
                                     this.emit('pan viewport'))
                                 break
                             case 2:
                                 ;((o = e),
                                     (i = a),
-                                    (o === 'x' || o === 'y') && ve(i) && (n[o] += i),
+                                    (o === 'x' || o === 'y') && ge(i) && (n[o] += i),
                                     this.emit('pan viewport'))
                                 break
                         }
@@ -32658,7 +32660,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     },
                     getFitViewport: function (e, a) {
                         if (
-                            (ve(e) && a === void 0 && ((a = e), (e = void 0)),
+                            (ge(e) && a === void 0 && ((a = e), (e = void 0)),
                             !(!this._private.panningEnabled || !this._private.zoomingEnabled))
                         ) {
                             var r
@@ -32677,7 +32679,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     l = this.height(),
                                     s
                                 if (
-                                    ((a = ve(a) ? a : 0),
+                                    ((a = ge(a) ? a : 0),
                                     !isNaN(i) &&
                                         !isNaN(l) &&
                                         i > 0 &&
@@ -32703,11 +32705,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             ;((e = n.min), (a = n.max))
                         }
                         return (
-                            ve(e) && ve(a) && e <= a
+                            ge(e) && ge(a) && e <= a
                                 ? ((r.minZoom = e), (r.maxZoom = a))
-                                : ve(e) && a === void 0 && e <= r.maxZoom
+                                : ge(e) && a === void 0 && e <= r.maxZoom
                                   ? (r.minZoom = e)
-                                  : ve(a) && e === void 0 && a >= r.minZoom && (r.maxZoom = a),
+                                  : ge(a) && e === void 0 && a >= r.minZoom && (r.maxZoom = a),
                             this
                         )
                     },
@@ -32726,7 +32728,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             l = !1
                         if (
                             (a.zoomingEnabled || (l = !0),
-                            ve(e)
+                            ge(e)
                                 ? (i = e)
                                 : ut(e) &&
                                   ((i = e.level),
@@ -32736,7 +32738,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                   o != null && !a.panningEnabled && (l = !0)),
                             (i = i > a.maxZoom ? a.maxZoom : i),
                             (i = i < a.minZoom ? a.minZoom : i),
-                            l || !ve(i) || i === n || (o != null && (!ve(o.x) || !ve(o.y))))
+                            l || !ge(i) || i === n || (o != null && (!ge(o.x) || !ge(o.y))))
                         )
                             return null
                         if (o != null) {
@@ -32767,7 +32769,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             i = !1,
                             l = !1
                         if (!e) return this
-                        if ((ve(e.zoom) || (r = !1), ut(e.pan) || (n = !1), !r && !n)) return this
+                        if ((ge(e.zoom) || (r = !1), ut(e.pan) || (n = !1), !r && !n)) return this
                         if (r) {
                             var s = e.zoom
                             s < a.minZoom || s > a.maxZoom || !a.zoomingEnabled
@@ -32776,8 +32778,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         }
                         if (n && (!i || !e.cancelOnFailedZoom) && a.panningEnabled) {
                             var u = e.pan
-                            ;(ve(u.x) && ((a.pan.x = u.x), (l = !1)),
-                                ve(u.y) && ((a.pan.y = u.y), (l = !1)),
+                            ;(ge(u.x) && ((a.pan.x = u.x), (l = !1)),
+                                ge(u.y) && ((a.pan.y = u.y), (l = !1)),
                                 l || o.push('pan'))
                         }
                         return (
@@ -32947,8 +32949,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         autoungrabify: s(!1, l.autoungrabify, l.autoungrabifyNodes),
                         autounselectify: s(!1, l.autounselectify),
                         styleEnabled: l.styleEnabled === void 0 ? i : l.styleEnabled,
-                        zoom: ve(l.zoom) ? l.zoom : 1,
-                        pan: { x: ut(l.pan) && ve(l.pan.x) ? l.pan.x : 0, y: ut(l.pan) && ve(l.pan.y) ? l.pan.y : 0 },
+                        zoom: ge(l.zoom) ? l.zoom : 1,
+                        pan: { x: ut(l.pan) && ge(l.pan.x) ? l.pan.x : 0, y: ut(l.pan) && ge(l.pan.y) ? l.pan.y : 0 },
                         animation: { current: [], queue: [] },
                         hasCompoundNodes: !1,
                         multiClickDebounceTime: s(250, l.multiClickDebounceTime)
@@ -33290,16 +33292,16 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     L = function (he, De) {
                         var Me = Ii(he),
                             We = Me.depth,
-                            Fe = Me.index
-                        ;((v[We][Fe] = null), he.isChildless() && y(he, De))
+                            Be = Me.index
+                        ;((v[We][Be] = null), he.isChildless() && y(he, De))
                     }
                 n.bfs({
                     roots: u,
                     directed: t.directed,
-                    visit: function (he, De, Me, We, Fe) {
+                    visit: function (he, De, Me, We, Be) {
                         var qe = he[0],
                             Z = qe.id()
-                        ;(qe.isChildless() && y(qe, Fe), (x[Z] = !0))
+                        ;(qe.isChildless() && y(qe, Be), (x[Z] = !0))
                     }
                 })
                 for (var I = [], C = 0; C < r.length; C++) {
@@ -33322,7 +33324,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 We = he.incomers().filter(function (Le) {
                                     return Le.isNode() && a.has(Le)
                                 }),
-                                Fe = -1,
+                                Be = -1,
                                 qe = he.id(),
                                 Z = 0;
                             Z < We.length;
@@ -33330,11 +33332,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         ) {
                             var ie = We[Z],
                                 Ce = Ii(ie)
-                            Fe = Math.max(Fe, Ce.depth)
+                            Be = Math.max(Be, Ce.depth)
                         }
-                        if (Me.depth <= Fe) {
+                        if (Me.depth <= Be) {
                             if (!t.acyclic && De[qe]) return null
-                            var be = Fe + 1
+                            var be = Be + 1
                             return (L(he, be), (De[qe] = be), !0)
                         }
                         return !1
@@ -33385,7 +33387,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     E = function (he) {
                         if (W[he.id()]) return W[he.id()]
                         for (
-                            var De = Ii(he).depth, Me = he.neighborhood(), We = 0, Fe = 0, qe = 0;
+                            var De = Ii(he).depth, Me = he.neighborhood(), We = 0, Be = 0, qe = 0;
                             qe < Me.length;
                             qe++
                         ) {
@@ -33397,18 +33399,18 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         be = ie.depth
                                     if (!(Ce == null || be == null)) {
                                         var Le = v[be].length
-                                        be < De && ((We += Ce / Le), Fe++)
+                                        be < De && ((We += Ce / Le), Be++)
                                     }
                                 }
                             }
                         }
-                        return ((Fe = Math.max(1, Fe)), (We = We / Fe), Fe === 0 && (We = 0), (W[he.id()] = We), We)
+                        return ((Be = Math.max(1, Be)), (We = We / Be), Be === 0 && (We = 0), (W[he.id()] = We), We)
                     },
                     Y = function (he, De) {
                         var Me = E(he),
                             We = E(De),
-                            Fe = Me - We
-                        return Fe === 0 ? OA(he.id(), De.id()) : Fe
+                            Be = Me - We
+                        return Be === 0 ? OA(he.id(), De.id()) : Be
                     }
                 t.depthSort !== void 0 && (Y = t.depthSort)
                 for (var Q = v.length, ne = 0; ne < Q; ne++) (v[ne].sort(Y), S(ne))
@@ -33446,9 +33448,9 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             Me = De.depth,
                             We = De.index
                         if (t.circle) {
-                            var Fe = Math.min(s.w / 2 / Q, s.h / 2 / Q)
-                            Fe = Math.max(Fe, z)
-                            var qe = Fe * Me + Fe - (Q > 0 && v[0].length <= 3 ? Fe / 2 : 0),
+                            var Be = Math.min(s.w / 2 / Q, s.h / 2 / Q)
+                            Be = Math.max(Be, z)
+                            var qe = Be * Me + Be - (Q > 0 && v[0].length <= 3 ? Be / 2 : 0),
                                 Z = ((2 * Math.PI) / v[Me].length) * We
                             return (
                                 Me === 0 && v[0].length === 1 && (qe = 1),
@@ -33475,10 +33477,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             .concat(t.direction, "' specified for breadthfirst layout. Valid values are: ")
                             .concat(Object.keys(Ue).join(', '))
                     )
-                var Be = function (he) {
+                var Oe = function (he) {
                     return vV(Ze(he), s, Ue[t.direction])
                 }
-                return (a.nodes().layoutPositions(this, t, Be), this)
+                return (a.nodes().layoutPositions(this, t, Oe), this)
             }
             a3 = {
                 fit: !0,
@@ -33530,7 +33532,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     f = Math.max(f, g, h)
                 }
                 if (
-                    (ve(e.radius) ? (d = e.radius) : o.length <= 1 ? (d = 0) : (d = Math.min(i.h, i.w) / 2 - f),
+                    (ge(e.radius) ? (d = e.radius) : o.length <= 1 ? (d = 0) : (d = Math.min(i.h, i.w) / 2 - f),
                     o.length > 1 && e.avoidOverlap)
                 ) {
                     f *= 1.75
@@ -34801,17 +34803,17 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         Ze = i,
                         Ue = ''
                     ae.boundingBox()
-                    var Be = we.labelBounds.main
-                    if (!Be) return null
+                    var Oe = we.labelBounds.main
+                    if (!Oe) return null
                     var Ee = g(we.rscratch, 'labelX', ue),
                         he = g(we.rscratch, 'labelY', ue),
                         De = g(we.rscratch, 'labelAngle', ue),
                         Me = ae.pstyle(Ue + 'text-margin-x').pfValue,
                         We = ae.pstyle(Ue + 'text-margin-y').pfValue,
-                        Fe = Be.x1 - Ze - Me,
-                        qe = Be.x2 + Ze - Me,
-                        Z = Be.y1 - Ze - We,
-                        ie = Be.y2 + Ze - We
+                        Be = Oe.x1 - Ze - Me,
+                        qe = Oe.x2 + Ze - Me,
+                        Z = Oe.y1 - Ze - We,
+                        ie = Oe.y2 + Ze - We
                     if (De) {
                         var Ce = Math.cos(De),
                             be = Math.sin(De),
@@ -34822,18 +34824,18 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     { x: re * Ce - B * be + Ee, y: re * be + B * Ce + he }
                                 )
                             }
-                        return [Le(Fe, Z), Le(qe, Z), Le(qe, ie), Le(Fe, ie)]
+                        return [Le(Be, Z), Le(qe, Z), Le(qe, ie), Le(Be, ie)]
                     } else
                         return [
-                            { x: Fe, y: Z },
+                            { x: Be, y: Z },
                             { x: qe, y: Z },
                             { x: qe, y: ie },
-                            { x: Fe, y: ie }
+                            { x: Be, y: ie }
                         ]
                 }
                 function v(ae, ue, we, Ze) {
-                    function Ue(Be, Ee, he) {
-                        return (he.y - Be.y) * (Ee.x - Be.x) > (Ee.y - Be.y) * (he.x - Be.x)
+                    function Ue(Oe, Ee, he) {
+                        return (he.y - Oe.y) * (Ee.x - Oe.x) > (Ee.y - Oe.y) * (he.x - Oe.x)
                     }
                     return Ue(ae, we, Ze) !== Ue(ue, we, Ze) && Ue(ae, ue, we) !== Ue(ae, ue, Ze)
                 }
@@ -35385,10 +35387,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         var Ze = Math.abs(q) <= f / 2,
                             Ue = Math.abs(A) <= m / 2
                         if (Ze) {
-                            var Be = (d.y1 + d.y2) / 2,
+                            var Oe = (d.y1 + d.y2) / 2,
                                 Ee = d.x1,
                                 he = d.x2
-                            a.segpts = [Ee, Be, he, Be]
+                            a.segpts = [Ee, Oe, he, Oe]
                         } else if (Ue) {
                             var De = (d.x1 + d.x2) / 2,
                                 Me = d.y1,
@@ -35397,10 +35399,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         } else a.segpts = [d.x2, d.y1]
                     }
                 else if (z) {
-                    var Fe = d.y1 + U + (h ? (c / 2) * _ : 0),
+                    var Be = d.y1 + U + (h ? (c / 2) * _ : 0),
                         qe = d.x1,
                         Z = d.x2
-                    a.segpts = [qe, Fe, Z, Fe]
+                    a.segpts = [qe, Be, Z, Be]
                 } else {
                     var ie = d.x1 + U + (h ? (f / 2) * _ : 0),
                         Ce = d.y1,
@@ -35409,9 +35411,9 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 }
                 if (a.isRound) {
                     var Le = t.pstyle('taxi-radius').value,
-                        xe = t.pstyle('radius-type').value[0] === 'arc-radius'
+                        ve = t.pstyle('radius-type').value[0] === 'arc-radius'
                     ;((a.radii = new Array(a.segpts.length / 2).fill(Le)),
-                        (a.isArcRadius = new Array(a.segpts.length / 2).fill(xe)))
+                        (a.isArcRadius = new Array(a.segpts.length / 2).fill(ve)))
                 }
             }
             da.tryToCorrectInvalidPoints = function (t, e) {
@@ -35429,10 +35431,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         c = e.tgtCornerRadius,
                         p = e.srcRs,
                         m = e.tgtRs,
-                        g = !ve(a.startX) || !ve(a.startY),
-                        h = !ve(a.arrowStartX) || !ve(a.arrowStartY),
-                        v = !ve(a.endX) || !ve(a.endY),
-                        x = !ve(a.arrowEndX) || !ve(a.arrowEndY),
+                        g = !ge(a.startX) || !ge(a.startY),
+                        h = !ge(a.arrowStartX) || !ge(a.arrowStartY),
+                        v = !ge(a.endX) || !ge(a.endY),
+                        x = !ge(a.arrowEndX) || !ge(a.arrowEndY),
                         y = 3,
                         L =
                             this.getArrowWidth(t.pstyle('width').pfValue, t.pstyle('arrow-scale').value) *
@@ -35553,7 +35555,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             }
             da.checkForInvalidEdgeWarning = function (t) {
                 var e = t[0]._private.rscratch
-                e.nodesOverlap || (ve(e.startX) && ve(e.startY) && ve(e.endX) && ve(e.endY))
+                e.nodesOverlap || (ge(e.startX) && ge(e.startY) && ge(e.endX) && ge(e.endY))
                     ? (e.loggedErr = !1)
                     : e.loggedErr ||
                       ((e.loggedErr = !0),
@@ -35617,15 +35619,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     R = o.get(D),
                                     F
                                 if (!R.hasUnbundled) {
-                                    var O = R.eles[0].parallelEdges().filter(function (xe) {
-                                        return xe.isBundledBezier()
+                                    var O = R.eles[0].parallelEdges().filter(function (ve) {
+                                        return ve.isBundledBezier()
                                     })
                                     ;(Gv(R.eles),
-                                        O.forEach(function (xe) {
-                                            return R.eles.push(xe)
+                                        O.forEach(function (ve) {
+                                            return R.eles.push(ve)
                                         }),
-                                        R.eles.sort(function (xe, re) {
-                                            return xe.poolIndex() - re.poolIndex()
+                                        R.eles.sort(function (ve, re) {
+                                            return ve.poolIndex() - re.poolIndex()
                                         }))
                                 }
                                 var z = R.eles[0],
@@ -35671,23 +35673,23 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         Ue = !N.same(ae.source())
                                     if (!R.calculatedIntersection && N !== q && (R.hasBezier || R.hasUnbundled)) {
                                         R.calculatedIntersection = !0
-                                        var Be = ne.intersectLine(T.x, T.y, W, E, U.x, U.y, 0, oe, G),
-                                            Ee = (R.srcIntn = Be),
+                                        var Oe = ne.intersectLine(T.x, T.y, W, E, U.x, U.y, 0, oe, G),
+                                            Ee = (R.srcIntn = Oe),
                                             he = K.intersectLine(U.x, U.y, Y, Q, T.x, T.y, 0, J, V),
                                             De = (R.tgtIntn = he),
-                                            Me = (R.intersectionPts = { x1: Be[0], x2: he[0], y1: Be[1], y2: he[1] }),
+                                            Me = (R.intersectionPts = { x1: Oe[0], x2: he[0], y1: Oe[1], y2: he[1] }),
                                             We = (R.posPts = { x1: T.x, x2: U.x, y1: T.y, y2: U.y }),
-                                            Fe = he[1] - Be[1],
-                                            qe = he[0] - Be[0],
-                                            Z = Math.sqrt(qe * qe + Fe * Fe)
-                                        ;(ve(Z) && Z >= k3) ||
-                                            (Z = Math.sqrt(Math.max(qe * qe, ms) + Math.max(Fe * Fe, ms)))
-                                        var ie = (R.vector = { x: qe, y: Fe }),
+                                            Be = he[1] - Oe[1],
+                                            qe = he[0] - Oe[0],
+                                            Z = Math.sqrt(qe * qe + Be * Be)
+                                        ;(ge(Z) && Z >= k3) ||
+                                            (Z = Math.sqrt(Math.max(qe * qe, ms) + Math.max(Be * Be, ms)))
+                                        var ie = (R.vector = { x: qe, y: Be }),
                                             Ce = (R.vectorNorm = { x: ie.x / Z, y: ie.y / Z }),
                                             be = { x: -Ce.y, y: Ce.x }
                                         ;((R.nodesOverlap =
-                                            !ve(Z) ||
-                                            K.checkPoint(Be[0], Be[1], 0, Y, Q, U.x, U.y, J, V) ||
+                                            !ge(Z) ||
+                                            K.checkPoint(Oe[0], Oe[1], 0, Y, Q, U.x, U.y, J, V) ||
                                             ne.checkPoint(he[0], he[1], 0, W, E, T.x, T.y, oe, G)),
                                             (R.vectorNormInverse = be),
                                             (F = {
@@ -35902,21 +35904,21 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     Ze === 'left' ? (G -= ae) : Ze === 'right' && (G += ae)
                     var Ue = us(T[0], T[1], [G - ae, X - ue, G + ae, X - ue, G + ae, X + ue, G - ae, X + ue], d.x, d.y)
                     if (Ue.length > 0) {
-                        var Be = u,
-                            Ee = Lo(Be, Pi(i)),
-                            he = Lo(Be, Pi(Ue)),
+                        var Oe = u,
+                            Ee = Lo(Oe, Pi(i)),
+                            he = Lo(Oe, Pi(Ue)),
                             De = Ee
                         if ((he < Ee && ((i = Ue), (De = he)), Ue.length > 2)) {
-                            var Me = Lo(Be, { x: Ue[2], y: Ue[3] })
+                            var Me = Lo(Oe, { x: Ue[2], y: Ue[3] })
                             Me < De && (i = [Ue[2], Ue[3]])
                         }
                     }
                 }
                 var We = Hd(i, q, o.arrowShapes[f].spacing(t) + p),
-                    Fe = Hd(i, q, o.arrowShapes[f].gap(t) + p)
+                    Be = Hd(i, q, o.arrowShapes[f].gap(t) + p)
                 if (
-                    ((x.endX = Fe[0]),
-                    (x.endY = Fe[1]),
+                    ((x.endX = Be[0]),
+                    (x.endY = Be[1]),
                     (x.arrowEndX = We[0]),
                     (x.arrowEndY = We[1]),
                     R === 'inside-to-node')
@@ -35947,15 +35949,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         Ce = qe.labelX,
                         be = qe.labelY,
                         Le = Z / 2,
-                        xe = ie / 2,
+                        ve = ie / 2,
                         re = l.pstyle('text-valign').value
-                    re === 'top' ? (be -= xe) : re === 'bottom' && (be += xe)
+                    re === 'top' ? (be -= ve) : re === 'bottom' && (be += ve)
                     var B = l.pstyle('text-halign').value
                     B === 'left' ? (Ce -= Le) : B === 'right' && (Ce += Le)
                     var $ = us(
                         U[0],
                         U[1],
-                        [Ce - Le, be - xe, Ce + Le, be - xe, Ce + Le, be + xe, Ce - Le, be + xe],
+                        [Ce - Le, be - ve, Ce + Le, be - ve, Ce + Le, be + ve, Ce - Le, be + ve],
                         u.x,
                         u.y
                     )
@@ -35977,7 +35979,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     (x.arrowStartX = ye[0]),
                     (x.arrowStartY = ye[1]),
                     b &&
-                        (!ve(x.startX) || !ve(x.startY) || !ve(x.endX) || !ve(x.endY)
+                        (!ge(x.startX) || !ge(x.startY) || !ge(x.endX) || !ge(x.endY)
                             ? (x.badLine = !0)
                             : (x.badLine = !1)))
             }
@@ -36798,12 +36800,12 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             }
                         }
                         if (!ye) return !1
-                        for (var at = t.container, Qe = B.target, Oe = Qe.parentNode, ot = !1; Oe; ) {
-                            if (Oe === at) {
+                        for (var at = t.container, Qe = B.target, Fe = Qe.parentNode, ot = !1; Fe; ) {
+                            if (Fe === at) {
                                 ot = !0
                                 break
                             }
-                            Oe = Oe.parentNode
+                            Fe = Fe.parentNode
                         }
                         return !!ot
                     }
@@ -36853,10 +36855,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                 te.emit(Se('grabon')).emit(Se('grab')))
                                         else {
                                             ye = t.dragData.possibleDragElements = $.collection()
-                                            var Oe = $.$(function (ot) {
+                                            var Fe = $.$(function (ot) {
                                                 return ot.isNode() && ot.selected() && t.nodeIsGrabbable(ot)
                                             })
-                                            ;(g(Oe, { addToList: ye }), te.emit(Se('grabon')), Oe.forEach(Qe))
+                                            ;(g(Fe, { addToList: ye }), te.emit(Se('grabon')), Fe.forEach(Qe))
                                         }
                                         ;(t.redrawHint('eles', !0), t.redrawHint('drag', !0))
                                     }
@@ -36899,7 +36901,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 !t.hoverData.selecting &&
                                 (at = t.findNearestElement(te[0], te[1], !0, !1))
                             var Qe = t.hoverData.last,
-                                Oe = t.hoverData.down,
+                                Fe = t.hoverData.down,
                                 ot = [te[0] - Ne[2], te[1] - Ne[3]],
                                 rt = t.dragData.possibleDragElements,
                                 qt
@@ -36934,7 +36936,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             if (t.hoverData.which === 3) {
                                 if (qt) {
                                     var wr = Bt('cxtdrag')
-                                    ;(Oe ? Oe.emit(wr) : j.emit(wr),
+                                    ;(Fe ? Fe.emit(wr) : j.emit(wr),
                                         (t.hoverData.cxtDragged = !0),
                                         (!t.hoverData.cxtOver || at !== t.hoverData.cxtOver) &&
                                             (t.hoverData.cxtOver && t.hoverData.cxtOver.emit(Bt('cxtdragout')),
@@ -36952,7 +36954,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     ;(j.panBy(Mo), j.emit(Bt('dragpan')), (t.hoverData.dragged = !0))
                                 }
                                 te = t.projectIntoViewport(B.clientX, B.clientY)
-                            } else if (Ne[4] == 1 && (Oe == null || Oe.pannable())) {
+                            } else if (Ne[4] == 1 && (Fe == null || Fe.pannable())) {
                                 if (qt) {
                                     if (
                                         !t.hoverData.dragging &&
@@ -36961,7 +36963,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     )
                                         Ir()
                                     else if (!t.hoverData.selecting && j.panningEnabled() && j.userPanningEnabled()) {
-                                        var Mn = i(Oe, t.hoverData.downs)
+                                        var Mn = i(Fe, t.hoverData.downs)
                                         Mn &&
                                             ((t.hoverData.dragging = !0),
                                             (t.hoverData.justStartedPan = !0),
@@ -36970,37 +36972,37 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             t.redrawHint('select', !0),
                                             t.redraw())
                                     }
-                                    Oe && Oe.pannable() && Oe.active() && Oe.unactivate()
+                                    Fe && Fe.pannable() && Fe.active() && Fe.unactivate()
                                 }
                             } else {
                                 if (
-                                    (Oe && Oe.pannable() && Oe.active() && Oe.unactivate(),
-                                    (!Oe || !Oe.grabbed()) &&
+                                    (Fe && Fe.pannable() && Fe.active() && Fe.unactivate(),
+                                    (!Fe || !Fe.grabbed()) &&
                                         at != Qe &&
                                         (Qe && n(Qe, ['mouseout', 'tapdragout'], B, { x: te[0], y: te[1] }),
                                         at && n(at, ['mouseover', 'tapdragover'], B, { x: te[0], y: te[1] }),
                                         (t.hoverData.last = at)),
-                                    Oe)
+                                    Fe)
                                 )
                                     if (qt) {
                                         if (j.boxSelectionEnabled() && Qt)
-                                            (Oe &&
-                                                Oe.grabbed() &&
+                                            (Fe &&
+                                                Fe.grabbed() &&
                                                 (v(rt),
-                                                Oe.emit(Bt('freeon')),
+                                                Fe.emit(Bt('freeon')),
                                                 rt.emit(Bt('free')),
                                                 t.dragData.didDrag &&
-                                                    (Oe.emit(Bt('dragfreeon')), rt.emit(Bt('dragfree')))),
+                                                    (Fe.emit(Bt('dragfreeon')), rt.emit(Bt('dragfree')))),
                                                 Ir())
-                                        else if (Oe && Oe.grabbed() && t.nodeIsDraggable(Oe)) {
+                                        else if (Fe && Fe.grabbed() && t.nodeIsDraggable(Fe)) {
                                             var xa = !t.dragData.didDrag
                                             ;(xa && t.redrawHint('eles', !0),
                                                 (t.dragData.didDrag = !0),
                                                 t.hoverData.draggingEles || g(rt, { inDragLayer: !0 }))
                                             var na = { x: 0, y: 0 }
-                                            if (ve(ot[0]) && ve(ot[1]) && ((na.x += ot[0]), (na.y += ot[1]), xa)) {
+                                            if (ge(ot[0]) && ge(ot[1]) && ((na.x += ot[0]), (na.y += ot[1]), xa)) {
                                                 var ya = t.hoverData.dragDelta
-                                                ya && ve(ya[0]) && ve(ya[1]) && ((na.x += ya[0]), (na.y += ya[1]))
+                                                ya && ge(ya[0]) && ge(ya[1]) && ((na.x += ya[0]), (na.y += ya[1]))
                                             }
                                             ;((t.hoverData.draggingEles = !0),
                                                 rt.silentShift(na).emit(Bt('position')).emit(Bt('drag')),
@@ -37096,15 +37098,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             t.redrawHint('eles', !0)),
                                         t.hoverData.selecting)
                                     ) {
-                                        var Oe = ee.collection(t.getAllInBox(H[0], H[1], H[2], H[3]))
+                                        var Fe = ee.collection(t.getAllInBox(H[0], H[1], H[2], H[3]))
                                         ;(t.redrawHint('select', !0),
-                                            Oe.length > 0 && t.redrawHint('eles', !0),
+                                            Fe.length > 0 && t.redrawHint('eles', !0),
                                             ee.emit(Ne('boxend')))
                                         var ot = function (kt) {
                                             return kt.selectable() && !kt.selected()
                                         }
-                                        ;(ee.selectionType() === 'additive' || Se || ee.$(a).unmerge(Oe).unselect(),
-                                            Oe.emit(Ne('box')).stdFilter(ot).select().emit(Ne('boxselect')),
+                                        ;(ee.selectionType() === 'additive' || Se || ee.$(a).unmerge(Fe).unselect(),
+                                            Fe.emit(Ne('box')).stdFilter(ot).select().emit(Ne('boxselect')),
                                             t.redraw())
                                     }
                                     if (
@@ -37201,8 +37203,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         (Qe = ee / -250),
                                         N && ((Qe /= q), (Qe *= 3)),
                                         (Qe = Qe * t.wheelSensitivity))
-                                    var Oe = B.deltaMode === 1
-                                    Oe && (Qe *= 33)
+                                    var Fe = B.deltaMode === 1
+                                    Fe && (Qe *= 33)
                                     var ot = te.zoom() * Math.pow(10, Qe)
                                     ;(B.type === 'gesturechange' && (ot = t.gestureStartZoom * B.scale),
                                         te.zoom({ level: ot, renderedPosition: { x: at[0], y: at[1] } }),
@@ -37329,11 +37331,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     at = Ne * Ne
                                 if (K < at && !B.touches[2]) {
                                     var Qe = t.findNearestElement(ee[0], ee[1], !0, !0),
-                                        Oe = t.findNearestElement(ee[2], ee[3], !0, !0)
+                                        Fe = t.findNearestElement(ee[2], ee[3], !0, !0)
                                     ;(Qe && Qe.isNode()
                                         ? (Qe.activate().emit(ce('cxttapstart')), (t.touchData.start = Qe))
-                                        : Oe && Oe.isNode()
-                                          ? (Oe.activate().emit(ce('cxttapstart')), (t.touchData.start = Oe))
+                                        : Fe && Fe.isNode()
+                                          ? (Fe.activate().emit(ce('cxttapstart')), (t.touchData.start = Fe))
                                           : $.emit(ce('cxttapstart')),
                                         t.touchData.start && (t.touchData.start._private.grabbed = !1),
                                         (t.touchData.cxt = !0),
@@ -37403,11 +37405,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     }),
                     !1
                 )
-                var Be
+                var Oe
                 t.registerBinding(
                     e,
                     'touchmove',
-                    (Be = function (B) {
+                    (Oe = function (B) {
                         var $ = t.touchData.capture
                         if (!(!$ && !b(B))) {
                             var ee = t.selection,
@@ -37433,7 +37435,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 Ne = t.touchData.startGPosition,
                                 at
                             if ($ && B.touches[0] && Ne) {
-                                for (var Qe = [], Oe = 0; Oe < H.length; Oe++) Qe[Oe] = H[Oe] - ce[Oe]
+                                for (var Qe = [], Fe = 0; Fe < H.length; Fe++) Qe[Fe] = H[Fe] - ce[Fe]
                                 var ot = B.touches[0].clientX - Ne[0],
                                     rt = ot * ot,
                                     qt = B.touches[0].clientY - Ne[1],
@@ -37578,10 +37580,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             px = !t.dragData.didDrag
                                         ;(px && g(na, { inDragLayer: !0 }), (t.dragData.didDrag = !0))
                                         var Xi = { x: 0, y: 0 }
-                                        if (ve(Qe[0]) && ve(Qe[1]) && ((Xi.x += Qe[0]), (Xi.y += Qe[1]), px)) {
+                                        if (ge(Qe[0]) && ge(Qe[1]) && ((Xi.x += Qe[0]), (Xi.y += Qe[1]), px)) {
                                             t.redrawHint('eles', !0)
                                             var Va = t.touchData.dragDelta
-                                            Va && ve(Va[0]) && ve(Va[1]) && ((Xi.x += Va[0]), (Xi.y += Va[1]))
+                                            Va && ge(Va[0]) && ge(Va[1]) && ((Xi.x += Va[0]), (Xi.y += Va[1]))
                                         }
                                         ;((t.hoverData.draggingEles = !0),
                                             na.silentShift(Xi).emit(Se('position')).emit(Se('drag')),
@@ -37634,7 +37636,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     ;((H[0] = ye[0]), (H[1] = ye[1]))
                                 }
                             }
-                            for (var Oe = 0; Oe < H.length; Oe++) ce[Oe] = H[Oe]
+                            for (var Fe = 0; Fe < H.length; Fe++) ce[Fe] = H[Fe]
                             $ &&
                                 B.touches.length > 0 &&
                                 !t.hoverData.draggingEles &&
@@ -37700,7 +37702,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             }
                             if (!B.touches[2] && H.boxSelectionEnabled() && t.touchData.selecting) {
                                 t.touchData.selecting = !1
-                                var Oe = H.collection(t.getAllInBox(j[0], j[1], j[2], j[3]))
+                                var Fe = H.collection(t.getAllInBox(j[0], j[1], j[2], j[3]))
                                 ;((j[0] = void 0),
                                     (j[1] = void 0),
                                     (j[2] = void 0),
@@ -37711,8 +37713,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 var ot = function (wr) {
                                     return wr.selectable() && !wr.selected()
                                 }
-                                ;(Oe.emit(Ne('box')).stdFilter(ot).select().emit(Ne('boxselect')),
-                                    Oe.nonempty() && t.redrawHint('eles', !0),
+                                ;(Fe.emit(Ne('box')).stdFilter(ot).select().emit(Ne('boxselect')),
+                                    Fe.nonempty() && t.redrawHint('eles', !0),
                                     t.redraw())
                             }
                             if (($?.unactivate(), B.touches[2]))
@@ -37798,7 +37800,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     ),
                     typeof TouchEvent > 'u')
                 ) {
-                    var Fe = [],
+                    var Be = [],
                         qe = function (B) {
                             return {
                                 clientX: B.clientX,
@@ -37818,42 +37820,42 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             return { event: B, touch: qe(B) }
                         },
                         ie = function (B) {
-                            Fe.push(Z(B))
+                            Be.push(Z(B))
                         },
                         Ce = function (B) {
-                            for (var $ = 0; $ < Fe.length; $++) {
-                                var ee = Fe[$]
+                            for (var $ = 0; $ < Be.length; $++) {
+                                var ee = Be[$]
                                 if (ee.event.pointerId === B.pointerId) {
-                                    Fe.splice($, 1)
+                                    Be.splice($, 1)
                                     return
                                 }
                             }
                         },
                         be = function (B) {
-                            var $ = Fe.filter(function (ee) {
+                            var $ = Be.filter(function (ee) {
                                 return ee.event.pointerId === B.pointerId
                             })[0]
                             ;(($.event = B), ($.touch = qe(B)))
                         },
                         Le = function (B) {
-                            B.touches = Fe.map(function ($) {
+                            B.touches = Be.map(function ($) {
                                 return $.touch
                             })
                         },
-                        xe = function (B) {
+                        ve = function (B) {
                             return B.pointerType === 'mouse' || B.pointerType === 4
                         }
                     ;(t.registerBinding(t.container, 'pointerdown', function (re) {
-                        xe(re) || (re.preventDefault(), ie(re), Le(re), Ue(re))
+                        ve(re) || (re.preventDefault(), ie(re), Le(re), Ue(re))
                     }),
                         t.registerBinding(t.container, 'pointerup', function (re) {
-                            xe(re) || (Ce(re), Le(re), he(re))
+                            ve(re) || (Ce(re), Le(re), he(re))
                         }),
                         t.registerBinding(t.container, 'pointercancel', function (re) {
-                            xe(re) || (Ce(re), Le(re), Ee(re))
+                            ve(re) || (Ce(re), Le(re), Ee(re))
                         }),
                         t.registerBinding(t.container, 'pointermove', function (re) {
-                            xe(re) || (re.preventDefault(), be(re), Le(re), Be(re))
+                            ve(re) || (re.preventDefault(), be(re), Le(re), Oe(re))
                         }))
                 }
             }
@@ -38338,7 +38340,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     (e.textureOnViewport = t.textureOnViewport),
                     (e.wheelSensitivity = t.wheelSensitivity),
                     (e.motionBlurEnabled = t.motionBlur),
-                    (e.forcedPixelRatio = ve(t.pixelRatio) ? t.pixelRatio : null),
+                    (e.forcedPixelRatio = ge(t.pixelRatio) ? t.pixelRatio : null),
                     (e.motionBlur = t.motionBlur),
                     (e.motionBlurOpacity = t.motionBlurOpacity),
                     (e.motionBlurTransparency = 1 - e.motionBlurOpacity),
@@ -39937,7 +39939,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     u = e._private,
                     d = u.rscratch,
                     f = e.position()
-                if (!(!ve(f.x) || !ve(f.y)) && !(o && !e.visible())) {
+                if (!(!ge(f.x) || !ge(f.y)) && !(o && !e.visible())) {
                     var c = o ? e.effectiveOpacity() : 1,
                         p = i.usePaths(),
                         m,
@@ -39985,20 +39987,20 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         K = e.pstyle('corner-radius').value
                     K !== 'auto' && (K = e.pstyle('corner-radius').pfValue)
                     var oe = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : R
-                            i.eleFillStyle(t, e, xe)
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : R
+                            i.eleFillStyle(t, e, ve)
                         },
                         J = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : U
-                            i.colorStrokeStyle(t, F[0], F[1], F[2], xe)
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : U
+                            i.colorStrokeStyle(t, F[0], F[1], F[2], ve)
                         },
                         V = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : Q
-                            i.colorStrokeStyle(t, E[0], E[1], E[2], xe)
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : Q
+                            i.colorStrokeStyle(t, E[0], E[1], E[2], ve)
                         },
-                        G = function (xe, re, B, $) {
+                        G = function (ve, re, B, $) {
                             var ee = (i.nodePathCache = i.nodePathCache || []),
-                                j = GA(B === 'polygon' ? B + ',' + $.join(',') : B, '' + re, '' + xe, '' + K),
+                                j = GA(B === 'polygon' ? B + ',' + $.join(',') : B, '' + re, '' + ve, '' + K),
                                 H = ee[j],
                                 ce,
                                 te = !1
@@ -40018,15 +40020,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     }
                     var we = function () {
                             if (!g) {
-                                var xe = f
-                                ;(p && (xe = { x: 0, y: 0 }),
-                                    i.nodeShapes[i.getNodeShape(e)].draw(m || t, xe.x, xe.y, l, s, K, d))
+                                var ve = f
+                                ;(p && (ve = { x: 0, y: 0 }),
+                                    i.nodeShapes[i.getNodeShape(e)].draw(m || t, ve.x, ve.y, l, s, K, d))
                             }
                             p ? t.fill(m) : t.fill()
                         },
                         Ze = function () {
                             for (
-                                var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : c,
+                                var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : c,
                                     re = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : !0,
                                     B = u.backgrounding,
                                     $ = 0,
@@ -40042,19 +40044,19 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 L[ee] &&
                                     I[ee].complete &&
                                     !I[ee].error &&
-                                    ($++, i.drawInscribedImage(t, I[ee], e, ee, xe))
+                                    ($++, i.drawInscribedImage(t, I[ee], e, ee, ve))
                             }
                             ;((u.backgrounding = $ !== C), B !== u.backgrounding && e.updateStyle(!1))
                         },
                         Ue = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : !1,
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : !1,
                                 re = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : c
                             i.hasPie(e) &&
                                 (i.drawPie(t, e, re),
-                                xe && (p || i.nodeShapes[i.getNodeShape(e)].draw(t, f.x, f.y, l, s, K, d)))
+                                ve && (p || i.nodeShapes[i.getNodeShape(e)].draw(t, f.x, f.y, l, s, K, d)))
                         },
-                        Be = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : !1,
+                        Oe = function () {
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : !1,
                                 re = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : c
                             i.hasStripe(e) &&
                                 (t.save(),
@@ -40063,11 +40065,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     : (i.nodeShapes[i.getNodeShape(e)].draw(t, f.x, f.y, l, s, K, d), t.clip()),
                                 i.drawStripe(t, e, re),
                                 t.restore(),
-                                xe && (p || i.nodeShapes[i.getNodeShape(e)].draw(t, f.x, f.y, l, s, K, d)))
+                                ve && (p || i.nodeShapes[i.getNodeShape(e)].draw(t, f.x, f.y, l, s, K, d)))
                         },
                         Ee = function () {
-                            var xe = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : c,
-                                re = (A > 0 ? A : -A) * xe,
+                            var ve = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : c,
+                                re = (A > 0 ? A : -A) * ve,
                                 B = A > 0 ? 0 : 255
                             A !== 0 && (i.colorFillStyle(t, B, B, B, re), p ? t.fill(m) : t.fill())
                         },
@@ -40089,10 +40091,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 if (q !== 'center') {
                                     if ((t.save(), (t.lineWidth *= 2), q === 'inside')) p ? t.clip(m) : t.clip()
                                     else {
-                                        var xe = new Path2D()
-                                        ;(xe.rect(-l / 2 - D, -s / 2 - D, l + 2 * D, s + 2 * D),
-                                            xe.addPath(m),
-                                            t.clip(xe, 'evenodd'))
+                                        var ve = new Path2D()
+                                        ;(ve.rect(-l / 2 - D, -s / 2 - D, l + 2 * D, s + 2 * D),
+                                            ve.addPath(m),
+                                            t.clip(ve, 'evenodd'))
                                     }
                                     ;(p ? t.stroke(m) : t.stroke(), t.restore())
                                 } else p ? t.stroke(m) : t.stroke()
@@ -40121,8 +40123,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             t.setLineDash([])
                                             break
                                     }
-                                var xe = f
-                                p && (xe = { x: 0, y: 0 })
+                                var ve = f
+                                p && (ve = { x: 0, y: 0 })
                                 var re = i.getNodeShape(e),
                                     B = D
                                 ;(q === 'inside' && (B = 0), q === 'outside' && (B *= 2))
@@ -40136,7 +40138,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     var ye = G(j, H, re, ce)
                                     te = ye.path
                                 }
-                                if (re === 'ellipse') i.drawEllipsePath(te || t, xe.x, xe.y, j, H)
+                                if (re === 'ellipse') i.drawEllipsePath(te || t, ve.x, ve.y, j, H)
                                 else if (
                                     [
                                         'round-diamond',
@@ -40173,7 +40175,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         (K = K === 'auto' ? eD(j, H) : K))
                                     for (
                                         var Qe = j / 2,
-                                            Oe = H / 2,
+                                            Fe = H / 2,
                                             ot = K + (B + W + ne) / 2,
                                             rt = new Array(ce.length / 2),
                                             qt = new Array(ce.length / 2),
@@ -40181,7 +40183,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         kt < ce.length / 2;
                                         kt++
                                     )
-                                        rt[kt] = { x: xe.x + Ne + Qe * ce[kt * 2], y: xe.y + at + Oe * ce[kt * 2 + 1] }
+                                        rt[kt] = { x: ve.x + Ne + Qe * ce[kt * 2], y: ve.y + at + Fe * ce[kt * 2 + 1] }
                                     var fa,
                                         Mt,
                                         Xt,
@@ -40193,26 +40195,26 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             (qt[fa] = ox(Mt, Xt, zt, ot)),
                                             (Mt = Xt),
                                             (Xt = zt))
-                                    i.drawRoundPolygonPath(te || t, xe.x + Ne, xe.y + at, l * $, s * ee, ce, qt)
+                                    i.drawRoundPolygonPath(te || t, ve.x + Ne, ve.y + at, l * $, s * ee, ce, qt)
                                 } else if (['roundrectangle', 'round-rectangle'].includes(re))
                                     ((K = K === 'auto' ? wn(j, H) : K),
-                                        i.drawRoundRectanglePath(te || t, xe.x, xe.y, j, H, K + (B + W + ne) / 2))
+                                        i.drawRoundRectanglePath(te || t, ve.x, ve.y, j, H, K + (B + W + ne) / 2))
                                 else if (['cutrectangle', 'cut-rectangle'].includes(re))
                                     ((K = K === 'auto' ? $v() : K),
-                                        i.drawCutRectanglePath(te || t, xe.x, xe.y, j, H, null, K + (B + W + ne) / 4))
+                                        i.drawCutRectanglePath(te || t, ve.x, ve.y, j, H, null, K + (B + W + ne) / 4))
                                 else if (['bottomroundrectangle', 'bottom-round-rectangle'].includes(re))
                                     ((K = K === 'auto' ? wn(j, H) : K),
-                                        i.drawBottomRoundRectanglePath(te || t, xe.x, xe.y, j, H, K + (B + W + ne) / 2))
-                                else if (re === 'barrel') i.drawBarrelPath(te || t, xe.x, xe.y, j, H)
+                                        i.drawBottomRoundRectanglePath(te || t, ve.x, ve.y, j, H, K + (B + W + ne) / 2))
+                                else if (re === 'barrel') i.drawBarrelPath(te || t, ve.x, ve.y, j, H)
                                 else if (
                                     re.startsWith('polygon') ||
                                     ['rhomboid', 'right-rhomboid', 'round-tag', 'tag', 'vee'].includes(re)
                                 ) {
                                     var Ur = (B + W + ne) / l
-                                    ;((ce = cf(pf(ce, Ur))), i.drawPolygonPath(te || t, xe.x, xe.y, l, s, ce))
+                                    ;((ce = cf(pf(ce, Ur))), i.drawPolygonPath(te || t, ve.x, ve.y, l, s, ce))
                                 } else {
                                     var Bt = (B + W + ne) / l
-                                    ;((ce = cf(pf(ce, -Bt))), i.drawPolygonPath(te || t, xe.x, xe.y, l, s, ce))
+                                    ;((ce = cf(pf(ce, -Bt))), i.drawPolygonPath(te || t, ve.x, ve.y, l, s, ce))
                                 }
                                 if ((p ? t.stroke(te) : t.stroke(), Y === 'double')) {
                                     t.lineWidth = B / 3
@@ -40230,7 +40232,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         We = function () {
                             n && i.drawNodeUnderlay(t, e, f, l, s)
                         },
-                        Fe = function () {
+                        Be = function () {
                             i.drawElementText(t, e, null, r)
                         },
                         qe = e.pstyle('ghost').value === 'yes'
@@ -40248,7 +40250,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             J(Ce * U),
                             he(),
                             Ue(A !== 0 || D !== 0),
-                            Be(A !== 0 || D !== 0),
+                            Oe(A !== 0 || D !== 0),
                             Ze(be, !1),
                             Ee(be),
                             t.translate(-Z, -ie))
@@ -40264,11 +40266,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         J(),
                         he(),
                         Ue(A !== 0 || D !== 0),
-                        Be(A !== 0 || D !== 0),
+                        Oe(A !== 0 || D !== 0),
                         Ze(c, !1),
                         Ee(),
                         p && t.translate(-f.x, -f.y),
-                        Fe(),
+                        Be(),
                         Me(),
                         a && t.translate(v.x1, v.y1))
                 }
@@ -42756,15 +42758,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     n = this.findContainerClientCoords(),
                     o = t.full ? Math.ceil(r.w) : n[2],
                     i = t.full ? Math.ceil(r.h) : n[3],
-                    l = ve(t.maxWidth) || ve(t.maxHeight),
+                    l = ge(t.maxWidth) || ge(t.maxHeight),
                     s = this.getPixelRatio(),
                     u = 1
                 if (t.scale !== void 0) ((o *= t.scale), (i *= t.scale), (u = t.scale))
                 else if (l) {
                     var d = 1 / 0,
                         f = 1 / 0
-                    ;(ve(t.maxWidth) && (d = (u * t.maxWidth) / o),
-                        ve(t.maxHeight) && (f = (u * t.maxHeight) / i),
+                    ;(ge(t.maxWidth) && (d = (u * t.maxWidth) / o),
+                        ge(t.maxHeight) && (f = (u * t.maxHeight) / i),
                         (u = Math.min(d, f)),
                         (o *= u),
                         (i *= u))
@@ -43156,19 +43158,19 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             e && !t
                 ? P('div', {
                       className: 'grid min-h-0 flex-1 place-items-center text-muted-foreground',
-                      children: ge('loading')
+                      children: xe('loading')
                   })
                 : t?.unavailable
                   ? P(_i, {
                         icon: P(rn, { className: 'size-7' }),
-                        title: ge('graphUnavailable'),
-                        description: t.error || ge('graphEmptyDescription')
+                        title: xe('graphUnavailable'),
+                        description: t.error || xe('graphEmptyDescription')
                     })
                   : t && !t.enabled
                     ? P(_i, {
                           icon: P(rn, { className: 'size-7' }),
-                          title: ge('graphDisabled'),
-                          description: ge('graphEmptyDescription')
+                          title: xe('graphDisabled'),
+                          description: xe('graphEmptyDescription')
                       })
                     : o.length
                       ? fe('div', {
@@ -43183,13 +43185,13 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             className: 'rounded-md',
                                             children: t?.status || 'ready'
                                         }),
-                                        fe('span', { children: [cn(t?.entityCount ?? o.length), ' ', ge('entities')] }),
+                                        fe('span', { children: [cn(t?.entityCount ?? o.length), ' ', xe('entities')] }),
                                         P('span', { className: 'text-border/80', children: '|' }),
                                         fe('span', {
-                                            children: [cn(t?.relationCount ?? i.length), ' ', ge('relations')]
+                                            children: [cn(t?.relationCount ?? i.length), ' ', xe('relations')]
                                         }),
                                         P('span', { className: 'text-border/80', children: '|' }),
-                                        fe('span', { children: [cn(t?.mentionCount ?? 0), ' ', ge('mentions')] })
+                                        fe('span', { children: [cn(t?.mentionCount ?? 0), ' ', xe('mentions')] })
                                     ]
                                 }),
                                 fe('div', {
@@ -43200,7 +43202,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             ? P('div', {
                                                   className:
                                                       'pointer-events-none absolute right-3 top-3 rounded-md border bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-sm',
-                                                  children: ge('loading')
+                                                  children: xe('loading')
                                               })
                                             : null
                                     ]
@@ -43209,8 +43211,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         })
                       : P(_i, {
                             icon: P(rn, { className: 'size-7' }),
-                            title: ge('graphEmpty'),
-                            description: ge('graphEmptyDescription')
+                            title: xe('graphEmpty'),
+                            description: xe('graphEmptyDescription')
                         })
         )
     }
@@ -43224,12 +43226,12 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         fe('div', {
                             className: 'grid min-w-0 gap-1',
                             children: [
-                                P(Au, { className: 'truncate font-medium', children: e?.name || ge('graph') }),
+                                P(Au, { className: 'truncate font-medium', children: e?.name || xe('graph') }),
                                 P(Du, {
                                     className: 'truncate',
                                     children: e
                                         ? e.type
-                                        : `${cn(t?.entityCount ?? t?.totalNodes ?? 0)} ${ge('entities')} \xB7 ${cn(t?.relationCount ?? t?.totalEdges ?? 0)} ${ge('relations')}`
+                                        : `${cn(t?.entityCount ?? t?.totalNodes ?? 0)} ${xe('entities')} \xB7 ${cn(t?.relationCount ?? t?.totalEdges ?? 0)} ${xe('relations')}`
                                 })
                             ]
                         }),
@@ -43246,7 +43248,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 r && !t
                                     ? P('div', {
                                           className: 'grid min-h-28 place-items-center text-muted-foreground',
-                                          children: ge('loading')
+                                          children: xe('loading')
                                       })
                                     : e
                                       ? fe(Ft, {
@@ -43268,7 +43270,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                     children: [
                                                                         cn(e.mentionCount ?? e.value ?? 0),
                                                                         ' ',
-                                                                        ge('mentions')
+                                                                        xe('mentions')
                                                                     ]
                                                                 }),
                                                                 typeof e.confidence == 'number'
@@ -43276,7 +43278,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                           variant: 'outline',
                                                                           className: 'rounded-md',
                                                                           children: [
-                                                                              ge('confidence'),
+                                                                              xe('confidence'),
                                                                               ' ',
                                                                               XR(e.confidence)
                                                                           ]
@@ -43295,7 +43297,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                     children: [
                                                         P('div', {
                                                             className: 'font-medium',
-                                                            children: ge('relations')
+                                                            children: xe('relations')
                                                         }),
                                                         a.map((i) => {
                                                             let l = i.source === e.id ? i.target : i.source,
@@ -43319,7 +43321,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                 ' \xB7 ',
                                                                                 cn(i.evidenceCount ?? 0),
                                                                                 ' ',
-                                                                                ge('evidence')
+                                                                                xe('evidence')
                                                                             ]
                                                                         })
                                                                     ]
@@ -43332,7 +43334,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                             : P('div', {
                                                                   className:
                                                                       'rounded-lg border border-dashed p-3 text-muted-foreground',
-                                                                  children: ge('graphEmpty')
+                                                                  children: xe('graphEmpty')
                                                               })
                                                     ]
                                                 })
@@ -43340,15 +43342,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                         })
                                       : t?.unavailable
                                         ? P(_i, {
-                                              title: ge('graphUnavailable'),
-                                              description: t.error || ge('graphEmptyDescription')
+                                              title: xe('graphUnavailable'),
+                                              description: t.error || xe('graphEmptyDescription')
                                           })
                                         : t && !t.enabled
                                           ? P(_i, {
-                                                title: ge('graphDisabled'),
-                                                description: ge('graphEmptyDescription')
+                                                title: xe('graphDisabled'),
+                                                description: xe('graphEmptyDescription')
                                             })
-                                          : P(_i, { title: ge('graph'), description: ge('focusEntity') })
+                                          : P(_i, { title: xe('graph'), description: xe('focusEntity') })
                         })
                     })
                 })
@@ -43453,7 +43455,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 fe('div', {
                     className: 'grid min-w-0 flex-1 gap-1',
                     children: [
-                        P('div', { className: 'truncate font-semibold', children: t?.name || ge('knowledgebase') }),
+                        P('div', { className: 'truncate font-semibold', children: t?.name || xe('knowledgebase') }),
                         t?.description
                             ? P('p', {
                                   className: 'truncate text-xs text-muted-foreground/65',
@@ -43469,7 +43471,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     size: 'xs',
                                     className: 'h-5 max-w-[180px] px-1 text-muted-foreground',
                                     onClick: a,
-                                    children: ge('allDocuments')
+                                    children: xe('allDocuments')
                                 }),
                                 e.map((s) =>
                                     fe(
@@ -43494,7 +43496,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     ]
                 }),
                 P(Eo, {
-                    title: ge('manageKnowledgebase'),
+                    title: xe('manageKnowledgebase'),
                     variant: 'ghost',
                     size: 'icon-xs',
                     className: 'shrink-0 text-muted-foreground hover:bg-muted',
@@ -43561,7 +43563,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                     P(Du, {
                                                         className: 'truncate',
                                                         children:
-                                                            o.document.type || o.document.mimeType || ge('document')
+                                                            o.document.type || o.document.mimeType || xe('document')
                                                     })
                                                 ]
                                             }),
@@ -43577,12 +43579,12 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                 P(ri, {
                                                                     value: 'markdown',
                                                                     className: 'rounded-full px-3',
-                                                                    children: ge('markdown')
+                                                                    children: xe('markdown')
                                                                 }),
                                                                 P(ri, {
                                                                     value: 'text',
                                                                     className: 'rounded-full px-3',
-                                                                    children: ge('rawText')
+                                                                    children: xe('rawText')
                                                                 })
                                                             ]
                                                         })
@@ -43592,7 +43594,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                               variant: 'outline',
                                                               size: 'sm',
                                                               onClick: () => f(o.document),
-                                                              children: [P(Ll, {}), ge('open')]
+                                                              children: [P(Ll, {}), xe('open')]
                                                           })
                                                         : null,
                                                     o.document.isFolder
@@ -43634,7 +43636,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                             'flex items-center justify-between gap-2 border-b px-3 py-2 font-medium',
                                                                         children: [
                                                                             fe('span', {
-                                                                                children: [ge('chunks'), ' ', v + 1]
+                                                                                children: [xe('chunks'), ' ', v + 1]
                                                                             }),
                                                                             h.chunkId
                                                                                 ? P('span', {
@@ -43666,7 +43668,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                         : P('div', {
                                                               className:
                                                                   'grid min-h-28 place-items-center text-muted-foreground',
-                                                              children: ge('preview')
+                                                              children: xe('preview')
                                                           })
                                                 ]
                                             })
@@ -43676,7 +43678,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             })
                           : P('div', {
                                 className: 'grid min-h-full place-items-center text-muted-foreground',
-                                children: ge('preview')
+                                children: xe('preview')
                             })
             })
         )
@@ -43732,13 +43734,13 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 we = de(null),
                 Ze = ft(() => Object.values(w), [w]),
                 Ue = ft(() => Ze.map((H) => H.id).join('|'), [Ze]),
-                Be = i.find((H) => H.id === s) ?? null,
+                Oe = i.find((H) => H.id === s) ?? null,
                 Ee = ft(() => t1(m, J), [m, J]),
-                he = Be?.graphEnabled === !0,
+                he = Oe?.graphEnabled === !0,
                 De = O?.nodes ?? [],
                 Me = O?.edges ?? [],
                 We = De.find((H) => H.id === E) ?? null,
-                Fe = We ? Me.filter((H) => H.source === We.id || H.target === We.id) : [],
+                Be = We ? Me.filter((H) => H.source === We.id || H.target === We.id) : [],
                 qe = Re(
                     async (H = {}) => {
                         if (!t) return
@@ -43833,7 +43835,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     nextParentId: null,
                                     nextKbId: ye.knowledgebaseId
                                 }),
-                                bl(ge('sourceHighlighted')))
+                                bl(xe('sourceHighlighted')))
                             return
                         }
                         Dw(te)
@@ -43903,7 +43905,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         b({ document: H, chunks: [], totalChunks: H.chunkNum ?? 0 }),
                         qe({ documentId: H.id }))
                 },
-                xe = (H) => {
+                ve = (H) => {
                     H.isFolder ||
                         S((ce) => {
                             let te = { ...ce }
@@ -43917,7 +43919,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         try {
                             for (let te of ce)
                                 await Mw('upload_document', te, _l({ knowledgebaseId: s, parentId: d, process: !0 }))
-                            ;(bl(ge('uploadDone')), await qe())
+                            ;(bl(xe('uploadDone')), await qe())
                         } catch (te) {
                             bl(Gl(te), 'error')
                         } finally {
@@ -43974,7 +43976,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     children: [
                                         P('span', {
                                             className: 'shrink-0 font-medium text-muted-foreground',
-                                            children: ge('knowledgebase')
+                                            children: xe('knowledgebase')
                                         }),
                                         fe(Ap, {
                                             value: s,
@@ -43984,7 +43986,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                 P(Ep, {
                                                     className:
                                                         'h-9 min-w-0 max-w-[300px] flex-1 bg-card max-[760px]:max-w-none',
-                                                    children: P(Dp, { placeholder: ge('knowledgebase') })
+                                                    children: P(Dp, { placeholder: xe('knowledgebase') })
                                                 }),
                                                 P(Mp, {
                                                     position: 'popper',
@@ -43994,19 +43996,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                 })
                                             ]
                                         }),
-                                        Be
+                                        Oe
                                             ? fe(dr, {
                                                   variant: 'secondary',
                                                   className: 'shrink-0 rounded-md',
-                                                  children: [
-                                                      Be.documentNum ?? 0,
-                                                      ' ',
-                                                      ge('docs'),
-                                                      ' \xB7 ',
-                                                      Be.chunkNum ?? 0,
-                                                      ' ',
-                                                      ge('totalChunks')
-                                                  ]
+                                                  children: [Oe.documentNum ?? 0, ' ', xe('docs')]
                                               })
                                             : null
                                     ]
@@ -44015,7 +44009,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     className: 'flex min-w-0 items-center gap-2 max-[760px]:w-full',
                                     children: [
                                         P(Eo, {
-                                            title: ge('refresh'),
+                                            title: xe('refresh'),
                                             onClick: () => qe(),
                                             disabled: a,
                                             children: P(oi, { className: a ? 'animate-spin' : '' })
@@ -44037,7 +44031,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                             : P('div', {
                                   className:
                                       'grid min-h-24 place-items-center rounded-lg border border-dashed text-muted-foreground',
-                                  children: ge('noKnowledgebase')
+                                  children: xe('noKnowledgebase')
                               }),
                         fe('section', {
                             className:
@@ -44047,7 +44041,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     className: 'flex min-h-0 flex-col overflow-hidden rounded-xl bg-background',
                                     children: [
                                         P(bE, {
-                                            knowledgebase: Be,
+                                            knowledgebase: Oe,
                                             breadcrumb: c,
                                             onRoot: be,
                                             onNavigate: (H) => {
@@ -44067,7 +44061,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                         P('h2', {
                                                             className: 'truncate font-semibold',
                                                             children:
-                                                                R === 'graph' ? ge('graph') : `${ge('content')}(${h})`
+                                                                R === 'graph' ? xe('graph') : `${xe('content')}(${h})`
                                                         }),
                                                         he
                                                             ? P(Nu, {
@@ -44081,12 +44075,12 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                           P(ri, {
                                                                               value: 'documents',
                                                                               className: 'px-2',
-                                                                              children: ge('documentsView')
+                                                                              children: xe('documentsView')
                                                                           }),
                                                                           P(ri, {
                                                                               value: 'graph',
                                                                               className: 'px-2',
-                                                                              children: ge('graphView')
+                                                                              children: xe('graphView')
                                                                           })
                                                                       ]
                                                                   })
@@ -44096,7 +44090,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                             ? fe(dr, {
                                                                   variant: 'secondary',
                                                                   className: 'rounded-md',
-                                                                  children: [Ze.length, ' ', ge('selected')]
+                                                                  children: [Ze.length, ' ', xe('selected')]
                                                               })
                                                             : null
                                                     ]
@@ -44119,7 +44113,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                   value: _,
                                                                                   className:
                                                                                       'h-8 rounded-md border-0 bg-muted/70 pl-8 shadow-none',
-                                                                                  placeholder: ge('search'),
+                                                                                  placeholder: xe('search'),
                                                                                   onChange: (H) => {
                                                                                       ;(Y(null), T(H.target.value))
                                                                                   }
@@ -44136,7 +44130,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                               P(Ep, {
                                                                                   className: 'h-8 w-[136px] bg-card',
                                                                                   children: P(Dp, {
-                                                                                      placeholder: ge('entityType')
+                                                                                      placeholder: xe('entityType')
                                                                                   })
                                                                               }),
                                                                               fe(Mp, {
@@ -44144,7 +44138,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                   children: [
                                                                                       P(Ou, {
                                                                                           value: '__all',
-                                                                                          children: ge('allTypes')
+                                                                                          children: xe('allTypes')
                                                                                       }),
                                                                                       (O?.entityTypes ?? []).map((H) =>
                                                                                           P(
@@ -44164,11 +44158,11 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                 className:
                                                                                     'h-8 rounded-md px-2 text-muted-foreground hover:bg-muted hover:text-foreground',
                                                                                 onClick: () => Y(null),
-                                                                                children: ge('clearFocus')
+                                                                                children: xe('clearFocus')
                                                                             })
                                                                           : null,
                                                                       P(Eo, {
-                                                                          title: ge('refresh'),
+                                                                          title: xe('refresh'),
                                                                           variant: 'ghost',
                                                                           size: 'icon-xs',
                                                                           onClick: () => Z(),
@@ -44198,7 +44192,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                         value: x,
                                                                                         className:
                                                                                             'h-8 rounded-md border-0 bg-muted/70 pl-8 shadow-none',
-                                                                                        placeholder: ge('search'),
+                                                                                        placeholder: xe('search'),
                                                                                         onChange: (H) =>
                                                                                             y(H.target.value)
                                                                                     })
@@ -44206,7 +44200,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                             })
                                                                           : null,
                                                                       P(Eo, {
-                                                                          title: ge('search'),
+                                                                          title: xe('search'),
                                                                           variant: 'ghost',
                                                                           size: 'icon-xs',
                                                                           className: Pe(
@@ -44227,15 +44221,15 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                               ),
                                                                           title:
                                                                               J === 'updated'
-                                                                                  ? ge('sortByUpdated')
-                                                                                  : ge('sortByName'),
+                                                                                  ? xe('sortByUpdated')
+                                                                                  : xe('sortByName'),
                                                                           children: [
                                                                               P(vl, { className: 'size-3.5' }),
-                                                                              ge('sort')
+                                                                              xe('sort')
                                                                           ]
                                                                       }),
                                                                       P(Eo, {
-                                                                          title: ge('newFolder'),
+                                                                          title: xe('newFolder'),
                                                                           variant: 'ghost',
                                                                           size: 'icon-xs',
                                                                           className:
@@ -44245,7 +44239,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                           children: P(Cl, { className: 'size-3.5' })
                                                                       }),
                                                                       P(Eo, {
-                                                                          title: ge('upload'),
+                                                                          title: xe('upload'),
                                                                           variant: 'ghost',
                                                                           size: 'icon-xs',
                                                                           className:
@@ -44286,7 +44280,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                                   selected: !!w[H.id],
                                                                                   onOpen: () =>
                                                                                       H.isFolder ? Ce(H) : Le(H),
-                                                                                  onToggle: () => xe(H)
+                                                                                  onToggle: () => ve(H)
                                                                               },
                                                                               H.id
                                                                           )
@@ -44296,14 +44290,14 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                                       ? P('div', {
                                                                             className:
                                                                                 'grid min-h-28 place-items-center text-muted-foreground',
-                                                                            children: ge('noDocuments')
+                                                                            children: xe('noDocuments')
                                                                         })
                                                                       : null,
                                                                   Ee.length
                                                                       ? P('div', {
                                                                             className:
                                                                                 'pt-4 text-center text-muted-foreground/55',
-                                                                            children: ge('noMore')
+                                                                            children: xe('noMore')
                                                                         })
                                                                       : null
                                                               ]
@@ -44346,7 +44340,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     viewMode: R,
                                     graph: O,
                                     focusedGraphNode: We,
-                                    focusedGraphEdges: Fe,
+                                    focusedGraphEdges: Be,
                                     graphLoading: N,
                                     preview: k,
                                     previewMode: A,
@@ -44357,7 +44351,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                     onOpenOriginal: (H) => {
                                         $(H)
                                     },
-                                    onToggleDocument: xe
+                                    onToggleDocument: ve
                                 })
                             ]
                         }),
@@ -44371,8 +44365,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                 children: [
                                     fe(YI, {
                                         children: [
-                                            P(jI, { children: ge('newFolder') }),
-                                            P(QI, { children: ge('newFolderDescription') })
+                                            P(jI, { children: xe('newFolder') }),
+                                            P(QI, { children: xe('newFolderDescription') })
                                         ]
                                     }),
                                     fe('form', {
@@ -44384,7 +44378,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                             P(Fu, {
                                                 autoFocus: !0,
                                                 value: ae,
-                                                placeholder: ge('folderNamePlaceholder'),
+                                                placeholder: xe('folderNamePlaceholder'),
                                                 onChange: (H) => ue(H.target.value)
                                             }),
                                             fe(ZI, {
@@ -44394,13 +44388,13 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                                                         children: P(Kt, {
                                                             type: 'button',
                                                             variant: 'outline',
-                                                            children: ge('cancel')
+                                                            children: xe('cancel')
                                                         })
                                                     }),
                                                     P(Kt, {
                                                         type: 'submit',
                                                         disabled: !ae.trim() || a,
-                                                        children: ge('create')
+                                                        children: xe('create')
                                                     })
                                                 ]
                                             })

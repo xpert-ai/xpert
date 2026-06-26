@@ -10,7 +10,6 @@ import { DocumentSourceProviderCategoryEnum } from './knowledge-pipeline'
 import { TCopilotModel } from './copilot-model.model'
 import { I18nObject } from '../types'
 
-
 export type DocumentParserConfig = {
   pages?: number[][]
   replaceWhitespace?: boolean
@@ -91,6 +90,19 @@ export enum KBDocumentStatusEnum {
   ERROR = 'error'
 }
 
+export type KnowledgeDocumentIncrementalSyncMode = 'incremental' | 'full' | 'skipped'
+
+export type KnowledgeDocumentLastIncrementalSync = {
+  mode: KnowledgeDocumentIncrementalSyncMode
+  total: number
+  skipped: number
+  added: number
+  updated: number
+  deleted: number
+  embeddingTokens: number
+  processedAt: string
+}
+
 export type TDocumentWebOptions = TRagWebOptions & {
   //
 }
@@ -129,6 +141,26 @@ export type TKnowledgeDocument = {
    */
   sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
   sourceConfig?: TDocSourceConfig
+  /**
+   * Stable source identity used for ingestion-time incremental sync.
+   */
+  sourceKey?: string | null
+  /**
+   * Stable hash of the original source bytes or external source content.
+   */
+  sourceHash?: string | null
+  /**
+   * Stable hash of sourceHash and parser/source processing configuration.
+   */
+  processingHash?: string | null
+  /**
+   * Stable aggregate hash of the ordered processed chunks.
+   */
+  contentHash?: string | null
+  /**
+   * Optimistic-lock version for user edits.
+   */
+  version?: number
   /**
    * document type category
    */
@@ -225,12 +257,12 @@ export interface StandardDocumentMetadata {
   embedTime?: string;                 // Embedding time, e.g. "1.99 sec"
   embedCost?: string | null;          // Embedding cost (if none, display as "-")
   tokens?: number;                    // Number of tokens in the document
+  lastIncrementalSync?: KnowledgeDocumentLastIncrementalSync;
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
   [key: string]: any
 }
-
 
 // export type Metadata = any
 
@@ -360,6 +392,5 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
     ]
   }
 ] as const;
-
 
 export type StandardMetadataFieldKey = typeof STANDARD_METADATA_FIELDS[number]['fields'][number]['key'];

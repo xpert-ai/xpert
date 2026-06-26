@@ -13,10 +13,11 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
+import { environment } from '@cloud/environments/environment'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective, ZardMenuImports } from '@xpert-ai/headless-ui'
 import { TChatElementReference } from '@xpert-ai/contracts'
-import { injectApiBaseUrl, injectToastr } from '../../../@core'
+import { injectToastr, resolveAbsoluteApiBaseUrl } from '../../../@core'
 import {
   createClawXpertManagedServicesBrowserController,
   type ClawXpertManagedServicesBrowserControllerOptions,
@@ -769,7 +770,7 @@ function buildElementReference(context: ElementReferenceContext, element: Elemen
 })
 export class ClawXpertConversationPreviewComponent implements OnDestroy {
   readonly #sanitizer = inject(DomSanitizer)
-  readonly #apiBaseUrl = injectApiBaseUrl()
+  readonly #apiBaseUrl = resolveAbsoluteApiBaseUrl(environment.API_BASE_URL)
   readonly #toastr = injectToastr()
   readonly #document = inject(DOCUMENT)
   #frameCleanup: (() => void) | null = null

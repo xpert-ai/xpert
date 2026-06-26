@@ -4,120 +4,161 @@ import { FormsModule } from '@angular/forms'
 import { XpertTableViewSchema, XpertViewActionDefinition } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import {
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardEmptyComponent,
+  ZardInputDirective,
+  ZardLoaderComponent,
+  ZardTableImports,
+  type ZardTableSortDirection
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-table-view-renderer',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    NgmI18nPipe,
+    ZardButtonComponent,
+    ...ZardCardImports,
+    ZardEmptyComponent,
+    ZardInputDirective,
+    ZardLoaderComponent,
+    ...ZardTableImports
+  ],
   template: `
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3 p-4">
       @if (schema().search?.enabled) {
         <div class="flex items-center gap-2">
           <input
-            class="xp-input flex-1 rounded-full border-divider-regular text-sm text-text-primary"
+            z-input
+            zSize="sm"
+            class="flex-1"
             [(ngModel)]="searchText"
-            [placeholder]="(schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })"
+            [placeholder]="
+              (schema().search?.placeholder | i18n) || ('PAC.ViewExtension.Search' | translate: { Default: 'Search' })
+            "
             (keyup.enter)="applySearch.emit(searchText.trim())"
           />
-          <button
-            type="button"
-            class="rounded-full border border-divider-regular px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-            (click)="applySearch.emit(searchText.trim())"
-          >
+          <button z-button type="button" zType="default" zSize="sm" (click)="applySearch.emit(searchText.trim())">
             {{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
           </button>
         </div>
       }
 
-      <div class="overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg">
-        <table class="min-w-full divide-y divide-divider-subtle text-sm">
-          <thead>
-            <tr class="text-left text-text-tertiary">
-              @for (column of schema().columns; track column.key) {
-                <th class="px-4 py-3 font-medium">
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1"
-                    [disabled]="!column.sortable"
-                    (click)="toggleSort(column.key)"
-                  >
-                    <span>{{ column.label | i18n }}</span>
-                    @if (column.sortable) {
-                      <i class="ri-expand-up-down-line text-xs"></i>
-                    }
-                  </button>
-                </th>
-              }
-              @if (rowActions().length) {
-                <th class="px-4 py-3 text-right font-medium">{{ 'PAC.KEY_WORDS.Action' | translate: { Default: 'Action' } }}</th>
-              }
-            </tr>
-          </thead>
+      <z-card
+        class="gap-0 overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg py-0 shadow-none"
+      >
+        <z-card-content class="overflow-auto p-0">
+          <table z-table zSize="compact" class="min-w-full text-sm">
+            <thead z-table-header>
+              <tr z-table-row class="text-left text-text-tertiary">
+                @for (column of schema().columns; track column.key) {
+                  <th z-table-head class="px-4 py-3 font-medium">
+                    <button
+                      z-table-sort-header
+                      [zDisabled]="!column.sortable"
+                      [zDisableClear]="true"
+                      [zDirection]="sortDirectionFor(column.key)"
+                      (zSortChange)="onSortChange(column.key, $event)"
+                    >
+                      {{ column.label | i18n }}
+                    </button>
+                  </th>
+                }
+                @if (rowActions().length) {
+                  <th z-table-head class="px-4 py-3 text-right font-medium">
+                    {{ 'PAC.KEY_WORDS.Action' | translate: { Default: 'Action' } }}
+                  </th>
+                }
+              </tr>
+            </thead>
 
-          <tbody class="divide-y divide-divider-subtle">
-            @if (loading()) {
-              <tr>
-                <td class="px-4 py-6 text-text-tertiary" [attr.colspan]="schema().columns.length + (rowActions().length ? 1 : 0)">
-                  {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
-                </td>
-              </tr>
-            } @else if (!items().length) {
-              <tr>
-                <td class="px-4 py-6 text-text-tertiary" [attr.colspan]="schema().columns.length + (rowActions().length ? 1 : 0)">
-                  {{ 'PAC.ViewExtension.NoData' | translate: { Default: 'No data' } }}
-                </td>
-              </tr>
-            } @else {
-              @for (item of items(); track trackRow(item)) {
-                <tr>
-                  @for (column of schema().columns; track column.key) {
-                    <td class="px-4 py-3 text-text-primary">
-                      @if (column.dataType === 'datetime' && cellDateValue(item, column.key); as datetimeValue) {
-                        {{ datetimeValue | date: 'medium' }}
-                      } @else {
-                        {{ cellValue(item, column.key) }}
-                      }
-                    </td>
-                  }
-                  @if (rowActions().length) {
-                    <td class="px-4 py-3">
-                      <div class="flex justify-end gap-2">
-                        @for (action of rowActions(); track action.key) {
-                          <button
-                            type="button"
-                            class="rounded-full border border-divider-regular px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-                            (click)="runAction.emit({ action, targetId: trackRow(item) })"
-                          >
-                            {{ action.label | i18n }}
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  }
+            <tbody z-table-body>
+              @if (loading()) {
+                <tr z-table-row>
+                  <td
+                    z-table-cell
+                    class="px-4 py-8"
+                    [attr.colspan]="schema().columns.length + (rowActions().length ? 1 : 0)"
+                  >
+                    <div class="flex items-center gap-2 text-text-tertiary">
+                      <z-loader zSize="sm" />
+                      <span>{{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}</span>
+                    </div>
+                  </td>
                 </tr>
+              } @else if (!items().length) {
+                <tr z-table-row>
+                  <td
+                    z-table-cell
+                    class="px-4 py-8"
+                    [attr.colspan]="schema().columns.length + (rowActions().length ? 1 : 0)"
+                  >
+                    <z-empty zIcon="inbox" [zTitle]="'PAC.ViewExtension.NoData' | translate: { Default: 'No data' }" />
+                  </td>
+                </tr>
+              } @else {
+                @for (item of items(); track trackRow(item)) {
+                  <tr z-table-row>
+                    @for (column of schema().columns; track column.key) {
+                      <td z-table-cell class="px-4 py-3 text-text-primary">
+                        @if (column.dataType === 'datetime' && cellDateValue(item, column.key); as datetimeValue) {
+                          {{ datetimeValue | date: 'medium' }}
+                        } @else {
+                          {{ cellValue(item, column.key) }}
+                        }
+                      </td>
+                    }
+                    @if (rowActions().length) {
+                      <td z-table-cell class="px-4 py-3">
+                        <div class="flex justify-end gap-2">
+                          @for (action of rowActions(); track action.key) {
+                            <button
+                              z-button
+                              type="button"
+                              zType="outline"
+                              zSize="xs"
+                              (click)="runAction.emit({ action, targetId: trackRow(item) })"
+                            >
+                              {{ action.label | i18n }}
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    }
+                  </tr>
+                }
               }
-            }
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </z-card-content>
+      </z-card>
 
       @if (schema().pagination?.enabled) {
         <div class="flex items-center justify-between gap-3 text-sm text-text-secondary">
           <div>{{ 'PAC.ViewExtension.Total' | translate: { Default: 'Total' } }}: {{ total() }}</div>
           <div class="flex items-center gap-2">
             <button
+              z-button
               type="button"
-              class="rounded-full border border-divider-regular px-3 py-1.5 hover:bg-hover-bg disabled:opacity-50"
-              [disabled]="page() <= 1"
+              zType="outline"
+              zSize="sm"
+              [zDisabled]="page() <= 1"
               (click)="changePage.emit(page() - 1)"
             >
               {{ 'PAC.KEY_WORDS.Previous' | translate: { Default: 'Previous' } }}
             </button>
             <span>{{ page() }}</span>
             <button
+              z-button
               type="button"
-              class="rounded-full border border-divider-regular px-3 py-1.5 hover:bg-hover-bg disabled:opacity-50"
-              [disabled]="page() * pageSize() >= total()"
+              zType="outline"
+              zSize="sm"
+              [zDisabled]="page() * pageSize() >= total()"
               (click)="changePage.emit(page() + 1)"
             >
               {{ 'PAC.KEY_WORDS.Next' | translate: { Default: 'Next' } }}
@@ -202,15 +243,18 @@ export class TableViewRendererComponent {
     return value
   }
 
-  toggleSort(columnKey: string) {
+  sortDirectionFor(columnKey: string): ZardTableSortDirection {
     if (this.sortBy() !== columnKey) {
-      this.changeSort.emit({ sortBy: columnKey, sortDirection: 'asc' })
-      return
+      return ''
     }
 
+    return this.sortDirection() ?? ''
+  }
+
+  onSortChange(columnKey: string, direction: ZardTableSortDirection) {
     this.changeSort.emit({
       sortBy: columnKey,
-      sortDirection: this.sortDirection() === 'asc' ? 'desc' : 'asc'
+      sortDirection: direction === 'desc' ? 'desc' : 'asc'
     })
   }
 }

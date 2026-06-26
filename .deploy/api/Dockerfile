@@ -29,6 +29,7 @@ COPY --chown=node:node packages/server/package.json ./packages/server/
 COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
 COPY --chown=node:node packages/analytics/package.json ./packages/analytics/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
+COPY --chown=node:node packages/shadcn-ui/package.json ./packages/shadcn-ui/
 
 COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node pnpm-lock.yaml ./
@@ -50,6 +51,7 @@ RUN rm -rf packages/angular packages/ui
 # Reinstall built-in plugins dependencies
 RUN pnpm install --no-frozen-lockfile
 RUN pnpm build:plugins
+RUN pnpm nx run server-ai:build-remote-components
 RUN pnpm nx build api --verbose
 
 #////////////////////////////////////////////////////////////////////////////////

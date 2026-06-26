@@ -12,8 +12,8 @@ type TestPlugin = PluginMarketplaceCategorizedItem & {
 }
 
 function targetAppMeta(
-  marketplace: NonNullable<PluginTargetAppMeta['data-xpert']>['marketplace'],
-  targetApp: 'xpert' | 'data-xpert' = 'data-xpert'
+  marketplace: NonNullable<PluginTargetAppMeta['xpert']>['marketplace'],
+  targetApp: 'xpert' | 'data-xpert' = 'xpert'
 ): PluginTargetAppMeta {
   const meta: PluginTargetAppMeta = {}
   meta[targetApp] = { marketplace }
@@ -21,7 +21,7 @@ function targetAppMeta(
 }
 
 describe('plugin marketplace categories', () => {
-  it('uses explicit marketplace category from data-xpert target app metadata', () => {
+  it('uses explicit marketplace category from xpert target app metadata', () => {
     const grouping = resolvePluginMarketplaceGrouping({
       category: 'integration',
       targetAppMeta: targetAppMeta({
@@ -35,14 +35,14 @@ describe('plugin marketplace categories', () => {
     })
   })
 
-  it('falls back to xpert marketplace category for legacy metadata', () => {
+  it('falls back to data-xpert marketplace category for legacy metadata', () => {
     const grouping = resolvePluginMarketplaceGrouping({
       category: 'integration',
       targetAppMeta: targetAppMeta(
         {
           category: 'finance'
         },
-        'xpert'
+        'data-xpert'
       )
     })
 
@@ -52,7 +52,7 @@ describe('plugin marketplace categories', () => {
     })
   })
 
-  it('prefers data-xpert marketplace category over xpert metadata', () => {
+  it('prefers xpert marketplace category over data-xpert metadata', () => {
     const grouping = resolvePluginMarketplaceGrouping({
       category: 'integration',
       targetAppMeta: {
@@ -70,7 +70,7 @@ describe('plugin marketplace categories', () => {
     })
 
     expect(grouping).toEqual({
-      category: 'communication',
+      category: 'finance',
       subcategory: undefined
     })
   })

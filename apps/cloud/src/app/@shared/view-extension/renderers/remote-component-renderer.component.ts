@@ -1,5 +1,16 @@
 import { CommonModule, DOCUMENT } from '@angular/common'
-import { Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, viewChild } from '@angular/core'
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+  viewChild
+} from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import {
   XpertExtensionViewManifest,
@@ -47,17 +58,19 @@ type RemoteComponentMessage = {
         {{ error() }}
       </div>
     } @else {
-      <iframe
-        #frame
-        class="block w-full border-0"
-        [class.h-full]="fillAvailableHeight()"
-        [class.min-h-full]="!fillAvailableHeight()"
-        [style.height.px]="fillAvailableHeight() ? null : height()"
-        [attr.title]="manifest().title.en_US"
-        [src]="entryUrl() | safe: 'resourceUrl'"
-        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
-        (load)="handleFrameLoad()"
-      ></iframe>
+      @if (entryUrl()) {
+        <iframe
+          #frame
+          class="block w-full border-0"
+          [class.h-full]="fillAvailableHeight()"
+          [class.min-h-full]="!fillAvailableHeight()"
+          [style.height.px]="fillAvailableHeight() ? null : height()"
+          [attr.title]="manifest().title.en_US"
+          [src]="entryUrl() | safe: 'resourceUrl'"
+          sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+          (load)="handleFrameLoad()"
+        ></iframe>
+      }
     }
   `
 })
@@ -127,7 +140,7 @@ export class RemoteComponentRendererComponent {
         return
       }
 
-      void this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key)
+      void untracked(() => this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key))
     })
 
     effect(() => {
