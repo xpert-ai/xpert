@@ -1,8 +1,6 @@
 import { Request } from 'express'
 import { IncomingHttpHeaders } from 'http'
 
-const RESERVED_TENANT_DOMAIN_LABELS = new Set(['app', 'api', 'www'])
-
 type RequestHeadersLike = {
   headers: IncomingHttpHeaders
 }
@@ -70,12 +68,12 @@ export function extractTenantDomainFromHostname(hostname: string | undefined): s
   }
 
   const parts = normalized.split('.').filter(Boolean)
-  if (parts.length < 2) {
+  if (parts.length < 4) {
     return null
   }
 
   const tenantDomain = parts[0] || null
-  if (!tenantDomain || RESERVED_TENANT_DOMAIN_LABELS.has(tenantDomain)) {
+  if (!tenantDomain) {
     return null
   }
 
