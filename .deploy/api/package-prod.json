@@ -25,6 +25,8 @@
     "keyv": "^5.5.0",
     "langchain": "0.3.31",
     "money-clip": "^3.0.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0",
@@ -32,10 +34,7 @@
     "yaml": "^2.6.1"
   },
   "devDependencies": {},
-  "workspaces": [
-    "packages/*",
-    "packages/plugins/*"
-  ],
+  "workspaces": ["packages/*", "packages/plugins/*"],
   "pnpm": {
     "overrides": {
       "@langchain/core": "0.3.72",

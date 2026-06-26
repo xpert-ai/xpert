@@ -446,8 +446,7 @@ function App() {
                         </Select>
                         {activeKnowledgebase ? (
                             <Badge variant="secondary" className="shrink-0 rounded-md">
-                                {activeKnowledgebase.documentNum ?? 0} {t('docs')} · {activeKnowledgebase.chunkNum ?? 0}{' '}
-                                {t('totalChunks')}
+                                {activeKnowledgebase.documentNum ?? 0} {t('docs')}
                             </Badge>
                         ) : null}
                     </div>
