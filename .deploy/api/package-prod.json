@@ -34,7 +34,7 @@
     "yaml": "^2.6.1"
   },
   "devDependencies": {},
-  "workspaces": ["packages/*", "packages/plugins/*"],
+  "workspaces": ["legacies/*", "packages/*", "packages/plugins/*"],
   "pnpm": {
     "overrides": {
       "@langchain/core": "0.3.72",
