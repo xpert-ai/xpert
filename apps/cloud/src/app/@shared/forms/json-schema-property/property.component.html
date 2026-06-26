@@ -7,6 +7,10 @@
         }
         {{ title | i18n }}
       </div>
+    } @else if (arrayItem()) {
+      <div class="min-w-0 break-all py-1 leading-5 text-text-secondary">
+        {{ 'PAC.KEY_WORDS.ArrayItemTitle' | translate: arrayItemTitleParams() }}
+      </div>
     }
     @if (hasCustomWidget()) {
       @if (meta().description; as desc) {
@@ -49,6 +53,19 @@
       (click)="toggleObjectCollapsed()"
     >
       <i [class]="objectCollapsed() ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"></i>
+    </button>
+  }
+  @if (arrayItem() && !readonly()) {
+    @let deleteLabel = 'PAC.KEY_WORDS.DELETE' | translate: { Default: 'Delete' };
+    <button
+      type="button"
+      class="btn btn-ghost btn-small danger pointer-events-none flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover/item:pointer-events-auto group-hover/item:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+      [attr.aria-label]="deleteLabel"
+      [zTooltip]="deleteLabel"
+      zPosition="top"
+      (click)="removeItem.emit()"
+    >
+      <i class="ri-delete-bin-line"></i>
     </button>
   }
 </div>
@@ -211,29 +228,21 @@
           @case ('array') {
             <div class="flex flex-col gap-1">
               @for (item of value$(); track i; let i = $index) {
-                <div
-                  class="relative flex group/item border border-solid border-transparent rounded-lg"
-                  [class.!border-text-destructive]="item?.__hover__"
-                >
+                <div class="relative flex group/item rounded-lg">
                   <!-- Preserve inherited context so nested item fields can still resolve outer depends metadata. -->
                   <json-schema-property
                     class="flex-1"
                     [schema]="arraySchema().items"
+                    [arrayItem]="true"
+                    [arrayIndex]="i"
+                    [readonly]="readonly()"
+                    [variables]="variables()"
                     [context]="context()"
                     [ngModel]="item"
                     [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="updateArray(i, $event)"
+                    (removeItem)="removeArray(i)"
                   />
-                  <div class="relative shrink-0 px-1 w-0 group-hover/item:w-8">
-                    <button
-                      class="btn btn-small danger flex justify-center items-center w-6 h-6 absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 z-20"
-                      (click)="removeArray(i)"
-                      (mouseenter)="item && (item.__hover__ = true)"
-                      (mouseleave)="item && (item.__hover__ = false)"
-                    >
-                      <i class="ri-delete-bin-line"></i>
-                    </button>
-                  </div>
                 </div>
               } @empty {
                 <div

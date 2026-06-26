@@ -232,6 +232,7 @@
       "LearnMore": "了解更多",
       "NameRequired": "名稱必輸",
       "AddItem": "添加項",
+      "ArrayItemTitle": "第 {{index}} 項",
       "Configured": "已配置",
       "Checklist": "檢查清單",
       "ChecklistTip": "確保發布前所有問題都已解決",

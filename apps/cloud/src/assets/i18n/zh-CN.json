@@ -271,6 +271,7 @@
       "EDIT": "编辑",
       "EXPORT": "导出",
       "GENERAL": "常规",
+      "ArrayItemTitle": "第 {{index}} 项",
       "Items": "项",
       "Unknown": "未知",
       "GROUP": "组",

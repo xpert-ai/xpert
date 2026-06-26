@@ -679,6 +679,7 @@
       "LearnMore": "了解更多",
       "NameRequired": "名称必输",
       "AddItem": "添加项",
+      "ArrayItemTitle": "第 {{index}} 项",
       "Configured": "已配置",
       "Checklist": "检查清单",
       "ChecklistTip": "确保发布前所有问题都已解决",
