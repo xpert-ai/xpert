@@ -1,3 +1,4 @@
+import { Document } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { Command, END } from '@langchain/langgraph'
 import {
@@ -37,6 +38,69 @@ import { KnowledgebaseTaskService } from '../../task/index'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
+
+const SOURCE_IDENTITY_METADATA_KEYS = [
+    'sourceId',
+    'id',
+    'documentId',
+    'docId',
+    'token',
+    'fileToken',
+    'file_token',
+    'objToken',
+    'obj_token',
+    'filePath',
+    'fileUrl',
+    'url'
+]
+
+function isObjectValue(value: unknown): value is object {
+    return typeof value === 'object' && value !== null
+}
+
+function normalizeString(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readStringProperty(value: unknown, key: string): string | null {
+    if (!isObjectValue(value)) {
+        return null
+    }
+
+    return normalizeString(Reflect.get(value, key))
+}
+
+function firstStringProperty(value: unknown, keys: string[]) {
+    for (const key of keys) {
+        const item = readStringProperty(value, key)
+        if (item) {
+            return item
+        }
+    }
+    return null
+}
+
+export function resolveWorkflowSourceDocumentSourceKey(input: {
+    document: Document
+    sourceType?: string | null
+    sourceConfigKey?: string | null
+}) {
+    const explicitSourceKey = readStringProperty(input.document.metadata, 'sourceKey')
+    if (explicitSourceKey) {
+        return explicitSourceKey
+    }
+
+    const sourceLocator =
+        firstStringProperty(input.document.metadata, SOURCE_IDENTITY_METADATA_KEYS) ??
+        normalizeString(input.document.id)
+    if (!sourceLocator) {
+        return null
+    }
+
+    const sourceType = normalizeString(input.sourceType) ?? 'unknown'
+    const sourceConfigKey = normalizeString(input.sourceConfigKey)
+    return sourceConfigKey ? `${sourceType}:${sourceConfigKey}:${sourceLocator}` : `${sourceType}:${sourceLocator}`
+}
 
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
@@ -209,6 +273,14 @@ export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
 						documents = results.map((doc) => ({
 							id: doc.id || shortuuid(),
 							sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
+							sourceKey: resolveWorkflowSourceDocumentSourceKey({
+								document: doc,
+								sourceType: entity.provider,
+								sourceConfigKey: node.key
+							}),
+							sourceConfig: {
+								key: node.key
+							},
 							type: doc.metadata.type,
 							name: doc.metadata.originalName || doc.metadata.title,
 							filePath: doc.metadata.filePath,

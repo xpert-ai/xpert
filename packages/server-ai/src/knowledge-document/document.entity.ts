@@ -20,10 +20,12 @@ import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@xpert-a
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent, VersionColumn } from 'typeorm'
 import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentChunk, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
+@Index('IDX_knowledge_document_kb_source_hash', ['knowledgebaseId', 'sourceHash'])
+@Index('IDX_knowledge_document_kb_source_key', ['knowledgebaseId', 'sourceType', 'sourceKey'])
 @Tree('closure-table') 
 export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata> extends TenantOrganizationBaseEntity implements IKnowledgeDocument<T> {
 	@ApiProperty({ type: () => Boolean })
@@ -41,6 +43,36 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	sourceConfig?: TDocSourceConfig
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ type: 'varchar', nullable: true, length: 512 })
+	sourceKey?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ type: 'varchar', nullable: true, length: 64 })
+	sourceHash?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ type: 'varchar', nullable: true, length: 64 })
+	processingHash?: string | null
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ type: 'varchar', nullable: true, length: 64 })
+	contentHash?: string | null
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@Optional()
+	@VersionColumn({ type: 'int', default: 1 })
+	version?: number
 
 	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
 	@IsEnum(KBDocumentCategoryEnum)

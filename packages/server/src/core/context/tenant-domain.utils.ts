@@ -1,6 +1,11 @@
 import { Request } from 'express'
+import { IncomingHttpHeaders } from 'http'
 
-const RESERVED_TENANT_DOMAIN_LABELS = new Set(['app', 'api', 'www'])
+type RequestHeadersLike = {
+  headers: IncomingHttpHeaders
+}
+
+type RequestPathLike = Pick<Request, 'originalUrl' | 'url' | 'path'>
 
 function normalizeHeaderValue(value: string) {
   return value
@@ -32,7 +37,7 @@ function parseHostValue(value: string | undefined, selector: (url: URL) => strin
   }
 }
 
-export function resolveRequestHost(request: Request): string | undefined {
+export function resolveRequestHost(request: RequestHeadersLike): string | undefined {
   return (
     parseHostValue(getFirstHeaderValue(request.headers['x-forwarded-host']), (url) => url.host) ??
     parseHostValue(getFirstHeaderValue(request.headers.host), (url) => url.host) ??
@@ -40,7 +45,7 @@ export function resolveRequestHost(request: Request): string | undefined {
   )
 }
 
-export function resolveRequestHostname(request: Request): string | undefined {
+export function resolveRequestHostname(request: RequestHeadersLike): string | undefined {
   return (
     parseHostValue(getFirstHeaderValue(request.headers['x-forwarded-host']), (url) => url.hostname) ??
     parseHostValue(getFirstHeaderValue(request.headers.host), (url) => url.hostname) ??
@@ -63,23 +68,23 @@ export function extractTenantDomainFromHostname(hostname: string | undefined): s
   }
 
   const parts = normalized.split('.').filter(Boolean)
-  if (parts.length < 2) {
+  if (parts.length < 4) {
     return null
   }
 
   const tenantDomain = parts[0] || null
-  if (!tenantDomain || RESERVED_TENANT_DOMAIN_LABELS.has(tenantDomain)) {
+  if (!tenantDomain) {
     return null
   }
 
   return tenantDomain
 }
 
-export function resolveTenantDomainFromRequest(request: Request): string | null {
+export function resolveTenantDomainFromRequest(request: RequestHeadersLike): string | null {
   return extractTenantDomainFromHostname(resolveRequestHostname(request))
 }
 
-export function getNormalizedRequestPath(request: Request): string {
+export function getNormalizedRequestPath(request: RequestPathLike): string {
   const rawPath = request.originalUrl || request.url || request.path || '/'
   const pathWithoutQuery = rawPath.split('?')[0] || '/'
   const normalized = pathWithoutQuery.replace(/\/+$/, '')

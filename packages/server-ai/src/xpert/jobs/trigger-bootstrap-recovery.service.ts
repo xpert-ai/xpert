@@ -59,6 +59,7 @@ export class XpertTriggerBootstrapRecoveryService implements OnApplicationBootst
 					latest: true,
 					publishAt: Not(IsNull())
 				},
+				relations: ['createdBy', 'createdBy.role'],
 				order: {
 					createdAt: 'ASC'
 				},
@@ -144,7 +145,13 @@ export class XpertTriggerBootstrapRecoveryService implements OnApplicationBootst
 			await this.commandBus.execute(
 				new XpertPublishTriggersCommand(xpert, {
 					strict: false,
-					providers: replayProviders
+					providers: replayProviders,
+					context: {
+						user: xpert.createdBy ?? null,
+						tenantId: xpert.tenantId,
+						organizationId: xpert.organizationId,
+						language: xpert.createdBy?.preferredLanguage
+					}
 				})
 			)
 

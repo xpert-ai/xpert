@@ -293,6 +293,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @Column({ nullable: true, default: true })
     apiEnabled?: boolean
 
+    @ApiProperty({ type: () => Boolean })
+    @IsBoolean()
+    @IsOptional()
+    @Column({ nullable: true, default: false })
+    incrementalSyncEnabled?: boolean
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()

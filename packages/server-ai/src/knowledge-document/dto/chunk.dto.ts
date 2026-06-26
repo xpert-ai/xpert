@@ -30,6 +30,14 @@ export class DocumentChunkDTO {
 
 	@Expose()
 	@ApiProperty({ type: () => String })
+    contentHash?: string | null
+
+    @Expose()
+    @ApiProperty({ type: () => Number })
+    version?: number
+
+    @Expose()
+    @ApiProperty({ type: () => String })
 	@IsNotEmpty()
 	@IsString()
 	collection_id: string

@@ -547,7 +547,7 @@ export class KnowledgeWorkbenchService {
         )
         const type = normalizeDocumentType(uploaded.name, uploaded.mimeType)
         const category = classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>)
-        const document = await this.documentService.createDocument({
+        const syncResult = await this.documentService.createDocumentWithIncrementalSync({
             knowledgebaseId,
             parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : null,
             sourceType: DocumentSourceProviderCategoryEnum.LocalFile,
@@ -560,12 +560,14 @@ export class KnowledgeWorkbenchService {
             size: String(uploaded.size ?? input.file.size ?? input.file.buffer.length),
             status: KBDocumentStatusEnum.WAITING,
             parserConfig: resolveKnowledgeDocumentParserConfig({ type, category }),
+            sourceHash: uploaded.sourceHash,
             metadata: uploaded.sourceHash ? { sourceHash: uploaded.sourceHash } : undefined
         })
+        const document = syncResult.document
 
         let documents = [document]
         let processingStarted = false
-        if (input.process !== false) {
+        if (input.process !== false && syncResult.shouldProcess) {
             documents = await this.documentService.startProcessing([document.id], knowledgebaseId)
             processingStarted = true
         }

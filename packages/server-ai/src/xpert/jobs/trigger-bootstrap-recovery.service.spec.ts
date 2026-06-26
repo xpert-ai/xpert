@@ -63,8 +63,19 @@ describe('XpertTriggerBootstrapRecoveryService', () => {
 	}
 
 	it('replays only providers marked as replay_publish', async () => {
+		const owner = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			preferredLanguage: 'en',
+			role: {
+				name: 'ADMIN'
+			}
+		}
 		const xpert = {
 			id: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdBy: owner,
 			graph: {
 				nodes: [
 					{
@@ -118,7 +129,13 @@ describe('XpertTriggerBootstrapRecoveryService', () => {
 		expect(command.options).toEqual(
 			expect.objectContaining({
 				strict: false,
-				providers: ['schedule']
+				providers: ['schedule'],
+				context: {
+					user: owner,
+					tenantId: 'tenant-1',
+					organizationId: 'org-1',
+					language: 'en'
+				}
 			})
 		)
 		expect(redisLockService.releaseLock).toHaveBeenCalledWith('job:trigger:xpert-1', 'lock-id')

@@ -86,7 +86,7 @@ export class KnowledgeDocumentSettingsComponent {
   processDocuments() {
     this.kDocumentAPI
       .updateBulk(
-        this.documents().map((doc) => pick(doc, ['id', 'parserConfig', 'options', 'disabled'])),
+        this.documents().map((doc) => pick(doc, ['id', 'parserConfig', 'options', 'disabled', 'version'])),
         true
       )
       .subscribe({

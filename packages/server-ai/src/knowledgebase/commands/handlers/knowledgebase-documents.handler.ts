@@ -194,13 +194,13 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
             archivePath: archive.filePath
         })
 
-        const documents = state.drafts.length ? await this.documentService.createBulk(state.drafts) : []
+        const syncResult = state.drafts.length
+            ? await this.documentService.createBulkWithIncrementalSync(state.drafts)
+            : null
+        const documents = syncResult?.documents ?? []
         let processingStarted = false
-        if (input.process && documents.length) {
-            await this.documentService.startProcessing(
-                documents.map((doc) => doc.id),
-                input.knowledgebaseId
-            )
+        if (input.process && syncResult?.processableIds.length) {
+            await this.documentService.startProcessing(syncResult.processableIds, input.knowledgebaseId)
             processingStarted = true
         }
         if (!documents.length) {
@@ -228,7 +228,7 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
     async execute(command: CreateKnowledgebaseDocumentsCommand) {
         const input = command.input
         await this.knowledgebaseService.assertNotRebuilding(input.knowledgebaseId)
-        const docs = await this.documentService.createBulk(
+        const syncResult = await this.documentService.createBulkWithIncrementalSync(
             input.documents.map((document) => {
                 const type = normalizeDocumentType(document.type, document.name ?? document.filePath, document.mimeType)
                 const category =
@@ -255,12 +255,10 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
                 } satisfies Partial<IKnowledgeDocument>
             })
         )
+        const docs = syncResult.documents
         let processingStarted = false
-        if (input.process && docs.length) {
-            await this.documentService.startProcessing(
-                docs.map((doc) => doc.id),
-                input.knowledgebaseId
-            )
+        if (input.process && syncResult.processableIds.length) {
+            await this.documentService.startProcessing(syncResult.processableIds, input.knowledgebaseId)
             processingStarted = true
         }
         return {
@@ -623,6 +621,7 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
         knowledgebaseId: input.knowledgebaseId,
         sourceType: DocumentSourceProviderCategoryEnum.LocalFile,
         sourceConfig: { key: 'contract-reference-package' },
+        sourceKey: `contract-reference-package:${input.packageId ?? input.packageCode ?? input.archiveDisplayPath}:${virtualPath}`,
         name: path.posix.basename(virtualPath),
         type,
         category,

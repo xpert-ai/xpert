@@ -36,6 +36,7 @@ import { EntitySubscriberInterface } from 'typeorm'
 import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
+import { createCorsOriginMatcher } from './cors-origin'
 
 export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
@@ -84,7 +85,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
 	app.enableCors({
-		origin: [...origins(env.clientBaseUrl), ...origins(...(env.env['CORS_ALLOW_ORIGINS']?.split(',') || []))],
+		origin: createCorsOriginMatcher(env.clientBaseUrl, ...(env.env['CORS_ALLOW_ORIGINS']?.split(',') || [])),
 		credentials: true,
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		allowedHeaders:
@@ -246,21 +247,6 @@ export async function preBootstrapPlugins() {
 			entities: mergedEntities
 		}
 	})
-}
-
-function origins(...urls: string[]) {
-	const results = []
-	for (let url of urls) {
-		url = url.trim()
-		if (url.startsWith('http')) {
-			results.push(url)
-		} else if (url.startsWith('//')) {
-			results.push('http:' + url, 'https:' + url)
-		} else {
-			results.push('http://' + url, 'https://' + url)
-		}
-	}
-	return results.map((u) => u.replace(/\/+$/, ''))
 }
 
 /**

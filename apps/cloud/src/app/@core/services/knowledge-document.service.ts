@@ -33,9 +33,15 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     })
   }
 
-  deleteBulk(ids: string[]) {
+  delete(id: string, version?: number) {
+    return this.httpClient.delete(`${this.apiBaseUrl}/${id}`, {
+      params: version ? { version } : undefined
+    })
+  }
+
+  deleteBulk(documents: Pick<IKnowledgeDocument, 'id' | 'version'>[]) {
     return this.httpClient.delete(this.apiBaseUrl + '/bulk', {
-      body: { ids }
+      body: { documents }
     })
   }
 
@@ -97,8 +103,10 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     })
   }
 
-  deleteChunk(documentId: string, id: string) {
-    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
+  deleteChunk(documentId: string, id: string, version?: number) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, {
+      params: version ? { version } : undefined
+    })
   }
 
   createChunk(documentId: string, chunk: Partial<IKnowledgeDocumentChunk>) {

@@ -1,10 +1,18 @@
-import { buildChunkTree, IIntegration, IKnowledgeDocument, IKnowledgeDocumentChunk, isAudioType, isDocumentSheet, isImageType, isVideoType, KBDocumentCategoryEnum, KBDocumentStatusEnum, TRagWebOptions } from '@xpert-ai/contracts'
 import {
-	CrudController,
-	IntegrationService,
-	ParseJsonPipe,
-	TransformInterceptor,
-} from '@xpert-ai/server-core'
+    buildChunkTree,
+    IIntegration,
+    IKnowledgeDocument,
+    IKnowledgeDocumentChunk,
+    IKnowledgeDocumentUpdateInput,
+    isAudioType,
+    isDocumentSheet,
+    isImageType,
+    isVideoType,
+    KBDocumentCategoryEnum,
+    KBDocumentStatusEnum,
+    TRagWebOptions
+} from '@xpert-ai/contracts'
+import { CrudController, IntegrationService, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
 	BadRequestException,
@@ -41,6 +49,21 @@ import { TVectorSearchParams } from '../knowledgebase'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 
+function parseExpectedVersion(version: unknown) {
+    if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
+        return version
+    }
+
+    if (typeof version === 'string' && version.trim()) {
+        const parsed = Number(version)
+        if (Number.isInteger(parsed) && parsed > 0) {
+            return parsed
+        }
+    }
+
+    throw new BadRequestException('version is required')
+}
+
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
@@ -65,11 +88,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 			entity.progress = 0
 			entity.processMsg = null
 		})
-		const docs = await this.service.createBulk(entities)
-		if (process) {
-			await this.service.startProcessing(docs.map(doc => doc.id))
+        const result = await this.service.createBulkWithIncrementalSync(entities)
+        if (process && result.processableIds.length) {
+            await this.service.startProcessing(result.processableIds)
 		}
-		return docs
+        return result.documents
 	}
 
 	/**
@@ -87,15 +110,25 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 				entity.processMsg = null
 			})
 		}
-		await this.service.updateBulk(entities)
+        await this.service.updateBulkWithVersion(entities)
 		if (process) {
 			await this.service.startProcessing(entities.map(doc => doc.id))
 		}
 	}
 
 	@Delete('bulk')
-	async deleteBulk(@Body('ids') ids: string[]) {
-		return await this.service.deleteBulk(ids)
+    async deleteBulk(@Body() body: { documents?: { id?: string; version?: number }[] }) {
+        return await this.service.deleteBulkWithVersion(body.documents ?? [])
+    }
+
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() entity: IKnowledgeDocumentUpdateInput) {
+        return await this.service.updateWithVersion(id, entity, parseExpectedVersion(entity.version))
+    }
+
+    @Delete(':id')
+    async delete(@Param('id') id: string, @Query('version') version: string) {
+        return await this.service.deleteWithVersion(id, parseExpectedVersion(version))
 	}
 
 	@Post('process')
@@ -277,18 +310,18 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	@Put(':docId/chunk/:id')
 	async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IKnowledgeDocumentChunk) {
 		try {
-			await this.service.updateChunk(docId, id, entity)
+            await this.service.updateChunkWithVersion(docId, id, entity)
 		} catch (err) {
-			throw new InternalServerErrorException(getErrorMessage(err))
+            throw err
 		}
 	}
 
 	@Delete(':docId/chunk/:id')
-	async deleteChunk(@Param('docId') docId: string, @Param('id') id: string) {
+    async deleteChunk(@Param('docId') docId: string, @Param('id') id: string, @Query('version') version: string) {
 		try {
-			await this.service.deleteChunk(docId, id)
+            await this.service.deleteChunkWithVersion(docId, id, parseExpectedVersion(version))
 		} catch (err) {
-			throw new InternalServerErrorException(getErrorMessage(err))
+            throw err
 		}
 	}
 }

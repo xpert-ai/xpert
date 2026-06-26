@@ -74,7 +74,7 @@ describe('AnonymousTenantContextMiddleware', () => {
     expect(next).toHaveBeenCalledWith()
   })
 
-  it('does not inject fallback tenant headers for password login requests', async () => {
+  it('injects fallback tenant headers for password login requests', async () => {
     const fallbackResolution = {
       ...resolution,
       fallbackApplied: true
@@ -90,7 +90,7 @@ describe('AnonymousTenantContextMiddleware', () => {
     await middleware.use(request, {} as MiddlewareResponse, next)
 
     expect(resolver.resolve).toHaveBeenCalledWith(request)
-    expect(request.headers['tenant-id']).toBeUndefined()
+    expect(request.headers['tenant-id']).toBe('tenant-1')
     expect(request.headers['organization-id']).toBeUndefined()
     expect(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY]).toEqual(fallbackResolution)
     expect(next).toHaveBeenCalledWith()
