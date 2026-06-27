@@ -1,7 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { I18nObject, IconDefinition } from '@xpert-ai/contracts'
 import { ZodSchema } from 'zod'
-import { BuiltinToolset } from './builtin'
+import { BuiltinToolset, TBuiltinToolsetParams } from './builtin'
 
 export interface IToolsetStrategy<TConfig = any> {
   /**
@@ -22,7 +22,7 @@ export interface IToolsetStrategy<TConfig = any> {
    */
   validateConfig(config: TConfig): Promise<void>
 
-  create(config: TConfig): Promise<BuiltinToolset>
+  create(config: TConfig, params?: TBuiltinToolsetParams): Promise<BuiltinToolset>
 
   createTools(): DynamicStructuredTool<ZodSchema>[]
 }

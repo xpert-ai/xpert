@@ -1,6 +1,6 @@
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { IXpertTool, JsonSchemaObjectType, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
+import { IXpertTool, JsonSchemaObjectType, JsonSchemaUIExtensions, TToolParameter, TWorkflowVarGroup } from '@cloud/app/@core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -8,6 +8,10 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertVariableInputComponent } from '../../agent'
 import { JSONSchemaFormComponent } from '../../forms'
+
+type JsonSchemaPropertyWithUi = {
+  'x-ui'?: JsonSchemaUIExtensions
+}
 
 /**
  * Compatible with two schema modes:
@@ -50,7 +54,17 @@ export class XpToolParametersFormComponent {
   readonly schema = computed(() => this.tool()?.schema)
   readonly parameterList = computed<TToolParameter[]>(() => {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
-    return parameters?.filter((_) => isNil(_.visible) || _.visible)
+    const schemaProperties = this.jsonSchema()?.properties ?? {}
+    return parameters
+      ?.filter((_) => isNil(_.visible) || _.visible)
+      .map((parameter) => {
+        const xUi = getJsonSchemaUi(schemaProperties[parameter.name])
+        return {
+          ...parameter,
+          label: xUi?.title ?? parameter.label,
+          placeholder: xUi?.description ?? parameter.placeholder
+        }
+      })
   })
   readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchemaObjectType)
 
@@ -68,4 +82,12 @@ export class XpToolParametersFormComponent {
       [name]: event
     }))
   }
+}
+
+function getJsonSchemaUi(property: unknown): JsonSchemaUIExtensions | undefined {
+  return hasJsonSchemaUi(property) ? property['x-ui'] : undefined
+}
+
+function hasJsonSchemaUi(property: unknown): property is JsonSchemaPropertyWithUi {
+  return typeof property === 'object' && property !== null && 'x-ui' in property
 }

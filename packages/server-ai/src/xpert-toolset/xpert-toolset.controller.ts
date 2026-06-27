@@ -321,7 +321,8 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
     @Get(':toolsetId/tools')
     async getToolsetTools(@Param('toolsetId') toolsetId: string) {
         const toolset = await this.service.findOne(toolsetId, { relations: ['tools'] })
-        return toolset.tools
+        const [hydrated] = await this.service.afterLoad([toolset])
+        return hydrated.tools
     }
 
     @UseGuards(ToolsetGuard)

@@ -13,7 +13,7 @@
       </div>
     }
     @if (hasCustomWidget()) {
-      @if (meta().description; as desc) {
+      @if (propertyDescription(); as desc) {
         <i
           class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
           [zTooltip]="desc | i18n"
@@ -94,7 +94,7 @@
         [variable]="xUi().variable"
         [variables]="variables()"
         [placeholder]="
-          (meta().description || meta().title || '' | i18n) +
+          (placeholderMeta() | i18n) +
           (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
         "
         [(ngModel)]="value$"
@@ -107,7 +107,7 @@
           class="w-full h-9"
           [selectOptions]="enumOptions()"
           [placeholder]="
-            (meta().description || meta().title || '' | i18n) +
+            (placeholderMeta() | i18n) +
             (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
           "
           [(ngModel)]="value$"
@@ -123,7 +123,7 @@
                   z-input
                   class="min-h-[160px] resize-y font-mono text-sm"
                   [placeholder]="
-                    (meta().description || meta().title || '' | i18n) +
+                    (placeholderMeta() | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                   "
                   type="text"
@@ -139,7 +139,7 @@
                   z-input
                   class="min-h-9 resize-y text-sm"
                   [placeholder]="
-                    (meta().description || meta().title || '' | i18n) +
+                    (placeholderMeta() | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                   "
                   type="text"
@@ -155,7 +155,7 @@
                   <xpert-variable-input
                     class="w-full px-2 py-1 text-text-primary border-0 rounded-lg bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                     [placeholder]="
-                      (meta().description || meta().title || '' | i18n) +
+                      (placeholderMeta() | i18n) +
                       (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                     "
                     [disabled]="readonly()"
@@ -168,7 +168,7 @@
                   <input
                     z-input
                     [placeholder]="
-                      (meta().description || meta().title || '' | i18n) +
+                      (placeholderMeta() | i18n) +
                       (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                     "
                     [type]="xUiInputType()"
@@ -186,7 +186,7 @@
               z-input
               class="min-h-9 resize-y text-sm"
               [placeholder]="
-                (meta().description || meta().title || '' | i18n) +
+                (placeholderMeta() | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
               "
               type="text"
@@ -201,7 +201,7 @@
             <input
               z-input
               [placeholder]="
-                (meta().description || meta().title || '' | i18n) +
+                (placeholderMeta() | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
               "
               type="number"
@@ -215,7 +215,7 @@
             <input
               z-input
               [placeholder]="
-                (meta().description || meta().title || '' | i18n) +
+                (placeholderMeta() | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
               "
               type="number"
@@ -260,10 +260,10 @@
               [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="update($event)"
             >
-              @if (meta().description) {
+              @if (propertyDescription(); as desc) {
                 <i
                   class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-                  [zTooltip]="meta().description | i18n"
+                  [zTooltip]="desc | i18n"
                 ></i>
               }
             </z-switch>
@@ -299,7 +299,7 @@
                 <xpert-variable-input
                   class="w-full px-2 py-1 text-text-primary border-0 rounded-lg bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                   [placeholder]="
-                    (meta().description || meta().title || '' | i18n) +
+                    (placeholderMeta() | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                   "
                   [disabled]="readonly()"
@@ -312,7 +312,7 @@
                 <input
                   z-input
                   [placeholder]="
-                    (meta().description || meta().title || '' | i18n) +
+                    (placeholderMeta() | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                   "
                   [type]="xUiInputType()"
