@@ -19,6 +19,6 @@ export class CreateToolsetHandler implements ICommandHandler<CreateToolsetComman
 			return null
 		}
 
-		return strategy.create(command.toolset)
+		return strategy.create(command.toolset, command.params)
 	}
 }
