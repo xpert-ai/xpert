@@ -6,10 +6,10 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import * as fs from 'fs'
 import * as path from 'path'
 import { getPositionMap } from '../../../core/utils'
+import { ToolSchemaParser } from '../../../shared'
 import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 import { ListBuiltinToolsQuery } from '../list-builtin-tools.query'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
-import zodToJsonSchema from 'zod-to-json-schema'
 
 @QueryHandler(ListBuiltinToolsQuery)
 export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQuery> {
@@ -55,7 +55,7 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 							},
 							llm: tool.description
 						},
-					schema: zodToJsonSchema(tool.schema)
+					schema: ToolSchemaParser.parseZodToJsonSchema(tool.schema)
 				}))
 
 				return builtinTools

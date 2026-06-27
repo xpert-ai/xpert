@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
 import {
+    IBuiltinTool,
     ITag,
     IUser,
     IXpertToolset,
@@ -18,7 +19,7 @@ import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
-import { ListBuiltinToolProvidersQuery } from './queries'
+import { ListBuiltinToolProvidersQuery, ListBuiltinToolsQuery } from './queries'
 import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
@@ -235,7 +236,52 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
                 })
         }
 
+        await this.hydrateBuiltinToolSchemas(toolsets)
+
         return toolsets
+    }
+
+    private async hydrateBuiltinToolSchemas(toolsets: IXpertToolset[]) {
+        const builtinNames = Array.from(
+            new Set(
+                toolsets
+                    .filter(
+                        (item) =>
+                            item.category === XpertToolsetCategoryEnum.BUILTIN &&
+                            item.type &&
+                            item.tools?.length
+                    )
+                    .map((item) => item.type)
+            )
+        )
+
+        await Promise.all(
+            builtinNames.map(async (provider) => {
+                const builtinTools = await this.queryBus.execute<ListBuiltinToolsQuery, IBuiltinTool[]>(
+                    new ListBuiltinToolsQuery(provider)
+                )
+                const latestTools = new Map(builtinTools.map((tool) => [tool.identity.name, tool]))
+
+                toolsets
+                    .filter(
+                        (toolset) =>
+                            toolset.category === XpertToolsetCategoryEnum.BUILTIN && toolset.type === provider
+                    )
+                    .forEach((toolset) => {
+                        toolset.tools?.forEach((tool) => {
+                            const latestTool = latestTools.get(tool.name)
+                            if (latestTool) {
+                                tool.label ??= latestTool.identity.label
+                                tool.description ??=
+                                    latestTool.description?.human?.zh_Hans ??
+                                    latestTool.description?.human?.en_US ??
+                                    latestTool.description?.llm
+                                tool.schema = latestTool.schema
+                            }
+                        })
+                    })
+            })
+        )
     }
 
     async translate(key: string, options?: TranslateOptions) {

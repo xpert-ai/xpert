@@ -38,7 +38,16 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
             const toolDetails = await this.queryBus.execute<ListBuiltinToolsQuery, IBuiltinTool[]>(
                 new ListBuiltinToolsQuery(tool.toolset.type, [tool.name])
             )
-            tool.provider = toolDetails[0]
+            const latestTool = toolDetails[0]
+            if (latestTool) {
+                tool.provider = latestTool
+                tool.label ??= latestTool.identity.label
+                tool.description ??=
+                    latestTool.description?.human?.zh_Hans ??
+                    latestTool.description?.human?.en_US ??
+                    latestTool.description?.llm
+                tool.schema = latestTool.schema
+            }
         }
 
         return tool
