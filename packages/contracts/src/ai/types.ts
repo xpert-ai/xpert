@@ -85,6 +85,14 @@ export const Attachment_Type_Options: TSelectOption<string, TXpertAttachmentType
 
 export type JsonSchemaUIExtensions = {
   /**
+   * Field title used by generic JSON-schema forms.
+   */
+  title?: I18nObject | string
+  /**
+   * Field description used by generic JSON-schema forms.
+   */
+  description?: I18nObject | string
+  /**
    * UI component variant, or custom component name
    */
   component?: 'textarea' | 'select' | 'radio' | 'checkbox' | 'switch' | 'password' | string
