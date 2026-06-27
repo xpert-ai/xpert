@@ -111,6 +111,7 @@ export type TIntegrationProvider = {
   schema?: TParameterSchema
   features?: IntegrationFeatureEnum[]
   helpUrl?: string
+  helpLabel?: I18nObject
   /**
    * Declarative setup hints consumed by the host integration configuration UI.
    *
