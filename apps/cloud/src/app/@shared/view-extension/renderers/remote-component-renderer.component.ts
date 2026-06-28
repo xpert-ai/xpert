@@ -21,6 +21,7 @@ import {
 } from '@xpert-ai/contracts'
 import { SafePipe } from '@xpert-ai/core'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
+import { environment } from '@cloud/environments/environment'
 import { NgmThemeService } from '@xpert-ai/ocap-angular/core'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import {
@@ -37,6 +38,11 @@ type RemoteComponentThemeMode = 'light' | 'dark'
 type RemoteComponentTheme = {
   mode: RemoteComponentThemeMode
   tokens: Record<string, string>
+}
+
+type RemoteComponentDebugState = {
+  enabled: boolean
+  production: boolean
 }
 
 type RemoteComponentMessage = {
@@ -449,12 +455,20 @@ export class RemoteComponentRendererComponent {
       payload: {},
       initialQuery: this.query(),
       locale: this.#document.documentElement.lang,
-      theme: this.getRemoteTheme()
+      theme: this.getRemoteTheme(),
+      debug: this.getRemoteDebugState()
     })
   }
 
   private getRemoteTheme(): RemoteComponentTheme {
     return createRemoteTheme(this.#document, this.remoteThemeMode())
+  }
+
+  private getRemoteDebugState(): RemoteComponentDebugState {
+    return {
+      enabled: !environment.production,
+      production: environment.production
+    }
   }
 }
 
