@@ -1,8 +1,18 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
+	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
+	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
+	isTenantGlobalScopeKey: (value?: string | null) =>
+		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global'),
+	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
+		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
+	),
+	setDefaultTenantId: jest.fn(),
 	RequestContext: {
 		currentTenantId: jest.fn(),
-		getOrganizationId: jest.fn()
+		getOrganizationId: jest.fn(),
+		getScope: jest.fn()
 	},
 	StrategyBus: class StrategyBus {}
 }))
@@ -21,7 +31,9 @@ jest.mock('node:fs', () => {
 
 jest.mock('./organization-plugin.store', () => ({
 	getOrganizationManifestPath: jest.fn((organizationId: string) => `/tmp/${organizationId}/manifest.json`),
-	getOrganizationPluginPath: jest.fn((organizationId: string, pluginName: string) => `/tmp/${organizationId}/${pluginName}`),
+	getOrganizationPluginPath: jest.fn(
+		(organizationId: string, pluginName: string) => `/tmp/${organizationId}/${pluginName}`
+	),
 	getOrganizationPluginRoot: jest.fn((organizationId: string) => `/tmp/${organizationId}`)
 }))
 
@@ -54,6 +66,7 @@ jest.mock('../core/crud', () => ({
 
 const { IsNull } = require('typeorm')
 const { rmSync } = require('node:fs')
+const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { clearPluginLoadFailure } = require('./plugin.helper')
 const {
 	getOrganizationManifestPath,
@@ -63,12 +76,22 @@ const {
 const { PluginInstanceService } = require('./plugin-instance.service')
 
 describe('PluginInstanceService', () => {
+	const defaultTenantQuery = {
+		select: jest.fn(() => defaultTenantQuery),
+		from: jest.fn(() => defaultTenantQuery),
+		where: jest.fn(() => defaultTenantQuery),
+		limit: jest.fn(() => defaultTenantQuery),
+		getRawOne: jest.fn()
+	}
 	const repo = {
 		delete: jest.fn(),
 		find: jest.fn(),
 		findOne: jest.fn(),
 		save: jest.fn(),
-		create: jest.fn()
+		create: jest.fn((input: any) => input),
+		manager: {
+			createQueryBuilder: jest.fn(() => defaultTenantQuery)
+		}
 	}
 
 	const strategyBus = {
@@ -81,7 +104,21 @@ describe('PluginInstanceService', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
-		getOrganizationManifestPath.mockImplementation((organizationId: string) => `/tmp/${organizationId}/manifest.json`)
+		defaultTenantQuery.select.mockReturnValue(defaultTenantQuery)
+		defaultTenantQuery.from.mockReturnValue(defaultTenantQuery)
+		defaultTenantQuery.where.mockReturnValue(defaultTenantQuery)
+		defaultTenantQuery.limit.mockReturnValue(defaultTenantQuery)
+		defaultTenantQuery.getRawOne.mockResolvedValue({ id: 'default-tenant' })
+		repo.create.mockImplementation((input: any) => input)
+		repo.manager.createQueryBuilder.mockReturnValue(defaultTenantQuery)
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		getOrganizationManifestPath.mockImplementation(
+			(organizationId: string) => `/tmp/${organizationId}/manifest.json`
+		)
 		getOrganizationPluginPath.mockImplementation(
 			(organizationId: string, pluginName: string) => `/tmp/${organizationId}/${pluginName}`
 		)
@@ -99,7 +136,9 @@ describe('PluginInstanceService', () => {
 		const criteria = repo.delete.mock.calls[0][0]
 		expect(criteria.tenantId).toBe('tenant-1')
 		expect(criteria.organizationId).toEqual(IsNull())
-		expect(removePluginsSpy).toHaveBeenCalledWith('__global__', ['@xpert-ai/plugin-broken-demo'])
+		expect(removePluginsSpy).toHaveBeenCalledWith('__global__', ['@xpert-ai/plugin-broken-demo'], {
+			tenantId: 'tenant-1'
+		})
 	})
 
 	it('clears failure cache when removing plugins', async () => {
@@ -145,5 +184,87 @@ describe('PluginInstanceService', () => {
 				}
 			})
 		)
+	})
+
+	it('upserts non-default tenant global plugins without matching other tenants', async () => {
+		repo.findOne.mockResolvedValue(null)
+
+		await service.upsert({
+			tenantId: 'tenant-2',
+			organizationId: '__global__',
+			pluginName: '@xpert-ai/plugin-global-demo',
+			packageName: '@xpert-ai/plugin-global-demo',
+			source: 'marketplace',
+			config: {}
+		} as any)
+
+		expect(repo.findOne).toHaveBeenCalledWith({
+			where: [
+				{
+					tenantId: 'tenant-2',
+					organizationId: IsNull(),
+					pluginName: '@xpert-ai/plugin-global-demo'
+				}
+			]
+		})
+		expect(repo.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-2',
+				organizationId: null,
+				pluginName: '@xpert-ai/plugin-global-demo'
+			})
+		)
+	})
+
+	it('looks up Default Tenant global plugins through legacy null-tenant rows too', async () => {
+		await service.findOneByPluginName('@xpert-ai/plugin-global-demo', '__global__', 'default-tenant')
+
+		expect(repo.findOne).toHaveBeenCalledWith({
+			where: [
+				{
+					tenantId: 'default-tenant',
+					organizationId: IsNull(),
+					pluginName: '@xpert-ai/plugin-global-demo'
+				},
+				{
+					tenantId: IsNull(),
+					organizationId: IsNull(),
+					pluginName: '@xpert-ai/plugin-global-demo'
+				}
+			]
+		})
+	})
+
+	it('lists organization plugins with only that tenant global fallback for non-default tenants', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-2',
+			organizationId: 'org-2'
+		})
+
+		await service.findVisibleInOrganization('org-2')
+
+		expect(repo.find).toHaveBeenCalledWith({
+			where: [
+				{
+					tenantId: 'tenant-2',
+					organizationId: 'org-2'
+				},
+				{
+					tenantId: 'tenant-2',
+					organizationId: IsNull()
+				}
+			]
+		})
+	})
+
+	it('uninstalls non-default tenant global plugins without deleting legacy default rows', async () => {
+		await service.uninstall('tenant-2', '__global__', ['@xpert-ai/plugin-global-demo'])
+
+		expect(repo.delete).toHaveBeenCalledTimes(1)
+		expect(repo.delete).toHaveBeenCalledWith({
+			tenantId: 'tenant-2',
+			organizationId: IsNull(),
+			pluginName: expect.anything()
+		})
 	})
 })

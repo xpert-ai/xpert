@@ -3,7 +3,8 @@ import {
 	IPluginConfigResolver,
 	PLUGIN_CONFIG_RESOLVER_TOKEN,
 	PluginConfigResolveOptions,
-	RequestContext
+	RequestContext,
+	resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable } from '@nestjs/common'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
@@ -22,12 +23,16 @@ export class PluginConfigResolver implements IPluginConfigResolver {
 		const defaults = (options.defaults ?? {}) as TConfig
 		const normalized = normalizePluginName(pluginName)
 		const organizationId = options.organizationId ?? RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const scopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		const fallbackToGlobal = options.fallbackToGlobal !== false
 
 		const scoped =
-			this.findRecord(normalized, organizationId) ??
+			this.findRecord(normalized, scopeKey) ??
 			(fallbackToGlobal && organizationId !== GLOBAL_ORGANIZATION_SCOPE
-				? this.findRecord(normalized, GLOBAL_ORGANIZATION_SCOPE)
+				? this.findRecord(normalized, globalScopeKey)
 				: undefined)
 
 		return {
@@ -36,9 +41,9 @@ export class PluginConfigResolver implements IPluginConfigResolver {
 		}
 	}
 
-	private findRecord(pluginName: string, organizationId: string) {
+	private findRecord(pluginName: string, scopeKey: string) {
 		return this.loadedPlugins.find((plugin) => {
-			if (plugin.organizationId !== organizationId) {
+			if ((plugin.scopeKey ?? plugin.organizationId) !== scopeKey) {
 				return false
 			}
 

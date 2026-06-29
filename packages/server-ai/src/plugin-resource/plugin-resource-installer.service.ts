@@ -41,7 +41,7 @@ import {
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { mkdir } from 'node:fs/promises'
 import { In, Repository } from 'typeorm'
@@ -1218,7 +1218,19 @@ export class PluginResourceInstallerService {
     }
 
     private resolveLoadedPluginRoot(pluginName: string) {
+        const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+        const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+        const organizationScopeKey =
+            organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+        const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
         const record = this.loadedPlugins.find((item) => {
+            const scopeKey = item.scopeKey ?? item.organizationId
+            if (
+                scopeKey !== organizationScopeKey &&
+                (organizationId === GLOBAL_ORGANIZATION_SCOPE || scopeKey !== globalScopeKey)
+            ) {
+                return false
+            }
             const names = [item.name, item.packageName].filter((value): value is string => !!value)
             return names.some((name) => normalizePluginName(name) === pluginName)
         })

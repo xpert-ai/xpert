@@ -30,7 +30,7 @@ import {
 	PluginScopeRelation,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
 import { findPluginLoadFailure } from './plugin.helper'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
@@ -143,7 +143,7 @@ export class PluginController {
 		const config = buildConfig(plugin.name, body.config ?? {}, plugin.instance.config)
 
 		await this.pluginInstanceService.upsert({
-			tenantId: RequestContext.currentTenantId() ?? existing?.tenantId,
+			tenantId: this.getCurrentTenantId() ?? existing?.tenantId,
 			organizationId,
 			pluginName: plugin.name,
 			packageName: existing?.packageName ?? normalizePluginName(plugin.packageName ?? plugin.name),
@@ -310,25 +310,39 @@ export class PluginController {
 
 	private async listVisiblePlugins(names?: string[]) {
 		const organizationId = this.getCurrentOrganizationId()
+		const tenantId = this.getCurrentTenantId()
+		const organizationScopeKey = this.getScopeKey(organizationId, tenantId)
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
 
 		const visiblePlugins = this.loadedPlugins
 			.filter(
 				(plugin) =>
-					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
+					(plugin.scopeKey ?? plugin.organizationId) === organizationScopeKey ||
+					(organizationId !== GLOBAL_ORGANIZATION_SCOPE &&
+						(plugin.scopeKey ?? plugin.organizationId) === globalScopeKey)
 			)
 			.filter(
 				(plugin) =>
 					!normalizedNames ||
 					this.matchesNames(normalizedNames, plugin.name, plugin.packageName, plugin.instance?.meta?.name)
 			)
-		const loadedScopeStates = this.buildLoadedPluginScopeStates(visiblePlugins, organizationId)
+		const loadedScopeStates = this.buildLoadedPluginScopeStates(
+			visiblePlugins,
+			organizationId,
+			organizationScopeKey,
+			globalScopeKey
+		)
 		const loadedDescriptors = await Promise.all(
 			visiblePlugins.map((plugin) => this.toPluginDescriptor(plugin, organizationId, loadedScopeStates))
 		)
 		const loadedKeys = new Set(
 			visiblePlugins.flatMap((plugin) =>
-				this.createDescriptorLookupKeys(plugin.organizationId, plugin.name, plugin.packageName)
+				this.createDescriptorLookupKeys(
+					plugin.scopeKey ?? this.getScopeKey(plugin.organizationId, plugin.tenantId ?? tenantId),
+					plugin.name,
+					plugin.packageName
+				)
 			)
 		)
 		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
@@ -340,14 +354,19 @@ export class PluginController {
 			.filter(
 				(plugin) =>
 					!this.createDescriptorLookupKeys(
-						plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE,
+						this.getScopeKey(
+							plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE,
+							plugin.tenantId ?? tenantId
+						),
 						plugin.pluginName,
 						plugin.packageName
 					).some((key) => loadedKeys.has(key))
 			)
 			.map((plugin) => this.toFailedPluginDescriptor(plugin, organizationId, loadedScopeStates))
 
-		return [...loadedDescriptors, ...failedDescriptors]
+		return [...loadedDescriptors, ...failedDescriptors].filter(
+			(plugin) => plugin.level !== PLUGIN_LEVEL.SYSTEM || RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+		)
 	}
 
 	private async toPluginDescriptor(
@@ -357,6 +376,7 @@ export class PluginController {
 	): Promise<IPluginDescriptor> {
 		const packageName = normalizePluginName(plugin.packageName ?? plugin.name)
 		const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		const scopeKey = plugin.scopeKey ?? this.getScopeKey(scope, plugin.tenantId ?? this.getCurrentTenantId())
 		const canUpdate = canUpdatePlugin(plugin, organizationId) && supportsNpmRegistryUpdates(plugin.source)
 		const instance = await this.pluginInstanceService.findOneByPluginName(plugin.name, plugin.organizationId)
 		const inspected = inspectConfig(
@@ -371,7 +391,7 @@ export class PluginController {
 		const workspacePath = getCodeWorkspacePath(instance?.sourceConfig)
 		const scopeSemantics = this.resolveDescriptorScopeSemantics(
 			this.getNormalizedPluginName(plugin.name, plugin.packageName, plugin.instance?.meta?.name),
-			scope,
+			scopeKey,
 			organizationId,
 			loadedScopeStates
 		)
@@ -412,14 +432,15 @@ export class PluginController {
 		loadedScopeStates: Map<string, LoadedPluginScopeState>
 	): IPluginDescriptor {
 		const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
-		const failure = findPluginLoadFailure(scope, plugin.pluginName, plugin.packageName)
+		const scopeKey = this.getScopeKey(scope, plugin.tenantId ?? this.getCurrentTenantId())
+		const failure = findPluginLoadFailure(scopeKey, plugin.pluginName, plugin.packageName)
 		const loadError =
 			failure?.error ??
 			'This plugin is registered in the database but could not be loaded by the current server process.'
 		const workspacePath = getCodeWorkspacePath(plugin.sourceConfig)
 		const scopeSemantics = this.resolveDescriptorScopeSemantics(
 			this.getNormalizedPluginName(plugin.pluginName, plugin.packageName),
-			scope,
+			scopeKey,
 			organizationId,
 			loadedScopeStates
 		)
@@ -462,7 +483,12 @@ export class PluginController {
 		}
 	}
 
-	private buildLoadedPluginScopeStates(plugins: LoadedPluginRecord[], organizationId: string) {
+	private buildLoadedPluginScopeStates(
+		plugins: LoadedPluginRecord[],
+		organizationId: string,
+		organizationScopeKey: string,
+		globalScopeKey: string
+	) {
 		const states = new Map<string, LoadedPluginScopeState>()
 
 		for (const plugin of plugins) {
@@ -480,18 +506,18 @@ export class PluginController {
 				hasLoadedGlobal: false,
 				hasLoadedOrganization: false
 			}
-			const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+			const scope = plugin.scopeKey ?? plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 
-			if (scope === GLOBAL_ORGANIZATION_SCOPE) {
+			if (scope === globalScopeKey) {
 				state.hasLoadedGlobal = true
-			} else if (scope === organizationId) {
+			} else if (scope === organizationScopeKey) {
 				state.hasLoadedOrganization = true
 			}
 
 			state.effectiveScope = state.hasLoadedOrganization
-				? organizationId
+				? organizationScopeKey
 				: state.hasLoadedGlobal
-					? GLOBAL_ORGANIZATION_SCOPE
+					? globalScopeKey
 					: null
 			states.set(normalizedName, state)
 		}
@@ -501,7 +527,7 @@ export class PluginController {
 
 	private resolveDescriptorScopeSemantics(
 		normalizedName: string,
-		scope: string,
+		scopeKey: string,
 		organizationId: string,
 		loadedScopeStates: Map<string, LoadedPluginScopeState>
 	): Pick<IPluginDescriptor, 'effectiveInCurrentScope' | 'scopeRelation'> {
@@ -515,18 +541,19 @@ export class PluginController {
 
 		if (organizationId === GLOBAL_ORGANIZATION_SCOPE) {
 			return {
-				effectiveInCurrentScope:
-					scope === GLOBAL_ORGANIZATION_SCOPE && state.effectiveScope === GLOBAL_ORGANIZATION_SCOPE,
+				effectiveInCurrentScope: scopeKey === state.effectiveScope,
 				scopeRelation: 'none'
 			}
 		}
 
-		const effectiveInCurrentScope = state.effectiveScope === scope
+		const organizationScopeKey = this.getScopeKey(organizationId, this.getCurrentTenantId())
+		const globalScopeKey = resolveTenantGlobalScopeKey(this.getCurrentTenantId())
+		const effectiveInCurrentScope = state.effectiveScope === scopeKey
 		let scopeRelation: PluginScopeRelation = 'none'
 
-		if (scope === organizationId && effectiveInCurrentScope && state.hasLoadedGlobal) {
+		if (scopeKey === organizationScopeKey && effectiveInCurrentScope && state.hasLoadedGlobal) {
 			scopeRelation = 'overrides-global'
-		} else if (scope === GLOBAL_ORGANIZATION_SCOPE && state.effectiveScope === organizationId) {
+		} else if (scopeKey === globalScopeKey && state.effectiveScope === organizationScopeKey) {
 			scopeRelation = 'shadowed-by-organization'
 		}
 
@@ -553,6 +580,14 @@ export class PluginController {
 
 	private buildPluginScopeKey(scope: string | undefined | null, name: string) {
 		return `${scope ?? GLOBAL_ORGANIZATION_SCOPE}:${normalizePluginName(name)}`
+	}
+
+	private getScopeKey(organizationId: string, tenantId?: string | null) {
+		return organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+	}
+
+	private getCurrentTenantId() {
+		return RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
 	}
 
 	private matchesNames(names: Set<string>, ...candidates: Array<string | undefined>) {

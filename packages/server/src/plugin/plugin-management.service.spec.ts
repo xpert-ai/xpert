@@ -24,9 +24,18 @@ jest.mock('@xpert-ai/contracts', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
+	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
+	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
+	isTenantGlobalScopeKey: (value?: string | null) =>
+		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global'),
+	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
+		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
+	),
 	RequestContext: {
 		getOrganizationId: jest.fn(),
-		currentTenantId: jest.fn()
+		currentTenantId: jest.fn(),
+		getScope: jest.fn()
 	},
 	STRATEGY_META_KEY: 'strategy-meta',
 	StrategyBus: class StrategyBus {},
@@ -108,7 +117,7 @@ jest.mock('./plugin-instance.entity', () => ({
 	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
 }))
 
-const { RequestContext } = require('@xpert-ai/plugin-sdk')
+const { RequestContext, resolveTenantGlobalScopeKey } = require('@xpert-ai/plugin-sdk')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
@@ -136,6 +145,7 @@ class ExistingSubscriber {}
 describe('PluginManagementService', () => {
 	const pluginInstanceService = {
 		findOneByPluginName: jest.fn(),
+		getDefaultTenantId: jest.fn(),
 		uninstall: jest.fn(),
 		uninstallByPackageName: jest.fn(),
 		removePlugins: jest.fn(),
@@ -175,6 +185,9 @@ describe('PluginManagementService', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		resolveTenantGlobalScopeKey.mockImplementation((tenantId?: string | null) =>
+			tenantId && tenantId !== 'tenant-1' ? `tenant:${tenantId}:global` : '__global__'
+		)
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
 		dataSource.options = {
@@ -223,7 +236,12 @@ describe('PluginManagementService', () => {
 		)
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
 		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue(null)
+		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('tenant-1')
 	})
 
 	it('persists a non-blocking configuration warning when install-time config is invalid', async () => {
@@ -424,7 +442,15 @@ describe('PluginManagementService', () => {
 			}),
 			expect.anything()
 		)
-		expect(getOrganizationPluginPath).toHaveBeenCalledWith('org-1', runtimeName)
+		expect(getOrganizationPluginPath).toHaveBeenCalledWith(
+			'org-1',
+			runtimeName,
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				defaultTenantId: 'tenant-1',
+				scopeKey: 'org-1'
+			})
+		)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
 			source: 'code',
@@ -529,6 +555,55 @@ describe('PluginManagementService', () => {
 		)
 		expect(upsertInput.sourceConfig).not.toHaveProperty('packageDir')
 		expect(cleanupExtractedPluginArchive).toHaveBeenCalledWith('/tmp/xpert-plugin-upload-abc')
+	})
+
+	it('installs tenant-scope global plugins into the current tenant scope only', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-other',
+			organizationId: null
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-other')
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-tenant-global',
+				version: '1.0.0',
+				level: 'organization'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-tenant-global'
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-tenant-global',
+				organizationId: '__global__'
+			})
+		)
+
+		expect(registerPluginsAsync).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				organizationId: '__global__',
+				defaultTenantId: 'tenant-1',
+				scopeKey: 'tenant:tenant-other:global'
+			}),
+			expect.anything()
+		)
+		expect((pluginInstanceService as any).uninstallByPackageName).toHaveBeenCalledWith(
+			'tenant-other',
+			'__global__',
+			'@xpert-ai/plugin-tenant-global'
+		)
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				organizationId: '__global__',
+				pluginName: '@xpert-ai/plugin-tenant-global'
+			})
+		)
 	})
 
 	it('rejects direct JSON installs that try to pass an internal packageDir', async () => {
@@ -684,9 +759,14 @@ describe('PluginManagementService', () => {
 		expect(loadPlugin).not.toHaveBeenCalled()
 		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith('org-1', [
-			'@xpert-ai/plugin-system-demo'
-		])
+		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith(
+			'org-1',
+			['@xpert-ai/plugin-system-demo'],
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				defaultTenantId: 'tenant-1'
+			})
+		)
 	})
 
 	it('keeps the post-load system-level guard as a defensive fallback', async () => {
@@ -712,9 +792,14 @@ describe('PluginManagementService', () => {
 
 		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith('org-1', [
-			'@xpert-ai/plugin-system-demo'
-		])
+		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith(
+			'org-1',
+			['@xpert-ai/plugin-system-demo'],
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				defaultTenantId: 'tenant-1'
+			})
+		)
 	})
 
 	it('continues installing when sdk preflight returns compatibility warnings', async () => {

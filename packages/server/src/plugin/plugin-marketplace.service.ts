@@ -16,7 +16,7 @@ import {
 	PluginMeta,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { execFile as execFileCallback } from 'node:child_process'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -302,6 +302,12 @@ export class PluginMarketplaceService {
 		}
 
 		const currentOrganizationId = this.getCurrentOrganizationId()
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const currentScopeKey =
+			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE
+				? resolveTenantGlobalScopeKey(tenantId)
+				: currentOrganizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		const matches = (plugin: LoadedPluginRecord) =>
 			[plugin.name, plugin.packageName, plugin.instance?.meta?.name]
 				.map((value) => this.normalizeOptionalString(value))
@@ -309,9 +315,14 @@ export class PluginMarketplaceService {
 				.some((value) => normalizePluginName(value) === normalizePluginName(normalizedName))
 
 		return (
-			this.loadedPlugins.find((plugin) => plugin.organizationId === currentOrganizationId && matches(plugin)) ??
 			this.loadedPlugins.find(
-				(plugin) => plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE && matches(plugin)
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === currentScopeKey && matches(plugin)
+			) ??
+			this.loadedPlugins.find(
+				(plugin) =>
+					currentOrganizationId !== GLOBAL_ORGANIZATION_SCOPE &&
+					(plugin.scopeKey ?? plugin.organizationId) === globalScopeKey &&
+					matches(plugin)
 			) ??
 			null
 		)
@@ -1083,7 +1094,7 @@ export class PluginMarketplaceService {
 	}
 
 	private getRegistryWhere(id?: string) {
-		const tenantId = RequestContext.currentTenantId()
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
 		return {
 			...(id ? { id } : {}),
 			tenantId: tenantId ?? IsNull()
@@ -2040,8 +2051,16 @@ export class PluginMarketplaceService {
 			}
 		}
 
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const organizationScopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		for (const plugin of this.loadedPlugins) {
-			if (plugin.organizationId !== organizationId && plugin.organizationId !== GLOBAL_ORGANIZATION_SCOPE) {
+			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
+			if (
+				pluginScopeKey !== organizationScopeKey &&
+				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey)
+			) {
 				continue
 			}
 			addName(plugin.name)

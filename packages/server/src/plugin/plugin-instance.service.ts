@@ -1,6 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, StrategyBus } from '@xpert-ai/plugin-sdk'
+import {
+	GLOBAL_ORGANIZATION_SCOPE,
+	RequestContext,
+	resolveTenantGlobalScopeKey,
+	setDefaultTenantId,
+	StrategyBus
+} from '@xpert-ai/plugin-sdk'
+import { DEFAULT_TENANT } from '@xpert-ai/contracts'
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { In, IsNull, Repository } from 'typeorm'
@@ -15,10 +22,12 @@ import {
 import { clearPluginLoadFailure } from './plugin.helper'
 import { normalizePluginSourceConfig } from './source-config'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
+import { resolvePluginScope } from './plugin-scope'
 
 @Injectable()
 export class PluginInstanceService extends TenantOrganizationAwareCrudService<PluginInstance> {
 	private readonly logger = new Logger(PluginInstanceService.name)
+	private defaultTenantId: string | null | undefined
 
 	constructor(
 		@InjectRepository(PluginInstance)
@@ -31,20 +40,20 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 	}
 
 	async upsert(input: PluginInstance) {
-		const organizationId = this.getOrganizationCondition(input.organizationId)
+		const tenantId = input.tenantId ?? this.getCurrentTenantId()
 		const decryptedConfig = input.config ?? {}
 		const hasExplicitSourceConfig = input.sourceConfig !== undefined
+		const where = await this.buildPluginWhere(tenantId, input.organizationId, {
+			pluginName: input.pluginName
+		})
 		const existing = await this.repo.findOne({
-			where: {
-				organizationId,
-				pluginName: input.pluginName
-			}
+			where
 		})
 		const normalizedSourceConfig = normalizePluginSourceConfig(input.source, input.sourceConfig)
 		const persistedSourceConfig = hasExplicitSourceConfig
 			? normalizedSourceConfig
 			: existing && input.source === existing.source
-				? existing.sourceConfig ?? null
+				? (existing.sourceConfig ?? null)
 				: normalizedSourceConfig
 
 		if (existing) {
@@ -56,14 +65,14 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			existing.config = serializePluginConfig(decryptedConfig)
 			existing.configurationStatus = input.configurationStatus ?? null
 			existing.configurationError = input.configurationError ?? null
-			existing.tenantId = input.tenantId ?? existing.tenantId
+			existing.tenantId = tenantId ?? existing.tenantId
 			const entity = await this.repo.save(existing)
-			this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig)
+			this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig, tenantId)
 			return entity
 		}
 
 		const entity = this.repo.create({
-			tenantId: input.tenantId,
+			tenantId,
 			organizationId: this.getOrganizationValue(input.organizationId),
 			pluginName: input.pluginName,
 			packageName: input.packageName,
@@ -76,34 +85,26 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			configurationError: input.configurationError ?? null
 		})
 		const created = await this.create(entity)
-		this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig)
+		this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig, tenantId)
 		return created
 	}
 
-	async findOneByPluginName(pluginName: string, organizationId: string) {
+	async findOneByPluginName(pluginName: string, organizationId: string, tenantId = this.getCurrentTenantId()) {
 		return this.repo.findOne({
-			where: {
-				organizationId: this.getOrganizationCondition(organizationId),
-				pluginName
-			}
+			where: await this.buildPluginWhere(tenantId, organizationId, { pluginName })
 		})
 	}
 
 	async findVisibleInOrganization(organizationId: string) {
-		const tenantId = RequestContext.currentTenantId()
+		const tenantId = this.getCurrentTenantId()
+		const tenantWhere = await this.buildTenantWhereVariants(tenantId)
 		const where = []
 
 		if (organizationId && organizationId !== GLOBAL_ORGANIZATION_SCOPE) {
-			where.push({
-				...(tenantId ? { tenantId } : {}),
-				organizationId
-			})
+			where.push(...tenantWhere.map((item) => ({ ...item, organizationId })))
 		}
 
-		where.push({
-			...(tenantId ? { tenantId } : {}),
-			organizationId: IsNull()
-		})
+		where.push(...tenantWhere.map((item) => ({ ...item, organizationId: IsNull() })))
 
 		return this.repo.find({ where })
 	}
@@ -112,11 +113,18 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		return deserializePluginConfig(instance?.config)
 	}
 
-	syncLoadedPluginConfig(organizationId: string | null | undefined, pluginName: string, config: Record<string, any>) {
+	syncLoadedPluginConfig(
+		organizationId: string | null | undefined,
+		pluginName: string,
+		config: Record<string, any>,
+		tenantId?: string | null
+	) {
 		const scope = organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		const scopeKey = scope === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : scope
 		const plugin = this.loadedPlugins.find(
 			(item) =>
-				item.organizationId === scope && normalizePluginName(item.name) === normalizePluginName(pluginName)
+				(item.scopeKey ?? item.organizationId) === scopeKey &&
+				normalizePluginName(item.name) === normalizePluginName(pluginName)
 		)
 
 		if (plugin) {
@@ -133,29 +141,33 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 	 */
 	async uninstall(tenantId: string, organizationId: string, names: string[]) {
 		const normalizedNames = names.map((name) => normalizePluginName(name))
-		await this.repo.delete({
-			tenantId,
-			organizationId: !organizationId || organizationId === GLOBAL_ORGANIZATION_SCOPE ? IsNull() : organizationId,
-			pluginName: In(normalizedNames)
-		})
+		for (const tenantWhere of await this.buildTenantWhereVariants(tenantId)) {
+			await this.repo.delete({
+				...tenantWhere,
+				organizationId:
+					!organizationId || organizationId === GLOBAL_ORGANIZATION_SCOPE ? IsNull() : organizationId,
+				pluginName: In(normalizedNames)
+			})
+		}
 
-		await this.removePlugins(organizationId, normalizedNames)
+		await this.removePlugins(organizationId, normalizedNames, { tenantId })
 	}
 
 	async uninstallByPackageName(tenantId: string, organizationId: string, packageName: string) {
 		const normalized = normalizePluginName(packageName)
 		const candidates = normalized === packageName ? [packageName] : [packageName, normalized]
+		const tenantWhere = await this.buildTenantWhereVariants(tenantId)
 		const items = await this.repo.find({
-			where: {
-				tenantId,
+			where: tenantWhere.map((item) => ({
+				...item,
 				organizationId:
 					!organizationId || organizationId === GLOBAL_ORGANIZATION_SCOPE ? IsNull() : organizationId,
 				packageName: In(candidates)
-			}
+			}))
 		})
 
 		if (!items.length) {
-			await this.removePlugins(organizationId, [packageName])
+			await this.removePlugins(organizationId, [packageName], { tenantId })
 			return
 		}
 
@@ -163,21 +175,31 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		await this.uninstall(tenantId, organizationId, names)
 	}
 
-	async removePlugins(organizationId: string, names: string[]) {
-		const manifestPath = getOrganizationManifestPath(organizationId)
-		const rootDir = getOrganizationPluginRoot(organizationId)
+	async removePlugins(
+		organizationId: string,
+		names: string[],
+		options: { tenantId?: string | null; defaultTenantId?: string | null } = {}
+	) {
+		const tenantId = options.tenantId ?? this.getCurrentTenantId()
+		const defaultTenantId = options.defaultTenantId ?? (await this.getDefaultTenantId())
+		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId })
+		const storeOptions = { tenantId, defaultTenantId, scopeKey: scope.scopeKey }
+		const manifestPath = getOrganizationManifestPath(organizationId, storeOptions)
+		const rootDir = getOrganizationPluginRoot(organizationId, storeOptions)
 		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
-		clearPluginLoadFailure(organizationId, ...Array.from(normalizedTargets))
+		clearPluginLoadFailure(scope.scopeKey, ...Array.from(normalizedTargets))
 		for (const pluginName of normalizedTargets) {
-			this.strategyBus.remove(organizationId, pluginName)
+			this.strategyBus.remove(scope.scopeKey, pluginName)
 			const pluginIndex = this.loadedPlugins.findIndex(
-				(plugin) => plugin.organizationId === organizationId && plugin.name === pluginName
+				(plugin) =>
+					(plugin.scopeKey ?? plugin.organizationId) === scope.scopeKey &&
+					normalizePluginName(plugin.name) === pluginName
 			)
 			if (pluginIndex !== -1) {
 				this.loadedPlugins.splice(pluginIndex, 1)
 			}
 
-			const pluginDir = getOrganizationPluginPath(organizationId, pluginName)
+			const pluginDir = getOrganizationPluginPath(organizationId, pluginName, storeOptions)
 			rmSync(pluginDir, { recursive: true, force: true })
 
 			const segments = pluginName.split('/')
@@ -221,5 +243,58 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 
 	private getOrganizationCondition(organizationId?: string | null) {
 		return !organizationId || organizationId === GLOBAL_ORGANIZATION_SCOPE ? IsNull() : organizationId
+	}
+
+	async getDefaultTenantId() {
+		if (this.defaultTenantId !== undefined) {
+			return this.defaultTenantId
+		}
+
+		try {
+			const tenant = await this.repo.manager
+				.createQueryBuilder()
+				.select('tenant.id', 'id')
+				.from('tenant', 'tenant')
+				.where('tenant.name = :name', { name: DEFAULT_TENANT })
+				.limit(1)
+				.getRawOne<{ id?: string }>()
+			this.defaultTenantId = tenant?.id ?? null
+			setDefaultTenantId(this.defaultTenantId)
+			return this.defaultTenantId
+		} catch (error) {
+			this.logger.warn(`Failed to resolve default tenant id for plugin scope isolation`, error)
+			this.defaultTenantId = null
+			return this.defaultTenantId
+		}
+	}
+
+	private async buildTenantWhereVariants(tenantId?: string | null) {
+		if (!tenantId) {
+			return [{ tenantId: IsNull() }]
+		}
+
+		const defaultTenantId = await this.getDefaultTenantId()
+		if (defaultTenantId && tenantId === defaultTenantId) {
+			return [{ tenantId }, { tenantId: IsNull() }]
+		}
+
+		return [{ tenantId }]
+	}
+
+	private async buildPluginWhere(
+		tenantId: string | null | undefined,
+		organizationId: string | null | undefined,
+		where: Pick<PluginInstance, 'pluginName'>
+	) {
+		const organizationCondition = this.getOrganizationCondition(organizationId)
+		return (await this.buildTenantWhereVariants(tenantId)).map((tenantWhere) => ({
+			...tenantWhere,
+			organizationId: organizationCondition,
+			...where
+		}))
+	}
+
+	private getCurrentTenantId() {
+		return RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
 	}
 }

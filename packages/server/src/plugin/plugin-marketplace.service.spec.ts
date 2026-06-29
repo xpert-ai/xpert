@@ -5,8 +5,15 @@ import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
+		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
+	),
 	RequestContext: {
 		getOrganizationId: jest.fn(() => 'org-1'),
+		getScope: jest.fn(() => ({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})),
 		currentTenantId: jest.fn(() => 'tenant-1'),
 		currentUserId: jest.fn(() => 'user-1'),
 		hasRole: jest.fn(() => false)

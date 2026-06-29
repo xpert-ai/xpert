@@ -10,7 +10,16 @@ jest.mock('@xpert-ai/server-config', () => ({
 	})
 }))
 
-const { stageWorkspacePlugin } = require('./organization-plugin.store')
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+	GLOBAL_ORGANIZATION_SCOPE: 'global',
+	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
+	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
+	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
+	isTenantGlobalScopeKey: (value?: string | null) =>
+		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global')
+}))
+
+const { getOrganizationPluginRoot, stageWorkspacePlugin } = require('./organization-plugin.store')
 
 describe('organization-plugin.store', () => {
 	const originalWorkspaceRoots = process.env.PLUGIN_WORKSPACE_ROOTS
@@ -39,6 +48,36 @@ describe('organization-plugin.store', () => {
 			process.env.PLUGIN_WORKSPACE_ROOTS = originalWorkspaceRoots
 		}
 		fs.rmSync(tempRoot, { recursive: true, force: true })
+	})
+
+	it('keeps the Default Tenant global plugins in the legacy global folder', () => {
+		expect(
+			getOrganizationPluginRoot('global', {
+				rootDir: pluginRoot,
+				tenantId: 'tenant-default',
+				defaultTenantId: 'tenant-default'
+			})
+		).toBe(path.join(pluginRoot, 'global'))
+	})
+
+	it('stores non-default tenant global plugins in a tenant-isolated folder', () => {
+		expect(
+			getOrganizationPluginRoot('global', {
+				rootDir: pluginRoot,
+				tenantId: 'tenant-other',
+				defaultTenantId: 'tenant-default'
+			})
+		).toBe(path.join(pluginRoot, 'tenants', 'tenant-other', 'global'))
+	})
+
+	it('keeps organization plugin paths unchanged', () => {
+		expect(
+			getOrganizationPluginRoot('org-1', {
+				rootDir: pluginRoot,
+				tenantId: 'tenant-other',
+				defaultTenantId: 'tenant-default'
+			})
+		).toBe(path.join(pluginRoot, 'org-1'))
 	})
 
 	it('copies the workspace by default', () => {

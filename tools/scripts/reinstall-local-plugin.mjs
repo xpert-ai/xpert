@@ -27,6 +27,7 @@ Install options:
   --workspace-path <path>    Plugin workspace path. Relative paths are resolved to absolute paths
   --org-id <id>              Organization-Id header used for org-scoped install
   --tenant-id <id>           Optional Tenant-Id header
+  --scope <scope>            Install scope: organization or tenant
   --token <jwt>              Bearer token used for Authorization header
   --api-url <url>            API origin passed to the install step
   --endpoint <url>           Full install endpoint. Overrides --api-url
@@ -41,6 +42,7 @@ Environment fallbacks:
   XPERT_TOKEN
   XPERT_ORG_ID
   XPERT_TENANT_ID
+  XPERT_SCOPE
   XPERT_PLUGIN_BUILD_COMMAND
   XPERT_PLUGIN_BUILD_CWD
 
@@ -219,6 +221,9 @@ function buildInstallArgs(args, workspacePath, pluginName) {
   }
   if (args.tenantId) {
     installArgs.push('--tenant-id', args.tenantId)
+  }
+  if (args.scope) {
+    installArgs.push('--scope', args.scope)
   }
   if (args.token) {
     installArgs.push('--token', args.token)

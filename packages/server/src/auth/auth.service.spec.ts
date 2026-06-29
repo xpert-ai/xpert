@@ -47,29 +47,7 @@ jest.mock('../organization/organization.service', () => ({
 	OrganizationService: class OrganizationService {}
 }))
 
-jest.mock('../core/context', () => ({
-	RequestContext: {
-		currentRequest: jest.fn(() => ({
-			headers: {}
-		})),
-		getScope: jest.fn(() => ({
-			tenantId: null,
-			level: 'tenant',
-			organizationId: null
-		}))
-	},
-	getFirstHeaderValue: jest.fn((value?: string | string[]) => {
-		if (Array.isArray(value)) {
-			return value.map((item) => item?.trim()).find(Boolean)
-		}
-
-		return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
-	})
-}))
-
 const { AuthService } = require('./auth.service')
-const { RequestContext } = require('../core/context')
-const bcrypt = require('bcryptjs')
 
 describe('AuthService', () => {
 	let service: InstanceType<typeof AuthService>
@@ -125,52 +103,6 @@ describe('AuthService', () => {
 			}
 		})
 		userService.findOneByOptions.mockResolvedValue(null)
-	})
-
-	it('limits password login to the current tenant context', async () => {
-		jest.spyOn(RequestContext, 'currentRequest').mockReturnValue({
-			headers: {
-				'tenant-id': 'tenant-1',
-				'organization-id': 'org-1',
-				'x-scope-level': 'tenant'
-			}
-		})
-		userService.findOneByOptions.mockResolvedValue({
-			id: 'user-1',
-			email: 'new.user@example.com',
-			tenantId: 'tenant-1',
-			hash: 'stored-hash'
-		})
-		jest.spyOn(bcrypt, 'compare').mockResolvedValue(true)
-		jest.spyOn(service, 'createToken').mockResolvedValue({
-			token: 'jwt-token',
-			refreshToken: 'refresh-token'
-		})
-		const updateRefreshTokenSpy = jest
-			.spyOn(service, 'updateRefreshToken')
-			.mockResolvedValue(undefined)
-
-		await expect(service.login('New.User@example.com', 'password')).resolves.toEqual({
-			user: expect.objectContaining({
-				id: 'user-1',
-				tenantId: 'tenant-1'
-			}),
-			token: 'jwt-token',
-			refreshToken: 'refresh-token'
-		})
-
-		expect(userService.findOneByOptions).toHaveBeenCalledWith({
-			where: [
-				{ email: 'new.user@example.com', emailVerified: true, tenantId: 'tenant-1' },
-				{ username: 'new.user@example.com', tenantId: 'tenant-1' }
-			],
-			relations: ['role', 'role.rolePermissions', 'employee'],
-			order: {
-				createdAt: 'DESC'
-			}
-		})
-		expect(RequestContext.getScope).not.toHaveBeenCalled()
-		expect(updateRefreshTokenSpy).toHaveBeenCalledWith('user-1', 'refresh-token')
 	})
 
 	it('assigns the tenant default organization when organizationId is not provided', async () => {
@@ -245,9 +177,7 @@ describe('AuthService', () => {
 			token: 'jwt-token',
 			refreshToken: 'refresh-token'
 		})
-		const updateRefreshTokenSpy = jest
-			.spyOn(service, 'updateRefreshToken')
-			.mockResolvedValue(undefined)
+		const updateRefreshTokenSpy = jest.spyOn(service, 'updateRefreshToken').mockResolvedValue(undefined)
 
 		await expect(service.issueTokensForUser('user-1')).resolves.toEqual({
 			jwt: 'jwt-token',

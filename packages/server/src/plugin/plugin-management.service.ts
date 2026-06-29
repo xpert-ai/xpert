@@ -13,6 +13,7 @@ import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
+	resolveTenantGlobalScopeKey,
 	STRATEGY_META_KEY,
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
@@ -51,6 +52,7 @@ import {
 	PluginInstallResult,
 	normalizePluginName
 } from './types'
+import { resolvePluginScope } from './plugin-scope'
 import { DataSource } from 'typeorm'
 import { collectPluginOrmMetadata, registerPluginOrmMetadataInDataSource } from './plugin-orm-metadata'
 import { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } from './plugin-http-routes'
@@ -76,8 +78,16 @@ export class PluginManagementService {
 		private readonly applicationConfig: ApplicationConfig
 	) {}
 
-	findLoadedPlugin(pluginName: string, organizationId: string, fallbackToGlobal = true) {
+	findLoadedPlugin(
+		pluginName: string,
+		organizationId: string,
+		fallbackToGlobal = true,
+		tenantId = RequestContext.getScope?.()?.tenantId ?? RequestContext.currentTenantId()
+	) {
 		const normalized = normalizePluginName(pluginName)
+		const scopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		const matches = (plugin: LoadedPluginRecord) => {
 			const candidates = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]
 				.filter(Boolean)
@@ -86,10 +96,12 @@ export class PluginManagementService {
 		}
 
 		return (
-			this.loadedPlugins.find((plugin) => plugin.organizationId === organizationId && matches(plugin)) ??
+			this.loadedPlugins.find(
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === scopeKey && matches(plugin)
+			) ??
 			(fallbackToGlobal && organizationId !== GLOBAL_ORGANIZATION_SCOPE
 				? this.loadedPlugins.find(
-						(plugin) => plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE && matches(plugin)
+						(plugin) => (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey && matches(plugin)
 					)
 				: undefined)
 		)
@@ -105,8 +117,13 @@ export class PluginManagementService {
 			throw new BadRequestException('pluginName is required')
 		}
 
-		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
-		const loadedPlugin = this.findLoadedPlugin(pluginName, organizationId, false)
+		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
+		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
+		const organizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		if (organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
+			throw new BadRequestException('tenantId is required for tenant-scoped plugin refresh')
+		}
+		const loadedPlugin = this.findLoadedPlugin(pluginName, organizationId, false, tenantId)
 		const existing = await this.pluginInstanceService.findOneByPluginName(
 			loadedPlugin?.name ?? pluginName,
 			organizationId
@@ -197,9 +214,20 @@ export class PluginManagementService {
 			)
 		}
 
-		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
+		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
+		const organizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		if (organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
+			throw new BadRequestException('tenantId is required for tenant-scoped plugin installation')
+		}
+		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
+		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId })
+		const scopeStoreOptions = {
+			tenantId,
+			defaultTenantId,
+			scopeKey: scope.scopeKey
+		}
 		const allowSystemPlugins = canManageSystemPlugins(organizationId)
-		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
 		const level = PLUGIN_LEVEL.ORGANIZATION
 		let shouldPersistFailureState = false
@@ -233,13 +261,16 @@ export class PluginManagementService {
 				}
 			}
 			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
-			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
+			const organizationBaseDir = getOrganizationPluginRoot(organizationId, scopeStoreOptions)
 			shouldPersistFailureState = true
 
 			const { modules, errors } = await registerPluginsAsync(
 				{
 					module: this.moduleRef,
+					tenantId,
 					organizationId,
+					defaultTenantId,
+					scopeKey: scope.scopeKey,
 					plugins: [
 						{
 							name: source === 'code' ? packageName : packageNameWithVersion,
@@ -269,7 +300,7 @@ export class PluginManagementService {
 				throw new BadRequestException(errors[0].error)
 			}
 
-			const pluginBaseDir = getOrganizationPluginPath(organizationId, runtimePluginName)
+			const pluginBaseDir = getOrganizationPluginPath(organizationId, runtimePluginName, scopeStoreOptions)
 			const plugin = await loadPlugin(packageName, {
 				basedir: pluginBaseDir,
 				source,
@@ -285,7 +316,7 @@ export class PluginManagementService {
 			}
 
 			for await (const dynamicModule of modules) {
-				this.logger.debug(`Loading plugin module for ${runtimePluginName} into organization ${organizationId}`)
+				this.logger.debug(`Loading plugin module for ${runtimePluginName} into scope ${scope.scopeKey}`)
 				const ormMetadata = collectPluginOrmMetadata([dynamicModule])
 				const metadataRegistration = await registerPluginOrmMetadataInDataSource(this.dataSource, ormMetadata)
 				if (metadataRegistration.changed) {
@@ -311,7 +342,7 @@ export class PluginManagementService {
 				}
 				const strategyProviders = collectProvidersWithMetadata(
 					loadedModuleRef,
-					organizationId,
+					scope.scopeKey,
 					body.pluginName,
 					this.logger,
 					beforeModuleIds
@@ -332,7 +363,7 @@ export class PluginManagementService {
 						)
 						this.strategyBus.upsert(strategyMeta, {
 							instance,
-							sourceId: `${organizationId}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`,
+							sourceId: `${scope.scopeKey}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`,
 							sourceKind: 'plugin'
 						})
 					} else {
@@ -370,7 +401,7 @@ export class PluginManagementService {
 					: PLUGIN_CONFIGURATION_STATUS.VALID,
 				configurationError: configInspection.error ?? null
 			})
-			clearPluginLoadFailure(organizationId, pluginName, packageName)
+			clearPluginLoadFailure(scope.scopeKey, pluginName, packageName)
 
 			return {
 				success: true,
@@ -384,7 +415,10 @@ export class PluginManagementService {
 			this.logger.error(`Failed to install plugin ${body.pluginName}`, error)
 
 			try {
-				await this.pluginInstanceService.removePlugins(organizationId, [packageName])
+				await this.pluginInstanceService.removePlugins(organizationId, [packageName], {
+					tenantId,
+					defaultTenantId
+				})
 			} catch (cleanupError) {
 				errorMessage += `;\n\nadditionally failed to clean up plugin after installation failure: ${getErrorMessage(cleanupError)}`
 				this.logger.error(
@@ -416,7 +450,9 @@ export class PluginManagementService {
 					)
 				}
 				upsertPluginLoadFailure({
+					tenantId,
 					organizationId,
+					scopeKey: scope.scopeKey,
 					pluginName: failedPluginName,
 					packageName: failedPluginName,
 					error: errorMessage
@@ -430,14 +466,17 @@ export class PluginManagementService {
 	}
 
 	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string) {
-		const currentOrganizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
-		const tenantId = RequestContext.currentTenantId()
+		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
+		const currentOrganizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
 		const organizationId = this.resolveUninstallOrganizationId(currentOrganizationId, targetOrganizationId)
 		const allowSystemPlugins =
 			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			canManageSystemPlugins(currentOrganizationId)
-		this.assertNoSystemPlugins(names, allowSystemPlugins)
+		const scopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		this.assertNoSystemPlugins(names, allowSystemPlugins, scopeKey)
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names)
 	}
 
@@ -475,13 +514,16 @@ export class PluginManagementService {
 		throw new ForbiddenException('Plugins can only be uninstalled from the current or global organization scope')
 	}
 
-	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false) {
+	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false, scopeKey?: string) {
 		if (allowSystemPlugins) {
 			return
 		}
 
 		const normalizedTargets = new Set(pluginNamesOrPackages.map((name) => normalizePluginName(name)))
 		const matched = this.loadedPlugins.find((plugin) => {
+			if (scopeKey && (plugin.scopeKey ?? plugin.organizationId) !== scopeKey) {
+				return false
+			}
 			const level = resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level)
 			if (level !== PLUGIN_LEVEL.SYSTEM) {
 				return false
@@ -503,7 +545,9 @@ export class PluginManagementService {
 		packageName: string,
 		allowSystemPlugins = false
 	) {
-		this.assertNoSystemPlugins([packageName], allowSystemPlugins)
+		const scopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		this.assertNoSystemPlugins([packageName], allowSystemPlugins, scopeKey)
 		await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName)
 	}
 }

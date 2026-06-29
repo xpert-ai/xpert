@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { GLOBAL_ORGANIZATION_SCOPE } from '../types'
 import { BaseStrategyRegistry } from '../strategy'
 import { IXpertViewExtensionProvider } from './provider.interface'
 import { VIEW_EXTENSION_PROVIDER } from './provider.decorator'
@@ -13,14 +12,15 @@ export class ViewExtensionProviderRegistry extends BaseStrategyRegistry<IXpertVi
 
   listEntries(organizationId?: string): Array<{ providerKey: string; provider: IXpertViewExtensionProvider }> {
     const orgKey = this.resolveOrganization(organizationId)
+    const globalKey = this.resolveGlobalFallbackOrganization()
     const entries = new Map<string, IXpertViewExtensionProvider>()
 
     for (const [providerKey, provider] of this.strategies.get(orgKey)?.entries() ?? []) {
       entries.set(providerKey, provider)
     }
 
-    if (orgKey !== GLOBAL_ORGANIZATION_SCOPE) {
-      for (const [providerKey, provider] of this.strategies.get(GLOBAL_ORGANIZATION_SCOPE)?.entries() ?? []) {
+    if (orgKey !== globalKey) {
+      for (const [providerKey, provider] of this.strategies.get(globalKey)?.entries() ?? []) {
         if (!entries.has(providerKey)) {
           entries.set(providerKey, provider)
         }

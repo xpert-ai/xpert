@@ -1,30 +1,30 @@
-import { LanguagesEnum } from '@xpert-ai/contracts';
+import { LanguagesEnum } from '@xpert-ai/contracts'
 
 export const DEFAULT_EMPLOYEES: any = [
 	{
-		email: 'employee@mtda.cloud',
+		email: 'employee@xpertai.cn',
 		password: '123456',
 		firstName: 'Default',
 		lastName: 'Employee',
 		imageUrl: 'assets/images/avatar-default.svg',
 		startedWorkOn: '2018-03-20',
 		employeeLevel: 'A',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	}
-];
+]
 
 export const DEFAULT_PEANUT_EMPLOYEES: any = [
 	{
-		email: 'ruslan@mtda.cloud',
+		email: 'ruslan@xpertai.cn',
 		password: '123456',
 		firstName: 'Ruslan',
 		lastName: 'Konviser',
 		imageUrl: 'assets/images/avatars/ruslan.jpg',
 		employeeLevel: 'A',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'alish@mtda.cloud',
+		email: 'alish@xpertai.cn',
 		password: '123456',
 		firstName: 'Alish',
 		lastName: 'Meklyov',
@@ -32,10 +32,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2018-03-20',
 		endWork: null,
 		employeeLevel: 'D',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'blagovest@mtda.cloud',
+		email: 'blagovest@xpertai.cn',
 		password: '123456',
 		firstName: 'Blagovest',
 		lastName: 'Gerov',
@@ -43,10 +43,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2018-03-19',
 		endWork: null,
 		employeeLevel: 'C',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'elvis@mtda.cloud',
+		email: 'elvis@xpertai.cn',
 		password: '123456',
 		firstName: 'Elvis',
 		lastName: 'Arabadjiiski',
@@ -54,10 +54,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2018-05-25',
 		endWork: null,
 		employeeLevel: 'C',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'hristo@mtda.cloud',
+		email: 'hristo@xpertai.cn',
 		password: '123456',
 		firstName: 'Hristo',
 		lastName: 'Hristov',
@@ -65,10 +65,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2019-06-17',
 		endWork: null,
 		employeeLevel: 'B',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'alex@mtda.cloud',
+		email: 'alex@xpertai.cn',
 		password: '123456',
 		firstName: 'Aleksandar',
 		lastName: 'Tasev',
@@ -76,10 +76,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2019-08-01',
 		endWork: null,
 		employeeLevel: 'B',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'rachit@mtda.cloud',
+		email: 'rachit@xpertai.cn',
 		password: '123456',
 		firstName: 'Rachit',
 		lastName: 'Magon',
@@ -87,10 +87,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2019-11-27',
 		endWork: null,
 		employeeLevel: null,
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'dimana@mtda.cloud',
+		email: 'dimana@xpertai.cn',
 		password: '123456',
 		firstName: 'Dimana',
 		lastName: 'Tsvetkova',
@@ -98,10 +98,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2019-11-26',
 		endWork: null,
 		employeeLevel: null,
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'pavel@mtda.cloud',
+		email: 'pavel@xpertai.cn',
 		password: '123456',
 		firstName: 'Pavel',
 		lastName: 'Denchev',
@@ -109,10 +109,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2020-03-16',
 		endWork: null,
 		employeeLevel: 'A',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'yavor@mtda.cloud',
+		email: 'yavor@xpertai.cn',
 		password: '123456',
 		firstName: 'Yavor',
 		lastName: 'Grancharov',
@@ -120,10 +120,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2020-02-05',
 		endWork: null,
 		employeeLevel: 'A',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'tsvetelina@mtda.cloud',
+		email: 'tsvetelina@xpertai.cn',
 		password: '123456',
 		firstName: 'Tsvetelina',
 		lastName: 'Yordanova',
@@ -131,7 +131,7 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2020-03-02',
 		endWork: null,
 		employeeLevel: 'A',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
 		email: 'muiz@smooper.xyz',
@@ -142,7 +142,7 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2019-11-27',
 		endWork: null,
 		employeeLevel: null,
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
 		email: 'deko898@hotmail.com',
@@ -153,7 +153,7 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2020-03-07',
 		endWork: null,
 		employeeLevel: null,
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
 		email: 'ckhandla94@gmail.com',
@@ -164,10 +164,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2020-03-07',
 		endWork: null,
 		employeeLevel: null,
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'julia@mtda.cloud',
+		email: 'julia@xpertai.cn',
 		password: '123456',
 		firstName: 'Julia',
 		lastName: 'Konviser',
@@ -175,10 +175,10 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2018-08-01',
 		endWork: null,
 		employeeLevel: 'C',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	},
 	{
-		email: 'yordan@mtda.cloud',
+		email: 'yordan@xpertai.cn',
 		password: '123456',
 		firstName: 'Yordan ',
 		lastName: 'Genovski',
@@ -186,6 +186,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		startedWorkOn: '2018-08-01',
 		endWork: null,
 		employeeLevel: 'C',
-		preferredLanguage: LanguagesEnum.English,
+		preferredLanguage: LanguagesEnum.English
 	}
-];
+]

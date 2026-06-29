@@ -7,6 +7,7 @@ import process from 'node:process'
 const DEFAULT_API_URL = 'http://localhost:3333'
 const DEFAULT_SOURCE = 'code'
 const ORGANIZATION_SCOPE = 'organization'
+const TENANT_SCOPE = 'tenant'
 
 function printUsage() {
   console.log(`Install a local plugin workspace into a running Xpert API.
@@ -20,6 +21,7 @@ Options:
   --workspace-path <path>    Plugin workspace path. Relative paths are resolved to absolute paths
   --org-id <id>              Organization-Id header used for org-scoped install
   --tenant-id <id>           Optional Tenant-Id header
+  --scope <scope>            Install scope: organization or tenant. Defaults to organization when --org-id is set
   --token <jwt>              Bearer token used for Authorization header
   --api-url <url>            API origin, default: ${DEFAULT_API_URL}
   --endpoint <url>           Full install endpoint. Overrides --api-url
@@ -34,6 +36,7 @@ Environment fallbacks:
   XPERT_TOKEN
   XPERT_ORG_ID
   XPERT_TENANT_ID
+  XPERT_SCOPE
 
 Examples:
   pnpm plugin:install:local --workspace-path ../xpert-plugins/xpertai/integrations/lark --org-id org_123 --token <jwt>
@@ -180,17 +183,31 @@ function buildHeaders(args) {
   }
 
   const organizationId = args.orgId || process.env.XPERT_ORG_ID
-  if (!organizationId) {
-    fail('Organization ID is required. Pass --org-id <id> or set XPERT_ORG_ID.')
-  }
-
-  headers['organization-id'] = organizationId
-  headers['x-scope-level'] = ORGANIZATION_SCOPE
-
   const tenantId = args.tenantId || process.env.XPERT_TENANT_ID
-  if (tenantId) {
-    headers['tenant-id'] = tenantId
+  const scope = args.scope || process.env.XPERT_SCOPE || (organizationId ? ORGANIZATION_SCOPE : TENANT_SCOPE)
+  if (![ORGANIZATION_SCOPE, TENANT_SCOPE].includes(scope)) {
+    fail(`Unsupported --scope "${scope}". Use "organization" or "tenant".`)
   }
+
+  if (scope === ORGANIZATION_SCOPE) {
+    if (!organizationId) {
+      fail('Organization ID is required for organization scope. Pass --org-id <id> or set XPERT_ORG_ID.')
+    }
+
+    headers['organization-id'] = organizationId
+    headers['x-scope-level'] = ORGANIZATION_SCOPE
+    if (tenantId) {
+      headers['tenant-id'] = tenantId
+    }
+    return headers
+  }
+
+  if (!tenantId) {
+    fail('Tenant ID is required for tenant scope. Pass --tenant-id <id> or set XPERT_TENANT_ID.')
+  }
+
+  headers['tenant-id'] = tenantId
+  headers['x-scope-level'] = TENANT_SCOPE
 
   return headers
 }

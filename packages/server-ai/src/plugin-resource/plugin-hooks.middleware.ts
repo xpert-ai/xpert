@@ -13,9 +13,11 @@ import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
     DEFAULT_SANDBOX_SHELL_EXECUTION_OPTIONS,
+    GLOBAL_ORGANIZATION_SCOPE,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
     SandboxBackendProtocol,
+    resolveTenantGlobalScopeKey,
     resolveSandboxBackend
 } from '@xpert-ai/plugin-sdk'
 import { mkdir } from 'node:fs/promises'
@@ -141,7 +143,7 @@ export class PluginHooksMiddleware implements IAgentMiddlewareStrategy<PluginHoo
         const blocked: HookRef[] = []
 
         for (const hookRef of hookRefs) {
-            const pluginRoot = this.resolveLoadedPluginRoot(hookRef.pluginName)
+            const pluginRoot = this.resolveLoadedPluginRoot(hookRef.pluginName, context)
             if (!pluginRoot) {
                 blocked.push(hookRef)
                 continue
@@ -347,9 +349,22 @@ export class PluginHooksMiddleware implements IAgentMiddlewareStrategy<PluginHoo
         }
     }
 
-    private resolveLoadedPluginRoot(pluginName: string) {
+    private resolveLoadedPluginRoot(pluginName: string, context: IAgentMiddlewareContext) {
         const normalized = normalizePluginName(pluginName)
+        const organizationId = context.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+        const organizationScopeKey =
+            organizationId === GLOBAL_ORGANIZATION_SCOPE
+                ? resolveTenantGlobalScopeKey(context.tenantId)
+                : organizationId
+        const globalScopeKey = resolveTenantGlobalScopeKey(context.tenantId)
         const record = this.loadedPlugins.find((item) => {
+            const scopeKey = item.scopeKey ?? item.organizationId
+            if (
+                scopeKey !== organizationScopeKey &&
+                (organizationId === GLOBAL_ORGANIZATION_SCOPE || scopeKey !== globalScopeKey)
+            ) {
+                return false
+            }
             const names = [item.name, item.packageName].filter((value): value is string => !!value)
             return names.some((name) => normalizePluginName(name) === normalized)
         })
