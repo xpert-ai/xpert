@@ -60,6 +60,18 @@
       </span>
     }
 
+    <span
+      z-tab-link
+      [routerLink]="['./retention']"
+      routerLinkActive
+      #rlaRetention="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
+      [active]="rlaRetention.isActive"
+    >
+      <z-icon zType="database"></z-icon>
+      {{ 'PAC.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
+    </span>
+
     <!-- <span z-tab-link [routerLink]="['./demo']"
       routerLinkActive #rla2="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"

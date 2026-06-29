@@ -688,7 +688,13 @@
       "TENANT": {
         "TITLE": "租户",
         "SETTINGS": "设置",
-        "DEMO": "演示数据"
+        "DEMO": "演示数据",
+        "RETENTION": "数据管理",
+        "DATA_TABLE": "数据表",
+        "CHECKPOINT_RETENTION": "copilot_checkpoint",
+        "CHECKPOINT_RETENTION_ENABLED": "启用清理",
+        "CHECKPOINT_RETENTION_DAYS": "保留天数",
+        "CHECKPOINT_RETENTION_DAYS_ERROR": "请输入 1 到 3650 之间的整数"
       },
       "MODEL": {
         "CREATE_MODEL": "创建语义模型",

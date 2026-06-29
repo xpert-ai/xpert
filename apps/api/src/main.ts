@@ -3,6 +3,7 @@ import { bootstrap, prepare, seedModule } from '@xpert-ai/analytics'
 import {  seedDefault } from '@xpert-ai/server-core'
 import yargs from 'yargs'
 import { pluginConfig } from './plugin-config'
+import { runTenantAdminCli } from './tenant-admin-cli'
 
 // if (process.env.NODE_ENV !== 'production') {
 //   installPlugins()
@@ -25,6 +26,13 @@ if (command === 'seedModule') {
     console.log(error)
     process.exit(1)
   })
+} else if (command === 'tenant') {
+  runTenantAdminCli(argv, pluginConfig)
+    .then(() => process.exit(0))
+    .catch((error: any) => {
+      console.log(error)
+      process.exit(1)
+    })
 } else {
   bootstrap({title: 'Xpert AI', version: '1.0'})
 }
