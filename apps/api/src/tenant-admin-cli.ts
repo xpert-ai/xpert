@@ -16,9 +16,26 @@ type TenantUpdateInput = {
 	subdomain?: string | null
 }
 
+type TenantAdminRecord = {
+	id: string
+	name?: string
+	subdomain?: string | null
+	createdAt?: Date
+	updatedAt?: Date
+	[key: string]: unknown
+}
+
+type TenantAdminFindOneOptions = {
+	where: {
+		id?: string
+		name?: string
+		subdomain?: string
+	}
+}
+
 type TenantAdminService = {
 	findAll: (filter?: unknown) => Promise<unknown>
-	findOne: (idOrOptions: unknown) => Promise<any>
+	findOne: (idOrOptions: string | TenantAdminFindOneOptions) => Promise<TenantAdminRecord>
 	prepareTenantUpdateInput: (tenantId: string, entity: TenantUpdateInput) => Promise<TenantUpdateInput>
 	update: (tenantId: string, entity: TenantUpdateInput) => Promise<unknown>
 	delete: (tenantId: string) => Promise<{ affected?: number }>
@@ -153,7 +170,7 @@ async function getTenant(args: TenantAdminArgs, service: TenantAdminService, out
 					where: {
 						name
 					}
-				} as any)
+				})
 			)
 		)
 		return
@@ -165,7 +182,7 @@ async function getTenant(args: TenantAdminArgs, service: TenantAdminService, out
 				where: {
 					subdomain: args.subdomain
 				}
-			} as any)
+			})
 		)
 	)
 }
@@ -184,13 +201,13 @@ async function createTenant(
 		where: {
 			name: tenantName
 		}
-	} as any)
+	})
 	const prepared = await dependencies.service.prepareTenantUpdateInput(tenant.id, {
 		name: tenantName,
 		subdomain
 	})
 
-	await dependencies.service.update(tenant.id, prepared as any)
+	await dependencies.service.update(tenant.id, prepared)
 	output(serializeTenantResult(await dependencies.service.findOne(tenant.id)))
 }
 
@@ -217,10 +234,10 @@ async function updateTenant(args: TenantAdminArgs, service: TenantAdminService, 
 
 	const prepared = await service.prepareTenantUpdateInput(args.id, input)
 	if (clearsSubdomain) {
-		;(prepared as any).subdomain = null
+		prepared.subdomain = null
 	}
 
-	await service.update(args.id, prepared as any)
+	await service.update(args.id, prepared)
 	output(serializeTenantResult(await service.findOne(args.id)))
 }
 

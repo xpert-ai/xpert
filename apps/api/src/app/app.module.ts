@@ -2,10 +2,31 @@ import { Module } from '@nestjs/common'
 import {
 	AnalyticsModule,
 } from '@xpert-ai/analytics'
-import { SeederModule, ServerAppModule } from '@xpert-ai/server-core'
+import { ConfigModule, getConfig } from '@xpert-ai/server-config'
+import {
+	provideBullModule,
+	provideCacheModule,
+	provideEventEmitterModule,
+	provideI18nModule,
+	providePinoLoggerModule,
+	provideScheduleModule,
+	RedisModule,
+	SeederModule,
+	ServerAppModule
+} from '@xpert-ai/server-core'
+
+const baseDir = getConfig().assetOptions.serverRoot
 
 @Module({
 	imports: [
+		ConfigModule,
+		RedisModule,
+		providePinoLoggerModule(),
+		provideCacheModule(),
+		provideBullModule(),
+		provideI18nModule(baseDir),
+		provideEventEmitterModule(),
+		provideScheduleModule(),
 		ServerAppModule,
 		AnalyticsModule,
     	SeederModule
