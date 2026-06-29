@@ -1,5 +1,12 @@
 # @xpert-ai/xpert-ui
 
+## 3.14.0
+
+### Minor Changes
+
+- 54cff15: tenants and managed connections
+- 6978bfd: release plugin tenant scope
+
 ## 3.13.0
 
 ### Minor Changes
