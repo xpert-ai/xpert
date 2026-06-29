@@ -1,36 +1,32 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ConfigService } from '@xpert-ai/server-config';
-import Handlebars from 'handlebars';
-import mjml2html from 'mjml';
-import { EmailTemplateService } from '../../email-template.service';
-import { EmailTemplateGeneratePreviewQuery } from '../email-template.generate-preview.query';
-
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { ConfigService } from '@xpert-ai/server-config'
+import Handlebars from 'handlebars'
+import mjml2html from 'mjml'
+import { EmailTemplateService } from '../../email-template.service'
+import { EmailTemplateGeneratePreviewQuery } from '../email-template.generate-preview.query'
 
 @QueryHandler(EmailTemplateGeneratePreviewQuery)
-export class EmailTemplateGeneratePreviewHandler
-	implements IQueryHandler<EmailTemplateGeneratePreviewQuery> {
+export class EmailTemplateGeneratePreviewHandler implements IQueryHandler<EmailTemplateGeneratePreviewQuery> {
 	constructor(
 		private readonly emailTemplateService: EmailTemplateService,
 		private readonly configService: ConfigService
 	) {}
 
-	public async execute(
-		command: EmailTemplateGeneratePreviewQuery
-	): Promise<{ html: string }> {
-		const { input } = command;
-		let textToHtml = input;
+	public async execute(command: EmailTemplateGeneratePreviewQuery): Promise<{ html: string }> {
+		const { input } = command
+		let textToHtml = input
 
 		try {
-			const mjmlTohtml = mjml2html(input);
-			textToHtml = mjmlTohtml.errors.length ? input : mjmlTohtml.html;
+			const mjmlTohtml = mjml2html(input)
+			textToHtml = mjmlTohtml.errors.length ? input : mjmlTohtml.html
 		} catch (error) {
 			// ignore mjml conversion errors for non-mjml text such as subject
 		}
 
-		const clientBaseUrl = this.configService.get('clientBaseUrl');
-		const host = this.configService.get('host');
+		const clientBaseUrl = this.configService.get('clientBaseUrl')
+		const host = this.configService.get('host')
 
-		const handlebarsTemplate = Handlebars.compile(textToHtml);
+		const handlebarsTemplate = Handlebars.compile(textToHtml)
 		const html = handlebarsTemplate({
 			organizationName: 'Organization',
 			email: 'user@domain.com',
@@ -62,8 +58,8 @@ export class EmailTemplateGeneratePreviewHandler
 			currency: 'BGN',
 			max_share_period: '5',
 			autoApproveShare: false,
-			generatedUrl: 'https://app.mtda.cloud/xxxxxxxxxxxxxxxxx'
-		});
-		return { html };
+			generatedUrl: 'https://app.xpertai.cn/xxxxxxxxxxxxxxxxx'
+		})
+		return { html }
 	}
 }

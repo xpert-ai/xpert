@@ -16,6 +16,7 @@ jest.mock('@cloud/app/@core', () => {
 import { TestBed } from '@angular/core/testing'
 import { of, Subject } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
+import { environment } from '@cloud/environments/environment'
 import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
@@ -230,6 +231,10 @@ describe('RemoteComponentRendererComponent', () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'init',
+        debug: {
+          enabled: !environment.production,
+          production: environment.production
+        },
         theme: expect.objectContaining({
           mode: 'dark',
           tokens: expect.objectContaining({

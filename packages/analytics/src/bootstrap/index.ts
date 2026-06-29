@@ -15,14 +15,15 @@ import {
 	resolveNestLogLevels,
 	registerPluginsAsync,
 	ServerAppModule,
-	SharedModule
+	SharedModule,
+	TenantService
 } from '@xpert-ai/server-core'
 import { IPluginConfig } from '@xpert-ai/server-common'
 import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { useContainer } from 'class-validator'
 import chalk from 'chalk'
 import cookieParser from 'cookie-parser'
@@ -110,6 +111,8 @@ export async function bootstrap(options: { title: string; version: string }) {
 	// Seed default values
 	const serverService = app.select(ServerAppModule).get(AppService)
 	await serverService.seedDBIfEmpty()
+	const tenantService = app.select(ServerAppModule).get(TenantService)
+	setDefaultTenantId((await tenantService.getDefaultTenant())?.id ?? null)
 	const analyticsService = app.select(AnalyticsModule).get(AnalyticsService)
 	await analyticsService.seedDBIfEmpty()
 
@@ -181,7 +184,7 @@ export async function preBootstrapPlugins() {
 
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs()
 	const persistedGlobalGroup = organizationPluginConfigs.find(
-		(group) => group.organizationId === GLOBAL_ORGANIZATION_SCOPE
+		(group) => (group.scopeKey ?? group.organizationId) === GLOBAL_ORGANIZATION_SCOPE
 	)
 
 	const globalPlugins: BootstrapPlugin[] = [
@@ -203,7 +206,7 @@ export async function preBootstrapPlugins() {
 		})
 	}
 	const persistedOrganizationGroups = organizationPluginConfigs
-		.filter((group) => group.organizationId !== GLOBAL_ORGANIZATION_SCOPE)
+		.filter((group) => (group.scopeKey ?? group.organizationId) !== GLOBAL_ORGANIZATION_SCOPE)
 		.map((group) => ({
 			...group,
 			plugins: group.plugins.map((plugin) => ({
@@ -213,10 +216,18 @@ export async function preBootstrapPlugins() {
 		}))
 
 	// If there is no persisted configuration, fallback to defaults + env for the global scope
-	const groups: Array<{ organizationId?: string; plugins: BootstrapPlugin[]; configs: Record<string, any> }> = [
+	const groups: Array<{
+		tenantId?: string | null
+		organizationId?: string
+		scopeKey?: string
+		plugins: BootstrapPlugin[]
+		configs: Record<string, any>
+	}> = [
 		...persistedOrganizationGroups,
 		{
+			tenantId: persistedGlobalGroup?.tenantId,
 			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: GLOBAL_ORGANIZATION_SCOPE,
 			plugins: Array.from(mergedGlobalPluginMap.values()),
 			configs: persistedGlobalGroup?.configs ?? {}
 		}

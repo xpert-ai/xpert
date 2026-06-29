@@ -3,6 +3,7 @@ import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import {
   applyAgentTemplateWizardState,
   applyKnowledgeTemplateWizardState,
+  applyTemplateToolsetResolutionsToDraft,
   extractAgentTemplateWizardState,
   extractKnowledgeTemplateWizardState
 } from './blank-template.util'
@@ -196,6 +197,71 @@ describe('blank template util', () => {
           type: 'workflow',
           from: 'Agent_primary',
           to: 'Skill_writer'
+        }
+      ]
+    }
+  }
+
+  function createToolsetTemplateDraft(): TXpertTeamDraft {
+    return {
+      team: {
+        id: 'template-agent',
+        name: 'template-agent',
+        type: XpertTypeEnum.Agent,
+        agent: {
+          key: 'Agent_primary',
+          toolsetIds: ['toolset-placeholder']
+        } as any,
+        options: {
+          toolset: {
+            'toolset-placeholder': {
+              position: { x: 20, y: 420 }
+            }
+          }
+        },
+        toolsets: [
+          {
+            id: 'toolset-placeholder',
+            name: 'Seedream Placeholder',
+            type: 'seedream_aigc',
+            category: 'builtin',
+            credentials: {
+              ark_api_key: 'template-secret'
+            }
+          } as any
+        ]
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_primary',
+          position: { x: 360, y: 220 },
+          entity: {
+            key: 'Agent_primary',
+            toolsetIds: ['toolset-placeholder']
+          } as any
+        },
+        {
+          type: 'toolset',
+          key: 'toolset-placeholder',
+          position: { x: 20, y: 420 },
+          entity: {
+            id: 'toolset-placeholder',
+            name: 'Seedream Placeholder',
+            type: 'seedream_aigc',
+            category: 'builtin',
+            credentials: {
+              ark_api_key: 'template-secret'
+            }
+          } as any
+        }
+      ],
+      connections: [
+        {
+          key: 'Agent_primary/toolset-placeholder',
+          type: 'toolset',
+          from: 'Agent_primary',
+          to: 'toolset-placeholder'
         }
       ]
     }
@@ -528,6 +594,75 @@ describe('blank template util', () => {
         disabledSkillIds: ['skill-c']
       }
     })
+  })
+
+  it('replaces template toolset placeholders with resolved workspace toolsets', () => {
+    const result = applyTemplateToolsetResolutionsToDraft(createToolsetTemplateDraft(), [
+      {
+        templateNodeKey: 'toolset-placeholder',
+        targetAgentKey: 'Agent_primary',
+        toolset: {
+          id: 'toolset-runtime',
+          name: 'Seedream AIGC',
+          type: 'seedream_aigc',
+          category: 'builtin',
+          description: 'Generate images',
+          credentials: {
+            ark_api_key: 'workspace-secret'
+          },
+          tools: [
+            {
+              id: 'tool-1',
+              name: 'seedream_text_to_image',
+              toolsetId: 'toolset-runtime'
+            } as any
+          ]
+        } as any
+      }
+    ])
+
+    const toolsetNode = result.nodes.find((node) => node.type === 'toolset')
+    const agentNode = result.nodes.find((node) => node.type === 'agent')
+
+    expect(toolsetNode?.key).toBe('toolset-runtime')
+    expect(toolsetNode?.position).toEqual({ x: 20, y: 420 })
+    expect((toolsetNode?.entity as any).id).toBe('toolset-runtime')
+    expect((toolsetNode?.entity as any).credentials).toBeUndefined()
+    expect((toolsetNode?.entity as any).tools[0].toolsetId).toBeUndefined()
+    expect((agentNode?.entity as any).toolsetIds).toEqual(['toolset-runtime'])
+    expect(result.team.agent?.toolsetIds).toEqual(['toolset-runtime'])
+    expect(result.connections).toEqual([
+      {
+        key: 'Agent_primary/toolset-runtime',
+        type: 'toolset',
+        from: 'Agent_primary',
+        to: 'toolset-runtime'
+      }
+    ])
+    expect(result.team.toolsets?.map((toolset) => toolset.id)).toEqual(['toolset-runtime'])
+    expect((result.team.toolsets?.[0] as any).credentials).toBeUndefined()
+    expect(result.team.options?.toolset).toEqual({
+      'toolset-runtime': {
+        position: { x: 20, y: 420 }
+      }
+    })
+  })
+
+  it('throws when a template toolset dependency targets a missing agent', () => {
+    expect(() =>
+      applyTemplateToolsetResolutionsToDraft(createToolsetTemplateDraft(), [
+        {
+          templateNodeKey: 'toolset-placeholder',
+          targetAgentKey: 'Agent_missing',
+          toolset: {
+            id: 'toolset-runtime',
+            name: 'Seedream AIGC',
+            type: 'seedream_aigc',
+            category: 'builtin'
+          } as any
+        }
+      ])
+    ).toThrow("Template toolset target agent 'Agent_missing' was not found.")
   })
 
   it('applies knowledge wizard selections back onto the template while preserving unsupported nodes', () => {

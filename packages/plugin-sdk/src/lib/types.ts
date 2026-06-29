@@ -16,7 +16,48 @@ import type { Permissions } from './core/permissions'
 export const ORGANIZATION_METADATA_KEY = 'xpert:organizationId'
 export const PLUGIN_METADATA_KEY = 'xpert:pluginName'
 export const GLOBAL_ORGANIZATION_SCOPE = 'global'
+export const TENANT_GLOBAL_SCOPE_PREFIX = 'tenant:'
+export const TENANT_GLOBAL_SCOPE_SUFFIX = ':global'
 export const STRATEGY_META_KEY = 'XPERT_STRATEGY_META_KEY'
+
+let defaultTenantId: string | null = null
+
+function normalizeOptionalString(value?: string | null) {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+export function getTenantGlobalScopeKey(tenantId: string) {
+  return `${TENANT_GLOBAL_SCOPE_PREFIX}${tenantId}${TENANT_GLOBAL_SCOPE_SUFFIX}`
+}
+
+export function isTenantGlobalScopeKey(value?: string | null) {
+  return (
+    typeof value === 'string' &&
+    value.startsWith(TENANT_GLOBAL_SCOPE_PREFIX) &&
+    value.endsWith(TENANT_GLOBAL_SCOPE_SUFFIX)
+  )
+}
+
+export function setDefaultTenantId(tenantId?: string | null) {
+  defaultTenantId = normalizeOptionalString(tenantId)
+}
+
+export function getDefaultTenantId() {
+  return defaultTenantId
+}
+
+export function resolveTenantGlobalScopeKey(tenantId?: string | null) {
+  const normalizedTenantId = normalizeOptionalString(tenantId)
+  if (!normalizedTenantId) {
+    return GLOBAL_ORGANIZATION_SCOPE
+  }
+
+  if (defaultTenantId && normalizedTenantId !== defaultTenantId) {
+    return getTenantGlobalScopeKey(normalizedTenantId)
+  }
+
+  return GLOBAL_ORGANIZATION_SCOPE
+}
 
 export interface PluginLifecycle {
   /** Called after module registration but before application startup */

@@ -33,7 +33,7 @@
   .btn {
     @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent
       bg-clip-padding px-2.5 text-sm font-medium outline-none transition-all select-none cursor-pointer
-      hover:bg-hover-bg hover:text-foreground
+      hover:bg-hover-bg
       focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50
       aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20
       dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40

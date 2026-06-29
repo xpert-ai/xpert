@@ -1,5 +1,5 @@
 @if (plugin(); as plugin) {
-  <xp-plugin [plugin]="plugin" [installed]="installed()">
+  <xp-plugin [plugin]="plugin" [installed]="installed()" (pluginNameClick)="openPluginPage($event)">
     <div class="flex h-5 justify-between items-center gap-2">
       <div class="flex items-center space-x-1 text-text-tertiary">
         <i class="ri-import-line shrink-0"></i>

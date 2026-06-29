@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm'
 import {
 	PLUGIN_LEVEL,
 	PluginMarketplaceContribution,
+	type PluginMarketplaceDetailItem,
 	type PluginMarketplaceItem,
 	PluginMarketplaceOperation,
+	type PluginMarketplaceReadme,
 	type PluginLevel,
 	type PluginMarketplaceRegistryItemInput,
 	type PluginMarketplaceRegistryItemResponse,
@@ -14,9 +16,9 @@ import {
 	PluginMeta,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { execFile as execFileCallback } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -33,6 +35,7 @@ import {
 	PluginMarketplaceSourceType
 } from './plugin-marketplace-source.entity'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
+import { resolveLoadedPluginBundleRoot } from './plugin-bundle-manifest'
 
 const execFile = promisify(execFileCallback)
 const BUILTIN_SOURCE_ID = 'builtin-default'
@@ -103,11 +106,16 @@ export interface PluginMarketplaceListQuery {
 	search?: string
 }
 
+export interface PluginMarketplaceDetailQuery extends PluginMarketplaceListQuery {
+	locale?: string
+}
+
 @Injectable()
 export class PluginMarketplaceService {
 	private readonly logger = new Logger(PluginMarketplaceService.name)
 	private readonly refreshJobs = new Map<string, Promise<void>>()
 	private readonly npmMetadataCache = new Map<string, { level?: PluginLevel } | null>()
+	private readonly npmReadmeCache = new Map<string, PluginMarketplaceReadme | null>()
 
 	constructor(
 		@InjectRepository(PluginMarketplaceSource)
@@ -181,13 +189,400 @@ export class PluginMarketplaceService {
 	async getMarketplacePlugin(name: string, query: PluginMarketplaceListQuery = {}) {
 		const response = await this.listMarketplace(query)
 		const normalizedName = normalizePluginName(name)
-		const plugin = response.items.find((item) => normalizePluginName(item.name) === normalizedName)
+		const plugin = response.items.find((item) => this.marketplaceItemMatchesName(item, normalizedName))
 
 		if (!plugin) {
 			throw new NotFoundException(`Plugin "${name}" was not found in the marketplace`)
 		}
 
 		return plugin
+	}
+
+	async getMarketplacePluginDetail(
+		name: string,
+		query: PluginMarketplaceDetailQuery = {}
+	): Promise<PluginMarketplaceDetailItem> {
+		if (!this.normalizeOptionalString(name)) {
+			throw new BadRequestException('name is required')
+		}
+
+		const marketplacePlugin = await this.findMarketplacePlugin(name, query)
+		const plugin = marketplacePlugin ?? this.toMarketplaceItemFromLoadedPlugin(name, query)
+
+		if (!plugin) {
+			throw new NotFoundException(`Plugin "${name}" was not found`)
+		}
+
+		const readme = await this.resolveMarketplaceReadme(plugin, query)
+		const availableReadmeLocales =
+			readme.source === 'description'
+				? []
+				: this.uniqueStrings([...(await this.resolveAvailableReadmeLocales(plugin)), readme.locale])
+		return {
+			...plugin,
+			readme,
+			availableReadmeLocales
+		}
+	}
+
+	private async findMarketplacePlugin(name: string, query: PluginMarketplaceListQuery = {}) {
+		const response = await this.listMarketplace(query)
+		const normalizedName = normalizePluginName(name)
+		return response.items.find((item) => this.marketplaceItemMatchesName(item, normalizedName)) ?? null
+	}
+
+	private marketplaceItemMatchesName(item: PluginMarketplaceItem, normalizedName: string) {
+		return [item.name, item.packageName]
+			.map((value) => this.normalizeOptionalString(value))
+			.filter((value): value is string => !!value)
+			.some((value) => normalizePluginName(value) === normalizedName)
+	}
+
+	private toMarketplaceItemFromLoadedPlugin(
+		name: string,
+		query: PluginMarketplaceListQuery = {}
+	): PluginMarketplaceItem | null {
+		const plugin = this.findLoadedPluginByName(name)
+		if (!plugin?.instance?.meta) {
+			return null
+		}
+
+		const meta = plugin.instance.meta as PluginMeta
+		const packageName = normalizePluginName(plugin.packageName ?? meta.name ?? plugin.name)
+		const marketplacePlugin = {
+			name: packageName,
+			packageName,
+			version: meta.version,
+			level: plugin.level ?? meta.level,
+			category: meta.category,
+			author: meta.author,
+			homepage: meta.homepage,
+			targetApps: meta.targetApps ?? [],
+			targetAppMeta: meta.targetAppMeta ?? {},
+			source: {
+				type: plugin.source,
+				packageName
+			}
+		} satisfies MarketplaceRegistryPlugin
+
+		if (!this.matchesTargetApp(marketplacePlugin, query.targetApp)) {
+			return null
+		}
+
+		const contributions = this.getMarketplaceContributions(marketplacePlugin, query.targetApp)
+		return {
+			name: packageName,
+			packageName,
+			displayName: meta.displayName ?? packageName,
+			description: meta.description ?? packageName,
+			version: meta.version,
+			level: plugin.level ?? meta.level,
+			category: meta.category,
+			icon: meta.icon ?? null,
+			author: meta.author ?? null,
+			source: {
+				type: plugin.source ?? 'other',
+				url: meta.homepage ?? null,
+				packageName
+			},
+			keywords: meta.keywords ?? [],
+			installed: true,
+			contributions,
+			operationSummary: this.countOperations(contributions),
+			targetApps: meta.targetApps ?? [],
+			targetAppMeta: meta.targetAppMeta ?? null,
+			marketplacePlugin: null
+		}
+	}
+
+	private findLoadedPluginByName(name: string | undefined | null) {
+		const normalizedName = this.normalizeOptionalString(name)
+		if (!normalizedName) {
+			return null
+		}
+
+		const currentOrganizationId = this.getCurrentOrganizationId()
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const currentScopeKey =
+			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE
+				? resolveTenantGlobalScopeKey(tenantId)
+				: currentOrganizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
+		const matches = (plugin: LoadedPluginRecord) =>
+			[plugin.name, plugin.packageName, plugin.instance?.meta?.name]
+				.map((value) => this.normalizeOptionalString(value))
+				.filter((value): value is string => !!value)
+				.some((value) => normalizePluginName(value) === normalizePluginName(normalizedName))
+
+		return (
+			this.loadedPlugins.find(
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === currentScopeKey && matches(plugin)
+			) ??
+			this.loadedPlugins.find(
+				(plugin) =>
+					currentOrganizationId !== GLOBAL_ORGANIZATION_SCOPE &&
+					(plugin.scopeKey ?? plugin.organizationId) === globalScopeKey &&
+					matches(plugin)
+			) ??
+			null
+		)
+	}
+
+	private async resolveMarketplaceReadme(
+		plugin: PluginMarketplaceItem,
+		query: PluginMarketplaceDetailQuery
+	): Promise<PluginMarketplaceReadme> {
+		const locale = this.normalizeReadmeLocale(query.locale)
+		const packageReadme = await this.resolveInstalledPackageReadme(plugin, locale)
+		if (packageReadme) {
+			return packageReadme
+		}
+
+		const npmReadme = await this.resolveNpmPackageReadme(plugin, locale)
+		if (npmReadme) {
+			return npmReadme
+		}
+
+		const metadataReadme = this.resolveMarketplaceMetadataReadme(plugin, query.targetApp)
+		if (metadataReadme) {
+			return {
+				locale: locale ?? 'en',
+				requestedLocale: locale,
+				fileName: null,
+				content: metadataReadme,
+				source: 'marketplace-metadata'
+			}
+		}
+
+		return {
+			locale: locale ?? 'en',
+			requestedLocale: locale,
+			fileName: null,
+			content: this.resolveLocalizedText(plugin.description, locale) ?? plugin.name,
+			source: 'description'
+		}
+	}
+
+	private async resolveInstalledPackageReadme(plugin: PluginMarketplaceItem, locale: string | null) {
+		const loadedPlugin = this.findLoadedPluginByName(plugin.packageName ?? plugin.name)
+		const packageRoot = loadedPlugin ? resolveLoadedPluginBundleRoot(loadedPlugin) : null
+		if (!packageRoot) {
+			return null
+		}
+
+		return this.readReadmeFromDirectory(packageRoot, locale, 'installed-package')
+	}
+
+	private async resolveNpmPackageReadme(plugin: PluginMarketplaceItem, locale: string | null) {
+		const packageName = this.resolveNpmPackageNameFromMarketplaceItem(plugin)
+		if (!packageName) {
+			return null
+		}
+
+		const version = this.normalizeOptionalString(plugin.version)
+		const cacheKey = `${packageName}@${version ?? 'latest'}:${locale ?? 'default'}`
+		if (this.npmReadmeCache.has(cacheKey)) {
+			return this.npmReadmeCache.get(cacheKey) ?? null
+		}
+
+		const readme = await this.fetchNpmPackageReadme(packageName, version, locale)
+		this.npmReadmeCache.set(cacheKey, readme)
+		return readme
+	}
+
+	private resolveNpmPackageNameFromMarketplaceItem(plugin: PluginMarketplaceItem) {
+		const source = readRecord(plugin.source)
+		const sourceType = this.normalizeOptionalString(source?.type)?.toLowerCase()
+		const sourceUrl = this.normalizeOptionalString(source?.url)
+		const packageNameFromUrl = sourceUrl ? this.extractNpmPackageNameFromUrl(sourceUrl) : null
+		const packageName =
+			packageNameFromUrl ??
+			this.normalizeOptionalString(source?.packageName) ??
+			this.normalizeOptionalString(plugin.packageName) ??
+			this.normalizeOptionalString(plugin.name)
+		if (!packageName || !this.looksLikeNpmPackageName(packageName)) {
+			return null
+		}
+		if (sourceType && sourceType !== 'npm' && sourceType !== 'marketplace' && !packageNameFromUrl) {
+			return null
+		}
+		return normalizePluginName(packageName)
+	}
+
+	private async fetchNpmPackageReadme(
+		packageName: string,
+		version: string | null,
+		locale: string | null
+	): Promise<PluginMarketplaceReadme | null> {
+		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
+		let tempDir: string | null = null
+
+		try {
+			const metadataResponse = await fetch(url)
+			if (!metadataResponse.ok) {
+				throw new Error(`npm registry returned ${metadataResponse.status}`)
+			}
+			const metadata = readRecord(await metadataResponse.json())
+			const versions = readRecord(metadata?.versions)
+			const distTags = readRecord(metadata?.['dist-tags'])
+			const latestVersion = this.normalizeOptionalString(distTags?.latest)
+			const manifest = readRecord(versions?.[version ?? '']) ?? readRecord(versions?.[latestVersion ?? ''])
+			const tarball = this.normalizeOptionalString(readRecord(manifest?.dist)?.tarball)
+			if (!tarball) {
+				return null
+			}
+
+			const tarballResponse = await fetch(tarball)
+			if (!tarballResponse.ok) {
+				throw new Error(`npm tarball returned ${tarballResponse.status}`)
+			}
+
+			tempDir = await mkdtemp(join(tmpdir(), 'xpert-plugin-readme-'))
+			const archivePath = join(tempDir, 'package.tgz')
+			await writeFile(archivePath, Buffer.from(await tarballResponse.arrayBuffer()))
+			await execFile('tar', ['-xzf', archivePath, '-C', tempDir])
+			return await this.readReadmeFromDirectory(join(tempDir, 'package'), locale, 'npm-package')
+		} catch (error) {
+			this.logger.warn(`Failed to load README for npm plugin "${packageName}": ${this.toErrorMessage(error)}`)
+			return null
+		} finally {
+			if (tempDir) {
+				await rm(tempDir, { recursive: true, force: true })
+			}
+		}
+	}
+
+	private async readReadmeFromDirectory(
+		packageRoot: string,
+		locale: string | null,
+		source: PluginMarketplaceReadme['source']
+	): Promise<PluginMarketplaceReadme | null> {
+		for (const fileName of this.getReadmeFileCandidates(locale)) {
+			try {
+				const content = await readFile(resolve(packageRoot, fileName), 'utf8')
+				return {
+					locale: this.readLocaleFromReadmeFileName(fileName),
+					requestedLocale: locale,
+					fileName,
+					content,
+					source
+				}
+			} catch (error) {
+				if (!this.isFileNotFoundError(error)) {
+					this.logger.warn(
+						`Failed to read README file "${fileName}" from plugin package: ${this.toErrorMessage(error)}`
+					)
+				}
+			}
+		}
+
+		return null
+	}
+
+	private async resolveAvailableReadmeLocales(plugin: PluginMarketplaceItem) {
+		const loadedPlugin = this.findLoadedPluginByName(plugin.packageName ?? plugin.name)
+		const packageRoot = loadedPlugin ? resolveLoadedPluginBundleRoot(loadedPlugin) : null
+		if (!packageRoot) {
+			return []
+		}
+
+		try {
+			const entries = await readdir(packageRoot)
+			return this.uniqueStrings(
+				entries.map((entry) => this.matchReadmeFileName(entry)).filter((locale): locale is string => !!locale)
+			)
+		} catch {
+			return []
+		}
+	}
+
+	private getReadmeFileCandidates(locale: string | null) {
+		const variants = locale && locale !== 'en' ? this.uniqueStrings([locale, locale.split('-')[0]]) : []
+		return [...variants.flatMap((variant) => [`README_${variant}.md`, `README.${variant}.md`]), 'README.md']
+	}
+
+	private normalizeReadmeLocale(locale: unknown) {
+		const normalized = this.normalizeOptionalString(locale)?.replace(/_/g, '-').toLowerCase()
+		if (!normalized) {
+			return null
+		}
+		if (normalized === 'zh' || normalized === 'zh-cn' || normalized === 'zh-hans') {
+			return 'zh-hans'
+		}
+		if (normalized === 'zh-tw' || normalized === 'zh-hk' || normalized === 'zh-mo' || normalized === 'zh-hant') {
+			return 'zh-hant'
+		}
+		if (normalized.startsWith('en')) {
+			return 'en'
+		}
+		return normalized
+	}
+
+	private readLocaleFromReadmeFileName(fileName: string) {
+		return this.matchReadmeFileName(fileName) ?? 'en'
+	}
+
+	private matchReadmeFileName(fileName: string) {
+		const match = /^README(?:[_.]([a-z0-9-]+))?\.md$/i.exec(fileName)
+		if (!match) {
+			return null
+		}
+		return this.normalizeReadmeLocale(match[1]) ?? 'en'
+	}
+
+	private resolveMarketplaceMetadataReadme(plugin: PluginMarketplaceItem, targetApp?: string) {
+		const targetAppMeta = readRecord(plugin.targetAppMeta)
+		if (!targetAppMeta) {
+			return null
+		}
+
+		if (targetApp) {
+			const readme = readRecord(readRecord(targetAppMeta[targetApp])?.marketplace)?.readme
+			return this.normalizeOptionalString(readme)
+		}
+
+		for (const entry of Object.values(targetAppMeta)) {
+			const readme = readRecord(readRecord(entry)?.marketplace)?.readme
+			const normalized = this.normalizeOptionalString(readme)
+			if (normalized) {
+				return normalized
+			}
+		}
+		return null
+	}
+
+	private resolveLocalizedText(value: unknown, locale: string | null) {
+		if (typeof value === 'string') {
+			return value
+		}
+		const record = readRecord(value)
+		if (!record) {
+			return null
+		}
+
+		const localeKeys = this.getLocaleLookupKeys(locale)
+		for (const key of localeKeys) {
+			const text = this.normalizeOptionalString(record[key])
+			if (text) {
+				return text
+			}
+		}
+
+		return Object.values(record).find((item): item is string => typeof item === 'string' && !!item.trim()) ?? null
+	}
+
+	private getLocaleLookupKeys(locale: string | null) {
+		if (locale === 'zh-hans') {
+			return ['zh-Hans', 'zh_Hans', 'zh-CN', 'zh_CN', 'zh-hans', 'zh_cn', 'zh']
+		}
+		if (locale === 'zh-hant') {
+			return ['zh-Hant', 'zh_Hant', 'zh-TW', 'zh_TW', 'zh-hant', 'zh_tw']
+		}
+		return ['en-US', 'en_US', 'en']
+	}
+
+	private isFileNotFoundError(error: unknown) {
+		return isRecord(error) && error.code === 'ENOENT'
 	}
 
 	async listSources() {
@@ -699,7 +1094,7 @@ export class PluginMarketplaceService {
 	}
 
 	private getRegistryWhere(id?: string) {
-		const tenantId = RequestContext.currentTenantId()
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
 		return {
 			...(id ? { id } : {}),
 			tenantId: tenantId ?? IsNull()
@@ -1656,8 +2051,16 @@ export class PluginMarketplaceService {
 			}
 		}
 
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const organizationScopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		for (const plugin of this.loadedPlugins) {
-			if (plugin.organizationId !== organizationId && plugin.organizationId !== GLOBAL_ORGANIZATION_SCOPE) {
+			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
+			if (
+				pluginScopeKey !== organizationScopeKey &&
+				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey)
+			) {
 				continue
 			}
 			addName(plugin.name)

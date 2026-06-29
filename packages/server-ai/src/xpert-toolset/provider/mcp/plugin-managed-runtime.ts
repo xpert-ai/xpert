@@ -1,6 +1,7 @@
 import { loaded as loadedPlugins, resolveLoadedPluginBundleRoot } from '@xpert-ai/server-core'
 import type { IXpertToolset, TMCPSchema, TMCPServer } from '@xpert-ai/contracts'
 import type { LoadedPluginRecord } from '@xpert-ai/server-core'
+import { GLOBAL_ORGANIZATION_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { resolve } from 'node:path'
 
 type PluginManagedToolsetOptions = {
@@ -51,10 +52,19 @@ function matchesPlugin(plugin: LoadedPluginRecord, pluginName: string) {
     return candidates.includes(normalized)
 }
 
-function findLoadedPlugin(pluginName: string, organizationId?: string | null) {
+function findLoadedPlugin(pluginName: string, organizationId?: string | null, tenantId?: string | null) {
     const candidates = (loadedPlugins ?? []).filter((plugin) => matchesPlugin(plugin, pluginName))
+    const organizationScopeKey =
+        organizationId && organizationId !== GLOBAL_ORGANIZATION_SCOPE
+            ? organizationId
+            : resolveTenantGlobalScopeKey(tenantId)
+    const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
     return (
-        candidates.find((plugin) => organizationId && plugin.organizationId === organizationId) ?? candidates[0] ?? null
+        candidates.find((plugin) => (plugin.scopeKey ?? plugin.organizationId) === organizationScopeKey) ??
+        (organizationId && organizationId !== GLOBAL_ORGANIZATION_SCOPE
+            ? candidates.find((plugin) => (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey)
+            : null) ??
+        null
     )
 }
 
@@ -79,7 +89,7 @@ export function resolvePluginManagedRuntimePaths(toolset: Partial<IXpertToolset>
         return null
     }
 
-    const loadedPlugin = findLoadedPlugin(options.pluginName, toolset.organizationId)
+    const loadedPlugin = findLoadedPlugin(options.pluginName, toolset.organizationId, toolset.tenantId)
     const pluginRoot = loadedPlugin ? resolveLoadedPluginBundleRoot(loadedPlugin) : null
     if (!pluginRoot) {
         return null

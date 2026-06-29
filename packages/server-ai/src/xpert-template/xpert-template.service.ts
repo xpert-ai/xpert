@@ -20,7 +20,12 @@ import {
 import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
 import { LOADED_PLUGINS, LoadedPluginRecord, PaginationParams, TenantAwareCrudService } from '@xpert-ai/server-core'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, XpertTemplateContribution } from '@xpert-ai/plugin-sdk'
+import {
+    GLOBAL_ORGANIZATION_SCOPE,
+    RequestContext,
+    resolveTenantGlobalScopeKey,
+    XpertTemplateContribution
+} from '@xpert-ai/plugin-sdk'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -737,11 +742,17 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
     private getEffectivePluginRecords() {
         const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+        const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+        const organizationScopeKey =
+            organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+        const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
         const seen = new Set<string>()
         const records = [...(this.loadedPlugins ?? [])]
             .filter(
                 (plugin) =>
-                    plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
+                    (plugin.scopeKey ?? plugin.organizationId) === organizationScopeKey ||
+                    (organizationId !== GLOBAL_ORGANIZATION_SCOPE &&
+                        (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey)
             )
             .reverse()
             .filter((plugin) => {

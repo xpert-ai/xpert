@@ -30,6 +30,11 @@ type JsonSchemaTypeWithUi = JsonSchema7Type & {
   'x-ui'?: JsonSchemaUIExtensions
 }
 
+type JsonSchemaPropertyContext = {
+  [key: string]: unknown
+  model?: { [key: string]: unknown }
+}
+
 @Component({
   standalone: true,
   imports: [
@@ -68,7 +73,7 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly required = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
-  readonly context = input<Record<string, unknown> | undefined>(undefined)
+  readonly context = input<JsonSchemaPropertyContext | undefined>(undefined)
   readonly arrayItem = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
@@ -89,7 +94,13 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly value$ = this.cva.value$
 
   readonly meta = computed(() => this.schema() as JsonSchema7Type)
-  readonly label = computed(() => this.meta()?.title || this.meta()?.description || this.name())
+  // x-ui
+  readonly xUi = computed<JsonSchemaUIExtensions>(() => (this.meta() as JsonSchemaTypeWithUi)?.['x-ui'] || {})
+  readonly xUiTitle = computed(() => this.xUi().title)
+  readonly xUiDescription = computed(() => this.xUi().description)
+  readonly label = computed(() => this.xUiTitle() || this.meta()?.title || this.meta()?.description || this.name())
+  readonly propertyDescription = computed(() => this.xUiDescription() || this.meta()?.description)
+  readonly placeholderMeta = computed(() => this.propertyDescription() || this.xUiTitle() || this.meta()?.title || '')
   readonly stringSchema = computed(() => this.schema() as JsonSchema7StringType)
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
   readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)
@@ -98,11 +109,15 @@ export class JSONSchemaPropertyComponent implements OnInit {
 
   readonly enum = computed(() => this.enumSchema()?.enum)
   readonly enumOptions = computed(() => {
-    const items = this.enum()?.map((value) => ({ label: this.xUi()?.enumLabels?.[value] ?? value, value })) ?? []
+    const enumLabels = this.xUi()?.enumLabels
+    const items = this.enum()?.map((value) => ({
+      label: this.i18n.transform(enumLabels?.[`${value}`] ?? `${value}`),
+      value
+    })) ?? []
     const values = Array.isArray(this.value$()) ? this.value$() : this.value$() != null ? [this.value$()] : []
     values.forEach((element) => {
       if (!items.some((_) => _.value === element)) {
-        items.push({ label: element as string, value: element })
+        items.push({ label: this.i18n.transform(`${element}`), value: element })
       }
     })
     return items
@@ -128,8 +143,6 @@ export class JSONSchemaPropertyComponent implements OnInit {
     return false
   })
 
-  // x-ui
-  readonly xUi = computed<JsonSchemaUIExtensions>(() => (this.meta() as JsonSchemaTypeWithUi)?.['x-ui'] || {})
   readonly xUiComponent = computed(() => this.xUi()?.component)
   readonly xUiInputType = computed(() =>
     ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text'
@@ -148,8 +161,8 @@ export class JSONSchemaPropertyComponent implements OnInit {
     () => this.type() === 'object' && !this.hasCustomWidget() && Boolean(this.properties()?.length)
   )
   readonly depends = computed(() =>
-    (this.xUi()?.depends ?? []).reduce((acc: Record<string, unknown>, _) => {
-      const model = (this.context()?.['model'] as Record<string, unknown> | undefined) ?? undefined
+    (this.xUi()?.depends ?? []).reduce((acc: { [key: string]: unknown }, _) => {
+      const model = this.context()?.model
       if (typeof _ === 'string') {
         const value = model?.[_] ?? this.value$()?.[_]
         if (value != null) {
@@ -168,8 +181,8 @@ export class JSONSchemaPropertyComponent implements OnInit {
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized
     setTimeout(() => {
-      if (this.value$() === null && this.default() != null) {
-        // Waiting all controls have been initialized then update the default value, because other's value$() will be undefined (not null) when updated
+      if (this.value$() == null && this.default() != null) {
+        // Wait until sibling controls are initialized so each field can apply its own schema default.
         setTimeout(() => {
           this.value$.set(this.default())
         })

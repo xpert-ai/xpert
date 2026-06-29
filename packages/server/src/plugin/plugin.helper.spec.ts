@@ -1,5 +1,10 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
+	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
+	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
+	isTenantGlobalScopeKey: (value?: string | null) =>
+		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global'),
 	getErrorMessage: jest.fn((error: unknown) => (error instanceof Error ? error.message : String(error))),
 	ORGANIZATION_METADATA_KEY: 'organization-metadata',
 	PLUGIN_METADATA: {
@@ -55,6 +60,7 @@ const {
 	stagePackageDirectoryPlugin,
 	stageWorkspacePlugin
 } = require('./organization-plugin.store')
+const { GLOBAL_ORGANIZATION_SCOPE } = require('@xpert-ai/plugin-sdk')
 const { loadPlugin } = require('./plugin-loader')
 const {
 	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
@@ -95,14 +101,16 @@ describe('plugin helper registerPluginsAsync', () => {
 			})
 		)
 
-		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
-			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-code-demo',
-			expectedPackageName: '@xpert-ai/plugin-code-demo',
-			workspacePath: '/tmp/workspaces/plugin-code-demo',
-			rootDir: undefined,
-			manifestName: undefined
-		})
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-code-demo',
+				expectedPackageName: '@xpert-ai/plugin-code-demo',
+				workspacePath: '/tmp/workspaces/plugin-code-demo',
+				rootDir: undefined,
+				manifestName: undefined
+			})
+		)
 		expect(installOrganizationPlugins).toHaveBeenCalledWith('org-1', [], expect.any(Object))
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo',
@@ -188,6 +196,51 @@ describe('plugin helper registerPluginsAsync', () => {
 		])
 	})
 
+	it('tags non-default tenant global plugins with a tenant-isolated scope key', async () => {
+		await expect(
+			registerPluginsAsync({
+				tenantId: 'tenant-other',
+				defaultTenantId: 'tenant-default',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-global-demo',
+						source: 'code',
+						sourceConfig: {
+							workspacePath: '/tmp/workspaces/plugin-global-demo'
+						}
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-global-demo': {}
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'tenant:tenant-other:global',
+				errors: []
+			})
+		)
+
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				defaultTenantId: 'tenant-default',
+				scopeKey: 'tenant:tenant-other:global'
+			})
+		)
+		expect(loaded).toEqual([
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'tenant:tenant-other:global',
+				name: '@xpert-ai/plugin-global-demo'
+			})
+		])
+	})
+
 	it('rejects system plugins before registering modules when system installs are not allowed', async () => {
 		const register = jest.fn(() => ({
 			module: class RuntimePluginModule {}
@@ -254,14 +307,16 @@ describe('plugin helper registerPluginsAsync', () => {
 			})
 		)
 
-		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
-			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-vlm-default',
-			expectedPackageName: '@xpert-ai/plugin-vlm-default',
-			workspacePath: expect.stringMatching(/packages\/plugins\/vlm-default$/),
-			rootDir: undefined,
-			manifestName: undefined
-		})
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-vlm-default',
+				expectedPackageName: '@xpert-ai/plugin-vlm-default',
+				workspacePath: expect.stringMatching(/packages\/plugins\/vlm-default$/),
+				rootDir: undefined,
+				manifestName: undefined
+			})
+		)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-vlm-default', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-vlm-default',
 			source: 'code',
@@ -305,14 +360,16 @@ describe('plugin helper registerPluginsAsync', () => {
 			})
 		)
 
-		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
-			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-code-demo@runtime__abc123',
-			expectedPackageName: '@xpert-ai/plugin-code-demo',
-			workspacePath: '/tmp/workspaces/plugin-code-demo',
-			rootDir: undefined,
-			manifestName: undefined
-		})
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-code-demo@runtime__abc123',
+				expectedPackageName: '@xpert-ai/plugin-code-demo',
+				workspacePath: '/tmp/workspaces/plugin-code-demo',
+				rootDir: undefined,
+				manifestName: undefined
+			})
+		)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123',
 			source: 'code',
@@ -358,14 +415,16 @@ describe('plugin helper registerPluginsAsync', () => {
 			})
 		)
 
-		expect(stagePackageDirectoryPlugin).toHaveBeenCalledWith({
-			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
-			expectedPackageName: '@xpert-ai/plugin-uploaded-demo',
-			packageDir: '/tmp/xpert-plugin-upload-abc/package',
-			rootDir: undefined,
-			manifestName: undefined
-		})
+		expect(stagePackageDirectoryPlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-uploaded-demo@runtime__abc123',
+				expectedPackageName: '@xpert-ai/plugin-uploaded-demo',
+				packageDir: '/tmp/xpert-plugin-upload-abc/package',
+				rootDir: undefined,
+				manifestName: undefined
+			})
+		)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-uploaded-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-uploaded-demo@runtime__abc123',
 			source: 'code',

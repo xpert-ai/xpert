@@ -2,26 +2,36 @@ import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { IconComponent } from '@cloud/app/@shared/avatar'
-import { I18nObject, XpertTypeEnum } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
+import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { PLUGIN_COMPONENT_TYPE } from '@xpert-ai/cloud/state'
-import { PLUGIN_LEVEL, PluginMeta } from '@xpert-ai/contracts'
-import { ZardBadgeComponent } from '@xpert-ai/headless-ui'
+import {
+  injectPluginAPI,
+  IPluginComponentDefinition,
+  PLUGIN_COMPONENT_TYPE,
+  PluginComponentType
+} from '@xpert-ai/cloud/state'
+import { I18nObject, PLUGIN_LEVEL, PluginMeta, XpertTypeEnum } from '@xpert-ai/contracts'
+import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { map, of } from 'rxjs'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { PluginResourcesComponent } from '../resources/resources.component'
 import {
   TInstalledPlugin,
   TPluginMarketplaceContribution,
-  TPluginMarketplaceOperation,
   TPluginResourceContribution,
   TPluginWithDownloads
 } from '../types'
 
+type TAppSetupAction =
+  | { type: 'install-app'; resource: TPluginResourceContribution }
+  | { type: 'initialize-template'; template: TPluginMarketplaceContribution }
+  | { type: 'select-template' }
+  | { type: 'details' }
+
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, IconComponent, ZardBadgeComponent],
+  imports: [CommonModule, TranslateModule, NgmI18nPipe, IconComponent, ZardBadgeComponent, ZardButtonComponent],
   selector: 'xp-plugin-marketplace-detail',
   templateUrl: './marketplace-detail.component.html',
   styleUrls: ['./marketplace-detail.component.scss']
@@ -30,14 +40,65 @@ export class PluginMarketplaceDetailComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
+  readonly #pluginAPI = injectPluginAPI()
   readonly #data = inject<{ plugin: TPluginWithDownloads }>(DIALOG_DATA)
 
   readonly plugin = signal(this.#data.plugin)
-  readonly contents = computed(() => this.plugin()?.contributions ?? [])
+  readonly marketplaceContents = computed(() => this.plugin()?.contributions ?? [])
+  readonly appContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'app'))
+  readonly assistantTemplateContents = computed(() =>
+    this.marketplaceContents().filter((content) => this.isAssistantTemplate(content))
+  )
+  readonly contents = computed(() => this.marketplaceContents().filter((content) => this.isPrimaryContent(content)))
   readonly selectedApp = signal<TPluginMarketplaceContribution | null>(
     this.#data.plugin?.contributions?.find((content) => content.type === 'app') ?? null
   )
-  readonly operationGroups: Array<'read' | 'write' | 'admin'> = ['read', 'write', 'admin']
+
+  readonly #components = myRxResource({
+    request: () => {
+      const plugin = this.plugin()
+      const pluginName = this.resolveInstalledPluginName()
+      return plugin?.installed && pluginName ? pluginName : null
+    },
+    loader: ({ request }) =>
+      request ? this.#pluginAPI.getPluginComponents(request).pipe(map((result) => result.items ?? [])) : of([])
+  })
+
+  readonly componentDefinitions = computed(() => this.#components.value() ?? [])
+  readonly componentDefinitionMap = computed(() => {
+    const map = new Map<string, IPluginComponentDefinition>()
+    for (const component of this.componentDefinitions()) {
+      map.set(this.componentDefinitionKey(component.componentType, component.componentKey), component)
+    }
+    return map
+  })
+
+  readonly appCapabilityMap = computed(() => {
+    const map = new Map<string, Map<string, TPluginMarketplaceContribution>>()
+    const appContents = this.appContents()
+    const defaultAppName = appContents.length === 1 ? appContents[0].name : null
+
+    for (const content of this.marketplaceContents()) {
+      if (!this.isAppCapability(content)) {
+        continue
+      }
+      const appName = readString(content.metadata?.['app']) ?? defaultAppName
+      if (!appName) {
+        continue
+      }
+      const capabilities = map.get(appName) ?? new Map<string, TPluginMarketplaceContribution>()
+      const capabilityKey = content.name
+      const existing = capabilities.get(capabilityKey)
+      if (!existing || appCapabilityPriority(content.type) < appCapabilityPriority(existing.type)) {
+        capabilities.set(capabilityKey, content)
+      }
+      map.set(appName, capabilities)
+    }
+
+    return new Map(
+      Array.from(map.entries()).map(([appName, capabilities]) => [appName, Array.from(capabilities.values())])
+    )
+  })
 
   close() {
     this.#dialogRef.close()
@@ -54,34 +115,46 @@ export class PluginMarketplaceDetailComponent {
   }
 
   resourceContribution(content: TPluginMarketplaceContribution): TPluginResourceContribution | null {
-    switch (content.type) {
-      case 'skill':
-        return {
-          ...content,
-          type: 'skill',
-          componentType: PLUGIN_COMPONENT_TYPE.SKILL
-        }
-      case 'tool':
-        return {
-          ...content,
-          type: 'tool',
-          componentType: PLUGIN_COMPONENT_TYPE.MCP_SERVER
-        }
-      case 'app':
-        return {
-          ...content,
-          type: 'app',
-          componentType: PLUGIN_COMPONENT_TYPE.APP
-        }
-      case 'hook':
-        return {
-          ...content,
-          type: 'hook',
-          componentType: PLUGIN_COMPONENT_TYPE.HOOK
-        }
-      default:
-        return null
+    const componentType = marketplaceComponentType(content.type)
+    if (!componentType) {
+      return null
     }
+
+    const component = this.componentDefinitionMap().get(this.componentDefinitionKey(componentType, content.name))
+    if (!component) {
+      return null
+    }
+
+    if (content.type === 'skill' && component.componentType === PLUGIN_COMPONENT_TYPE.SKILL) {
+      return {
+        ...content,
+        type: 'skill',
+        componentType: component.componentType
+      }
+    }
+    if (content.type === 'tool' && component.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
+      return {
+        ...content,
+        type: 'tool',
+        componentType: component.componentType
+      }
+    }
+    if (content.type === 'app' && component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
+      return {
+        ...content,
+        type: 'app',
+        componentType: component.componentType
+      }
+    }
+    if (content.type === 'hook' && component.componentType === PLUGIN_COMPONENT_TYPE.HOOK) {
+      return {
+        ...content,
+        type: 'hook',
+        componentType: component.componentType
+      }
+    }
+
+    return null
   }
 
   initializeResource(content: TPluginResourceContribution, event?: MouseEvent) {
@@ -162,12 +235,36 @@ export class PluginMarketplaceDetailComponent {
       })
   }
 
+  handleAppAction(app: TPluginMarketplaceContribution, event?: MouseEvent) {
+    event?.stopPropagation()
+    const action = this.appSetupAction(app)
+
+    if (this.appActionRequiresInstalledPlugin(action) && !this.plugin()?.installed) {
+      return
+    }
+
+    switch (action.type) {
+      case 'install-app':
+        this.initializeResource(action.resource, event)
+        break
+      case 'initialize-template':
+        this.initializeAssistantTemplate(action.template, event)
+        break
+      case 'select-template':
+      case 'details':
+        this.selectApp(app)
+        break
+    }
+  }
+
   contentTypeIcon(type: string) {
     switch (type) {
       case 'app':
         return 'ri-apps-2-line'
       case 'view':
         return 'ri-layout-4-line'
+      case 'middleware':
+        return 'ri-flow-chart'
       case 'assistant-template':
         return 'ri-robot-2-line'
       case 'skill':
@@ -191,6 +288,8 @@ export class PluginMarketplaceDetailComponent {
         return 'h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
       case 'tool':
         return 'h-5 border-accent/25 bg-accent/10 text-accent'
+      case 'middleware':
+        return 'h-5 border-accent/25 bg-accent/10 text-accent'
       case 'hook':
         return 'h-5 border-destructive/25 bg-destructive/10 text-destructive'
       case 'assistant-template':
@@ -204,12 +303,68 @@ export class PluginMarketplaceDetailComponent {
     }
   }
 
-  operations(access: string): TPluginMarketplaceOperation[] {
-    return (this.selectedApp()?.operations ?? []).filter((operation) => operation.access === access)
+  appCapabilities(app: TPluginMarketplaceContribution) {
+    return this.appCapabilityMap().get(app.name) ?? []
   }
 
-  operationCount() {
-    return this.selectedApp()?.operations?.length ?? 0
+  appTemplates(app: TPluginMarketplaceContribution) {
+    const templates = this.assistantTemplateContents()
+    const explicitTemplates = templates.filter((template) => readString(template.metadata?.['app']) === app.name)
+    if (explicitTemplates.length) {
+      return explicitTemplates
+    }
+
+    if (this.appContents().length === 1 && templates.length === 1) {
+      return templates
+    }
+
+    return []
+  }
+
+  appSetupAction(app: TPluginMarketplaceContribution): TAppSetupAction {
+    const resource = this.resourceContribution(app)
+    if (resource) {
+      return {
+        type: 'install-app',
+        resource
+      }
+    }
+
+    const templates = this.appTemplates(app)
+    if (templates.length === 1) {
+      return {
+        type: 'initialize-template',
+        template: templates[0]
+      }
+    }
+    if (templates.length > 1) {
+      return {
+        type: 'select-template'
+      }
+    }
+
+    return {
+      type: 'details'
+    }
+  }
+
+  appActionRequiresInstalledPlugin(action: TAppSetupAction) {
+    return action.type === 'install-app' || action.type === 'initialize-template'
+  }
+
+  private isPrimaryContent(content: TPluginMarketplaceContribution) {
+    if (content.type === 'app') {
+      return false
+    }
+    return content.type === 'assistant-template' || !!this.resourceContribution(content)
+  }
+
+  private isAppCapability(content: TPluginMarketplaceContribution) {
+    if (content.type === 'view' || content.type === 'feature' || content.type === 'middleware') {
+      return true
+    }
+
+    return content.type === 'tool' && !this.resourceContribution(content)
   }
 
   private resolveTemplateId(content: TPluginMarketplaceContribution) {
@@ -237,6 +392,10 @@ export class PluginMarketplaceDetailComponent {
   private installModeForResource(content: TPluginResourceContribution) {
     return content.componentType === PLUGIN_COMPONENT_TYPE.HOOK ? 'xpert' : 'workspace'
   }
+
+  private componentDefinitionKey(componentType: PluginComponentType, componentKey: string) {
+    return `${componentType}:${componentKey}`
+  }
 }
 
 function readString(value: unknown) {
@@ -258,6 +417,21 @@ function readI18nText(value: I18nObject | string | undefined) {
   )
 }
 
+function appCapabilityPriority(type: string) {
+  switch (type) {
+    case 'view':
+      return 0
+    case 'middleware':
+      return 1
+    case 'feature':
+      return 2
+    case 'tool':
+      return 3
+    default:
+      return 4
+  }
+}
+
 function normalizePluginCategory(value: string | undefined): PluginMeta['category'] {
   if (
     value === 'agent' ||
@@ -274,4 +448,19 @@ function normalizePluginCategory(value: string | undefined): PluginMeta['categor
     return value
   }
   return 'integration'
+}
+
+function marketplaceComponentType(type: string): PluginComponentType | null {
+  switch (type) {
+    case 'skill':
+      return PLUGIN_COMPONENT_TYPE.SKILL
+    case 'tool':
+      return PLUGIN_COMPONENT_TYPE.MCP_SERVER
+    case 'app':
+      return PLUGIN_COMPONENT_TYPE.APP
+    case 'hook':
+      return PLUGIN_COMPONENT_TYPE.HOOK
+    default:
+      return null
+  }
 }

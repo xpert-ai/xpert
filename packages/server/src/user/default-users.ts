@@ -1,6 +1,6 @@
 import { LanguagesEnum } from '@xpert-ai/contracts'
 
-export const EMAIL_ADDRESS = '@mtda.cloud'
+export const EMAIL_ADDRESS = '@xpertai.cn'
 
 export const DEFAULT_SUPER_ADMINS = [
 	{
@@ -9,7 +9,7 @@ export const DEFAULT_SUPER_ADMINS = [
 		firstName: 'Super',
 		lastName: 'Admin',
 		imageUrl: 'assets/images/avatar-default.svg',
-		preferredLanguage: LanguagesEnum.Chinese,
+		preferredLanguage: LanguagesEnum.Chinese
 	}
 ]
 
@@ -20,6 +20,6 @@ export const DEFAULT_ADMINS = [
 		firstName: 'Local',
 		lastName: 'Admin',
 		imageUrl: 'assets/images/avatar-default.svg',
-		preferredLanguage: LanguagesEnum.Chinese,
+		preferredLanguage: LanguagesEnum.Chinese
 	}
 ]

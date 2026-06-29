@@ -3,7 +3,12 @@ import { DiscoveryService, Reflector } from '@nestjs/core'
 import { filter } from 'rxjs'
 import { RequestContext } from './core/context'
 import { StrategyBus } from './core/strategy-bus'
-import { GLOBAL_ORGANIZATION_SCOPE, ORGANIZATION_METADATA_KEY, PLUGIN_METADATA_KEY } from './types'
+import {
+  GLOBAL_ORGANIZATION_SCOPE,
+  ORGANIZATION_METADATA_KEY,
+  PLUGIN_METADATA_KEY,
+  resolveTenantGlobalScopeKey
+} from './types'
 
 export class BaseStrategyRegistry<S> implements OnModuleInit {
   private readonly logger = new Logger(BaseStrategyRegistry.name)
@@ -75,7 +80,14 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
    * Resolve organization id, falling back to request context org or global scope.
    */
   protected resolveOrganization(organizationId?: string) {
-    return organizationId ?? RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+    const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+    const requested = organizationId ?? RequestContext.getOrganizationId()
+    return !requested || requested === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : requested
+  }
+
+  protected resolveGlobalFallbackOrganization() {
+    const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+    return resolveTenantGlobalScopeKey(tenantId)
   }
 
   /**
@@ -88,9 +100,10 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
   get(type: string, organizationId?: string): S {
     organizationId ??= RequestContext.getOrganizationId()
     const orgKey = this.resolveOrganization(organizationId)
+    const globalKey = this.resolveGlobalFallbackOrganization()
     const strategy =
       this.strategies.get(orgKey)?.get(type) ??
-      (orgKey === GLOBAL_ORGANIZATION_SCOPE ? undefined : this.strategies.get(GLOBAL_ORGANIZATION_SCOPE)?.get(type))
+      (orgKey === globalKey ? undefined : this.strategies.get(globalKey)?.get(type))
     if (!strategy) {
       throw new Error(`No strategy found for type '${type}' for strategy '${this.strategyKey}'`)
     }
@@ -106,14 +119,15 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
   list(organizationId?: string): S[] {
     organizationId ??= RequestContext.getOrganizationId()
     const orgKey = this.resolveOrganization(organizationId)
+    const globalKey = this.resolveGlobalFallbackOrganization()
     const effective = new Map<string, S>()
 
     for (const [type, strategy] of this.strategies.get(orgKey)?.entries() ?? []) {
       effective.set(type, strategy)
     }
 
-    if (orgKey !== GLOBAL_ORGANIZATION_SCOPE) {
-      for (const [type, strategy] of this.strategies.get(GLOBAL_ORGANIZATION_SCOPE)?.entries() ?? []) {
+    if (orgKey !== globalKey) {
+      for (const [type, strategy] of this.strategies.get(globalKey)?.entries() ?? []) {
         if (!effective.has(type)) {
           effective.set(type, strategy)
         }

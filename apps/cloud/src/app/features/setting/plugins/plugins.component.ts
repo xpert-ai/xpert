@@ -44,8 +44,8 @@ import {
   enrichInstalledPluginWithMarketplaceMetadata,
   mergeMarketplaceContributions
 } from './plugin-marketplace-metadata'
-
-const INSTALLABLE_MARKETPLACE_CONTENT_TYPES = new Set(['assistant-template', 'skill', 'tool', 'app', 'hook'])
+import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
+import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation'
 
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
@@ -388,9 +388,7 @@ export class PluginsComponent {
   }
 
   hasInstallableMarketplaceContributions(plugin: TInstalledPlugin) {
-    return getInstalledPluginMarketplaceContributions(plugin).some((content) =>
-      INSTALLABLE_MARKETPLACE_CONTENT_TYPES.has(content.type)
-    )
+    return getInstalledPluginMarketplaceContributions(plugin).some(hasInstallableMarketplaceContribution)
   }
 
   reload() {
@@ -429,6 +427,11 @@ export class PluginsComponent {
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
+  }
+
+  openPluginPage(plugin: TInstalledPlugin) {
+    const pluginName = plugin.packageName ?? plugin.meta.name ?? plugin.name
+    this.router.navigate(pluginMarketplaceDetailCommands(pluginName))
   }
 
   openInstallOptions(plugin: TInstalledPlugin) {

@@ -4,12 +4,19 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import chalk from 'chalk'
 import { normalizePluginName } from './types'
+import { getPluginScopeLogLabel, resolvePluginScope, safePluginScopePathSegment } from './plugin-scope'
 
 export interface OrganizationPluginStoreOptions {
 	/** Base directory to keep organization plugin workspaces, defaults to `<repo>/data/plugins` */
 	rootDir?: string
 	/** Manifest filename, defaults to `plugins.json` under each organization folder */
 	manifestName?: string
+	/** Tenant that owns tenant-global plugin installs. */
+	tenantId?: string | null
+	/** Default tenant id. Its global plugins keep using the legacy `global` directory. */
+	defaultTenantId?: string | null
+	/** Internal runtime scope key used for tenant-global isolation. */
+	scopeKey?: string | null
 }
 
 export interface InstallOrganizationPluginsOptions extends OrganizationPluginStoreOptions {
@@ -285,7 +292,19 @@ function getPluginDirName(pluginName: string) {
 }
 
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
-	return path.join(opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT, organizationId)
+	const rootDir = opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT
+	const scope = resolvePluginScope({
+		tenantId: opts?.tenantId,
+		organizationId,
+		defaultTenantId: opts?.defaultTenantId,
+		scopeKey: opts?.scopeKey
+	})
+
+	if (scope.isTenantGlobal && scope.tenantId) {
+		return path.join(rootDir, 'tenants', safePluginScopePathSegment(scope.tenantId), scope.organizationId)
+	}
+
+	return path.join(rootDir, scope.organizationId)
 }
 
 export function getOrganizationManifestPath(organizationId: string, opts?: OrganizationPluginStoreOptions) {
@@ -495,7 +514,13 @@ export function installOrganizationPlugins(
 	const root = getOrganizationPluginRoot(organizationId, opts)
 	ensureDir(root)
 
-	process.stdout.write(`Installing plugins for org ${organizationId}: `)
+	const scopeLabel = getPluginScopeLogLabel({
+		tenantId: opts.tenantId,
+		organizationId,
+		defaultTenantId: opts.defaultTenantId,
+		scopeKey: opts.scopeKey
+	})
+	process.stdout.write(`Installing plugins for scope ${scopeLabel}: `)
 	for (const plugin of plugins) {
 		process.stdout.write(chalk.bgBlue(plugin) + ' ')
 	}
@@ -534,10 +559,10 @@ export function installOrganizationPlugins(
 					npm_config_lockfile: 'false'
 				}
 			})
-			console.log(chalk.green(`Installed plugin ${plugin} for org ${organizationId} at ${pluginDir}`))
+			console.log(chalk.green(`Installed plugin ${plugin} for scope ${scopeLabel} at ${pluginDir}`))
 			manifest.add(plugin)
 		} catch (error) {
-			console.error(`Failed to install plugin ${plugin} for org ${organizationId}:`, error)
+			console.error(`Failed to install plugin ${plugin} for scope ${scopeLabel}:`, error)
 		}
 	}
 

@@ -21,7 +21,13 @@ jest.mock('@xpert-ai/server-config', () => ({
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
-	GLOBAL_ORGANIZATION_SCOPE: '__global__'
+	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
+	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
+	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
+	isTenantGlobalScopeKey: (value?: string | null) =>
+		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global'),
+	setDefaultTenantId: jest.fn()
 }))
 
 jest.mock('typeorm', () => ({
@@ -81,7 +87,9 @@ describe('plugin instance loader', () => {
 
 		expect(configs).toEqual([
 			{
+				tenantId: null,
 				organizationId: 'org-1',
+				scopeKey: 'org-1',
 				plugins: [
 					{
 						name: '@xpert-ai/plugin-code-demo',
@@ -127,7 +135,9 @@ describe('plugin instance loader', () => {
 
 		expect(configs).toEqual([
 			{
+				tenantId: null,
 				organizationId: 'org-1',
+				scopeKey: 'org-1',
 				plugins: [
 					{
 						name: '@xpert-ai/plugin-uploaded-demo',
@@ -164,7 +174,9 @@ describe('plugin instance loader', () => {
 
 		expect(configs).toEqual([
 			{
+				tenantId: null,
 				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: GLOBAL_ORGANIZATION_SCOPE,
 				plugins: [
 					{
 						name: '@xpert-ai/plugin-global-demo@1.0.0',
@@ -178,6 +190,53 @@ describe('plugin instance loader', () => {
 					'@xpert-ai/plugin-global-demo': {}
 				}
 			}
+		])
+	})
+
+	it('groups global plugin rows by tenant while keeping the Default Tenant on the legacy global scope', () => {
+		const configs = buildOrganizationPluginConfigs(
+			[
+				{
+					tenantId: 'tenant-default',
+					organizationId: null,
+					pluginName: '@xpert-ai/plugin-default-global',
+					packageName: '@xpert-ai/plugin-default-global',
+					version: '1.0.0',
+					source: 'marketplace',
+					sourceConfig: null,
+					level: 'organization',
+					config: {}
+				},
+				{
+					tenantId: 'tenant-other',
+					organizationId: null,
+					pluginName: '@xpert-ai/plugin-other-global',
+					packageName: '@xpert-ai/plugin-other-global',
+					version: '1.0.0',
+					source: 'marketplace',
+					sourceConfig: null,
+					level: 'organization',
+					config: {}
+				}
+			],
+			{
+				defaultTenantId: 'tenant-default'
+			}
+		)
+
+		expect(configs).toEqual([
+			expect.objectContaining({
+				tenantId: 'tenant-default',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: GLOBAL_ORGANIZATION_SCOPE,
+				plugins: [expect.objectContaining({ name: '@xpert-ai/plugin-default-global@1.0.0' })]
+			}),
+			expect.objectContaining({
+				tenantId: 'tenant-other',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'tenant:tenant-other:global',
+				plugins: [expect.objectContaining({ name: '@xpert-ai/plugin-other-global@1.0.0' })]
+			})
 		])
 	})
 

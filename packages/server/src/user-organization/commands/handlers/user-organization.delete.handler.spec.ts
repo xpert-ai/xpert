@@ -95,7 +95,10 @@ describe('UserOrganizationDeleteHandler', () => {
 			}
 		} as any)
 
-		expect(userOrganizationService.delete).toHaveBeenCalledWith('membership-1')
+		expect(userOrganizationService.delete).toHaveBeenCalledWith('membership-1', {
+			allowDeletingLastMembership: true
+		})
+		expect(userService.deleteHardWithGuards).not.toHaveBeenCalled()
 		expect(eventEmitter.emit).toHaveBeenCalledWith(
 			'user.organization.deleted',
 			expect.objectContaining({
@@ -106,7 +109,7 @@ describe('UserOrganizationDeleteHandler', () => {
 		)
 	})
 
-	it('hard deletes the user when removing the last organization membership', async () => {
+	it('removes the last organization membership without deleting the user', async () => {
 		const { handler, userOrganizationService, userService } = createHandler()
 		userOrganizationService.findOne.mockResolvedValue({
 			tenantId: 'tenant-1',
@@ -134,11 +137,13 @@ describe('UserOrganizationDeleteHandler', () => {
 			}
 		} as any)
 
-		expect(userService.deleteHardWithGuards).toHaveBeenCalledWith('user-1')
-		expect(userOrganizationService.delete).not.toHaveBeenCalled()
+		expect(userOrganizationService.delete).toHaveBeenCalledWith('membership-1', {
+			allowDeletingLastMembership: true
+		})
+		expect(userService.deleteHardWithGuards).not.toHaveBeenCalled()
 	})
 
-	it('emits one deleted event per organization when removing a super admin user', async () => {
+	it('removes only the selected super admin membership', async () => {
 		const { eventEmitter, handler, roleService, userOrganizationService, userService } = createHandler()
 		userOrganizationService.findOne.mockResolvedValue({
 			tenantId: 'tenant-1',
@@ -183,21 +188,15 @@ describe('UserOrganizationDeleteHandler', () => {
 			}
 		} as any)
 
-		expect(userService.deleteHardWithGuards).toHaveBeenCalledWith('user-1')
-		expect(eventEmitter.emit).toHaveBeenCalledTimes(2)
-		expect(eventEmitter.emit).toHaveBeenNthCalledWith(
-			1,
+		expect(userOrganizationService.delete).toHaveBeenCalledWith('membership-1', {
+			allowDeletingLastMembership: true
+		})
+		expect(userService.deleteHardWithGuards).not.toHaveBeenCalled()
+		expect(eventEmitter.emit).toHaveBeenCalledTimes(1)
+		expect(eventEmitter.emit).toHaveBeenCalledWith(
 			'user.organization.deleted',
 			expect.objectContaining({
 				organizationId: 'org-1',
-				userId: 'user-1'
-			})
-		)
-		expect(eventEmitter.emit).toHaveBeenNthCalledWith(
-			2,
-			'user.organization.deleted',
-			expect.objectContaining({
-				organizationId: 'org-2',
 				userId: 'user-1'
 			})
 		)

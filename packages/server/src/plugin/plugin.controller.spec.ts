@@ -35,9 +35,13 @@ jest.mock('@xpert-ai/contracts', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
+		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
+	),
 	RequestContext: {
 		getOrganizationId: jest.fn(),
 		currentTenantId: jest.fn(),
+		getScope: jest.fn(),
 		hasRole: jest.fn()
 	}
 }))
@@ -74,7 +78,7 @@ jest.mock('./plugin-marketplace.service', () => ({
 }))
 
 const { PLUGIN_LEVEL } = require('@xpert-ai/contracts')
-const { GLOBAL_ORGANIZATION_SCOPE, RequestContext } = require('@xpert-ai/plugin-sdk')
+const { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
 const { findPluginLoadFailure } = require('./plugin.helper')
 const { PluginController } = require('./plugin.controller')
@@ -124,6 +128,9 @@ describe('PluginController', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		resolveTenantGlobalScopeKey.mockImplementation((tenantId?: string | null) =>
+			tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : GLOBAL_ORGANIZATION_SCOPE
+		)
 		loadedPlugins.length = 0
 		;(buildConfig as jest.Mock).mockImplementation((_: string, config: Record<string, any>) => config ?? {})
 		;(inspectConfig as jest.Mock).mockImplementation((_: string, config: Record<string, any>) => ({
@@ -142,7 +149,11 @@ describe('PluginController', () => {
 		)
 
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
-		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		RequestContext.currentTenantId.mockReturnValue('default-tenant')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'default-tenant',
+			organizationId: 'org-1'
+		})
 		RequestContext.hasRole.mockReturnValue(false)
 	})
 
@@ -614,6 +625,57 @@ describe('PluginController', () => {
 
 		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-global-demo'] })).resolves.toEqual([])
 		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('lists tenant-global plugins only for the matching tenant', async () => {
+		RequestContext.getOrganizationId.mockReturnValue('org-2')
+		RequestContext.currentTenantId.mockReturnValue('tenant-other')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-other',
+			organizationId: 'org-2'
+		})
+		loadedPlugins.push(
+			{
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				name: '@xpert-ai/plugin-default-global',
+				packageName: '@xpert-ai/plugin-default-global',
+				source: 'env',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-default-global',
+						version: '0.0.1',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			},
+			{
+				tenantId: 'tenant-other',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'tenant:tenant-other:global',
+				name: '@xpert-ai/plugin-tenant-global',
+				packageName: '@xpert-ai/plugin-tenant-global',
+				source: 'env',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-tenant-global',
+						version: '0.0.1',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			}
+		)
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-tenant-global',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				isGlobal: true
+			})
+		])
 	})
 
 	it('returns latest version statuses for global plugins when tenant-level super admins can update them', async () => {

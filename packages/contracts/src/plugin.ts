@@ -211,12 +211,21 @@ export interface XpertTemplatePluginAppDependency {
   auth?: 'on_install' | 'on_first_use'
 }
 
+export interface XpertTemplatePluginToolsetDependency {
+  pluginName?: PluginName
+  provider: string
+  templateNodeKey: string
+  targetAgentKey?: string
+  instanceName?: string
+}
+
 export interface XpertTemplatePluginDependencies {
   plugins?: PluginName[]
   skills?: XpertTemplatePluginSkillDependency[]
   mcpServers?: XpertTemplatePluginMcpServerDependency[]
   hooks?: XpertTemplatePluginHookDependency[]
   apps?: XpertTemplatePluginAppDependency[]
+  toolsets?: XpertTemplatePluginToolsetDependency[]
 }
 
 export interface PluginMarketplaceContribution {
@@ -480,6 +489,21 @@ export interface PluginMarketplaceItem {
   targetAppMeta?: PluginTargetAppMeta | null
   marketplacePlugin?: JSONValue | null
   section?: PluginMarketplaceRegistrySection | string
+}
+
+export type PluginMarketplaceReadmeSource = 'installed-package' | 'npm-package' | 'marketplace-metadata' | 'description'
+
+export interface PluginMarketplaceReadme {
+  locale: string
+  requestedLocale?: string | null
+  fileName?: string | null
+  content: string
+  source: PluginMarketplaceReadmeSource
+}
+
+export interface PluginMarketplaceDetailItem extends PluginMarketplaceItem {
+  readme: PluginMarketplaceReadme
+  availableReadmeLocales?: string[]
 }
 
 export interface PluginMarketplaceResponse {

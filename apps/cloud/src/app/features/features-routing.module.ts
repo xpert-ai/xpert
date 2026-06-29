@@ -79,6 +79,38 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'plugins/marketplace/:scope/:packageName',
+        loadComponent: () =>
+          import('./setting/plugins/marketplace/marketplace-readme-page.component').then(
+            (m) => m.PluginMarketplaceReadmePageComponent
+          ),
+        canActivate: [authGuard, NgxPermissionsGuard],
+        data: {
+          title: 'Plugin Details',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.XPERT_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'plugins/marketplace/:packageName',
+        loadComponent: () =>
+          import('./setting/plugins/marketplace/marketplace-readme-page.component').then(
+            (m) => m.PluginMarketplaceReadmePageComponent
+          ),
+        canActivate: [authGuard, NgxPermissionsGuard],
+        data: {
+          title: 'Plugin Details',
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [AIPermissionsEnum.XPERT_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
         path: 'plugins',
         loadComponent: () => import('./setting/plugins/plugins.component').then((m) => m.PluginsComponent),
         canActivate: [authGuard, NgxPermissionsGuard],

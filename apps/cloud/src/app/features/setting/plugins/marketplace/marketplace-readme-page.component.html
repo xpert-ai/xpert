@@ -1,0 +1,206 @@
+<div class="flex min-h-0 grow flex-col overflow-auto bg-background-default px-8 py-6">
+  <div class="mx-auto flex w-full max-w-7xl flex-col gap-6">
+    <div>
+      <a
+        routerLink="/plugins"
+        [queryParams]="{ category: 'marketplace' }"
+        class="inline-flex items-center gap-2 text-sm font-medium text-text-tertiary transition hover:text-text-primary"
+      >
+        <i class="ri-arrow-left-line"></i>
+        {{ 'PAC.Plugin.BackToMarketplace' | translate: { Default: 'Back to marketplace' } }}
+      </a>
+    </div>
+
+    @if (loading() && !detail()) {
+      <div class="flex min-h-[360px] items-center justify-center rounded-lg border border-divider-regular">
+        <div class="flex items-center gap-3 text-text-tertiary">
+          <ngm-spin small />
+          <span>{{ 'PAC.Plugin.LoadingPluginDetails' | translate: { Default: 'Loading plugin details...' } }}</span>
+        </div>
+      </div>
+    } @else if (error()) {
+      <div
+        class="flex min-h-[360px] flex-col items-center justify-center gap-4 rounded-lg border border-divider-regular px-6 text-center"
+      >
+        <i class="ri-error-warning-line text-3xl text-text-destructive"></i>
+        <div class="text-lg font-semibold text-text-primary">
+          {{ 'PAC.Plugin.LoadPluginDetailsFailed' | translate: { Default: 'Failed to load plugin details' } }}
+        </div>
+        <div class="max-w-2xl break-words text-sm text-text-tertiary">
+          {{ error() }}
+        </div>
+        <button z-button type="button" zType="secondary" (click)="reload()">
+          <i class="ri-refresh-line"></i>
+          {{ 'PAC.Plugin.Refresh' | translate: { Default: 'Refresh' } }}
+        </button>
+      </div>
+    } @else if (detail(); as detail) {
+      <header class="flex flex-wrap items-start justify-between gap-5 border-b border-divider-regular pb-6">
+        <div class="flex min-w-0 items-start gap-4">
+          <xp-icon
+            [icon]="detail.icon || { type: 'font', value: 'ri-puzzle-2-line' }"
+            size="48"
+            class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg"
+          />
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="truncate text-3xl font-semibold text-text-primary">
+                {{ detail.displayName || detail.name | i18n }}
+              </h1>
+              @if (detail.version) {
+                <z-badge class="font-mono">v{{ detail.version }}</z-badge>
+              }
+              @if (detail.installed) {
+                <z-badge zType="secondary">
+                  {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
+                </z-badge>
+              }
+            </div>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-text-tertiary">
+              {{ detail.description || detail.name | i18n }}
+            </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
+              <span class="font-mono">{{ packageName(detail) }}</span>
+              @if (sourceLabel(detail) !== '-') {
+                <span class="text-text-quaternary">/</span>
+                <span>{{ sourceLabel(detail) }}</span>
+              }
+              @if (detail.downloads?.lastMonth) {
+                <span class="text-text-quaternary">/</span>
+                <span class="inline-flex items-center gap-1">
+                  <i class="ri-import-line"></i>
+                  {{ detail.downloads?.lastMonth | number }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          @if (!detail.installed) {
+            <button z-button type="button" zType="default" (click)="openInstall()">
+              <i class="ri-download-cloud-2-line"></i>
+              {{ 'PAC.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}
+            </button>
+          } @else if (hasSetupContent()) {
+            <button z-button type="button" zType="default" (click)="openSetup()">
+              <i class="ri-settings-3-line"></i>
+              {{ 'PAC.Plugin.SetupPlugin' | translate: { Default: 'Setup' } }}
+            </button>
+          }
+          @if (homepageUrl(detail); as homepage) {
+            <a [href]="homepage" target="_blank" rel="noreferrer">
+              <button z-button type="button" zType="secondary">
+                <i class="ri-external-link-line"></i>
+                {{ 'PAC.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
+              </button>
+            </a>
+          }
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <main #readmeMarkdown class="min-w-0">
+          <markdown
+            class="ngm-copilot-markdown plugin-readme-markdown block min-h-[420px]"
+            [data]="detail.readme.content || ''"
+            (ready)="normalizeReadmeLinks()"
+          />
+        </main>
+
+        <aside class="sticky top-6 space-y-4">
+          <section class="rounded-lg border border-divider-regular bg-components-card-bg p-4">
+            <h2 class="text-sm font-semibold uppercase text-text-tertiary">
+              {{ 'PAC.Plugin.PluginInfo' | translate: { Default: 'Plugin info' } }}
+            </h2>
+            <dl class="mt-4 space-y-3 text-sm">
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Package' | translate: { Default: 'Package' } }}</dt>
+                <dd class="min-w-0 break-all text-right font-mono text-text-primary">{{ packageName(detail) }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Version' | translate: { Default: 'Version' } }}</dt>
+                <dd class="text-right text-text-primary">{{ detail.version || '-' }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Category' | translate: { Default: 'Category' } }}</dt>
+                <dd class="text-right text-text-primary">
+                  {{ 'PAC.Plugin.Category_' + detail.category | translate: { Default: detail.category || '-' } }}
+                </dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Author' | translate: { Default: 'Author' } }}</dt>
+                <dd class="text-right text-text-primary">
+                  @if (pluginForDialog()?.author?.url) {
+                    <a class="hover:underline" [href]="pluginForDialog()?.author?.url" target="_blank" rel="noreferrer">
+                      {{ pluginForDialog()?.author?.name || '-' }}
+                    </a>
+                  } @else {
+                    {{ pluginForDialog()?.author?.name || '-' }}
+                  }
+                </dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Source' | translate: { Default: 'Source' } }}</dt>
+                <dd class="text-right text-text-primary">{{ sourceLabel(detail) }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">
+                  {{ 'PAC.Plugin.TargetApps' | translate: { Default: 'Target apps' } }}
+                </dt>
+                <dd class="text-right text-text-primary">
+                  {{ detail.targetApps?.length ? detail.targetApps?.join(', ') : '-' }}
+                </dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.Contents' | translate: { Default: 'Contents' } }}</dt>
+                <dd class="text-right text-text-primary">{{ detail.contributions?.length || 0 }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="rounded-lg border border-divider-regular bg-components-card-bg p-4">
+            <h2 class="text-sm font-semibold uppercase text-text-tertiary">
+              {{ 'PAC.Plugin.Documentation' | translate: { Default: 'Documentation' } }}
+            </h2>
+            <dl class="mt-4 space-y-3 text-sm">
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.ReadmeSource' | translate: { Default: 'Source' } }}</dt>
+                <dd class="text-right text-text-primary">
+                  {{ 'PAC.Plugin.ReadmeSource_' + detail.readme.source | translate: { Default: detail.readme.source } }}
+                </dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.ReadmeLocale' | translate: { Default: 'Locale' } }}</dt>
+                <dd class="text-right text-text-primary">{{ detail.readme.locale || '-' }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">{{ 'PAC.Plugin.ReadmeFile' | translate: { Default: 'File' } }}</dt>
+                <dd class="min-w-0 break-all text-right font-mono text-text-primary">
+                  {{ detail.readme.fileName || '-' }}
+                </dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-text-tertiary">
+                  {{ 'PAC.Plugin.AvailableLocales' | translate: { Default: 'Available locales' } }}
+                </dt>
+                <dd class="text-right text-text-primary">
+                  {{ detail.availableReadmeLocales?.length ? detail.availableReadmeLocales?.join(', ') : '-' }}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          @if (repositoryUrl(detail); as repository) {
+            <a [href]="repository" target="_blank" rel="noreferrer">
+              <button z-button type="button" zType="secondary" class="w-full">
+                <i class="ri-git-repository-line"></i>
+                {{ 'PAC.Plugin.Repository' | translate: { Default: 'Repository' } }}
+              </button>
+            </a>
+          }
+        </aside>
+      </div>
+    }
+  </div>
+</div>

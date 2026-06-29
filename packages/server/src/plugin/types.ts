@@ -13,7 +13,10 @@ import type {
 export const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS'
 
 export interface LoadedPluginRecord {
+	tenantId?: string | null
 	organizationId: string
+	/** Internal runtime scope key. Organization scopes use organizationId; tenant-global scopes use tenant:<id>:global. */
+	scopeKey?: string
 	name: string
 	instance: any
 	ctx: any

@@ -42,6 +42,7 @@ import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { getCodePackageDir, getCodeRuntimeName, getCodeWorkspacePath } from './source-config'
 import { findWorkspacePluginDirectory } from './plugin-sdk-versioning'
+import { getPluginScopeLogLabel, resolvePluginScope } from './plugin-scope'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -164,7 +165,9 @@ export function getDynamicPluginsModules(): DynamicModule[] {
 
 export const loaded: LoadedPluginRecord[] = []
 export interface PluginLoadFailureRecord {
+	tenantId?: string | null
 	organizationId: string
+	scopeKey?: string
 	pluginName: string
 	packageName?: string
 	code?: string
@@ -220,9 +223,10 @@ function resolveLoadedSourceConfig(
 export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
 	const pluginName = normalizePluginName(failure.pluginName)
 	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
+	const failureScopeKey = failure.scopeKey ?? failure.organizationId
 	const index = loadFailures.findIndex(
 		(item) =>
-			item.organizationId === failure.organizationId &&
+			(item.scopeKey ?? item.organizationId) === failureScopeKey &&
 			(item.pluginName === pluginName || item.packageName === packageName)
 	)
 
@@ -248,7 +252,7 @@ export function clearPluginLoadFailure(organizationId: string, ...names: Array<s
 	for (let i = loadFailures.length - 1; i >= 0; i--) {
 		const item = loadFailures[i]
 		if (
-			item.organizationId === organizationId &&
+			(item.scopeKey ?? item.organizationId) === organizationId &&
 			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
 		) {
 			loadFailures.splice(i, 1)
@@ -264,7 +268,7 @@ export function findPluginLoadFailure(organizationId: string, ...names: Array<st
 
 	return loadFailures.find(
 		(item) =>
-			item.organizationId === organizationId &&
+			(item.scopeKey ?? item.organizationId) === organizationId &&
 			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
 	)
 }
@@ -317,8 +321,14 @@ export function collectProvidersWithMetadata<TMeta = any>(
 }
 
 export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions {
+	/** Tenant that owns this plugin scope. */
+	tenantId?: string | null
 	/** The organization scope for plugin discovery/loading. Defaults to 'global'. */
 	organizationId?: string
+	/** Internal runtime scope key for tenant-global isolation. */
+	scopeKey?: string
+	/** Default tenant id. Default tenant global plugins keep legacy scope/path behaviour. */
+	defaultTenantId?: string | null
 	/** Nest module context for resolving dependencies during registration. */
 	module?: ModuleRef
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
@@ -352,12 +362,26 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
  */
 export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, logger: Logger) {
 	const organizationId = opts.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+	const scope = resolvePluginScope({
+		tenantId: opts.tenantId,
+		organizationId,
+		defaultTenantId: opts.defaultTenantId,
+		scopeKey: opts.scopeKey
+	})
+	const scopeKey = scope.scopeKey
+	const scopeOpts = {
+		...opts,
+		tenantId: scope.tenantId,
+		organizationId,
+		defaultTenantId: opts.defaultTenantId,
+		scopeKey
+	}
 	const baseDirRoot =
-		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, opts) : process.cwd())
+		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, scopeOpts) : process.cwd())
 
 	const discoveryOptions = { ...opts.discovery }
 	if (!discoveryOptions.manifestPath && opts.organizationId) {
-		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, opts)
+		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, scopeOpts)
 	}
 
 	const pluginNames: Array<{
@@ -394,7 +418,10 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					expectedPackageName: normalizePluginName(plugin.name),
 					packageDir,
 					rootDir: opts.rootDir,
-					manifestName: opts.manifestName
+					manifestName: opts.manifestName,
+					tenantId: scope.tenantId,
+					defaultTenantId: opts.defaultTenantId,
+					scopeKey
 				})
 			} catch (error) {
 				plugin.stageError = getErrorMessage(error)
@@ -421,7 +448,10 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				expectedPackageName: normalizePluginName(plugin.name),
 				workspacePath,
 				rootDir: opts.rootDir,
-				manifestName: opts.manifestName
+				manifestName: opts.manifestName,
+				tenantId: scope.tenantId,
+				defaultTenantId: opts.defaultTenantId,
+				scopeKey
 			})
 		} catch (error) {
 			plugin.stageError = getErrorMessage(error)
@@ -437,7 +467,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	installOrganizationPlugins(
 		organizationId,
 		pluginNames.filter((p) => p.source !== 'code').map((p) => p.name),
-		opts
+		scopeOpts
 	)
 
 	const modules: DynamicModule[] = []
@@ -447,7 +477,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		try {
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
-				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
+				? getOrganizationPluginPath(organizationId, pluginPathName, scopeOpts)
 				: baseDirRoot
 			const configuredWorkspacePath = source === 'code' ? getCodeWorkspacePath(sourceConfig) : undefined
 			const configuredPackageDir = source === 'code' ? getCodePackageDir(sourceConfig) : undefined
@@ -491,17 +521,19 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			const mod = plugin.register(ctx)
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
-			tagModuleWithOrganization(mod, organizationId, normalizePluginName(name))
+			tagModuleWithOrganization(mod, scopeKey, normalizePluginName(name))
 			modules.push(mod)
 			const existing = loaded.findIndex(
-				(item) => item.organizationId === organizationId && item.name === plugin.meta.name
+				(item) => (item.scopeKey ?? item.organizationId) === scopeKey && item.name === plugin.meta.name
 			)
 			if (existing >= 0) {
 				loaded.splice(existing, 1)
 			}
-			clearPluginLoadFailure(organizationId, plugin.meta.name, name)
+			clearPluginLoadFailure(scopeKey, plugin.meta.name, name)
 			loaded.push({
+				tenantId: scope.tenantId,
 				organizationId,
+				scopeKey,
 				name: plugin.meta.name,
 				packageName: name,
 				source,
@@ -517,7 +549,9 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			const stack = error instanceof Error ? error.stack : undefined
 			const code = getPluginLoadFailureCode(error)
 			const failure: PluginLoadFailureRecord = {
+				tenantId: scope.tenantId,
 				organizationId,
+				scopeKey,
 				pluginName: normalizePluginName(name),
 				packageName: normalizePluginName(name),
 				...(code ? { code } : {}),
@@ -526,18 +560,20 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			if (code !== PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE) {
 				upsertPluginLoadFailure(failure)
 				Logger.error(
-					`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`,
+					`Failed to load/register plugin ${name} for scope ${getPluginScopeLogLabel(scope)}: ${message}`,
 					stack
 				)
 			} else {
-				Logger.warn(`Rejected plugin ${name} for organization ${organizationId}: ${message}`)
+				Logger.warn(`Rejected plugin ${name} for scope ${getPluginScopeLogLabel(scope)}: ${message}`)
 			}
 			errors.push(failure)
 		}
 	}
 
 	return {
+		tenantId: scope.tenantId,
 		organizationId,
+		scopeKey,
 		modules,
 		errors
 	}

@@ -36,12 +36,16 @@
 
         <div class="ml-3 w-0 grow pr-2">
           <div class="flex h-5 items-start">
-            <div
-              class="system-md-semibold truncate text-text-secondary"
-              [class]="plugin.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+            <button
+              type="button"
+              class="system-md-semibold min-w-0 truncate text-left text-text-secondary transition-colors hover:text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              [class.line-through]="plugin.deprecated"
+              [class.decoration-2]="plugin.deprecated"
+              [class.decoration-current]="plugin.deprecated"
+              (click)="pluginNameClick.emit($event)"
             >
               {{ plugin.displayName | i18n }}
-            </div>
+            </button>
             @if (plugin.deprecated) {
               <i
                 class="ri-alert-line ml-1 shrink-0 text-text-warning"

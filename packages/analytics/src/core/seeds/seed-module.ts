@@ -8,7 +8,13 @@ import { prepare } from '../prepare'
 import { SeedDataService } from './seed-data.service'
 import { SeederModule } from './seeder.module'
 
-export async function seedModule(devConfig: Partial<IPluginConfig>) {
+export type SeedModuleOptions = {
+	name?: string
+	tenantName?: string
+	organizationName?: string
+}
+
+export async function seedModule(devConfig: Partial<IPluginConfig>, options: SeedModuleOptions = {}) {
 	prepare()
 	await registerPluginConfig(devConfig)
 
@@ -25,10 +31,10 @@ export async function seedModule(devConfig: Partial<IPluginConfig>) {
 
 	const seeder = app.get(SeedDataService)
 	const argv: any = yargs(process.argv).argv
-	const module = argv.name
-	const tenantName = argv.tenant
-	const organizationName = argv.organization
-	const methodName = `run${module}Seed`
+	const moduleName = options.name ?? argv.name
+	const tenantName = options.tenantName ?? argv.tenant
+	const organizationName = options.organizationName ?? argv.organization
+	const methodName = `run${moduleName}Seed`
 
 	if (seeder[methodName]) {
 		console.log(chalk.green(`Running ${methodName} in SeedDataService`))

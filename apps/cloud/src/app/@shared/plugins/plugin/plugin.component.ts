@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core'
+import { Component, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
@@ -42,4 +42,5 @@ export class PluginComponent {
   // Inputs
   readonly plugin = input<TPlugin>()
   readonly installed = input<boolean>(false)
+  readonly pluginNameClick = output<MouseEvent>()
 }

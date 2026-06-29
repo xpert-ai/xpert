@@ -9,11 +9,12 @@ export class ToolProviderDTO implements Partial<IToolProvider> {
 	icon?: string
 	tags?: ToolTagEnum[]
 
-	constructor(partial: Partial<IToolProvider>, baseUrl: string) {
+	constructor(partial: Partial<IToolProvider>, baseUrl: string, organizationId?: string | null) {
 		Object.assign(this, partial)
 
+		const url = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + `api/xpert-toolset/builtin-provider/${partial.name}/icon`
 		this.avatar = partial.avatar ?? {
-			url: baseUrl + (baseUrl.endsWith('/') ? '' : '/') + `api/xpert-toolset/builtin-provider/${partial.name}/icon`
+			url: organizationId ? `${url}?org=${encodeURIComponent(organizationId)}` : url
 		}
 	}
 }
