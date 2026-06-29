@@ -404,7 +404,13 @@
       "FEATURES": "Features",
       "Data": "Data",
       "TENANT": {
-        "TITLE": "Tenant"
+        "TITLE": "Tenant",
+        "RETENTION": "Data Management",
+        "DATA_TABLE": "Data table",
+        "CHECKPOINT_RETENTION": "copilot_checkpoint",
+        "CHECKPOINT_RETENTION_ENABLED": "Enable cleanup",
+        "CHECKPOINT_RETENTION_DAYS": "Retention days",
+        "CHECKPOINT_RETENTION_DAYS_ERROR": "Enter an integer from 1 to 3650"
       }
     },
     "MODEL": {

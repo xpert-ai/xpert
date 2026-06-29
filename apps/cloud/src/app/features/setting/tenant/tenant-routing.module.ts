@@ -4,7 +4,6 @@ import { NgxPermissionsGuard } from 'ngx-permissions'
 import { FeatureEnum, PermissionsEnum, RolesEnum } from '../../../@core'
 import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
 import { featureGate } from '../../feature-gate'
-import { DemoComponent } from './demo/demo.component'
 import { SettingsComponent } from './settings/settings.component'
 import { PACTenantComponent } from './tenant.component'
 import { TenantTagMaintainComponent } from './maintain/maintain.component'
@@ -45,6 +44,13 @@ const routes: Routes = [
       {
         path: 'tags',
         component: TenantTagMaintainComponent
+      },
+      {
+        path: 'retention',
+        loadComponent: () => import('./retention/retention.component').then((m) => m.TenantRetentionComponent),
+        data: {
+          title: 'settings/tenant/retention'
+        }
       },
       {
         path: 'smtp',
