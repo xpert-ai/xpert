@@ -14,10 +14,9 @@ import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '.
 
 /**
  * 1. Remove user from given organization if user belongs to multiple organizations
- * 2. Remove user record if the user belongs only to the given organization
+ * 2. Keep the user record when removing the final organization membership
  * 3. Allow the deletion of Admin and Super Admin Users only if there are more than 1 users of that Role.
- * 4. When a Super Admins are deleted, they must be removed from all existing organizations.
- * 5. Super Admin user can be deleted only by a Super Admin user.
+ * 4. Super Admin membership can be removed only by a Super Admin user.
  */
 @CommandHandler(UserOrganizationDeleteCommand)
 export class UserOrganizationDeleteHandler
@@ -50,27 +49,13 @@ export class UserOrganizationDeleteHandler
 
 		// 2. Handle Super Admin Deletion if applicable
 		if (roleName === RolesEnum.SUPER_ADMIN) {
-			const memberships = await this.userOrganizationService.findAll({
-				where: { userId }
-			});
-			const result = await this._removeSuperAdmin(
+			await this.ensureSuperAdminMembershipRemovalAllowed(
 				input.requestingUser,
-				userId,
-				input.userOrganizationId,
 				input.language
 			);
-			this.emitUserOrganizationDeletedEvents(
-				memberships.items.map(({ tenantId, organizationId }) => ({
-					tenantId,
-					organizationId
-				})),
-				userId
-			);
-			return result;
 		}
 
 		const result = await this._removeUserFromOrganization(
-			userId,
 			input.userOrganizationId
 		);
 		this.emitUserOrganizationDeletedEvents(
@@ -86,24 +71,17 @@ export class UserOrganizationDeleteHandler
 	}
 
 	private async _removeUserFromOrganization(
-		userId: string,
 		userOrganizationId: string
 	): Promise<UserOrganization | DeleteResult> {
-		const { total } = await this.userOrganizationService.findAll({
-			where: { userId }
+		return this.userOrganizationService.delete(userOrganizationId, {
+			allowDeletingLastMembership: true
 		});
-
-		return total === 1
-			? this.userService.deleteHardWithGuards(userId)
-			: this.userOrganizationService.delete(userOrganizationId);
 	}
 
-	private async _removeSuperAdmin(
+	private async ensureSuperAdminMembershipRemovalAllowed(
 		requestingUser: IUser,
-		userId: string,
-		userOrganizationId: string,
 		language: LanguagesEnum
-	): Promise<UserOrganization | DeleteResult> {
+	) {
 		// 1. Check if the requesting user has permission to delete Super Admin
 		const { name: requestingUserRoleName } = await this.roleService.findOne(
 			requestingUser.roleId
@@ -133,9 +111,6 @@ export class UserOrganizationDeleteHandler
 					}
 				)
 			);
-
-		// 3. Delete Super Admin user from all organizations
-		return this.userService.deleteHardWithGuards(userId);
 	}
 
 	private emitUserOrganizationDeletedEvents(

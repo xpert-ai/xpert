@@ -12,14 +12,17 @@ jest.mock('./organization.entity', () => ({
 
 jest.mock('../core/entities/internal', () => ({
 	Invite: class Invite {},
-	UserGroup: class UserGroup {},
-	UserOrganization: class UserOrganization {}
+	UserGroup: class UserGroup {}
 }))
 
 jest.mock('./commands', () => ({
 	OrganizationDemoCommand: class OrganizationDemoCommand {
 		constructor(public readonly input: unknown) {}
 	}
+}))
+
+jest.mock('../user-organization/user-organization.services', () => ({
+	UserOrganizationService: class UserOrganizationService {}
 }))
 
 jest.mock('../core/crud', () => ({
@@ -36,8 +39,6 @@ jest.mock('../core/crud', () => ({
 	}
 }))
 
-const { BadRequestException } = require('@nestjs/common')
-const { RolesEnum } = require('@xpert-ai/contracts')
 const { RequestContext } = require('../core/context')
 const { OrganizationService } = require('./organization.service')
 
@@ -48,14 +49,14 @@ describe('OrganizationService', () => {
 		findOne: jest.fn(),
 		delete: jest.fn()
 	}
-	const userOrganizationRepository = {
-		find: jest.fn()
-	}
 	const inviteRepository = {
 		count: jest.fn()
 	}
 	const userGroupRepository = {
 		count: jest.fn()
+	}
+	const userOrganizationService = {
+		deleteByOrganizationForOrganizationRemoval: jest.fn()
 	}
 	const commandBus = {
 		execute: jest.fn()
@@ -72,51 +73,26 @@ describe('OrganizationService', () => {
 		organizationRepository.delete.mockResolvedValue({ affected: 1 })
 		inviteRepository.count.mockResolvedValue(0)
 		userGroupRepository.count.mockResolvedValue(0)
+		userOrganizationService.deleteByOrganizationForOrganizationRemoval.mockResolvedValue({ affected: 2 })
 
 		service = new OrganizationService(
 			organizationRepository as any,
-			userOrganizationRepository as any,
 			inviteRepository as any,
 			userGroupRepository as any,
+			userOrganizationService as any,
 			commandBus as any
 		)
 	})
 
-	it('allows deleting an organization when only super admins remain as members', async () => {
-		userOrganizationRepository.find.mockResolvedValue([
-			{
-				user: {
-					role: {
-						name: RolesEnum.SUPER_ADMIN
-					}
-				}
-			}
-		])
-
+	it('removes organization memberships in bulk before deleting the organization', async () => {
 		await service.delete('org-1')
-
-		expect(userOrganizationRepository.find).toHaveBeenCalledWith({
-			where: {
-				tenantId: 'tenant-1',
-				organizationId: 'org-1'
-			},
-			relations: ['user', 'user.role']
+		expect(userOrganizationService.deleteByOrganizationForOrganizationRemoval).toHaveBeenCalledWith({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
 		})
 		expect(organizationRepository.delete).toHaveBeenCalledWith('org-1', undefined)
-	})
-
-	it('rejects deleting an organization when non-super-admin members still exist', async () => {
-		userOrganizationRepository.find.mockResolvedValue([
-			{
-				user: {
-					role: {
-						name: RolesEnum.EMPLOYEE
-					}
-				}
-			}
-		])
-
-		await expect(service.delete('org-1')).rejects.toThrow(BadRequestException)
-		expect(organizationRepository.delete).not.toHaveBeenCalled()
+		expect(
+			userOrganizationService.deleteByOrganizationForOrganizationRemoval.mock.invocationCallOrder[0]
+		).toBeLessThan(organizationRepository.delete.mock.invocationCallOrder[0])
 	})
 })
