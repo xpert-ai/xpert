@@ -5,21 +5,21 @@ import { Repository, FindOneOptions, FindOptionsWhere } from 'typeorm'
 import { TenantAwareCrudService } from './../core/crud'
 import { Organization } from './organization.entity'
 import { OrganizationDemoCommand } from './commands'
-import { InviteStatusEnum, OrgGenerateDemoOptions, RolesEnum } from '@xpert-ai/contracts'
-import { Invite, UserGroup, UserOrganization } from '../core/entities/internal'
+import { InviteStatusEnum, OrgGenerateDemoOptions } from '@xpert-ai/contracts'
+import { Invite, UserGroup } from '../core/entities/internal'
 import { RequestContext } from '../core/context'
+import { UserOrganizationService } from '../user-organization/user-organization.services'
 
 @Injectable()
 export class OrganizationService extends TenantAwareCrudService<Organization> {
 	constructor(
 		@InjectRepository(Organization)
 		private readonly organizationRepository: Repository<Organization>,
-		@InjectRepository(UserOrganization)
-		private readonly userOrganizationRepository: Repository<UserOrganization>,
 		@InjectRepository(Invite)
 		private readonly inviteRepository: Repository<Invite>,
 		@InjectRepository(UserGroup)
 		private readonly userGroupRepository: Repository<UserGroup>,
+		private readonly userOrganizationService: UserOrganizationService,
 
 		private readonly commandBus: CommandBus
 	) {
@@ -84,21 +84,6 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 	override async delete(criteria: string | FindOptionsWhere<Organization>, options?: any) {
 		const organization = await this.findOrganizationForMutation(criteria)
 
-		const memberships = await this.userOrganizationRepository.find({
-			where: {
-				tenantId: organization.tenantId,
-				organizationId: organization.id
-			},
-			relations: ['user', 'user.role']
-		})
-		const hasNonSuperAdminMembers = memberships.some(
-			(membership) => membership.user?.role?.name !== RolesEnum.SUPER_ADMIN
-		)
-
-		if (hasNonSuperAdminMembers) {
-			throw new BadRequestException('Cannot delete an organization that still has members.')
-		}
-
 		const pendingInviteCount = await this.inviteRepository.count({
 			where: {
 				tenantId: organization.tenantId,
@@ -121,6 +106,11 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 		if (userGroupCount > 0) {
 			throw new BadRequestException('Cannot delete an organization that still has user groups.')
 		}
+
+		await this.userOrganizationService.deleteByOrganizationForOrganizationRemoval({
+			tenantId: organization.tenantId,
+			organizationId: organization.id
+		})
 
 		return super.delete(criteria, options)
 	}

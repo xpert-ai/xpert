@@ -4,15 +4,25 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Cache } from 'cache-manager';
-import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, Repository } from 'typeorm';
+import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm';
 import { TenantAwareCrudService } from './../core/crud';
-import { UserOrganizationCreatedEvent, EVENT_USER_ORGANIZATION_CREATED } from '../user/events';
+import {
+	EVENT_USER_ORGANIZATION_CREATED,
+	EVENT_USER_ORGANIZATION_DELETED,
+	UserOrganizationCreatedEvent,
+	UserOrganizationDeletedEvent
+} from '../user/events';
 import { Organization, UserOrganization } from './../core/entities/internal';
 import { RequestContext } from '../core/context';
 import { touchCurrentUserFeatureUserCacheVersion } from '../user/current-user-feature-cache';
 
 type DeleteMembershipOptions = FindOneOptions<UserOrganization> & {
 	allowDeletingLastMembership?: boolean
+}
+
+type DeleteOrganizationMembershipsInput = {
+	tenantId: string
+	organizationId: string
 }
 
 
@@ -142,6 +152,10 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	private pickNextDefaultMembership(memberships: UserOrganization[]) {
 		return memberships.find((membership) => membership.isActive) ?? memberships[0] ?? null
+	}
+
+	private uniqueUserIds(memberships: UserOrganization[]) {
+		return Array.from(new Set(memberships.map((membership) => membership.userId)))
 	}
 
 	async findMembershipByUserAndOrganization({
@@ -380,6 +394,82 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			membership.tenantId,
 			membership.userId
 		)
+		return result
+	}
+
+	async deleteByOrganizationForOrganizationRemoval({
+		tenantId,
+		organizationId
+	}: DeleteOrganizationMembershipsInput): Promise<DeleteResult> {
+		const memberships = await this.userOrganizationRepository.find({
+			where: {
+				tenantId,
+				organizationId
+			}
+		})
+
+		if (!memberships.length) {
+			return {
+				affected: 0,
+				raw: []
+			}
+		}
+
+		const userIds = this.uniqueUserIds(memberships)
+		const defaultUserIds = this.uniqueUserIds(memberships.filter((membership) => membership.isDefault))
+
+		const result = await this.userOrganizationRepository.delete({
+			tenantId,
+			organizationId
+		})
+
+		if (defaultUserIds.length) {
+			const remainingMemberships = await this.userOrganizationRepository.find({
+				where: {
+					tenantId,
+					userId: In(defaultUserIds)
+				}
+			})
+			const remainingMembershipsByUserId = new Map<string, UserOrganization[]>()
+
+			for (const membership of remainingMemberships) {
+				const items = remainingMembershipsByUserId.get(membership.userId) ?? []
+				items.push(membership)
+				remainingMembershipsByUserId.set(membership.userId, items)
+			}
+
+			for (const userId of defaultUserIds) {
+				const remainingUserMemberships = remainingMembershipsByUserId.get(userId) ?? []
+				if (remainingUserMemberships.some((membership) => membership.isDefault)) {
+					continue
+				}
+
+				const nextDefaultMembership = this.pickNextDefaultMembership(remainingUserMemberships)
+				if (nextDefaultMembership) {
+					await super.update(nextDefaultMembership.id, {
+						isDefault: true
+					} as Partial<UserOrganization>)
+				}
+			}
+		}
+
+		await Promise.all(
+			userIds.map((userId) =>
+				touchCurrentUserFeatureUserCacheVersion(
+					this.cacheManager,
+					tenantId,
+					userId
+				)
+			)
+		)
+
+		for (const membership of memberships) {
+			this.eventEmitter.emit(
+				EVENT_USER_ORGANIZATION_DELETED,
+				new UserOrganizationDeletedEvent(membership.tenantId, membership.organizationId, membership.userId)
+			)
+		}
+
 		return result
 	}
 
