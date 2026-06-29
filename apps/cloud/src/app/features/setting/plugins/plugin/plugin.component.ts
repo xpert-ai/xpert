@@ -5,6 +5,7 @@ import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { OverlayAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
+import { Router } from '@angular/router'
 import { PluginComponent } from '@cloud/app/@shared/plugins'
 import { injectScopeLevel } from '@xpert-ai/cloud/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
@@ -12,6 +13,7 @@ import { PluginInstallComponent } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginsComponent } from '../plugins.component'
 import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
+import { pluginMarketplaceDetailCommands } from '../plugin-marketplace-navigation'
 
 @Component({
   standalone: true,
@@ -24,6 +26,7 @@ import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-det
 export class SettingsPluginComponent {
   readonly pluginsComponent = inject(PluginsComponent)
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
   readonly scopeLevel = injectScopeLevel()
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
@@ -58,6 +61,20 @@ export class SettingsPluginComponent {
           console.log('The dialog was closed', result)
         }
       })
+  }
+
+  openPluginPage(event?: MouseEvent) {
+    event?.stopPropagation()
+    const plugin = this.plugin()
+    if (!plugin) {
+      return
+    }
+
+    this.#router.navigate(pluginMarketplaceDetailCommands(plugin.packageName ?? plugin.name), {
+      queryParams: {
+        ...(plugin.sourceId ? { sourceId: plugin.sourceId } : {})
+      }
+    })
   }
 
   viewDetails() {

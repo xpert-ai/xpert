@@ -491,6 +491,21 @@ export interface PluginMarketplaceItem {
   section?: PluginMarketplaceRegistrySection | string
 }
 
+export type PluginMarketplaceReadmeSource = 'installed-package' | 'npm-package' | 'marketplace-metadata' | 'description'
+
+export interface PluginMarketplaceReadme {
+  locale: string
+  requestedLocale?: string | null
+  fileName?: string | null
+  content: string
+  source: PluginMarketplaceReadmeSource
+}
+
+export interface PluginMarketplaceDetailItem extends PluginMarketplaceItem {
+  readme: PluginMarketplaceReadme
+  availableReadmeLocales?: string[]
+}
+
 export interface PluginMarketplaceResponse {
   updatedAt: string | null
   total: number

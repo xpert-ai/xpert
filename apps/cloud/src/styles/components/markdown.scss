@@ -6,6 +6,12 @@ markdown.ngm-copilot-markdown {
   --markdown-table-border: var(--color-divider-subtle);
   --markdown-clipboard-bg: var(--color-background-default-subtle);
   --markdown-clipboard-bg-hover: var(--color-hover-bg);
+  --markdown-clipboard-border: var(--color-divider-subtle);
+  --markdown-clipboard-color: var(--color-text-secondary);
+  --markdown-code-toolbar-bg: color-mix(in oklab, var(--full-contrast) 8%, var(--markdown-code-bg));
+  --markdown-code-toolbar-bg-hover: color-mix(in oklab, var(--full-contrast) 16%, var(--markdown-code-bg));
+  --markdown-code-toolbar-border: color-mix(in oklab, var(--full-contrast) 36%, var(--markdown-code-bg));
+  --markdown-code-toolbar-color: var(--full-contrast);
   --hot-pink: oklch(59.91% 0.239 8.14);
   --orange-red: oklch(63.32% 0.24 31.68);
   --red-to-orange-horizontal-gradient: linear-gradient(90deg, var(--hot-pink) 0%, var(--orange-red) 100%);
@@ -103,6 +109,52 @@ markdown.ngm-copilot-markdown {
     }
   }
 
+  .markdown-clipboard-toolbar {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  pre:hover + .markdown-clipboard-toolbar,
+  .markdown-clipboard-toolbar.hover,
+  .markdown-clipboard-toolbar:hover,
+  .markdown-clipboard-toolbar:focus-within {
+    opacity: 1;
+  }
+
+  div.code-toolbar {
+    position: relative;
+  }
+
+  div.code-toolbar > .toolbar {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  div.code-toolbar:hover > .toolbar,
+  div.code-toolbar:focus-within > .toolbar {
+    opacity: 1;
+  }
+
+  div.code-toolbar > .toolbar > .toolbar-item {
+    display: inline-flex;
+    pointer-events: auto;
+  }
+
   code {
     font-family: var(--code-font);
     font-size: 0.8em;
@@ -198,12 +250,68 @@ markdown.ngm-copilot-markdown {
     }
   }
 
-  .markdown-clipboard-button {
-    @apply rounded-md px-2;
+  .markdown-clipboard-button,
+  div.code-toolbar > .toolbar > .toolbar-item > button.copy-to-clipboard-button {
+    display: inline-flex;
+    min-height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--markdown-clipboard-border);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
     background-color: var(--markdown-clipboard-bg);
+    color: var(--markdown-clipboard-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    pointer-events: auto;
+    @apply shadow-sm;
+    backdrop-filter: blur(8px);
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      opacity 150ms ease;
 
     &:hover {
       background-color: var(--markdown-clipboard-bg-hover);
+      color: var(--color-text-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--sys-primary);
+      outline-offset: 2px;
+    }
+
+    &.copied {
+      border-color: color-mix(in oklab, var(--sys-primary) 40%, var(--markdown-clipboard-border));
+      color: var(--sys-primary);
+    }
+  }
+
+  div.code-toolbar > .toolbar > .toolbar-item > button.copy-to-clipboard-button[data-copy-state='copy-success'] {
+    border-color: color-mix(in oklab, var(--sys-primary) 40%, var(--markdown-clipboard-border));
+    color: var(--sys-primary);
+  }
+
+  div.code-toolbar > .toolbar > .toolbar-item > button.copy-to-clipboard-button {
+    border-color: var(--markdown-code-toolbar-border);
+    background-color: var(--markdown-code-toolbar-bg);
+    color: var(--markdown-code-toolbar-color);
+
+    &:hover {
+      border-color: color-mix(in oklab, var(--full-contrast) 56%, var(--markdown-code-bg));
+      background-color: var(--markdown-code-toolbar-bg-hover);
+      color: var(--markdown-code-toolbar-color);
+    }
+
+    &:focus-visible {
+      outline-color: var(--markdown-code-toolbar-color);
+    }
+
+    &[data-copy-state='copy-success'] {
+      border-color: color-mix(in oklab, var(--sys-primary) 52%, var(--markdown-code-toolbar-border));
+      color: var(--markdown-code-toolbar-color);
     }
   }
 }

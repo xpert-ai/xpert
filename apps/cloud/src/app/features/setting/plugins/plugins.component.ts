@@ -45,6 +45,7 @@ import {
   mergeMarketplaceContributions
 } from './plugin-marketplace-metadata'
 import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
+import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation'
 
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
@@ -426,6 +427,11 @@ export class PluginsComponent {
       },
       backdropClass: 'backdrop-blur-sm-black'
     })
+  }
+
+  openPluginPage(plugin: TInstalledPlugin) {
+    const pluginName = plugin.packageName ?? plugin.meta.name ?? plugin.name
+    this.router.navigate(pluginMarketplaceDetailCommands(pluginName))
   }
 
   openInstallOptions(plugin: TInstalledPlugin) {

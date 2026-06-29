@@ -15,6 +15,7 @@ import {
   PluginResourceInstallWorkspaceInput,
   PluginResourceInstallXpertInput,
   PluginMarketplaceAuthor,
+  PluginMarketplaceDetailItem,
   PluginMarketplaceDownloads,
   PluginMarketplaceItem,
   PluginMarketplaceOperationSummary,
@@ -42,6 +43,7 @@ export type IPluginMarketplaceAuthor = PluginMarketplaceAuthor
 export type IPluginMarketplaceDownloads = PluginMarketplaceDownloads
 export type IPluginMarketplaceOperationSummary = PluginMarketplaceOperationSummary
 export type IPluginMarketplaceItem = PluginMarketplaceItem
+export type IPluginMarketplaceDetailItem = PluginMarketplaceDetailItem
 export type IPluginMarketplaceResponse = PluginMarketplaceResponse
 
 @Injectable({ providedIn: 'root' })
@@ -112,6 +114,23 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     }
 
     return this.httpClient.get<IPluginMarketplaceResponse>(`${this.apiBaseUrl}/marketplace`, {
+      params: httpParams
+    })
+  }
+
+  getMarketplacePluginDetail(params: { name: string; targetApp?: string; sourceId?: string; locale?: string }) {
+    let httpParams = new HttpParams().set('name', params.name)
+    if (params.targetApp) {
+      httpParams = httpParams.set('targetApp', params.targetApp)
+    }
+    if (params.sourceId) {
+      httpParams = httpParams.set('sourceId', params.sourceId)
+    }
+    if (params.locale) {
+      httpParams = httpParams.set('locale', params.locale)
+    }
+
+    return this.httpClient.get<IPluginMarketplaceDetailItem>(`${this.apiBaseUrl}/marketplace/detail`, {
       params: httpParams
     })
   }

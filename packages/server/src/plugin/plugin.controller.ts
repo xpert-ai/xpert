@@ -208,6 +208,20 @@ export class PluginController {
 		return this.pluginMarketplaceService.listRegistryItems()
 	}
 
+	@Get('marketplace/detail')
+	async getMarketplacePluginDetail(
+		@Query('name') name?: string,
+		@Query('targetApp') targetApp?: string,
+		@Query('sourceId') sourceId?: string,
+		@Query('locale') locale?: string
+	) {
+		return this.pluginMarketplaceService.getMarketplacePluginDetail(name ?? '', {
+			targetApp,
+			sourceId,
+			locale
+		})
+	}
+
 	@Post('marketplace/registry')
 	async createMarketplaceRegistryItem(@Body() body: PluginMarketplaceRegistryItemInput) {
 		return this.pluginMarketplaceService.createRegistryItem(body)
