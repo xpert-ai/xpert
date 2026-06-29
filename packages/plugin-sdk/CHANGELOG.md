@@ -1,5 +1,18 @@
 # @xpert-ai/plugin-sdk
 
+## 3.13.0
+
+### Minor Changes
+
+- 54cff15: tenants and managed connections
+- 6978bfd: release plugin tenant scope
+
+### Patch Changes
+
+- Updated dependencies [54cff15]
+- Updated dependencies [6978bfd]
+  - @xpert-ai/contracts@3.14.0
+
 ## 3.12.2
 
 ### Patch Changes
