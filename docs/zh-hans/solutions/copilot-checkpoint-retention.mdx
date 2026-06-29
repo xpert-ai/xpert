@@ -1,0 +1,132 @@
+---
+title: 'Copilot Checkpoint 保留策略方案'
+description: '说明 copilot_checkpoint 的租户级保留配置、纯日期清理语义、删除边界和验收口径。'
+---
+
+# 1. 方案定位
+
+`copilot_checkpoint` 用于保存 LangGraph 会话运行过程中的 checkpoint 和 pending writes。
+
+随着会话数量和执行次数增加，checkpoint 数据会持续增长。保留策略的目标是给租户提供一个简单、可预期的数据生命周期控制：
+
+- 租户管理员可以启用或关闭 checkpoint 清理
+- 租户管理员可以配置保留天数
+- 后端定时任务按保留天数批量删除过期 checkpoint
+- 删除逻辑以日期为唯一业务边界，不额外保留最新 checkpoint 或执行引用 checkpoint
+
+本方案关注数据保留语义，不改变 checkpoint 写入、读取、会话执行或模型调用流程。
+
+---
+
+# 2. 配置入口
+
+配置入口位于租户设置的数据管理页面。
+
+租户级配置项：
+
+| 配置项 | 含义 |
+| ------ | ---- |
+| `copilotCheckpointRetentionEnabled` | 是否启用 checkpoint 清理 |
+| `copilotCheckpointRetentionDays` | checkpoint 保留天数 |
+
+保留天数只接受整数，当前有效范围为 `1` 到 `3650`。
+
+如果保留天数为空、非法或超出范围，后端使用默认保留天数。
+
+---
+
+# 3. 纯日期清理语义
+
+checkpoint retention 采用纯日期清理。
+
+当租户启用清理后，后端会选择满足下面条件的 checkpoint：
+
+- checkpoint 所属租户已启用 `copilotCheckpointRetentionEnabled`
+- checkpoint 的 `createdAt` 早于当前时间减去保留天数
+
+满足条件的 checkpoint 会进入删除候选集。
+
+清理不会因为以下原因保留过期 checkpoint：
+
+- 该 checkpoint 是某个 `thread_id` 下当前最新 checkpoint
+- 该 checkpoint 被 `xpert_agent_execution.checkpointId` 引用
+- 该 checkpoint 仍位于某条历史 checkpoint 链路中
+
+也就是说，保留天数是唯一业务边界。只要数据超过租户配置的保留期，就允许被删除。
+
+---
+
+# 4. 删除顺序
+
+每个批次中，后端先删除 checkpoint 对应的 writes，再删除 checkpoint 本身。
+
+删除 writes 时使用 checkpoint 的租户、组织、thread、namespace 和 checkpoint id 做匹配，避免误删其他租户或其他组织的数据。
+
+候选 checkpoint 查询始终带批次上限，当前内部上限为每批最多 `1000` 条 checkpoint、单次任务最多 `20` 批。即使后续由人工或内部调用触发清理，也不能把所有过期数据一次性删除。
+
+删除顺序如下：
+
+1. 查询一批过期 checkpoint id
+2. 在事务中删除这些 checkpoint 对应的 `copilot_checkpoint_writes`
+3. 在同一个事务中删除 `copilot_checkpoint`
+4. 达到批次数上限或没有候选数据时结束
+
+---
+
+# 5. 用户可见影响
+
+纯日期清理是数据生命周期策略，不是历史状态归档策略。
+
+过期 checkpoint 被删除后，用户可能看到的影响包括：
+
+- 早期执行记录无法再加载对应 checkpoint 状态
+- 历史 checkpoint 链路中被删除的节点不可恢复
+- 旧会话只能从仍存在的 checkpoint 或最新运行状态继续
+- 排查旧执行时，如果依赖已删除 checkpoint，需要按数据已过期处理
+
+这些影响属于保留策略的预期结果。
+
+如果某个租户需要长期保留可回放历史，应关闭 checkpoint 清理，或把保留天数设置为满足审计要求的周期。
+
+---
+
+# 6. 行为边界
+
+## 6.1 不再使用全局 env 开关控制租户清理
+
+checkpoint 清理由租户设置控制。
+
+部署环境中的旧 checkpoint retention env 配置不再作为租户清理开关或保留天数来源。
+
+## 6.2 不提供 dry-run 作为定时任务前置条件
+
+定时任务拿到分布式锁后直接执行清理。
+
+如果所有租户都未启用清理，候选查询为空，不会删除数据。
+
+## 6.3 不清理孤儿 writes
+
+当前 retention 只删除本次候选 checkpoint 对应的 writes。
+
+它不额外扫描并清理没有 checkpoint 记录的孤儿 writes。
+
+## 6.4 不按空间占用触发清理
+
+当前策略不根据 thread 总字节数、单行大小或预估空间占用选择候选数据。
+
+清理只按租户开关和日期判断。
+
+---
+
+# 7. 验收口径
+
+后续评审和测试时，可以按下面口径判断行为是否正确：
+
+- 租户未启用清理时，不删除 checkpoint
+- 租户启用清理后，只删除超过保留天数的 checkpoint
+- 保留天数非法时使用默认保留天数
+- 删除 writes 必须先于删除 checkpoint
+- 删除 writes 必须按租户、组织、thread、namespace 和 checkpoint id 匹配
+- 过期的最新 checkpoint 可以被删除
+- 过期且被 `xpert_agent_execution.checkpointId` 引用的 checkpoint 可以被删除
+- 定时任务通过 advisory lock 避免多实例重复执行
