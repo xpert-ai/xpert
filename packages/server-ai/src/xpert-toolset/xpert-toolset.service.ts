@@ -194,7 +194,11 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         return await this.create({
             // Provider properties as the default fields
             name: providers[0].identity.name,
-            avatar: new ToolProviderDTO(providers[0].identity, this.configService.get('baseUrl') as string).avatar,
+            avatar: new ToolProviderDTO(
+                providers[0].identity,
+                this.configService.get('baseUrl') as string,
+                organizationId
+            ).avatar,
             // Custom fields
             ...entity,
             // Enforce constraints fields
