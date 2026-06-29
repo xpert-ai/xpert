@@ -533,6 +533,23 @@
                         }
                 }}
               </div>
+            } @else if (templatePluginSkillInstallError()) {
+              <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+                <div class="flex items-start gap-3">
+                  <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+                  <div class="min-w-0">
+                    <div class="text-sm font-semibold text-text-primary">
+                      {{
+                        'PAC.Xpert.TemplatePluginSkillsInstallFailed'
+                          | translate: { Default: 'Failed to initialize template skills' }
+                      }}
+                    </div>
+                    <div class="mt-1 text-sm leading-6 text-text-secondary">
+                      {{ templatePluginSkillInstallError() }}
+                    </div>
+                  </div>
+                </div>
+              </div>
             } @else if (skillState().loading) {
               <div
                 class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
@@ -632,6 +649,217 @@
             }
           </div>
         </z-step>
+
+        @if (hasTemplateToolsetStep()) {
+          <z-step [label]="'PAC.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' }">
+            <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="max-w-3xl text-sm leading-6 text-text-secondary">
+                  {{
+                    'PAC.Xpert.TemplateToolsetsHelp'
+                      | translate
+                        : {
+                            Default:
+                              'Select the configured workspace toolsets required by this assistant template. Missing built-in toolsets can be configured here before creating.'
+                          }
+                  }}
+                </div>
+
+                <button
+                  z-button
+                  type="button"
+                  zType="secondary"
+                  class="flex items-center gap-2"
+                  [zDisabled]="!workspaceId() || loadingTemplateToolsets()"
+                  (click)="refreshTemplateToolsetStep()"
+                >
+                  <z-icon zType="refresh"></z-icon>
+                  <span>{{ 'PAC.Xpert.TemplateToolsetRefresh' | translate: { Default: 'Refresh' } }}</span>
+                </button>
+              </div>
+
+              @if (!workspaceId()) {
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+                >
+                  {{
+                    'PAC.Xpert.WorkspaceRequiredForToolsets'
+                      | translate
+                        : {
+                            Default: 'Select a workspace first before choosing the built-in toolsets for this template.'
+                          }
+                  }}
+                </div>
+              } @else {
+                @if (templateToolsetInstallError()) {
+                  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+                    <div class="flex items-start gap-3">
+                      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-text-primary">
+                          {{
+                            'PAC.Xpert.TemplateToolsetsInstallFailed'
+                              | translate: { Default: 'Failed to initialize template toolsets' }
+                          }}
+                        </div>
+                        <div class="mt-1 text-sm leading-6 text-text-secondary">
+                          {{ templateToolsetInstallError() }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <div class="space-y-3">
+                  @for (state of templateToolsetSelectionStates(); track state.key) {
+                    <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+                      <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <div class="font-medium text-text-primary">{{ state.dependency.provider }}</div>
+                            @if (state.loading) {
+                              <z-badge zType="outline" zShape="pill" class="text-text-secondary">
+                                {{ 'PAC.Xpert.TemplateToolsetStatusLoading' | translate: { Default: 'Loading' } }}
+                              </z-badge>
+                            } @else if (state.selectedToolsetId) {
+                              <z-badge zType="outline" zShape="pill" class="text-text-success">
+                                {{ 'PAC.Xpert.TemplateToolsetStatusReady' | translate: { Default: 'Ready' } }}
+                              </z-badge>
+                            } @else if (state.toolsets.length) {
+                              <z-badge zType="outline" zShape="pill" class="text-text-warning">
+                                {{ 'PAC.Xpert.SelectionRequired' | translate: { Default: 'Selection required' } }}
+                              </z-badge>
+                            } @else {
+                              <z-badge zType="destructive" zShape="pill">
+                                {{ 'PAC.Xpert.TemplateToolsetStatusMissing' | translate: { Default: 'Missing' } }}
+                              </z-badge>
+                            }
+                          </div>
+                          <div class="mt-2 grid gap-x-4 gap-y-1 text-xs leading-5 text-text-secondary md:grid-cols-2">
+                            <div>
+                              <span class="text-text-tertiary">
+                                {{ 'PAC.Xpert.TemplateToolsetPlugin' | translate: { Default: 'Plugin' } }}
+                              </span>
+                              <span class="ml-1 font-mono">{{ state.dependency.pluginName }}</span>
+                            </div>
+                            <div>
+                              <span class="text-text-tertiary">
+                                {{ 'PAC.Xpert.TemplateToolsetAgent' | translate: { Default: 'Agent' } }}
+                              </span>
+                              <span class="ml-1 font-mono">{{ state.dependency.targetAgentKey || '-' }}</span>
+                            </div>
+                            <div>
+                              <span class="text-text-tertiary">
+                                {{ 'PAC.Xpert.TemplateToolsetNode' | translate: { Default: 'Node' } }}
+                              </span>
+                              <span class="ml-1 font-mono">{{ state.dependency.templateNodeKey }}</span>
+                            </div>
+                            <div>
+                              <span class="text-text-tertiary">
+                                {{ 'PAC.Xpert.TemplateToolsetDefaultInstance' | translate: { Default: 'Default' } }}
+                              </span>
+                              <span class="ml-1">{{ state.dependency.instanceName || '-' }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          z-button
+                          type="button"
+                          zType="secondary"
+                          class="flex shrink-0 items-center gap-2"
+                          [zDisabled]="
+                            !workspaceId() ||
+                            state.loading ||
+                            loadingTemplateToolsets() ||
+                            !!configuringTemplateToolsetKey()
+                          "
+                          [zLoading]="configuringTemplateToolsetKey() === state.key"
+                          (click)="configureTemplateToolset(state.key)"
+                        >
+                          <z-icon zType="settings"></z-icon>
+                          <span>
+                            @if (configuringTemplateToolsetKey() === state.key) {
+                              {{ 'PAC.Xpert.TemplateToolsetConfiguring' | translate: { Default: 'Configuring…' } }}
+                            } @else {
+                              {{ 'PAC.Xpert.ConfigureToolset' | translate: { Default: 'Configure Toolset' } }}
+                            }
+                          </span>
+                        </button>
+                      </div>
+
+                      @if (state.loading) {
+                        <div
+                          class="relative mt-4 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                        >
+                          {{
+                            'PAC.Xpert.LoadingWorkspaceToolsets' | translate: { Default: 'Loading workspace toolsets…' }
+                          }}
+                          <ngm-spin class="absolute inset-0 flex items-center justify-center" />
+                        </div>
+                      } @else if (state.toolsets.length) {
+                        <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+                          <z-select
+                            class="min-w-0 flex-1"
+                            zSize="lg"
+                            [zValue]="state.selectedToolsetId || ''"
+                            [zPlaceholder]="
+                              'PAC.Xpert.SelectToolsetInstance' | translate: { Default: 'Select a toolset instance' }
+                            "
+                            (zSelectionChange)="selectTemplateToolsetValue(state.key, $event)"
+                          >
+                            @for (toolset of state.toolsets; track toolset.id) {
+                              <z-select-item [zValue]="toolset.id">
+                                {{ toolset.name || toolset.id }}
+                              </z-select-item>
+                            }
+                          </z-select>
+                        </div>
+
+                        @if (getSelectedTemplateToolset(state); as selectedToolset) {
+                          <div class="mt-3 text-sm leading-6 text-text-secondary">
+                            {{ selectedToolset.description || selectedToolset.name || selectedToolset.id }}
+                            @if (selectedToolset.tools?.length) {
+                              <span class="ml-2 text-xs text-text-tertiary">
+                                {{ selectedToolset.tools.length }}
+                                {{ 'PAC.Xpert.TemplateToolsetToolsCount' | translate: { Default: 'tools' } }}
+                              </span>
+                            }
+                          </div>
+                        }
+                      } @else {
+                        <div
+                          class="mt-4 rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+                        >
+                          {{
+                            'PAC.Xpert.NoMatchingToolsetConfigured'
+                              | translate
+                                : {
+                                    Default:
+                                      'No matching built-in toolset is configured in this workspace. Configure one to continue.'
+                                  }
+                          }}
+                        </div>
+                      }
+
+                      @if (state.errorMessage) {
+                        <div class="mt-3 text-sm leading-6 text-text-destructive">
+                          {{ state.errorMessage }}
+                        </div>
+                      }
+                    </div>
+                  } @empty {
+                    <div
+                      class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                    >
+                      {{ 'PAC.Xpert.NoTemplateToolsetsRequired' | translate: { Default: 'No toolsets required' } }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </z-step>
+        }
       </z-stepper>
 
       <div class="w-full shrink-0 flex justify-end p-4">
@@ -669,7 +897,10 @@
                   loading() ||
                   (stepper.selectedIndex === 0 && (startStepInvalid() || checkingModelProviders())) ||
                   (stepper.selectedIndex === agentBasicStepIndex() && basicStepInvalid()) ||
-                  (stepper.selectedIndex === agentTriggerStepIndex() && selectedTriggersInvalid())
+                  (stepper.selectedIndex === agentTriggerStepIndex() && selectedTriggersInvalid()) ||
+                  (stepper.selectedIndex === agentSkillStepIndex() &&
+                    (installingSkillPackage() || !!templatePluginSkillInstallError())) ||
+                  (stepper.selectedIndex === agentToolsetStepIndex() && templateToolsetsStepInvalid())
                 "
                 (click)="stepper.next()"
               >
@@ -686,7 +917,9 @@
                 startStepInvalid() ||
                 modelProviderStepInvalid() ||
                 basicStepInvalid() ||
-                selectedTriggersInvalid()
+                selectedTriggersInvalid() ||
+                !!templatePluginSkillInstallError() ||
+                templateToolsetsStepInvalid()
               "
               (click)="create()"
             >

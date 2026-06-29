@@ -1,9 +1,9 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { Store } from '@xpert-ai/cloud/state'
+import { PluginAPIService, Store } from '@xpert-ai/cloud/state'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, throwError } from 'rxjs'
 import { NgxPermissionsService } from 'ngx-permissions'
 import {
   AIPermissionsEnum,
@@ -16,6 +16,7 @@ import {
   XpertAgentService,
   XpertAPIService,
   XpertTemplateService,
+  XpertToolsetService,
   XpertWorkspaceService,
   XpertTypeEnum
 } from '../../../../@core'
@@ -35,6 +36,7 @@ type BlankSpecContext = {
     refresh: jest.Mock
     refresh$: BehaviorSubject<boolean>
   }
+  builtinDialog: { open: jest.Mock }
   dialogRef: { close: jest.Mock }
   environmentService: { getDefaultByWorkspace: jest.Mock }
   fixture: ComponentFixture<XpertNewBlankComponent>
@@ -46,6 +48,9 @@ type BlankSpecContext = {
     textSplitterStrategies$: any
     understandingStrategies$: any
     update: jest.Mock
+  }
+  pluginAPI: {
+    installResourcesToWorkspace: jest.Mock
   }
   skillPackageService: {
     getAllByWorkspace: jest.Mock
@@ -60,6 +65,9 @@ type BlankSpecContext = {
     getAllKnowledgePipelines: jest.Mock
     getKnowledgePipelineTemplate: jest.Mock
     getTemplate: jest.Mock
+  }
+  toolsetService: {
+    getAllByWorkspace: jest.Mock
   }
   toastr: { error: jest.Mock; success: jest.Mock; warning: jest.Mock }
   xpertAgentService: { agentMiddlewares$: any }
@@ -196,6 +204,84 @@ connections:
 `
 }
 
+function createAgentTemplateYamlWithToolset() {
+  return `
+team:
+  name: template-agent
+  type: agent
+  title: Template Agent
+  description: Template agent description
+  options:
+    toolset:
+      seedream-placeholder:
+        position:
+          x: 20
+          y: 420
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+  agent:
+    key: Agent_primary
+    toolsetIds:
+      - seedream-placeholder
+    options:
+      middlewares:
+        order:
+          - Middleware_skills
+  toolsets:
+    - id: seedream-placeholder
+      name: Seedream Placeholder
+      type: seedream_aigc
+      category: builtin
+      credentials:
+        ark_api_key: template-secret
+nodes:
+  - type: agent
+    key: Agent_primary
+    position:
+      x: 360
+      y: 220
+    entity:
+      key: Agent_primary
+      toolsetIds:
+        - seedream-placeholder
+  - type: workflow
+    key: Middleware_skills
+    position:
+      x: 360
+      y: 580
+    entity:
+      key: Middleware_skills
+      type: middleware
+      provider: ${BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER}
+      title: Skills Middleware
+      options:
+        skills:
+          - writer
+  - type: toolset
+    key: seedream-placeholder
+    position:
+      x: 20
+      y: 420
+    entity:
+      id: seedream-placeholder
+      name: Seedream Placeholder
+      type: seedream_aigc
+      category: builtin
+      credentials:
+        ark_api_key: template-secret
+connections:
+  - key: Agent_primary/Middleware_skills
+    type: workflow
+    from: Agent_primary
+    to: Middleware_skills
+  - key: Agent_primary/seedream-placeholder
+    type: toolset
+    from: Agent_primary
+    to: seedream-placeholder
+`
+}
+
 function createLegacyAgentTemplateYaml() {
   return `
 team:
@@ -316,16 +402,106 @@ connections:
 `
 }
 
+function createPluginSkillTemplateDetail(overrides?: Record<string, any>) {
+  return {
+    export_data: createAgentTemplateYaml(),
+    pluginName: '@xpert-ai/plugin-canvas',
+    dependencies: {
+      skills: [
+        {
+          componentKey: 'canvas-agent-skill',
+          targetAgentKey: 'Agent_primary'
+        }
+      ]
+    },
+    ...overrides
+  }
+}
+
+function createPluginToolsetTemplateDetail(overrides?: Record<string, any>) {
+  return createPluginSkillTemplateDetail({
+    export_data: createAgentTemplateYamlWithToolset(),
+    dependencies: {
+      skills: [
+        {
+          componentKey: 'canvas-agent-skill',
+          targetAgentKey: 'Agent_primary'
+        }
+      ],
+      toolsets: [
+        {
+          pluginName: '@xpert-ai/plugin-volcengine',
+          provider: 'seedream_aigc',
+          templateNodeKey: 'seedream-placeholder',
+          targetAgentKey: 'Agent_primary',
+          instanceName: 'Seedream AIGC'
+        }
+      ]
+    },
+    ...overrides
+  })
+}
+
+function createPluginSkillInstallResult(runtimeId = 'skill-package-canvas') {
+  return {
+    installations: [
+      {
+        pluginName: '@xpert-ai/plugin-canvas',
+        componentType: 'skill',
+        componentKey: 'canvas-agent-skill',
+        workspaceId: 'workspace-1',
+        runtimeType: 'skill_package',
+        runtimeId,
+        definitionHash: 'hash-canvas-skill',
+        status: 'ready',
+        enabled: true
+      }
+    ],
+    pendingAuth: []
+  }
+}
+
+function createSeedreamToolset(overrides?: Record<string, any>) {
+  return {
+    id: 'seedream-runtime',
+    name: 'Seedream AIGC',
+    type: 'seedream_aigc',
+    category: 'builtin',
+    description: 'Generate images',
+    credentials: {
+      ark_api_key: 'workspace-secret'
+    },
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tools: [
+      {
+        id: 'tool-seedream-text',
+        name: 'seedream_text_to_image',
+        toolsetId: 'seedream-runtime'
+      }
+    ],
+    ...overrides
+  }
+}
+
+function findSkillsMiddlewareNode(draft: any) {
+  return draft.nodes.find(
+    (node: any) => node.type === 'workflow' && node.entity?.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+  )
+}
+
 async function createComponent(
   data: BlankXpertDialogData,
   options?: {
-    agentTemplateDetail?: { export_data: string }
+    agentTemplateDetail?: any
     agentTemplates?: any[]
     createdXpert?: any
     importedXpert?: any
     installedSkillPackage?: any
+    pluginSkillInstallError?: unknown
+    pluginSkillInstallResult?: any
     copilotModels?: any[]
     copilots?: any[]
+    configuredBuiltinToolset?: any
     middlewareProviders?: any[]
     permissions?: string[]
     publishedXpert?: any
@@ -335,16 +511,27 @@ async function createComponent(
     teamResponse?: any
     triggerProviders?: any[]
     workspaceSkills?: any[]
+    workspaceToolsets?: any[]
+    workspaceToolsetsByWorkspace?: Record<string, any[]>
     workspaces?: any[]
   }
 ): Promise<BlankSpecContext> {
   const dialogRef = {
     close: jest.fn()
   }
+  const builtinDialog = {
+    open: jest.fn(() => ({
+      closed: of(options?.configuredBuiltinToolset ?? null)
+    }))
+  }
   const createdXpert = options?.createdXpert ?? createAgentXpert()
   const importedXpert = options?.importedXpert ?? createdXpert
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
   const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
+  const pluginSkillInstallResult = options?.pluginSkillInstallResult ?? {
+    installations: [],
+    pendingAuth: []
+  }
   let copilots = options?.copilots ?? []
   const copilotModels = options?.copilotModels ?? [
     {
@@ -363,6 +550,7 @@ async function createComponent(
   const sandboxProviders = options?.sandboxProviders ?? []
   const triggerProviders = options?.triggerProviders ?? []
   const workspaceSkills = options?.workspaceSkills ?? []
+  const workspaceToolsets = options?.workspaceToolsets ?? []
   const workspaces = options?.workspaces ?? []
   const agentTemplates = options?.agentTemplates ?? []
   const agentTemplateDetail = options?.agentTemplateDetail ?? { export_data: createAgentTemplateYaml() }
@@ -388,6 +576,20 @@ async function createComponent(
   }
   const skillRepositoryService = {
     getAllInOrg: jest.fn(() => of({ items: repositories }))
+  }
+  const toolsetService = {
+    getAllByWorkspace: jest.fn((workspaceId: string) =>
+      of({
+        items: options?.workspaceToolsetsByWorkspace?.[workspaceId] ?? workspaceToolsets
+      })
+    )
+  }
+  const pluginAPI = {
+    installResourcesToWorkspace: jest.fn(() =>
+      options?.pluginSkillInstallError
+        ? throwError(() => options.pluginSkillInstallError)
+        : of(pluginSkillInstallResult)
+    )
   }
   const templateService = {
     getAll: jest.fn(() => of({ categories: ['Agent'], recommendedApps: agentTemplates })),
@@ -467,8 +669,16 @@ async function createComponent(
         useValue: dialogRef
       },
       {
+        provide: Dialog,
+        useValue: builtinDialog
+      },
+      {
         provide: Store,
         useValue: store
+      },
+      {
+        provide: PluginAPIService,
+        useValue: pluginAPI
       },
       {
         provide: XpertAPIService,
@@ -485,6 +695,10 @@ async function createComponent(
       {
         provide: SkillRepositoryService,
         useValue: skillRepositoryService
+      },
+      {
+        provide: XpertToolsetService,
+        useValue: toolsetService
       },
       {
         provide: XpertTemplateService,
@@ -537,14 +751,17 @@ async function createComponent(
 
   return {
     component,
+    builtinDialog,
     copilotServer,
     dialogRef,
     environmentService,
     fixture,
     knowledgebaseService,
+    pluginAPI,
     skillPackageService,
     skillRepositoryService,
     templateService,
+    toolsetService,
     toastr,
     workspaceService,
     xpertAgentService,
@@ -676,7 +893,34 @@ describe('XpertNewBlankComponent', () => {
     expect(component.agentModelProviderStepIndex()).toBe(-1)
     expect(component.agentBasicStepIndex()).toBe(1)
     expect(component.agentSkillStepIndex()).toBe(4)
+    expect(component.hasTemplateToolsetStep()).toBe(false)
+    expect(component.agentToolsetStepIndex()).toBe(-1)
     expect(component.agentLastStepIndex()).toBe(4)
+  })
+
+  it('adds the Toolsets step only for agent templates with toolset dependencies', async () => {
+    const { component } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail(),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    expect(component.hasTemplateToolsetStep()).toBe(true)
+    expect(component.agentSkillStepIndex()).toBe(4)
+    expect(component.agentToolsetStepIndex()).toBe(5)
+    expect(component.agentLastStepIndex()).toBe(5)
   })
 
   it('does not add the model provider setup step for non-ClawXpert Agent creation', async () => {
@@ -878,6 +1122,477 @@ describe('XpertNewBlankComponent', () => {
         })
       })
     )
+  })
+
+  it('installs plugin template skills in the Skills step and imports their runtime package ids', async () => {
+    const { component, fixture, pluginAPI, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallResult: createPluginSkillInstallResult('skill-package-canvas'),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledWith('@xpert-ai/plugin-canvas', {
+      workspaceId: 'workspace-1',
+      components: [
+        {
+          pluginName: '@xpert-ai/plugin-canvas',
+          componentType: 'skill',
+          componentKey: 'canvas-agent-skill',
+          targetAgentKey: 'Agent_primary'
+        }
+      ]
+    })
+    expect(component.selectedExplicitSkills()).toEqual(expect.arrayContaining(['writer', 'skill-package-canvas']))
+
+    await component.create()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const skillsMiddleware = findSkillsMiddlewareNode(importedDraft)
+    expect(skillsMiddleware.entity.options.skills).toEqual(expect.arrayContaining(['writer', 'skill-package-canvas']))
+  })
+
+  it('does not reinstall template plugin skills for the same workspace and dependency set', async () => {
+    const { component, fixture, pluginAPI } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallResult: createPluginSkillInstallResult('skill-package-canvas'),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [
+          { id: 'workspace-1', name: 'Workspace One' },
+          { id: 'workspace-2', name: 'Workspace Two' }
+        ]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledTimes(1)
+
+    component.workspaceId.set('workspace-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledTimes(2)
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenLastCalledWith(
+      '@xpert-ai/plugin-canvas',
+      expect.objectContaining({
+        workspaceId: 'workspace-2'
+      })
+    )
+  })
+
+  it('blocks template creation when required plugin skills fail to initialize', async () => {
+    const { component, pluginAPI, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallError: new Error('plugin skill broken'),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalled()
+    expect(component.templatePluginSkillInstallError()).toBe('plugin skill broken')
+    expect(toastr.error).toHaveBeenCalledWith('plugin skill broken')
+
+    await component.create()
+
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('blocks template creation when installed plugin skills do not return runtime package ids', async () => {
+    const { component, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail(),
+        pluginSkillInstallResult: {
+          installations: [],
+          pendingAuth: []
+        },
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    expect(component.templatePluginSkillInstallError()).toBe(
+      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+    )
+    expect(toastr.error).toHaveBeenCalledWith(
+      'Failed to initialize template skills: @xpert-ai/plugin-canvas/canvas-agent-skill'
+    )
+
+    await component.create()
+
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('resolves plugin template toolsets and imports the real workspace toolset id', async () => {
+    const { component, fixture, pluginAPI, toolsetService, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail(),
+        pluginSkillInstallResult: createPluginSkillInstallResult('skill-package-canvas'),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaceToolsets: [createSeedreamToolset()],
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalled()
+    expect(component.hasTemplateToolsetStep()).toBe(true)
+    expect(toolsetService.getAllByWorkspace).toHaveBeenCalledWith(
+      'workspace-1',
+      expect.objectContaining({
+        where: {
+          type: 'seedream_aigc',
+          category: 'builtin'
+        },
+        relations: ['tools']
+      })
+    )
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBe('seedream-runtime')
+
+    await component.create()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const toolsetNode = importedDraft.nodes.find((node: any) => node.type === 'toolset')
+    const agentNode = importedDraft.nodes.find((node: any) => node.type === 'agent' && node.key === 'Agent_primary')
+    const skillsMiddleware = findSkillsMiddlewareNode(importedDraft)
+
+    expect(toolsetNode.key).toBe('seedream-runtime')
+    expect(toolsetNode.entity.id).toBe('seedream-runtime')
+    expect(toolsetNode.entity.credentials).toBeUndefined()
+    expect(toolsetNode.entity.tools[0].toolsetId).toBeUndefined()
+    expect(agentNode.entity.toolsetIds).toEqual(['seedream-runtime'])
+    expect(importedDraft.team.agent.toolsetIds).toEqual(['seedream-runtime'])
+    expect(importedDraft.team.toolsets.map((toolset: any) => toolset.id)).toEqual(['seedream-runtime'])
+    expect(importedDraft.team.toolsets[0].credentials).toBeUndefined()
+    expect(importedDraft.team.options.toolset).toEqual({
+      'seedream-runtime': {
+        position: { x: 20, y: 420 }
+      }
+    })
+    expect(importedDraft.connections).toEqual(
+      expect.arrayContaining([
+        {
+          key: 'Agent_primary/seedream-runtime',
+          type: 'toolset',
+          from: 'Agent_primary',
+          to: 'seedream-runtime'
+        }
+      ])
+    )
+    expect(skillsMiddleware.entity.options.skills).toEqual(expect.arrayContaining(['writer', 'skill-package-canvas']))
+  })
+
+  it('blocks template creation when a required plugin template toolset is missing', async () => {
+    const { component, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail({
+          dependencies: {
+            toolsets: [
+              {
+                pluginName: '@xpert-ai/plugin-volcengine',
+                provider: 'seedream_aigc',
+                templateNodeKey: 'seedream-placeholder',
+                targetAgentKey: 'Agent_primary',
+                instanceName: 'Seedream AIGC'
+              }
+            ]
+          }
+        }),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaceToolsets: [],
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+
+    expect(component.templateToolsetSelectionStates()[0].errorMessage).toBe(
+      "Required template toolset 'Seedream AIGC' (seedream_aigc) is not configured in this workspace."
+    )
+    expect(component.templateToolsetInstallError()).toBeNull()
+    expect(toastr.error).not.toHaveBeenCalled()
+
+    await component.create()
+
+    expect(component.templateToolsetInstallError()).toBe(
+      "Required template toolset 'Seedream AIGC' (seedream_aigc) is not configured in this workspace."
+    )
+    expect(toastr.error).toHaveBeenCalledWith(
+      "Required template toolset 'Seedream AIGC' (seedream_aigc) is not configured in this workspace."
+    )
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+  })
+
+  it('configures a missing builtin template toolset and selects the returned instance', async () => {
+    const configuredToolset = createSeedreamToolset({
+      id: 'seedream-configured',
+      name: 'Seedream Custom',
+      updatedAt: '2026-02-01T00:00:00.000Z'
+    })
+    const { builtinDialog, component, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail({
+          dependencies: {
+            toolsets: [
+              {
+                pluginName: '@xpert-ai/plugin-volcengine',
+                provider: 'seedream_aigc',
+                templateNodeKey: 'seedream-placeholder',
+                targetAgentKey: 'Agent_primary'
+              }
+            ]
+          }
+        }),
+        configuredBuiltinToolset: configuredToolset,
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaceToolsets: [],
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBeNull()
+
+    await component.configureTemplateToolset(component.templateToolsetSelectionStates()[0].key)
+
+    expect(builtinDialog.open).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        disableClose: true,
+        data: expect.objectContaining({
+          providerName: 'seedream_aigc',
+          workspaceId: 'workspace-1'
+        })
+      })
+    )
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBe('seedream-configured')
+    expect(component.templateToolsetsStepInvalid()).toBe(false)
+
+    await component.create()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const toolsetNode = importedDraft.nodes.find((node: any) => node.type === 'toolset')
+    expect(toolsetNode.key).toBe('seedream-configured')
+  })
+
+  it('requires the user to choose when a provider dependency matches multiple workspace toolsets without instanceName', async () => {
+    const { component, toastr, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail({
+          dependencies: {
+            toolsets: [
+              {
+                pluginName: '@xpert-ai/plugin-volcengine',
+                provider: 'seedream_aigc',
+                templateNodeKey: 'seedream-placeholder',
+                targetAgentKey: 'Agent_primary'
+              }
+            ]
+          }
+        }),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaceToolsets: [
+          createSeedreamToolset({ id: 'seedream-runtime-a', name: 'Seedream A' }),
+          createSeedreamToolset({ id: 'seedream-runtime-b', name: 'Seedream B' })
+        ],
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+
+    expect(component.templateToolsetSelectionStates()[0].toolsets.map((toolset) => toolset.id)).toEqual([
+      'seedream-runtime-a',
+      'seedream-runtime-b'
+    ])
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBeNull()
+    expect(component.templateToolsetSelectionStates()[0].errorMessage).toBe(
+      "Select a 'seedream_aigc' toolset before creating this template."
+    )
+    expect(toastr.error).not.toHaveBeenCalled()
+
+    await component.create()
+
+    expect(component.templateToolsetInstallError()).toBe(
+      "Select a 'seedream_aigc' toolset before creating this template."
+    )
+    expect(toastr.error).toHaveBeenCalledWith("Select a 'seedream_aigc' toolset before creating this template.")
+    expect(xpertService.importDSL).not.toHaveBeenCalled()
+
+    component.selectTemplateToolset(component.templateToolsetSelectionStates()[0].key, 'seedream-runtime-b')
+
+    await component.create()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const toolsetNode = importedDraft.nodes.find((node: any) => node.type === 'toolset')
+    expect(toolsetNode.key).toBe('seedream-runtime-b')
+  })
+
+  it('does not resolve template toolsets again for the same workspace and dependency set', async () => {
+    const { component, fixture, toolsetService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createPluginToolsetTemplateDetail({
+          dependencies: {
+            toolsets: [
+              {
+                pluginName: '@xpert-ai/plugin-volcengine',
+                provider: 'seedream_aigc',
+                templateNodeKey: 'seedream-placeholder',
+                targetAgentKey: 'Agent_primary',
+                instanceName: 'Seedream AIGC'
+              }
+            ]
+          }
+        }),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaceToolsetsByWorkspace: {
+          'workspace-1': [createSeedreamToolset({ id: 'seedream-runtime-1' })],
+          'workspace-2': [createSeedreamToolset({ id: 'seedream-runtime-2' })]
+        },
+        workspaces: [
+          { id: 'workspace-1', name: 'Workspace One' },
+          { id: 'workspace-2', name: 'Workspace Two' }
+        ]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+
+    expect(toolsetService.getAllByWorkspace).toHaveBeenCalledTimes(1)
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBe('seedream-runtime-1')
+
+    component.workspaceId.set('workspace-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+    expect(component.templateToolsetSelectionStates()).toEqual([])
+
+    await component.onAgentStepChange({ selectedIndex: component.agentToolsetStepIndex() } as any)
+
+    expect(toolsetService.getAllByWorkspace).toHaveBeenCalledTimes(2)
+    expect(toolsetService.getAllByWorkspace).toHaveBeenLastCalledWith(
+      'workspace-2',
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: 'seedream_aigc'
+        })
+      })
+    )
+    expect(component.templateToolsetSelectionStates()[0].selectedToolsetId).toBe('seedream-runtime-2')
   })
 
   it('surfaces template-selected middlewares even when the runtime no longer provides them', async () => {

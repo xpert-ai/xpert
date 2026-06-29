@@ -211,12 +211,21 @@ export interface XpertTemplatePluginAppDependency {
   auth?: 'on_install' | 'on_first_use'
 }
 
+export interface XpertTemplatePluginToolsetDependency {
+  pluginName?: PluginName
+  provider: string
+  templateNodeKey: string
+  targetAgentKey?: string
+  instanceName?: string
+}
+
 export interface XpertTemplatePluginDependencies {
   plugins?: PluginName[]
   skills?: XpertTemplatePluginSkillDependency[]
   mcpServers?: XpertTemplatePluginMcpServerDependency[]
   hooks?: XpertTemplatePluginHookDependency[]
   apps?: XpertTemplatePluginAppDependency[]
+  toolsets?: XpertTemplatePluginToolsetDependency[]
 }
 
 export interface PluginMarketplaceContribution {

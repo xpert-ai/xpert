@@ -7,10 +7,13 @@ import {
   IWFNTrigger,
   IWFNUnderstanding,
   IXpert,
+  IXpertTool,
+  IXpertToolset,
   TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
-  WorkflowNodeTypeEnum
+  WorkflowNodeTypeEnum,
+  XpertToolsetCategoryEnum
 } from '@xpert-ai/contracts'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
@@ -43,6 +46,12 @@ type BlankAgentTemplateApplyOptions = Pick<
   BlankXpertDraftBuildOptions,
   'defaultCopilotModel' | 'defaultSandboxProvider' | 'middlewareDefinitions'
 >
+
+export type BlankTemplateToolsetResolution = {
+  templateNodeKey: string
+  targetAgentKey?: string | null
+  toolset: IXpertToolset
+}
 
 const KNOWLEDGE_MANAGED_NODE_TYPES = new Set<WorkflowNodeTypeEnum>([
   WorkflowNodeTypeEnum.TRIGGER,
@@ -212,6 +221,226 @@ export function applyKnowledgeTemplateWizardState(
   ]
 
   return nextDraft
+}
+
+export function applyTemplateToolsetResolutionsToDraft(
+  draft: TXpertTeamDraft,
+  resolutions: BlankTemplateToolsetResolution[]
+): TXpertTeamDraft {
+  const nextDraft = cloneDeep(draft)
+
+  for (const resolution of resolutions) {
+    applyTemplateToolsetResolution(nextDraft, resolution)
+  }
+
+  return nextDraft
+}
+
+function applyTemplateToolsetResolution(draft: TXpertTeamDraft, resolution: BlankTemplateToolsetResolution) {
+  const templateNodeKey = normalizeString(resolution.templateNodeKey)
+  const toolsetId = normalizeString(resolution.toolset.id)
+  if (!templateNodeKey || !toolsetId) {
+    throw new Error('Template toolset dependency requires templateNodeKey and resolved toolset id.')
+  }
+
+  const targetAgentKey = resolveTemplateToolsetTargetAgentKey(draft, templateNodeKey, resolution.targetAgentKey)
+  const placeholderNode = draft.nodes.find((node) => node.type === 'toolset' && node.key === templateNodeKey)
+  const runtimeNode = draft.nodes.find((node) => node.type === 'toolset' && node.key === toolsetId)
+  const position = cloneMaybe(placeholderNode?.position ?? runtimeNode?.position ?? { x: 280, y: 260 })
+  const size = cloneMaybe(placeholderNode?.size ?? runtimeNode?.size)
+  const nextNode: TXpertTeamNode<'toolset'> = {
+    key: toolsetId,
+    type: 'toolset',
+    position,
+    ...(size ? { size } : {}),
+    entity: sanitizeToolsetForTemplateDraft(resolution.toolset)
+  }
+  const insertIndex = Math.max(
+    0,
+    draft.nodes.findIndex((node) => node.key === templateNodeKey || node.key === toolsetId)
+  )
+
+  draft.nodes = draft.nodes.filter(
+    (node) => !(node.type === 'toolset' && (node.key === templateNodeKey || node.key === toolsetId))
+  )
+  draft.nodes.splice(insertIndex, 0, nextNode)
+  draft.connections = rewriteTemplateToolsetConnections(draft.connections ?? [], templateNodeKey, toolsetId)
+  ensureConnection(draft.connections, 'toolset', targetAgentKey, toolsetId)
+  rewriteTemplateToolsetAgentRefs(draft, templateNodeKey, toolsetId, targetAgentKey)
+  rewriteTemplateToolsetTeamRefs(draft, templateNodeKey, resolution.toolset, position)
+}
+
+function resolveTemplateToolsetTargetAgentKey(
+  draft: TXpertTeamDraft,
+  templateNodeKey: string,
+  requestedAgentKey?: string | null
+) {
+  const requested = normalizeString(requestedAgentKey)
+  if (requested) {
+    if (!templateDraftHasAgent(draft, requested)) {
+      throw new Error(`Template toolset target agent '${requested}' was not found.`)
+    }
+    return requested
+  }
+
+  const connectedAgentKey = draft.connections?.find(
+    (connection) => connection.type === 'toolset' && connection.to === templateNodeKey
+  )?.from
+  if (connectedAgentKey) {
+    return connectedAgentKey
+  }
+
+  const agentWithToolset = draft.nodes.find(
+    (node) =>
+      node.type === 'agent' &&
+      Array.isArray(node.entity?.toolsetIds) &&
+      node.entity.toolsetIds.includes(templateNodeKey)
+  )
+  if (agentWithToolset?.type === 'agent') {
+    return agentWithToolset.key
+  }
+
+  const primaryAgentKey = normalizeString(draft.team?.agent?.key)
+  if (primaryAgentKey) {
+    return primaryAgentKey
+  }
+
+  const firstAgent = draft.nodes.find((node) => node.type === 'agent')
+  if (firstAgent?.type === 'agent') {
+    return firstAgent.key
+  }
+
+  throw new Error('Template toolset dependency requires a target agent.')
+}
+
+function templateDraftHasAgent(draft: TXpertTeamDraft, agentKey: string) {
+  return (
+    draft.team?.agent?.key === agentKey || draft.nodes.some((node) => node.type === 'agent' && node.key === agentKey)
+  )
+}
+
+function rewriteTemplateToolsetConnections(
+  connections: TXpertTeamConnection[],
+  templateNodeKey: string,
+  toolsetId: string
+) {
+  const rewritten = connections.map((connection) => {
+    const from = connection.from === templateNodeKey ? toolsetId : connection.from
+    const to = connection.to === templateNodeKey ? toolsetId : connection.to
+    return {
+      ...connection,
+      from,
+      to,
+      key: `${from}/${to}`
+    }
+  })
+
+  return uniqueConnections(rewritten)
+}
+
+function rewriteTemplateToolsetAgentRefs(
+  draft: TXpertTeamDraft,
+  templateNodeKey: string,
+  toolsetId: string,
+  targetAgentKey: string
+) {
+  draft.nodes = draft.nodes.map((node) => {
+    if (node.type !== 'agent') {
+      return node
+    }
+
+    return {
+      ...node,
+      entity: rewriteAgentToolsetIds(node.entity, templateNodeKey, toolsetId, node.key === targetAgentKey)
+    }
+  })
+
+  if (draft.team?.agent) {
+    draft.team = {
+      ...draft.team,
+      agent: rewriteAgentToolsetIds(
+        draft.team.agent,
+        templateNodeKey,
+        toolsetId,
+        draft.team.agent.key === targetAgentKey
+      )
+    }
+  }
+}
+
+function rewriteAgentToolsetIds<T extends { toolsetIds?: string[] }>(
+  agent: T,
+  templateNodeKey: string,
+  toolsetId: string,
+  shouldAttach: boolean
+): T {
+  const nextIds = uniqueStrings((agent.toolsetIds ?? []).filter((id) => id !== templateNodeKey && id !== toolsetId))
+  if (shouldAttach) {
+    nextIds.push(toolsetId)
+  }
+
+  return {
+    ...agent,
+    toolsetIds: uniqueStrings(nextIds)
+  }
+}
+
+function rewriteTemplateToolsetTeamRefs(
+  draft: TXpertTeamDraft,
+  templateNodeKey: string,
+  toolset: IXpertToolset,
+  position: TXpertTeamNode['position']
+) {
+  const toolsetId = toolset.id
+  const sanitizedToolset = sanitizeToolsetForTemplateDraft(toolset)
+  const existingOptions = isObjectRecord(draft.team?.options?.toolset) ? draft.team.options.toolset : null
+  const migratedToolsetOptions = existingOptions
+    ? {
+        ...existingOptions,
+        [toolsetId]: cloneMaybe(existingOptions[toolsetId] ?? existingOptions[templateNodeKey] ?? { position })
+      }
+    : {
+        [toolsetId]: { position: cloneMaybe(position) }
+      }
+  delete migratedToolsetOptions[templateNodeKey]
+
+  draft.team = {
+    ...draft.team,
+    toolsets: [
+      ...(draft.team?.toolsets ?? []).filter((item) => item.id !== templateNodeKey && item.id !== toolsetId),
+      sanitizedToolset
+    ],
+    options: {
+      ...(draft.team?.options ?? {}),
+      toolset: migratedToolsetOptions
+    }
+  }
+}
+
+function sanitizeToolsetForTemplateDraft(toolset: IXpertToolset): IXpertToolset {
+  const sanitized: IXpertToolset = {
+    id: toolset.id,
+    name: toolset.name,
+    type: toolset.type,
+    category: toolset.category ?? XpertToolsetCategoryEnum.BUILTIN,
+    description: toolset.description,
+    avatar: cloneMaybe(toolset.avatar),
+    options: cloneMaybe(toolset.options),
+    privacyPolicy: toolset.privacyPolicy,
+    customDisclaimer: toolset.customDisclaimer,
+    tags: cloneMaybe(toolset.tags),
+    tools: cloneMaybe(toolset.tools)?.map(sanitizeToolForTemplateDraft)
+  }
+
+  delete sanitized.credentials
+  return sanitized
+}
+
+function sanitizeToolForTemplateDraft(tool: IXpertTool): IXpertTool {
+  const nextTool = cloneMaybe(tool)
+  delete nextTool.toolset
+  delete nextTool.toolsetId
+  return nextTool
 }
 
 function getPrimaryAgentNode(draft: TXpertTeamDraft): TXpertTeamNode<'agent'> {
@@ -415,6 +644,29 @@ function createConnection(type: TXpertTeamConnection['type'], from: string, to: 
   }
 }
 
+function ensureConnection(
+  connections: TXpertTeamConnection[],
+  type: TXpertTeamConnection['type'],
+  from: string,
+  to: string
+) {
+  if (!connections.some((connection) => connection.type === type && connection.from === from && connection.to === to)) {
+    connections.push(createConnection(type, from, to))
+  }
+}
+
+function uniqueConnections(connections: TXpertTeamConnection[]) {
+  const seen = new Set<string>()
+  return connections.filter((connection) => {
+    const key = `${connection.type}:${connection.from}:${connection.to}`
+    if (seen.has(key)) {
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+}
+
 function connectionTouchesKeys(connection: TXpertTeamConnection, keys: Set<string>) {
   return keys.has(normalizeConnectionEndpoint(connection.from)) || keys.has(normalizeConnectionEndpoint(connection.to))
 }
@@ -441,6 +693,15 @@ function cloneConfig(config: unknown): Record<string, unknown> | null | undefine
   }
 
   return undefined
+}
+
+function isObjectRecord(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeString(value: string | null | undefined) {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
 }
 
 function uniqueStrings(values?: Array<string | null | undefined>) {

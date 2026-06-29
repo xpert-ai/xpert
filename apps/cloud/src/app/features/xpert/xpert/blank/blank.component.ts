@@ -4,14 +4,24 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { injectWorkspace } from '@xpert-ai/cloud/state'
+import {
+  injectPluginAPI,
+  injectWorkspace,
+  PLUGIN_COMPONENT_TYPE,
+  PLUGIN_RESOURCE_RUNTIME_TYPE,
+  type PluginResourceComponentSelector
+} from '@xpert-ai/cloud/state'
 import { parseYAML } from '@xpert-ai/core'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
 import {
+  ZardBadgeComponent,
+  ZardButtonComponent,
   ZardComboboxDeprecatedComponent,
   ZardCheckboxComponent,
   ZardDialogService,
+  ZardIconComponent,
+  ZardSelectImports,
   ZardStepperImports,
   ZardSwitchComponent,
   ZardTooltipImports,
@@ -35,6 +45,7 @@ import {
   ISkillPackage,
   ISkillRepositoryIndex,
   IXpert,
+  IXpertToolset,
   IXpertWorkspace,
   KnowledgebaseService,
   OrderTypeEnum,
@@ -52,6 +63,8 @@ import {
   XpertAgentService,
   XpertAPIService,
   XpertTemplateService,
+  XpertToolsetCategoryEnum,
+  XpertToolsetService,
   XpertWorkspaceService,
   XpertTypeEnum
 } from '../../../../@core'
@@ -69,6 +82,7 @@ import {
 import { RouterModule } from '@angular/router'
 import { CopilotConfigFormComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
+import { injectConfigureBuiltin } from '../../tools'
 import {
   BehaviorSubject,
   catchError,
@@ -113,6 +127,8 @@ import { BlankTriggerSelectionComponent } from './blank-trigger-selection.compon
 import {
   applyAgentTemplateWizardState,
   applyKnowledgeTemplateWizardState,
+  applyTemplateToolsetResolutionsToDraft,
+  BlankTemplateToolsetResolution,
   BlankXpertStartMode,
   extractAgentTemplateWizardState,
   extractKnowledgeTemplateWizardState
@@ -148,6 +164,33 @@ type BlankMiddlewareProviderOption = {
 type BlankSkillState = {
   loading: boolean
   skills: BlankWorkspaceSkillItem[]
+  errorMessage: string | null
+}
+
+type BlankTemplatePluginSkillDependencyGroup = {
+  pluginName: string
+  components: PluginResourceComponentSelector[]
+}
+
+type BlankTemplateToolsetDependency = {
+  pluginName: string
+  provider: string
+  templateNodeKey: string
+  targetAgentKey?: string
+  instanceName?: string
+}
+
+type BlankTemplateToolsetPreparation = {
+  key: string
+  resolutions: BlankTemplateToolsetResolution[]
+}
+
+type BlankTemplateToolsetSelectionState = {
+  key: string
+  dependency: BlankTemplateToolsetDependency
+  loading: boolean
+  toolsets: IXpertToolset[]
+  selectedToolsetId: string | null
   errorMessage: string | null
 }
 
@@ -287,8 +330,12 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     CdkListboxModule,
     NgmI18nPipe,
     NgmSpinComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent,
     ZardCheckboxComponent,
     ZardComboboxDeprecatedComponent,
+    ZardIconComponent,
+    ...ZardSelectImports,
     ZardSwitchComponent,
     XpertBasicFormComponent,
     CopilotConfigFormComponent,
@@ -308,8 +355,11 @@ export class XpertNewBlankComponent {
   readonly #dialog = inject(ZardDialogService)
   readonly #dialogData = inject<BlankXpertDialogData>(DIALOG_DATA)
   readonly #selectedWorkspace = injectWorkspace()
+  readonly #pluginAPI = injectPluginAPI()
+  readonly #configureBuiltinToolset = injectConfigureBuiltin()
   readonly #skillPackageService = inject(SkillPackageService)
   readonly #skillRepositoryService = inject(SkillRepositoryService)
+  readonly #toolsetService = inject(XpertToolsetService)
   readonly xpertService = inject(XpertAPIService)
   readonly xpertAgentService = inject(XpertAgentService)
   readonly templateService = inject(XpertTemplateService)
@@ -354,9 +404,12 @@ export class XpertNewBlankComponent {
   readonly title = model<string>()
   readonly copilotModel = model<ICopilotModel>()
   readonly selectedTemplateId = model<string | null>(this.#dialogData.initialTemplateId ?? null)
+  readonly selectedTemplate = signal<TXpertTemplate | null>(null)
   readonly selectedTemplateDraft = signal<TXpertTeamDraft | null>(null)
   readonly templateLoading = signal(false)
   readonly templateLoadError = signal<string | null>(null)
+  readonly templatePluginSkillInstallError = signal<string | null>(null)
+  readonly templateToolsetInstallError = signal<string | null>(null)
   readonly agentTemplateCatalogLoading = signal(true)
   readonly agentTemplateCatalogError = signal<string | null>(null)
   readonly knowledgeTemplateCatalogLoading = signal(true)
@@ -620,6 +673,12 @@ export class XpertNewBlankComponent {
   readonly selectedUnderstandings = model<string[]>([])
   readonly selectedWorkflowNodes = model<BlankWorkflowStarterNodeKey[]>([])
   readonly preparedSkillWorkspaces = signal<Set<string>>(new Set())
+  readonly preparedTemplatePluginSkillDependencies = signal<Set<string>>(new Set())
+  readonly preparedTemplateToolsetDependencies = signal<BlankTemplateToolsetPreparation | null>(null)
+  readonly loadedTemplateToolsetDependencyKey = signal<string | null>(null)
+  readonly templateToolsetSelectionStates = signal<BlankTemplateToolsetSelectionState[]>([])
+  readonly loadingTemplateToolsets = signal(false)
+  readonly configuringTemplateToolsetKey = signal<string | null>(null)
   readonly initializedWorkspaceSkillDefaultWorkspaces = signal<Set<string>>(new Set())
   readonly workflowActionNodeOptions = WORKFLOW_ACTION_NODE_OPTIONS
   readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
@@ -643,7 +702,6 @@ export class XpertNewBlankComponent {
   readonly agentBasicStepIndex = computed(() => (this.needsModelProviderSetup() ? 2 : 1))
   readonly agentTriggerStepIndex = computed(() => (this.needsModelProviderSetup() ? 3 : 2))
   readonly agentSkillStepIndex = computed(() => (this.needsModelProviderSetup() ? 5 : 4))
-  readonly agentLastStepIndex = computed(() => (this.needsModelProviderSetup() ? 5 : 4))
   readonly selectedSkills = computed<string[]>(() => {
     const selected = new Set(this.selectedExplicitSkills())
     const repositoryDefault = this.selectedRepositoryDefault()
@@ -662,6 +720,77 @@ export class XpertNewBlankComponent {
   readonly selectedSkillItems = computed<BlankWorkspaceSkillItem[]>(() => {
     const itemMap = new Map(this.skillState().skills.map((skill) => [skill.id, skill]))
     return this.selectedSkills().map((skillId) => itemMap.get(skillId) ?? { id: skillId, label: skillId })
+  })
+  readonly templatePluginSkillDependencyGroups = computed<BlankTemplatePluginSkillDependencyGroup[]>(() => {
+    const template = this.selectedTemplate()
+    const defaultPluginName = readNonEmptyString(template?.pluginName)
+    const groups = new Map<string, PluginResourceComponentSelector[]>()
+
+    for (const dependency of template?.dependencies?.skills ?? []) {
+      const componentKey = readNonEmptyString(dependency.componentKey)
+      const pluginName = readNonEmptyString(dependency.pluginName) ?? defaultPluginName
+      if (!componentKey || !pluginName) {
+        continue
+      }
+
+      const targetAgentKey = readNonEmptyString(dependency.targetAgentKey)
+      const components = groups.get(pluginName) ?? []
+      components.push({
+        pluginName,
+        componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+        componentKey,
+        ...(targetAgentKey ? { targetAgentKey } : {})
+      })
+      groups.set(pluginName, components)
+    }
+
+    return Array.from(groups.entries()).map(([pluginName, components]) => ({ pluginName, components }))
+  })
+  readonly templateToolsetDependencies = computed<BlankTemplateToolsetDependency[]>(() => {
+    const template = this.selectedTemplate()
+    const defaultPluginName = readNonEmptyString(template?.pluginName)
+
+    return (template?.dependencies?.toolsets ?? [])
+      .map((dependency) => {
+        const provider = readNonEmptyString(dependency.provider)
+        const templateNodeKey = readNonEmptyString(dependency.templateNodeKey)
+        const pluginName = readNonEmptyString(dependency.pluginName) ?? defaultPluginName
+        if (!provider || !templateNodeKey || !pluginName) {
+          return null
+        }
+
+        const targetAgentKey = readNonEmptyString(dependency.targetAgentKey)
+        const instanceName = readNonEmptyString(dependency.instanceName)
+        return {
+          pluginName,
+          provider,
+          templateNodeKey,
+          ...(targetAgentKey ? { targetAgentKey } : {}),
+          ...(instanceName ? { instanceName } : {})
+        }
+      })
+      .filter((dependency): dependency is BlankTemplateToolsetDependency => !!dependency)
+  })
+  readonly hasTemplateToolsetStep = computed(
+    () => this.isAgentType() && this.startMode() === 'template' && this.templateToolsetDependencies().length > 0
+  )
+  readonly agentToolsetStepIndex = computed(() => (this.hasTemplateToolsetStep() ? this.agentSkillStepIndex() + 1 : -1))
+  readonly agentLastStepIndex = computed(() =>
+    this.hasTemplateToolsetStep() ? this.agentToolsetStepIndex() : this.agentSkillStepIndex()
+  )
+  readonly templateToolsetsStepInvalid = computed(() => {
+    if (!this.hasTemplateToolsetStep()) {
+      return false
+    }
+
+    return (
+      this.loadingTemplateToolsets() ||
+      !!this.templateToolsetInstallError() ||
+      this.templateToolsetSelectionStates().length !== this.templateToolsetDependencies().length ||
+      this.templateToolsetSelectionStates().some(
+        (state) => state.loading || !state.selectedToolsetId || !!state.errorMessage
+      )
+    )
   })
   readonly supportsTemplateStart = computed(() => this.isAgentType() || this.isKnowledgeType())
   readonly templateChoices = computed(() =>
@@ -825,6 +954,7 @@ export class XpertNewBlankComponent {
         if (startMode !== 'template') {
           this.templateLoading.set(false)
           this.templateLoadError.set(null)
+          this.selectedTemplate.set(null)
           this.selectedTemplateDraft.set(null)
         }
         return
@@ -832,28 +962,40 @@ export class XpertNewBlankComponent {
 
       this.templateLoading.set(true)
       this.templateLoadError.set(null)
+      this.selectedTemplate.set(null)
       this.selectedTemplateDraft.set(null)
       this.applyBlankDefaults()
 
-      const template$: Observable<{ export_data: string }> =
+      const template$: Observable<{ template: TXpertTemplate | null; export_data: string }> =
         selectedMode === XpertTypeEnum.Agent
           ? this.templateService
               .getTemplate(templateId)
-              .pipe(map((template) => ({ export_data: template.export_data })))
+              .pipe(map((template) => ({ template, export_data: template.export_data })))
           : this.templateService
               .getKnowledgePipelineTemplate(templateId)
-              .pipe(map((template) => ({ export_data: template.export_data })))
+              .pipe(map((template) => ({ template: null, export_data: template.export_data })))
 
       const subscription = template$
-        .pipe(switchMap((data) => from(parseYAML(data.export_data) as Promise<TXpertTeamDraft>)))
+        .pipe(
+          switchMap((data) =>
+            from(parseYAML(data.export_data) as Promise<TXpertTeamDraft>).pipe(
+              map((draft) => ({
+                template: data.template,
+                draft
+              }))
+            )
+          )
+        )
         .subscribe({
-          next: (draft) => {
+          next: ({ template, draft }) => {
             this.templateLoading.set(false)
+            this.selectedTemplate.set(template)
             this.selectedTemplateDraft.set(draft)
             this.applyTemplateDefaults(draft)
           },
           error: (error) => {
             this.templateLoading.set(false)
+            this.selectedTemplate.set(null)
             this.templateLoadError.set(getErrorMessage(error))
           }
         })
@@ -869,13 +1011,29 @@ export class XpertNewBlankComponent {
       this.modelProviderStepInvalid() ||
       this.basicStepInvalid() ||
       (this.isAgentType() && this.selectedTriggersInvalid()) ||
-      (this.isKnowledgeType() && this.selectedKnowledgeTriggersInvalid())
+      (this.isKnowledgeType() && this.selectedKnowledgeTriggersInvalid()) ||
+      this.installingSkillPackage() ||
+      this.loadingTemplateToolsets() ||
+      !!this.templatePluginSkillInstallError() ||
+      !!this.templateToolsetInstallError()
     ) {
       return
     }
 
     this.loading.set(true)
     try {
+      if (this.isAgentType()) {
+        const templatePluginSkillsReady = await this.prepareTemplatePluginSkillsForCurrentWorkspace()
+        if (!templatePluginSkillsReady) {
+          return
+        }
+
+        const templateToolsetsReady = await this.prepareTemplateToolsetsForCurrentWorkspace()
+        if (!templateToolsetsReady) {
+          return
+        }
+      }
+
       const result = this.startMode() === 'template' ? await this.createFromTemplate() : await this.createBlankXpert()
 
       this.#toastr.success(
@@ -1023,7 +1181,7 @@ export class XpertNewBlankComponent {
       this.getSelectedMiddlewareDefinitions()
     )
     const nextDraft = this.withInitialPrimaryAgentPromptInDraft(
-      this.buildTemplateImportDraft(draft, defaultSandboxProvider),
+      this.buildTemplateImportDraftWithTemplateToolsets(draft, defaultSandboxProvider),
       primaryAgentPrompt
     )
     const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
@@ -1295,6 +1453,25 @@ export class XpertNewBlankComponent {
     }
   }
 
+  private buildTemplateImportDraftWithTemplateToolsets(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
+    const nextDraft = this.buildTemplateImportDraft(draft, defaultSandboxProvider)
+    const resolutions = this.getPreparedTemplateToolsetResolutions()
+
+    return resolutions.length ? applyTemplateToolsetResolutionsToDraft(nextDraft, resolutions) : nextDraft
+  }
+
+  private getPreparedTemplateToolsetResolutions() {
+    const workspaceId = this.workspaceId()
+    const dependencies = this.templateToolsetDependencies()
+    if (!workspaceId || !dependencies.length) {
+      return []
+    }
+
+    const dependencyKey = this.templateToolsetDependencyInstallKey(workspaceId, dependencies)
+    const prepared = this.preparedTemplateToolsetDependencies()
+    return prepared?.key === dependencyKey ? prepared.resolutions : []
+  }
+
   private applyTemplateDefaults(draft: TXpertTeamDraft) {
     if (this.isAgentType()) {
       const state = extractAgentTemplateWizardState(draft)
@@ -1335,6 +1512,8 @@ export class XpertNewBlankComponent {
     this.avatar.set(undefined)
     this.title.set(undefined)
     this.copilotModel.set(undefined)
+    this.templatePluginSkillInstallError.set(null)
+    this.clearTemplateToolsetSelections()
     this.resetSelections()
   }
 
@@ -1358,9 +1537,13 @@ export class XpertNewBlankComponent {
       this.startMode.set('blank')
     }
     this.selectedTemplateId.set(null)
+    this.selectedTemplate.set(null)
     this.selectedTemplateDraft.set(null)
     this.templateLoading.set(false)
     this.templateLoadError.set(null)
+    this.templatePluginSkillInstallError.set(null)
+    this.clearTemplateToolsetSelections()
+    this.preparedTemplatePluginSkillDependencies.set(new Set())
   }
 
   private async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
@@ -1709,6 +1892,8 @@ export class XpertNewBlankComponent {
 
   private clearWorkspaceScopedAgentSelections() {
     this.initializedWorkspaceSkillDefaultWorkspaces.set(new Set())
+    this.templatePluginSkillInstallError.set(null)
+    this.clearTemplateToolsetSelections()
     this.applyAgentSkillSelections({
       skills: [],
       repositoryDefault: null,
@@ -1725,11 +1910,14 @@ export class XpertNewBlankComponent {
       return
     }
 
-    if (event.selectedIndex !== this.agentSkillStepIndex()) {
+    if (event.selectedIndex === this.agentSkillStepIndex()) {
+      await this.prepareAgentSkillStep()
       return
     }
 
-    await this.prepareAgentSkillStep()
+    if (event.selectedIndex === this.agentToolsetStepIndex()) {
+      await this.prepareTemplateToolsetStep()
+    }
   }
 
   private async prepareClawModelProviderStep() {
@@ -1774,6 +1962,7 @@ export class XpertNewBlankComponent {
     if (this.preparedSkillWorkspaces().has(workspaceId)) {
       if (this.usesWorkspaceSkillDefaults()) {
         this.applyWorkspaceSkillDefaults(workspaceId, this.getWorkspaceSkillIds())
+        await this.prepareTemplatePluginSkillsForCurrentWorkspace()
         return
       }
 
@@ -1787,6 +1976,7 @@ export class XpertNewBlankComponent {
           this.refreshAgentSkillMiddlewareSelections()
         }
       }
+      await this.prepareTemplatePluginSkillsForCurrentWorkspace()
       return
     }
 
@@ -1821,6 +2011,432 @@ export class XpertNewBlankComponent {
     } finally {
       this.installingSkillPackage.set(false)
     }
+
+    await this.prepareTemplatePluginSkillsForCurrentWorkspace()
+  }
+
+  private async prepareTemplatePluginSkillsForCurrentWorkspace() {
+    const workspaceId = this.workspaceId()
+    if (!workspaceId) {
+      return !this.templatePluginSkillDependencyGroups().length
+    }
+
+    return this.prepareTemplatePluginSkills(workspaceId)
+  }
+
+  private async prepareTemplatePluginSkills(workspaceId: string): Promise<boolean> {
+    const groups = this.templatePluginSkillDependencyGroups()
+    if (!groups.length) {
+      this.templatePluginSkillInstallError.set(null)
+      return true
+    }
+
+    const dependencyKey = this.templatePluginSkillDependencyInstallKey(workspaceId, groups)
+    if (this.preparedTemplatePluginSkillDependencies().has(dependencyKey)) {
+      this.templatePluginSkillInstallError.set(null)
+      return true
+    }
+
+    if (this.installingSkillPackage()) {
+      return false
+    }
+
+    this.installingSkillPackage.set(true)
+    this.templatePluginSkillInstallError.set(null)
+
+    try {
+      const skillPackageIds: string[] = []
+      for (const group of groups) {
+        const result = await firstValueFrom(
+          this.#pluginAPI
+            .installResourcesToWorkspace(group.pluginName, {
+              workspaceId,
+              components: group.components
+            })
+            .pipe(take(1))
+        )
+
+        const skillInstallations = result.installations.filter(
+          (installation) =>
+            installation.componentType === PLUGIN_COMPONENT_TYPE.SKILL &&
+            installation.runtimeType === PLUGIN_RESOURCE_RUNTIME_TYPE.SKILL_PACKAGE &&
+            !!installation.runtimeId
+        )
+        const installedComponentKeys = new Set(skillInstallations.map((installation) => installation.componentKey))
+        const missingComponentKeys = Array.from(
+          new Set(group.components.map((component) => component.componentKey))
+        ).filter((componentKey) => !installedComponentKeys.has(componentKey))
+
+        if (missingComponentKeys.length) {
+          throw new Error(
+            `Failed to initialize template skills: ${group.pluginName}/${missingComponentKeys.join(', ')}`
+          )
+        }
+
+        skillPackageIds.push(...skillInstallations.map((installation) => installation.runtimeId as string))
+      }
+
+      if (skillPackageIds.length) {
+        this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...skillPackageIds])))
+      }
+
+      this.preparedTemplatePluginSkillDependencies.update((value) => new Set([...value, dependencyKey]))
+      this.refreshAgentSkillMiddlewareSelections()
+      this.refreshSkills()
+      return true
+    } catch (error) {
+      const message = getErrorMessage(error) || 'Failed to initialize template skills.'
+      this.templatePluginSkillInstallError.set(message)
+      this.#toastr.error(message)
+      return false
+    } finally {
+      this.installingSkillPackage.set(false)
+    }
+  }
+
+  private async prepareTemplateToolsetsForCurrentWorkspace() {
+    const workspaceId = this.workspaceId()
+    if (!workspaceId) {
+      return !this.templateToolsetDependencies().length
+    }
+
+    return this.prepareTemplateToolsets(workspaceId)
+  }
+
+  private async prepareTemplateToolsets(workspaceId: string): Promise<boolean> {
+    const dependencies = this.templateToolsetDependencies()
+    if (!dependencies.length) {
+      this.templateToolsetInstallError.set(null)
+      this.preparedTemplateToolsetDependencies.set(null)
+      return true
+    }
+
+    const dependencyKey = this.templateToolsetDependencyInstallKey(workspaceId, dependencies)
+    const prepared = this.preparedTemplateToolsetDependencies()
+    if (prepared?.key === dependencyKey) {
+      this.templateToolsetInstallError.set(null)
+      return true
+    }
+
+    const loaded = await this.loadTemplateToolsetSelectionStates(workspaceId)
+    if (!loaded) {
+      return false
+    }
+
+    try {
+      const resolutions: BlankTemplateToolsetResolution[] = []
+      for (const dependency of dependencies) {
+        const dependencyState = this.templateToolsetSelectionStates().find(
+          (state) => state.key === this.templateToolsetDependencyKey(dependency)
+        )
+        const toolset = dependencyState?.toolsets.find((item) => item.id === dependencyState.selectedToolsetId)
+        if (!toolset) {
+          throw new Error(this.getTemplateToolsetSelectionError(dependency, dependencyState?.toolsets ?? []))
+        }
+
+        resolutions.push({
+          templateNodeKey: dependency.templateNodeKey,
+          targetAgentKey: dependency.targetAgentKey,
+          toolset
+        })
+      }
+
+      this.preparedTemplateToolsetDependencies.set({
+        key: dependencyKey,
+        resolutions
+      })
+      return true
+    } catch (error) {
+      const message = getErrorMessage(error) || 'Failed to initialize template toolsets.'
+      this.preparedTemplateToolsetDependencies.set(null)
+      this.templateToolsetInstallError.set(message)
+      this.#toastr.error(message)
+      return false
+    }
+  }
+
+  private async prepareTemplateToolsetStep(force = false) {
+    const workspaceId = this.workspaceId()
+    if (!workspaceId || !this.hasTemplateToolsetStep()) {
+      return
+    }
+
+    await this.loadTemplateToolsetSelectionStates(workspaceId, { force })
+  }
+
+  async refreshTemplateToolsetStep() {
+    await this.prepareTemplateToolsetStep(true)
+  }
+
+  async configureTemplateToolset(key: string) {
+    const workspaceId = this.workspaceId()
+    const state = this.templateToolsetSelectionStates().find((item) => item.key === key)
+    if (!workspaceId || !state || this.configuringTemplateToolsetKey()) {
+      return
+    }
+
+    this.configuringTemplateToolsetKey.set(key)
+    try {
+      const toolset = await firstValueFrom(
+        this.#configureBuiltinToolset(state.dependency.provider, workspaceId).pipe(take(1))
+      )
+      if (!toolset || typeof toolset !== 'object' || !toolset.id) {
+        return
+      }
+
+      this.mergeConfiguredTemplateToolset(key, toolset)
+      this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+    } catch (error) {
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Xpert.TemplateToolsetConfigureFailed', {
+            Default: 'Failed to configure the required toolset.'
+          })
+      )
+    } finally {
+      this.configuringTemplateToolsetKey.set(null)
+    }
+  }
+
+  selectTemplateToolset(key: string, toolsetId: string | null) {
+    this.templateToolsetSelectionStates.update((states) =>
+      states.map((state) => {
+        if (state.key !== key) {
+          return state
+        }
+
+        const selectedId = readNonEmptyString(toolsetId) ?? null
+        return {
+          ...state,
+          selectedToolsetId: selectedId,
+          errorMessage: selectedId ? null : this.getTemplateToolsetSelectionError(state.dependency, state.toolsets)
+        }
+      })
+    )
+    this.templateToolsetInstallError.set(null)
+    this.preparedTemplateToolsetDependencies.set(null)
+  }
+
+  selectTemplateToolsetValue(key: string, value: unknown) {
+    if (Array.isArray(value)) {
+      this.selectTemplateToolset(key, readNonEmptyString(value[0]) ?? null)
+      return
+    }
+
+    this.selectTemplateToolset(key, readNonEmptyString(value) ?? null)
+  }
+
+  getSelectedTemplateToolset(state: BlankTemplateToolsetSelectionState) {
+    return state.toolsets.find((toolset) => toolset.id === state.selectedToolsetId) ?? null
+  }
+
+  private async loadTemplateToolsetSelectionStates(
+    workspaceId: string,
+    options?: { force?: boolean }
+  ): Promise<boolean> {
+    const dependencies = this.templateToolsetDependencies()
+    if (!dependencies.length) {
+      this.clearTemplateToolsetSelections()
+      return true
+    }
+
+    const dependencyKey = this.templateToolsetDependencyInstallKey(workspaceId, dependencies)
+    if (
+      !options?.force &&
+      this.loadedTemplateToolsetDependencyKey() === dependencyKey &&
+      this.templateToolsetSelectionStates().length === dependencies.length
+    ) {
+      return true
+    }
+
+    const previousStates = new Map(this.templateToolsetSelectionStates().map((state) => [state.key, state]))
+    this.loadingTemplateToolsets.set(true)
+    this.templateToolsetInstallError.set(null)
+    this.preparedTemplateToolsetDependencies.set(null)
+    this.templateToolsetSelectionStates.set(
+      dependencies.map((dependency) => {
+        const key = this.templateToolsetDependencyKey(dependency)
+        const previous = previousStates.get(key)
+        return {
+          key,
+          dependency,
+          loading: true,
+          toolsets: previous?.toolsets ?? [],
+          selectedToolsetId: previous?.selectedToolsetId ?? null,
+          errorMessage: null
+        }
+      })
+    )
+
+    try {
+      const states: BlankTemplateToolsetSelectionState[] = []
+      for (const dependency of dependencies) {
+        const key = this.templateToolsetDependencyKey(dependency)
+        const previous = previousStates.get(key)
+        const toolsets = await this.loadTemplateToolsetCandidates(workspaceId, dependency)
+        const selectedToolset = this.selectDefaultTemplateToolset(toolsets, dependency, previous?.selectedToolsetId)
+        states.push({
+          key,
+          dependency,
+          loading: false,
+          toolsets,
+          selectedToolsetId: selectedToolset?.id ?? null,
+          errorMessage: selectedToolset ? null : this.getTemplateToolsetSelectionError(dependency, toolsets)
+        })
+      }
+
+      this.templateToolsetSelectionStates.set(states)
+      this.loadedTemplateToolsetDependencyKey.set(dependencyKey)
+      return true
+    } catch (error) {
+      const message =
+        getErrorMessage(error) ||
+        this.#translate.instant('PAC.Xpert.TemplateToolsetsLoadFailed', {
+          Default: 'Failed to load template toolsets.'
+        })
+      this.templateToolsetSelectionStates.update((states) =>
+        states.map((state) => ({
+          ...state,
+          loading: false,
+          errorMessage: state.errorMessage ?? message
+        }))
+      )
+      this.loadedTemplateToolsetDependencyKey.set(null)
+      this.templateToolsetInstallError.set(message)
+      this.#toastr.error(message)
+      return false
+    } finally {
+      this.loadingTemplateToolsets.set(false)
+    }
+  }
+
+  private async loadTemplateToolsetCandidates(
+    workspaceId: string,
+    dependency: BlankTemplateToolsetDependency
+  ): Promise<IXpertToolset[]> {
+    const response = await firstValueFrom(
+      this.#toolsetService
+        .getAllByWorkspace(workspaceId, {
+          where: {
+            type: dependency.provider,
+            category: XpertToolsetCategoryEnum.BUILTIN
+          },
+          relations: ['tools'],
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
+        })
+        .pipe(take(1))
+    )
+
+    return (Array.isArray(response) ? response : (response?.items ?? []))
+      .filter((toolset) => this.isTemplateDependencyToolset(toolset, dependency))
+      .sort(compareToolsetsByUpdatedAtDesc)
+  }
+
+  private selectDefaultTemplateToolset(
+    toolsets: IXpertToolset[],
+    dependency: BlankTemplateToolsetDependency,
+    previousSelectedToolsetId?: string | null
+  ) {
+    const previousSelected = toolsets.find((toolset) => toolset.id === previousSelectedToolsetId)
+    if (previousSelected) {
+      return previousSelected
+    }
+
+    if (dependency.instanceName) {
+      return toolsets.find((toolset) => toolset.name === dependency.instanceName) ?? null
+    }
+
+    return toolsets.length === 1 ? toolsets[0] : null
+  }
+
+  private mergeConfiguredTemplateToolset(key: string, toolset: IXpertToolset) {
+    this.templateToolsetSelectionStates.update((states) =>
+      states.map((state) => {
+        if (state.key !== key || !this.isTemplateDependencyToolset(toolset, state.dependency)) {
+          return state
+        }
+
+        const toolsets = [toolset, ...state.toolsets.filter((item) => item.id !== toolset.id)].sort(
+          compareToolsetsByUpdatedAtDesc
+        )
+
+        return {
+          ...state,
+          toolsets,
+          selectedToolsetId: toolset.id,
+          errorMessage: null
+        }
+      })
+    )
+    this.templateToolsetInstallError.set(null)
+    this.preparedTemplateToolsetDependencies.set(null)
+  }
+
+  private isTemplateDependencyToolset(toolset: IXpertToolset, dependency: BlankTemplateToolsetDependency) {
+    return (
+      toolset.type === dependency.provider &&
+      (toolset.category ?? XpertToolsetCategoryEnum.BUILTIN) === XpertToolsetCategoryEnum.BUILTIN
+    )
+  }
+
+  private getTemplateToolsetSelectionError(dependency: BlankTemplateToolsetDependency, toolsets: IXpertToolset[]) {
+    if (!toolsets.length) {
+      return dependency.instanceName
+        ? this.#translate.instant('PAC.Xpert.TemplateToolsetMissingNamed', {
+            Default: `Required template toolset '${dependency.instanceName}' (${dependency.provider}) is not configured in this workspace.`,
+            instanceName: dependency.instanceName,
+            provider: dependency.provider
+          })
+        : this.#translate.instant('PAC.Xpert.TemplateToolsetMissingProvider', {
+            Default: `Required template toolset '${dependency.provider}' is not configured in this workspace.`,
+            provider: dependency.provider
+          })
+    }
+
+    return this.#translate.instant('PAC.Xpert.TemplateToolsetSelectRequired', {
+      Default: `Select a '${dependency.provider}' toolset before creating this template.`,
+      provider: dependency.provider
+    })
+  }
+
+  private templatePluginSkillDependencyInstallKey(
+    workspaceId: string,
+    groups: BlankTemplatePluginSkillDependencyGroup[]
+  ) {
+    return JSON.stringify({
+      workspaceId,
+      templateId: this.selectedTemplateId(),
+      groups
+    })
+  }
+
+  private templateToolsetDependencyInstallKey(workspaceId: string, dependencies: BlankTemplateToolsetDependency[]) {
+    return JSON.stringify({
+      workspaceId,
+      templateId: this.selectedTemplateId(),
+      dependencies
+    })
+  }
+
+  private templateToolsetDependencyKey(dependency: BlankTemplateToolsetDependency) {
+    return JSON.stringify({
+      pluginName: dependency.pluginName,
+      provider: dependency.provider,
+      templateNodeKey: dependency.templateNodeKey,
+      targetAgentKey: dependency.targetAgentKey ?? null,
+      instanceName: dependency.instanceName ?? null
+    })
+  }
+
+  private clearTemplateToolsetSelections() {
+    this.templateToolsetInstallError.set(null)
+    this.loadedTemplateToolsetDependencyKey.set(null)
+    this.preparedTemplateToolsetDependencies.set(null)
+    this.templateToolsetSelectionStates.set([])
+    this.loadingTemplateToolsets.set(false)
+    this.configuringTemplateToolsetKey.set(null)
   }
 
   private async getWorkspacePublicRepositoryId() {
@@ -1971,6 +2587,23 @@ function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
   }
 
   return null
+}
+
+function readNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function compareToolsetsByUpdatedAtDesc(left: IXpertToolset, right: IXpertToolset) {
+  return readDateTime(right.updatedAt) - readDateTime(left.updatedAt)
+}
+
+function readDateTime(value: unknown) {
+  if (!value) {
+    return 0
+  }
+
+  const time = new Date(value as string).getTime()
+  return Number.isFinite(time) ? time : 0
 }
 
 function uniqueByName<T>(values: T[], getName: (value: T) => string) {
