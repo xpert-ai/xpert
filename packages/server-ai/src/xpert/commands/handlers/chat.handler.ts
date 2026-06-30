@@ -1453,9 +1453,49 @@ function toLegacyStorageFileAttachments(files: unknown): IStorageFile[] {
                       ...record,
                       id: record.id
                   } as unknown as IStorageFile)
-                : null
+                : toUrlStorageFileAttachment(record)
         })
         .filter((file): file is IStorageFile => Boolean(file))
+}
+
+function toUrlStorageFileAttachment(record: Record<string, unknown>): IStorageFile | null {
+    const fileUrl = typeof record.fileUrl === 'string' ? record.fileUrl : null
+    const url = typeof record.url === 'string' ? record.url : fileUrl
+    if (!url) {
+        return null
+    }
+
+    const originalName =
+        typeof record.originalName === 'string'
+            ? record.originalName
+            : typeof record.name === 'string'
+              ? record.name
+              : undefined
+    const mimeType =
+        typeof record.mimetype === 'string'
+            ? record.mimetype
+            : typeof record.mimeType === 'string'
+              ? record.mimeType
+              : inferDataUrlMimeType(url)
+
+    return {
+        file:
+            (typeof record.file === 'string' && record.file) ||
+            (typeof record.filePath === 'string' && record.filePath) ||
+            (typeof record.fileKey === 'string' && record.fileKey) ||
+            originalName ||
+            url,
+        url,
+        fileUrl: fileUrl ?? url,
+        ...(originalName ? { originalName } : {}),
+        ...(mimeType ? { mimetype: mimeType } : {}),
+        ...(typeof record.size === 'number' ? { size: record.size } : {})
+    }
+}
+
+function inferDataUrlMimeType(url: string): string | undefined {
+    const match = /^data:([^;,]+)[;,]/.exec(url)
+    return match?.[1]
 }
 
 function getMessageFiles(message: IChatMessage): unknown[] {

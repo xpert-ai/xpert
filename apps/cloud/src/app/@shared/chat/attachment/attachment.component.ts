@@ -55,7 +55,7 @@ export class ChatAttachmentComponent {
   readonly previewUrl = signal<string | null>(null);
   readonly uploadedUrl = linkedModel({
     initialValue: null,
-    compute: () => this.storageFile()?.url,
+    compute: () => this.storageFile()?.url ?? this.storageFile()?.fileUrl,
     update: () => {
     }
   })

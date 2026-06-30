@@ -597,6 +597,99 @@ describe('XpertChatHandler', () => {
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
     })
 
+    it('persists fileUrl-only image inputs as legacy attachments for log preview', async () => {
+        const commands: unknown[] = []
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const imageFile = {
+            fileUrl: 'data:image/png;base64,aGVsbG8=',
+            originalName: 'dingtalk-image.png',
+            mimeType: 'image/png',
+            size: 5
+        }
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'What is in this image?',
+                            files: [imageFile]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command): command is ChatMessageUpsertCommand =>
+                command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        )
+
+        expect(humanMessageCommand?.entity.attachments).toEqual([
+            {
+                file: 'dingtalk-image.png',
+                url: imageFile.fileUrl,
+                fileUrl: imageFile.fileUrl,
+                originalName: imageFile.originalName,
+                mimetype: imageFile.mimeType,
+                size: imageFile.size
+            }
+        ])
+        expect(humanMessageCommand?.entity.fileAssets).toBeUndefined()
+    })
+
     it('inherits runtime capabilities saved on an existing conversation when the request omits them', async () => {
         const commands: any[] = []
         const persistedRuntimeCapabilities: TRuntimeCapabilitiesSelection = {
