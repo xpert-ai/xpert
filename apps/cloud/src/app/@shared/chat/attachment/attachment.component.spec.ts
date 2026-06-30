@@ -4,6 +4,14 @@ import { StorageFileService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { ChatAttachmentComponent } from './attachment.component'
 
+jest.mock('@cloud/app/@core', () => ({
+  StorageFileService: class StorageFileService {}
+}))
+
+jest.mock('@cloud/app/@core/types', () => ({
+  getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error))
+}))
+
 describe('ChatAttachmentComponent', () => {
   it('deletes uploaded AgentFile attachments by StorageFile id', async () => {
     const deleteSpy = jest.fn().mockReturnValue(of(null))
@@ -74,5 +82,37 @@ describe('ChatAttachmentComponent', () => {
     fixture.componentInstance.delete()
 
     expect(deleteSpy).not.toHaveBeenCalled()
+  })
+
+  it('renders persisted image attachments from fileUrl', async () => {
+    const imageUrl = 'data:image/png;base64,YWJj'
+
+    await TestBed.configureTestingModule({
+      imports: [ChatAttachmentComponent],
+      providers: [
+        {
+          provide: StorageFileService,
+          useValue: {}
+        },
+        {
+          provide: Dialog,
+          useValue: {
+            open: jest.fn()
+          }
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ChatAttachmentComponent)
+    fixture.componentInstance.storageFile.set({
+      fileUrl: imageUrl,
+      originalName: 'photo.png',
+      mimetype: 'image/png'
+    })
+    fixture.detectChanges()
+
+    const image = fixture.nativeElement.querySelector('img') as HTMLImageElement | null
+
+    expect(image?.getAttribute('src')).toBe(imageUrl)
   })
 })
