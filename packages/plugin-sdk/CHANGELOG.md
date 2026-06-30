@@ -1,5 +1,46 @@
 # @xpert-ai/plugin-sdk
 
+## 3.13.0
+
+### Minor Changes
+
+- 54cff15: tenants and managed connections
+- 6978bfd: release plugin tenant scope
+
+### Patch Changes
+
+- Updated dependencies [54cff15]
+- Updated dependencies [6978bfd]
+  - @xpert-ai/contracts@3.14.0
+
+## 3.12.2
+
+### Patch Changes
+
+- f23228b: client commands for extension view
+- Updated dependencies [e6528c8]
+- Updated dependencies [f23228b]
+  - @xpert-ai/contracts@3.13.0
+
+## 3.12.1
+
+### Patch Changes
+
+- 6a17eca: plugin sdk and mcp toolset close
+- Updated dependencies [6a17eca]
+  - @xpert-ai/contracts@3.12.1
+
+## 3.12.0
+
+### Minor Changes
+
+- d017897: plugin integration guard
+
+### Patch Changes
+
+- Updated dependencies [d017897]
+  - @xpert-ai/contracts@3.12.0
+
 ## 3.11.2
 
 ### Patch Changes

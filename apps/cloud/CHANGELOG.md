@@ -1,5 +1,34 @@
 # @xpert-ai/xpert-ui
 
+## 3.14.0
+
+### Minor Changes
+
+- 54cff15: tenants and managed connections
+- 6978bfd: release plugin tenant scope
+
+## 3.13.0
+
+### Minor Changes
+
+- e6528c8: mcp apps
+
+### Patch Changes
+
+- f23228b: client commands for extension view
+
+## 3.12.1
+
+### Patch Changes
+
+- 6a17eca: plugin sdk and mcp toolset close
+
+## 3.12.0
+
+### Minor Changes
+
+- d017897: plugin integration guard
+
 ## 3.11.1
 
 ### Patch Changes
