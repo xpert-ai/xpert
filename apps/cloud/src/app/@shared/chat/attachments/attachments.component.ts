@@ -20,6 +20,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentComponent } from '../attachment/attachment.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { getChatStorageFileId, isChatAgentFile, type ChatAgentFile, type ChatAttachmentStorageFile } from './agent-file'
+
+type ChatAttachmentListItem = {
+  file?: File
+  url?: string
+  storageFile?: ChatAttachmentStorageFile
+  error?: string
+  uploading?: boolean
+}
 /**
  *
  */
@@ -33,7 +41,7 @@ import { getChatStorageFileId, isChatAgentFile, type ChatAgentFile, type ChatAtt
     TranslateModule,
     ...ZardTooltipImports,
     ChatAttachmentComponent
-],
+  ],
   selector: 'chat-attachments',
   templateUrl: './attachments.component.html',
   styleUrl: 'attachments.component.scss',
@@ -52,8 +60,7 @@ export class ChatAttachmentsComponent {
   readonly storageFileService = inject(StorageFileService)
 
   // Inputs
-  readonly attachments =
-    model<{ file?: File; url?: string; storageFile?: ChatAttachmentStorageFile; error?: string; uploading?: boolean }[]>()
+  readonly attachments = model<ChatAttachmentListItem[]>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -94,5 +101,28 @@ export class ChatAttachmentsComponent {
     if (storageFileId) {
       this.onDeleted.emit(storageFileId)
     }
+  }
+
+  attachmentKey(item: ChatAttachmentListItem, index: number) {
+    const storageFile = item.storageFile as
+      | (Partial<ChatAttachmentStorageFile> & {
+          fileAssetId?: string
+          fileId?: string
+          storageFileId?: string
+          objectKey?: string
+        })
+      | undefined
+    return (
+      storageFile?.fileAssetId ??
+      storageFile?.fileId ??
+      storageFile?.storageFileId ??
+      (item.storageFile ? getChatStorageFileId(item.storageFile) : undefined) ??
+      storageFile?.id ??
+      storageFile?.objectKey ??
+      storageFile?.file ??
+      item.file?.name ??
+      item.url ??
+      index
+    )
   }
 }

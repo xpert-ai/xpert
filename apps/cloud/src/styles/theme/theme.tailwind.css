@@ -1,5 +1,3 @@
-
-
 @theme inline {
   --color-text-primary: var(--sys-text-primary);
   --color-text-secondary: var(--sys-text-secondary);
@@ -15,6 +13,8 @@
   --color-divider-regular: var(--sys-border);
   --color-divider-deep: var(--sys-border-strong);
   --color-hover-bg: var(--sys-state-hover);
+  --color-media-caption-bg: var(--color-media-caption-bg);
+  --color-media-caption-text: var(--color-media-caption-text);
   --color-status-error-bg: var(--color-status-error-bg);
   --color-components-card-bg: var(--sys-surface-elevated);
   --color-components-panel-bg: var(--sys-surface-overlay);
@@ -23,10 +23,8 @@
   --color-components-button-primary-text: var(--color-components-button-primary-text);
   --color-components-button-primary-border: var(--sys-primary);
   --color-components-button-primary-bg: var(--sys-primary);
-  --color-components-button-secondary-border: var(--sys-border
-  -control);
-  --color-components-button-secondary-border-hover: var(--sys-border
-  -strong);
+  --color-components-button-secondary-border: var(--sys-border -control);
+  --color-components-button-secondary-border-hover: var(--sys-border -strong);
   --color-components-button-secondary-bg: var(--color-components-button-secondary-bg);
   --color-components-button-secondary-bg-hover: var(--color-components-button-secondary-bg-hover);
   --color-components-input-bg-disabled: var(--sys-surface-field);

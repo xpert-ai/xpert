@@ -13,6 +13,11 @@ export type TFile = _TFile & {
   storageFileId?: string
 }
 
+/**
+ * @deprecated IStorageFile is kept only as a legacy storage-layer compatibility
+ * bridge. Use FileAsset/AgentFile for new file flows; this interface will be
+ * removed in v4.0.
+ */
 export interface IStorageFile extends IBasePerTenantAndOrganizationEntityModel {
   file: string
   url?: string

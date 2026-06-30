@@ -11,16 +11,10 @@ export class ViewExtensionProviderRegistry extends BaseStrategyRegistry<IXpertVi
   }
 
   listEntries(organizationId?: string): Array<{ providerKey: string; provider: IXpertViewExtensionProvider }> {
-    const orgKey = this.resolveOrganization(organizationId)
-    const globalKey = this.resolveGlobalFallbackOrganization()
     const entries = new Map<string, IXpertViewExtensionProvider>()
 
-    for (const [providerKey, provider] of this.strategies.get(orgKey)?.entries() ?? []) {
-      entries.set(providerKey, provider)
-    }
-
-    if (orgKey !== globalKey) {
-      for (const [providerKey, provider] of this.strategies.get(globalKey)?.entries() ?? []) {
+    for (const scopeKey of this.resolveStrategyScopeKeys(organizationId)) {
+      for (const [providerKey, provider] of this.strategies.get(scopeKey)?.entries() ?? []) {
         if (!entries.has(providerKey)) {
           entries.set(providerKey, provider)
         }

@@ -248,6 +248,7 @@ const SOURCE_OPTIONS: readonly {
   { value: 'feishu', labelKey: 'PAC.Xpert.ChatFromFeishu', defaultLabel: 'Feishu' },
   { value: 'lark', labelKey: 'PAC.Xpert.ChatFromLark', defaultLabel: 'Lark' },
   { value: 'dingtalk', labelKey: 'PAC.Xpert.ChatFromDingtalk', defaultLabel: 'DingTalk' },
+  { value: 'wecom', labelKey: 'PAC.Xpert.ChatFromWecom', defaultLabel: 'WeCom' },
   { value: 'wechat', labelKey: 'PAC.Xpert.ChatFromWechat', defaultLabel: 'WeChat' }
 ]
 

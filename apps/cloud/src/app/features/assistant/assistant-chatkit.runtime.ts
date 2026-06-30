@@ -3,7 +3,7 @@ import { computed, effect, inject, signal, Signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
-import type { ChatKitOptions } from '@xpert-ai/chatkit-types'
+import type { ChatKitMessageNavigationOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
 import { catchError, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -22,9 +22,11 @@ import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantChatKitOptions = ChatKitOptions & AssistantChatKitEventHandlers
-type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantChatKitEventHandlers = ChatKitEventHandlers
+type AssistantChatKitOptions = ChatKitOptions & {
+  messageNavigation?: ChatKitMessageNavigationOptions
+} & AssistantChatKitEventHandlers
+type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantHostedClientSecret =
   | string
   | {
@@ -299,6 +301,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       displayMode: input.displayMode,
       layout: input.layout,
       pet: input.pet,
+      messageNavigation: {
+        enabled: true
+      },
       initialThread,
       header: {
         title: {

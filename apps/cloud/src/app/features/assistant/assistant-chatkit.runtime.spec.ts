@@ -191,6 +191,9 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        messageNavigation: {
+          enabled: true
+        },
         request: {
           context: {
             env: {
@@ -220,6 +223,9 @@ describe('assistant chatkit runtime helpers', () => {
         displayMode: 'pet',
         layout,
         pet,
+        messageNavigation: {
+          enabled: true
+        },
         request: {
           context: {
             env: {
