@@ -5,7 +5,7 @@
     "type": "commonjs",
     "license": "AGPL-3.0",
     "dependencies": {
-        "@xpert-ai/chatkit-types": "0.4.3",
+        "@xpert-ai/chatkit-types": "0.4.4",
         "@xpert-ai/contracts": "workspace:*",
         "@xpert-ai/copilot": "workspace:*",
         "@xpert-ai/ocap-core": "workspace:*",

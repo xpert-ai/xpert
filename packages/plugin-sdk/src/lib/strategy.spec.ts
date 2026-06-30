@@ -5,6 +5,7 @@ import {
   GLOBAL_ORGANIZATION_SCOPE,
   getTenantGlobalScopeKey,
   ORGANIZATION_METADATA_KEY,
+  PLUGIN_METADATA_KEY,
   setDefaultTenantId
 } from './types'
 import { RequestContext } from './core/context'
@@ -22,6 +23,16 @@ describe('BaseStrategyRegistry', () => {
     jest.restoreAllMocks()
     setDefaultTenantId(null)
   })
+
+  function mockRequestScope(tenantId: string, organizationId: string | null = 'org-1') {
+    jest.spyOn(RequestContext, 'getScope').mockReturnValue({
+      tenantId,
+      level: organizationId ? 'organization' : 'tenant',
+      organizationId: organizationId ?? undefined
+    } as any)
+    jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(tenantId)
+    jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(organizationId)
+  }
 
   it('prefers organization strategies over global ones when listing and resolving by type', () => {
     class GlobalSharedStrategy {
@@ -116,5 +127,112 @@ describe('BaseStrategyRegistry', () => {
 
     expect(registry.get('tenant-global', 'org-2')).toBe(tenantTwoGlobal)
     expect(registry.list('org-2')).toEqual([tenantTwoGlobal])
+  })
+
+  it('keeps builtin strategies visible to non-default tenants without exposing default tenant global plugins', () => {
+    setDefaultTenantId('tenant-default')
+
+    class BuiltinStrategy {
+      readonly id = 'builtin'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'builtin', BuiltinStrategy)
+
+    class DefaultTenantGlobalPluginStrategy {
+      readonly id = 'default-tenant-global'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'default-global', DefaultTenantGlobalPluginStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, GLOBAL_ORGANIZATION_SCOPE, DefaultTenantGlobalPluginStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/default-plugin', DefaultTenantGlobalPluginStrategy)
+
+    class OtherTenantGlobalPluginStrategy {
+      readonly id = 'other-tenant-global'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'tenant-global', OtherTenantGlobalPluginStrategy)
+    Reflect.defineMetadata(
+      ORGANIZATION_METADATA_KEY,
+      getTenantGlobalScopeKey('tenant-other'),
+      OtherTenantGlobalPluginStrategy
+    )
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/other-plugin', OtherTenantGlobalPluginStrategy)
+
+    const registry = new TestStrategyRegistry<{
+      readonly id: string
+    }>()
+    const builtin = new BuiltinStrategy()
+    const defaultTenantGlobal = new DefaultTenantGlobalPluginStrategy()
+    const otherTenantGlobal = new OtherTenantGlobalPluginStrategy()
+
+    registry.upsert(builtin)
+    registry.upsert(defaultTenantGlobal)
+    registry.upsert(otherTenantGlobal)
+
+    mockRequestScope('tenant-other', 'org-other')
+
+    expect(registry.get('builtin', 'org-other')).toBe(builtin)
+    expect(registry.get('tenant-global', GLOBAL_ORGANIZATION_SCOPE)).toBe(otherTenantGlobal)
+    expect(() => registry.get('default-global', GLOBAL_ORGANIZATION_SCOPE)).toThrow(
+      "No strategy found for type 'default-global'"
+    )
+    expect(registry.list(GLOBAL_ORGANIZATION_SCOPE)).toEqual([otherTenantGlobal, builtin])
+
+    mockRequestScope('tenant-default', 'org-default')
+
+    expect(registry.get('default-global', 'org-default')).toBe(defaultTenantGlobal)
+    expect(registry.get('builtin', 'org-default')).toBe(builtin)
+  })
+
+  it('applies organization, tenant-global, then builtin strategy precedence', () => {
+    setDefaultTenantId('tenant-default')
+
+    class BuiltinSharedStrategy {
+      readonly id = 'builtin-shared'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', BuiltinSharedStrategy)
+
+    class BuiltinOnlyStrategy {
+      readonly id = 'builtin-only'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'builtin-only', BuiltinOnlyStrategy)
+
+    class TenantSharedStrategy {
+      readonly id = 'tenant-shared'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', TenantSharedStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, getTenantGlobalScopeKey('tenant-other'), TenantSharedStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/tenant-plugin', TenantSharedStrategy)
+
+    class TenantOnlyStrategy {
+      readonly id = 'tenant-only'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'tenant-only', TenantOnlyStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, getTenantGlobalScopeKey('tenant-other'), TenantOnlyStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/tenant-plugin', TenantOnlyStrategy)
+
+    class OrganizationSharedStrategy {
+      readonly id = 'organization-shared'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', OrganizationSharedStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'org-other', OrganizationSharedStrategy)
+
+    const registry = new TestStrategyRegistry<{
+      readonly id: string
+    }>()
+    const builtinShared = new BuiltinSharedStrategy()
+    const builtinOnly = new BuiltinOnlyStrategy()
+    const tenantShared = new TenantSharedStrategy()
+    const tenantOnly = new TenantOnlyStrategy()
+    const organizationShared = new OrganizationSharedStrategy()
+
+    registry.upsert(builtinShared)
+    registry.upsert(builtinOnly)
+    registry.upsert(tenantShared)
+    registry.upsert(tenantOnly)
+    registry.upsert(organizationShared)
+
+    mockRequestScope('tenant-other', 'org-other')
+
+    expect(registry.get('shared', 'org-other')).toBe(organizationShared)
+    expect(registry.get('shared', GLOBAL_ORGANIZATION_SCOPE)).toBe(tenantShared)
+    expect(registry.list('org-other')).toEqual([organizationShared, tenantOnly, builtinOnly])
   })
 })
