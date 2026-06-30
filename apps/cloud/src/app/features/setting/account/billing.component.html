@@ -1,0 +1,360 @@
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
+  <div class="grid gap-4 xl:grid-cols-12">
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-8">
+      <z-card-header class="border-b border-divider-regular py-5">
+        <div class="flex w-full flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+              <z-badge zType="secondary" zShape="pill">
+                {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+              </z-badge>
+              <span class="text-sm text-text-tertiary">
+                {{
+                  'PAC.Membership.AdminManagedPlan'
+                    | translate: { Default: 'Plan changes are managed by an administrator.' }
+                }}
+              </span>
+            </div>
+            <z-card-title class="truncate text-2xl" [title]="me()?.plan?.name || '-'">{{
+              me()?.plan?.name || '-'
+            }}</z-card-title>
+          </div>
+
+          <div class="shrink-0 rounded-lg bg-components-panel-bg px-3 py-2 text-left md:text-right">
+            <div class="text-xs font-medium text-text-tertiary">
+              {{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+            </div>
+            <div class="mt-1 font-semibold text-text-primary">{{ me()?.currentPeriodEnd | date: 'medium' }}</div>
+          </div>
+        </div>
+      </z-card-header>
+
+      <z-card-content class="p-5">
+        <div class="grid gap-3 md:grid-cols-3">
+          <div class="rounded-lg bg-components-panel-bg p-4">
+            <div class="text-xs font-medium text-text-tertiary">
+              {{ 'PAC.Membership.PointBalance' | translate: { Default: 'Point balance' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">
+              {{ me()?.pointsRemaining | number }} / {{ me()?.pointsGranted | number }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{ remainingPercent() | number }}%
+              {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-components-panel-bg p-4">
+            <div class="text-xs font-medium text-text-tertiary">
+              {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number }}</div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{ usedPercent() | number }}% {{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-components-panel-bg p-4">
+            <div class="text-xs font-medium text-text-tertiary">
+              {{ 'PAC.Membership.Ratio' | translate: { Default: 'Ratio' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">
+              1 : {{ me()?.plan?.tokensPerPoint | number }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{ 'PAC.Membership.OnePointEquals' | translate: { Default: '1 point =' } }}
+              {{ me()?.plan?.tokensPerPoint | number }}
+              {{ 'PAC.Membership.Tokens' | translate: { Default: 'tokens' } }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
+            <span>{{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
+            <span>{{ me()?.pointsUsed | number }} / {{ me()?.pointsGranted | number }}</span>
+          </div>
+          <z-progress-bar [progress]="usedPercent()" zShape="default" />
+        </div>
+      </z-card-content>
+    </z-card>
+
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-4">
+      <z-card-header class="border-b border-divider-regular py-5">
+        <div class="flex items-center gap-2">
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
+          >
+            <z-icon zType="shield"></z-icon>
+          </span>
+          <div>
+            <z-card-title>{{ 'PAC.Membership.PlanRules' | translate: { Default: 'Plan rules' } }}</z-card-title>
+            <z-card-subtitle class="mt-1">
+              {{ 'PAC.Membership.PointRules' | translate: { Default: 'Point rules' } }}
+            </z-card-subtitle>
+          </div>
+        </div>
+      </z-card-header>
+
+      <z-card-content class="space-y-3 p-4">
+        <div class="flex items-center justify-between rounded-lg bg-components-panel-bg px-3 py-2">
+          <span class="text-sm text-text-tertiary">{{
+            'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' }
+          }}</span>
+          <span class="font-semibold text-text-primary">{{ me()?.plan?.includedPoints | number }}</span>
+        </div>
+        <div class="flex items-center justify-between rounded-lg bg-components-panel-bg px-3 py-2">
+          <span class="text-sm text-text-tertiary">{{
+            'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' }
+          }}</span>
+          <span class="font-semibold text-text-primary">{{ me()?.plan?.modelMultipliers?.length ?? 0 }}</span>
+        </div>
+        <div class="flex items-center justify-between rounded-lg bg-components-panel-bg px-3 py-2">
+          <span class="text-sm text-text-tertiary">{{
+            'PAC.Membership.RateLimits' | translate: { Default: 'Rate limits' }
+          }}</span>
+          <span class="font-semibold text-text-primary">{{ me()?.plan?.rateLimits?.length ?? 0 }}</span>
+        </div>
+      </z-card-content>
+    </z-card>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-12">
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-5">
+      <z-card-header class="border-b border-divider-regular py-4">
+        <div class="flex items-center gap-2">
+          <z-icon zType="sparkles" class="text-text-tertiary"></z-icon>
+          <z-card-title>{{
+            'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' }
+          }}</z-card-title>
+        </div>
+      </z-card-header>
+
+      <z-card-content class="p-3">
+        @for (item of me()?.plan?.modelMultipliers ?? []; track item.provider + item.model) {
+          <div class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-hover-bg">
+            <div class="min-w-0">
+              <div class="truncate text-sm font-medium text-text-primary">
+                {{ item.provider || '*' }} / {{ item.model || '*' }}
+              </div>
+              <div class="text-xs text-text-tertiary">
+                {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+              </div>
+            </div>
+            <z-badge zType="outline" zShape="pill">x{{ item.multiplier }}</z-badge>
+          </div>
+        } @empty {
+          <div
+            class="flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center"
+          >
+            <span class="flex size-11 items-center justify-center rounded-xl bg-components-card-bg text-text-tertiary">
+              <z-icon zType="sparkles"></z-icon>
+            </span>
+            <div class="text-sm text-text-tertiary">
+              {{
+                'PAC.Membership.NoModelMultipliers' | translate: { Default: 'No model-specific multiplier configured.' }
+              }}
+            </div>
+          </div>
+        }
+      </z-card-content>
+    </z-card>
+
+    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-7">
+      <z-card-header class="border-b border-divider-regular py-4">
+        <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <z-card-title>{{
+              'PAC.Membership.RecentUsageSummary' | translate: { Default: 'Recent usage summary' }
+            }}</z-card-title>
+            <z-card-subtitle class="mt-1">
+              {{
+                'PAC.Membership.RecentUsageSummaryHint'
+                  | translate: { Default: 'Grouped by session, model, and hourly usage window.' }
+              }}
+            </z-card-subtitle>
+          </div>
+          @if (loading()) {
+            <z-badge zType="secondary" zShape="pill">
+              {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+            </z-badge>
+          }
+        </div>
+      </z-card-header>
+
+      <z-card-content class="p-0">
+        <div class="overflow-auto">
+          <table class="min-w-full text-sm">
+            <thead class="border-b border-divider-regular bg-components-panel-bg text-xs text-text-tertiary">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium">
+                  {{ 'PAC.KEY_WORDS.Date' | translate: { Default: 'Date' } }}
+                </th>
+                <th class="px-4 py-3 text-left font-medium">
+                  {{ 'PAC.Membership.Session' | translate: { Default: 'Session' } }}
+                </th>
+                <th class="px-4 py-3 text-left font-medium">
+                  {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+                </th>
+                <th class="px-4 py-3 text-right font-medium">
+                  {{ 'PAC.Membership.Calls' | translate: { Default: 'Calls' } }}
+                </th>
+                <th class="px-4 py-3 text-right font-medium">
+                  {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
+                </th>
+                <th class="px-4 py-3 text-right font-medium">
+                  {{ 'PAC.Membership.Tokens' | translate: { Default: 'Tokens' } }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (summary of usageSummaries(); track summaryKey(summary)) {
+                <tr class="border-b border-divider-subtle last:border-b-0 hover:bg-hover-bg">
+                  <td class="whitespace-nowrap px-4 py-3 text-text-primary">
+                    <div class="flex items-center gap-2">
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        zShape="circle"
+                        displayDensity="cosy"
+                        type="button"
+                        (click)="toggleSummary(summary)"
+                      >
+                        <z-icon [zType]="isExpanded(summary) ? 'chevron-down' : 'chevron-right'"></z-icon>
+                      </button>
+                      <div>
+                        <div>{{ summary.lastUsedAt | date: 'yyyy/M/d HH:00' }}</div>
+                        <div class="text-xs text-text-tertiary">{{ summary.lastUsedAt | date: 'shortTime' }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="min-w-32 text-text-primary">
+                      {{ shortId(summary.threadId) }}
+                    </div>
+                    <div class="text-xs text-text-tertiary">
+                      {{ 'PAC.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ shortId(summary.xpertId) }}
+                    </div>
+                  </td>
+                  <td
+                    class="max-w-48 truncate px-4 py-3 text-text-primary"
+                    [title]="summary.provider || summary.model || '-'"
+                  >
+                    @if (summary.provider || summary.model) {
+                      {{ summary.provider || '*' }} / {{ summary.model || '*' }}
+                    } @else {
+                      -
+                    }
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right text-text-secondary">
+                    {{ summary.callCount | number }}
+                  </td>
+                  <td
+                    class="whitespace-nowrap px-4 py-3 text-right font-semibold"
+                    [ngClass]="summary.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
+                  >
+                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right text-text-secondary">
+                    {{ summary.tokenUsed | number }}
+                  </td>
+                </tr>
+                @if (isExpanded(summary)) {
+                  <tr class="border-b border-divider-subtle bg-components-panel-bg">
+                    <td colspan="6" class="px-4 py-3">
+                      <div class="rounded-lg border border-divider-subtle bg-components-card-bg">
+                        <div class="flex items-center justify-between border-b border-divider-subtle px-4 py-3">
+                          <div class="text-sm font-medium text-text-primary">
+                            {{ 'PAC.Membership.UsageDetails' | translate: { Default: 'Usage details' } }}
+                          </div>
+                          @if (isSummaryDetailsLoading(summary)) {
+                            <z-badge zType="secondary" zShape="pill">
+                              {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+                            </z-badge>
+                          }
+                        </div>
+
+                        <table class="min-w-full text-xs">
+                          <thead class="border-b border-divider-subtle text-text-tertiary">
+                            <tr>
+                              <th class="px-4 py-2 text-left font-medium">
+                                {{ 'PAC.KEY_WORDS.Date' | translate: { Default: 'Date' } }}
+                              </th>
+                              <th class="px-4 py-2 text-left font-medium">
+                                {{ 'PAC.Membership.Source' | translate: { Default: 'Source' } }}
+                              </th>
+                              <th class="px-4 py-2 text-right font-medium">
+                                {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
+                              </th>
+                              <th class="px-4 py-2 text-right font-medium">
+                                {{ 'PAC.Membership.Tokens' | translate: { Default: 'Tokens' } }}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (ledger of getSummaryDetails(summary); track ledger.id) {
+                              <tr class="border-b border-divider-subtle last:border-b-0">
+                                <td class="whitespace-nowrap px-4 py-2 text-text-primary">
+                                  {{ ledger.createdAt | date: 'short' }}
+                                </td>
+                                <td class="px-4 py-2">
+                                  <z-badge zType="secondary" zShape="pill">
+                                    {{
+                                      'PAC.Membership.LedgerSource.' + ledger.source
+                                        | translate: { Default: ledger.source }
+                                    }}
+                                  </z-badge>
+                                </td>
+                                <td
+                                  class="whitespace-nowrap px-4 py-2 text-right font-semibold"
+                                  [ngClass]="ledger.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
+                                >
+                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2 text-right text-text-secondary">
+                                  {{ ledger.tokenUsed | number }}
+                                </td>
+                              </tr>
+                            } @empty {
+                              <tr>
+                                <td colspan="4" class="px-4 py-6 text-center text-text-tertiary">
+                                  {{
+                                    isSummaryDetailsLoading(summary)
+                                      ? ('PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' })
+                                      : ('PAC.Membership.NoUsageDetails' | translate: { Default: 'No usage details.' })
+                                  }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-12">
+                    <div
+                      class="flex min-h-32 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center"
+                    >
+                      <span
+                        class="flex size-11 items-center justify-center rounded-xl bg-components-card-bg text-text-tertiary"
+                      >
+                        <z-icon zType="activity"></z-icon>
+                      </span>
+                      <div class="text-sm text-text-tertiary">
+                        {{ 'PAC.Membership.NoUsageSummary' | translate: { Default: 'No usage summary yet.' } }}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </z-card-content>
+    </z-card>
+  </div>
+</div>

@@ -29,8 +29,24 @@ const routes: Routes = [
         children: [
           {
             path: '',
-            redirectTo: 'profile',
+            redirectTo: 'usage',
             pathMatch: 'full'
+          },
+          {
+            path: 'usage',
+            loadComponent: () => import('./account/usage.component').then((m) => m.PACAccountUsageComponent),
+            data: {
+              title: 'settings/account/usage',
+              scopeContext: 'dual-scope'
+            }
+          },
+          {
+            path: 'billing',
+            loadComponent: () => import('./account/billing.component').then((m) => m.PACAccountBillingComponent),
+            data: {
+              title: 'settings/account/billing',
+              scopeContext: 'dual-scope'
+            }
           },
           {
             path: 'profile',
@@ -82,6 +98,19 @@ const routes: Routes = [
         }
       },
       {
+        path: 'membership',
+        loadComponent: () => import('./membership/membership.component').then((m) => m.MembershipAdminComponent),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/membership',
+          scopeContext: 'tenant-only',
+          permissions: {
+            only: [AIPermissionsEnum.MEMBERSHIP_EDIT],
+            redirectTo
+          }
+        }
+      },
+      {
         path: 'invites',
         redirectTo: 'users',
         pathMatch: 'full'
@@ -126,22 +155,6 @@ const routes: Routes = [
           }
         }
       },
-
-      // {
-      //   path: 'notification-destinations',
-      //   loadChildren: () =>
-      //     import('./notification-destination/notification-destination.module').then(
-      //       (m) => m.NotificationDestinationModule
-      //     ),
-      //   canActivate: [NgxPermissionsGuard],
-      //   data: {
-      //     title: 'settings/notification-destinations',
-      //     permissions: {
-      //       only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-      //       redirectTo
-      //     }
-      //   }
-      // },
 
       {
         path: 'roles',

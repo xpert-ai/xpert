@@ -20,7 +20,8 @@
     {{ 'PAC.USERS_PAGE.BASIC' | translate: { Default: 'Basic' } }}
   </div>
 
-  <pac-user-basic class="border border-solid border-divider-regular rounded-xl p-4"
+  <pac-user-basic
+    class="border border-solid border-divider-regular rounded-xl p-4"
     [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
   />
 </div>
@@ -31,7 +32,11 @@
   </div>
 
   <div class="border border-solid border-divider-regular rounded-xl p-4">
-    <pac-user-change-password-form #password [(ngModel)]="newPassword" class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid" />
+    <pac-user-change-password-form
+      #password
+      [(ngModel)]="newPassword"
+      class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid"
+    />
 
     <div class="w-full flex justify-end p-2">
       <button z-button zType="default" (click)="changePassword()">
@@ -43,29 +48,38 @@
 
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.MENU.ORGANIZATIONS' | translate: {Default: "Organizations"} }}
+    {{ 'PAC.MENU.ORGANIZATIONS' | translate: { Default: 'Organizations' } }}
   </div>
   <pac-user-organizations class="border border-solid border-divider-regular rounded-xl" />
 </div>
 
+@if (user()?.id) {
+  <div class="px-8 py-4">
+    <div class="text-xl font-semibold pb-2">
+      {{ 'PAC.Membership.UserMembership' | translate: { Default: 'Membership' } }}
+    </div>
+    <pac-user-membership class="block border border-solid border-divider-regular rounded-xl p-4" [userId]="user().id" />
+  </div>
+}
+
 <div class="px-8 py-4">
   <div class="text-xl font-semibold text-text-destructive pb-2">
-    {{ 'PAC.KEY_WORDS.DangerZone' | translate: {Default: 'Danger zone'} }}
+    {{ 'PAC.KEY_WORDS.DangerZone' | translate: { Default: 'Danger zone' } }}
   </div>
 
   <div class="border border-solid border-text-destructive rounded-xl flex flex-col">
     <div class="w-full flex justify-between items-center p-4">
       <div class="flex flex-col">
         <div class="font-semibold">
-          {{ 'PAC.USERS_PAGE.DeleteUser' | translate: {Default: 'Delete this user'} }}
+          {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
         </div>
         <div>
-          {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: {Default: 'Delete this user and its associated data'} }}.
+          {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' } }}.
         </div>
       </div>
 
       <button type="button" class="btn btn-large danger pressable" (click)="deleteUser()">
-        {{ 'PAC.USERS_PAGE.DeleteUser' | translate: {Default: 'Delete this user'} }}
+        {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
       </button>
     </div>
   </div>

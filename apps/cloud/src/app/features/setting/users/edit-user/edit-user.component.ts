@@ -14,6 +14,7 @@ import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../..
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { UserMembershipComponent } from '../user-membership/user-membership.component'
 
 @Component({
   standalone: true,
@@ -28,7 +29,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
-    PACUserOrganizationsComponent
+    PACUserOrganizationsComponent,
+    UserMembershipComponent
   ]
 })
 export class PACEditUserComponent {
@@ -97,7 +99,7 @@ export class PACEditUserComponent {
     if (this.newPassword().password && this.newPassword().confirmPassword === this.newPassword().password) {
       this.loading.set(true)
       try {
-        await this.userService.update(this.user().id, {hash: this.newPassword().password})
+        await this.userService.update(this.user().id, { hash: this.newPassword().password })
         this.loading.set(false)
         this.toastr.success('PAC.USERS_PAGE.PasswordChangedSuccessfully', {
           Default: 'Password changed successfully'

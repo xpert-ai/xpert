@@ -5,6 +5,7 @@ import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ExceedingLimitException } from '../../../core/errors'
+import { MembershipService } from '../../../membership'
 import { formatInUTC0 } from '../../../shared/utils'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotTokenRecordCommand } from '../token-record.command'
@@ -15,6 +16,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
         private readonly queryBus: QueryBus,
         private readonly copilotUserService: CopilotUserService,
         private readonly copilotOrganizationService: CopilotOrganizationService,
+        private readonly membershipService: MembershipService,
         private readonly i18nService: I18nService
     ) {}
 
@@ -51,6 +53,18 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                 tokenUsed,
                 priceUsed: input.priceUsed,
                 currency: input.currency
+            })
+
+            await this.membershipService.recordUsage({
+                tenantId: input.tenantId,
+                organizationId,
+                userId,
+                provider: copilot.modelProvider.providerName,
+                model,
+                tokenUsed,
+                xpertId,
+                threadId,
+                copilotId
             })
 
             if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {

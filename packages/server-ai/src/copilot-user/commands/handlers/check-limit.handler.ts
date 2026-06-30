@@ -3,6 +3,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
+import { MembershipService } from '../../../membership'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
 import { ExceedingLimitException } from '../../../core/errors'
@@ -12,12 +13,20 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
     constructor(
         private readonly copilotUserService: CopilotUserService,
         private readonly copilotOrganizationService: CopilotOrganizationService,
+        private readonly membershipService: MembershipService,
         private readonly i18nService: I18nService
     ) {}
 
     public async execute(command: CopilotCheckLimitCommand): Promise<void> {
         const { input } = command
         const { copilot, tenantId, organizationId, userId } = input
+
+        await this.membershipService.assertCanUse({
+            tenantId,
+            userId,
+            provider: copilot.modelProvider.providerName,
+            model: input.model
+        })
 
         const usage = await this.copilotUserService.getUsageSummary({
             tenantId,

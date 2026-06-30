@@ -130,6 +130,15 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'membership',
+      label: 'Membership',
+      icon: 'credit-card',
+      scopeContext: 'tenant-only',
+      data: {
+        permissionKeys: [AIPermissionsEnum.MEMBERSHIP_EDIT]
+      }
+    },
+    {
       path: 'groups',
       label: 'Groups',
       icon: 'group',

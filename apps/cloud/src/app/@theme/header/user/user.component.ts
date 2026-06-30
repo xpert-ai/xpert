@@ -106,6 +106,10 @@ export class HeaderUserComponent {
     this.router.navigate(['/settings/account'])
   }
 
+  onUsageBilling() {
+    this.router.navigate(['/settings/account/billing'])
+  }
+
   onAbout() {
     this.#dialog.open(HeaderAboutComponent)
   }

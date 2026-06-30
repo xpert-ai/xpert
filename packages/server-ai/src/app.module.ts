@@ -49,6 +49,7 @@ import { FileMemoryModule } from './file-memory'
 import { FileUnderstandingModule } from './file-understanding'
 import { MetricsModule } from './metrics'
 import { MobileModule } from './mobile'
+import { MembershipModule } from './membership'
 
 @Module({
     imports: [
@@ -78,6 +79,7 @@ import { MobileModule } from './mobile'
         VolumeModule,
         FileMemoryModule,
         FileUnderstandingModule,
+        MembershipModule,
         MobileModule,
         XpertModule,
         XpertAgentModule,
