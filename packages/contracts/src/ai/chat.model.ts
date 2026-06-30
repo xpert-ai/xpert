@@ -50,6 +50,7 @@ export type TChatFrom =
   | 'feishu'
   | 'lark'
   | 'dingtalk'
+  | 'wecom'
   | 'wechat'
 
 /**

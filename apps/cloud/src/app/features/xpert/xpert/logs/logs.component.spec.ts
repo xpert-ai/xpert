@@ -241,6 +241,16 @@ describe('XpertLogsComponent', () => {
     expect(text).toContain('message-log-1, message-log-2')
   })
 
+  it('maps WeCom conversation source to the WeCom label', async () => {
+    const context = await setup()
+    fixture = context.fixture
+    const wecomSource = 'wecom' as TChatConversationLog['from']
+
+    expect(context.component.sourceLabelKey(wecomSource)).toBe('PAC.Xpert.ChatFromWecom')
+    expect(context.component.sourceDefaultLabel(wecomSource)).toBe('WeCom')
+    expect(context.component.sourceOptions.some((option) => option.value === wecomSource)).toBe(true)
+  })
+
   it('keeps the table stable when the logs response has no items array', async () => {
     const context = await setup({ response: { total: 3 } })
     fixture = context.fixture
