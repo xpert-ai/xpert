@@ -882,6 +882,8 @@
       "TokenUsed": "已用(Token)",
       "TokenLimit": "限制(Token)",
       "TokenTotalUsed": "累计使用(Token)",
+      "Thread": "会话",
+      "Xpert": "数字专家",
       "Usages": "使用量",
       "Sort": "排序",
       "Top": "前",
@@ -2864,6 +2866,16 @@
       "OrganizationSection": "组织",
       "SelectOrganization": "请选择一个组织"
     },
+    "TimeRange": {
+      "Today": "今天",
+      "Last7Days": "最近 7 天",
+      "Last4Weeks": "最近 4 周",
+      "Last3Months": "最近 3 个月",
+      "MonthToDate": "本月至今",
+      "QuarterToDate": "本季度至今",
+      "YearToDate": "本年至今",
+      "All": "所有时间"
+    },
     "Organization": {
       "MenuTenantSubtitle": "管理所有组织",
       "MenuOrganizationSubtitle": "查看当前组织",
@@ -3195,6 +3207,15 @@
       "PriceLimit": "限额",
       "PriceTotalUsed": "已用总金额",
       "TokenLimit": "限额(Token)",
+      "Overview": "概览",
+      "UsageCenter": "用量中心",
+      "UsageHour": "使用小时",
+      "UserId": "用户 ID",
+      "OrganizationId": "组织 ID",
+      "SetQuota": "设置额度",
+      "IncreaseQuota": "增加额度",
+      "RenewQuota": "续额并重置",
+      "NoUsageDetails": "暂无用量明细",
       "ModelConfig": "模型配置",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",

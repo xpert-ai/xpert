@@ -1,0 +1,435 @@
+<div class="flex h-full w-full flex-col overflow-hidden px-4 py-3">
+  <div class="mb-3 flex flex-wrap items-center gap-2">
+    <ngm-select
+      class="w-44"
+      icon="ri-pie-chart-line"
+      [selectOptions]="dimensions()"
+      [(ngModel)]="dimension"
+      (ngModelChange)="reload()"
+    />
+    <ngm-select
+      class="w-48"
+      icon="ri-calendar-line"
+      [selectOptions]="timeRanges()"
+      [(ngModel)]="timeRangeValue"
+      (ngModelChange)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-44"
+      [placeholder]="'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' }"
+      [(ngModel)]="providerFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-52"
+      [placeholder]="'PAC.Copilot.Model' | translate: { Default: 'Model' }"
+      [(ngModel)]="modelFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-48"
+      [placeholder]="'PAC.Copilot.UserId' | translate: { Default: 'User ID' }"
+      [(ngModel)]="userFilter"
+      (keyup.enter)="reload()"
+    />
+    @if (showOrganizationFilter()) {
+      <input
+        z-input
+        zSize="sm"
+        class="w-56"
+        [placeholder]="'PAC.Copilot.OrganizationId' | translate: { Default: 'Organization ID' }"
+        [(ngModel)]="organizationFilter"
+        (keyup.enter)="reload()"
+      />
+    } @else {
+      <div
+        class="flex h-9 max-w-64 items-center gap-2 rounded-md border border-solid border-divider-regular bg-components-card-bg px-3 text-sm text-text-secondary"
+      >
+        <z-icon class="text-text-quaternary" zType="corporate_fare"></z-icon>
+        <span class="truncate" [title]="scopeName()">{{ scopeName() }}</span>
+      </div>
+    }
+    <input
+      z-input
+      zSize="sm"
+      class="w-32"
+      [placeholder]="'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' }"
+      [(ngModel)]="currencyFilter"
+      (keyup.enter)="reload()"
+    />
+    <button z-button zType="outline" zSize="sm" (click)="reload()">
+      <z-icon zType="search"></z-icon>
+      {{ 'PAC.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+    </button>
+  </div>
+
+  <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+    @for (total of totals(); track total.currency) {
+      <div class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <div class="text-sm font-medium text-text-secondary">
+            {{ total.currency || ('PAC.KEY_WORDS.Unknown' | translate: { Default: 'Unknown' }) }}
+          </div>
+          <z-icon class="text-text-quaternary" zType="data_usage"></z-icon>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <div class="text-text-quaternary">
+              {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+            </div>
+            <div class="font-semibold text-text-primary">{{ total.tokenUsed | number: '0.0-0' }}</div>
+          </div>
+          <div>
+            <div class="text-text-quaternary">
+              {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+            </div>
+            <div class="font-semibold text-text-primary">{{ total.tokenGrandTotal | number: '0.0-0' }}</div>
+          </div>
+          <div>
+            <div class="text-text-quaternary">{{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}</div>
+            <div class="font-semibold text-text-primary">{{ total.priceUsed | number: '0.0-7' }}</div>
+          </div>
+          <div>
+            <div class="text-text-quaternary">
+              {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+            </div>
+            <div class="font-semibold text-text-primary">{{ total.priceGrandTotal | number: '0.0-7' }}</div>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div
+        class="rounded-lg border border-solid border-divider-regular bg-components-card-bg px-4 py-3 text-text-quaternary"
+      >
+        @if (totalsLoading()) {
+          <ngm-spin />
+        } @else {
+          {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+        }
+      </div>
+    }
+  </div>
+
+  <div class="min-h-0 flex-1 overflow-auto" waIntersectionObserver waIntersectionThreshold="0.5">
+    <table z-table zSize="compact" class="table-fixed w-full text-sm text-left text-text-tertiary">
+      <thead z-table-header class="text-sm text-text-secondary uppercase bg-background-default-subtle">
+        <tr z-table-row>
+          <th z-table-head class="sticky top-0 z-10 w-72 bg-background-default-subtle p-3">
+            {{
+              dimension() === 'model'
+                ? ('PAC.Copilot.Model' | translate: { Default: 'Model' })
+                : dimension() === 'organization'
+                  ? ('PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' })
+                  : ('PAC.KEY_WORDS.User' | translate: { Default: 'User' })
+            }}
+          </th>
+          @if (dimension() === 'user') {
+            <th z-table-head class="sticky top-0 z-10 w-60 bg-background-default-subtle p-3">
+              {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
+            </th>
+          }
+          <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
+            {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-48 bg-background-default-subtle p-3">
+            {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
+            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+          </th>
+          @if (dimension() !== 'model') {
+            <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
+              {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
+            </th>
+          }
+          <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
+            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
+            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
+            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-28 bg-background-default-subtle p-3">
+            {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
+          </th>
+          <th z-table-head class="sticky top-0 z-10 w-40 bg-background-default-subtle p-3">
+            {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
+          </th>
+          <th
+            z-table-head
+            zTableStickyEnd
+            [zTableStickyEnd]="0"
+            [zTableStickyZIndex]="10"
+            class="sticky top-0 w-44 border-l border-solid border-divider-regular bg-background-default-subtle p-3"
+          >
+            {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+          </th>
+        </tr>
+      </thead>
+
+      <tbody z-table-body>
+        @for (item of summaries(); track item.id) {
+          <tr
+            z-table-row
+            class="row cursor-pointer border-b border-divider-regular bg-components-card-bg"
+            (click)="toggleDetails(item)"
+          >
+            <td z-table-cell class="px-4 py-2">
+              <div class="flex min-w-0 items-center gap-2">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="shrink-0 text-text-quaternary"
+                  [zTooltip]="
+                    isExpanded(item)
+                      ? ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+                      : ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                  "
+                  (click)="toggleDetails(item); $event.stopPropagation()"
+                >
+                  <z-icon [zType]="isExpanded(item) ? 'chevron-down' : 'chevron-right'"></z-icon>
+                </button>
+                @if (dimension() === 'user') {
+                  @if (item.user) {
+                    <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
+                  } @else {
+                    <span class="truncate">{{ item.userId || '-' }}</span>
+                  }
+                } @else if (dimension() === 'organization') {
+                  @if (item.organization) {
+                    <pac-org-avatar
+                      [organization]="item.organization"
+                      class="h-6 w-6 shrink-0 rounded-full overflow-hidden"
+                    />
+                    <span class="truncate" [title]="item.organization.name">{{ item.organization.name }}</span>
+                  } @else {
+                    <span class="truncate">{{ item.organizationId || '-' }}</span>
+                  }
+                } @else {
+                  <span class="truncate font-medium text-text-secondary">{{ item.provider }}/{{ item.model }}</span>
+                }
+              </div>
+            </td>
+            @if (dimension() === 'user') {
+              <td z-table-cell class="px-4 py-2">
+                @if (item.organization) {
+                  <div class="flex items-center gap-2 overflow-hidden">
+                    <pac-org-avatar
+                      [organization]="item.organization"
+                      class="h-6 w-6 shrink-0 rounded-full overflow-hidden"
+                    />
+                    <span class="truncate" [title]="item.organization.name">{{ item.organization.name }}</span>
+                  </div>
+                } @else {
+                  {{ item.organizationId || '-' }}
+                }
+              </td>
+            }
+            <td z-table-cell class="px-4 py-2 truncate">{{ item.provider || '-' }}</td>
+            <td z-table-cell class="px-4 py-2 truncate">{{ item.model || '-' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
+            @if (dimension() !== 'model') {
+              <td z-table-cell class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
+            }
+            <td z-table-cell class="px-4 py-2">{{ item.tokenGrandTotal | number: '0.0-0' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.priceUsed | number: '0.0-7' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.priceGrandTotal | number: '0.0-7' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.currency || '-' }}</td>
+            <td z-table-cell class="px-4 py-2">{{ item.updatedAt | relative }}</td>
+            <td
+              z-table-cell
+              zTableStickyEnd
+              [zTableStickyEnd]="0"
+              [zTableStickyZIndex]="4"
+              class="border-l border-solid border-divider-regular bg-components-card-bg px-4 py-2"
+            >
+              <div class="flex items-center gap-1">
+                @if (canManageQuota(item)) {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    [zTooltip]="'PAC.Copilot.SetQuota' | translate: { Default: 'Set quota' }"
+                    (click)="openQuota(item, 'set'); $event.stopPropagation()"
+                  >
+                    <z-icon zType="edit"></z-icon>
+                  </button>
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    [zTooltip]="'PAC.Copilot.IncreaseQuota' | translate: { Default: 'Increase quota' }"
+                    (click)="openQuota(item, 'increase'); $event.stopPropagation()"
+                  >
+                    <z-icon zType="add"></z-icon>
+                  </button>
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    [zTooltip]="'PAC.Copilot.RenewQuota' | translate: { Default: 'Renew quota' }"
+                    (click)="openQuota(item, 'renew'); $event.stopPropagation()"
+                  >
+                    <z-icon zType="autorenew"></z-icon>
+                  </button>
+                } @else {
+                  <span class="text-text-quaternary">-</span>
+                }
+              </div>
+            </td>
+          </tr>
+
+          @if (isExpanded(item)) {
+            <tr z-table-row class="border-b border-divider-regular bg-background-default-subtle">
+              <td z-table-cell [attr.colspan]="dimension() === 'user' ? 12 : 11" class="p-0">
+                <div class="px-12 py-3">
+                  @if (isLoadingDetails(item)) {
+                    <div class="flex justify-center py-4"><ngm-spin /></div>
+                  } @else if (item.details?.length) {
+                    <table z-table zSize="compact" class="w-full table-fixed text-xs text-left text-text-tertiary">
+                      <thead z-table-header class="text-text-secondary">
+                        <tr z-table-row>
+                          <th z-table-head class="w-40 px-3 py-2">
+                            {{ 'PAC.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
+                          </th>
+                          <th z-table-head class="w-52 px-3 py-2">
+                            {{ 'PAC.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
+                          </th>
+                          <th z-table-head class="w-48 px-3 py-2">
+                            {{ 'PAC.KEY_WORDS.Xpert' | translate: { Default: 'Xpert' } }}
+                          </th>
+                          <th z-table-head class="w-48 px-3 py-2">
+                            {{ 'PAC.Copilot.Copilot' | translate: { Default: 'Copilot' } }}
+                          </th>
+                          <th z-table-head class="w-32 px-3 py-2">
+                            {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
+                          </th>
+                          <th z-table-head class="w-40 px-3 py-2">
+                            {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
+                          </th>
+                          <th z-table-head class="w-40 px-3 py-2">
+                            {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
+                          </th>
+                          <th z-table-head class="w-40 px-3 py-2">
+                            {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody z-table-body>
+                        @for (detail of item.details; track detail.id) {
+                          <tr z-table-row class="border-t border-divider-regular">
+                            <td z-table-cell class="px-3 py-2 truncate">{{ detail.usageHour || '-' }}</td>
+                            <td z-table-cell class="px-3 py-2 truncate" [title]="detail.threadId">
+                              {{ detail.threadId || '-' }}
+                            </td>
+                            <td z-table-cell class="px-3 py-2 truncate" [title]="detail.xpertId">
+                              {{ detail.xpertId || '-' }}
+                            </td>
+                            <td z-table-cell class="px-3 py-2 truncate" [title]="detail.copilotId">
+                              {{ detail.copilotId || '-' }}
+                            </td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.tokenUsed | number: '0.0-0' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.tokenTotalUsed | number: '0.0-0' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.priceUsed | number: '0.0-7' }}</td>
+                            <td z-table-cell class="px-3 py-2">{{ detail.priceTotalUsed | number: '0.0-7' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <div class="py-4 text-center text-text-quaternary">
+                      {{ 'PAC.Copilot.NoUsageDetails' | translate: { Default: 'No usage details' } }}
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+
+    @if (loading()) {
+      <div class="flex justify-center py-3"><ngm-spin /></div>
+    }
+
+    @if (!done()) {
+      <button
+        (waIntersectionObservee)="onIntersection()"
+        class="flex w-full cursor-pointer justify-center p-2 hover:bg-hover-bg"
+        [disabled]="loading()"
+        (click)="onIntersection()"
+      >
+        <i class="ri-arrow-down-wide-line"></i>
+      </button>
+    }
+  </div>
+</div>
+
+@if (quotaItem()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-background-default/60 px-4 backdrop-blur-sm"
+    (click)="closeQuota()"
+  >
+    <div class="w-full max-w-md rounded-lg bg-components-card-bg p-5 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="mb-4 flex items-center justify-between">
+        <div class="text-lg font-semibold text-text-primary">{{ quotaTitle() }}</div>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="closeQuota()">
+          <z-icon zType="x"></z-icon>
+        </button>
+      </div>
+
+      <div class="mb-4 text-sm text-text-tertiary">{{ quotaItem()?.provider }}/{{ quotaItem()?.model }}</div>
+
+      <div class="mb-4 grid gap-3">
+        <label class="grid gap-1">
+          <span class="text-sm text-text-secondary">{{
+            'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' }
+          }}</span>
+          <input
+            z-input
+            type="number"
+            [ngModel]="quotaTokenLimit()"
+            (ngModelChange)="setQuotaTokenLimit($event)"
+            [disabled]="quotaSaving()"
+          />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm text-text-secondary">{{
+            'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }
+          }}</span>
+          <input
+            z-input
+            type="number"
+            [ngModel]="quotaPriceLimit()"
+            (ngModelChange)="setQuotaPriceLimit($event)"
+            [disabled]="quotaSaving()"
+          />
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button z-button zType="ghost" [disabled]="quotaSaving()" (click)="closeQuota()">
+          {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button z-button zType="default" [disabled]="quotaSaving()" (click)="saveQuota()">
+          <z-icon zType="save"></z-icon>
+          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

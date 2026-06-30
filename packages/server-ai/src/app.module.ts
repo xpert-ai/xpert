@@ -14,6 +14,7 @@ import { CopilotModelModule } from './copilot-model'
 import { CopilotOrganizationModule } from './copilot-organization'
 import { CopilotProviderModule } from './copilot-provider'
 import { CopilotStoreModule } from './copilot-store/copilot-store.module'
+import { CopilotUsageModule } from './copilot-usage'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
@@ -68,6 +69,7 @@ import { MobileModule } from './mobile'
         CopilotOrganizationModule,
         CopilotProviderModule,
         CopilotStoreModule,
+        CopilotUsageModule,
         EnvironmentModule,
         GraphragModule,
         HandoffQueueModule,

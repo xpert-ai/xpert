@@ -11,7 +11,7 @@
           "warn",
           {
             "enforceBuildableLibDependency": true,
-            "allow": ["@cloud/**"],
+            "allow": ["@cloud/**", "apps/cloud/src/**"],
             "depConstraints": [
               {
                 "sourceTag": "*",

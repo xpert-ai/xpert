@@ -1,5 +1,10 @@
 import { NgModule } from '@angular/core'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import {
+  AppearanceDirective,
+  ButtonGroupDirective,
+  DensityDirective,
+  OcapCoreModule
+} from '@xpert-ai/ocap-angular/core'
 import { NgmBreadcrumbBarComponent } from './breadcrumb/breadcrumb.component'
 import { NgmHighlightDirective, NgmResizableDirective, ResizeObserverDirective } from './directives'
 import { NgmDisplayBehaviourComponent } from './display-behaviour'
@@ -24,6 +29,9 @@ import { NgmStepperComponent } from './stepper/stepper.component'
 import { NgmCopyComponent } from './copy/copy.component'
 import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.component'
 
+/**
+ * @deprecated Use Zard UI standalone components and directives from `@xpert-ai/headless-ui` instead.
+ */
 @NgModule({
   imports: [
     ResizerModule,
