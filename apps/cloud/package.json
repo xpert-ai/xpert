@@ -24,7 +24,7 @@
     "@xterm/xterm": "^5.5.0",
     "@xpert-ai/chatkit-angular": "~0.3.0",
     "@xpert-ai/chatkit-ui": "~0.4.4",
-    "@xpert-ai/chatkit-types": "~0.4.2",
+    "@xpert-ai/chatkit-types": "~0.4.3",
     "@xpert-ai/chatkit-web-component": "~0.3.5",
     "@xpert-ai/chatkit-web-shared": "~0.3.3",
     "crypto-js": "^4.2.0",

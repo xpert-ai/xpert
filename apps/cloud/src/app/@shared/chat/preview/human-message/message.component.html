@@ -1,8 +1,21 @@
 <div class="group relative mr-4 overflow-hidden">
-  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="absolute -right-2 top-0 w-2 h-3 text-[#D1E9FF]/50" data-icon="QuestionTriangle" aria-hidden="true">
+  <svg
+    width="8"
+    height="12"
+    viewBox="0 0 8 12"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="absolute -right-2 top-0 w-2 h-3 text-[#D1E9FF]/50"
+    data-icon="QuestionTriangle"
+    aria-hidden="true"
+  >
     <g id="Rectangle 2">
       <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor"></path>
-      <path d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z" fill="currentColor" fill-opacity="0.5"></path>
+      <path
+        d="M6.96353 1.5547C7.40657 0.890144 6.93018 0 6.13148 0H0V12L6.96353 1.5547Z"
+        fill="currentColor"
+        fill-opacity="0.5"
+      ></path>
     </g>
   </svg>
   <div class="flex flex-col items-start gap-2">
@@ -23,21 +36,88 @@
       </div>
     }
 
-    @if (message().content) {
+    @if (content()) {
       <div class="px-4 py-3 bg-[#D1E9FF]/50 rounded-b-2xl rounded-tl-2xl text-sm text-text-primary overflow-x-auto">
         <div class="markdown-body">
-          <p>{{message().content}}</p>
+          <p>{{ content() }}</p>
         </div>
       </div>
     }
   </div>
-  <chat-attachments class="mt-2" ngm-density large [attachments]="attachments()" />
+  @if (attachments().length) {
+    <div class="mt-2 flex max-w-full flex-wrap gap-2">
+      @for (attachment of attachments(); track attachmentKey(attachment, $index)) {
+        <button
+          type="button"
+          class="group/attachment relative flex size-[88px] shrink-0 overflow-hidden rounded-xl border border-border-l1 bg-components-card-bg text-left shadow-sm outline-none transition hover:border-primary-300 hover:bg-hover-bg focus-visible:ring-2 focus-visible:ring-primary-300"
+          [class.cursor-pointer]="attachmentPreviewUrl(attachment)"
+          [class.cursor-default]="!attachmentPreviewUrl(attachment)"
+          [attr.aria-label]="attachmentName(attachment)"
+          [title]="attachmentName(attachment)"
+          (click)="openAttachment(attachment)"
+        >
+          @if (attachmentPreviewUrl(attachment); as previewUrl) {
+            @if (attachmentIsImage(attachment)) {
+              <img
+                class="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+                [src]="previewUrl"
+                [alt]="attachmentName(attachment)"
+              />
+              <span
+                class="absolute inset-x-0 bottom-0 block bg-media-caption-bg px-1.5 py-1 text-[11px] font-medium leading-4 text-media-caption-text"
+              >
+                <span class="line-clamp-2 break-all">{{ attachmentName(attachment) }}</span>
+              </span>
+            } @else {
+              <span class="flex h-full w-full flex-col items-center justify-center gap-1.5 p-2">
+                <pac-file-icon class="scale-125" [fileType]="attachmentName(attachment) | fileType" />
+                <span
+                  class="line-clamp-2 max-w-full break-all text-center text-[11px] font-medium leading-4 text-text-secondary"
+                >
+                  {{ attachmentName(attachment) }}
+                </span>
+              </span>
+              <span
+                class="absolute right-1.5 top-1.5 max-w-[3.25rem] truncate rounded-md bg-background-default px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-text-secondary shadow-sm"
+              >
+                {{ attachmentExtension(attachment) }}
+              </span>
+            }
+          } @else {
+            <span class="flex h-full w-full flex-col items-center justify-center gap-1.5 p-2">
+              <pac-file-icon class="scale-125" [fileType]="attachmentName(attachment) | fileType" />
+              <span
+                class="line-clamp-2 max-w-full break-all text-center text-[11px] font-medium leading-4 text-text-secondary"
+              >
+                {{ attachmentName(attachment) }}
+              </span>
+            </span>
+            <span
+              class="absolute right-1.5 top-1.5 max-w-[3.25rem] truncate rounded-md bg-background-default px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-text-secondary shadow-sm"
+            >
+              {{ attachmentExtension(attachment) }}
+            </span>
+          }
+        </button>
+      }
+    </div>
+  }
   <div class="mt-1 h-[18px]"></div>
 </div>
 
 <div class="shrink-0 w-10 h-10">
   <div class="w-full h-full rounded-full border-[0.5px] border-black/5">
-    <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full" data-icon="User" aria-hidden="true">
+    <svg
+      width="512"
+      height="512"
+      viewBox="0 0 512 512"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      class="w-full h-full"
+      data-icon="User"
+      aria-hidden="true"
+    >
       <g clip-path="url(#clip0_5968_39205)">
         <rect width="512" height="512" rx="256" fill="#B2DDFF"></rect>
         <circle opacity="0.68" cx="256" cy="196" r="84" fill="white"></circle>

@@ -15,6 +15,8 @@ const migratedThemeVars = {
   'divider-regular': 'var(--sys-border)',
   'divider-deep': 'var(--sys-border-strong)',
   'hover-bg': 'var(--sys-state-hover)',
+  'media-caption-bg': 'var(--color-media-caption-bg)',
+  'media-caption-text': 'var(--color-media-caption-text)',
   'status-error-bg': 'var(--color-status-error-bg)',
   'components-card-bg': 'var(--sys-surface-elevated)',
   'components-panel-bg': 'var(--sys-surface-overlay)',
@@ -51,7 +53,7 @@ const migratedThemeVars = {
 }
 
 const themeVars = {
-  ...migratedThemeVars,
+  ...migratedThemeVars
 }
 
 module.exports = themeVars

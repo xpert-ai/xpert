@@ -22,9 +22,14 @@ import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantChatKitOptions = ChatKitOptions & AssistantChatKitEventHandlers
-type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
+type AssistantMessageNavigationOptions = {
+  enabled?: boolean
+}
 type AssistantChatKitEventHandlers = ChatKitEventHandlers
+type AssistantChatKitOptions = ChatKitOptions & {
+  messageNavigation?: AssistantMessageNavigationOptions
+} & AssistantChatKitEventHandlers
+type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
 type AssistantHostedClientSecret =
   | string
   | {
@@ -299,6 +304,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       displayMode: input.displayMode,
       layout: input.layout,
       pet: input.pet,
+      messageNavigation: {
+        enabled: true
+      },
       initialThread,
       header: {
         title: {

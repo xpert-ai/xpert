@@ -7,6 +7,42 @@ import { Repository } from 'typeorm'
 import { ConversationFileLink, FileAsset } from '../../entities'
 import { CreateFileAssetCommand } from '../create-file-asset.command'
 
+function buildStorageFileMetadata(storageFile?: CreateFileAssetCommand['input']['storageFile']) {
+    if (!storageFile) {
+        return undefined
+    }
+
+    // Chat message APIs return FileAsset rows, not StorageFile relations. Keep a
+    // small storage snapshot so preview UIs can render thumbnails without an
+    // extra legacy StorageFile lookup.
+    return {
+        id: storageFile.id,
+        file: storageFile.file,
+        url: storageFile.url ?? storageFile.fileUrl,
+        fileUrl: storageFile.fileUrl ?? storageFile.url,
+        thumb: storageFile.thumb,
+        thumbUrl: storageFile.thumbUrl ?? storageFile.thumb,
+        originalName: storageFile.originalName,
+        size: storageFile.size,
+        mimetype: storageFile.mimetype,
+        storageProvider: storageFile.storageProvider
+    }
+}
+
+function buildFileAssetMetadata(
+    existingMetadata: Record<string, unknown> | undefined,
+    inputMetadata: Record<string, unknown> | undefined,
+    storageFile?: CreateFileAssetCommand['input']['storageFile']
+) {
+    const storageFileMetadata = buildStorageFileMetadata(storageFile)
+
+    return {
+        ...(existingMetadata ?? {}),
+        ...(inputMetadata ?? {}),
+        ...(storageFileMetadata ? { storageFile: storageFileMetadata } : {})
+    }
+}
+
 @CommandHandler(CreateFileAssetCommand)
 export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCommand> {
     constructor(
@@ -50,10 +86,7 @@ export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCo
                 status: existing?.status ?? 'uploaded',
                 capabilities: existing?.capabilities ?? ['preview'],
                 workspacePath: input.workspacePath ?? existing?.workspacePath,
-                metadata: {
-                    ...(existing?.metadata ?? {}),
-                    ...(input.metadata ?? {})
-                }
+                metadata: buildFileAssetMetadata(existing?.metadata, input.metadata, storageFile)
             })
         )
 
@@ -73,10 +106,7 @@ export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCo
                     fileAssetId: fileAsset.id,
                     storageFileId,
                     threadId: input.threadId ?? existingLink?.threadId,
-                    metadata: {
-                        ...(existingLink?.metadata ?? {}),
-                        ...(input.metadata ?? {})
-                    }
+                    metadata: buildFileAssetMetadata(existingLink?.metadata, input.metadata, storageFile)
                 })
             )
         }

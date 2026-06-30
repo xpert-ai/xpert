@@ -476,7 +476,15 @@ export class ChatConversationPreviewComponent {
           ? this.conversationService.getOneById(
               this.conversationId(),
               {
-                relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents', 'executions']
+                relations: [
+                  'messages',
+                  'messages.attachments',
+                  'messages.fileAssets',
+                  'xpert',
+                  'xpert.agent',
+                  'xpert.agents',
+                  'executions'
+                ]
               },
               this.organizationId() ?? undefined
             )

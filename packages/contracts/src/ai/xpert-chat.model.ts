@@ -1,6 +1,6 @@
 import type {
   FollowUpBehavior,
-  TChatRequestHuman,
+  TChatRequestHuman as ChatKitRequestHuman,
   TXpertChatInterruptPatch,
   TXpertChatResumeDecision,
   TXpertChatResumeRequest,
@@ -9,6 +9,8 @@ import type {
 } from '@xpert-ai/chatkit-types'
 
 export type TXpertFollowUpMode = FollowUpBehavior
+
+export type TXpertChatRequestHuman = ChatKitRequestHuman
 
 export type TXpertChatSource = {
   aiMessageId?: string
@@ -23,7 +25,7 @@ export type TXpertChatSendRequest = {
   sandboxEnvironmentId?: string
   message: {
     clientMessageId?: string
-    input: TChatRequestHuman
+    input: TXpertChatRequestHuman
   }
   state?: TXpertChatState
 }
@@ -42,7 +44,7 @@ export type TXpertChatFollowUpRequest = {
   mode: TXpertFollowUpMode
   message: {
     clientMessageId?: string
-    input: TChatRequestHuman
+    input: TXpertChatRequestHuman
   }
   target?: TXpertChatTarget
   state?: TXpertChatState
@@ -82,7 +84,7 @@ export type TXpertAgentChatFollowUpRequest = {
   mode: TXpertFollowUpMode
   message: {
     clientMessageId?: string
-    input: TChatRequestHuman
+    input: TXpertChatRequestHuman
   }
   target?: {
     executionId?: string

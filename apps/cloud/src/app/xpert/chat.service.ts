@@ -277,6 +277,7 @@ export abstract class ChatService {
         'messages',
         'messages.execution',
         'messages.attachments',
+        'messages.fileAssets',
         'task'
       ]
     })

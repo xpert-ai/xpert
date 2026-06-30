@@ -20,11 +20,17 @@ jest.mock('@xpert-ai/contracts', () => {
 
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { UploadFileCommand } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
+import {
+    AttachFileToConversationCommand,
+    CreateFileAssetCommand,
+    EnqueueFileParseCommand
+} from '../../../file-understanding'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import type { TRuntimeCapabilitiesSelection } from '../../../shared/agent/runtime-capabilities'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
@@ -595,6 +601,178 @@ describe('XpertChatHandler', () => {
 
         expect(humanMessageCommand.entity.attachments).toEqual([legacyV1File])
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
+    })
+
+    it('normalizes data URL request files before persisting execution, message and conversation parameters', async () => {
+        const commands: any[] = []
+        const storageFile = {
+            id: 'storage-file-1',
+            file: 'contexts/tenant/files-1.png',
+            url: 'https://files.example.com/files-1.png',
+            originalName: 'wechat-image.png',
+            size: 5,
+            mimetype: 'image/png',
+            storageProvider: 'LOCAL'
+        }
+        const fileAsset = {
+            id: 'file-asset-1',
+            storageFileId: storageFile.id,
+            originalName: storageFile.originalName,
+            mimeType: storageFile.mimetype,
+            size: storageFile.size,
+            purpose: 'chat_attachment',
+            parseMode: 'auto',
+            status: 'ready',
+            capabilities: ['preview', 'vision']
+        }
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof UploadFileCommand) {
+                return {
+                    name: storageFile.originalName,
+                    originalName: storageFile.originalName,
+                    mimeType: storageFile.mimetype,
+                    size: storageFile.size,
+                    status: 'success',
+                    destinations: [
+                        {
+                            kind: 'storage',
+                            status: 'success',
+                            metadata: {
+                                storageFile
+                            }
+                        }
+                    ]
+                }
+            }
+            if (command instanceof CreateFileAssetCommand) {
+                return {
+                    ...fileAsset,
+                    status: 'uploaded'
+                }
+            }
+            if (command instanceof EnqueueFileParseCommand) {
+                return fileAsset
+            }
+            if (command instanceof AttachFileToConversationCommand) {
+                return command.input
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: command.entity.projectId ?? 'project-1',
+                    messages: [],
+                    status: command.entity.status ?? 'busy',
+                    title: null,
+                    options: command.entity.options ?? {}
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+        const dataUrl = `data:image/png;base64,${Buffer.from('hello').toString('base64')}`
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    projectId: 'project-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Read this image',
+                            files: [
+                                {
+                                    originalName: 'wechat-image',
+                                    fileKey: 'wx-file-1',
+                                    mimeType: 'image/png',
+                                    mimetype: 'image/png',
+                                    fileUrl: dataUrl,
+                                    url: dataUrl
+                                } as any
+                            ]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1',
+                    from: 'wechat'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const runningExecutionCommand = commands.find(
+            (command) =>
+                command instanceof XpertAgentExecutionUpsertCommand &&
+                command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
+        ) as XpertAgentExecutionUpsertCommand
+        expect(runningExecutionCommand.execution.inputs.files[0]).toMatchObject({
+            id: fileAsset.id,
+            fileId: fileAsset.id,
+            fileAssetId: fileAsset.id,
+            storageFileId: storageFile.id,
+            fileUrl: storageFile.url
+        })
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+        expect(humanMessageCommand.entity.fileAssets).toEqual([{ id: fileAsset.id }])
+        expect(humanMessageCommand.entity.attachments).toBeUndefined()
+
+        const conversationParameterUpdate = commands.find(
+            (command) =>
+                command instanceof ChatConversationUpsertCommand &&
+                command.entity.id === 'conversation-1' &&
+                command.entity.options?.parameters?.files?.[0]?.fileAssetId === fileAsset.id
+        ) as ChatConversationUpsertCommand
+        expect(conversationParameterUpdate).toBeDefined()
+        expect(conversationParameterUpdate.entity.options.parameters.files[0].fileUrl.startsWith('data:')).toBe(false)
+
+        const attachCommand = commands.find(
+            (command) => command instanceof AttachFileToConversationCommand
+        ) as AttachFileToConversationCommand
+        expect(attachCommand.input).toMatchObject({
+            fileAssetId: fileAsset.id,
+            conversationId: 'conversation-1',
+            storageFileId: storageFile.id,
+            threadId: 'thread-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1'
+        })
     })
 
     it('inherits runtime capabilities saved on an existing conversation when the request omits them', async () => {
