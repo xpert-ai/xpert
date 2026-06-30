@@ -10,6 +10,7 @@ import {
 	provideI18nModule,
 	providePinoLoggerModule,
 	provideScheduleModule,
+	PluginModule,
 	RedisModule,
 	SeederModule,
 	ServerAppModule
@@ -27,6 +28,7 @@ const baseDir = getConfig().assetOptions.serverRoot
 		provideI18nModule(baseDir),
 		provideEventEmitterModule(),
 		provideScheduleModule(),
+		PluginModule.init(),
 		ServerAppModule,
 		AnalyticsModule,
     	SeederModule

@@ -19,6 +19,9 @@ jest.mock('@xpert-ai/server-core', () => {
 	const { EventEmitterModule } = jest.requireActual('@nestjs/event-emitter')
 
 	return {
+		PluginModule: {
+			init: () => ({ module: class PluginModule {} })
+		},
 		RedisModule: class RedisModule {},
 		SeederModule: class SeederModule {},
 		ServerAppModule: class ServerAppModule {},
@@ -32,10 +35,21 @@ jest.mock('@xpert-ai/server-core', () => {
 })
 
 describe('AppModule', () => {
-	it('imports the event emitter bootstrap provider for tenant CLI dependencies', () => {
+	function getImportedModuleNames() {
 		const imports = Reflect.getMetadata('imports', AppModule) ?? []
-		const importedModuleNames = imports.map((item: any) => item?.module?.name ?? item?.name)
+
+		return imports.map((item: { module?: { name?: string }; name?: string }) => item?.module?.name ?? item?.name)
+	}
+
+	it('imports the event emitter bootstrap provider for tenant CLI dependencies', () => {
+		const importedModuleNames = getImportedModuleNames()
 
 		expect(importedModuleNames).toContain(EventEmitterModule.name)
+	})
+
+	it('imports the plugin module for strategy providers used by server modules', () => {
+		const importedModuleNames = getImportedModuleNames()
+
+		expect(importedModuleNames).toContain('PluginModule')
 	})
 })
