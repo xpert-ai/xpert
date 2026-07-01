@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, NgZone, computed, inject, input, si
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
@@ -36,11 +36,14 @@ export type CloudSidebarAssistantState = {
   binding: IAssistantBinding | null
 }
 
+export type CloudSidebarAssistantsMode = 'list' | 'current-card'
+
 const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
   items: [],
   binding: null
 }
 
+const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
 const CLAWXPERT_FALLBACK_ID = '__clawxpert__'
 const ALL_ASSISTANT_CATEGORY = 'all'
 
@@ -49,14 +52,16 @@ const ALL_ASSISTANT_CATEGORY = 'all'
   selector: 'pac-cloud-sidebar-assistants',
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
-  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, ...ZardTooltipImports],
+  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, ZardIconComponent, ...ZardTooltipImports],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarAssistantsComponent {
   readonly collapsed = input(false)
   readonly enabled = input(true)
+  readonly mode = input<CloudSidebarAssistantsMode>('list')
 
   readonly expanded = signal(true)
+  readonly moreExpanded = signal(false)
   readonly query = signal('')
   readonly category = signal(ALL_ASSISTANT_CATEGORY)
 
@@ -90,6 +95,7 @@ export class CloudSidebarAssistantsComponent {
     ),
     { initialValue: normalizeChatPath(this.#router.url) }
   )
+  readonly isCurrentCardMode = computed(() => this.mode() === 'current-card')
   readonly request = computed(() => {
     const organizationId = this.organizationId()
     const enabled =
@@ -111,13 +117,17 @@ export class CloudSidebarAssistantsComponent {
           return of(EMPTY_ASSISTANT_STATE)
         }
 
+        const binding$ = this.#assistantBindingService
+          .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+          .pipe(catchError(() => of(null)))
+
+        const items$ = this.#assistantBindingService
+          .getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
+          .pipe(catchError(() => of([] as IXpert[])))
+
         return forkJoin({
-          binding: this.#assistantBindingService
-            .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-            .pipe(catchError(() => of(null))),
-          items: this.#assistantBindingService
-            .getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
-            .pipe(catchError(() => of([] as IXpert[])))
+          binding: binding$,
+          items: items$
         }).pipe(
           map(
             ({ binding, items }) =>
@@ -175,7 +185,32 @@ export class CloudSidebarAssistantsComponent {
   readonly filteredXperts = computed(() =>
     filterAssistantXperts(this.xpertsWithoutClawXpert(), this.query(), this.activeCategory())
   )
+  readonly hasAssistantFilter = computed(
+    () => !!this.query().trim() || this.activeCategory() !== ALL_ASSISTANT_CATEGORY
+  )
+  readonly defaultVisibleXpertCount = computed(() =>
+    Math.max(DEFAULT_VISIBLE_ASSISTANT_COUNT - (this.showClawXpertEntry() ? 1 : 0), 0)
+  )
+  readonly visibleXperts = computed(() => {
+    const items = this.filteredXperts()
+    if (this.hasAssistantFilter() || this.moreExpanded()) {
+      return items
+    }
+
+    return items.slice(0, this.defaultVisibleXpertCount())
+  })
+  readonly hiddenAssistantCount = computed(() => {
+    if (this.hasAssistantFilter()) {
+      return 0
+    }
+
+    return Math.max(this.filteredXperts().length - this.defaultVisibleXpertCount(), 0)
+  })
   readonly unreadXpertIdsRequest = computed(() => {
+    if (this.isCurrentCardMode()) {
+      return ''
+    }
+
     const ids = [this.boundXpert()?.id, ...this.xpertsWithoutClawXpert().map((xpert) => xpert.id)].filter(
       (id): id is string => typeof id === 'string' && !!id.trim()
     )
@@ -233,24 +268,11 @@ export class CloudSidebarAssistantsComponent {
   readonly showClawXpertEntry = computed(() => {
     return (
       this.request().enabled &&
+      !this.isCurrentCardMode() &&
       filterAssistantXperts([this.clawXpertSearchItem()], this.query(), this.activeCategory()).length > 0
     )
   })
   readonly assistantCount = computed(() => this.xpertsWithoutClawXpert().length + (this.request().enabled ? 1 : 0))
-  readonly activeXpert = computed(() => this.xperts().find((xpert) => this.isActive(xpert)) ?? null)
-  readonly headerSubtitle = computed(() => {
-    if (this.isClawXpertActive()) {
-      return this.clawXpertLabel()
-    }
-
-    const activeXpert = this.activeXpert()
-    if (activeXpert) {
-      return this.assistantLabel(activeXpert)
-    }
-
-    const firstXpert = this.xperts()[0]
-    return firstXpert ? this.assistantLabel(firstXpert) : ''
-  })
   readonly shouldRender = computed(() => this.request().enabled)
 
   openClawXpert(event: Event) {
@@ -261,16 +283,47 @@ export class CloudSidebarAssistantsComponent {
       return
     }
 
+    const routeId = getAssistantRouteId(boundXpert)
+    if (!routeId) {
+      return
+    }
+
     const unreadThreadId = this.getLatestUnreadThreadId(boundXpert.id)
-    void this.#router.navigate(unreadThreadId ? ['/chat/clawxpert', 'c', unreadThreadId] : ['/chat/clawxpert', 'c'])
+    void this.#router.navigate(unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c'])
   }
 
   openClawXpertSettings(event: Event) {
     event.stopPropagation()
+    const boundXpert = this.boundXpert()
+    if (boundXpert) {
+      if (!this.canEditAssistant(boundXpert)) {
+        return
+      }
+
+      const xpertId = boundXpert.id?.trim()
+      if (!xpertId) {
+        return
+      }
+
+      void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
+      return
+    }
+
     if (!this.canConfigureClawXpert()) {
       return
     }
 
+    void this.#router.navigateByUrl('/chat/clawxpert')
+  }
+
+  startClawXpertConversation(event: Event) {
+    event.stopPropagation()
+    const hasBinding = !!this.binding()?.assistantId?.trim()
+    void (hasBinding ? this.#router.navigate(['/chat/clawxpert', 'c']) : this.#router.navigateByUrl('/chat/clawxpert'))
+  }
+
+  openClawXpertOverview(event: Event) {
+    event.stopPropagation()
     void this.#router.navigateByUrl('/chat/clawxpert')
   }
 
@@ -346,6 +399,14 @@ export class CloudSidebarAssistantsComponent {
     return getAssistantLabel(boundXpert ?? {}) || this.#clawXpertDefinition?.defaultLabel || 'ClawXpert'
   }
 
+  currentAssistantLabel() {
+    return this.clawXpertLabel()
+  }
+
+  currentAssistantAvatar() {
+    return this.clawXpertAvatar()
+  }
+
   clawXpertDescription() {
     const boundXpert = this.boundXpert()
     if (boundXpert) {
@@ -373,6 +434,11 @@ export class CloudSidebarAssistantsComponent {
 
   toggleExpanded() {
     this.expanded.update((expanded) => !expanded)
+  }
+
+  toggleMore(event: Event) {
+    event.stopPropagation()
+    this.moreExpanded.update((expanded) => !expanded)
   }
 
   selectCategory(category: string) {
