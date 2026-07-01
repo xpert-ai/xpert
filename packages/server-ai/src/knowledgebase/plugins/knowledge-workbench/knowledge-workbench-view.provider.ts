@@ -41,6 +41,14 @@ import { getConnectedKnowledgebaseIds, KnowledgeWorkbenchService } from './knowl
 const requireFromHere = createRequire(__filename)
 const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
+const KNOWLEDGE_WORKBENCH_REMOTE_ASSET_SUBPATH = join(
+    'src',
+    'knowledgebase',
+    'plugins',
+    'knowledge-workbench',
+    'remote-components',
+    KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY
+)
 const KNOWLEDGE_WORKBENCH_VIEW_ICON = {
     type: 'svg',
     value: KNOWLEDGE_WORKBENCH_ICON,
@@ -273,14 +281,8 @@ export class KnowledgeWorkbenchViewProvider implements IXpertViewExtensionProvid
             }
         }
 
-        const appScript = await readFile(
-            join(__dirname, 'remote-components', KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY, 'app.js'),
-            'utf8'
-        )
-        const appCss = await readFile(
-            join(__dirname, 'remote-components', KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY, 'app.css'),
-            'utf8'
-        ).catch(() => '')
+        const appScript = await readKnowledgeWorkbenchRemoteAssetFile('app.js')
+        const appCss = await readKnowledgeWorkbenchRemoteAssetFile('app.css').catch(() => '')
         const react = await readPackageFile('react', 'umd/react.production.min.js')
         const reactDom = await readPackageFile('react-dom', 'umd/react-dom.production.min.js')
 
@@ -402,6 +404,33 @@ export class KnowledgeWorkbenchViewProvider implements IXpertViewExtensionProvid
 
         return successData('Document uploaded', '文档已上传并开始处理', result)
     }
+}
+
+interface KnowledgeWorkbenchRemoteAssetPathOptions {
+    cwd?: string
+    moduleDir?: string
+    nodeEnv?: string
+}
+
+export async function readKnowledgeWorkbenchRemoteAssetFile(
+    fileName: string,
+    options: KnowledgeWorkbenchRemoteAssetPathOptions = {}
+) {
+    return readFile(getKnowledgeWorkbenchRemoteAssetPath(fileName, options), 'utf8')
+}
+
+export function getKnowledgeWorkbenchRemoteAssetPath(
+    fileName: string,
+    options: KnowledgeWorkbenchRemoteAssetPathOptions = {}
+) {
+    const cwd = options.cwd ?? process.cwd()
+    const moduleDir = options.moduleDir ?? __dirname
+
+    if ((options.nodeEnv ?? process.env.NODE_ENV) === 'production') {
+        return join(cwd, 'packages', 'server-ai', KNOWLEDGE_WORKBENCH_REMOTE_ASSET_SUBPATH, fileName)
+    }
+
+    return join(moduleDir, 'remote-components', KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY, fileName)
 }
 
 async function readPackageFile(packageName: string, relativePath: string) {

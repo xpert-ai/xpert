@@ -3,6 +3,9 @@ import {
     WORKBENCH_NAVIGATION_OPEN_COMMAND,
     XpertResolvedViewHostContext
 } from '@xpert-ai/contracts'
+import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import {
     AGENT_WORKBENCH_FIXED_SLOT,
     AGENT_WORKBENCH_MAIN_SLOT,
@@ -11,8 +14,21 @@ import {
     KNOWLEDGE_WORKBENCH_TOOL_NAMES,
     KNOWLEDGE_WORKBENCH_VIEW_KEY
 } from './constants'
-import { KnowledgeWorkbenchService } from './knowledge-workbench.service'
-import { KnowledgeWorkbenchViewProvider } from './knowledge-workbench-view.provider'
+import type { KnowledgeWorkbenchService } from './knowledge-workbench.service'
+import {
+    getKnowledgeWorkbenchRemoteAssetPath,
+    KnowledgeWorkbenchViewProvider,
+    readKnowledgeWorkbenchRemoteAssetFile
+} from './knowledge-workbench-view.provider'
+
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ViewExtensionProvider: () => (target: unknown) => target,
+    renderRemoteReactIframeHtml: jest.fn(() => '<!doctype html><html><body></body></html>')
+}))
+
+jest.mock('./knowledge-workbench.service', () => ({
+    getConnectedKnowledgebaseIds: jest.fn(() => ['kb-1'])
+}))
 
 describe('KnowledgeWorkbenchViewProvider', () => {
     const context: XpertResolvedViewHostContext = {
@@ -141,6 +157,53 @@ describe('KnowledgeWorkbenchViewProvider', () => {
                 description: 'Factory documents'
             }
         ])
+    })
+
+    it('uses the colocated remote component asset path outside production', () => {
+        expect(
+            getKnowledgeWorkbenchRemoteAssetPath('app.js', {
+                nodeEnv: 'development',
+                moduleDir: '/workspace/packages/server-ai/src/knowledgebase/plugins/knowledge-workbench',
+                cwd: '/workspace'
+            })
+        ).toBe(
+            '/workspace/packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components/knowledge-workbench/app.js'
+        )
+    })
+
+    it('uses the production server-ai package asset path', () => {
+        expect(
+            getKnowledgeWorkbenchRemoteAssetPath('app.js', {
+                nodeEnv: 'production',
+                moduleDir: '/srv/xpert',
+                cwd: '/srv/xpert'
+            })
+        ).toBe(
+            '/srv/xpert/packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components/knowledge-workbench/app.js'
+        )
+    })
+
+    it('reads remote component assets from the production server-ai package path', async () => {
+        const tempRoot = await mkdtemp(join(tmpdir(), 'knowledge-workbench-assets-'))
+
+        try {
+            const assetDir = join(
+                tempRoot,
+                'packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components/knowledge-workbench'
+            )
+            await mkdir(assetDir, { recursive: true })
+            await writeFile(join(assetDir, 'app.js'), 'window.__knowledge_workbench = true;', 'utf8')
+
+            await expect(
+                readKnowledgeWorkbenchRemoteAssetFile('app.js', {
+                    cwd: tempRoot,
+                    moduleDir: join(tempRoot, 'bundle-root'),
+                    nodeEnv: 'production'
+                })
+            ).resolves.toBe('window.__knowledge_workbench = true;')
+        } finally {
+            await rm(tempRoot, { recursive: true, force: true })
+        }
     })
 })
 
