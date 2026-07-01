@@ -413,20 +413,12 @@
     box-shadow 160ms ease;
 }
 
-.cloud-sidebar-assistants__item--clawxpert {
-  padding: 0.5rem 0.5rem 0.5rem 0.625rem;
-}
-
 .cloud-sidebar-assistants.is-collapsed .cloud-sidebar-assistants__item {
   width: 2.75rem;
   height: 2.75rem;
   min-height: 2.75rem;
   justify-content: center;
   padding: 0;
-}
-
-.cloud-sidebar-assistants.is-collapsed .cloud-sidebar-assistants__item--clawxpert {
-  border-color: transparent;
 }
 
 .cloud-sidebar-assistants__item:hover {

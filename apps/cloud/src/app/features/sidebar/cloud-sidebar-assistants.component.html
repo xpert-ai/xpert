@@ -124,57 +124,6 @@
 
       @if (collapsed() || expanded()) {
         <ul class="cloud-sidebar-assistants__list">
-          @if (showClawXpertEntry()) {
-            <li>
-              <div
-                class="cloud-sidebar-assistants__item cloud-sidebar-assistants__item--clawxpert relative"
-                [class.is-active]="isClawXpertActive()"
-                [zTooltip]="clawXpertLabel()"
-                zPosition="right"
-                [zDisabled]="!collapsed()"
-              >
-                <button
-                  type="button"
-                  class="cloud-sidebar-assistants__item-main"
-                  [attr.aria-label]="clawXpertLabel()"
-                  (click)="openClawXpert($event)"
-                >
-                  <emoji-avatar
-                    class="cloud-sidebar-assistants__avatar"
-                    [avatar]="clawXpertAvatar()"
-                    [alt]="clawXpertLabel()"
-                    [fallbackLabel]="clawXpertLabel()"
-                  />
-
-                  @if (!collapsed()) {
-                    <span class="cloud-sidebar-assistants__content">
-                      <span class="cloud-sidebar-assistants__name">{{ clawXpertLabel() }}</span>
-                      <span class="cloud-sidebar-assistants__description">{{ clawXpertDescription() }}</span>
-                    </span>
-                  }
-                </button>
-
-                @if (!collapsed()) {
-                  @if (canConfigureClawXpert()) {
-                    <button
-                      type="button"
-                      class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
-                      [attr.aria-label]="
-                        'PAC.Chat.ClawXpert.SidebarSettings' | translate: { Default: 'ClawXpert settings' }
-                      "
-                      (click)="openClawXpertSettings($event)"
-                    >
-                      <i class="ri-equalizer-2-line"></i>
-                    </button>
-                  }
-                  @if (hasClawXpertUnread()) {
-                    <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
-                  }
-                }
-              </div>
-            </li>
-          }
-
           @for (xpert of visibleXperts(); track trackAssistant($index, xpert)) {
             <li>
               <div
@@ -223,7 +172,7 @@
               </div>
             </li>
           } @empty {
-            @if (!collapsed() && !showClawXpertEntry() && (query() || activeCategory() !== 'all')) {
+            @if (!collapsed() && (query() || activeCategory() !== 'all')) {
               <li class="cloud-sidebar-assistants__empty">
                 {{ 'PAC.Assistant.EmptySearch' | translate: { Default: 'No matching assistants.' } }}
               </li>
