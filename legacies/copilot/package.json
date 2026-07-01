@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/copilot",
-  "version": "3.9.15",
+  "version": "3.9.16",
   "private": true,
   "license": "AGPL-3.0",
   "scripts": {

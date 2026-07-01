@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-agent-middlewares",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "private": true,
   "xpert": {
     "plugin": {

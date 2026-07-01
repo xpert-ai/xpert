@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.1
+
+### Patch Changes
+
+- c1e4da2: managed queue
+
 ## 3.15.0
 
 ### Minor Changes
