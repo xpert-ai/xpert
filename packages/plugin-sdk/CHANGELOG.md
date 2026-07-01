@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 3.14.0
+
+### Minor Changes
+
+- 6f679b8: fix plugin tenant scope & human chat files types
+
+### Patch Changes
+
+- Updated dependencies [6f679b8]
+  - @xpert-ai/contracts@3.15.0
+
 ## 3.13.0
 
 ### Minor Changes

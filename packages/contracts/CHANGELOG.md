@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.15.0
+
+### Minor Changes
+
+- 6f679b8: fix plugin tenant scope & human chat files types
+
 ## 3.14.0
 
 ### Minor Changes
