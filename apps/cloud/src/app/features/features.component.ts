@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -31,20 +32,34 @@ import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { combineLatestWith } from 'rxjs'
+import { combineLatestWith, firstValueFrom } from 'rxjs'
 import { filter, map, startWith, tap } from 'rxjs/operators'
 import {
   AbilityActions,
   EmployeesService,
   IOrganization,
   IRolePermission,
+  RequestScopeLevel,
   ScopeService,
   IUser,
   MenuCatalog,
   Store,
+  XpertAPIService,
+  XpertTypeEnum,
   routeAnimations
 } from '../@core'
 import { AppService } from '../app.service'
+import {
+  createFeatureEntryOnboardingSteps,
+  getAvailableFeatureEntryOnboardingSteps,
+  getFeatureEntryOnboardingFinishText,
+  isFeatureEntryOnboardingBlocked,
+  isFeatureEntryOnboardingScopeStep,
+  shouldCreateClawXpertAfterEntryOnboarding,
+  shouldExpandSidebarForEntryOnboarding,
+  shouldShowFeatureEntryOnboardingForXpertCount,
+  shouldAdvanceFeatureEntryOnboardingAfterScopeChange
+} from './features-onboarding'
 import { getFeatureMenus, syncMenuParentStateFromChildren } from './menus'
 import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
@@ -79,10 +94,33 @@ export class FeaturesComponent implements OnInit {
   readonly #employeeService = inject(EmployeesService)
   readonly #store = inject(Store)
   readonly #scopeService = inject(ScopeService)
+  readonly #xpertService = inject(XpertAPIService)
   readonly appService = this.#appService
+  readonly activeScope = this.#scopeService.activeScope
 
   // States
   readonly sidebarCollapsed = signal(true)
+  readonly entryOnboardingOpen = signal(true)
+  readonly entryOnboardingCurrent = signal(0)
+  readonly entryOnboardingAllSteps = signal(this.createEntryOnboardingSteps())
+  readonly entryOnboardingSteps = signal(this.entryOnboardingAllSteps())
+  readonly entryOnboardingBlocked = signal(false)
+  readonly entryOnboardingXpertCount = signal<number | null>(null)
+  readonly entryOnboardingManuallyRequested = signal(false)
+  readonly entryOnboardingFinishText = computed(() => getFeatureEntryOnboardingFinishText(this.entryOnboardingXpertCount()))
+  readonly entryOnboardingVisible = computed(
+    () =>
+      this.entryOnboardingOpen() &&
+      shouldShowFeatureEntryOnboardingForXpertCount(
+        this.entryOnboardingXpertCount(),
+        this.entryOnboardingManuallyRequested()
+      ) &&
+      !this.entryOnboardingBlocked() &&
+      this.entryOnboardingSteps().length > 0
+  )
+  readonly renderedSidebarCollapsed = computed(() =>
+    shouldExpandSidebarForEntryOnboarding(this.sidebarCollapsed(), this.entryOnboardingVisible())
+  )
   readonly activeRouteUrl = signal(this.#router.url)
   readonly pendingRouteUrl = signal<string | null>(null)
   readonly disableContentRouteAnimations = computed(
@@ -158,17 +196,29 @@ export class FeaturesComponent implements OnInit {
   |--------------------------------------------------------------------------
   */
   readonly menus = signal<CloudMenuItem[]>([])
+  #entryOnboardingRefreshHandle: number | null = null
+  #entryOnboardingObserver: MutationObserver | null = null
+  #entryOnboardingScopeLevel = this.#scopeService.scopeLevel()
 
   constructor() {
     this.#router.events
       .pipe(filter((e: Event | RouterEvent): e is RouterEvent => e instanceof RouterEvent))
       .subscribe((e: RouterEvent) => {
         this.navigationInterceptor(e)
+        this.scheduleEntryOnboardingRefresh()
       })
+
+    afterNextRender(() => {
+      this.refreshEntryOnboardingState()
+      this.observeEntryOnboardingTargets()
+    })
   }
 
   async ngOnInit() {
     await this._createEntryPoint()
+    if (this.user?.tenantId) {
+      void this.loadEntryOnboardingEligibility()
+    }
 
     this.#store.user$
       .pipe(
@@ -199,6 +249,9 @@ export class FeaturesComponent implements OnInit {
         this.organization = org
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
+        this.reloadEntryOnboardingSteps()
+        this.advanceEntryOnboardingAfterScopeChange(scope.level)
+        this.scheduleEntryOnboardingRefresh()
       })
   }
 
@@ -274,6 +327,29 @@ export class FeaturesComponent implements OnInit {
     }
   }
 
+  private async loadEntryOnboardingEligibility(): Promise<number | null> {
+    try {
+      const result = await firstValueFrom(
+        this.#xpertService.getMyAll({
+          where: {
+            type: XpertTypeEnum.Agent,
+            latest: true
+          },
+          take: 1
+        }, {
+          includeOrganizationWorkspacesInTenantScope: true
+        })
+      )
+      const xpertCount = result.total ?? result.items?.length ?? null
+      this.entryOnboardingXpertCount.set(xpertCount)
+      return xpertCount
+    } catch (error) {
+      this.#logger.warn('Failed to load feature entry onboarding eligibility', error)
+      this.entryOnboardingXpertCount.set(null)
+      return null
+    }
+  }
+
   loadItems() {
     // ??
     this.menus.update((menus) => {
@@ -342,6 +418,121 @@ export class FeaturesComponent implements OnInit {
 
   onCollapsedChange(collapsed: boolean) {
     this.sidebarCollapsed.set(collapsed)
+  }
+
+  async onEntryOnboardingFinish() {
+    const shouldCreateClawXpert = shouldCreateClawXpertAfterEntryOnboarding(await this.loadEntryOnboardingEligibility())
+
+    this.entryOnboardingOpen.set(false)
+    this.entryOnboardingManuallyRequested.set(false)
+    this.entryOnboardingCurrent.set(0)
+
+    if (!shouldCreateClawXpert) {
+      return
+    }
+
+    void this.#router.navigate(['/chat/clawxpert'], {
+      queryParams: {
+        onboarding: 'clawxpert'
+      }
+    })
+  }
+
+  openEntryOnboardingGuide() {
+    this.entryOnboardingCurrent.set(0)
+    this.entryOnboardingXpertCount.set(null)
+    this.entryOnboardingManuallyRequested.set(true)
+    this.entryOnboardingOpen.set(true)
+    void this.loadEntryOnboardingEligibility()
+    this.scheduleEntryOnboardingRefresh()
+  }
+
+  entryOnboardingRequiresOrganizationSwitch(current: number) {
+    return (
+      this.activeScope().level === RequestScopeLevel.TENANT &&
+      isFeatureEntryOnboardingScopeStep(this.entryOnboardingSteps()[current])
+    )
+  }
+
+  openEntryOnboardingScopeSwitcher() {
+    globalThis.document?.querySelector<HTMLElement>('[data-onboarding-target="scope-switcher"]')?.click()
+  }
+
+  private advanceEntryOnboardingAfterScopeChange(nextScopeLevel: RequestScopeLevel) {
+    const previousScopeLevel = this.#entryOnboardingScopeLevel
+    this.#entryOnboardingScopeLevel = nextScopeLevel
+
+    const currentStep = this.entryOnboardingSteps()[this.entryOnboardingCurrent()]
+    if (!shouldAdvanceFeatureEntryOnboardingAfterScopeChange(previousScopeLevel, nextScopeLevel, currentStep)) {
+      return
+    }
+
+    this.entryOnboardingCurrent.set(Math.min(this.entryOnboardingCurrent() + 1, this.entryOnboardingSteps().length - 1))
+  }
+
+  private scheduleEntryOnboardingRefresh() {
+    if (this.#entryOnboardingRefreshHandle !== null) {
+      return
+    }
+
+    this.#entryOnboardingRefreshHandle = globalThis.window?.setTimeout(() => {
+      this.#entryOnboardingRefreshHandle = null
+      this.refreshEntryOnboardingState()
+    }, 0) ?? null
+
+    if (this.#entryOnboardingRefreshHandle === null) {
+      this.refreshEntryOnboardingState()
+    }
+  }
+
+  private refreshEntryOnboardingState() {
+    const availableSteps = getAvailableFeatureEntryOnboardingSteps(this.entryOnboardingAllSteps())
+    const blocked = isFeatureEntryOnboardingBlocked()
+
+    if (!sameEntryOnboardingSteps(this.entryOnboardingSteps(), availableSteps)) {
+      this.entryOnboardingSteps.set(availableSteps)
+    }
+
+    if (this.entryOnboardingBlocked() !== blocked) {
+      this.entryOnboardingBlocked.set(blocked)
+    }
+
+    if (this.entryOnboardingCurrent() >= availableSteps.length) {
+      this.entryOnboardingCurrent.set(Math.max(availableSteps.length - 1, 0))
+    }
+  }
+
+  private observeEntryOnboardingTargets() {
+    if (typeof MutationObserver === 'undefined' || !globalThis.document?.body) {
+      return
+    }
+
+    this.#entryOnboardingObserver = new MutationObserver(() => this.scheduleEntryOnboardingRefresh())
+    this.#entryOnboardingObserver.observe(globalThis.document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'data-onboarding-target'],
+      childList: true,
+      subtree: true
+    })
+
+    this.#destroyRef.onDestroy(() => {
+      this.#entryOnboardingObserver?.disconnect()
+      this.#entryOnboardingObserver = null
+
+      if (this.#entryOnboardingRefreshHandle !== null) {
+        globalThis.window?.clearTimeout(this.#entryOnboardingRefreshHandle)
+        this.#entryOnboardingRefreshHandle = null
+      }
+    })
+  }
+
+  private createEntryOnboardingSteps() {
+    return createFeatureEntryOnboardingSteps((key) => this.#translateService.instant(key))
+  }
+
+  private reloadEntryOnboardingSteps() {
+    this.entryOnboardingAllSteps.set(this.createEntryOnboardingSteps())
+    this.refreshEntryOnboardingState()
   }
 
   navigate(link: MenuCatalog) {
@@ -437,4 +628,8 @@ export class FeaturesComponent implements OnInit {
   toEnableCopilot() {
     this.#router.navigate(['settings', 'copilot'])
   }
+}
+
+function sameEntryOnboardingSteps(left: unknown[], right: unknown[]) {
+  return left.length === right.length && left.every((step, index) => step === right[index])
 }

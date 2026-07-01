@@ -27,6 +27,7 @@
         [user]="currentUser"
         [compact]="collapsed()"
         [fullWidth]="!collapsed()"
+        (entryGuideClick)="entryGuideClick.emit()"
       />
     }
   </footer>

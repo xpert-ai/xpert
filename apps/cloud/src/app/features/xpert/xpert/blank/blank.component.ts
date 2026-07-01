@@ -227,6 +227,7 @@ export type BlankXpertDialogData = {
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
   category?: BlankXpertDialogCategory | null
+  defaultCopilotModel?: ICopilotModel | null
   initialStartMode?: BlankXpertStartMode
   initialTemplateId?: string | null
   lockStartMode?: boolean
@@ -402,7 +403,7 @@ export class XpertNewBlankComponent {
   readonly description = model<string>()
   readonly avatar = model<TAvatar>()
   readonly title = model<string>()
-  readonly copilotModel = model<ICopilotModel>()
+  readonly copilotModel = model<ICopilotModel>(this.#dialogData.defaultCopilotModel ?? undefined)
   readonly selectedTemplateId = model<string | null>(this.#dialogData.initialTemplateId ?? null)
   readonly selectedTemplate = signal<TXpertTemplate | null>(null)
   readonly selectedTemplateDraft = signal<TXpertTeamDraft | null>(null)

@@ -17,7 +17,7 @@ export class MyXpertWorkspaceHandler implements IQueryHandler<MyXpertWorkspaceQu
 			return { items: [], total: 0 }
 		}
 
-		const items = await this.workspaceAccessService.findAccessibleWorkspaces()
+		const items = await this.workspaceAccessService.findAccessibleWorkspaces(undefined, query.options)
 		return {
 			items,
 			total: items.length

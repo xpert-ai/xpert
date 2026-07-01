@@ -72,6 +72,10 @@ export type TPublicChatkitSession = {
   organizationId?: string | null
 }
 
+type TXpertGetMyAllRequestOptions = {
+  includeOrganizationWorkspacesInTenantScope?: boolean
+}
+
 export type TSandboxProvider = {
   type: string
   meta: TSandboxProviderMeta
@@ -99,6 +103,15 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   delete(id: string) {
     return this.httpClient.delete(this.apiBaseUrl + `/${id}`).pipe(tap(() => this.refresh()))
+  }
+
+  override getMyAll(options?: PaginationParams<IXpert>, requestOptions?: TXpertGetMyAllRequestOptions) {
+    let params = toHttpParams(options)
+    if (requestOptions?.includeOrganizationWorkspacesInTenantScope) {
+      params = params.append('includeOrganizationWorkspacesInTenantScope', 'true')
+    }
+
+    return this.httpClient.get<{ items: IXpert[]; total: number }>(this.apiBaseUrl + '/my', { params })
   }
 
   refresh() {

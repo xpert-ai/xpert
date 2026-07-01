@@ -535,6 +535,23 @@ describe('ClawXpertFacade', () => {
     expect(toastr.success).toHaveBeenCalled()
   })
 
+  it('navigates to the ClawXpert conversation after binding a newly created xpert when requested', async () => {
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-new')))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await (facade.bindPublishedXpert as (xpert: IXpert, options?: { navigateToChat?: boolean }) => Promise<void>)(
+      createXpert('xpert-new', 'New ClawXpert'),
+      {
+        navigateToChat: true
+      }
+    )
+    await flushPromises()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
+  })
+
   it('rebinds to the newly published xpert even when an older binding already exists', async () => {
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-old')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-old', 'Existing ClawXpert')]))

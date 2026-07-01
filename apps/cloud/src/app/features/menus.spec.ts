@@ -67,6 +67,7 @@ describe('getFeatureMenus', () => {
     })
     expect(plugins?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_XPERT)
     expect(plugins?.data?.permissionKeys).toEqual([AIPermissionsEnum.XPERT_EDIT])
+    expect(plugins?.data?.onboardingTarget).toBe('plugins-marketplace')
   })
 
   it('groups chat entries under the top-level Chat menu', () => {
@@ -111,6 +112,14 @@ describe('getFeatureMenus', () => {
     expect(modelProviders?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_COPILOT)
     expect(modelProviders?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
     expect(modelProviders?.data?.activePathPrefixes).toEqual(['/copilot'])
+    expect(modelProviders?.data?.onboardingTarget).toBe('model-providers')
+  })
+
+  it('marks the workspace menu as an onboarding target', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const workspace = menus.find((item) => item.link === '/xpert')
+
+    expect(workspace?.data?.onboardingTarget).toBe('workspace')
   })
 
   it('points the Data parent menu at the first visible child menu', () => {

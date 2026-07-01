@@ -10,6 +10,9 @@ export class MyXpertWorkspaceQuery implements IQuery {
 	constructor(
 		public readonly userId: string,
 		public readonly input: Pick<FindManyOptions<XpertWorkspace>, 'relations'> &
-			Pick<FindManyOptions<XpertWorkspace>, 'where'>
+			Pick<FindManyOptions<XpertWorkspace>, 'where'>,
+		public readonly options?: {
+			includeOrganizationWorkspacesInTenantScope?: boolean
+		}
 	) {}
 }
