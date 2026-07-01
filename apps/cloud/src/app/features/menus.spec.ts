@@ -70,14 +70,19 @@ describe('getFeatureMenus', () => {
     expect(plugins?.data?.onboardingTarget).toBe('plugins-marketplace')
   })
 
-  it('groups chat entries under the top-level Chat menu', () => {
+  it('keeps tasks as the only static chat sidebar entry', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
     const chat = menus.find((item) => item.link === '/chat')
+    const tasks = menus.find((item) => item.link === '/chat/tasks')
 
-    expect(chat?.expanded).toBe(true)
-    expect(chat?.children?.map((item) => item.link)).toEqual(['/chat', '/chat/tasks'])
-    expect(chat?.children?.map((item) => item.title)).toEqual(['最近会话', '任务'])
-    expect(chat?.children?.[0]?.data?.inactivePathPrefixes).toEqual(['/chat/tasks'])
+    expect(chat).toBeUndefined()
+    expect(tasks).toMatchObject({
+      title: '任务',
+      icon: 'ri-list-check-3',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope'
+    })
+    expect(tasks?.data?.translationKey).toBe('Tasks')
   })
 
   it('adds MCP Monitor beside Plugins for super admins', () => {

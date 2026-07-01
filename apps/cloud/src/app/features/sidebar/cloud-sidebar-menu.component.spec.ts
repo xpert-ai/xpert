@@ -22,7 +22,7 @@ function menu(item: Partial<CloudMenuItem>): CloudMenuItem {
 describe('buildCloudSidebarMenuGroups', () => {
   it('groups work, module and management menus with fixed management order', () => {
     const groups = buildCloudSidebarMenuGroups([
-      menu({ title: 'Chat', link: '/chat' }),
+      menu({ title: 'Tasks', link: '/chat/tasks' }),
       menu({ title: 'Settings', link: '/settings', admin: true }),
       menu({ title: 'Data', link: '/data' }),
       menu({ title: 'MCP Monitor', link: '/operations' }),
@@ -32,7 +32,7 @@ describe('buildCloudSidebarMenuGroups', () => {
     ])
 
     expect(groups.map((group) => group.key)).toEqual(['work', 'modules', 'management'])
-    expect(groups.find((group) => group.key === 'work')?.items.map((item) => item.link)).toEqual(['/chat'])
+    expect(groups.find((group) => group.key === 'work')?.items.map((item) => item.link)).toEqual(['/chat/tasks'])
     expect(groups.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual([
       '/data',
       '/explore'

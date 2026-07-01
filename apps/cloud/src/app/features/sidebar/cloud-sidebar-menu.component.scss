@@ -81,9 +81,9 @@
 }
 
 .cloud-sidebar-menu.is-collapsed .cloud-sidebar-menu__item {
-  width: 2.5rem;
-  height: 2.5rem;
-  min-height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
   justify-content: center;
   gap: 0;
   padding: 0;
@@ -106,7 +106,7 @@
 
 .cloud-sidebar-menu__group[data-group='work'] .cloud-sidebar-menu__item.is-active {
   border-color: transparent;
-  background: transparent;
+  background: var(--color-components-list-option-active-bg);
   box-shadow: none;
 }
 
