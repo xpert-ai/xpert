@@ -42,6 +42,7 @@ import { PluginWebhookCredentialService } from './plugin/plugin-webhook-credenti
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin/plugin-webhook.tokens'
 import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { ManagedConnectionModule } from './managed-connection'
+import { ManagedQueueModule } from './managed-queue'
 
 @Module({
 	imports: [
@@ -90,7 +91,8 @@ import { ManagedConnectionModule } from './managed-connection'
 		LanguageModule,
 		StorageFileModule,
 		IntegrationModule,
-		ManagedConnectionModule
+		ManagedConnectionModule,
+		ManagedQueueModule
 	],
 	controllers: [AppController],
 	providers: [

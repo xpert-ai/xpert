@@ -517,7 +517,11 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 
 			// 3) Create a plugin context and register the plugin module.
 			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
-			const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? [])
+			const ctx = createPluginContext<any>(opts.module, plugin.meta.name, cfg, plugin.permissions ?? [], {
+				tenantId: scope.tenantId,
+				organizationId,
+				scopeKey
+			})
 			const mod = plugin.register(ctx)
 
 			// 4) Tag the module and its providers with organization and plugin metadata.

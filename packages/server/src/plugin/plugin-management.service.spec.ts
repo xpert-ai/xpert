@@ -38,6 +38,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 		getScope: jest.fn()
 	},
 	STRATEGY_META_KEY: 'strategy-meta',
+	PLUGIN_JOB_PROCESSOR_METADATA: 'XPERT_PLUGIN_JOB_PROCESSOR_METADATA',
 	StrategyBus: class StrategyBus {},
 	getErrorMessage: jest.fn((error: unknown) => (error instanceof Error ? error.message : String(error)))
 }))
