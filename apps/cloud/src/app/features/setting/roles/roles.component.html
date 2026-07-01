@@ -4,15 +4,23 @@
       {{ 'PAC.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
     </div>
 
-    <div class="flex justify-start xl:justify-end">
-      <button
-        z-button
-        zType="default"
+    <div class="flex flex-wrap justify-start gap-2 xl:justify-end">
+      @if (isTenantScope()) {
+        <button
+          z-button
+          zType="secondary"
+          type="button"
+          displayDensity="cosy"
+          class="self-start"
+          [disabled]="syncingDefaults"
+          (click)="syncDefaultPermissions()"
+        >
+          <z-icon zType="refresh"></z-icon>
+          {{ 'PAC.Role.SyncDefaults' | translate: { Default: 'Sync Defaults' } }}
+        </button>
+      }
 
-        displayDensity="cosy"
-        class="self-start"
-        (click)="create()"
-      >
+      <button z-button zType="default" type="button" displayDensity="cosy" class="self-start" (click)="create()">
         <z-icon zType="add"></z-icon>
         {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
       </button>
@@ -23,7 +31,9 @@
 <div class="pac-page-body">
   @if (roles$ | async; as roles) {
     <div class="grid grid-cols-1 gap-4 p-4 xl:grid-cols-12">
-      <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-3 2xl:col-span-3">
+      <z-card
+        class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-3 2xl:col-span-3"
+      >
         <z-card-header class="items-center border-b border-divider-regular py-5">
           <div class="min-w-0">
             <z-card-title>
@@ -33,26 +43,22 @@
         </z-card-header>
 
         <z-card-content class="p-2">
-          <div class="flex flex-col gap-1">
+          <z-radio-group
+            class="flex flex-col gap-1"
+            displayDensity="cosy"
+            [ngModel]="role?.id"
+            (ngModelChange)="onSelectedRoleId($event, roles)"
+          >
             @for (option of roles; track option.id) {
-              <button
-                type="button"
-                class="group flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors"
-                [ngClass]="role?.id === option.id
-                  ? 'border-primary/30 bg-primary/5'
-                  : 'border-transparent hover:border-divider-regular hover:bg-components-panel-bg'"
-                (click)="onSelectedRole(option)"
+              <div
+                class="group flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-components-panel-bg"
+                [ngClass]="role?.id === option.id ? 'bg-components-panel-bg' : ''"
               >
-                <div class="flex min-w-0 items-start gap-3">
-                  <span
-                    class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border"
-                    [ngClass]="role?.id === option.id ? 'border-primary bg-primary' : 'border-divider-regular bg-transparent'"
-                  ></span>
-
-                  <div class="min-w-0 truncate text-sm font-semibold text-text-primary">
+                <z-radio class="min-w-0 flex-1 font-semibold text-text-primary" [value]="option.id">
+                  <span class="block min-w-0 truncate">
                     {{ option.name }}
-                  </div>
-                </div>
+                  </span>
+                </z-radio>
 
                 <div class="flex shrink-0 items-center gap-2">
                   @if (!option.isSystem) {
@@ -62,6 +68,7 @@
                       zSize="icon-sm"
                       zShape="circle"
                       displayDensity="compact"
+                      type="button"
                       class="opacity-0 transition-opacity group-hover:opacity-100"
                       [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                       (click)="$event.stopPropagation(); remove(option)"
@@ -74,31 +81,37 @@
                     <z-icon zType="chevron_right" class="shrink-0 text-text-secondary"></z-icon>
                   }
                 </div>
-              </button>
+              </div>
             } @empty {
               <div class="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-components-panel-bg text-text-tertiary">
+                <div
+                  class="flex h-12 w-12 items-center justify-center rounded-full bg-components-panel-bg text-text-tertiary"
+                >
                   <z-icon zType="shield"></z-icon>
                 </div>
                 <div class="text-sm font-semibold text-text-primary">
                   {{ 'PAC.Role.NoRoles' | translate: { Default: 'No roles yet' } }}
                 </div>
                 <div class="max-w-xs text-sm text-text-tertiary">
-                  {{ 'PAC.Role.NoRolesHint' | translate: { Default: 'Create a role to start configuring role-based access for your organization.' } }}
+                  {{
+                    'PAC.Role.NoRolesHint'
+                      | translate
+                        : { Default: 'Create a role to start configuring role-based access for your organization.' }
+                  }}
                 </div>
-                <button z-button zType="default" displayDensity="cosy" (click)="create()">
+                <button z-button zType="default" type="button" displayDensity="cosy" (click)="create()">
                   <z-icon zType="add"></z-icon>
                   {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
                 </button>
               </div>
             }
-          </div>
+          </z-radio-group>
         </z-card-content>
       </z-card>
 
       <div class="min-w-0 space-y-4 xl:col-span-9 2xl:col-span-9" [class.opacity-70]="loading">
         @if (role) {
-          <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+          <z-card class="overflow-hidden border-0 bg-components-card-bg shadow-none">
             <z-card-header class="items-center gap-4 py-5">
               <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="min-w-0">
@@ -120,6 +133,7 @@
                     zSize="icon"
                     zShape="circle"
                     displayDensity="cosy"
+                    type="button"
                     [zTooltip]="'PAC.ACTIONS.Rename' | translate: { Default: 'Rename' }"
                     [disabled]="role.isSystem"
                     (click)="rename(role)"
@@ -131,11 +145,11 @@
 
                   <button
                     z-button
-                    zType="ghost"
+                    zType="destructive"
                     zSize="icon"
                     zShape="circle"
                     displayDensity="cosy"
-                    ngmAppearance="danger"
+                    type="button"
                     [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                     [disabled]="role.isSystem"
                     (click)="remove(role)"
@@ -168,23 +182,27 @@
                   @for (permission of permissionGroups.GENERAL; track permission) {
                     <li
                       role="listitem"
-                      class="rounded-2xl px-3 py-2 hover:bg-hover-bg"
+                      class="rounded-lg px-3 py-2 hover:bg-hover-bg"
                       [class.opacity-60]="isDisabledGeneralPermissions()"
                     >
                       <z-checkbox
-                        class="w-full items-start"
+                        class="w-full items-center"
                         displayDensity="cosy"
-                        labelClass="flex-1 text-sm leading-6 text-text-primary"
+                        labelClass="flex-1 text-sm leading-5 text-text-primary"
                         [zDisabled]="isDisabledGeneralPermissions()"
                         [ngModel]="enabledPermissions[permission]"
                         (checkChange)="permissionChanged(permission, $event)"
                       >
-                        <span class="inline-flex min-w-0 items-center align-middle">
+                        <span class="inline-flex min-w-0 items-center leading-5 align-middle">
                           <span
                             class="min-w-0 truncate"
-                            [class]="isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''"
+                            [class]="
+                              isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
+                            "
                           >
-                            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                            {{
+                              'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission }
+                            }}
                             @if (isDeprecatedPermission(permission)) {
                               {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
                             }
@@ -215,7 +233,8 @@
                   </div>
 
                   <div class="text-sm text-text-tertiary">
-                    {{ enabledPermissionCount(getAdministrationPermissions()) }} / {{ getAdministrationPermissions().length }}
+                    {{ enabledPermissionCount(getAdministrationPermissions()) }} /
+                    {{ getAdministrationPermissions().length }}
                   </div>
                 </div>
               </z-card-header>
@@ -225,23 +244,27 @@
                   @for (permission of getAdministrationPermissions(); track permission) {
                     <li
                       role="listitem"
-                      class="rounded-2xl px-3 py-2 hover:bg-hover-bg"
+                      class="rounded-lg px-3 py-2 hover:bg-hover-bg"
                       [class.opacity-60]="isDisabledAdministrationPermissions()"
                     >
                       <z-checkbox
-                        class="w-full items-start"
+                        class="w-full items-center"
                         displayDensity="cosy"
-                        labelClass="flex-1 text-sm leading-6 text-text-primary"
+                        labelClass="flex-1 text-sm leading-5 text-text-primary"
                         [zDisabled]="isDisabledAdministrationPermissions()"
                         [ngModel]="enabledPermissions[permission]"
                         (checkChange)="permissionChanged(permission, $event)"
                       >
-                        <span class="inline-flex min-w-0 items-center align-middle">
+                        <span class="inline-flex min-w-0 items-center leading-5 align-middle">
                           <span
                             class="min-w-0 truncate"
-                            [class]="isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''"
+                            [class]="
+                              isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
+                            "
                           >
-                            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                            {{
+                              'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission }
+                            }}
                             @if (isDeprecatedPermission(permission)) {
                               {{ 'PAC.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
                             }
@@ -269,7 +292,14 @@
                 {{ 'PAC.Role.NoRoleSelected' | translate: { Default: 'Select a role' } }}
               </div>
               <div class="max-w-md text-sm text-text-tertiary">
-                {{ 'PAC.Role.NoRoleSelectedHint' | translate: { Default: 'Choose a role from the list to review permissions, rename it, or manage its access scope.' } }}
+                {{
+                  'PAC.Role.NoRoleSelectedHint'
+                    | translate
+                      : {
+                          Default:
+                            'Choose a role from the list to review permissions, rename it, or manage its access scope.'
+                        }
+                }}
               </div>
             </z-card-content>
           </z-card>
@@ -278,3 +308,38 @@
     </div>
   }
 </div>
+
+<ng-template #roleNameDialog let-dialogRef="dialogRef">
+  <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-1">
+      <h2 class="text-lg font-semibold text-text-primary">{{ roleNameDialogTitle }}</h2>
+    </div>
+
+    <label class="flex flex-col gap-2">
+      <span class="text-sm font-medium text-text-secondary">{{ roleNameDialogLabel }}</span>
+      <input
+        z-input
+        type="text"
+        autocomplete="off"
+        autofocus
+        [(ngModel)]="roleNameDraft"
+        (keydown.enter)="roleNameDraft.trim() && dialogRef.close(roleNameDraft.trim())"
+      />
+    </label>
+
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button z-button zType="outline" type="button" (click)="dialogRef.close(null)">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        z-button
+        zType="default"
+        type="button"
+        [disabled]="!roleNameDraft.trim()"
+        (click)="dialogRef.close(roleNameDraft.trim())"
+      >
+        {{ roleNameDialogAction }}
+      </button>
+    </div>
+  </div>
+</ng-template>

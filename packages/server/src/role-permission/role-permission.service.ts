@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException, NotAcceptableException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult } from 'typeorm';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { Injectable, BadRequestException, NotAcceptableException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository, UpdateResult } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import {
 	RolesEnum,
 	ITenant,
@@ -9,23 +9,23 @@ import {
 	IRolePermissionMigrateInput,
 	PermissionsEnum,
 	ID
-} from '@xpert-ai/contracts';
-import { environment } from '@xpert-ai/server-config';
-import { TenantAwareCrudService } from './../core/crud';
-import { RequestContext } from './../core/context';
-import { RolePermission } from './role-permission.entity';
-import { Role } from '../role/role.entity';
-import { DEFAULT_ROLE_PERMISSIONS } from './default-role-permissions';
-import { RoleService } from '../role/role.service';
+} from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
+import { TenantAwareCrudService } from './../core/crud'
+import { RequestContext } from './../core/context'
+import { RolePermission } from './role-permission.entity'
+import { Role } from '../role/role.entity'
+import { DEFAULT_ROLE_PERMISSIONS } from './default-role-permissions'
+import { RoleService } from '../role/role.service'
 
 @Injectable()
 export class RolePermissionService extends TenantAwareCrudService<RolePermission> {
 	constructor(
 		@InjectRepository(RolePermission)
 		private readonly rolePermissionRepository: Repository<RolePermission>,
-		private readonly roleService: RoleService,
+		private readonly roleService: RoleService
 	) {
-		super(rolePermissionRepository);
+		super(rolePermissionRepository)
 	}
 
 	public async updatePermission(
@@ -36,16 +36,14 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			const { role } = await this.repository.findOne({
 				where: { id },
 				relations: ['role']
-			});
+			})
 
 			if (role.name === RolesEnum.SUPER_ADMIN) {
-				throw new NotAcceptableException(
-					'Cannot modify Permissions for Super Admin'
-				);
+				throw new NotAcceptableException('Cannot modify Permissions for Super Admin')
 			}
-			return await this.update(id, partialEntity);
+			return await this.update(id, partialEntity)
 		} catch (err /*: WriteError*/) {
-			throw new BadRequestException(err.message);
+			throw new BadRequestException(err.message)
 		}
 	}
 
@@ -54,73 +52,153 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			const { role } = await this.repository.findOne({
 				where: { id },
 				relations: ['role']
-			});
+			})
 			if (role.name === RolesEnum.SUPER_ADMIN) {
-				throw new NotAcceptableException(
-					'Cannot delete Permissions for Super Admin'
-				);
+				throw new NotAcceptableException('Cannot delete Permissions for Super Admin')
 			}
-			return await this.delete(id);
+			return await this.delete(id)
 		} catch (error /*: WriteError*/) {
-			throw new BadRequestException(error);
+			throw new BadRequestException(error)
 		}
 	}
 
 	public async updateRoles(tenant: ITenant, role: Role) {
 		const { defaultEnabledPermissions } = DEFAULT_ROLE_PERMISSIONS.find(
 			(defaultRole) => role.name === defaultRole.role
-		);
+		)
 		for await (const permission of defaultEnabledPermissions) {
-			const rolePermission = new RolePermission();
-			rolePermission.roleId = role.id;
-			rolePermission.permission = permission;
-			rolePermission.enabled = true;
-			rolePermission.tenant = tenant;
-			await this.create(rolePermission);
+			const rolePermission = new RolePermission()
+			rolePermission.roleId = role.id
+			rolePermission.permission = permission
+			rolePermission.enabled = true
+			rolePermission.tenant = tenant
+			await this.create(rolePermission)
 		}
 	}
 
-	public async updateRolesAndPermissions(
-		tenants: ITenant[]
-	): Promise<IRolePermission[]> {
+	public async updateRolesAndPermissions(tenants: ITenant[]): Promise<IRolePermission[]> {
 		if (!tenants.length) {
-			return;
+			return
 		}
 		// removed permissions for all users in DEMO mode
-		const deniedPermissions = [
-			PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-			PermissionsEnum.ACCESS_DELETE_ALL_DATA
-		];
-		const rolesPermissions: IRolePermission[] = [];
+		const deniedPermissions = [PermissionsEnum.ACCESS_DELETE_ACCOUNT, PermissionsEnum.ACCESS_DELETE_ALL_DATA]
+		const rolesPermissions: IRolePermission[] = []
 		for await (const tenant of tenants) {
-			const roles = (await this.roleService.findAll({
-				where: {
-					tenantId: tenant.id
-				}
-			})).items;
+			const roles = (
+				await this.roleService.findAll({
+					where: {
+						tenantId: tenant.id
+					}
+				})
+			).items
 			for (const role of roles) {
 				const defaultPermissions = DEFAULT_ROLE_PERMISSIONS.find(
 					(defaultRole) => role.name === defaultRole.role
-				);
+				)
 
 				if (defaultPermissions) {
-					const { defaultEnabledPermissions = [] } = defaultPermissions;
+					const { defaultEnabledPermissions = [] } = defaultPermissions
 					for (const permission of defaultEnabledPermissions) {
 						if (environment.demo ? deniedPermissions.includes(permission) : false) {
 							continue
 						}
-						const rolePermission = new RolePermission();
-						rolePermission.roleId = role.id;
-						rolePermission.permission = permission;
-						rolePermission.enabled = defaultEnabledPermissions.includes(permission);
-						rolePermission.tenant = tenant;
-						rolesPermissions.push(rolePermission);
+						const rolePermission = new RolePermission()
+						rolePermission.roleId = role.id
+						rolePermission.permission = permission
+						rolePermission.enabled = defaultEnabledPermissions.includes(permission)
+						rolePermission.tenant = tenant
+						rolesPermissions.push(rolePermission)
 					}
 				}
 			}
 		}
-		await this.rolePermissionRepository.save(rolesPermissions);
-		return rolesPermissions;
+		await this.rolePermissionRepository.save(rolesPermissions)
+		return rolesPermissions
+	}
+
+	public async syncDefaultRolePermissions() {
+		const tenantId = RequestContext.currentTenantId()
+		if (!tenantId) {
+			throw new BadRequestException('Tenant context is required for role permission sync.')
+		}
+
+		const deniedPermissions = [PermissionsEnum.ACCESS_DELETE_ACCOUNT, PermissionsEnum.ACCESS_DELETE_ALL_DATA]
+		const roles = (
+			await this.roleService.findAll({
+				where: { tenantId }
+			})
+		).items
+		const summary = {
+			tenantId,
+			inserted: 0,
+			enabled: 0,
+			roles: [] as Array<{
+				role: string
+				roleId: string
+				inserted: number
+				enabled: number
+				existing: number
+			}>
+		}
+
+		for (const role of roles) {
+			const defaultPermissions = DEFAULT_ROLE_PERMISSIONS.find((defaultRole) => role.name === defaultRole.role)
+			if (!defaultPermissions) {
+				continue
+			}
+			const defaultEnabledPermissionNames = new Set<string>(defaultPermissions.defaultEnabledPermissions)
+
+			const existingPermissions = await this.rolePermissionRepository.find({
+				where: {
+					tenantId,
+					roleId: role.id
+				}
+			})
+			const existingPermissionNames = new Set(existingPermissions.map((item) => item.permission))
+			const enabledIds =
+				role.name === RolesEnum.SUPER_ADMIN
+					? existingPermissions
+							.filter((item) => defaultEnabledPermissionNames.has(item.permission))
+							.filter((item) => !item.enabled)
+							.map((item) => item.id)
+					: []
+
+			if (enabledIds.length) {
+				await this.rolePermissionRepository.update(enabledIds, { enabled: true })
+			}
+
+			const missingPermissions = defaultPermissions.defaultEnabledPermissions.filter((permission) => {
+				if (environment.demo ? deniedPermissions.includes(permission as PermissionsEnum) : false) {
+					return false
+				}
+				return !existingPermissionNames.has(permission)
+			})
+
+			const missingRecords = missingPermissions.map((permission) => {
+				const rolePermission = new RolePermission()
+				rolePermission.roleId = role.id
+				rolePermission.permission = permission
+				rolePermission.enabled = true
+				rolePermission.tenantId = tenantId
+				return rolePermission
+			})
+
+			if (missingRecords.length) {
+				await this.rolePermissionRepository.save(missingRecords)
+			}
+
+			summary.inserted += missingRecords.length
+			summary.enabled += enabledIds.length
+			summary.roles.push({
+				role: role.name,
+				roleId: role.id,
+				inserted: missingRecords.length,
+				enabled: enabledIds.length,
+				existing: existingPermissions.length
+			})
+		}
+
+		return summary
 	}
 
 	public async migratePermissions(): Promise<IRolePermissionMigrateInput[]> {
@@ -130,9 +208,13 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			},
 			relations: ['role']
 		})
-		const payload: IRolePermissionMigrateInput[] = []; 
+		const payload: IRolePermissionMigrateInput[] = []
 		for await (const item of permissions) {
-			const { id: sourceId, permission, role: { name } } = item;
+			const {
+				id: sourceId,
+				permission,
+				role: { name }
+			} = item
 			payload.push({
 				permission,
 				isImporting: true,
@@ -140,7 +222,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 				role: name
 			})
 		}
-		return payload;
+		return payload
 	}
 
 	// public async migrateImportRecord(
@@ -156,7 +238,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 	// 			const { permission, role: name } = item;
 	// 			const role = roles.find((role: IRole) => role.name === name);
 	// 			const destinantion = await this.rolePermissionRepository.findOneBy({
-	// 				tenantId: RequestContext.currentTenantId(), 
+	// 				tenantId: RequestContext.currentTenantId(),
 	// 				permission,
 	// 				role
 	// 			});
@@ -190,23 +272,23 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 		includeRole = false
 	): Promise<boolean> {
 		// Create a query builder for the 'role_permission' entity
-		const query = this.repository.createQueryBuilder('rp');
+		const query = this.repository.createQueryBuilder('rp')
 		// Add the condition for the current tenant ID
-		query.where('rp.tenantId = :tenantId', { tenantId });
+		query.where('rp.tenantId = :tenantId', { tenantId })
 
 		// If includeRole is true, add the condition for the current role ID
 		if (includeRole) {
-			query.andWhere('rp.roleId = :roleId', { roleId });
+			query.andWhere('rp.roleId = :roleId', { roleId })
 		}
 
 		// Add conditions for permissions, enabled, isActive, and isArchived
-		query.andWhere('rp.permission IN (:...permissions)', { permissions });
-		query.andWhere('rp.enabled = :enabled', { enabled: true });
+		query.andWhere('rp.permission IN (:...permissions)', { permissions })
+		query.andWhere('rp.enabled = :enabled', { enabled: true })
 
 		// Execute the query and get the count
-		const count = await query.getCount();
+		const count = await query.getCount()
 
 		// Return true if the count is greater than 0, indicating valid permissions
-		return count > 0;
+		return count > 0
 	}
 }

@@ -1,50 +1,44 @@
 <div class="pac-page-header">
-  <div class="pac-page-title">{{ 'PAC.Copilot.AICopilot' | translate: {Default: 'AI Copilot'} }}</div>
-      
-<nav z-tab-nav-bar class="pac-tab-nav-bar" zSize="default" color="accent" alignTabs="start" stretchTabs="false" disableRipple
+  <div class="pac-page-title">{{ 'PAC.Copilot.AICopilot' | translate: { Default: 'AI Copilot' } }}</div>
+
+  <nav
+    z-tab-nav-bar
+    class="pac-tab-nav-bar"
+    zSize="default"
+    color="accent"
+    alignTabs="start"
+    stretchTabs="false"
+    disableRipple
     [tabPanel]="tabPanel"
   >
-    <span z-tab-link [routerLink]="['./basic']"
-      routerLinkActive #rla1="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['./basic']"
+      routerLinkActive
+      #rla1="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rla1.isActive"
     >
       <z-icon class="mr-1" zType="generating_tokens"></z-icon>
-      {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
+      {{ 'PAC.KEY_WORDS.Basic' | translate: { Default: 'Basic' } }}
     </span>
     @if (monitoringEnabled()) {
-      @if (organization()) {
-        <span z-tab-link [routerLink]="['./users']"
-          routerLinkActive #rla4="routerLinkActive"
-          [active]="rla4.isActive"
-        >
-          <z-icon class="mr-1" zType="data_usage"></z-icon>
-          {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
-        </span>
-      } @else {
-        <span z-tab-link [routerLink]="['./usages']"
-          routerLinkActive #rla4="routerLinkActive"
-          [active]="rla4.isActive"
-        >
-          <z-icon class="mr-1" zType="data_usage"></z-icon>
-          {{ 'PAC.Copilot.OrgUsage' | translate: {Default: "Organization Usage"} }}
-        </span>
-      }
-
-      @if (organization()) {
-        <span z-tab-link [routerLink]="['./overview']"
-          routerLinkActive #rla4="routerLinkActive"
-          [active]="rla4.isActive"
-        >
-          <z-icon class="mr-1" zType="browse_activity"></z-icon>
-          {{ 'PAC.Copilot.Monitoring' | translate: {Default: "Monitoring"} }}
-        </span>
-      }
+      <span z-tab-link [routerLink]="['./overview']" routerLinkActive #rla2="routerLinkActive" [active]="rla2.isActive">
+        <z-icon class="mr-1" zType="monitoring"></z-icon>
+        {{ 'PAC.Copilot.Overview' | translate: { Default: 'Overview' } }}
+      </span>
+      <span z-tab-link [routerLink]="['./usage']" routerLinkActive #rla4="routerLinkActive" [active]="rla4.isActive">
+        <z-icon class="mr-1" zType="data_usage"></z-icon>
+        {{ 'PAC.Copilot.UsageCenter' | translate: { Default: 'Usage Center' } }}
+      </span>
     }
   </nav>
 </div>
-  
-<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+
+<z-tab-nav-panel
+  #tabPanel
+  class="pac-page-body flex flex-col items-center"
+  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+>
   <router-outlet #o="outlet"></router-outlet>
 </z-tab-nav-panel>

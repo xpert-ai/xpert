@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -61,6 +61,8 @@ export class HeaderUserComponent {
   readonly compact = input(false)
   readonly fullWidth = input(false)
 
+  readonly entryGuideClick = output<void>()
+
   // States
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
   readonly preferredThemeIcon$ = computed(() => THEMES.find((item) => item.key === this.preferredTheme$())?.icon)
@@ -106,8 +108,16 @@ export class HeaderUserComponent {
     this.router.navigate(['/settings/account'])
   }
 
+  onUsageBilling() {
+    this.router.navigate(['/settings/account/billing'])
+  }
+
   onAbout() {
     this.#dialog.open(HeaderAboutComponent)
+  }
+
+  onEntryGuideClick() {
+    this.entryGuideClick.emit()
   }
 
   onLogoutClick(): void {

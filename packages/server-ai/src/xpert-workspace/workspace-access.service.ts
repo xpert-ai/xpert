@@ -9,7 +9,7 @@ import {
 } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, FindOptionsOrder, FindOptionsRelations, Repository, SelectQueryBuilder } from 'typeorm'
+import { Brackets, FindOptionsOrder, FindOptionsRelations, Repository, SelectQueryBuilder, WhereExpressionBuilder } from 'typeorm'
 import { RequestContext } from '@xpert-ai/server-core'
 import { XpertWorkspace } from './workspace.entity'
 
@@ -19,6 +19,10 @@ export type XpertWorkspaceAccessResult = {
 	workspace: XpertWorkspace
 	capabilities: TXpertWorkspaceCapabilities
 	isTenantShared: boolean
+}
+
+export type FindAccessibleWorkspacesOptions = {
+	includeOrganizationWorkspacesInTenantScope?: boolean
 }
 
 const TENANT_SHARED_VISIBILITY = 'tenant-shared'
@@ -87,7 +91,7 @@ export class XpertWorkspaceAccessService {
 		return this.assertCan(workspaceId, 'manage', options)
 	}
 
-	async findAccessibleWorkspaces(orderBy?: FindOptionsOrder<XpertWorkspace>) {
+	async findAccessibleWorkspaces(orderBy?: FindOptionsOrder<XpertWorkspace>, options?: FindAccessibleWorkspacesOptions) {
 		const user = RequestContext.currentUser()
 		const tenantId = user?.tenantId
 		if (!user?.id || !tenantId) {
@@ -104,7 +108,7 @@ export class XpertWorkspaceAccessService {
 				})
 			)
 
-		await this.applyCurrentReadScope(query, user)
+		await this.applyCurrentReadScope(query, user, options)
 
 		Object.entries(orderBy ?? {}).forEach(([field, direction]) => {
 			query.addOrderBy(`workspace.${field}`, this.normalizeOrderDirection(direction))
@@ -195,7 +199,11 @@ export class XpertWorkspaceAccessService {
 		return isTenantSharedXpertWorkspace(workspace)
 	}
 
-	private async applyCurrentReadScope(query: SelectQueryBuilder<XpertWorkspace>, user: IUser) {
+	private async applyCurrentReadScope(
+		query: SelectQueryBuilder<XpertWorkspace>,
+		user: IUser,
+		options?: FindAccessibleWorkspacesOptions
+	) {
 		const organizationId = RequestContext.getOrganizationId()
 		const isTenantAdmin = user.role?.name === RolesEnum.SUPER_ADMIN || user.role?.name === RolesEnum.ADMIN
 		const userId = user.id
@@ -236,18 +244,43 @@ export class XpertWorkspaceAccessService {
 			return
 		}
 
-		query.andWhere('workspace.organizationId IS NULL')
-		if (!isTenantAdmin) {
+		if (options?.includeOrganizationWorkspacesInTenantScope) {
 			query.andWhere(
-				new Brackets((memberQb) => {
-					memberQb
-						.where('workspace.ownerId = :ownerId', { ownerId: userId })
-						.orWhere('member.id = :userId', { userId })
-					if (apiKeyBoundWorkspaceId) {
-						memberQb.orWhere('workspace.id = :apiKeyBoundWorkspaceId', { apiKeyBoundWorkspaceId })
-					}
+				new Brackets((scopeQb) => {
+					scopeQb
+						.where(
+							new Brackets((tenantQb) => {
+								tenantQb.where('workspace.organizationId IS NULL')
+								if (!isTenantAdmin) {
+									this.applyMemberReadCondition(tenantQb, userId, apiKeyBoundWorkspaceId)
+								}
+							})
+						)
+						.orWhere(
+							new Brackets((organizationQb) => {
+								organizationQb.where('workspace.organizationId IS NOT NULL')
+								this.applyMemberReadCondition(organizationQb, userId, apiKeyBoundWorkspaceId)
+							})
+						)
 				})
 			)
+			return
+		}
+
+		query.andWhere('workspace.organizationId IS NULL')
+		if (!isTenantAdmin) {
+			query.andWhere(new Brackets((memberQb) => this.applyMemberReadCondition(memberQb, userId, apiKeyBoundWorkspaceId)))
+		}
+	}
+
+	private applyMemberReadCondition(
+		query: WhereExpressionBuilder,
+		userId: string,
+		apiKeyBoundWorkspaceId?: string | null
+	) {
+		query.where('workspace.ownerId = :ownerId', { ownerId: userId }).orWhere('member.id = :userId', { userId })
+		if (apiKeyBoundWorkspaceId) {
+			query.orWhere('workspace.id = :apiKeyBoundWorkspaceId', { apiKeyBoundWorkspaceId })
 		}
 	}
 

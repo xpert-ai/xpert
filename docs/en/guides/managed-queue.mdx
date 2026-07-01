@@ -1,0 +1,224 @@
+# Managed Queue
+
+`ManagedQueue` is the platform capability for running plugin background jobs. The platform owns the BullMQ queue, Redis connection, worker, tenant context restoration, retries, delayed scheduling, and cancellation. Plugins only declare logical job handlers and enqueue through the SDK abstraction.
+
+It is a sibling of `ManagedConnection`, not part of `managed-connection`. Managed Connections solve "one pod owns a long-lived connection"; Managed Queues solve "plugin jobs must run safely across tenants, plugin installations, and API pods."
+
+## Why It Exists
+
+If every plugin creates its own `BullModule.forRoot()`, Redis connection, physical queues, and workers, production deployments run into several problems:
+
+- multiple tenants installing the same plugin may collide on queue names, job ids, Redis keys, or processors
+- workers run outside an HTTP request and can lose `tenantId`, `organizationId`, or scope
+- plugins may depend on BullMQ private clients to reach Redis, making connection and lock governance inconsistent
+- retry, delay, cancellation, and worker lifecycle behavior differs by plugin
+- multi-pod troubleshooting becomes scattered across plugin-specific infrastructure
+
+Managed Queue moves infrastructure ownership back to the platform and keeps the plugin contract to "declare a job and handle a payload".
+
+## Architecture
+
+The server module is `ManagedQueueModule` under `packages/server/src/managed-queue`.
+
+Main providers:
+
+- `ManagedQueueService`: enqueue, cancel, inspect jobs, and expose platform Redis access.
+- `ManagedQueueProcessor`: the platform BullMQ worker that consumes the physical queue.
+- `ManagedQueueHandlerRegistryService`: registers and resolves logical handlers by `{scopeKey, pluginName, queueName, jobName}`.
+- `ManagedQueueHandlerExplorerService`: discovers `@PluginJobProcessor()` metadata and updates registrations when dynamic plugins load or unload.
+
+The physical BullMQ queue is platform-owned. Plugin queue information lives in the job envelope:
+
+```text
+prefix: xpert:managed-queue
+queue: plugin-jobs
+```
+
+Plugins should no longer create physical queues or import `@nestjs/bullmq`.
+
+## Job Envelope
+
+`ManagedQueueService.enqueue()` wraps the plugin payload in a platform envelope:
+
+```json
+{
+  "pluginName": "@xpert-ai/plugin-community-wechat",
+  "queueName": "wechat.outbound",
+  "jobName": "send-message",
+  "payload": {},
+  "tenantId": "tenant-1",
+  "organizationId": "org-1",
+  "scopeKey": "org-1",
+  "userId": "user-1",
+  "enqueuedAt": "2026-07-01T00:00:00.000Z"
+}
+```
+
+The worker restores `RequestContext` from the envelope before dispatching to the handler.
+
+## SDK Interface
+
+Plugins use SDK tokens, types, and decorators:
+
+```ts
+import {
+  MANAGED_QUEUE_SERVICE_TOKEN,
+  PluginJobProcessor,
+  type ManagedQueueJob,
+  type ManagedQueueService
+} from '@xpert-ai/plugin-sdk'
+```
+
+Enqueue:
+
+```ts
+const queue = ctx.resolve<ManagedQueueService>(MANAGED_QUEUE_SERVICE_TOKEN)
+
+const result = await queue.enqueue({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  queueName: 'wechat.outbound',
+  jobName: 'send-message',
+  payload: {
+    integrationId,
+    outboundLogId
+  },
+  tenantId,
+  organizationId,
+  scopeKey,
+  jobId: `wechat:outbound:${outboundLogId}`,
+  delayMs: 1_000,
+  attempts: 3,
+  backoffMs: {
+    type: 'fixed',
+    delay: 60_000
+  }
+})
+```
+
+Cancel a waiting or delayed job:
+
+```ts
+await queue.cancel({ jobId: result.jobId })
+```
+
+Read a BullMQ job snapshot:
+
+```ts
+await queue.getJob({ jobId: result.jobId })
+```
+
+Use platform Redis for plugin state or locks:
+
+```ts
+const redis = await queue.getRedis()
+await redis.set(lockKey, '1', 'PX', 30_000, 'NX')
+```
+
+Redis keys must include tenant, organization, integration, or other business scope identifiers.
+
+## Declaring Processors
+
+Plugins do not use `@Processor()` or `WorkerHost`. They declare logical processors:
+
+```ts
+@PluginJobProcessor({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  queueName: 'wechat.outbound',
+  jobName: 'send-message',
+  concurrency: 1
+})
+@Injectable()
+export class WechatOutboundQueueProcessor {
+  async handle(job: ManagedQueueJob<WechatOutboundQueueJobData>) {
+    await this.queueService.processSendTextJob(job)
+  }
+}
+```
+
+A class may declare multiple jobs:
+
+```ts
+@PluginJobProcessor({ pluginName, queueName: 'wechat.inbound', jobName: 'aggregate' })
+@PluginJobProcessor({ pluginName, queueName: 'wechat.inbound', jobName: 'flush' })
+@Injectable()
+export class WechatInboundQueueProcessor {
+  async handle(job: ManagedQueueJob<InboundPayload>) {
+    switch (job.name) {
+      case 'aggregate':
+        return this.aggregate(job.data)
+      case 'flush':
+        return this.flush(job.data)
+    }
+  }
+}
+```
+
+For compatibility with the early design sketch, the decorator also accepts `queue` as an alias for `queueName` and `jobType` as an alias for `jobName`.
+
+## Discovery And Lifecycle
+
+`ManagedQueueHandlerExplorerService`:
+
+1. scans Nest providers during module startup
+2. reads `PLUGIN_JOB_PROCESSOR_METADATA`
+3. resolves the plugin scope from provider metadata or instance `scopeKey`
+4. registers `{pluginName, queueName, jobName, scopeKey}` in the registry
+5. listens for dynamic plugin load events and registers new handlers
+6. listens for plugin unload events and unregisters handlers
+
+Dynamic plugin installation can therefore add new job handlers without a platform restart.
+
+## Concurrency
+
+`@PluginJobProcessor({ concurrency })` is a local logical handler limit. It limits simultaneous calls for the same `{scopeKey, pluginName, queueName, jobName}` handler inside the current API process.
+
+It is not BullMQ global worker concurrency and it is not a distributed serial execution guarantee. Cross-pod serial execution, account rate limits, and contact rate limits still need Redis locks or business rate-limit keys.
+
+## Retry And Failure
+
+Handlers do not expose `fail()`. Throw an error and let BullMQ apply the configured `attempts` and `backoffMs`:
+
+```ts
+async handle(job: ManagedQueueJob<Payload>) {
+  try {
+    await this.send(job.data)
+  } catch (error) {
+    await this.recordFailure(job, error)
+    throw error
+  }
+}
+```
+
+Plugins remain responsible for their own business status, such as message logs, account state, and integration health.
+
+## Migrating Plugin-Owned BullMQ
+
+Migration steps:
+
+1. Remove `BullModule.forRoot()`, `BullModule.registerQueue()`, `@Processor()`, `WorkerHost`, and `InjectQueue`.
+2. Remove plugin-owned Redis or BullMQ connection helpers.
+3. Replace `queue.add()` with `ManagedQueueService.enqueue()`.
+4. Replace direct BullMQ job removal with `ManagedQueueService.cancel()`.
+5. Declare handlers with `@PluginJobProcessor()`.
+6. Add tenant, organization, integration, or other scope identifiers to Redis keys.
+7. Ensure handlers do not depend on the current HTTP request.
+8. Drain old physical queues before release.
+
+For WeChat, new code no longer consumes `plugin_wechat:plugin_wechat_outbound` or `plugin_wechat:plugin_wechat_inbound`. Production rollout must drain old queues first.
+
+## Operations
+
+Environment variables:
+
+- `MANAGED_QUEUE_CONCURRENCY`: platform physical worker concurrency.
+- `MANAGED_QUEUE_AUTORUN=false`: prevents worker autorun for tests or special deployments.
+
+Plugins should not configure BullMQ connections directly. Redis is provided by the platform.
+
+## Current Limits
+
+- v1 does not add a managed queue database table; BullMQ stores queue state.
+- Business observability remains in plugin-owned tables.
+- v1 does not migrate old plugin physical queues automatically.
+- `concurrency` is a local logical limit, not a distributed business lock.
+- The platform dispatches, restores context, retries, delays, cancels, and exposes Redis; it does not understand plugin payload semantics.

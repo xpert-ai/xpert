@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_ORGANIZATION_STATUS } from '../../../../../../libs/apps/state/src/lib/constants'
+import { API_ORGANIZATION_STATUS } from '@xpert-ai/cloud/state'
 import { ComponentStore } from '@xpert-ai/store'
 import { assign } from 'lodash-es'
 import { Observable } from 'rxjs'
@@ -16,7 +16,7 @@ export interface OrganizationStatusState {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class OrganizationStatusService extends ComponentStore<OrganizationStatusState> {
   get _className_() {

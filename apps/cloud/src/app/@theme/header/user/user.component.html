@@ -92,6 +92,28 @@
           <i class="ri-user-settings-line"></i>
         </div>
 
+        <div
+          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          cdkMenuItem
+          (click)="onUsageBilling()"
+        >
+          <div class="font-normal text-text-primary">
+            {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
+          </div>
+          <i class="ri-bank-card-line"></i>
+        </div>
+
+        <div
+          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          cdkMenuItem
+          (click)="onEntryGuideClick()"
+        >
+          <div class="font-normal text-text-primary">
+            {{ 'PAC.Chat.ClawXpert.Onboarding' | translate: { Default: 'Onboarding' } }}
+          </div>
+          <i class="ri-guide-line"></i>
+        </div>
+
         <a
           class="flex items-center w-full h-9 px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"
           target="_blank"

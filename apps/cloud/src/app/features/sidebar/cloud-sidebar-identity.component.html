@@ -5,6 +5,7 @@
         #menuTrigger="cdkMenuTriggerFor"
         type="button"
         class="cloud-sidebar-identity__card"
+        data-onboarding-target="scope-switcher"
         [class.can-open]="canOpenMenu()"
         [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
         (cdkMenuOpened)="loadOrganizations()"

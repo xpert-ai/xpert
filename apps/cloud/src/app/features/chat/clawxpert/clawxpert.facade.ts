@@ -448,16 +448,19 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     await this.persistPreference(assistantId)
   }
 
-  async bindPublishedXpert(xpert: IXpert) {
+  async bindPublishedXpert(xpert: IXpert, options?: { navigateToChat?: boolean }) {
     if (!xpert?.id) {
       return
     }
 
     this.mergeAvailableXpert(xpert)
-    await this.persistPreference(xpert.id, { forceAssistantId: true })
+    await this.persistPreference(xpert.id, {
+      forceAssistantId: true,
+      navigateToChat: options?.navigateToChat
+    })
   }
 
-  private async persistPreference(assistantId: string, options?: { forceAssistantId?: boolean }) {
+  private async persistPreference(assistantId: string, options?: { forceAssistantId?: boolean; navigateToChat?: boolean }) {
     this.saving.set(true)
     const currentPreference = this.preference()
     const previousAssistantId = currentPreference?.assistantId?.trim() || null
@@ -491,6 +494,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       }
       this.showWizard.set(false)
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      if (options?.navigateToChat) {
+        await this.navigateToChat()
+      }
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||

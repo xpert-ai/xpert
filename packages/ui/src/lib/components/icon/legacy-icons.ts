@@ -147,16 +147,16 @@ import {
   X,
   ZoomIn,
   ZoomOut,
-  type LucideIconData,
-} from 'lucide-angular';
+  type LucideIconData
+} from 'lucide-angular'
 
-import type { ZardIconAssetMap } from './icon-assets';
+import type { ZardIconAssetMap } from './icon-assets'
 
 export type ResolvedZardIcon =
   | { kind: 'lucide'; icon: LucideIconData }
   | { kind: 'asset'; src: string }
   | { kind: 'class'; className: string }
-  | null;
+  | null
 
 const LEGACY_LUCIDE_ICONS: Record<string, LucideIconData> = {
   account_circle: CircleUserRound,
@@ -294,6 +294,7 @@ const LEGACY_LUCIDE_ICONS: Record<string, LucideIconData> = {
   menu_open: PanelLeftOpen,
   monetization_on: DollarSign,
   military_tech: Award,
+  monitoring: ChartColumnIncreasing,
   more_horiz: Ellipsis,
   more_vert: EllipsisVertical,
   navigate_before: ChevronLeft,
@@ -375,60 +376,68 @@ const LEGACY_LUCIDE_ICONS: Record<string, LucideIconData> = {
   widgets: Blocks,
   workspaces: PanelsTopLeft,
   zoom_in: ZoomIn,
-  zoom_out: ZoomOut,
-};
+  zoom_out: ZoomOut
+}
 
 function isDirectAsset(value: string | null | undefined): boolean {
-  return !!value && (value.startsWith('data:') || value.startsWith('/') || value.startsWith('./') || value.startsWith('../'));
+  return (
+    !!value && (value.startsWith('data:') || value.startsWith('/') || value.startsWith('./') || value.startsWith('../'))
+  )
 }
 
 function isClassIcon(value: string | null | undefined): boolean {
   if (!value) {
-    return false;
+    return false
   }
 
-  return value.startsWith('ri-') || value.startsWith('fa-') || value.includes(' fa-') || value.includes(' ri-') || value.includes(' ');
+  return (
+    value.startsWith('ri-') ||
+    value.startsWith('fa-') ||
+    value.includes(' fa-') ||
+    value.includes(' ri-') ||
+    value.includes(' ')
+  )
 }
 
 export function resolveLegacyIcon(
   icon: string | null | undefined,
   options: {
-    svgIcon?: string | null;
-    assets?: ZardIconAssetMap;
-  } = {},
+    svgIcon?: string | null
+    assets?: ZardIconAssetMap
+  } = {}
 ): ResolvedZardIcon {
-  const assets = options.assets ?? {};
-  const svgIcon = options.svgIcon?.trim();
+  const assets = options.assets ?? {}
+  const svgIcon = options.svgIcon?.trim()
 
   if (svgIcon) {
     return assets[svgIcon]
       ? { kind: 'asset', src: assets[svgIcon] }
       : isDirectAsset(svgIcon)
         ? { kind: 'asset', src: svgIcon }
-        : null;
+        : null
   }
 
-  const normalizedIcon = icon?.trim();
+  const normalizedIcon = icon?.trim()
   if (!normalizedIcon) {
-    return null;
+    return null
   }
 
   if (assets[normalizedIcon]) {
-    return { kind: 'asset', src: assets[normalizedIcon] };
+    return { kind: 'asset', src: assets[normalizedIcon] }
   }
 
   if (isDirectAsset(normalizedIcon)) {
-    return { kind: 'asset', src: normalizedIcon };
+    return { kind: 'asset', src: normalizedIcon }
   }
 
-  const lucideIcon = LEGACY_LUCIDE_ICONS[normalizedIcon];
+  const lucideIcon = LEGACY_LUCIDE_ICONS[normalizedIcon]
   if (lucideIcon) {
-    return { kind: 'lucide', icon: lucideIcon };
+    return { kind: 'lucide', icon: lucideIcon }
   }
 
   if (isClassIcon(normalizedIcon)) {
-    return { kind: 'class', className: normalizedIcon };
+    return { kind: 'class', className: normalizedIcon }
   }
 
-  return null;
+  return null
 }

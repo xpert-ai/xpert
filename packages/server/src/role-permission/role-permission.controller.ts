@@ -1,40 +1,21 @@
-import {
-	IPagination,
-	IRolePermission,
-	IRolePermissionCreateInput,
-	PermissionsEnum
-} from '@xpert-ai/contracts';
-import {
-	Body,
-	Controller,
-	Delete,
-	Get,
-	HttpCode,
-	HttpStatus,
-	Param,
-	Post,
-	Put,
-	Query,
-	UseGuards
-} from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UpdateResult } from 'typeorm';
-import { CrudController } from './../core/crud';
-import { Permissions } from './../shared/decorators';
-import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
-import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
-import { RolePermission } from './role-permission.entity';
-import { RolePermissionService } from './role-permission.service';
+import { IPagination, IRolePermission, IRolePermissionCreateInput, PermissionsEnum } from '@xpert-ai/contracts'
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common'
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { UpdateResult } from 'typeorm'
+import { CrudController } from './../core/crud'
+import { Permissions } from './../shared/decorators'
+import { PermissionGuard, TenantPermissionGuard } from './../shared/guards'
+import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
+import { RolePermission } from './role-permission.entity'
+import { RolePermissionService } from './role-permission.service'
 
 @ApiTags('Role')
 @UseGuards(TenantPermissionGuard, PermissionGuard)
 @Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 @Controller()
 export class RolePermissionController extends CrudController<RolePermission> {
-	constructor(
-		private readonly rolePermissionService: RolePermissionService
-	) {
-		super(rolePermissionService);
+	constructor(private readonly rolePermissionService: RolePermissionService) {
+		super(rolePermissionService)
 	}
 
 	// @ApiResponse({
@@ -64,11 +45,16 @@ export class RolePermissionController extends CrudController<RolePermission> {
 		description: 'Record not found'
 	})
 	@Get()
-	async findAll(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<IPagination<RolePermission>> {
-		const { findInput } = data;
-		return this.rolePermissionService.findAll({ where: findInput });
+	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<RolePermission>> {
+		const { findInput } = data
+		return this.rolePermissionService.findAll({ where: findInput })
+	}
+
+	@ApiOperation({ summary: 'Synchronize missing default role permissions for the current tenant.' })
+	@HttpCode(HttpStatus.ACCEPTED)
+	@Post('sync-defaults')
+	async syncDefaults() {
+		return this.rolePermissionService.syncDefaultRolePermissions()
 	}
 
 	@ApiOperation({ summary: 'Create new record' })
@@ -78,15 +64,12 @@ export class RolePermissionController extends CrudController<RolePermission> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@HttpCode(HttpStatus.CREATED)
 	@Post()
-	async create(
-		@Body() entity: IRolePermissionCreateInput
-	): Promise<RolePermission> {
-		return this.rolePermissionService.create(entity);
+	async create(@Body() entity: IRolePermissionCreateInput): Promise<RolePermission> {
+		return this.rolePermissionService.create(entity)
 	}
 
 	@ApiOperation({ summary: 'Update an existing record' })
@@ -100,8 +83,7 @@ export class RolePermissionController extends CrudController<RolePermission> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Put(':id')
@@ -109,14 +91,12 @@ export class RolePermissionController extends CrudController<RolePermission> {
 		@Param('id', UUIDValidationPipe) id: string,
 		@Body() entity: RolePermission
 	): Promise<UpdateResult | IRolePermission> {
-		return await this.rolePermissionService.updatePermission(id, entity);
+		return await this.rolePermissionService.updatePermission(id, entity)
 	}
 
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Delete(':id')
-	async delete(
-		@Param('id', UUIDValidationPipe) id: string
-	): Promise<any> {
-		return await this.rolePermissionService.deletePermission(id);
+	async delete(@Param('id', UUIDValidationPipe) id: string): Promise<any> {
+		return await this.rolePermissionService.deletePermission(id)
 	}
 }

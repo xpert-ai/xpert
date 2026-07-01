@@ -1,8 +1,32 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject
+} from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
 import { debounceTime, filter, map, shareReplay, switchMap, tap } from 'rxjs/operators'
 import { environment } from '../../../../environments/environment'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import {
+  ZardAlertDialogService,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardCheckboxComponent,
+  ZardDialogService,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardRadioComponent,
+  ZardRadioGroupComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   IRole,
@@ -10,6 +34,7 @@ import {
   IUser,
   PermissionGroups,
   PermissionsEnum,
+  RequestScopeLevel,
   RolePermissionsService,
   RolesEnum,
   RoleService,
@@ -18,18 +43,40 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
 import { isDeprecatedRolePermission, isRolePermissionReadonly } from './deprecated-permissions'
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'pac-roles',
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardDividerComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardRadioComponent,
+    ZardRadioGroupComponent,
+    ...ZardCardImports,
+    ...ZardTooltipImports
+  ],
   templateUrl: './roles.component.html',
   styleUrls: ['./roles.component.scss']
 })
-export class RolesComponent extends TranslationBaseComponent implements OnInit {
+export class RolesComponent extends TranslationBaseComponent implements OnInit, AfterViewInit {
   readonly destroyRef = inject(DestroyRef)
-  
+  private readonly rolePermissionsService = inject(RolePermissionsService)
+  private readonly rolesService = inject(RoleService)
+  private readonly store = inject(Store)
+  private readonly cdr = inject(ChangeDetectorRef)
+  private readonly dialog = inject(ZardDialogService)
+  private readonly alertDialog = inject(ZardAlertDialogService)
+  private readonly toastr = inject(ToastrService)
+
+  @ViewChild('roleNameDialog', { read: TemplateRef }) roleNameDialog?: TemplateRef<unknown>
+
   permissionGroups = PermissionGroups
 
   private readonly refresh$ = new BehaviorSubject<void>(null)
@@ -46,18 +93,11 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
   loading = false
   enabledPermissions: Record<string, boolean> = {}
   permissions$: Subject<void> = new Subject()
-
-  constructor(
-    private readonly rolePermissionsService: RolePermissionsService,
-    private readonly rolesService: RoleService,
-    private readonly store: Store,
-    private _cdr: ChangeDetectorRef,
-    private readonly _dialog: ZardDialogService,
-    private readonly _confirmDelete: NgmConfirmDeleteService,
-    private readonly _toastr: ToastrService
-  ) {
-    super()
-  }
+  syncingDefaults = false
+  roleNameDialogTitle = ''
+  roleNameDialogLabel = ''
+  roleNameDialogAction = ''
+  roleNameDraft = ''
 
   ngOnInit(): void {
     this.store.user$
@@ -80,7 +120,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this._cdr.detectChanges()
+          this.cdr.detectChanges()
         }
       })
 
@@ -119,32 +159,31 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
 
       const permissionToEdit = this.permissions.find((p) => p.permission === permission)
 
-      permissionToEdit && permissionToEdit.id
-        ? await firstValueFrom(
-            this.rolePermissionsService.update(permissionToEdit.id, {
-              enabled
-            })
-          )
-        : await firstValueFrom(
-            this.rolePermissionsService.create({
-              roleId,
-              permission,
-              enabled,
-              tenantId
-            })
-          )
+      if (permissionToEdit?.id) {
+        await firstValueFrom(
+          this.rolePermissionsService.update(permissionToEdit.id, {
+            enabled
+          })
+        )
+      } else {
+        await firstValueFrom(
+          this.rolePermissionsService.create({
+            roleId,
+            permission,
+            enabled,
+            tenantId
+          })
+        )
+      }
 
-      this._toastr.success(
+      this.toastr.success(
         this.getTranslation(`PAC.NOTES.ROLES.PERMISSION_UPDATED`, {
           Default: `Permission '{{name}}' Updated`,
           name: this.role.name
-        }),
+        })
       )
     } catch (error) {
-      // this.toastrService.danger(
-      // 	this.getTranslation('TOASTR.MESSAGE.PERMISSION_UPDATE_ERROR'),
-      // 	this.getTranslation('TOASTR.TITLE.ERROR')
-      // )
+      this.toastr.error(getErrorMessage(error))
     } finally {
       this.permissions$.next()
     }
@@ -164,6 +203,13 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
     this.permissions$.next()
   }
 
+  onSelectedRoleId(roleId: string, roles: IRole[]) {
+    const selectedRole = roles.find((item) => item.id === roleId)
+    if (selectedRole) {
+      this.onSelectedRole(selectedRole)
+    }
+  }
+
   /***
    * GET Administration permissions & removed some permission in DEMO
    */
@@ -177,20 +223,30 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
   }
 
   async create() {
-    const result = await firstValueFrom(this._dialog.open(NgmConfirmUniqueComponent).afterClosed())
-    if (!result) {
+    const name = await this.openRoleNameDialog({
+      title: this.getTranslation('PAC.Role.CreateTitle', {
+        Default: 'Create role'
+      }),
+      label: this.getTranslation('PAC.Role.NameLabel', {
+        Default: 'Role name'
+      }),
+      action: this.getTranslation('PAC.MODEL.AccessControl.NewRole', {
+        Default: 'New Role'
+      })
+    })
+    if (!name) {
       return
     }
 
     try {
-      const newRole = await firstValueFrom(this.rolesService.create({ name: result, rolePermissions: [] }))
+      const newRole = await firstValueFrom(this.rolesService.create({ name, rolePermissions: [] }))
       if (newRole) {
         this.refresh()
-        this._toastr.success('PAC.NOTES.ROLES.RoleCreate', {Default: 'Create Role'})
+        this.toastr.success('PAC.NOTES.ROLES.RoleCreate', { Default: 'Create Role' })
         this.role = newRole
       }
     } catch (error) {
-      this._toastr.error(getErrorMessage(error))
+      this.toastr.error(getErrorMessage(error))
     }
   }
 
@@ -199,18 +255,18 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       return
     }
 
-    const result = await firstValueFrom(
-      this._dialog.open(NgmConfirmUniqueComponent, {
-        data: {
-          title: this.getTranslation('PAC.Role.RenameTitle', {
-            Default: 'Rename Role'
-          }),
-          value: role.name
-        }
-      }).afterClosed()
-    )
-
-    const name = result?.trim?.() ?? result
+    const name = await this.openRoleNameDialog({
+      title: this.getTranslation('PAC.Role.RenameTitle', {
+        Default: 'Rename Role'
+      }),
+      label: this.getTranslation('PAC.Role.NameLabel', {
+        Default: 'Role name'
+      }),
+      action: this.getTranslation('PAC.ACTIONS.Rename', {
+        Default: 'Rename'
+      }),
+      value: role.name
+    })
     if (!name || name === role.name) {
       return
     }
@@ -219,29 +275,72 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       const updatedRole = await firstValueFrom(this.rolesService.update(role.id, { name }))
       this.role = updatedRole
       this.refresh()
-      this._toastr.success('PAC.Role.RenameSuccess', {
+      this.toastr.success('PAC.Role.RenameSuccess', {
         Default: 'Role renamed successfully'
       })
     } catch (error) {
-      this._toastr.error(getErrorMessage(error))
+      this.toastr.error(getErrorMessage(error))
     }
   }
 
   async remove(role: IRole) {
-    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: role.name }))
+    const confirm = await firstValueFrom(
+      this.alertDialog.confirm({
+        title: this.getTranslation('PAC.Role.DeleteTitle', {
+          Default: 'Delete role'
+        }),
+        description: this.getTranslation('PAC.Role.DeleteConfirm', {
+          Default: 'Delete role "{{name}}"? This cannot be undone.',
+          name: role.name
+        }),
+        actionText: this.getTranslation('PAC.ACTIONS.Delete', {
+          Default: 'Delete'
+        }),
+        cancelText: this.getTranslation('PAC.ACTIONS.Cancel', {
+          Default: 'Cancel'
+        }),
+        destructive: true
+      })
+    )
     if (confirm) {
       try {
         await firstValueFrom(this.rolesService.delete(role))
         this.refresh()
-        this._toastr.success('PAC.NOTES.ROLES.RoleDelete', {Default: 'Delete Role'})
+        this.toastr.success('PAC.NOTES.ROLES.RoleDelete', { Default: 'Delete Role' })
       } catch (error) {
-        this._toastr.error(getErrorMessage(error))
+        this.toastr.error(getErrorMessage(error))
       }
     }
   }
 
   refresh() {
     this.refresh$.next()
+  }
+
+  isTenantScope(): boolean {
+    return this.store.activeScope?.level === RequestScopeLevel.TENANT
+  }
+
+  async syncDefaultPermissions() {
+    if (!this.isTenantScope() || this.syncingDefaults) {
+      return
+    }
+
+    this.syncingDefaults = true
+    try {
+      const result = await firstValueFrom(this.rolePermissionsService.syncDefaults())
+      this.permissions$.next()
+      this.refresh()
+      this.toastr.success('PAC.Role.SyncDefaultsSuccess', {
+        Default: 'Default role permissions synchronized.',
+        inserted: result.inserted,
+        enabled: result.enabled
+      })
+    } catch (error) {
+      this.toastr.error(getErrorMessage(error))
+    } finally {
+      this.syncingDefaults = false
+    }
   }
 
   allPermissions(): string[] {
@@ -276,5 +375,26 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
       return false
     }
     return true
+  }
+
+  private async openRoleNameDialog(options: { title: string; label: string; action: string; value?: string }) {
+    if (!this.roleNameDialog) {
+      return null
+    }
+
+    this.roleNameDialogTitle = options.title
+    this.roleNameDialogLabel = options.label
+    this.roleNameDialogAction = options.action
+    this.roleNameDraft = options.value ?? ''
+
+    const result = await firstValueFrom(
+      this.dialog
+        .open(this.roleNameDialog, {
+          width: 'min(420px, calc(100vw - 2rem))'
+        })
+        .afterClosed()
+    )
+    const name = typeof result === 'string' ? result.trim() : ''
+    return name || null
   }
 }

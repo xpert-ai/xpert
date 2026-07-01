@@ -1,8 +1,28 @@
-import { Routes } from '@angular/router'
+import { inject } from '@angular/core'
+import { Router, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum } from '../../../@core'
-import { featureGate } from '../../feature-gate'
+import { map } from 'rxjs/operators'
+import { AiFeatureEnum, AIPermissionsEnum, RequestScopeLevel, Store } from '../../../@core'
+import { hydrateFeatureContext } from '../../feature-gate'
 import { CopilotComponent } from './copilot.component'
+
+export function copilotMonitoringGate() {
+  const store = inject(Store)
+  const router = inject(Router)
+
+  return hydrateFeatureContext({ skipSessionCache: true }).pipe(
+    map((hydrated) => {
+      if (!hydrated) {
+        return router.createUrlTree(['/copilot/basic'])
+      }
+
+      return store.activeScope.level === RequestScopeLevel.TENANT ||
+        store.hasFeatureEnabled(AiFeatureEnum.FEATURE_COPILOT_MONITORING)
+        ? true
+        : router.createUrlTree(['/copilot/basic'])
+    })
+  )
+}
 
 export default [
   {
@@ -11,6 +31,7 @@ export default [
     canActivate: [NgxPermissionsGuard],
     data: {
       title: 'Model Providers',
+      translationKey: 'AI Copilot',
       permissions: {
         only: [AIPermissionsEnum.COPILOT_EDIT],
         redirectTo: '/settings'
@@ -27,19 +48,24 @@ export default [
         loadComponent: () => import('./basic/basic.component').then((m) => m.CopilotBasicComponent)
       },
       {
+        path: 'overview',
+        canActivate: [copilotMonitoringGate],
+        loadComponent: () => import('./overview/overview.component').then((m) => m.CopilotOverviewComponent)
+      },
+      {
+        path: 'usage',
+        canActivate: [copilotMonitoringGate],
+        loadComponent: () => import('./usage-center/usage-center.component').then((m) => m.CopilotUsageCenterComponent)
+      },
+      {
         path: 'usages',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
-        loadComponent: () => import('./usages/usages.component').then((m) => m.CopilotUsagesComponent)
+        redirectTo: 'usage',
+        pathMatch: 'full'
       },
       {
         path: 'users',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
-        loadComponent: () => import('./users/users.component').then((m) => m.CopilotUsersComponent)
-      },
-      {
-        path: 'overview',
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_COPILOT_MONITORING], ['/copilot/basic'])],
-        loadComponent: () => import('./overview/overview.component').then((m) => m.CopilotOverviewComponent)
+        redirectTo: 'usage',
+        pathMatch: 'full'
       }
     ]
   }

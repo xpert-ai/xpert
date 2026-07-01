@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { IUser } from '../../@core'
 import { NotificationComponent } from '../../@theme'
 import { HeaderUserComponent } from '../../@theme/header'
+import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import { CloudSidebarIdentityComponent } from './cloud-sidebar-identity.component'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
@@ -15,6 +16,7 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
   imports: [
     CommonModule,
     CloudSidebarIdentityComponent,
+    CloudSidebarAssistantsComponent,
     NotificationComponent,
     HeaderUserComponent,
     CloudSidebarMenuComponent
@@ -29,4 +31,5 @@ export class CloudSidebarComponent {
 
   readonly collapsedChange = output<boolean>()
   readonly brandClick = output<void>()
+  readonly entryGuideClick = output<void>()
 }

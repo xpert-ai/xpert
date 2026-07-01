@@ -81,6 +81,7 @@ export const PermissionGroups = {
     AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
+    AIPermissionsEnum.MEMBERSHIP_EDIT,
     AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
 
@@ -104,7 +105,7 @@ export const PermissionGroups = {
     AnalyticsPermissionsEnum.INDICATOR_EDIT,
     // Data Factory
     AnalyticsPermissionsEnum.DATA_FACTORY_VIEW,
-    AnalyticsPermissionsEnum.DATA_FACTORY_EDIT,
+    AnalyticsPermissionsEnum.DATA_FACTORY_EDIT
   ],
 
   //Readonly permissions, are only enabled for admin role

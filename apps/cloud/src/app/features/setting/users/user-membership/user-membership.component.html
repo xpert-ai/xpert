@@ -1,0 +1,78 @@
+@if (canManage) {
+  <div class="flex flex-col gap-4">
+    @if (membership()) {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div>
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+          </div>
+          <div class="font-medium">{{ membership()?.plan?.name }}</div>
+        </div>
+        <div>
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+          </div>
+          <div class="font-medium">{{ remainingPoints() | number }}</div>
+        </div>
+        <div>
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+          </div>
+          <div class="font-medium">
+            {{ membership()?.pointsUsed | number }} / {{ membership()?.pointsGranted | number }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+          </div>
+          <div class="font-medium">{{ membership()?.currentPeriodEnd | date: 'mediumDate' }}</div>
+        </div>
+      </div>
+      <z-progress-bar [progress]="usedPercent()" zShape="square" />
+    } @else {
+      <div class="text-text-tertiary">
+        {{
+          'PAC.Membership.NoUserMembership'
+            | translate: { Default: 'No membership has been created for this user yet.' }
+        }}
+      </div>
+    }
+
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+      <select class="h-10 rounded-md border border-divider-regular bg-transparent px-3" [(ngModel)]="selectedPlanId">
+        @for (plan of plans(); track plan.id) {
+          <option [value]="plan.id">{{ plan.name }}</option>
+        }
+      </select>
+      <input
+        z-input
+        [(ngModel)]="note"
+        [placeholder]="'PAC.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
+      />
+      <button z-button zType="default" type="button" [disabled]="loading() || !selectedPlanId" (click)="assign()">
+        {{ 'PAC.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-[160px_1fr_auto_auto]">
+      <input
+        z-input
+        type="number"
+        [(ngModel)]="pointDelta"
+        [placeholder]="'PAC.Membership.PointDelta' | translate: { Default: 'Point delta' }"
+      />
+      <input
+        z-input
+        [(ngModel)]="reason"
+        [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+      />
+      <button z-button zType="secondary" type="button" [disabled]="loading() || !pointDelta" (click)="adjust()">
+        {{ 'PAC.Membership.AdjustPoints' | translate: { Default: 'Adjust points' } }}
+      </button>
+      <button z-button zType="secondary" type="button" [disabled]="loading() || !membership()" (click)="renew()">
+        {{ 'PAC.Membership.Renew' | translate: { Default: 'Renew' } }}
+      </button>
+    </div>
+  </div>
+}

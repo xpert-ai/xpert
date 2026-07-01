@@ -9,18 +9,20 @@ import { CopilotUserController } from './copilot-user.controller'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
+import { MembershipModule } from '../membership'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/copilot-user', module: CopilotUserModule }]),
         TypeOrmModule.forFeature([CopilotUser]),
-		forwardRef(() => UserModule),
+        forwardRef(() => UserModule),
         TenantModule,
         CqrsModule,
-        CopilotOrganizationModule
+        CopilotOrganizationModule,
+        MembershipModule
     ],
     controllers: [CopilotUserController],
     providers: [CopilotUserService, ...CommandHandlers, ...QueryHandlers],
     exports: [CopilotUserService]
 })
-export class CopilotUserModule { }
+export class CopilotUserModule {}

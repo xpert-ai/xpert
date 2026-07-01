@@ -134,6 +134,9 @@ export interface PluginContext<TConfig extends object = any> {
   app?: INestApplicationContext // Nest runtime context (injected after startup)
   logger: PluginLogger // Logger wrapper provided by SDK
   config: TConfig // Final config after validation and merging
+  tenantId?: string | null
+  organizationId?: string | null
+  scopeKey?: string | null
   /** Helper method to access other Providers in the container */
   resolve<TInput = any, TResult = TInput>(token: any): TResult
 }
