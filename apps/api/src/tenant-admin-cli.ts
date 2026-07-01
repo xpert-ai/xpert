@@ -110,15 +110,15 @@ export async function runTenantAdminCommand(args: TenantAdminArgs, dependencies:
 }
 
 async function createTenantAdminApp(pluginConfig: Partial<unknown>) {
-	const [{ NestFactory }, { registerPluginConfig }, { AppModule }] = await Promise.all([
+	const [{ NestFactory }, { registerPluginConfig }, { TenantAdminCliModule }] = await Promise.all([
 		import('@nestjs/core'),
 		import('@xpert-ai/server-core'),
-		import('./app/app.module')
+		import('./tenant-admin-cli.module')
 	])
 
 	await registerPluginConfig(pluginConfig)
 
-	return NestFactory.createApplicationContext(AppModule, {
+	return NestFactory.createApplicationContext(TenantAdminCliModule, {
 		logger: ['log', 'error', 'warn']
 	})
 }
