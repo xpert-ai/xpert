@@ -157,9 +157,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return allXperts.length
     }
 
-    async getMyAll(params: PaginationParams<Xpert>) {
+    async getMyAll(
+        params: PaginationParams<Xpert>,
+        options?: {
+            includeOrganizationWorkspacesInTenantScope?: boolean
+        }
+    ) {
         const userId = RequestContext.currentUserId()
-        const { items: userWorkspaces } = await this.queryBus.execute(new MyXpertWorkspaceQuery(userId, {}))
+        const { items: userWorkspaces } = await this.queryBus.execute(
+            new MyXpertWorkspaceQuery(userId, {}, {
+                includeOrganizationWorkspacesInTenantScope: options?.includeOrganizationWorkspacesInTenantScope
+            })
+        )
         const workspaceAccesses = await Promise.all(
             userWorkspaces.map((workspace) => this.workspaceAccessService.buildAccess(workspace))
         )

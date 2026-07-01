@@ -25,6 +25,7 @@ import { NotificationComponent, TuneComponent } from '../@theme'
 import { HeaderUserComponent, ProjectSelectorComponent, WorkspaceSelectorComponent } from '../@theme/header'
 import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
+import { TranslateModule } from '@ngx-translate/core'
 import { FeaturesRoutingModule } from './features-routing.module'
 import { FeaturesComponent } from './features.component'
 import { CloudSidebarComponent } from './sidebar'
@@ -39,6 +40,7 @@ import {
   ZardAvatarComponent,
   ZardButtonComponent,
   ZardDividerComponent,
+  ZardHighlightComponent,
   ZardIconComponent,
   ZardMenuImports
 } from '@xpert-ai/headless-ui'
@@ -49,6 +51,7 @@ registerEChartsThemes()
   declarations: [FeaturesComponent],
   imports: [
     CommonModule,
+    TranslateModule,
     FeaturesRoutingModule,
     CdkMenuModule,
     LayoutComponent,
@@ -70,6 +73,7 @@ registerEChartsThemes()
 
     ZardButtonComponent,
     ZardIconComponent,
+    ZardHighlightComponent,
     ZardAvatarComponent,
     ZardDividerComponent,
     ...ZardMenuImports,

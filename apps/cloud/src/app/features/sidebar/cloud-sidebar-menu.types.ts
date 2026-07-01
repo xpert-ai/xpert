@@ -16,6 +16,7 @@ export interface CloudMenuData {
   subtitleKey?: string
   subtitleDefault?: string
   badge?: string | number
+  onboardingTarget?: string
   [key: string]: unknown
 }
 

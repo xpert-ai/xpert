@@ -16,6 +16,7 @@
                 class="cloud-sidebar-menu__item"
                 [class.is-active]="isActive(item)"
                 [attr.aria-label]="menuTitleDefault(item)"
+                [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
                 z-menu
                 zTrigger="hover"
                 zPlacement="rightTop"
@@ -59,6 +60,7 @@
                 [attr.aria-expanded]="visibleChildren(item).length ? isExpanded(item) : null"
                 [routerLink]="routerLinkFor(item)"
                 [zTooltip]="menuTitleDefault(item)"
+                [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
                 zPosition="right"
                 [zDisabled]="!collapsed()"
                 (click)="onMenuClick($event, item)"
@@ -103,6 +105,7 @@
                       class="cloud-sidebar-menu__subitem"
                       [class.is-active]="isMenuItemActive(child, child.pathMatch !== 'prefix')"
                       [routerLink]="routerLinkFor(child)"
+                      [attr.data-onboarding-target]="child.data?.onboardingTarget || null"
                       (click)="onChildClick($event, child)"
                     >
                       @if (child.icon) {

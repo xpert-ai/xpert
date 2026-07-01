@@ -29,4 +29,5 @@ export class CloudSidebarComponent {
 
   readonly collapsedChange = output<boolean>()
   readonly brandClick = output<void>()
+  readonly entryGuideClick = output<void>()
 }

@@ -17,7 +17,6 @@ import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
-import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
 import { ClawXpertToolPreferencesComponent } from './clawxpert-tool-preferences.component'
 import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 import { buildHeatmapLegend, buildHeatmapStyles } from './clawxpert-heatmap.utils'
@@ -79,7 +78,6 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
     ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
     ClawXpertToolPreferencesComponent,
-    ClawXpertSetupWizardComponent,
     ...ZardMenuImports,
     ...ZardCardImports
   ],
@@ -125,7 +123,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
           </div>
         </div>
       } @else if (facade.viewState() === 'wizard') {
-        <pac-clawxpert-setup-wizard class="block h-full p-8" />
+        <div class="h-full min-h-[32rem] rounded-3xl bg-background-default-subtle"></div>
       } @else {
         <div class="flex">
           <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
