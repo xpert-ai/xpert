@@ -159,6 +159,91 @@ describe('ManagedConnectionRegistryService', () => {
 		).resolves.toBe('pod-a')
 	})
 
+	it('keeps same connection key isolated by tenant and organization scope', async () => {
+		const future = new Date(Date.now() + 60_000)
+		records.push(
+			{
+				id: 'conn-1',
+				pluginName: 'plugin-a',
+				connectionType: 'bridge',
+				connectionKey: 'client-1',
+				ownerInstanceId: 'pod-a',
+				status: 'connected',
+				leaseExpiresAt: future,
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
+			},
+			{
+				id: 'conn-2',
+				pluginName: 'plugin-a',
+				connectionType: 'bridge',
+				connectionKey: 'client-1',
+				ownerInstanceId: 'pod-b',
+				status: 'connected',
+				leaseExpiresAt: future,
+				tenantId: 'tenant-2',
+				organizationId: 'org-2'
+			}
+		)
+
+		await expect(
+			service.getOwner({
+				pluginName: 'plugin-a',
+				connectionType: 'bridge',
+				connectionKey: 'client-1',
+				tenantId: 'tenant-2',
+				organizationId: 'org-2'
+			})
+		).resolves.toBe('pod-b')
+		await expect(
+			service.getOwner({
+				pluginName: 'plugin-a',
+				connectionType: 'bridge',
+				connectionKey: 'client-1',
+				tenantId: 'tenant-3',
+				organizationId: 'org-3'
+			})
+		).resolves.toBeNull()
+	})
+
+	it('allows scoped metadata sync to migrate an unscoped registered connection', async () => {
+		await service.register({
+			pluginName: 'plugin-a',
+			connectionType: 'bridge',
+			connectionKey: 'client-1',
+			transportType: 'websocket',
+			leaseTtlMs: 1000
+		})
+
+		await service.syncMetadata({
+			pluginName: 'plugin-a',
+			connectionType: 'bridge',
+			connectionKey: 'client-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			metadata: { integrationId: 'integration-1' }
+		})
+
+		expect(records[0]).toEqual(
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				metadata: expect.objectContaining({
+					integrationId: 'integration-1'
+				})
+			})
+		)
+		await expect(
+			service.getOwner({
+				pluginName: 'plugin-a',
+				connectionType: 'bridge',
+				connectionKey: 'client-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
+			})
+		).resolves.toBe('pod-a')
+	})
+
 	it('filters list results by direction', async () => {
 		const qb = createQueryBuilderMock([
 			{

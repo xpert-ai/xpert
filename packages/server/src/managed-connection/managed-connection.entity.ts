@@ -8,7 +8,22 @@ import { Column, Entity, Index } from 'typeorm'
 import { TenantOrganizationBaseEntity } from '../core/entities/tenant-organization-base.entity'
 
 @Entity('managed_connection')
-@Index(['pluginName', 'connectionType', 'connectionKey'], { unique: true })
+@Index('managed_connection_global_key_uq', ['pluginName', 'connectionType', 'connectionKey'], {
+	unique: true,
+	where: '"tenantId" IS NULL AND "organizationId" IS NULL'
+})
+@Index('managed_connection_tenant_key_no_org_uq', ['pluginName', 'connectionType', 'connectionKey', 'tenantId'], {
+	unique: true,
+	where: '"tenantId" IS NOT NULL AND "organizationId" IS NULL'
+})
+@Index(
+	'managed_connection_tenant_org_key_uq',
+	['pluginName', 'connectionType', 'connectionKey', 'tenantId', 'organizationId'],
+	{
+		unique: true,
+		where: '"tenantId" IS NOT NULL AND "organizationId" IS NOT NULL'
+	}
+)
 @Index(['pluginName', 'connectionType', 'direction'])
 @Index(['ownerInstanceId'])
 @Index(['tenantId', 'organizationId'])

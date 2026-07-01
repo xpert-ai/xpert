@@ -9,7 +9,7 @@ import type {
 	ManagedConnectionRegistry,
 	RegisterManagedConnectionInput
 } from '@xpert-ai/plugin-sdk'
-import { LessThan, MoreThan, Repository } from 'typeorm'
+import { IsNull, LessThan, MoreThan, Repository } from 'typeorm'
 import { ManagedConnectionEntity } from './managed-connection.entity'
 import { InstanceRegistryService } from './instance-registry.service'
 
@@ -70,7 +70,16 @@ export class ManagedConnectionRegistryService implements ManagedConnectionRegist
 	}
 
 	async syncMetadata(input: ManagedConnectionMetadataInput): Promise<void> {
-		const entity = await this.findCurrent(input)
+		let entity = await this.findCurrent(input)
+		if (!entity && this.hasExplicitScope(input)) {
+			entity = await this.findCurrent({
+				pluginName: input.pluginName,
+				connectionType: input.connectionType,
+				connectionKey: input.connectionKey,
+				tenantId: null,
+				organizationId: null
+			})
+		}
 		if (!entity) {
 			return
 		}
@@ -182,6 +191,7 @@ export class ManagedConnectionRegistryService implements ManagedConnectionRegist
 		if (input.pluginName) {
 			where.pluginName = input.pluginName
 		}
+		this.applyScopeWhere(where, input)
 		if (activeOnly) {
 			where.status = 'connected'
 			where.leaseExpiresAt = MoreThan(new Date())
@@ -198,6 +208,19 @@ export class ManagedConnectionRegistryService implements ManagedConnectionRegist
 	private addLease(now: Date, leaseTtlMs?: number): Date {
 		const ttl = Number.isFinite(leaseTtlMs) && leaseTtlMs > 0 ? leaseTtlMs : DEFAULT_LEASE_TTL_MS
 		return new Date(now.getTime() + ttl)
+	}
+
+	private applyScopeWhere(where: Record<string, unknown>, input: ManagedConnectionKeyInput): void {
+		if (input.tenantId !== undefined) {
+			where.tenantId = input.tenantId ?? IsNull()
+		}
+		if (input.organizationId !== undefined) {
+			where.organizationId = input.organizationId ?? IsNull()
+		}
+	}
+
+	private hasExplicitScope(input: ManagedConnectionKeyInput): boolean {
+		return input.tenantId !== undefined || input.organizationId !== undefined
 	}
 
 	private requireValue(value: string | null | undefined, field: string): string {
