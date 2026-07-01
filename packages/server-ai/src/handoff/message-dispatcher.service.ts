@@ -4,12 +4,14 @@ import {
 	getErrorMessage,
 	HandoffMessage,
 	HandoffProcessorRegistry,
-	ProcessResult,
-	runWithRequestContext
+	ProcessResult
 } from '@xpert-ai/plugin-sdk'
-import { runWithRequestContext as runWithLegacyRequestContext } from '@xpert-ai/server-core'
 import { HandoffCancelService } from './handoff-cancel.service'
 import { buildCanceledReason, isAbortLikeError } from './cancel-reason'
+import {
+	getHandoffMessageOrganizationId,
+	runWithHandoffMessageContext
+} from './message-context'
 
 @Injectable()
 export class MessageDispatcherService {
@@ -21,7 +23,7 @@ export class MessageDispatcherService {
 
 	async dispatch(message: HandoffMessage): Promise<ProcessResult> {
 		this.assertMessage(message)
-		return this.runWithMessageContext(message, () => this.dispatchWithContext(message))
+		return runWithHandoffMessageContext(message, () => this.dispatchWithContext(message))
 	}
 
 	private async dispatchWithContext(message: HandoffMessage): Promise<ProcessResult> {
@@ -60,32 +62,6 @@ export class MessageDispatcherService {
 		}
 	}
 
-	private async runWithMessageContext<T>(message: HandoffMessage, task: () => Promise<T>): Promise<T> {
-		const organizationId = this.getOrganizationId(message)
-		const userId = this.getHeader(message, 'userId')
-		const language = this.getHeader(message, 'language')
-		const user = {
-			id: userId ?? null,
-			tenantId: message.tenantId
-		} as any
-		const headers: Record<string, string> = {
-			['tenant-id']: message.tenantId,
-			['x-scope-level']: organizationId ? 'organization' : 'tenant',
-			...(organizationId ? { ['organization-id']: organizationId } : {}),
-			...(language ? { language } : {})
-		}
-
-		// Queue workers do not inherit HTTP request scope, so rebuild it from the message envelope
-		// before resolving scope-aware plugin processors.
-		return new Promise<T>((resolve, reject) => {
-			runWithRequestContext({ user, headers } as any, {} as any, () => {
-				runWithLegacyRequestContext({ user, headers } as any, () => {
-					task().then(resolve).catch(reject)
-				})
-			})
-		})
-	}
-
 	private resolveCanceledReason(messageId: string, error?: unknown): string {
 		const reason = this.handoffCancelService.getCancelReason(messageId)
 		if (reason) {
@@ -119,14 +95,6 @@ export class MessageDispatcherService {
 	}
 
 	private getOrganizationId(message: HandoffMessage): string | undefined {
-		return this.getHeader(message, 'organizationId')
-	}
-
-	private getHeader(message: HandoffMessage, key: string): string | undefined {
-		const value = message.headers?.[key]
-		if (typeof value === 'string' && value.length > 0) {
-			return value
-		}
-		return undefined
+		return getHandoffMessageOrganizationId(message)
 	}
 }
