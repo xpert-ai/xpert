@@ -214,42 +214,16 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
-      title: 'Chat',
-      icon: 'ri-chat-1-line',
-      link: '/chat',
+      title: '任务',
+      icon: 'ri-list-check-3',
+      link: '/chat/tasks',
       pathMatch: 'prefix',
-      expanded: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Chat',
+        translationKey: 'Tasks',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.CHAT_VIEW],
-        inactivePathPrefixes: ['/chat/chatbi', '/chatbi'],
-        subtitleKey: 'PAC.Chat.MenuSubtitle',
-        subtitleDefault: '新建、最近、任务'
-      },
-      children: [
-        {
-          title: '最近会话',
-          icon: 'ri-history-line',
-          link: '/chat',
-          pathMatch: 'prefix',
-          data: {
-            translationKey: 'Recent Chats',
-            activePathPrefixes: ['/chat/c'],
-            inactivePathPrefixes: ['/chat/tasks']
-          }
-        },
-        {
-          title: '任务',
-          icon: 'ri-list-check-3',
-          link: '/chat/tasks',
-          pathMatch: 'prefix',
-          data: {
-            translationKey: 'Tasks'
-          }
-        }
-      ]
+        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+      }
     },
     {
       title: 'CodeXpert',

@@ -27,6 +27,18 @@
   padding: 0.7rem 0.5rem 0.5rem;
 }
 
+.cloud-sidebar__current-assistant {
+  display: block;
+  flex: 0 0 auto;
+  padding: 0 0.625rem 0.65rem;
+}
+
+.cloud-sidebar.is-collapsed .cloud-sidebar__current-assistant {
+  display: flex;
+  justify-content: center;
+  padding: 0 0.5rem 0.5rem;
+}
+
 .cloud-sidebar__scroll {
   min-height: 0;
   flex: 1;
