@@ -1,12 +1,19 @@
 import { ApiKeyBindingType, IApiPrincipal, IUser, RolesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Repository } from 'typeorm'
+import { Brackets, Repository } from 'typeorm'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspace } from './workspace.entity'
 
 describe('XpertWorkspaceAccessService', () => {
 	let service: XpertWorkspaceAccessService
-	let workspaceRepository: Pick<Repository<XpertWorkspace>, 'manager'>
+	let workspaceRepository: Pick<Repository<XpertWorkspace>, 'createQueryBuilder' | 'manager'>
+	let workspaceQueryBuilder: {
+		leftJoinAndSelect: jest.Mock
+		where: jest.Mock
+		andWhere: jest.Mock
+		addOrderBy: jest.Mock
+		getMany: jest.Mock
+	}
 	let xpertQueryBuilder: {
 		select: jest.Mock
 		addSelect: jest.Mock
@@ -18,6 +25,17 @@ describe('XpertWorkspaceAccessService', () => {
 	}
 
 	beforeEach(() => {
+		workspaceQueryBuilder = {
+			leftJoinAndSelect: jest.fn(),
+			where: jest.fn(),
+			andWhere: jest.fn(),
+			addOrderBy: jest.fn(),
+			getMany: jest.fn()
+		}
+		Object.values(workspaceQueryBuilder)
+			.filter((mock) => mock !== workspaceQueryBuilder.getMany)
+			.forEach((mock) => mock.mockReturnValue(workspaceQueryBuilder))
+		workspaceQueryBuilder.getMany.mockResolvedValue([])
 		xpertQueryBuilder = {
 			select: jest.fn(),
 			addSelect: jest.fn(),
@@ -31,10 +49,11 @@ describe('XpertWorkspaceAccessService', () => {
 			.filter((mock) => mock !== xpertQueryBuilder.getRawOne)
 			.forEach((mock) => mock.mockReturnValue(xpertQueryBuilder))
 		workspaceRepository = {
+			createQueryBuilder: jest.fn(() => workspaceQueryBuilder),
 			manager: {
 				createQueryBuilder: jest.fn(() => xpertQueryBuilder)
 			}
-		} as unknown as Pick<Repository<XpertWorkspace>, 'manager'>
+		} as unknown as Pick<Repository<XpertWorkspace>, 'createQueryBuilder' | 'manager'>
 		service = new XpertWorkspaceAccessService(workspaceRepository as Repository<XpertWorkspace>)
 
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
@@ -49,6 +68,42 @@ describe('XpertWorkspaceAccessService', () => {
 
 	afterEach(() => {
 		jest.restoreAllMocks()
+	})
+
+	it('keeps tenant scope workspace listing scoped to tenant workspaces by default', async () => {
+		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+		;(RequestContext.isTenantScope as jest.Mock).mockReturnValue(true)
+
+		await service.findAccessibleWorkspaces()
+
+		expect(workspaceQueryBuilder.andWhere).toHaveBeenCalledWith('workspace.organizationId IS NULL')
+	})
+
+	it('can include organization workspaces in tenant scope for cross-scope xpert availability checks', async () => {
+		;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+		;(RequestContext.isTenantScope as jest.Mock).mockReturnValue(true)
+
+		await service.findAccessibleWorkspaces(undefined, {
+			includeOrganizationWorkspacesInTenantScope: true
+		})
+
+		expect(workspaceQueryBuilder.andWhere).not.toHaveBeenCalledWith('workspace.organizationId IS NULL')
+		const scopeBracket = readBrackets(workspaceQueryBuilder.andWhere.mock.calls.at(-1)?.[0])
+		const scopeQuery = createWhereExpressionBuilder()
+
+		scopeBracket.whereFactory(scopeQuery)
+		const tenantBracket = readBrackets(scopeQuery.where.mock.calls[0]?.[0])
+		const organizationBracket = readBrackets(scopeQuery.orWhere.mock.calls[0]?.[0])
+		const tenantQuery = createWhereExpressionBuilder()
+		const organizationQuery = createWhereExpressionBuilder()
+
+		tenantBracket.whereFactory(tenantQuery)
+		organizationBracket.whereFactory(organizationQuery)
+
+		expect(tenantQuery.where).toHaveBeenCalledWith('workspace.organizationId IS NULL')
+		expect(organizationQuery.where).toHaveBeenCalledWith('workspace.organizationId IS NOT NULL')
+		expect(organizationQuery.where).toHaveBeenCalledWith('workspace.ownerId = :ownerId', { ownerId: 'user-1' })
+		expect(organizationQuery.orWhere).toHaveBeenCalledWith('member.id = :userId', { userId: 'user-1' })
 	})
 
 	it('allows organization users to read and run tenant-shared workspaces without write access', async () => {
@@ -461,3 +516,28 @@ describe('XpertWorkspaceAccessService', () => {
 		})
 	})
 })
+
+type TestWhereExpressionBuilder = {
+	where: jest.Mock
+	orWhere: jest.Mock
+	andWhere: jest.Mock
+}
+type TestBrackets = Brackets & {
+	whereFactory: (query: TestWhereExpressionBuilder) => void
+}
+
+function createWhereExpressionBuilder(): TestWhereExpressionBuilder {
+	return {
+		where: jest.fn().mockReturnThis(),
+		orWhere: jest.fn().mockReturnThis(),
+		andWhere: jest.fn().mockReturnThis()
+	}
+}
+
+function readBrackets(value: unknown): TestBrackets {
+	if (value instanceof Brackets && 'whereFactory' in value && typeof value.whereFactory === 'function') {
+		return value as TestBrackets
+	}
+
+	throw new Error('Expected TypeORM Brackets')
+}

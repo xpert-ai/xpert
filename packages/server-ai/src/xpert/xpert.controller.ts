@@ -189,8 +189,13 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @Get('my')
-    async getMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
-        return this.service.getMyAll(params)
+    async getMyAll(
+        @Query('data', ParseJsonPipe) params: PaginationParams<Xpert>,
+        @Query('includeOrganizationWorkspacesInTenantScope') includeOrganizationWorkspacesInTenantScope?: string
+    ) {
+        return this.service.getMyAll(params, {
+            includeOrganizationWorkspacesInTenantScope: includeOrganizationWorkspacesInTenantScope === 'true'
+        })
     }
 
     @Get('validate')

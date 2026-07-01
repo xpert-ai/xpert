@@ -1,0 +1,114 @@
+import {
+  createFeatureEntryOnboardingSteps,
+  getAvailableFeatureEntryOnboardingSteps,
+  getFeatureEntryOnboardingFinishText,
+  isFeatureEntryOnboardingBlocked,
+  shouldCreateClawXpertAfterEntryOnboarding,
+  shouldExpandSidebarForEntryOnboarding,
+  shouldShowFeatureEntryOnboardingForXpertCount,
+  shouldAdvanceFeatureEntryOnboardingAfterScopeChange
+} from './features-onboarding'
+import { RequestScopeLevel } from '../@core/types'
+
+describe('createFeatureEntryOnboardingSteps', () => {
+  it('keeps the entry guide focused on the four approved navigation points', () => {
+    const steps = createFeatureEntryOnboardingSteps()
+
+    expect(steps.map((step) => step.title)).toEqual([
+      'PAC.Chat.ClawXpert.EntryGuideScopeTitle',
+      'PAC.Chat.ClawXpert.EntryGuidePluginsTitle',
+      'PAC.Chat.ClawXpert.EntryGuideModelProvidersTitle',
+      'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'
+    ])
+    expect(steps.every((step) => step.placement === 'rightTop')).toBe(true)
+  })
+
+  it('targets the stable onboarding attributes in order', () => {
+    document.body.innerHTML = `
+      <button data-onboarding-target="scope-switcher"></button>
+      <button data-onboarding-target="plugins-marketplace"></button>
+      <button data-onboarding-target="model-providers"></button>
+      <button data-onboarding-target="workspace"></button>
+    `
+
+    const targets = createFeatureEntryOnboardingSteps().map((step) => step.target?.())
+
+    expect(targets.map((target) => target?.getAttribute('data-onboarding-target'))).toEqual([
+      'scope-switcher',
+      'plugins-marketplace',
+      'model-providers',
+      'workspace'
+    ])
+  })
+
+  it('keeps the guide scope-neutral by filtering unavailable targets', () => {
+    document.body.innerHTML = `
+      <button data-onboarding-target="scope-switcher"></button>
+      <button data-onboarding-target="workspace"></button>
+    `
+
+    expect(getAvailableFeatureEntryOnboardingSteps(createFeatureEntryOnboardingSteps()).map((step) => step.title)).toEqual(
+      ['PAC.Chat.ClawXpert.EntryGuideScopeTitle', 'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle']
+    )
+  })
+
+  it('does not show the entry guide over a dialog backdrop', () => {
+    document.body.innerHTML = '<div class="cdk-dialog-container"></div>'
+
+    expect(isFeatureEntryOnboardingBlocked()).toBe(true)
+  })
+
+  it('advances after the user switches from tenant scope to organization scope on the scope step', () => {
+    const [scopeStep, pluginsStep] = createFeatureEntryOnboardingSteps()
+
+    expect(
+      shouldAdvanceFeatureEntryOnboardingAfterScopeChange(
+        RequestScopeLevel.TENANT,
+        RequestScopeLevel.ORGANIZATION,
+        scopeStep
+      )
+    ).toBe(true)
+    expect(
+      shouldAdvanceFeatureEntryOnboardingAfterScopeChange(
+        RequestScopeLevel.ORGANIZATION,
+        RequestScopeLevel.ORGANIZATION,
+        scopeStep
+      )
+    ).toBe(false)
+    expect(
+      shouldAdvanceFeatureEntryOnboardingAfterScopeChange(
+        RequestScopeLevel.TENANT,
+        RequestScopeLevel.ORGANIZATION,
+        pluginsStep
+      )
+    ).toBe(false)
+  })
+
+  it('shows the entry guide only when the current account has no available xperts', () => {
+    expect(shouldShowFeatureEntryOnboardingForXpertCount(0)).toBe(true)
+    expect(shouldShowFeatureEntryOnboardingForXpertCount(1)).toBe(false)
+    expect(shouldShowFeatureEntryOnboardingForXpertCount(null)).toBe(false)
+  })
+
+  it('shows the entry guide when the current user manually requests it', () => {
+    expect(shouldShowFeatureEntryOnboardingForXpertCount(1, true)).toBe(true)
+    expect(shouldShowFeatureEntryOnboardingForXpertCount(null, true)).toBe(true)
+  })
+
+  it('starts the ClawXpert creation flow only when the account has no available xperts', () => {
+    expect(shouldCreateClawXpertAfterEntryOnboarding(0)).toBe(true)
+    expect(shouldCreateClawXpertAfterEntryOnboarding(1)).toBe(false)
+    expect(shouldCreateClawXpertAfterEntryOnboarding(null)).toBe(false)
+  })
+
+  it('uses a completion action after the account already has an available xpert', () => {
+    expect(getFeatureEntryOnboardingFinishText(0)).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
+    expect(getFeatureEntryOnboardingFinishText(1)).toBe('PAC.ACTIONS.Done')
+  })
+
+  it('expands the sidebar only while the entry guide is visible', () => {
+    expect(shouldExpandSidebarForEntryOnboarding(true, true)).toBe(false)
+    expect(shouldExpandSidebarForEntryOnboarding(true, false)).toBe(true)
+    expect(shouldExpandSidebarForEntryOnboarding(false, true)).toBe(false)
+  })
+})

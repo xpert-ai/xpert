@@ -306,7 +306,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'Workspace',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+        onboardingTarget: 'workspace'
       }
     },
 
@@ -415,7 +416,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'Plugins',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+        onboardingTarget: 'plugins-marketplace'
       }
     },
     {
@@ -440,7 +442,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         translationKey: 'AI Copilot',
         featureKey: AiFeatureEnum.FEATURE_COPILOT,
         permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
-        activePathPrefixes: ['/copilot']
+        activePathPrefixes: ['/copilot'],
+        onboardingTarget: 'model-providers'
       }
     }
   ]
