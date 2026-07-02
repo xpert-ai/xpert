@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.0
+
+### Minor Changes
+
+- c1e4da2: managed queue
+
+### Patch Changes
+
+- Updated dependencies [c1e4da2]
+  - @xpert-ai/contracts@3.15.1
+
 ## 3.14.0
 
 ### Minor Changes
