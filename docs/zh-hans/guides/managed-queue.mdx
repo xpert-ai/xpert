@@ -1,0 +1,246 @@
+# Managed Queue 托管队列
+
+`ManagedQueue` 是平台用于运行插件后台任务的公共能力。它让平台统一持有 BullMQ queue、Redis 连接、worker、租户上下文恢复、重试、延迟调度和取消能力，插件只声明逻辑 job handler 并通过 SDK 抽象入队。
+
+它是 `ManagedConnection` 的兄弟能力，不属于 `managed-connection`。托管连接解决“某个 Pod 持有长连接”的问题；托管队列解决“插件后台任务要在多租户、多插件实例、多 Pod 下可靠调度”的问题。
+
+## 为什么需要
+
+如果每个插件自己 `BullModule.forRoot()`、自己创建 Redis 连接和物理队列，生产环境会出现几个问题：
+
+- 多租户安装同一个插件时，队列名、job id、Redis key 和 processor 可能互相碰撞。
+- 插件 worker 执行时没有 HTTP 请求上下文，容易丢失 `tenantId`、`organizationId`、scope。
+- 插件依赖 BullMQ 私有 client 获取 Redis，平台很难统一治理连接、锁、限流状态和运维参数。
+- 每个插件各自实现 retry、delay、cancel、worker lifecycle，行为不一致。
+- 多 Pod 部署中，排查任务运行位置、失败原因和上下文恢复会变得分散。
+
+托管队列的目标是把这些基础设施问题收回平台，把插件边界压缩成“声明 job + 处理 payload”。
+
+## 架构
+
+服务端模块是 `ManagedQueueModule`，位于 `packages/server/src/managed-queue`。
+
+主要 provider：
+
+- `ManagedQueueService`：插件入队、取消、查询 job，并提供平台 Redis 访问能力。
+- `ManagedQueueProcessor`：平台唯一 BullMQ worker，消费物理队列。
+- `ManagedQueueHandlerRegistryService`：按 `{scopeKey, pluginName, queueName, jobName}` 注册和解析逻辑 handler。
+- `ManagedQueueHandlerExplorerService`：扫描 `@PluginJobProcessor()` metadata，并在动态插件加载/卸载时同步注册或注销 handler。
+
+物理 BullMQ 队列固定为平台队列，逻辑插件队列放在 envelope 中：
+
+```text
+prefix: xpert:managed-queue
+queue: plugin-jobs
+```
+
+Redis key 由 BullMQ 按 prefix 和 queue 生成。插件不再创建自己的物理 queue，也不再 import `@nestjs/bullmq`。
+
+## Job Envelope
+
+插件调用 `ManagedQueueService.enqueue()` 时，平台把业务 payload 包在统一 envelope 中：
+
+```json
+{
+  "pluginName": "@xpert-ai/plugin-community-wechat",
+  "queueName": "wechat.outbound",
+  "jobName": "send-message",
+  "payload": {},
+  "tenantId": "tenant-1",
+  "organizationId": "org-1",
+  "scopeKey": "org-1",
+  "userId": "user-1",
+  "enqueuedAt": "2026-07-01T00:00:00.000Z"
+}
+```
+
+这些字段的职责：
+
+- `pluginName`：插件包名或平台内置插件名。
+- `queueName`：插件内的逻辑队列名。
+- `jobName`：插件内的逻辑任务名。
+- `payload`：插件业务数据。
+- `tenantId`、`organizationId`、`scopeKey`：平台恢复请求上下文和查找 scoped handler。
+- `userId`：可选的触发用户，用于恢复 user context。
+
+平台 worker 消费到 job 后，会先从 envelope 恢复 `RequestContext`，再调用对应 handler。
+
+## SDK 接口
+
+插件从 `@xpert-ai/plugin-sdk` 使用 token、类型和装饰器：
+
+```ts
+import {
+  MANAGED_QUEUE_SERVICE_TOKEN,
+  PluginJobProcessor,
+  type ManagedQueueJob,
+  type ManagedQueueService
+} from '@xpert-ai/plugin-sdk'
+```
+
+入队：
+
+```ts
+const queue = ctx.resolve<ManagedQueueService>(MANAGED_QUEUE_SERVICE_TOKEN)
+
+const result = await queue.enqueue({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  queueName: 'wechat.outbound',
+  jobName: 'send-message',
+  payload: {
+    integrationId,
+    outboundLogId
+  },
+  tenantId,
+  organizationId,
+  scopeKey,
+  jobId: `wechat:outbound:${outboundLogId}`,
+  delayMs: 1_000,
+  attempts: 3,
+  backoffMs: {
+    type: 'fixed',
+    delay: 60_000
+  }
+})
+```
+
+取消等待或延迟任务：
+
+```ts
+await queue.cancel({ jobId: result.jobId })
+```
+
+获取 BullMQ job 快照：
+
+```ts
+await queue.getJob({ jobId: result.jobId })
+```
+
+使用平台 Redis：
+
+```ts
+const redis = await queue.getRedis()
+await redis.set(lockKey, '1', 'PX', 30_000, 'NX')
+```
+
+插件可以用这个 Redis 能力保存限流状态、聚合状态或分布式锁，但 key 必须包含 tenant、organization、integration 等作用域信息。
+
+## 声明 Processor
+
+插件不再写 `@Processor()` 和 `WorkerHost`。插件只声明逻辑 processor：
+
+```ts
+@PluginJobProcessor({
+  pluginName: '@xpert-ai/plugin-community-wechat',
+  queueName: 'wechat.outbound',
+  jobName: 'send-message',
+  concurrency: 1
+})
+@Injectable()
+export class WechatOutboundQueueProcessor {
+  async handle(job: ManagedQueueJob<WechatOutboundQueueJobData>) {
+    await this.queueService.processSendTextJob(job)
+  }
+}
+```
+
+同一个类可以声明多个 job：
+
+```ts
+@PluginJobProcessor({
+  pluginName,
+  queueName: 'wechat.inbound',
+  jobName: 'aggregate'
+})
+@PluginJobProcessor({
+  pluginName,
+  queueName: 'wechat.inbound',
+  jobName: 'flush'
+})
+@Injectable()
+export class WechatInboundQueueProcessor {
+  async handle(job: ManagedQueueJob<InboundPayload>) {
+    switch (job.name) {
+      case 'aggregate':
+        return this.aggregate(job.data)
+      case 'flush':
+        return this.flush(job.data)
+    }
+  }
+}
+```
+
+为了兼容早期草案，装饰器也接受 `queue` 作为 `queueName` alias，接受 `jobType` 作为 `jobName` alias。
+
+## Handler 发现与生命周期
+
+`ManagedQueueHandlerExplorerService` 会：
+
+1. 在模块启动时扫描 Nest providers。
+2. 读取 `PLUGIN_JOB_PROCESSOR_METADATA`。
+3. 从 provider metadata 或实例上的 `scopeKey` 获取当前插件作用域。
+4. 注册 `{pluginName, queueName, jobName, scopeKey}` 到 registry。
+5. 监听动态插件加载事件并追加注册。
+6. 监听插件卸载事件并注销对应 handler。
+
+因此动态安装插件后，新的 job handler 不需要重启平台就能进入 registry。卸载插件后，对应 scope 下的 handler 会被移除。
+
+## 并发语义
+
+`@PluginJobProcessor({ concurrency })` 是逻辑 handler 的本进程并发限制。它限制同一个 `{scopeKey, pluginName, queueName, jobName}` handler 在当前 API 进程内同时运行的数量。
+
+它不是 BullMQ 物理 worker 的全局并发，也不是跨 Pod 分布式串行保证。跨实例严格串行、账号级限流、联系人级限流仍应使用平台 Redis 分布式锁或业务限流 key。
+
+示例：
+
+- `concurrency: 1` 可以避免同一个进程内并发调用同一个插件 handler。
+- WeChat 出站发送仍需要 `plugin_wechat:{tenantId}:{integrationId}:lock:outbound` 这类租户和 integration 作用域的 Redis lock。
+
+## 重试与失败
+
+handler 不需要调用 `fail()`。如果任务失败，直接抛出错误：
+
+```ts
+async handle(job: ManagedQueueJob<Payload>) {
+  try {
+    await this.send(job.data)
+  } catch (error) {
+    await this.recordFailure(job, error)
+    throw error
+  }
+}
+```
+
+BullMQ 会按入队时的 `attempts` 和 `backoffMs` 执行重试。插件负责维护自己的业务状态，例如 message log、account status、integration health。
+
+## 迁移插件自有 BullMQ
+
+迁移步骤：
+
+1. 删除插件中的 `BullModule.forRoot()`、`BullModule.registerQueue()`、`@Processor()`、`WorkerHost` 和 `InjectQueue`。
+2. 删除插件自有 Redis/BullMQ 连接封装。
+3. 用 `ManagedQueueService.enqueue()` 替换 `queue.add()`。
+4. 用 `ManagedQueueService.cancel()` 替换直接访问 BullMQ job。
+5. 用 `@PluginJobProcessor()` 声明 handler。
+6. 把 handler 内所有 Redis key 加上 tenant、organization、integration 等作用域。
+7. 确保 handler 不依赖当前 HTTP 请求，所有必要 scope 都来自 job envelope 或业务表。
+8. 上线前排空旧物理队列，确认旧队列没有 waiting、delayed 或 pending job。
+
+WeChat 插件迁移后，旧队列 `plugin_wechat:plugin_wechat_outbound` 和 `plugin_wechat:plugin_wechat_inbound` 不再由新代码消费。发布前必须先排空旧队列。
+
+## 运维配置
+
+平台 worker 支持以下环境变量：
+
+- `MANAGED_QUEUE_CONCURRENCY`：平台物理 worker 并发，默认值由服务端实现决定。
+- `MANAGED_QUEUE_AUTORUN=false`：阻止 worker 自动启动，适合部分测试或特殊部署。
+
+插件不应自行配置 BullMQ connection。Redis 连接由平台配置统一提供。
+
+## 当前边界
+
+- 第一版不新增 managed queue 数据库表，队列状态由 BullMQ 保存。
+- 业务可观测状态仍由插件自己的业务表保存。
+- 第一版不自动迁移旧插件物理队列。
+- `concurrency` 是本进程逻辑限制，不替代分布式业务锁。
+- 平台只负责 dispatch、context、retry、delay、cancel 和 Redis access，不理解插件 payload 的业务含义。

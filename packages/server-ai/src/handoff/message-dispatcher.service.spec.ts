@@ -1,4 +1,4 @@
-import { HandoffMessage } from '@xpert-ai/plugin-sdk'
+import { HandoffMessage, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildCanceledReason } from './cancel-reason'
 import { MessageDispatcherService } from './message-dispatcher.service'
 
@@ -45,6 +45,51 @@ describe('MessageDispatcherService', () => {
 		expect(pendingResults.publish).toHaveBeenCalledWith('message-id', { type: 'progress' })
 		expect(handoffCancelService.register).toHaveBeenCalledTimes(1)
 		expect(handoffCancelService.unregister).toHaveBeenCalledWith('message-id')
+	})
+
+	it('resolves tenant-scope processors from the handoff message tenant', async () => {
+		const pendingResults = { publish: jest.fn() }
+		const process = jest.fn().mockResolvedValue({ status: 'ok' })
+		const observedContext: Array<{
+			tenantId: string | null
+			organizationId: string | null
+			level: string
+			currentTenantId: string | null
+		}> = []
+		const processorRegistry = {
+			get: jest.fn().mockImplementation(() => {
+				const scope = RequestContext.getScope()
+				observedContext.push({
+					tenantId: scope.tenantId,
+					organizationId: scope.organizationId,
+					level: scope.level,
+					currentTenantId: RequestContext.currentTenantId()
+				})
+				return { process }
+			})
+		}
+		const handoffCancelService = {
+			register: jest.fn(),
+			unregister: jest.fn(),
+			getCancelReason: jest.fn()
+		}
+		const service = new MessageDispatcherService(
+			processorRegistry as any,
+			pendingResults as any,
+			handoffCancelService as any
+		)
+
+		await service.dispatch(createMessage())
+
+		expect(processorRegistry.get).toHaveBeenCalledWith('agent.chat.v1', undefined)
+		expect(observedContext).toEqual([
+			{
+				tenantId: 'tenant-id',
+				organizationId: null,
+				level: 'tenant',
+				currentTenantId: 'tenant-id'
+			}
+		])
 	})
 
 	it('maps aborted processing to canceled dead result', async () => {
