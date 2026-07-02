@@ -87,6 +87,90 @@ pnpm plugin:reinstall:local \
 - 使用明确的单 major 兼容范围，例如 `^3.8.0`
 - 宿主会在激活插件前校验 SDK 兼容性，并拒绝自带 SDK 副本的插件包
 
+## 插件 Scope 架构
+
+插件 scope 是已安装插件实例的运行时和持久化边界。它决定宿主把插件包存放在哪里、Provider 注册到哪个范围、配置如何解析，以及哪些租户或组织可以看到插件能力。
+
+不要用 `organizationId` 伪装合成 scope。规范的 scope 身份是 `scopeKey`。
+
+| Scope 类型            | `scopeKey`                 | 持久化方式                                                                                       | 含义                                                   |
+| --------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Organization          | `<organizationId>`         | `PluginInstance.scopeKey = organizationId`，同时保留 tenant / organization 字段用于兼容和展示    | 安装到单个组织的插件。                                 |
+| Default tenant global | `global`                   | 旧 global scope。`tenantId` 可以是 Default tenant 或 `null`，`organizationId` 为 global / `null` | Default tenant 的全局插件。                            |
+| Tenant global         | `tenant:<tenantId>:global` | `PluginInstance.scopeKey` 记录租户级 global 身份                                                 | 某个非 Default tenant 的全局插件，不能泄漏到其他租户。 |
+| System global         | `system:global`            | `PluginInstance.scopeKey = 'system:global'`，`tenantId` 和 `organizationId` 为 `null`            | 全平台单例系统插件，所有租户共享。                     |
+| Built-in global       | `builtin:global`           | 不写入 `PluginInstance`，没有安装 / 卸载生命周期                                                 | 仅表示宿主代码内置 Provider fallback。                 |
+
+### `level` 和 scope 相关，但不是同一个概念
+
+`meta.level = 'system'` 表示插件是平台级单例。只有当插件提供系统级 module / entity 能力，且不能安全地在多个租户或组织中各安装一份时，才应声明为 system。
+
+System 插件遵循以下规则：
+
+- 只有 Default tenant 中的 Super Admin 可以安装或更新 system 插件
+- 安装时无论当前 organization header 是什么，都会强制路由到 `scopeKey = 'system:global'`
+- 同一个 system 插件重复安装时更新同一个单例实例，不会为不同 tenant 创建第二份实例
+- 普通 tenant / organization 用户可以看到 system 插件提供的能力结果，但不能安装、卸载或配置系统实例
+- system 插件只是 Provider fallback 链中的平台默认能力，不会强过 organization 或 tenant-global 覆盖
+
+非 system 插件保持请求的 organization 或 tenant-global scope。如果 marketplace / package metadata 预判为 `level=system`，安装器会在加载前先路由到 `system:global`。插件真正加载后，宿主还会再次检查 `plugin.meta.level`，作为防御性校验；最终 level 与 scope 不一致时会拒绝安装。
+
+### Provider 和 Strategy 解析顺序
+
+运行时 Provider 解析顺序为：
+
+```text
+organization -> tenant-global -> system-global -> builtin-global
+```
+
+组织请求会先查当前组织 scope。没有命中时，继续查当前租户 global scope。Default tenant 的 tenant-global 是旧 `global`；其他租户是 `tenant:<tenantId>:global`。如果仍未命中，再 fallback 到 `system:global`，最后才是 `builtin:global`。
+
+这意味着：
+
+- organization 插件可以覆盖 tenant-global Provider
+- tenant-global 插件可以覆盖 system 插件
+- system 插件只能覆盖宿主内置 Provider
+- `builtin:global` 不是已安装插件，不会写入 `plugin_instance`
+
+### `plugin_instance` 持久化
+
+`plugin_instance.scopeKey` 是插件 scope 的事实来源。新数据使用 `(scopeKey, pluginName)` 唯一约束，因此同一个插件可以在不同显式 scope 下各有一份，但 system 插件在全平台只能有一份。
+
+旧的 `(tenantId, organizationId, pluginName)` 字段继续保留，用于兼容、展示和旧数据 fallback。不要写入类似 `organizationId = 'system:global'` 的合成值。
+
+启动恢复时，旧数据会回填显式 scope：
+
+- `level = 'system'` 的旧记录统一变为 `system:global`；同一个插件的重复旧 system 记录会归并为一条
+- 有 `organizationId` 的记录变为 organization scope
+- 非 Default tenant 的 global 记录变为 `tenant:<tenantId>:global`
+- Default tenant 或 legacy global 记录保持 `global`
+
+恢复路径和运行时安装路径最终会收敛到同一套 scope 模型。System 插件只在 `system:global` 下加载一次，然后通过 Provider fallback 链对所有租户可见。
+
+### 存储路径与包内资源
+
+插件存储路径来自解析后的 scope key。例如 `system:global` 会转成安全路径片段 `system_global`；非 Default tenant 的 global 插件会使用自己的 tenant-global scope 片段。
+
+插件包内资源（`skills/`、MCP 定义、Apps、Hooks、Assets）仍从已加载插件 bundle 实时读取。可见性遵循同样的有效插件顺序：organization、tenant-global、system-global。资源安装状态仍然属于具体 workspace 或 Xpert；安装 system 插件并不代表把它的所有资源自动安装到每个 workspace 或 Xpert。
+
+### 管理与 UI 行为
+
+插件列表 API 会返回 `scopeKey`，前端应使用它区分 organization、tenant-global、system-global 以及旧失败记录。
+
+在组织视角中，可见插件包括：
+
+1. 当前组织安装的插件
+2. 当前租户 global scope 安装的插件
+3. `system:global` 中的系统插件
+
+当同一个插件存在于多个 scope 时，有效优先级为：
+
+```text
+organization > tenant-global > system-global
+```
+
+System 插件卡片在普通租户中应作为平台默认能力展示，但安装、卸载、配置动作只能在 Super Admin 系统管理路径中开放。
+
 ## Plugin Webhook Auth Guard
 
 当插件需要暴露给外部系统调用的入站 webhook 路由时，使用 `PluginWebhookAuthGuard`。webhook credential 只绑定到一个 Integration，不等同于完整平台 API Key，插件不应自行查找或把平台 API Key 拼进 callback URL。

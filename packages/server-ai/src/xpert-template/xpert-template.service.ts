@@ -23,6 +23,7 @@ import { LOADED_PLUGINS, LoadedPluginRecord, PaginationParams, TenantAwareCrudSe
 import {
     GLOBAL_ORGANIZATION_SCOPE,
     RequestContext,
+    SYSTEM_GLOBAL_SCOPE,
     resolveTenantGlobalScopeKey,
     XpertTemplateContribution
 } from '@xpert-ai/plugin-sdk'
@@ -752,7 +753,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                 (plugin) =>
                     (plugin.scopeKey ?? plugin.organizationId) === organizationScopeKey ||
                     (organizationId !== GLOBAL_ORGANIZATION_SCOPE &&
-                        (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey)
+                        (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey) ||
+                    (plugin.scopeKey ?? plugin.organizationId) === SYSTEM_GLOBAL_SCOPE
             )
             .reverse()
             .filter((plugin) => {

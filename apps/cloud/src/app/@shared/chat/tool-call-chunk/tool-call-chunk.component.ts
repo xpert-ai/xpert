@@ -26,6 +26,7 @@ export class ChatToolCallChunkComponent {
   // Inputs
   readonly chunk = input<TMessageComponent<TMessageComponentStep>>()
   readonly conversationStatus = input()
+  readonly organizationId = input<string | null>(null)
   readonly openable = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })

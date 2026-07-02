@@ -17,6 +17,7 @@ import {
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
     SandboxBackendProtocol,
+    SYSTEM_GLOBAL_SCOPE,
     resolveTenantGlobalScopeKey,
     resolveSandboxBackend
 } from '@xpert-ai/plugin-sdk'
@@ -357,17 +358,16 @@ export class PluginHooksMiddleware implements IAgentMiddlewareStrategy<PluginHoo
                 ? resolveTenantGlobalScopeKey(context.tenantId)
                 : organizationId
         const globalScopeKey = resolveTenantGlobalScopeKey(context.tenantId)
-        const record = this.loadedPlugins.find((item) => {
-            const scopeKey = item.scopeKey ?? item.organizationId
-            if (
-                scopeKey !== organizationScopeKey &&
-                (organizationId === GLOBAL_ORGANIZATION_SCOPE || scopeKey !== globalScopeKey)
-            ) {
-                return false
-            }
+        const candidates = this.loadedPlugins.filter((item) => {
             const names = [item.name, item.packageName].filter((value): value is string => !!value)
             return names.some((name) => normalizePluginName(name) === normalized)
         })
+        const record =
+            candidates.find((item) => (item.scopeKey ?? item.organizationId) === organizationScopeKey) ??
+            (organizationId !== GLOBAL_ORGANIZATION_SCOPE
+                ? candidates.find((item) => (item.scopeKey ?? item.organizationId) === globalScopeKey)
+                : null) ??
+            candidates.find((item) => (item.scopeKey ?? item.organizationId) === SYSTEM_GLOBAL_SCOPE)
         return record ? resolveLoadedPluginBundleRoot(record) : null
     }
 

@@ -411,6 +411,10 @@ export class PluginsComponent {
   }
 
   configure(plugin: TInstalledPlugin) {
+    if (!plugin.canConfigure || !plugin.configSchema) {
+      return
+    }
+
     this.#dialog.open(PluginConfigureComponent, {
       data: {
         plugin,
@@ -457,7 +461,11 @@ export class PluginsComponent {
     })
   }
 
-  uninstall(plugin: Pick<TInstalledPlugin, 'name' | 'meta' | 'organizationId'>) {
+  uninstall(plugin: TInstalledPlugin) {
+    if (!plugin.canUninstall) {
+      return
+    }
+
     this.confirmDelete(
       {
         title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
@@ -467,7 +475,7 @@ export class PluginsComponent {
       },
       () => {
         this.removing.set(plugin.name)
-        return this.pluginAPI.uninstall([plugin.name], plugin.organizationId)
+        return this.pluginAPI.uninstall([plugin.name], plugin.organizationId, plugin.scopeKey)
       }
     ).subscribe({
       next: () => {
@@ -482,6 +490,10 @@ export class PluginsComponent {
   }
 
   update(plugin: TInstalledPlugin) {
+    if (!plugin.canUpdate || !plugin.hasUpdate) {
+      return
+    }
+
     this.updating.set(plugin.name)
     this.pluginAPI.update(plugin.name).subscribe({
       next: (result) => {
@@ -507,6 +519,10 @@ export class PluginsComponent {
   }
 
   refresh(plugin: TInstalledPlugin) {
+    if (!plugin.canRefresh) {
+      return
+    }
+
     this.refreshing.set(plugin.name)
     this.pluginAPI.refresh(plugin.name).subscribe({
       next: () => {

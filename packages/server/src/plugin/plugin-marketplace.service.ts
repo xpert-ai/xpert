@@ -19,7 +19,12 @@ import {
 	RolesEnum,
 	type XpertPluginBundleManifest
 } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import {
+	GLOBAL_ORGANIZATION_SCOPE,
+	RequestContext,
+	SYSTEM_GLOBAL_SCOPE,
+	resolveTenantGlobalScopeKey
+} from '@xpert-ai/plugin-sdk'
 import { execFile as execFileCallback } from 'node:child_process'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -334,6 +339,9 @@ export class PluginMarketplaceService {
 					currentOrganizationId !== GLOBAL_ORGANIZATION_SCOPE &&
 					(plugin.scopeKey ?? plugin.organizationId) === globalScopeKey &&
 					matches(plugin)
+			) ??
+			this.loadedPlugins.find(
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === SYSTEM_GLOBAL_SCOPE && matches(plugin)
 			) ??
 			null
 		)
@@ -2339,7 +2347,8 @@ export class PluginMarketplaceService {
 			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
 			if (
 				pluginScopeKey !== organizationScopeKey &&
-				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey)
+				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey) &&
+				pluginScopeKey !== SYSTEM_GLOBAL_SCOPE
 			) {
 				continue
 			}

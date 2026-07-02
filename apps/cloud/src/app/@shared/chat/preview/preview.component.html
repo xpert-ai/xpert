@@ -67,7 +67,12 @@
                   <div
                     class="grow-0 relative inline-block px-2 py-3 max-w-full bg-components-input-bg-normal rounded-b-2xl rounded-tr-2xl text-base text-text-primary"
                   >
-                    <xpert-preview-ai-message [message]="message" [conversation]="conversation()" class="w-full grow" />
+                    <xpert-preview-ai-message
+                      [message]="message"
+                      [conversation]="conversation()"
+                      [organizationId]="organizationId()"
+                      class="w-full grow"
+                    />
                   </div>
 
                   <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">

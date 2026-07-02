@@ -225,9 +225,9 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     return this.httpClient.post<IPluginInstallResult>(`${this.apiBaseUrl}/refresh`, { pluginName })
   }
 
-  uninstall(names: string[], organizationId?: string) {
+  uninstall(names: string[], organizationId?: string, scopeKey?: string) {
     return this.httpClient.delete<void>(`${this.apiBaseUrl}/uninstall`, {
-      body: { names, ...(organizationId ? { organizationId } : {}) }
+      body: { names, ...(organizationId ? { organizationId } : {}), ...(scopeKey ? { scopeKey } : {}) }
     })
   }
 }

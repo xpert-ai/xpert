@@ -1,9 +1,5 @@
 /* eslint-disable */
 import { readFileSync } from 'fs'
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Reading the SWC compilation config and remove the "exclude"
 // for the test files to be compiled by SWC

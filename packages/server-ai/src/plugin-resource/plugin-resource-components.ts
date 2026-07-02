@@ -8,7 +8,12 @@ import {
     resolveLoadedPluginBundleRoot
 } from '@xpert-ai/server-core'
 import { NotFoundException } from '@nestjs/common'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import {
+    GLOBAL_ORGANIZATION_SCOPE,
+    RequestContext,
+    SYSTEM_GLOBAL_SCOPE,
+    resolveTenantGlobalScopeKey
+} from '@xpert-ai/plugin-sdk'
 
 export type PluginResourceInstallTarget = 'workspace' | 'xpert'
 
@@ -44,17 +49,16 @@ export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugin
     const organizationScopeKey =
         organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
     const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
-    const record = loadedPlugins.find((item) => {
-        const scopeKey = item.scopeKey ?? item.organizationId
-        if (
-            scopeKey !== organizationScopeKey &&
-            (organizationId === GLOBAL_ORGANIZATION_SCOPE || scopeKey !== globalScopeKey)
-        ) {
-            return false
-        }
+    const candidates = loadedPlugins.filter((item) => {
         const names = [item.name, item.packageName].filter((value): value is string => !!value)
         return names.some((name) => normalizePluginName(name) === pluginName)
     })
+    const record =
+        candidates.find((item) => (item.scopeKey ?? item.organizationId) === organizationScopeKey) ??
+        (organizationId !== GLOBAL_ORGANIZATION_SCOPE
+            ? candidates.find((item) => (item.scopeKey ?? item.organizationId) === globalScopeKey)
+            : null) ??
+        candidates.find((item) => (item.scopeKey ?? item.organizationId) === SYSTEM_GLOBAL_SCOPE)
     const root = record ? resolveLoadedPluginBundleRoot(record) : null
     if (!root) {
         throw new NotFoundException(`Loaded plugin '${pluginName}' was not found`)

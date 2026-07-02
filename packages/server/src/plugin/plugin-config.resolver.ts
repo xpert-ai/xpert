@@ -4,6 +4,7 @@ import {
 	PLUGIN_CONFIG_RESOLVER_TOKEN,
 	PluginConfigResolveOptions,
 	RequestContext,
+	SYSTEM_GLOBAL_SCOPE,
 	resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable } from '@nestjs/common'
@@ -33,7 +34,8 @@ export class PluginConfigResolver implements IPluginConfigResolver {
 			this.findRecord(normalized, scopeKey) ??
 			(fallbackToGlobal && organizationId !== GLOBAL_ORGANIZATION_SCOPE
 				? this.findRecord(normalized, globalScopeKey)
-				: undefined)
+				: undefined) ??
+			(fallbackToGlobal ? this.findRecord(normalized, SYSTEM_GLOBAL_SCOPE) : undefined)
 
 		return {
 			...defaults,

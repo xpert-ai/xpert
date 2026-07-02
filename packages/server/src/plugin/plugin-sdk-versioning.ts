@@ -1,4 +1,9 @@
-import type { PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
+import {
+	PLUGIN_LEVEL,
+	type PluginLevel,
+	type PluginSdkCompatibilityWarning,
+	type PluginSourceConfig
+} from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -32,12 +37,18 @@ type PluginPackageManifest = {
 	version?: string
 	dependencies?: Record<string, string>
 	peerDependencies?: Record<string, string>
+	xpert?: {
+		plugin?: {
+			level?: unknown
+		}
+	}
 }
 
 export interface PluginSdkCompatibilityInfo {
 	hostVersion: string
 	peerRange: string
 	warnings: PluginSdkCompatibilityWarning[]
+	level?: PluginLevel
 }
 
 export interface PluginInstallValidationOptions {
@@ -269,6 +280,11 @@ function createWarning(
 	}
 }
 
+function readPluginLevelFromManifest(manifest: PluginPackageManifest): PluginLevel | undefined {
+	const level = manifest.xpert?.plugin?.level
+	return level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.ORGANIZATION ? level : undefined
+}
+
 function getSingleMajorRangeWarning(pluginName: string, range: string, hostVersion: string, rawRange: string) {
 	const hostMajor = major(hostVersion)
 	const previousMajorSentinel = hostMajor > 0 ? `${hostMajor - 1}.999.999` : undefined
@@ -362,7 +378,8 @@ export function assertPluginSdkCompatibility(
 		return {
 			hostVersion,
 			peerRange,
-			warnings
+			warnings,
+			level: readPluginLevelFromManifest(manifest)
 		}
 	}
 
@@ -380,7 +397,8 @@ export function assertPluginSdkCompatibility(
 		return {
 			hostVersion,
 			peerRange,
-			warnings
+			warnings,
+			level: readPluginLevelFromManifest(manifest)
 		}
 	}
 
@@ -407,7 +425,8 @@ export function assertPluginSdkCompatibility(
 	return {
 		hostVersion,
 		peerRange,
-		warnings
+		warnings,
+		level: readPluginLevelFromManifest(manifest)
 	}
 }
 
@@ -555,7 +574,7 @@ async function fetchRegistryPluginManifest(
 ): Promise<PluginPackageManifest> {
 	const normalizedPluginName = normalizePluginName(pluginName)
 	const spec = version ? `${normalizedPluginName}@${version}` : normalizedPluginName
-	const args = ['view', spec, 'name', 'version', 'dependencies', 'peerDependencies', '--json']
+	const args = ['view', spec, 'name', 'version', 'dependencies', 'peerDependencies', 'xpert', '--json']
 	const effectiveRegistry = registry ?? process.env.npm_config_registry ?? process.env.NPM_CONFIG_REGISTRY
 
 	if (effectiveRegistry) {

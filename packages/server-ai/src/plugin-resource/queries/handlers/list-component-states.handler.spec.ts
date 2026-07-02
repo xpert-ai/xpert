@@ -4,6 +4,7 @@ jest.mock('@nestjs/typeorm', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     GLOBAL_ORGANIZATION_SCOPE: 'global',
+    SYSTEM_GLOBAL_SCOPE: 'system:global',
     RequestContext: {
         getOrganizationId: jest.fn(() => 'org-1'),
         getScope: jest.fn(() => ({ tenantId: 'tenant-1' })),

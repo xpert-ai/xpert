@@ -6,6 +6,7 @@ import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
 		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
 	),

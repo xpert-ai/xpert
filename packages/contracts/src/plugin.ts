@@ -533,6 +533,7 @@ export interface PluginMarketplaceResponse {
 }
 
 export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
+  scopeKey?: string | null
   pluginName: string
   packageName: string
   version?: string
@@ -567,6 +568,7 @@ export interface IPluginUpdateResult extends IPluginInstallResult {
 }
 
 export interface IPluginDescriptor {
+  scopeKey?: string
   organizationId?: string
   name: PluginName
   meta: PluginMeta

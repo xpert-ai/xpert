@@ -23,7 +23,7 @@ import { ConflictException, DynamicModule, Logger as NestLogger, Module, Type } 
 import { NestFactory, Reflector } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { GLOBAL_ORGANIZATION_SCOPE, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { useContainer } from 'class-validator'
 import chalk from 'chalk'
 import cookieParser from 'cookie-parser'
@@ -175,19 +175,31 @@ export async function preBootstrapPlugins() {
 	type BootstrapPlugin = NonNullable<Parameters<typeof registerPluginsAsync>[0]['plugins']>[number]
 
 	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
-	const defaultGlobalPlugins = ['@xpert-ai/plugin-draft', '@xpert-ai/plugin-vlm-default']
+	const defaultPlugins: BootstrapPlugin[] = [
+		{ name: '@xpert-ai/plugin-draft', source: 'code' as const, level: 'organization' },
+		{ name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' }
+	]
+	const defaultGlobalPlugins = defaultPlugins.filter((plugin) => plugin.level !== 'system')
+	const defaultSystemPlugins = defaultPlugins.filter((plugin) => plugin.level === 'system')
 
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs()
 	const persistedGlobalGroup = organizationPluginConfigs.find(
 		(group) => (group.scopeKey ?? group.organizationId) === GLOBAL_ORGANIZATION_SCOPE
 	)
+	const persistedSystemGroup = organizationPluginConfigs.find(
+		(group) => (group.scopeKey ?? group.organizationId) === SYSTEM_GLOBAL_SCOPE
+	)
 
 	const globalPlugins: BootstrapPlugin[] = [
-		...defaultGlobalPlugins.map((name) => ({ name, source: 'code' as const })),
+		...defaultGlobalPlugins,
 		...pluginsFromEnv.map((name) => ({ name, source: 'env' as const }))
 	]
+	const systemPlugins: BootstrapPlugin[] = [...defaultSystemPlugins]
 	const mergedGlobalPluginMap = new Map<string, BootstrapPlugin>(
 		globalPlugins.map((plugin) => [normalizePluginName(plugin.name), plugin])
+	)
+	const mergedSystemPluginMap = new Map<string, BootstrapPlugin>(
+		systemPlugins.map((plugin) => [normalizePluginName(plugin.name), plugin])
 	)
 	for (const plugin of persistedGlobalGroup?.plugins ?? []) {
 		const normalized = normalizePluginName(plugin.name)
@@ -200,8 +212,22 @@ export async function preBootstrapPlugins() {
 			source: plugin.source as BootstrapPlugin['source']
 		})
 	}
+	for (const plugin of persistedSystemGroup?.plugins ?? []) {
+		const normalized = normalizePluginName(plugin.name)
+		const current = mergedSystemPluginMap.get(normalized)
+		if (current?.source === 'code') {
+			continue
+		}
+		mergedSystemPluginMap.set(normalized, {
+			...plugin,
+			source: plugin.source as BootstrapPlugin['source']
+		})
+	}
 	const persistedOrganizationGroups = organizationPluginConfigs
-		.filter((group) => (group.scopeKey ?? group.organizationId) !== GLOBAL_ORGANIZATION_SCOPE)
+		.filter((group) => {
+			const scopeKey = group.scopeKey ?? group.organizationId
+			return scopeKey !== GLOBAL_ORGANIZATION_SCOPE && scopeKey !== SYSTEM_GLOBAL_SCOPE
+		})
 		.map((group) => ({
 			...group,
 			plugins: group.plugins.map((plugin) => ({
@@ -219,6 +245,13 @@ export async function preBootstrapPlugins() {
 		configs: Record<string, any>
 	}> = [
 		...persistedOrganizationGroups,
+		{
+			tenantId: null,
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: SYSTEM_GLOBAL_SCOPE,
+			plugins: Array.from(mergedSystemPluginMap.values()),
+			configs: persistedSystemGroup?.configs ?? {}
+		},
 		{
 			tenantId: persistedGlobalGroup?.tenantId,
 			organizationId: GLOBAL_ORGANIZATION_SCOPE,

@@ -56,7 +56,11 @@
         @if (chunk.data.type === contextCompressionComponentType) {
           <chat-context-compression-chunk [chunk]="chunk.data" />
         } @else {
-          <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
+          <chat-tool-call-chunk
+            [chunk]="chunk.data"
+            [conversationStatus]="conversationStatus()"
+            [organizationId]="organizationId()"
+          />
         }
       } @else {
         <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-hover-bg transition-all">

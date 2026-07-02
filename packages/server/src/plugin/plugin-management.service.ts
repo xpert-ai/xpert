@@ -8,12 +8,13 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } f
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
-import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@xpert-ai/contracts'
+import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL, type PluginLevel } from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
 	PLUGIN_JOB_PROCESSOR_METADATA,
+	SYSTEM_GLOBAL_SCOPE,
 	resolveTenantGlobalScopeKey,
 	STRATEGY_META_KEY,
 	StrategyBus
@@ -104,7 +105,10 @@ export class PluginManagementService {
 				? this.loadedPlugins.find(
 						(plugin) => (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey && matches(plugin)
 					)
-				: undefined)
+				: undefined) ??
+			this.loadedPlugins.find(
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === SYSTEM_GLOBAL_SCOPE && matches(plugin)
+			)
 		)
 	}
 
@@ -121,13 +125,19 @@ export class PluginManagementService {
 		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
 		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
 		const organizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
-		if (organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
+		const loadedPlugin = this.findLoadedPlugin(pluginName, organizationId, false, tenantId)
+		if (
+			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
+			!tenantId &&
+			loadedPlugin?.scopeKey !== SYSTEM_GLOBAL_SCOPE
+		) {
 			throw new BadRequestException('tenantId is required for tenant-scoped plugin refresh')
 		}
-		const loadedPlugin = this.findLoadedPlugin(pluginName, organizationId, false, tenantId)
 		const existing = await this.pluginInstanceService.findOneByPluginName(
 			loadedPlugin?.name ?? pluginName,
-			organizationId
+			organizationId,
+			tenantId,
+			loadedPlugin?.scopeKey
 		)
 
 		if (!existing) {
@@ -218,37 +228,78 @@ export class PluginManagementService {
 		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
 		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
 		const organizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
-		if (organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
-			throw new BadRequestException('tenantId is required for tenant-scoped plugin installation')
-		}
 		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
-		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId })
-		const scopeStoreOptions = {
-			tenantId,
+		const packageName = body.pluginName
+		let level: PluginLevel = PLUGIN_LEVEL.ORGANIZATION
+		let targetTenantId = tenantId
+		let targetOrganizationId = organizationId
+		let scope = resolvePluginScope({
+			tenantId: targetTenantId,
+			organizationId: targetOrganizationId,
+			defaultTenantId
+		})
+		let scopeStoreOptions = {
+			tenantId: targetTenantId,
 			defaultTenantId,
 			scopeKey: scope.scopeKey
 		}
-		const allowSystemPlugins = canManageSystemPlugins(organizationId)
-		const packageName = body.pluginName
-		const level = PLUGIN_LEVEL.ORGANIZATION
+		let allowSystemPlugins = canManageSystemPlugins(targetOrganizationId, defaultTenantId)
 		let shouldPersistFailureState = false
+		let shouldCleanupPlugin = false
 		let persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 
 		try {
+			let compatibilityInfo:
+				| Awaited<ReturnType<typeof assertPluginSdkInstallCandidate>>
+				| ReturnType<typeof assertPluginSdkCompatibility>
 			if (source === 'code' && packageDir) {
-				assertPluginSdkCompatibility(readPluginPackageJson(packageDir), {
+				compatibilityInfo = assertPluginSdkCompatibility(readPluginPackageJson(packageDir), {
 					expectedPackageName: normalizePluginName(packageName)
 				})
 			} else {
-				await assertPluginSdkInstallCandidate({
+				compatibilityInfo = await assertPluginSdkInstallCandidate({
 					pluginName: packageName,
 					version: body.version,
 					source,
 					sourceConfig
 				})
 			}
+			level = resolvePluginLevel(compatibilityInfo?.level)
+			if (level !== PLUGIN_LEVEL.SYSTEM && organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
+				throw new BadRequestException('tenantId is required for tenant-scoped plugin installation')
+			}
+			if (level === PLUGIN_LEVEL.SYSTEM) {
+				this.assertSystemInstallTenant(tenantId, defaultTenantId, packageName)
+				targetTenantId = null
+				targetOrganizationId = GLOBAL_ORGANIZATION_SCOPE
+				scope = resolvePluginScope({
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
+					defaultTenantId,
+					scopeKey: SYSTEM_GLOBAL_SCOPE
+				})
+				scopeStoreOptions = {
+					tenantId: targetTenantId,
+					defaultTenantId,
+					scopeKey: scope.scopeKey
+				}
+				allowSystemPlugins = canManageSystemPlugins(targetOrganizationId, defaultTenantId)
+				if (!allowSystemPlugins) {
+					shouldPersistFailureState = false
+					throw new BadRequestException(
+						t('server:Error.PluginSystemLevelInstallForbidden', { name: packageName })
+					)
+				}
+			}
 
-			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, allowSystemPlugins)
+			await this.uninstallByPackageNameWithGuard(
+				targetTenantId,
+				targetOrganizationId,
+				packageName,
+				allowSystemPlugins,
+				scope.scopeKey
+			)
+			shouldCleanupPlugin = true
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const runtimePluginName =
@@ -262,14 +313,14 @@ export class PluginManagementService {
 				}
 			}
 			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
-			const organizationBaseDir = getOrganizationPluginRoot(organizationId, scopeStoreOptions)
+			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
 			shouldPersistFailureState = true
 
 			const { modules, errors } = await registerPluginsAsync(
 				{
 					module: this.moduleRef,
-					tenantId,
-					organizationId,
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
 					defaultTenantId,
 					scopeKey: scope.scopeKey,
 					plugins: [
@@ -301,7 +352,7 @@ export class PluginManagementService {
 				throw new BadRequestException(errors[0].error)
 			}
 
-			const pluginBaseDir = getOrganizationPluginPath(organizationId, runtimePluginName, scopeStoreOptions)
+			const pluginBaseDir = getOrganizationPluginPath(targetOrganizationId, runtimePluginName, scopeStoreOptions)
 			const plugin = await loadPlugin(packageName, {
 				basedir: pluginBaseDir,
 				source,
@@ -313,6 +364,21 @@ export class PluginManagementService {
 				shouldPersistFailureState = false
 				throw new BadRequestException(
 					t('server:Error.PluginSystemLevelInstallForbidden', { name: plugin.meta?.name ?? packageName })
+				)
+			}
+			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && scope.scopeKey !== SYSTEM_GLOBAL_SCOPE) {
+				shouldPersistFailureState = false
+				throw new BadRequestException(
+					`System-level plugin "${plugin.meta?.name ?? packageName}" must be installed in ${SYSTEM_GLOBAL_SCOPE}`
+				)
+			}
+			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM) {
+				this.assertSystemInstallTenant(tenantId, defaultTenantId, plugin.meta?.name ?? packageName)
+			}
+			if (resolvedLevel !== PLUGIN_LEVEL.SYSTEM && scope.scopeKey === SYSTEM_GLOBAL_SCOPE) {
+				shouldPersistFailureState = false
+				throw new BadRequestException(
+					`Plugin "${plugin.meta?.name ?? packageName}" was routed to ${SYSTEM_GLOBAL_SCOPE} but does not declare level=system`
 				)
 			}
 
@@ -374,7 +440,7 @@ export class PluginManagementService {
 					}
 					if (strategyMeta) {
 						this.logger.debug(
-							`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${organizationId}`
+							`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${targetOrganizationId}`
 						)
 						this.strategyBus.upsert(strategyMeta, {
 							instance,
@@ -384,7 +450,7 @@ export class PluginManagementService {
 					}
 					if (Array.isArray(managedQueueProcessorMeta) && managedQueueProcessorMeta.length) {
 						this.logger.debug(
-							`Registering managed queue processor for plugin ${body.pluginName} in organization ${organizationId}`
+							`Registering managed queue processor for plugin ${body.pluginName} in organization ${targetOrganizationId}`
 						)
 						this.strategyBus.upsert(PLUGIN_JOB_PROCESSOR_METADATA, {
 							instance,
@@ -416,8 +482,9 @@ export class PluginManagementService {
 			}
 
 			await this.pluginInstanceService.upsert({
-				tenantId,
-				organizationId,
+				tenantId: targetTenantId,
+				organizationId: targetOrganizationId,
+				scopeKey: scope.scopeKey,
 				pluginName,
 				packageName,
 				version: plugin.meta?.version,
@@ -436,32 +503,36 @@ export class PluginManagementService {
 				success: true,
 				name: pluginName,
 				packageName,
-				organizationId,
+				organizationId: targetOrganizationId,
 				currentVersion: plugin.meta?.version
 			}
 		} catch (error) {
 			let errorMessage = getErrorMessage(error)
 			this.logger.error(`Failed to install plugin ${body.pluginName}`, error)
 
-			try {
-				await this.pluginInstanceService.removePlugins(organizationId, [packageName], {
-					tenantId,
-					defaultTenantId
-				})
-			} catch (cleanupError) {
-				errorMessage += `;\n\nadditionally failed to clean up plugin after installation failure: ${getErrorMessage(cleanupError)}`
-				this.logger.error(
-					`Failed to clean up plugin ${body.pluginName} after installation failure`,
-					cleanupError
-				)
+			if (shouldCleanupPlugin) {
+				try {
+					await this.pluginInstanceService.removePlugins(targetOrganizationId, [packageName], {
+						tenantId: targetTenantId,
+						defaultTenantId,
+						scopeKey: scope.scopeKey
+					})
+				} catch (cleanupError) {
+					errorMessage += `;\n\nadditionally failed to clean up plugin after installation failure: ${getErrorMessage(cleanupError)}`
+					this.logger.error(
+						`Failed to clean up plugin ${body.pluginName} after installation failure`,
+						cleanupError
+					)
+				}
 			}
 
 			if (shouldPersistFailureState) {
 				const failedPluginName = normalizePluginName(packageName)
 				try {
 					await this.pluginInstanceService.upsert({
-						tenantId,
-						organizationId,
+						tenantId: targetTenantId,
+						organizationId: targetOrganizationId,
+						scopeKey: scope.scopeKey,
 						pluginName: failedPluginName,
 						packageName: failedPluginName,
 						version: body.version,
@@ -479,8 +550,8 @@ export class PluginManagementService {
 					)
 				}
 				upsertPluginLoadFailure({
-					tenantId,
-					organizationId,
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
 					scopeKey: scope.scopeKey,
 					pluginName: failedPluginName,
 					packageName: failedPluginName,
@@ -494,19 +565,24 @@ export class PluginManagementService {
 		}
 	}
 
-	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string) {
+	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string, targetScopeKey?: string) {
 		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
 		const currentOrganizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
+		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
 		const organizationId = this.resolveUninstallOrganizationId(currentOrganizationId, targetOrganizationId)
 		const allowSystemPlugins =
 			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
-			canManageSystemPlugins(currentOrganizationId)
+			canManageSystemPlugins(currentOrganizationId, defaultTenantId)
 		const scopeKey =
-			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+			targetScopeKey ??
+			(organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId)
+		if (scopeKey === SYSTEM_GLOBAL_SCOPE && !canManageSystemPlugins(GLOBAL_ORGANIZATION_SCOPE, defaultTenantId)) {
+			throw new ForbiddenException('Only super admins can uninstall system plugins')
+		}
 		this.assertNoSystemPlugins(names, allowSystemPlugins, scopeKey)
-		await this.pluginInstanceService.uninstall(tenantId, organizationId, names)
+		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, { scopeKey })
 	}
 
 	readLoadedPluginBundleComponents(plugin: LoadedPluginRecord) {
@@ -568,15 +644,31 @@ export class PluginManagementService {
 		}
 	}
 
+	private assertSystemInstallTenant(
+		tenantId: string | null | undefined,
+		defaultTenantId: string | null | undefined,
+		pluginName: string
+	) {
+		if (!tenantId || !defaultTenantId || tenantId !== defaultTenantId) {
+			throw new BadRequestException(
+				t('server:Error.PluginSystemLevelDefaultTenantRequired', { name: pluginName })
+			)
+		}
+	}
+
 	private async uninstallByPackageNameWithGuard(
-		tenantId: string,
+		tenantId: string | null,
 		organizationId: string,
 		packageName: string,
-		allowSystemPlugins = false
+		allowSystemPlugins = false,
+		scopeKey?: string | null
 	) {
-		const scopeKey =
-			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
-		this.assertNoSystemPlugins([packageName], allowSystemPlugins, scopeKey)
-		await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName)
+		const resolvedScopeKey =
+			scopeKey ??
+			(organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId)
+		this.assertNoSystemPlugins([packageName], allowSystemPlugins, resolvedScopeKey)
+		await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName, {
+			scopeKey: resolvedScopeKey
+		})
 	}
 }

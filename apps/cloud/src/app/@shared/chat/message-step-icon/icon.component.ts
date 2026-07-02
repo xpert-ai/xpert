@@ -1,11 +1,10 @@
-
 import { HttpClient } from '@angular/common/http'
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectOrganizationId } from '@xpert-ai/cloud/state'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepCategory } from '@cloud/app/@core'
+import { ChatMessageStepCategory, injectApiBaseUrl } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { of } from 'rxjs'
 
@@ -21,8 +20,12 @@ export class ChatMessageStepIconComponent {
 
   readonly httpClient = inject(HttpClient)
   readonly organizationId = injectOrganizationId()
+  readonly apiBaseUrl = injectApiBaseUrl()
 
   readonly step = input<{ type: ChatMessageStepCategory; toolset?: string; toolsetId?: string }>()
+  readonly requestedOrganizationId = input<string | null>(null, {
+    alias: 'organizationId'
+  })
 
   readonly builtinProviderIconUrl = computed(() => {
     const toolset = this.step()?.toolset
@@ -30,15 +33,17 @@ export class ChatMessageStepIconComponent {
       return null
     }
 
-    const org = this.organizationId()
-    const baseUrl = `/api/xpert-toolset/builtin-provider/${toolset}/icon`
+    const org = this.requestedOrganizationId() ?? this.organizationId()
+    const baseUrl = `${this.apiBaseUrl}/api/xpert-toolset/builtin-provider/${encodeURIComponent(toolset)}/icon`
     return org ? `${baseUrl}?org=${encodeURIComponent(org)}` : baseUrl
   })
 
   readonly #avatar = myRxResource({
     request: () => (['mcp', 'openapi'].includes(this.step()?.toolset) ? this.step() : null),
     loader: ({ request }) => {
-      return request ? this.httpClient.get(`/api/xpert-toolset/${request.toolsetId}/avatar`) : of(null)
+      return request
+        ? this.httpClient.get(`${this.apiBaseUrl}/api/xpert-toolset/${encodeURIComponent(request.toolsetId)}/avatar`)
+        : of(null)
     }
   })
 

@@ -4,12 +4,14 @@ const mockGetConfig = jest.fn(() => ({
 	}
 }))
 const mockHasTable = jest.fn()
+const mockHasColumn = jest.fn()
 const mockRelease = jest.fn()
 const mockQuery = jest.fn()
 const mockInitialize = jest.fn()
 const mockDestroy = jest.fn()
 const mockCreateQueryRunner = jest.fn(() => ({
 	hasTable: mockHasTable,
+	hasColumn: mockHasColumn,
 	release: mockRelease
 }))
 
@@ -22,6 +24,7 @@ jest.mock('@xpert-ai/server-config', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
 	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
 	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
@@ -39,7 +42,7 @@ jest.mock('typeorm', () => ({
 	}))
 }))
 
-import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import {
 	buildOrganizationPluginConfigs,
 	loadOrganizationPluginConfigs,
@@ -57,6 +60,7 @@ describe('plugin instance loader', () => {
 		mockInitialize.mockResolvedValue(undefined)
 		mockDestroy.mockResolvedValue(undefined)
 		mockRelease.mockResolvedValue(undefined)
+		mockHasColumn.mockResolvedValue(true)
 	})
 
 	it('restores code plugins by package name instead of a versioned npm spec', () => {
@@ -238,6 +242,77 @@ describe('plugin instance loader', () => {
 				plugins: [expect.objectContaining({ name: '@xpert-ai/plugin-other-global@1.0.0' })]
 			})
 		])
+	})
+
+	it('restores system-level plugins into the singleton system scope', () => {
+		const configs = buildOrganizationPluginConfigs([
+			{
+				tenantId: 'tenant-other',
+				organizationId: null,
+				pluginName: '@xpert-ai/plugin-system-demo',
+				packageName: '@xpert-ai/plugin-system-demo',
+				version: '1.0.0',
+				source: 'marketplace',
+				sourceConfig: null,
+				level: 'system',
+				config: {}
+			}
+		])
+
+		expect(configs).toEqual([
+			{
+				tenantId: null,
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: SYSTEM_GLOBAL_SCOPE,
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-system-demo@1.0.0',
+						version: '1.0.0',
+						source: 'marketplace',
+						sourceConfig: null,
+						level: 'system'
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-system-demo': {}
+				}
+			}
+		])
+	})
+
+	it('backfills explicit scope keys before restoring from the upgraded plugin_instance table', async () => {
+		mockHasTable.mockResolvedValue(true)
+		mockHasColumn.mockResolvedValue(true)
+		mockQuery.mockResolvedValue([])
+
+		await expect(loadPluginInstances({ defaultTenantId: 'tenant-default' })).resolves.toEqual([])
+
+		expect(mockQuery).toHaveBeenNthCalledWith(1, expect.stringContaining('ROW_NUMBER() OVER'), ['system'])
+		expect(mockQuery).toHaveBeenNthCalledWith(
+			2,
+			expect.stringContaining('SET "scopeKey" = $1, "tenantId" = NULL, "organizationId" = NULL'),
+			[SYSTEM_GLOBAL_SCOPE, 'system']
+		)
+		expect(mockQuery).toHaveBeenNthCalledWith(
+			3,
+			expect.stringContaining("CONCAT('tenant:', \"tenantId\", ':global')"),
+			[GLOBAL_ORGANIZATION_SCOPE, 'tenant-default', 'system']
+		)
+		expect(mockQuery.mock.calls[2][0]).toContain('"organizationId"::text')
+		expect(mockQuery.mock.calls[2][0]).toContain('"tenantId"::text <> $2::text')
+		expect(mockQuery.mock.calls[2][0]).not.toContain('"organizationId" <> \'\'')
+		expect(mockQuery).toHaveBeenLastCalledWith(expect.stringContaining('SELECT "tenantId"'))
+	})
+
+	it('uses a null scopeKey select when restoring from an old plugin_instance table', async () => {
+		mockHasTable.mockResolvedValue(true)
+		mockHasColumn.mockResolvedValue(false)
+		mockQuery.mockResolvedValue([])
+
+		await expect(loadPluginInstances()).resolves.toEqual([])
+
+		expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('NULL AS "scopeKey"'))
+		expect(mockQuery).toHaveBeenCalledTimes(1)
 	})
 
 	it('returns no persisted plugin rows when the plugin_instance table is not available yet', async () => {

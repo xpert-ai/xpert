@@ -8,6 +8,7 @@ import {
   GLOBAL_ORGANIZATION_SCOPE,
   ORGANIZATION_METADATA_KEY,
   PLUGIN_METADATA_KEY,
+  SYSTEM_GLOBAL_SCOPE,
   resolveTenantGlobalScopeKey
 } from './types'
 
@@ -98,6 +99,10 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
 
     if (orgKey !== globalKey) {
       scopeKeys.push(globalKey)
+    }
+
+    if (!scopeKeys.includes(SYSTEM_GLOBAL_SCOPE)) {
+      scopeKeys.push(SYSTEM_GLOBAL_SCOPE)
     }
 
     if (!scopeKeys.includes(BUILTIN_GLOBAL_SCOPE)) {

@@ -15,30 +15,52 @@ export function canManageGlobalPlugins() {
 	return RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
 }
 
-export function canManageSystemPlugins(organizationId: string) {
-	return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageGlobalPlugins()
+export function isDefaultTenantContext(defaultTenantId: string | null | undefined) {
+	const tenantId = RequestContext.getScope?.()?.tenantId ?? RequestContext.currentTenantId()
+	return !!tenantId && !!defaultTenantId && tenantId === defaultTenantId
 }
 
-export function canUpdatePlugin(plugin: LoadedPluginRecord, organizationId: string) {
+export function canManageSystemPlugins(organizationId: string, defaultTenantId: string | null | undefined) {
+	return (
+		organizationId === GLOBAL_ORGANIZATION_SCOPE &&
+		canManageGlobalPlugins() &&
+		isDefaultTenantContext(defaultTenantId)
+	)
+}
+
+export function canUpdatePlugin(
+	plugin: LoadedPluginRecord,
+	organizationId: string,
+	defaultTenantId: string | null | undefined
+) {
 	if (plugin.source === 'code') {
 		return false
 	}
 
+	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
+	if (level === PLUGIN_LEVEL.SYSTEM) {
+		return canManageSystemPlugins(organizationId, defaultTenantId)
+	}
+
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
-		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageSystemPlugins(organizationId)
+		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageGlobalPlugins()
 	}
 
 	return plugin.organizationId === organizationId
 }
 
-export function canUninstallPlugin(plugin: PluginScopeRecord, organizationId: string) {
+export function canUninstallPlugin(
+	plugin: PluginScopeRecord,
+	organizationId: string,
+	defaultTenantId: string | null | undefined
+) {
 	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
 	if (level === PLUGIN_LEVEL.SYSTEM) {
-		return canManageSystemPlugins(organizationId)
+		return canManageSystemPlugins(organizationId, defaultTenantId)
 	}
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
-		return canManageSystemPlugins(organizationId)
+		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageGlobalPlugins()
 	}
 
 	return plugin.organizationId === organizationId

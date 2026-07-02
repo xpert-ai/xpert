@@ -1,5 +1,6 @@
 import {
 	GLOBAL_ORGANIZATION_SCOPE,
+	SYSTEM_GLOBAL_SCOPE,
 	getTenantGlobalScopeKey,
 	isTenantGlobalScopeKey,
 	TENANT_GLOBAL_SCOPE_PREFIX,
@@ -18,6 +19,7 @@ export interface ResolvedPluginScope {
 	organizationId: string
 	scopeKey: string
 	isGlobal: boolean
+	isSystem: boolean
 	isTenantGlobal: boolean
 	isDefaultTenantGlobal: boolean
 }
@@ -37,22 +39,26 @@ export function parseTenantIdFromPluginScopeKey(scopeKey?: string | null) {
 export function resolvePluginScope(input: PluginScopeInput = {}): ResolvedPluginScope {
 	const tenantId = normalizeOptionalString(input.tenantId) ?? parseTenantIdFromPluginScopeKey(input.scopeKey)
 	const defaultTenantId = normalizeOptionalString(input.defaultTenantId)
-	const organizationId = normalizeOptionalString(input.organizationId) ?? GLOBAL_ORGANIZATION_SCOPE
-	const isGlobal = organizationId === GLOBAL_ORGANIZATION_SCOPE
 	const requestedScopeKey = normalizeOptionalString(input.scopeKey)
+	const isSystem = requestedScopeKey === SYSTEM_GLOBAL_SCOPE
+	const organizationId = isSystem
+		? GLOBAL_ORGANIZATION_SCOPE
+		: (normalizeOptionalString(input.organizationId) ?? GLOBAL_ORGANIZATION_SCOPE)
+	const isGlobal = organizationId === GLOBAL_ORGANIZATION_SCOPE
 	const scopeKey =
 		requestedScopeKey ??
 		(isGlobal && tenantId && defaultTenantId && tenantId !== defaultTenantId
 			? getTenantGlobalScopeKey(tenantId)
 			: organizationId)
-	const isTenantGlobal = isGlobal && isTenantGlobalScopeKey(scopeKey)
-	const isDefaultTenantGlobal = isGlobal && !isTenantGlobal
+	const isTenantGlobal = isGlobal && !isSystem && isTenantGlobalScopeKey(scopeKey)
+	const isDefaultTenantGlobal = isGlobal && !isSystem && !isTenantGlobal
 
 	return {
 		tenantId,
 		organizationId,
 		scopeKey,
 		isGlobal,
+		isSystem,
 		isTenantGlobal,
 		isDefaultTenantGlobal
 	}
@@ -64,6 +70,9 @@ export function getPluginScopeKey(input: PluginScopeInput = {}) {
 
 export function getPluginScopeLogLabel(input: PluginScopeInput = {}) {
 	const scope = resolvePluginScope(input)
+	if (scope.isSystem) {
+		return SYSTEM_GLOBAL_SCOPE
+	}
 	return scope.isTenantGlobal ? `${GLOBAL_ORGANIZATION_SCOPE}(${scope.tenantId})` : scope.organizationId
 }
 
