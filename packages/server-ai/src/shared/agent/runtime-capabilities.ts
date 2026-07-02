@@ -1,27 +1,11 @@
+import type { RuntimeCapabilitiesSelection, RuntimeCapabilitiesSelectionSet } from '@xpert-ai/chatkit-types'
 import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 
 export const RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY = 'runtimeCapabilities'
 
-export type TRuntimeCapabilitiesSelection = {
-    mode: 'allowlist'
-} & TRuntimeCapabilitiesSelectionSet
-
-export type TRuntimeCapabilitiesSelectionSet = {
-    skills: {
-        workspaceId?: string
-        ids: string[]
-    }
-    plugins: {
-        nodeKeys: string[]
-    }
-    subAgents: {
-        nodeKeys: string[]
-    }
-}
-
-export type TRuntimeCapabilitiesSelectionWithRecommended = TRuntimeCapabilitiesSelection & {
-    recommended?: TRuntimeCapabilitiesSelectionSet
-}
+export type TRuntimeCapabilitiesSelection = RuntimeCapabilitiesSelection
+export type TRuntimeCapabilitiesSelectionSet = RuntimeCapabilitiesSelectionSet
+export type TRuntimeCapabilitiesSelectionWithRecommended = RuntimeCapabilitiesSelection
 
 export type TRuntimeSkillSelection = {
     workspaceId?: string
@@ -131,7 +115,7 @@ function hasSelectionSet(selection?: TRuntimeCapabilitiesSelectionSet | null): b
         selection &&
         (selection.skills.ids.length > 0 ||
             selection.plugins.nodeKeys.length > 0 ||
-            selection.subAgents.nodeKeys.length > 0)
+            (selection.subAgents?.nodeKeys.length ?? 0) > 0)
     )
 }
 
@@ -149,7 +133,7 @@ function mergeSelectionSets(
             nodeKeys: mergeStringLists(...selections.map((selection) => selection?.plugins.nodeKeys))
         },
         subAgents: {
-            nodeKeys: mergeStringLists(...selections.map((selection) => selection?.subAgents.nodeKeys))
+            nodeKeys: mergeStringLists(...selections.map((selection) => selection?.subAgents?.nodeKeys))
         }
     }
 }

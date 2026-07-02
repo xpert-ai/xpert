@@ -5,7 +5,7 @@
     "type": "commonjs",
     "license": "AGPL-3.0",
     "dependencies": {
-        "@xpert-ai/chatkit-types": "0.4.4",
+        "@xpert-ai/chatkit-types": "0.4.5",
         "@xpert-ai/contracts": "workspace:*",
         "@xpert-ai/copilot": "workspace:*",
         "@xpert-ai/ocap-core": "workspace:*",
@@ -47,6 +47,7 @@
         "json-schema-to-zod": "^2.4.0",
         "langchain": "0.3.31",
         "mime-types": "2.1.35",
+        "node-pty": "^1.0.0",
         "notion-to-md": "3.1.5",
         "octokit": "^3.2.2",
         "officeparser": "5.1.1",

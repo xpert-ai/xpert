@@ -16,6 +16,8 @@ import {
   IChatConversationUnreadXpertSummary,
   IAssistantBinding,
   IXpert,
+  RequestScopeLevel,
+  ScopeService,
   Store
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
@@ -44,8 +46,9 @@ const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
 }
 
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
-const CLAWXPERT_FALLBACK_ID = '__clawxpert__'
 const ALL_ASSISTANT_CATEGORY = 'all'
+const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
+const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
 
 @Component({
   standalone: true,
@@ -69,6 +72,7 @@ export class CloudSidebarAssistantsComponent {
   readonly #conversationService = inject(ChatConversationService)
   readonly #ngZone = inject(NgZone)
   readonly #router = inject(Router)
+  readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
   readonly #unreadPoll$ = new Observable<number>((subscriber) =>
@@ -86,6 +90,7 @@ export class CloudSidebarAssistantsComponent {
   readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
     initialValue: this.#store.featureContextHydrated
   })
+  readonly activeScope = this.#scopeService.activeScope
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -97,47 +102,86 @@ export class CloudSidebarAssistantsComponent {
   )
   readonly isCurrentCardMode = computed(() => this.mode() === 'current-card')
   readonly request = computed(() => {
+    const mode = this.mode()
+    const activeScope = this.activeScope()
     const organizationId = this.organizationId()
+    const isTenantScope = activeScope.level === RequestScopeLevel.TENANT
+    const isOrganizationScope = activeScope.level === RequestScopeLevel.ORGANIZATION
+    const hasRenderableScope =
+      mode === 'current-card'
+        ? isOrganizationScope && !!organizationId
+        : isTenantScope || (isOrganizationScope && !!organizationId)
+    const featureKeys =
+      mode === 'current-card'
+        ? (this.#clawXpertDefinition?.featureKeys ?? [
+            AiFeatureEnum.FEATURE_XPERT,
+            AiFeatureEnum.FEATURE_XPERT_CLAWXPERT
+          ])
+        : [AiFeatureEnum.FEATURE_XPERT]
     const enabled =
       this.enabled() &&
-      !!organizationId &&
+      hasRenderableScope &&
       this.featureContextHydrated() &&
-      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
-      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+      featureKeys.every((featureKey) => this.#store.hasFeatureEnabled(featureKey))
 
     return {
       organizationId,
+      scopeLevel: activeScope.level,
+      mode,
       enabled
     }
   })
   readonly state = toSignal(
     toObservable(this.request).pipe(
-      switchMap(({ enabled }) => {
+      switchMap(({ enabled, mode, scopeLevel }) => {
         if (!enabled) {
           return of(EMPTY_ASSISTANT_STATE)
         }
 
-        const binding$ = this.#assistantBindingService
-          .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-          .pipe(catchError(() => of(null)))
+        const systemListScope =
+          mode === 'list'
+            ? scopeLevel === RequestScopeLevel.TENANT
+              ? AssistantBindingScope.TENANT
+              : AssistantBindingScope.ORGANIZATION
+            : null
 
-        const items$ = this.#assistantBindingService
-          .getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
-          .pipe(catchError(() => of([] as IXpert[])))
+        return merge(
+          of(null),
+          this.#assistantBindingService.changes$.pipe(
+            filter((event) => event.code === AssistantCode.CLAWXPERT && event.scope === AssistantBindingScope.USER)
+          )
+        ).pipe(
+          switchMap(() => {
+            const binding$ =
+              systemListScope === AssistantBindingScope.TENANT
+                ? of(null)
+                : this.#assistantBindingService
+                    .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+                    .pipe(catchError(() => of(null)))
 
-        return forkJoin({
-          binding: binding$,
-          items: items$
-        }).pipe(
-          map(
-            ({ binding, items }) =>
-              ({
-                binding,
-                items: normalizeAssistantXperts(items)
-              }) satisfies CloudSidebarAssistantState
-          ),
-          startWith(EMPTY_ASSISTANT_STATE),
-          catchError(() => of(EMPTY_ASSISTANT_STATE))
+            const items$ = systemListScope
+              ? this.#assistantBindingService
+                  .getAvailableXperts(systemListScope, SYSTEM_ASSISTANT_SCOPE_CODE)
+                  .pipe(catchError(() => of([] as IXpert[])))
+              : this.#assistantBindingService
+                  .getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
+                  .pipe(catchError(() => of([] as IXpert[])))
+
+            return forkJoin({
+              binding: binding$,
+              items: items$
+            }).pipe(
+              map(
+                ({ binding, items }) =>
+                  ({
+                    binding,
+                    items: normalizeAssistantXperts(items)
+                  }) satisfies CloudSidebarAssistantState
+              ),
+              catchError(() => of(EMPTY_ASSISTANT_STATE))
+            )
+          }),
+          startWith(EMPTY_ASSISTANT_STATE)
         )
       })
     ),
@@ -153,9 +197,10 @@ export class CloudSidebarAssistantsComponent {
 
     return this.xperts().find((xpert) => xpert.id === assistantId) ?? null
   })
-  readonly xpertsWithoutClawXpert = computed(() => {
+  readonly isClawXpertConfigured = computed(() => !!this.boundXpert())
+  readonly listXperts = computed(() => {
     const boundId = this.boundXpert()?.id
-    return boundId ? this.xperts().filter((xpert) => xpert.id !== boundId) : this.xperts()
+    return this.xperts().filter((xpert) => xpert.id !== boundId && !isClawXpertXpert(xpert))
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
@@ -163,7 +208,7 @@ export class CloudSidebarAssistantsComponent {
     ]
     const seen = new Set<string>([ALL_ASSISTANT_CATEGORY])
 
-    for (const xpert of [this.clawXpertSearchItem(), ...this.xpertsWithoutClawXpert()]) {
+    for (const xpert of this.listXperts()) {
       for (const tag of getAssistantTagNames(xpert)) {
         const label = tag.trim()
         const value = label.toLowerCase()
@@ -183,14 +228,12 @@ export class CloudSidebarAssistantsComponent {
     return this.categories().some((item) => item.value === category) ? category : ALL_ASSISTANT_CATEGORY
   })
   readonly filteredXperts = computed(() =>
-    filterAssistantXperts(this.xpertsWithoutClawXpert(), this.query(), this.activeCategory())
+    filterAssistantXperts(this.listXperts(), this.query(), this.activeCategory())
   )
   readonly hasAssistantFilter = computed(
     () => !!this.query().trim() || this.activeCategory() !== ALL_ASSISTANT_CATEGORY
   )
-  readonly defaultVisibleXpertCount = computed(() =>
-    Math.max(DEFAULT_VISIBLE_ASSISTANT_COUNT - (this.showClawXpertEntry() ? 1 : 0), 0)
-  )
+  readonly defaultVisibleXpertCount = computed(() => DEFAULT_VISIBLE_ASSISTANT_COUNT)
   readonly visibleXperts = computed(() => {
     const items = this.filteredXperts()
     if (this.hasAssistantFilter() || this.moreExpanded()) {
@@ -211,9 +254,9 @@ export class CloudSidebarAssistantsComponent {
       return ''
     }
 
-    const ids = [this.boundXpert()?.id, ...this.xpertsWithoutClawXpert().map((xpert) => xpert.id)].filter(
-      (id): id is string => typeof id === 'string' && !!id.trim()
-    )
+    const ids = this.listXperts()
+      .map((xpert) => xpert.id)
+      .filter((id): id is string => typeof id === 'string' && !!id.trim())
 
     return Array.from(new Set(ids.map((id) => id.trim()))).join('\n')
   })
@@ -250,36 +293,14 @@ export class CloudSidebarAssistantsComponent {
 
     return new Map<string, IChatConversationUnreadXpertSummary>(entries)
   })
-  readonly clawXpertSearchItem = computed<AssistantXpertLike>(() => {
-    const boundXpert = this.boundXpert()
-    const label = this.clawXpertLabel()
-    const description = this.clawXpertDescription()
-
-    return {
-      ...(boundXpert ?? {}),
-      id: boundXpert?.id ?? CLAWXPERT_FALLBACK_ID,
-      slug: boundXpert?.slug ?? 'clawxpert',
-      name: boundXpert?.name ?? label,
-      title: label,
-      description: [description, 'ClawXpert', '配置'].filter(Boolean).join(' '),
-      tags: boundXpert?.tags ?? []
-    }
-  })
-  readonly showClawXpertEntry = computed(() => {
-    return (
-      this.request().enabled &&
-      !this.isCurrentCardMode() &&
-      filterAssistantXperts([this.clawXpertSearchItem()], this.query(), this.activeCategory()).length > 0
-    )
-  })
-  readonly assistantCount = computed(() => this.xpertsWithoutClawXpert().length + (this.request().enabled ? 1 : 0))
+  readonly assistantCount = computed(() => this.listXperts().length)
   readonly shouldRender = computed(() => this.request().enabled)
 
   openClawXpert(event: Event) {
     event.stopPropagation()
     const boundXpert = this.boundXpert()
     if (!boundXpert) {
-      void this.#router.navigateByUrl('/chat/clawxpert')
+      this.openClawXpertSetup()
       return
     }
 
@@ -292,39 +313,28 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c'])
   }
 
-  openClawXpertSettings(event: Event) {
-    event.stopPropagation()
-    const boundXpert = this.boundXpert()
-    if (boundXpert) {
-      if (!this.canEditAssistant(boundXpert)) {
-        return
-      }
-
-      const xpertId = boundXpert.id?.trim()
-      if (!xpertId) {
-        return
-      }
-
-      void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
-      return
-    }
-
-    if (!this.canConfigureClawXpert()) {
-      return
-    }
-
-    void this.#router.navigateByUrl('/chat/clawxpert')
-  }
-
   startClawXpertConversation(event: Event) {
     event.stopPropagation()
-    const hasBinding = !!this.binding()?.assistantId?.trim()
-    void (hasBinding ? this.#router.navigate(['/chat/clawxpert', 'c']) : this.#router.navigateByUrl('/chat/clawxpert'))
+    if (!this.isClawXpertConfigured()) {
+      this.openClawXpertSetup()
+      return
+    }
+
+    void this.#router.navigate(['/chat/clawxpert', 'c'])
   }
 
   openClawXpertOverview(event: Event) {
     event.stopPropagation()
+    if (!this.isClawXpertConfigured()) {
+      this.openClawXpertSetup()
+      return
+    }
+
     void this.#router.navigateByUrl('/chat/clawxpert')
+  }
+
+  private openClawXpertSetup() {
+    void this.#router.navigateByUrl(CLAWXPERT_SETUP_URL)
   }
 
   openAssistant(event: Event, xpert: IXpert) {
@@ -356,24 +366,8 @@ export class CloudSidebarAssistantsComponent {
     return isAssistantRouteActive(this.currentUrl(), xpert)
   }
 
-  isClawXpertActive() {
-    const url = this.currentUrl()
-    const boundXpert = this.boundXpert()
-
-    return isClawXpertRoute(url) || (!!boundXpert && isAssistantRouteActive(url, boundXpert))
-  }
-
-  hasClawXpertUnread() {
-    return this.hasUnread(this.boundXpert()?.id)
-  }
-
   hasAssistantUnread(xpert: IXpert) {
     return this.hasUnread(xpert.id)
-  }
-
-  canConfigureClawXpert() {
-    const boundXpert = this.boundXpert()
-    return !boundXpert || this.canEditAssistant(boundXpert)
   }
 
   canEditAssistant(xpert: IXpert | null | undefined) {
@@ -477,8 +471,10 @@ function normalizeChatPath(url: string) {
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
 }
 
-function isClawXpertRoute(url: string) {
-  return /^\/chat\/clawxpert(?:\/|$)/.test(normalizeChatPath(url))
+function isClawXpertXpert(xpert: AssistantXpertLike) {
+  return [xpert.slug, xpert.id].some(
+    (value) => typeof value === 'string' && value.trim().toLowerCase() === AssistantCode.CLAWXPERT
+  )
 }
 
 function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {

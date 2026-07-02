@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { IFeatureOrganization, IOrganization, IUser } from '@xpert-ai/contracts'
+import { IFeatureOrganization, IOrganization, IUser, RequestScopeLevel } from '@xpert-ai/contracts'
 import { Store } from './store.service'
 import { CURRENT_USER_FEATURE_RELATIONS, UsersService } from './users.service'
 import {
@@ -20,6 +20,7 @@ describe('CurrentUserHydrationService', () => {
     featureContextHydrationFailed: boolean
     featureTenant: IFeatureOrganization[]
     featureOrganizations: IFeatureOrganization[]
+    activeScope: { level: RequestScopeLevel; organizationId?: string }
   }
 
   const tenantFeature = {
@@ -135,7 +136,11 @@ describe('CurrentUserHydrationService', () => {
       featureContextHydrationLoading: false,
       featureContextHydrationFailed: false,
       featureTenant: [],
-      featureOrganizations: []
+      featureOrganizations: [],
+      activeScope: {
+        level: RequestScopeLevel.ORGANIZATION,
+        organizationId: 'org-1'
+      }
     }
 
     const store = {
@@ -186,6 +191,9 @@ describe('CurrentUserHydrationService', () => {
       },
       set featureOrganizations(value: IFeatureOrganization[]) {
         storeState.featureOrganizations = value
+      },
+      get activeScope() {
+        return storeState.activeScope
       }
     }
 
@@ -377,6 +385,21 @@ describe('CurrentUserHydrationService', () => {
 
     expect(storeState.selectedOrganization?.id).toBe('org-2')
     expect(storeState.featureOrganizations).toEqual([org2Feature])
+  })
+
+  it('does not restore a selected organization while hydrating tenant scope', async () => {
+    storeState.activeScope = {
+      level: RequestScopeLevel.TENANT
+    }
+    storeState.selectedOrganization = null
+    storeState.featureOrganizations = [orgFeature]
+    usersService.getMe.mockResolvedValue(createHydrationUser())
+
+    await service.getFeatureHydration()
+
+    expect(storeState.selectedOrganization).toBeNull()
+    expect(storeState.featureOrganizations).toEqual([])
+    expect(storeState.featureTenant).toEqual([tenantFeature])
   })
 
   it('keys in-flight requests by user id so switching users does not reuse stale work', async () => {

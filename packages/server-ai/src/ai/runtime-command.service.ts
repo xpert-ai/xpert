@@ -8,6 +8,7 @@ import type {
 } from '@xpert-ai/contracts'
 import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
 import type { TRuntimeCapabilitiesSelection } from '../shared/agent/runtime-capabilities'
+import { normalizeRuntimeIcon } from './runtime-icon'
 import {
     BUILTIN_SLASH_COMMAND_NAMES,
     isRuntimeSlashCommandName,
@@ -113,7 +114,7 @@ export class RuntimeCommandService {
 
         const label = command.label ?? command.name
         const description = command.description
-        const icon = command.icon ?? skill.metadata.icon
+        const icon = normalizeRuntimeIcon(command.icon ?? skill.metadata.icon)
         const kind =
             command.kind ??
             (action.type === 'submit_prompt' || action.type === 'insert_invocation' ? 'prompt_workflow' : 'command')
@@ -213,7 +214,8 @@ export class RuntimeCommandService {
             description,
             tags: []
         })
-        const meta = createCommandMeta(command.meta, command.icon)
+        const icon = normalizeRuntimeIcon(command.icon)
+        const meta = createCommandMeta(command.meta, icon)
         const category = command.category ?? (kind === 'prompt_workflow' ? 'prompt_workflow' : undefined)
         const argsHint = command.argsHint ?? inferArgsHint(action)
 
@@ -221,7 +223,7 @@ export class RuntimeCommandService {
             name: command.name,
             label,
             description,
-            icon: command.icon,
+            icon,
             category,
             aliases: nonEmptyArray(command.aliases),
             argsHint,
@@ -463,7 +465,9 @@ function filterRuntimeCapabilitiesByAllowList(
             nodeKeys: value.plugins.nodeKeys.filter((nodeKey) => !restrictPlugins || pluginNodeKeys.has(nodeKey))
         },
         subAgents: {
-            nodeKeys: value.subAgents.nodeKeys.filter((nodeKey) => !restrictSubAgents || subAgentNodeKeys.has(nodeKey))
+            nodeKeys: (value.subAgents?.nodeKeys ?? []).filter(
+                (nodeKey) => !restrictSubAgents || subAgentNodeKeys.has(nodeKey)
+            )
         }
     }
 }

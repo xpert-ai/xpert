@@ -1,5 +1,6 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
 	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
 	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,

@@ -246,6 +246,7 @@ describe('AssistantsController', () => {
                                 value: `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" /></svg>`,
                                 alt: 'Default Skill'
                             },
+                            color: '#2563EB',
                             commands: [
                                 {
                                     name: 'review',
@@ -348,7 +349,8 @@ describe('AssistantsController', () => {
                             type: 'svg',
                             value: `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" /></svg>`,
                             alt: 'Default Skill'
-                        }
+                        },
+                        color: '#2563EB'
                     },
                     default: true
                 },

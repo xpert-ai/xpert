@@ -1,12 +1,11 @@
 import {
     IWFNMiddleware,
-    IPluginResourceComponentState,
+    I18nObject,
+    IconDefinition,
     IXpert,
     IXpertAgent,
     IXpertTool,
-    IXpertToolset,
     JSONValue,
-    LanguagesEnum,
     MCPServerType,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_MCP_TOOL_APPROVAL_MODE,
@@ -15,49 +14,44 @@ import {
     PluginComponentType,
     PluginResourceComponentSelector,
     PluginResourceRuntimeType,
-    TAvatar,
-    TCopilotModel,
+    SkillMetadata,
     TMCPServer,
     TXpertTeamConnection,
     TXpertTeamDraft,
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
-    XpertTemplatePluginDependencies,
-    XpertTemplatePluginToolsetDependency,
     XpertPluginMcpServerPolicy,
     XpertToolsetCategoryEnum,
     genXpertMiddlewareKey
 } from '@xpert-ai/contracts'
-import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
-    collectPluginBundleComponents,
     LOADED_PLUGINS,
     LoadedPluginRecord,
     normalizePluginName,
-    PluginBundleComponentRegistration,
-    readPluginBundleManifest,
-    resolveLoadedPluginBundleRoot
+    PluginBundleComponentRegistration
 } from '@xpert-ai/server-core'
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { mkdir } from 'node:fs/promises'
 import { In, Repository } from 'typeorm'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { SkillPackageService } from '../skill-package/skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../skill-package/types'
-import { XpertImportCommand } from '../xpert/commands/import.command'
-import { XpertDraftDslDTO } from '../xpert/dto'
 import { XpertService } from '../xpert/xpert.service'
 import { XpertWorkspaceAccessService } from '../xpert-workspace'
-import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertTool } from '../xpert-tool/xpert-tool.entity'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { XpertToolsetService } from '../xpert-toolset/xpert-toolset.service'
 import { PLUGIN_HOOKS_MIDDLEWARE_NAME } from './plugin-hooks.middleware'
 import { buildBlockedAppConfig, resolvePluginAppResourceInstallationStatus } from './plugin-resource-app-status'
+import {
+    isPluginResourceInstallableForTarget,
+    PluginResourceInstallTarget,
+    readPluginResourceComponents,
+    resolveLoadedPluginResourceRoot
+} from './plugin-resource-components'
 import { PluginResourceInstallation } from './plugin-resource-installation.entity'
 
 export type PluginResourceInstallComponent = PluginResourceComponentSelector & {
@@ -73,7 +67,7 @@ export type PluginResourceInstallResult = {
     pendingAuth: PluginResourceInstallation[]
 }
 
-type RuntimeComponent = {
+export type RuntimeComponent = {
     pluginName: string
     component: PluginBundleComponentRegistration
     rootDir: string
@@ -83,38 +77,13 @@ type RuntimeComponent = {
     auth?: 'on_install' | 'on_first_use'
 }
 
-type PluginResourceInstallTarget = 'workspace' | 'xpert'
-
-export type PluginResourceComponentStateInput = {
-    target?: PluginResourceInstallTarget
-    workspaceId?: string
-    xpertId?: string
-    agentKey?: string
-}
-
 type ParsedMcpServer = {
     server: TMCPServer
     policy?: XpertPluginMcpServerPolicy
 }
 
-type TemplateInstallBasic = {
-    name?: string
-    title?: string
-    description?: string
-    avatar?: TAvatar
-    copilotModel?: TCopilotModel
-}
-
-type TemplateToolsetResolution = {
-    dependency: Required<Pick<XpertTemplatePluginToolsetDependency, 'provider' | 'templateNodeKey'>> &
-        Pick<XpertTemplatePluginToolsetDependency, 'targetAgentKey' | 'instanceName' | 'pluginName'>
-    toolset: IXpertToolset
-}
-
 @Injectable()
 export class PluginResourceInstallerService {
-    readonly #logger = new Logger(PluginResourceInstallerService.name)
-
     constructor(
         @InjectRepository(PluginResourceInstallation)
         private readonly installationRepo: Repository<PluginResourceInstallation>,
@@ -128,8 +97,6 @@ export class PluginResourceInstallerService {
         private readonly skillPackageService: SkillPackageService,
         private readonly toolsetService: XpertToolsetService,
         private readonly xpertService: XpertService,
-        private readonly xpertTemplateService: XpertTemplateService,
-        private readonly commandBus: CommandBus,
         @Optional()
         @Inject(LOADED_PLUGINS)
         private readonly loadedPlugins: LoadedPluginRecord[] = []
@@ -175,115 +142,7 @@ export class PluginResourceInstallerService {
         return this.installComponentsForXpert(xpert, runtimeComponents, agentKey)
     }
 
-    async installTemplate(
-        templateId: string,
-        workspaceId: string,
-        basic?: TemplateInstallBasic,
-        language: LanguagesEnum = LanguagesEnum.English
-    ): Promise<PluginResourceInstallResult> {
-        await this.workspaceAccess.assertCanWrite(workspaceId)
-        const template = await this.xpertTemplateService.getTemplateDetail(templateId, language)
-        const parsed = yaml.parse(template.export_data) as unknown
-        const draft = this.normalizeDraft(parsed, workspaceId, basic)
-        const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
-            new XpertImportCommand(draft, {
-                normalizeCopilotModels: true,
-                templateId,
-                sourceTemplateId: template.id
-            })
-        )
-
-        try {
-            const dependencies = template.dependencies
-            const pluginName = template.pluginName
-            const components = await this.resolveTemplateDependencyComponents(pluginName, dependencies)
-            const result = await this.installComponentsForXpert(xpert, components)
-            const toolsets = await this.resolveTemplateToolsetDependencies(xpert.workspaceId, pluginName, dependencies)
-            if (toolsets.length) {
-                await this.attachTemplateToolsetsToXpert(xpert.id, toolsets)
-            }
-            return {
-                ...result,
-                xpert
-            }
-        } catch (error) {
-            await this.rollbackTemplateXpert(xpert)
-            throw error
-        }
-    }
-
-    async listComponentStates(
-        pluginName: string,
-        input: PluginResourceComponentStateInput
-    ): Promise<IPluginResourceComponentState[]> {
-        const normalizedPluginName = normalizePluginName(pluginName)
-        const xpert = input.xpertId ? await this.xpertService.getTeam(input.xpertId) : null
-        const workspaceId = xpert?.workspaceId ?? input.workspaceId
-        if (!workspaceId) {
-            throw new BadRequestException('workspaceId is required')
-        }
-        if (input.workspaceId && xpert?.workspaceId && input.workspaceId !== xpert.workspaceId) {
-            throw new BadRequestException('workspaceId does not match Xpert workspace')
-        }
-        await this.workspaceAccess.assertCanRead(workspaceId)
-
-        const target = input.target ?? (input.xpertId ? 'xpert' : 'workspace')
-        const rootDir = this.resolveLoadedPluginRoot(normalizedPluginName)
-        const components = this.readPluginComponents(normalizedPluginName, rootDir).filter((component) =>
-            this.isInstallableForTarget(component.componentType, target)
-        )
-        if (!components.length) {
-            return []
-        }
-
-        const installations = await this.findInstallationsForTarget(
-            workspaceId,
-            target === 'xpert' ? (input.xpertId ?? null) : null,
-            normalizedPluginName,
-            target === 'xpert' ? input.agentKey : undefined
-        )
-        const installationByComponent = new Map<string, PluginResourceInstallation>()
-        for (const installation of installations) {
-            const key = this.componentStateKey(installation)
-            if (!installationByComponent.has(key)) {
-                installationByComponent.set(key, installation)
-            }
-        }
-
-        const skillPackagesBySharedId =
-            target === 'workspace'
-                ? await this.findPluginSkillPackages(workspaceId, normalizedPluginName, components)
-                : new Map<string, SkillPackage>()
-
-        return components.map((component) => {
-            const installation = installationByComponent.get(this.componentStateKey(component)) ?? null
-            const fallbackSkillPackage =
-                component.componentType === PLUGIN_COMPONENT_TYPE.SKILL
-                    ? (skillPackagesBySharedId.get(
-                          this.pluginSkillSharedId(normalizedPluginName, component.componentKey)
-                      ) ?? null)
-                    : null
-            const installed = !!installation || !!fallbackSkillPackage
-            const runtimeType =
-                installation?.runtimeType ?? (fallbackSkillPackage ? PLUGIN_RESOURCE_RUNTIME_TYPE.SKILL_PACKAGE : null)
-            const runtimeId = installation?.runtimeId ?? fallbackSkillPackage?.id ?? null
-            const status =
-                installation?.status ?? (fallbackSkillPackage ? PLUGIN_RESOURCE_INSTALLATION_STATUS.READY : null)
-
-            return {
-                componentType: component.componentType,
-                componentKey: component.componentKey,
-                installed,
-                staleDefinition: !!installation && installation.definitionHash !== component.definitionHash,
-                runtimeType,
-                runtimeId,
-                status,
-                installation
-            }
-        })
-    }
-
-    private async installComponentsForXpert(
+    async installComponentsForXpert(
         xpert: IXpert,
         runtimeComponents: RuntimeComponent[],
         defaultAgentKey?: string
@@ -332,18 +191,20 @@ export class PluginResourceInstallerService {
         }
     }
 
-    private async resolveRuntimeComponents(
+    async resolveRuntimeComponents(
         pluginName: string,
         selectors?: PluginResourceInstallComponent[],
         target?: PluginResourceInstallTarget
     ): Promise<RuntimeComponent[]> {
         const normalizedPluginName = normalizePluginName(pluginName)
-        const rootDir = this.resolveLoadedPluginRoot(normalizedPluginName)
-        const components = this.readPluginComponents(normalizedPluginName, rootDir)
+        const rootDir = resolveLoadedPluginResourceRoot(normalizedPluginName, this.loadedPlugins)
+        const components = readPluginResourceComponents(normalizedPluginName, rootDir)
         const selected = selectors?.length
             ? this.filterSelectedComponents(components, selectors, normalizedPluginName)
             : components
-        const installable = selected.filter((component) => this.isInstallableForTarget(component.componentType, target))
+        const installable = selected.filter((component) =>
+            isPluginResourceInstallableForTarget(component.componentType, target)
+        )
         if (selectors?.length && installable.length !== selected.length) {
             throw new BadRequestException(`Selected plugin resources cannot be installed to ${target ?? 'this target'}`)
         }
@@ -372,448 +233,6 @@ export class PluginResourceInstallerService {
                 auth: selector?.auth
             }
         })
-    }
-
-    private isInstallableForTarget(componentType: PluginComponentType, target?: PluginResourceInstallTarget) {
-        if (!target) {
-            return componentType !== PLUGIN_COMPONENT_TYPE.ASSET
-        }
-        if (target === 'workspace') {
-            return (
-                componentType === PLUGIN_COMPONENT_TYPE.SKILL ||
-                componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER ||
-                componentType === PLUGIN_COMPONENT_TYPE.APP
-            )
-        }
-        return componentType === PLUGIN_COMPONENT_TYPE.HOOK
-    }
-
-    private async findInstallationsForTarget(
-        workspaceId: string,
-        xpertId: string | null,
-        pluginName: string,
-        agentKey?: string
-    ) {
-        const query = this.installationRepo
-            .createQueryBuilder('installation')
-            .where('installation.workspaceId = :workspaceId', { workspaceId })
-            .andWhere('installation.pluginName = :pluginName', { pluginName })
-            .orderBy('installation.updatedAt', 'DESC')
-        if (xpertId) {
-            query.andWhere('installation.xpertId = :xpertId', { xpertId })
-            if (agentKey) {
-                query.andWhere('installation.agentKey = :agentKey', { agentKey })
-            }
-        } else {
-            query.andWhere('installation.xpertId IS NULL')
-        }
-        return query.getMany()
-    }
-
-    private async findPluginSkillPackages(
-        workspaceId: string,
-        pluginName: string,
-        components: Array<Pick<PluginBundleComponentRegistration, 'componentType' | 'componentKey'>>
-    ) {
-        const sharedSkillIds = components
-            .filter((component) => component.componentType === PLUGIN_COMPONENT_TYPE.SKILL)
-            .map((component) => this.pluginSkillSharedId(pluginName, component.componentKey))
-        if (!sharedSkillIds.length) {
-            return new Map<string, SkillPackage>()
-        }
-
-        const packages = await this.skillPackageRepo.find({
-            where: {
-                workspaceId,
-                sharedSkillId: In(sharedSkillIds)
-            },
-            order: {
-                updatedAt: 'DESC'
-            }
-        })
-        const grouped = new Map<string, SkillPackage>()
-        for (const skillPackage of packages) {
-            if (skillPackage.sharedSkillId && !grouped.has(skillPackage.sharedSkillId)) {
-                grouped.set(skillPackage.sharedSkillId, skillPackage)
-            }
-        }
-        return grouped
-    }
-
-    private pluginSkillSharedId(pluginName: string, componentKey: string) {
-        return `plugin:${pluginName}:skill:${componentKey}`
-    }
-
-    private componentStateKey(component: Pick<IPluginResourceComponentState, 'componentType' | 'componentKey'>) {
-        return `${component.componentType}:${component.componentKey}`
-    }
-
-    private async resolveTemplateDependencyComponents(
-        defaultPluginName: string | undefined,
-        dependencies?: XpertTemplatePluginDependencies
-    ) {
-        const pluginName = normalizePluginName(defaultPluginName ?? '')
-        if (!pluginName) {
-            return []
-        }
-
-        const components: PluginResourceInstallComponent[] = []
-        for (const item of dependencies?.skills ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey
-            })
-        }
-        for (const item of dependencies?.mcpServers ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.MCP_SERVER,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey,
-                policyOverrides: item.policyOverrides
-            })
-        }
-        for (const item of dependencies?.hooks ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.HOOK,
-                componentKey: item.componentKey,
-                targetAgentKey: item.targetAgentKey,
-                events: item.events
-            })
-        }
-        for (const item of dependencies?.apps ?? []) {
-            components.push({
-                pluginName: normalizePluginName(item.pluginName ?? pluginName),
-                componentType: PLUGIN_COMPONENT_TYPE.APP,
-                componentKey: item.componentKey,
-                auth: item.auth
-            })
-        }
-
-        if (!components.length) {
-            return dependencies?.plugins?.includes(pluginName)
-                ? await this.resolveRuntimeComponents(pluginName, undefined)
-                : []
-        }
-
-        const groups = await Promise.all(
-            Array.from(new Set(components.map((item) => item.pluginName ?? pluginName))).map((name) =>
-                this.resolveRuntimeComponents(
-                    name,
-                    components.filter((item) => item.pluginName === name)
-                )
-            )
-        )
-        return groups.flat()
-    }
-
-    private async resolveTemplateToolsetDependencies(
-        workspaceId: string | undefined,
-        defaultPluginName: string | undefined,
-        dependencies?: XpertTemplatePluginDependencies
-    ): Promise<TemplateToolsetResolution[]> {
-        if (!dependencies?.toolsets?.length) {
-            return []
-        }
-        if (!workspaceId) {
-            throw new BadRequestException('workspaceId is required for template toolset dependencies')
-        }
-
-        const defaultNormalizedPluginName = normalizePluginName(defaultPluginName ?? '')
-        const resolutions: TemplateToolsetResolution[] = []
-        for (const item of dependencies.toolsets) {
-            const provider = normalizeNonEmptyString(item.provider)
-            const templateNodeKey = normalizeNonEmptyString(item.templateNodeKey)
-            const pluginName = normalizePluginName(item.pluginName ?? defaultNormalizedPluginName)
-            if (!provider || !templateNodeKey || !pluginName) {
-                throw new BadRequestException(
-                    'Template toolset dependency requires pluginName, provider and templateNodeKey'
-                )
-            }
-
-            const dependency = {
-                pluginName,
-                provider,
-                templateNodeKey,
-                targetAgentKey: normalizeNonEmptyString(item.targetAgentKey) ?? undefined,
-                instanceName: normalizeNonEmptyString(item.instanceName) ?? undefined
-            }
-            resolutions.push({
-                dependency,
-                toolset: await this.resolveTemplateBuiltinToolset(workspaceId, dependency)
-            })
-        }
-        return resolutions
-    }
-
-    private async resolveTemplateBuiltinToolset(
-        workspaceId: string,
-        dependency: TemplateToolsetResolution['dependency']
-    ) {
-        const toolsets = (
-            await this.toolsetRepo.find({
-                where: {
-                    workspaceId,
-                    type: dependency.provider,
-                    category: XpertToolsetCategoryEnum.BUILTIN
-                },
-                relations: ['tools'],
-                order: {
-                    updatedAt: 'DESC'
-                }
-            })
-        )
-            .filter(
-                (toolset) =>
-                    toolset.type === dependency.provider &&
-                    (toolset.category ?? XpertToolsetCategoryEnum.BUILTIN) === XpertToolsetCategoryEnum.BUILTIN
-            )
-            .sort(compareToolsetsByUpdatedAtDesc)
-
-        if (dependency.instanceName) {
-            const namedToolsets = toolsets.filter((toolset) => toolset.name === dependency.instanceName)
-            if (!namedToolsets.length) {
-                throw new BadRequestException(
-                    `Required template toolset '${dependency.instanceName}' (${dependency.provider}) is not configured in this workspace.`
-                )
-            }
-            return namedToolsets[0]
-        }
-
-        if (!toolsets.length) {
-            throw new BadRequestException(
-                `Required template toolset '${dependency.provider}' is not configured in this workspace.`
-            )
-        }
-
-        if (toolsets.length > 1) {
-            throw new BadRequestException(
-                `Multiple '${dependency.provider}' toolsets are configured in this workspace. Set instanceName in the template dependency.`
-            )
-        }
-
-        return toolsets[0]
-    }
-
-    private async attachTemplateToolsetsToXpert(xpertId: string | undefined, resolutions: TemplateToolsetResolution[]) {
-        if (!xpertId) {
-            throw new BadRequestException('Xpert id is required for template toolset dependencies')
-        }
-
-        const latestXpert = await this.xpertService.getTeam(xpertId)
-        const draft = this.ensureDraft(latestXpert)
-        for (const resolution of resolutions) {
-            this.applyTemplateToolsetResolution(draft, resolution)
-        }
-
-        await this.xpertService.updateDraft(xpertId, {
-            team: draft.team,
-            nodes: draft.nodes,
-            connections: draft.connections
-        })
-    }
-
-    private applyTemplateToolsetResolution(draft: TXpertTeamDraft, resolution: TemplateToolsetResolution) {
-        const templateNodeKey = resolution.dependency.templateNodeKey
-        const toolsetId = resolution.toolset.id
-        if (!toolsetId) {
-            throw new BadRequestException(`Resolved template toolset '${resolution.dependency.provider}' has no id`)
-        }
-
-        const targetAgentKey =
-            resolution.dependency.targetAgentKey ?? this.resolveTemplateToolsetTargetAgentKey(draft, templateNodeKey)
-        if (!this.templateDraftHasAgent(draft, targetAgentKey)) {
-            throw new BadRequestException(`Template toolset target agent '${targetAgentKey}' was not found`)
-        }
-        const placeholderNode = draft.nodes.find((node) => node.type === 'toolset' && node.key === templateNodeKey)
-        const runtimeNode = draft.nodes.find((node) => node.type === 'toolset' && node.key === toolsetId)
-        const position = placeholderNode?.position ?? runtimeNode?.position ?? { x: 280, y: 260 }
-        const size = placeholderNode?.size ?? runtimeNode?.size
-        const insertIndex = Math.max(
-            0,
-            draft.nodes.findIndex((node) => node.key === templateNodeKey || node.key === toolsetId)
-        )
-        const toolsetNode: TXpertTeamNode<'toolset'> = {
-            key: toolsetId,
-            type: 'toolset',
-            position,
-            ...(size ? { size } : {}),
-            entity: this.sanitizeTemplateToolset(resolution.toolset)
-        }
-
-        draft.nodes = draft.nodes.filter(
-            (node) => !(node.type === 'toolset' && (node.key === templateNodeKey || node.key === toolsetId))
-        )
-        draft.nodes.splice(insertIndex, 0, toolsetNode)
-        draft.connections = this.rewriteTemplateToolsetConnections(draft.connections ?? [], templateNodeKey, toolsetId)
-        this.ensureConnection(draft, targetAgentKey, toolsetId, 'toolset')
-        this.rewriteTemplateToolsetAgentRefs(draft, templateNodeKey, toolsetId, targetAgentKey)
-        this.rewriteTemplateToolsetTeamRefs(draft, templateNodeKey, resolution.toolset, position)
-    }
-
-    private resolveTemplateToolsetTargetAgentKey(draft: TXpertTeamDraft, templateNodeKey: string) {
-        const connectedAgentKey = draft.connections?.find(
-            (connection) => connection.type === 'toolset' && connection.to === templateNodeKey
-        )?.from
-        if (connectedAgentKey) {
-            return connectedAgentKey
-        }
-
-        const agentWithToolset = draft.nodes.find(
-            (node) =>
-                node.type === 'agent' &&
-                Array.isArray(node.entity?.toolsetIds) &&
-                node.entity.toolsetIds.includes(templateNodeKey)
-        )
-        if (agentWithToolset?.type === 'agent') {
-            return agentWithToolset.key
-        }
-
-        const primaryAgentKey = normalizeNonEmptyString(draft.team.agent?.key)
-        if (primaryAgentKey) {
-            return primaryAgentKey
-        }
-
-        const agentNode = draft.nodes.find((node) => node.type === 'agent')
-        if (agentNode?.type === 'agent') {
-            return agentNode.key
-        }
-
-        throw new BadRequestException('Template toolset dependency requires a target agent')
-    }
-
-    private templateDraftHasAgent(draft: TXpertTeamDraft, agentKey: string) {
-        return (
-            draft.team.agent?.key === agentKey ||
-            draft.nodes.some((node) => node.type === 'agent' && node.key === agentKey)
-        )
-    }
-
-    private rewriteTemplateToolsetConnections(
-        connections: TXpertTeamConnection[],
-        templateNodeKey: string,
-        toolsetId: string
-    ) {
-        const seen = new Set<string>()
-        return connections
-            .map((connection) => {
-                const from = connection.from === templateNodeKey ? toolsetId : connection.from
-                const to = connection.to === templateNodeKey ? toolsetId : connection.to
-                return {
-                    ...connection,
-                    from,
-                    to,
-                    key: `${from}/${to}`
-                }
-            })
-            .filter((connection) => {
-                const key = `${connection.type}:${connection.from}:${connection.to}`
-                if (seen.has(key)) {
-                    return false
-                }
-                seen.add(key)
-                return true
-            })
-    }
-
-    private rewriteTemplateToolsetAgentRefs(
-        draft: TXpertTeamDraft,
-        templateNodeKey: string,
-        toolsetId: string,
-        targetAgentKey: string
-    ) {
-        draft.nodes = draft.nodes.map((node) => {
-            if (node.type !== 'agent') {
-                return node
-            }
-            return {
-                ...node,
-                entity: this.rewriteAgentToolsetIds(
-                    node.entity,
-                    templateNodeKey,
-                    toolsetId,
-                    node.key === targetAgentKey
-                )
-            }
-        })
-
-        if (draft.team.agent) {
-            draft.team.agent = this.rewriteAgentToolsetIds(
-                draft.team.agent,
-                templateNodeKey,
-                toolsetId,
-                draft.team.agent.key === targetAgentKey
-            )
-        }
-    }
-
-    private rewriteAgentToolsetIds<T extends { toolsetIds?: string[] }>(
-        agent: T,
-        templateNodeKey: string,
-        toolsetId: string,
-        shouldAttach: boolean
-    ): T {
-        const nextIds = uniqueStrings(
-            (agent.toolsetIds ?? []).filter((id) => id !== templateNodeKey && id !== toolsetId)
-        )
-        if (shouldAttach) {
-            nextIds.push(toolsetId)
-        }
-        return {
-            ...agent,
-            toolsetIds: uniqueStrings(nextIds)
-        }
-    }
-
-    private rewriteTemplateToolsetTeamRefs(
-        draft: TXpertTeamDraft,
-        templateNodeKey: string,
-        toolset: IXpertToolset,
-        position: TXpertTeamNode['position']
-    ) {
-        const toolsetId = toolset.id
-        const toolsetOptions = isObjectValue(draft.team.options?.toolset)
-            ? ({ ...(draft.team.options.toolset as Record<string, unknown>) } as Record<string, unknown>)
-            : {}
-        toolsetOptions[toolsetId] = toolsetOptions[toolsetId] ?? toolsetOptions[templateNodeKey] ?? { position }
-        delete toolsetOptions[templateNodeKey]
-
-        draft.team = {
-            ...draft.team,
-            toolsets: [
-                ...(draft.team.toolsets ?? []).filter((item) => item.id !== templateNodeKey && item.id !== toolsetId),
-                this.sanitizeTemplateToolset(toolset)
-            ],
-            options: {
-                ...(draft.team.options ?? {}),
-                toolset: toolsetOptions
-            }
-        }
-    }
-
-    private sanitizeTemplateToolset(toolset: IXpertToolset): IXpertToolset {
-        const sanitized: Partial<IXpertToolset> = {
-            id: toolset.id,
-            name: toolset.name,
-            type: toolset.type,
-            category: toolset.category ?? XpertToolsetCategoryEnum.BUILTIN,
-            description: toolset.description,
-            avatar: toolset.avatar,
-            options: toolset.options,
-            privacyPolicy: toolset.privacyPolicy,
-            customDisclaimer: toolset.customDisclaimer,
-            tags: toolset.tags,
-            tools: toolset.tools?.map((tool) => {
-                const nextTool: Partial<IXpertTool> = { ...tool }
-                delete (nextTool as { toolset?: unknown }).toolset
-                delete (nextTool as { toolsetId?: unknown }).toolsetId
-                return nextTool as IXpertTool
-            })
-        }
-        return sanitized as IXpertToolset
     }
 
     private async installRuntimeComponent(
@@ -871,7 +290,8 @@ export class PluginResourceInstallerService {
                 {
                     pluginName: runtimeComponent.pluginName,
                     componentKey: runtimeComponent.component.componentKey,
-                    bundleRootPath: skillRoot
+                    bundleRootPath: skillRoot,
+                    metadata: buildSkillMetadataOverrides(runtimeComponent.component.metadata)
                 },
                 { skipAccessCheck: true }
             )
@@ -1143,29 +563,6 @@ export class PluginResourceInstallerService {
         }
     }
 
-    private normalizeDraft(value: unknown, workspaceId: string, basic?: TemplateInstallBasic): XpertDraftDslDTO {
-        if (!isObjectValue(value) || !isObjectValue(Reflect.get(value, 'team'))) {
-            throw new BadRequestException('Template export_data must be a valid Xpert draft')
-        }
-        const teamValue = Reflect.get(value, 'team')
-        const nodesValue = Reflect.get(value, 'nodes')
-        const connectionsValue = Reflect.get(value, 'connections')
-        if (!Array.isArray(nodesValue) || !Array.isArray(connectionsValue)) {
-            throw new BadRequestException('Template draft must include nodes and connections')
-        }
-
-        const team = teamValue as TXpertTeamDraft['team']
-        return new XpertDraftDslDTO({
-            team: {
-                ...team,
-                ...basic,
-                workspaceId
-            },
-            nodes: nodesValue as TXpertTeamNode[],
-            connections: connectionsValue as TXpertTeamConnection[]
-        })
-    }
-
     private getPrimaryAgentKey(xpert: IXpert, draft: TXpertTeamDraft) {
         const key = draft.team.agent?.key ?? xpert.agent?.key
         if (key) {
@@ -1189,15 +586,6 @@ export class PluginResourceInstallerService {
         return null
     }
 
-    private readPluginComponents(pluginName: string, rootDir: string) {
-        const manifestResult = readPluginBundleManifest(rootDir)
-        const components = manifestResult ? collectPluginBundleComponents(rootDir, manifestResult.manifest) : []
-        if (!components.length) {
-            throw new NotFoundException(`Plugin '${pluginName}' has no installable components`)
-        }
-        return components
-    }
-
     private filterSelectedComponents(
         components: PluginBundleComponentRegistration[],
         selectors: PluginResourceInstallComponent[],
@@ -1215,30 +603,6 @@ export class PluginResourceInstallerService {
             throw new NotFoundException('No matching plugin components were found')
         }
         return selected
-    }
-
-    private resolveLoadedPluginRoot(pluginName: string) {
-        const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
-        const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
-        const organizationScopeKey =
-            organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
-        const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
-        const record = this.loadedPlugins.find((item) => {
-            const scopeKey = item.scopeKey ?? item.organizationId
-            if (
-                scopeKey !== organizationScopeKey &&
-                (organizationId === GLOBAL_ORGANIZATION_SCOPE || scopeKey !== globalScopeKey)
-            ) {
-                return false
-            }
-            const names = [item.name, item.packageName].filter((value): value is string => !!value)
-            return names.some((name) => normalizePluginName(name) === pluginName)
-        })
-        const root = record ? resolveLoadedPluginBundleRoot(record) : null
-        if (!root) {
-            throw new NotFoundException(`Loaded plugin '${pluginName}' was not found`)
-        }
-        return root
     }
 
     private resolveSkillRoot(runtimeComponent: RuntimeComponent) {
@@ -1490,17 +854,6 @@ export class PluginResourceInstallerService {
         }
         return resolved
     }
-
-    private async rollbackTemplateXpert(xpert: IXpert) {
-        if (!xpert.id) {
-            return
-        }
-        try {
-            await this.xpertService.delete(xpert.id)
-        } catch (error) {
-            this.#logger.warn(`Failed to rollback template xpert '${xpert.id}': ${getErrorMessage(error)}`)
-        }
-    }
 }
 
 function isObjectValue(value: unknown): value is object {
@@ -1539,6 +892,74 @@ function readStringArrayField(value: object, key: string): string[] | undefined 
     return items.length ? items : undefined
 }
 
+function buildSkillMetadataOverrides(value: unknown): Partial<SkillMetadata> | null {
+    if (!isObjectValue(value)) {
+        return null
+    }
+
+    const metadata: Partial<SkillMetadata> = {}
+    const displayName = readI18nObjectField(value, 'displayName')
+    const description = readI18nObjectField(value, 'description')
+    const icon = readIconDefinitionField(value, 'icon')
+    const color = readStringField(value, 'color')
+
+    if (displayName) {
+        metadata.displayName = displayName
+    }
+    if (description) {
+        metadata.description = description
+    }
+    if (icon) {
+        metadata.icon = icon
+    }
+    if (color) {
+        metadata.color = color
+    }
+
+    return Object.keys(metadata).length ? metadata : null
+}
+
+function readI18nObjectField(value: object, key: string): I18nObject | undefined {
+    const field = Reflect.get(value, key)
+    if (typeof field === 'string' && field.trim()) {
+        return toI18nObject(field.trim())
+    }
+    if (!isObjectValue(field)) {
+        return undefined
+    }
+
+    const enUS = readStringField(field, 'en_US')
+    const zhHans = readStringField(field, 'zh_Hans')
+    const fallback = enUS ?? zhHans
+    return fallback
+        ? {
+              en_US: fallback,
+              ...(zhHans ? { zh_Hans: zhHans } : {})
+          }
+        : undefined
+}
+
+function toI18nObject(value: string): I18nObject {
+    return {
+        en_US: value,
+        zh_Hans: value
+    }
+}
+
+function readIconDefinitionField(value: object, key: string): IconDefinition | undefined {
+    const field = Reflect.get(value, key)
+    if (!isObjectValue(field)) {
+        return undefined
+    }
+    const type = readStringField(field, 'type')
+    const iconValue = readStringField(field, 'value')
+    if (!type || !iconValue) {
+        return undefined
+    }
+
+    return field as IconDefinition
+}
+
 function readRuntimePolicy(value: unknown): XpertPluginMcpServerPolicy['runtime'] | undefined {
     if (!isObjectValue(value)) {
         return undefined
@@ -1565,27 +986,6 @@ function removeUndefinedPolicy(policy: XpertPluginMcpServerPolicy): XpertPluginM
 
 function safePathSegment(value: string) {
     return value.replace(/[^a-zA-Z0-9._-]+/g, '_')
-}
-
-function normalizeNonEmptyString(value: unknown): string | null {
-    return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function uniqueStrings(values: Array<string | null | undefined>) {
-    return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => !!value)))
-}
-
-function compareToolsetsByUpdatedAtDesc(left: IXpertToolset, right: IXpertToolset) {
-    return readDateTime(right.updatedAt) - readDateTime(left.updatedAt)
-}
-
-function readDateTime(value: unknown) {
-    if (!value) {
-        return 0
-    }
-
-    const time = new Date(value as string).getTime()
-    return Number.isFinite(time) ? time : 0
 }
 
 function isHookRef(value: unknown): value is { pluginName: string; componentKey: string; events?: string[] } {

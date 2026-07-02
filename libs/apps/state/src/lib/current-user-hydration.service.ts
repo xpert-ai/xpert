@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { IFeatureOrganization, IUser, IUserOrganization } from '@xpert-ai/contracts'
+import { IFeatureOrganization, IUser, IUserOrganization, RequestScopeLevel } from '@xpert-ai/contracts'
 import { Store } from './store.service'
 import { CURRENT_USER_FEATURE_RELATIONS, UsersService } from './users.service'
 
@@ -275,6 +275,12 @@ export class CurrentUserHydrationService {
   }
 
   private syncSelectedOrganizationFeatures(user: IUser) {
+    if (this.store.activeScope.level === RequestScopeLevel.TENANT) {
+      this.store.selectedOrganization = null
+      this.store.featureOrganizations = []
+      return
+    }
+
     const memberships = user.organizations ?? []
     const selectedOrganizationId = this.store.selectedOrganization?.id
     const membership = selectedOrganizationId ? memberships.find(

@@ -5,8 +5,8 @@
  * Keep `sourceConfig` attached so runtime restore can restage local workspaces or reuse uploaded staged runtime directories.
  */
 import { getConfig } from '@xpert-ai/server-config'
-import { DEFAULT_TENANT, PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
+import { DEFAULT_TENANT, PLUGIN_LEVEL, PluginLevel, PluginSourceConfig } from '@xpert-ai/contracts'
+import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { deserializePluginConfig } from './plugin-config.crypto'
 import { getCodeRuntimeName } from './source-config'
@@ -18,6 +18,7 @@ const TENANT_TABLE = 'tenant'
 interface PluginInstanceRow {
 	tenantId?: string | null
 	organizationId?: string | null
+	scopeKey?: string | null
 	pluginName: string
 	packageName?: string | null
 	version?: string | null
@@ -51,6 +52,15 @@ async function hasPluginInstanceTable(dataSource: DataSource): Promise<boolean> 
 	}
 }
 
+async function hasPluginInstanceScopeKeyColumn(dataSource: DataSource): Promise<boolean> {
+	const queryRunner = dataSource.createQueryRunner()
+	try {
+		return await queryRunner.hasColumn(PLUGIN_INSTANCE_TABLE, 'scopeKey')
+	} finally {
+		await queryRunner.release()
+	}
+}
+
 async function hasTenantTable(dataSource: DataSource): Promise<boolean> {
 	const queryRunner = dataSource.createQueryRunner()
 	try {
@@ -76,17 +86,62 @@ export async function loadDefaultTenantId(dataSource: DataSource): Promise<strin
 	return row?.id ?? null
 }
 
+async function backfillPluginInstanceScopeKeys(dataSource: DataSource, defaultTenantId?: string | null): Promise<void> {
+	await dataSource.query(
+		`
+			WITH ranked AS (
+				SELECT id,
+					ROW_NUMBER() OVER (
+						PARTITION BY "pluginName"
+						ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+					) AS rn
+				FROM ${PLUGIN_INSTANCE_TABLE}
+				WHERE "scopeKey" IS NULL AND level = $1
+			)
+			DELETE FROM ${PLUGIN_INSTANCE_TABLE} target
+			USING ranked
+			WHERE target.id = ranked.id AND ranked.rn > 1
+		`,
+		[PLUGIN_LEVEL.SYSTEM]
+	)
+
+	await dataSource.query(
+		`
+			UPDATE ${PLUGIN_INSTANCE_TABLE}
+			SET "scopeKey" = $1, "tenantId" = NULL, "organizationId" = NULL
+			WHERE "scopeKey" IS NULL AND level = $2
+		`,
+		[SYSTEM_GLOBAL_SCOPE, PLUGIN_LEVEL.SYSTEM]
+	)
+
+	await dataSource.query(
+		`
+			UPDATE ${PLUGIN_INSTANCE_TABLE}
+			SET "scopeKey" = CASE
+				WHEN "organizationId" IS NOT NULL THEN "organizationId"::text
+				WHEN "tenantId" IS NOT NULL AND $2::text IS NOT NULL AND "tenantId"::text <> $2::text
+					THEN CONCAT('tenant:', "tenantId", ':global')
+				ELSE $1
+			END
+			WHERE "scopeKey" IS NULL AND (level IS NULL OR level <> $3)
+		`,
+		[GLOBAL_ORGANIZATION_SCOPE, defaultTenantId ?? null, PLUGIN_LEVEL.SYSTEM]
+	)
+}
+
 /**
  * Before system initialization, connect to the data source via database configuration and read the plugin list.
  * Query the plugin_instance table directly so plugin restore does not depend on unrelated ORM metadata.
  *
  * @returns
  */
-export async function loadPluginInstances(): Promise<PluginInstanceRow[]> {
+export async function loadPluginInstances(
+	input: { defaultTenantId?: string | null } = {}
+): Promise<PluginInstanceRow[]> {
 	const cfg = getConfig()
-	const options = cfg.dbConnectionOptions as DataSourceOptions
+	const dataSourceOptions = cfg.dbConnectionOptions as DataSourceOptions
 	const dataSource = new DataSource({
-		...options,
+		...dataSourceOptions,
 		entities: [],
 		subscribers: [],
 		migrations: []
@@ -96,9 +151,14 @@ export async function loadPluginInstances(): Promise<PluginInstanceRow[]> {
 		if (!(await hasPluginInstanceTable(dataSource))) {
 			return []
 		}
+		const hasScopeKeyColumn = await hasPluginInstanceScopeKeyColumn(dataSource)
+		if (hasScopeKeyColumn) {
+			await backfillPluginInstanceScopeKeys(dataSource, input.defaultTenantId)
+		}
+		const scopeKeySelect = hasScopeKeyColumn ? `"scopeKey"` : `NULL AS "scopeKey"`
 
 		return await dataSource.query<PluginInstanceRow[]>(
-			`SELECT "tenantId", "organizationId", "pluginName", "packageName", version, source, "sourceConfig", level, config FROM ${PLUGIN_INSTANCE_TABLE}`
+			`SELECT "tenantId", "organizationId", ${scopeKeySelect}, "pluginName", "packageName", version, source, "sourceConfig", level, config FROM ${PLUGIN_INSTANCE_TABLE}`
 		)
 	} finally {
 		await dataSource.destroy()
@@ -118,10 +178,11 @@ export function buildOrganizationPluginConfigs(
 		const scope = resolvePluginScope({
 			tenantId: instance.tenantId,
 			organizationId: orgId,
-			defaultTenantId
+			defaultTenantId,
+			scopeKey: instance.level === PLUGIN_LEVEL.SYSTEM ? SYSTEM_GLOBAL_SCOPE : instance.scopeKey
 		})
 		const record = byOrg.get(scope.scopeKey) ?? {
-			tenantId: scope.tenantId,
+			tenantId: scope.isSystem ? null : scope.tenantId,
 			organizationId: orgId,
 			scopeKey: scope.scopeKey,
 			plugins: [],
@@ -179,7 +240,7 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
 		await dataSource.initialize()
 		const defaultTenantId = await loadDefaultTenantId(dataSource)
 		setDefaultTenantId(defaultTenantId)
-		const instances = await loadPluginInstances()
+		const instances = await loadPluginInstances({ defaultTenantId })
 		return buildOrganizationPluginConfigs(instances, { defaultTenantId })
 	} catch (err) {
 		console.warn('Failed to load plugin instances from DB, fallback to defaults', err)

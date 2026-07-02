@@ -5,6 +5,7 @@ import {
   PluginMarketplaceDownloads,
   PluginMarketplaceOperation,
   PluginMarketplaceOperationSummary,
+  PluginMarketplaceTrialShortcut,
   PluginTargetAppMeta
 } from '@xpert-ai/contracts'
 
@@ -24,7 +25,10 @@ export type TPluginWithDownloads = TPlugin & {
   sourceName?: string | null
   sourceNameI18nKey?: string | null
   installed?: boolean
+  screenshots?: string[]
   contributions?: TPluginMarketplaceContribution[]
+  defaultPrompt?: string[]
+  trialShortcuts?: PluginMarketplaceTrialShortcut[]
   operationSummary?: PluginMarketplaceOperationSummary
   targetAppMeta?: PluginTargetAppMeta | null
 }

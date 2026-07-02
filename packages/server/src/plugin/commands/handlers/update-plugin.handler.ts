@@ -26,11 +26,17 @@ export class UpdatePluginHandler implements ICommandHandler<UpdatePluginCommand>
 		if (!plugin) {
 			throw new BadRequestException(`Plugin "${command.pluginName}" is not updateable in the current scope`)
 		}
-		if (!canUpdatePlugin(plugin, organizationId)) {
+		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
+		if (!canUpdatePlugin(plugin, organizationId, defaultTenantId)) {
 			throw new BadRequestException(`Plugin "${command.pluginName}" cannot be updated from the current scope`)
 		}
 
-		const existing = await this.pluginInstanceService.findOneByPluginName(plugin.name, organizationId)
+		const existing = await this.pluginInstanceService.findOneByPluginName(
+			plugin.name,
+			organizationId,
+			undefined,
+			plugin.scopeKey
+		)
 		const currentVersion = plugin.instance?.meta?.version
 		const packageName = normalizePluginName(plugin.packageName ?? plugin.name)
 		const source = plugin.source ?? existing?.source ?? 'env'

@@ -48,6 +48,8 @@ jest.mock('../../../@shared/copilot', () => {
     ]
   })
   class CopilotModelSelectComponent {
+    @Input() hiddenLabel = false
+    @Input() label: unknown
     @Input() modelType: unknown
     @Input() readonly = false
     @Input() ngModel: unknown
@@ -655,7 +657,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
   })
 
-  it('shows configured model selection when LLM models are available', async () => {
+  it('shows the same model selector as the new xpert flow when LLM models are available', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
@@ -708,11 +710,98 @@ describe('ClawXpertSetupWizardComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
+    expect(fixture.nativeElement.querySelector('copilot-model-select')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('[data-model-plugin-section="initialized"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-model-select-section]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.KEY_WORDS.Model')
     expect(fixture.nativeElement.textContent).not.toContain('[object Object]')
+  })
+
+  it('shows a ready state when an LLM model is available but the primary copilot form is disabled', async () => {
+    const facade = createFacadeMock()
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const copilotServer = {
+      ...createCopilotServerMock(),
+      getAllInOrg: jest.fn(() =>
+        of({
+          items: [
+            {
+              id: 'copilot-primary',
+              enabled: false,
+              role: 'primary'
+            }
+          ]
+        })
+      )
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: copilotServer
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    fixture.componentInstance.currentStep.set(1)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.hasLlmModelProvider()).toBe(true)
+    expect(fixture.componentInstance.hasSelectedCopilotModel()).toBe(true)
+    expect(fixture.componentInstance.showModelProviderForm()).toBe(false)
+    expect(fixture.nativeElement.querySelector('[data-model-provider-ready]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('copilot-model-select')).not.toBeNull()
+
+    fixture.componentInstance.onSelectedCopilotModelChange({
+      copilotId: 'copilot-primary',
+      model: 'deepseek-chat'
+    })
+
+    expect(fixture.componentInstance.selectedCopilotModel()).toEqual({
+      copilotId: 'copilot-primary',
+      model: 'deepseek-chat',
+      modelType: 'llm'
+    })
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.ModelProvidersReady')
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.PreparingModelProvider')
   })
 
   it('directly creates, publishes, binds, and navigates to a ClawXpert without opening the blank wizard', async () => {

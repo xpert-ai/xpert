@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_PREFIX, Store } from '@xpert-ai/cloud/state'
+import type { IUserOrganizationEntryGuideKey } from '@xpert-ai/contracts'
 import { firstValueFrom, Observable } from 'rxjs'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 import { IUserOrganization, IUserOrganizationCreateInput, IUserOrganizationFindInput } from '../types'
@@ -20,21 +21,15 @@ export class UsersOrganizationsService {
     return this.organizationId$
   }
 
-  getAll(
-    relations?: string[],
-    findInput?: IUserOrganizationFindInput
-  ) {
+  getAll(relations?: string[], findInput?: IUserOrganizationFindInput) {
     const data = JSON.stringify({ relations, findInput })
 
     return this.http.get<{ items: IUserOrganization[]; total: number }>(`${API_PREFIX}/user-organization`, {
-        params: { data }
-      })
+      params: { data }
+    })
   }
 
-  getAllInOrg(
-    relations?: string[],
-    findInput?: IUserOrganizationFindInput
-  ) {
+  getAllInOrg(relations?: string[], findInput?: IUserOrganizationFindInput) {
     return this.selectOrganizationId().pipe(
       switchMap((organizationId) =>
         this.getAll(relations, {
@@ -46,10 +41,11 @@ export class UsersOrganizationsService {
   }
 
   setUserAsInactive(id: string): Promise<IUserOrganization> {
-    return firstValueFrom(this.http
-      .put<IUserOrganization>(`${API_PREFIX}/user-organization/${id}`, {
+    return firstValueFrom(
+      this.http.put<IUserOrganization>(`${API_PREFIX}/user-organization/${id}`, {
         isActive: false
-      }))
+      })
+    )
   }
 
   getUserOrganizationCount(id: string): Promise<number> {
@@ -62,6 +58,15 @@ export class UsersOrganizationsService {
 
   update(id: string, updateInput: Partial<IUserOrganization>) {
     return this.http.put<IUserOrganization>(`${API_PREFIX}/user-organization/${id}`, updateInput)
+  }
+
+  markEntryGuideAutoShown(guideKey: IUserOrganizationEntryGuideKey): Promise<IUserOrganization> {
+    return firstValueFrom(
+      this.http.put<IUserOrganization>(
+        `${API_PREFIX}/user-organization/me/preferences/entry-guides/${guideKey}/auto-shown`,
+        {}
+      )
+    )
   }
 
   create(createInput: IUserOrganizationCreateInput): Observable<IUserOrganization> {

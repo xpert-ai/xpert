@@ -48,7 +48,7 @@ function createHandlerWithMiddlewareIcon(icon: unknown) {
     const queryBus = {
         execute: jest.fn().mockResolvedValue([])
     }
-    const handler = new ToolProviderIconHandler(queryBus)
+    const handler = new ToolProviderIconHandler(queryBus as any)
 
     Object.defineProperty(handler, 'toolsetRegistry', {
         value: {

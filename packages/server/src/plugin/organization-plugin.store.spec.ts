@@ -12,6 +12,7 @@ jest.mock('@xpert-ai/server-config', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: 'global',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
 	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
 	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
@@ -78,6 +79,17 @@ describe('organization-plugin.store', () => {
 				defaultTenantId: 'tenant-default'
 			})
 		).toBe(path.join(pluginRoot, 'org-1'))
+	})
+
+	it('stores system plugins in a singleton system folder', () => {
+		expect(
+			getOrganizationPluginRoot('global', {
+				rootDir: pluginRoot,
+				tenantId: 'tenant-other',
+				defaultTenantId: 'tenant-default',
+				scopeKey: 'system:global'
+			})
+		).toBe(path.join(pluginRoot, 'system_global'))
 	})
 
 	it('copies the workspace by default', () => {

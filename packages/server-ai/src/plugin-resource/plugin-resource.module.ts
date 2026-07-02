@@ -15,6 +15,7 @@ import { PluginHooksMiddleware } from './plugin-hooks.middleware'
 import { PluginResourceController } from './plugin-resource.controller'
 import { PluginResourceInstallation } from './plugin-resource-installation.entity'
 import { PluginResourceInstallerService } from './plugin-resource-installer.service'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
     imports: [
@@ -28,7 +29,7 @@ import { PluginResourceInstallerService } from './plugin-resource-installer.serv
         forwardRef(() => XpertWorkspaceModule)
     ],
     controllers: [PluginResourceController],
-    providers: [PluginResourceInstallerService, PluginHooksMiddleware, PluginTemplateInstallHandler],
+    providers: [PluginResourceInstallerService, PluginHooksMiddleware, PluginTemplateInstallHandler, ...QueryHandlers],
     exports: [PluginResourceInstallerService]
 })
 export class PluginResourceModule {}

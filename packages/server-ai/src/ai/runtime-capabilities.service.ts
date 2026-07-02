@@ -27,6 +27,7 @@ import {
     getSubAgentConnectionTargetKey,
     isRequiredSubAgentConnection
 } from '../shared/agent/sub-agent'
+import { normalizeRuntimeIcon } from './runtime-icon'
 import { RuntimeCommandService } from './runtime-command.service'
 
 export const RUNTIME_CAPABILITY_XPERT_RELATIONS = ['agent', 'agent.copilotModel', 'copilotModel']
@@ -194,7 +195,8 @@ export class RuntimeCapabilitiesService {
             const repositoryId = skillIndex?.repositoryId ?? skillIndex?.repository?.id
             const runtimeMeta = omitBy(
                 {
-                    icon: skill.metadata?.icon
+                    icon: normalizeRuntimeIcon(skill.metadata?.icon),
+                    color: readSkillMetadataColor(skill.metadata)
                 },
                 isNil
             )
@@ -226,6 +228,18 @@ export class RuntimeCapabilitiesService {
 
         return { skills, commands }
     }
+}
+
+function readSkillMetadataColor(metadata?: SkillPackage['metadata'] | null) {
+    const color = metadata?.color?.trim()
+    if (color) {
+        return color
+    }
+    if (metadata && typeof Reflect.get(metadata, 'brandColor') === 'string') {
+        const brandColor = Reflect.get(metadata, 'brandColor').trim()
+        return brandColor || undefined
+    }
+    return undefined
 }
 
 type RuntimeSkillDefaultSelection = {

@@ -14,6 +14,7 @@ import { AiModelTypeEnum, ICopilotModel, IXpert, XpertTypeEnum } from '../../../
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { countDisplayTextUnits } from '../../../@shared/text-count.utils'
+import { ClawXpertBindingWizardComponent } from './clawxpert-binding-wizard.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
@@ -78,6 +79,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
     ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
     ClawXpertToolPreferencesComponent,
+    ClawXpertBindingWizardComponent,
     ...ZardMenuImports,
     ...ZardCardImports
   ],
@@ -123,7 +125,7 @@ const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
           </div>
         </div>
       } @else if (facade.viewState() === 'wizard') {
-        <div class="h-full min-h-[32rem] rounded-3xl bg-background-default-subtle"></div>
+        <pac-clawxpert-binding-wizard class="block h-full p-8" />
       } @else {
         <div class="flex">
           <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">

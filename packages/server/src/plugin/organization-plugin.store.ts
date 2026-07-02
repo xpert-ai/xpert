@@ -304,6 +304,10 @@ export function getOrganizationPluginRoot(organizationId: string, opts?: Organiz
 		return path.join(rootDir, 'tenants', safePluginScopePathSegment(scope.tenantId), scope.organizationId)
 	}
 
+	if (scope.isSystem) {
+		return path.join(rootDir, safePluginScopePathSegment(scope.scopeKey))
+	}
+
 	return path.join(rootDir, scope.organizationId)
 }
 

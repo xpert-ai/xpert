@@ -17,8 +17,15 @@ export function resolvePluginLevel(level?: string | null): PluginLevel {
 }
 
 @Entity('plugin_instance')
+@Index(['scopeKey', 'pluginName'], { unique: true })
 @Index(['tenantId', 'organizationId', 'pluginName'], { unique: true })
 export class PluginInstance extends TenantOrganizationBaseEntity implements IPlugin {
+	@ApiProperty({ type: () => String, required: false })
+	@Column({ type: 'varchar', nullable: true })
+	@IsOptional()
+	@IsString()
+	scopeKey?: string | null
+
 	@ApiProperty({ type: () => String })
 	@Column()
 	@IsString()

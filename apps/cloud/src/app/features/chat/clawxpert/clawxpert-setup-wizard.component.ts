@@ -2,12 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardStepperImports,
-  type ZardStepperSelectionEvent
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardStepperImports, type ZardStepperSelectionEvent } from '@xpert-ai/headless-ui'
 import { injectPluginAPI } from '@xpert-ai/cloud/state'
 import { AiProviderRole, PluginMarketplaceItem } from '@xpert-ai/contracts'
 import { BehaviorSubject, catchError, firstValueFrom, map, of, switchMap } from 'rxjs'
@@ -29,7 +26,7 @@ import {
   XpertWorkspaceService,
   XpertTypeEnum
 } from '../../../@core'
-import { CopilotConfigFormComponent } from '../../../@shared/copilot'
+import { CopilotConfigFormComponent, CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { PluginInstallComponent } from '../../setting/plugins/install/install.component'
 import { PLUGIN_MARKETPLACE_TARGET_APP } from '../../setting/plugins/plugin-marketplace-categories'
 import { TPluginWithDownloads } from '../../setting/plugins/types'
@@ -58,8 +55,10 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
   selector: 'pac-clawxpert-setup-wizard',
   imports: [
     CommonModule,
+    FormsModule,
     TranslateModule,
     ZardButtonComponent,
+    CopilotModelSelectComponent,
     CopilotConfigFormComponent,
     ...ZardStepperImports
   ],
@@ -90,7 +89,7 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
         (selectionChange)="onStepChange($event)"
       >
         <z-step [label]="'PAC.Chat.ClawXpert.PluginStepTitle' | translate">
-          <section data-onboarding-step="plugins" class="h-full min-h-0 overflow-auto px-1 pb-2">
+          <section data-onboarding-step="plugins" class="flex h-full min-h-0 flex-col overflow-hidden px-1 pb-2">
             <div class="min-w-0">
               <div class="text-base font-semibold text-text-primary">
                 {{ 'PAC.Chat.ClawXpert.PluginStepTitle' | translate }}
@@ -100,14 +99,16 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
               </p>
             </div>
 
-            <div class="mt-4 rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
+            <div
+              class="mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-divider-regular bg-background-default-subtle p-4"
+            >
               @if (marketplacePlugins() === null) {
                 <div class="flex min-h-48 items-center justify-center gap-2 text-sm text-text-secondary">
                   <i class="ri-loader-4-line animate-spin"></i>
                   <span>{{ 'PAC.Chat.ClawXpert.LoadingPlugins' | translate }}</span>
                 </div>
               } @else if (marketplacePlugins()?.length) {
-                <div class="grid max-h-80 gap-3 overflow-auto pr-1 sm:grid-cols-2">
+                <div class="grid min-h-0 flex-1 gap-3 overflow-auto pr-1 sm:grid-cols-2">
                   @for (plugin of marketplacePlugins(); track plugin.packageName || plugin.name) {
                     <div class="rounded-xl border border-divider-regular bg-components-card-bg px-4 py-3">
                       <div class="flex items-start justify-between gap-3">
@@ -141,7 +142,9 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
                   }
                 </div>
               } @else {
-                <div class="min-h-48 rounded-xl border border-dashed border-divider-regular px-4 py-8 text-sm text-text-secondary">
+                <div
+                  class="min-h-48 rounded-xl border border-dashed border-divider-regular px-4 py-8 text-sm text-text-secondary"
+                >
                   {{ 'PAC.Chat.ClawXpert.NoMarketplacePlugins' | translate }}
                 </div>
               }
@@ -167,8 +170,11 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
                   <span>{{ 'PAC.Chat.ClawXpert.CheckingModelProviders' | translate }}</span>
                 </div>
               } @else if (hasLlmModelProvider()) {
-                <div data-model-provider-config-form class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
-                  @if (enablingPrimaryCopilot() || !showModelProviderForm()) {
+                <div
+                  data-model-provider-config-form
+                  class="rounded-xl border border-divider-regular bg-components-card-bg p-4"
+                >
+                  @if (enablingPrimaryCopilot()) {
                     <div
                       class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-6 text-sm text-text-secondary"
                     >
@@ -176,11 +182,25 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
                       {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
                     </div>
                   } @else {
-                    <pac-copilot-config-form
-                      #modelProviderForm
-                      [copilot]="primaryCopilot()"
-                      (saved)="onModelProviderSaved()"
-                    />
+                    <div
+                      data-model-provider-ready
+                      class="rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-4"
+                    >
+                      <div class="text-sm font-medium leading-5 text-text-primary">
+                        <span class="text-text-destructive">*</span>
+                        {{ 'PAC.KEY_WORDS.Model' | translate: { Default: 'Model' } }}
+                      </div>
+                      <copilot-model-select
+                        class="mt-2 block w-full"
+                        hiddenLabel
+                        [modelType]="llmModelType"
+                        [ngModel]="selectedCopilotModel()"
+                        (ngModelChange)="onSelectedCopilotModelChange($event)"
+                      />
+                      <div class="mt-2 text-sm text-text-secondary">
+                        {{ 'PAC.Chat.ClawXpert.ModelProvidersReady' | translate: { count: availableModelCount() } }}
+                      </div>
+                    </div>
                   }
                 </div>
               } @else if (hasCopilotFeature()) {
@@ -214,13 +234,17 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
                                 {{ displayI18n(plugin.description, plugin.name) }}
                               </div>
                             </div>
-                            <span class="shrink-0 rounded-full bg-background-default px-2.5 py-1 text-xs text-text-tertiary">
+                            <span
+                              class="shrink-0 rounded-full bg-background-default px-2.5 py-1 text-xs text-text-tertiary"
+                            >
                               {{ 'PAC.Chat.ClawXpert.PluginInstalled' | translate }}
                             </span>
                           </div>
                         </div>
                       } @empty {
-                        <div class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary">
+                        <div
+                          class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
+                        >
                           {{ 'PAC.Chat.ClawXpert.NoInitializedModelPlugins' | translate }}
                         </div>
                       }
@@ -242,7 +266,9 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
 
                     <div class="mt-3 space-y-3">
                       @for (plugin of uninitializedModelPlugins(); track plugin.packageName || plugin.name) {
-                        <div class="rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-3 py-3">
+                        <div
+                          class="rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-3 py-3"
+                        >
                           <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
                               <div class="truncate text-sm font-medium text-text-primary">
@@ -265,7 +291,9 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
                           </div>
                         </div>
                       } @empty {
-                        <div class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary">
+                        <div
+                          class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
+                        >
                           {{ 'PAC.Chat.ClawXpert.NoUninitializedModelPlugins' | translate }}
                         </div>
                       }
@@ -389,7 +417,6 @@ const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
       :host ::ng-deep .clawxpert-setup-stepper > .z-stepper__panel > [data-onboarding-step] {
         min-height: 0;
         flex: 1 1 0%;
-        overflow-y: auto;
       }
     `
   ]
@@ -407,6 +434,7 @@ export class ClawXpertSetupWizardComponent {
   readonly #workspaceService = inject(XpertWorkspaceService)
   readonly modelProviderForm = viewChild(CopilotConfigFormComponent)
   readonly #marketplaceRefresh$ = new BehaviorSubject<void>(undefined)
+  readonly llmModelType = AiModelTypeEnum.LLM
   readonly currentStep = signal(0)
   readonly creatingXpert = signal(false)
   readonly enablingPrimaryCopilot = signal(false)
@@ -518,6 +546,22 @@ export class ClawXpertSetupWizardComponent {
       this.selectedCopilotModel.set(model)
     }
     this.#copilotServer.refresh()
+  }
+
+  onSelectedCopilotModelChange(copilotModel: Partial<ICopilotModel> | null) {
+    const copilotId = copilotModel?.copilotId
+    const model = copilotModel?.model
+    if (!copilotId || !model) {
+      this.selectedCopilotModel.set(null)
+      return
+    }
+
+    this.selectedCopilotModel.set({
+      ...copilotModel,
+      copilotId,
+      model,
+      modelType: copilotModel.modelType ?? AiModelTypeEnum.LLM
+    })
   }
 
   modelProviderSaveDisabled() {
@@ -769,7 +813,10 @@ function toOnboardingPlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
     sourceName: item.sourceName ?? null,
     sourceNameI18nKey: item.sourceNameI18nKey ?? null,
     installed: item.installed,
+    screenshots: item.screenshots,
     contributions: item.contributions ?? [],
+    defaultPrompt: item.defaultPrompt,
+    trialShortcuts: item.trialShortcuts,
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }

@@ -15,6 +15,7 @@ import { MessageDispatcherService } from './message-dispatcher.service'
 import { HandoffPendingResultService } from './pending-result.service'
 import { HandoffDeadService } from './dead-letter.service'
 import { buildCanceledReason, isAbortLikeError, isCanceledReason } from './cancel-reason'
+import { runWithHandoffMessageContext } from './message-context'
 
 const DEFAULT_HANDOFF_DISPATCHER_CONCURRENCY =
 	parseInt(process.env.XPERT_HANDOFF_DISPATCHER_CONCURRENCY || '', 10) || 20
@@ -50,6 +51,10 @@ abstract class BaseHandoffQueueProcessor {
 			throw new Error('Handoff message id is required')
 		}
 
+		await runWithHandoffMessageContext(message, () => this.processMessageWithContext(message))
+	}
+
+	private async processMessageWithContext(message: HandoffMessage) {
 		try {
 			const result = await this.dispatcher.dispatch(message)
 			await this.handleResult(message, result)

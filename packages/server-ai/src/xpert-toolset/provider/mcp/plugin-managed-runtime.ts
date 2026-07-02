@@ -1,7 +1,7 @@
 import { loaded as loadedPlugins, resolveLoadedPluginBundleRoot } from '@xpert-ai/server-core'
 import type { IXpertToolset, TMCPSchema, TMCPServer } from '@xpert-ai/contracts'
 import type { LoadedPluginRecord } from '@xpert-ai/server-core'
-import { GLOBAL_ORGANIZATION_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { resolve } from 'node:path'
 
 type PluginManagedToolsetOptions = {
@@ -64,6 +64,7 @@ function findLoadedPlugin(pluginName: string, organizationId?: string | null, te
         (organizationId && organizationId !== GLOBAL_ORGANIZATION_SCOPE
             ? candidates.find((plugin) => (plugin.scopeKey ?? plugin.organizationId) === globalScopeKey)
             : null) ??
+        candidates.find((plugin) => (plugin.scopeKey ?? plugin.organizationId) === SYSTEM_GLOBAL_SCOPE) ??
         null
     )
 }

@@ -5,10 +5,7 @@ import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 
 // Backend already includes employee/role/rolePermissions/tenant for /user/me by default.
-export const CURRENT_USER_BOOTSTRAP_RELATIONS = [
-  'organizations',
-  'organizations.organization'
-] as const
+export const CURRENT_USER_BOOTSTRAP_RELATIONS = ['organizations', 'organizations.organization'] as const
 
 export const CURRENT_USER_FEATURE_RELATIONS = [
   'tenant.featureOrganizations',
@@ -68,6 +65,7 @@ export const CURRENT_USER_BOOTSTRAP_SELECT: UserMeSelect = {
     organizationId: true,
     isDefault: true,
     isActive: true,
+    preferences: true,
     organization: {
       id: true,
       name: true,
@@ -93,6 +91,7 @@ export const CURRENT_USER_ORGANIZATIONS_SELECT: UserMeSelect = {
     organizationId: true,
     isDefault: true,
     isActive: true,
+    preferences: true,
     organization: {
       id: true,
       name: true,
@@ -148,9 +147,11 @@ export class UsersService {
 
   getAll(relations?: string[], findInput?: IUserFindInput, search?: string) {
     const data = JSON.stringify({ relations, findInput, search })
-    return this.http.get<{ items: IUser[]; total: number }>(`${this.API_URL}`, {
+    return this.http
+      .get<{ items: IUser[]; total: number }>(`${this.API_URL}`, {
         params: { data }
-      }).pipe(map(({items}) => items))
+      })
+      .pipe(map(({ items }) => items))
   }
 
   search(search: string, options?: { organizationId?: string; membership?: string }) {
@@ -162,11 +163,11 @@ export class UsersService {
       params.membership = options.membership
     }
 
-    return this.http.get<{ items: IUser[]; total: number }>(`${this.API_URL}/search`, {
+    return this.http
+      .get<{ items: IUser[]; total: number }>(`${this.API_URL}/search`, {
         params
-      }).pipe(
-        map(({items}) => items)
-      )
+      })
+      .pipe(map(({ items }) => items))
   }
 
   update(userId: string, updateInput: IUserUpdateInput) {
@@ -177,7 +178,7 @@ export class UsersService {
     return this.http.put<IUser>(`${this.API_URL}/me`, updateInput)
   }
 
-  delete(userId: string,) {
+  delete(userId: string) {
     return this.http.delete(`${this.API_URL}/${userId}`)
   }
 

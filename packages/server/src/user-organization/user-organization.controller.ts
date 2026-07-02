@@ -14,21 +14,28 @@ import {
 	BadRequestException,
 	Put,
 	ForbiddenException
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CrudController } from './../core/crud';
-import { IUserOrganization, IUserOrganizationCreateInput, LanguagesEnum, IPagination, PermissionsEnum } from '@xpert-ai/contracts';
-import { UserOrganizationService } from './user-organization.services';
-import { UserOrganization } from './user-organization.entity';
-import { CommandBus } from '@nestjs/cqrs';
-import { UserOrganizationDeleteCommand } from './commands';
-import { I18nLang } from 'nestjs-i18n';
-import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
-import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
-import { TransformInterceptor } from './../core/interceptors';
-import { UserService } from '../user/user.service';
-import { Permissions } from '../shared/decorators';
-import { RequestContext } from '../core/context';
+} from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
+import { CrudController } from './../core/crud'
+import {
+	IUserOrganization,
+	IUserOrganizationCreateInput,
+	LanguagesEnum,
+	IPagination,
+	PermissionsEnum,
+	isUserOrganizationEntryGuideKey
+} from '@xpert-ai/contracts'
+import { UserOrganizationService } from './user-organization.services'
+import { UserOrganization } from './user-organization.entity'
+import { CommandBus } from '@nestjs/cqrs'
+import { UserOrganizationDeleteCommand } from './commands'
+import { I18nLang } from 'nestjs-i18n'
+import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
+import { PermissionGuard, TenantPermissionGuard } from './../shared/guards'
+import { TransformInterceptor } from './../core/interceptors'
+import { UserService } from '../user/user.service'
+import { Permissions } from '../shared/decorators'
+import { RequestContext } from '../core/context'
 
 @ApiTags('UserOrganization')
 @UseGuards(TenantPermissionGuard)
@@ -40,7 +47,7 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		private readonly commandBus: CommandBus,
 		private readonly userService: UserService
 	) {
-		super(userOrganizationService);
+		super(userOrganizationService)
 	}
 
 	@ApiOperation({ summary: 'Create a user organization membership' })
@@ -99,10 +106,8 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		PermissionsEnum.ALL_ORG_EDIT
 	)
 	@Get()
-	async findAll(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<IPagination<UserOrganization>> {
-		const { relations, findInput } = data;
+	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<UserOrganization>> {
+		const { relations, findInput } = data
 		this.ensureAccessibleOrganization(findInput?.organizationId)
 		return this.userOrganizationService.findAll({
 			where: {
@@ -112,16 +117,22 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 					: {})
 			},
 			relations
-		});
+		})
+	}
+
+	@Put('me/preferences/entry-guides/:guide/auto-shown')
+	async markCurrentUserEntryGuideAutoShown(@Param('guide') guide: string): Promise<IUserOrganization> {
+		if (!isUserOrganizationEntryGuideKey(guide)) {
+			throw new BadRequestException(`Unknown entry guide '${guide}'`)
+		}
+
+		return this.userOrganizationService.markCurrentUserEntryGuideAutoShown(guide)
 	}
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.ALL_ORG_EDIT)
 	@Put(':id')
-	async update(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() entity: Partial<IUserOrganization>
-	) {
+	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: Partial<IUserOrganization>) {
 		await this.ensureMembershipAccess(id)
 		return this.userOrganizationService.update(id, entity)
 	}
@@ -151,7 +162,7 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 				requestingUser: request.user,
 				language
 			})
-		);
+		)
 	}
 
 	@ApiOperation({ summary: 'Find number of Organizations user belongs to' })
@@ -172,26 +183,21 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		PermissionsEnum.ALL_ORG_EDIT
 	)
 	@Get(':id')
-	async findOrganizationCount(
-		@Param('id', UUIDValidationPipe) id: string
-	): Promise<number> {
+	async findOrganizationCount(@Param('id', UUIDValidationPipe) id: string): Promise<number> {
 		const membership = await this.ensureMembershipAccess(id)
-		const { userId } = membership;
+		const { userId } = membership
 		const { total } = await this.userOrganizationService.findAll({
 			where: {
 				userId,
 				isActive: true
 			},
 			relations: ['user', 'user.role']
-		});
-		return total;
+		})
+		return total
 	}
 
 	private canViewAllOrganizations() {
-		return RequestContext.hasAnyPermission([
-			PermissionsEnum.ALL_ORG_VIEW,
-			PermissionsEnum.ALL_ORG_EDIT
-		])
+		return RequestContext.hasAnyPermission([PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT])
 	}
 
 	private requireAccessibleOrganizationId(organizationId?: string | null) {

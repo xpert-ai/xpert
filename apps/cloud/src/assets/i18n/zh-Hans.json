@@ -1481,6 +1481,12 @@
       "InstallPluginBeforeInitialize": "请先安装或加载该插件，再初始化助手。",
       "InstallPluginBeforeInitializeResource": "请先安装或加载该插件，再初始化资源。",
       "InstallResource": "安装",
+      "ViewSkillDetails": "查看详情",
+      "LoadingSkillDocument": "正在加载技能文档...",
+      "LoadSkillDocumentFailed": "技能文档加载失败",
+      "NoSkillDocument": "暂无可用的技能文档。",
+      "TryInClawXpert": "在 ClawXpert 中试用",
+      "TryInClawXpertFailed": "无法为该技能准备 ClawXpert。",
       "BackToMarketplace": "返回插件市场",
       "LoadingPluginDetails": "正在加载插件详情...",
       "LoadPluginDetailsFailed": "插件详情加载失败",
@@ -1617,6 +1623,7 @@
       }
     },
     "MENU": {
+      "Tasks": "任务",
       "Plugins": "插件",
       "Operations": "MCP 监控",
       "MCP Monitor": "MCP 监控",

@@ -2,6 +2,7 @@
 	"Error": {
 		"PluginPackageNameRequired": "插件包名不能為空",
 		"PluginSystemLevelInstallForbidden": "插件 {{name}} 為系統級插件，不能透過此 API 安裝",
+		"PluginSystemLevelDefaultTenantRequired": "系統級插件 {{name}} 只能在 Default tenant 中安裝",
 		"PluginInstallFailed": "安裝插件 {{pluginName}} 失敗：{{errorMessage}}",
 		"PluginNamesRequired": "插件名稱不能為空",
 		"PluginSystemUninstallForbidden": "插件 {{name}} 為系統插件，不能卸載"

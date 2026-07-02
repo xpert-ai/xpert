@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 import { RequestContext } from '../core/context'
 import {
   GLOBAL_ORGANIZATION_SCOPE,
+  SYSTEM_GLOBAL_SCOPE,
   getTenantGlobalScopeKey,
   ORGANIZATION_METADATA_KEY,
   PLUGIN_METADATA_KEY,
@@ -17,7 +18,7 @@ describe('ViewExtensionProviderRegistry', () => {
     setDefaultTenantId(null)
   })
 
-  it('lists view extension providers using organization, tenant-global, then builtin precedence', () => {
+  it('lists view extension providers using organization, tenant-global, system-global, then builtin precedence', () => {
     setDefaultTenantId('tenant-default')
 
     class BuiltinSharedProvider {
@@ -29,6 +30,13 @@ describe('ViewExtensionProviderRegistry', () => {
       readonly id = 'builtin-only'
     }
     Reflect.defineMetadata(VIEW_EXTENSION_PROVIDER, 'builtin-only', BuiltinOnlyProvider)
+
+    class SystemProvider {
+      readonly id = 'system'
+    }
+    Reflect.defineMetadata(VIEW_EXTENSION_PROVIDER, 'system-only', SystemProvider)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, SYSTEM_GLOBAL_SCOPE, SystemProvider)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/system-view-plugin', SystemProvider)
 
     class DefaultTenantGlobalProvider {
       readonly id = 'default-tenant-global'
@@ -53,12 +61,14 @@ describe('ViewExtensionProviderRegistry', () => {
     const registry = new ViewExtensionProviderRegistry({} as any, new Reflector())
     const builtinShared = new BuiltinSharedProvider()
     const builtinOnly = new BuiltinOnlyProvider()
+    const system = new SystemProvider()
     const defaultTenantGlobal = new DefaultTenantGlobalProvider()
     const tenantGlobal = new TenantGlobalProvider()
     const organization = new OrganizationProvider()
 
     registry.upsert(builtinShared as any)
     registry.upsert(builtinOnly as any)
+    registry.upsert(system as any)
     registry.upsert(defaultTenantGlobal as any)
     registry.upsert(tenantGlobal as any)
     registry.upsert(organization as any)
@@ -74,10 +84,12 @@ describe('ViewExtensionProviderRegistry', () => {
     expect(registry.listEntries('org-other')).toEqual([
       { providerKey: 'shared', provider: organization },
       { providerKey: 'tenant-only', provider: tenantGlobal },
+      { providerKey: 'system-only', provider: system },
       { providerKey: 'builtin-only', provider: builtinOnly }
     ])
     expect(registry.listEntries(GLOBAL_ORGANIZATION_SCOPE)).toEqual([
       { providerKey: 'tenant-only', provider: tenantGlobal },
+      { providerKey: 'system-only', provider: system },
       { providerKey: 'shared', provider: builtinShared },
       { providerKey: 'builtin-only', provider: builtinOnly }
     ])

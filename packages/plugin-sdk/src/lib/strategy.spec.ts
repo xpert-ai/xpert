@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 import { BaseStrategyRegistry } from './strategy'
 import {
   GLOBAL_ORGANIZATION_SCOPE,
+  SYSTEM_GLOBAL_SCOPE,
   getTenantGlobalScopeKey,
   ORGANIZATION_METADATA_KEY,
   PLUGIN_METADATA_KEY,
@@ -181,7 +182,7 @@ describe('BaseStrategyRegistry', () => {
     expect(registry.get('builtin', 'org-default')).toBe(builtin)
   })
 
-  it('applies organization, tenant-global, then builtin strategy precedence', () => {
+  it('applies organization, tenant-global, system-global, then builtin strategy precedence', () => {
     setDefaultTenantId('tenant-default')
 
     class BuiltinSharedStrategy {
@@ -193,6 +194,20 @@ describe('BaseStrategyRegistry', () => {
       readonly id = 'builtin-only'
     }
     Reflect.defineMetadata(TEST_STRATEGY_KEY, 'builtin-only', BuiltinOnlyStrategy)
+
+    class SystemSharedStrategy {
+      readonly id = 'system-shared'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', SystemSharedStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, SYSTEM_GLOBAL_SCOPE, SystemSharedStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/system-plugin', SystemSharedStrategy)
+
+    class SystemOnlyStrategy {
+      readonly id = 'system-only'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'system-only', SystemOnlyStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, SYSTEM_GLOBAL_SCOPE, SystemOnlyStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/system-plugin', SystemOnlyStrategy)
 
     class TenantSharedStrategy {
       readonly id = 'tenant-shared'
@@ -219,12 +234,16 @@ describe('BaseStrategyRegistry', () => {
     }>()
     const builtinShared = new BuiltinSharedStrategy()
     const builtinOnly = new BuiltinOnlyStrategy()
+    const systemShared = new SystemSharedStrategy()
+    const systemOnly = new SystemOnlyStrategy()
     const tenantShared = new TenantSharedStrategy()
     const tenantOnly = new TenantOnlyStrategy()
     const organizationShared = new OrganizationSharedStrategy()
 
     registry.upsert(builtinShared)
     registry.upsert(builtinOnly)
+    registry.upsert(systemShared)
+    registry.upsert(systemOnly)
     registry.upsert(tenantShared)
     registry.upsert(tenantOnly)
     registry.upsert(organizationShared)
@@ -233,6 +252,7 @@ describe('BaseStrategyRegistry', () => {
 
     expect(registry.get('shared', 'org-other')).toBe(organizationShared)
     expect(registry.get('shared', GLOBAL_ORGANIZATION_SCOPE)).toBe(tenantShared)
-    expect(registry.list('org-other')).toEqual([organizationShared, tenantOnly, builtinOnly])
+    expect(registry.get('system-only', 'org-other')).toBe(systemOnly)
+    expect(registry.list('org-other')).toEqual([organizationShared, tenantOnly, systemOnly, builtinOnly])
   })
 })

@@ -423,6 +423,7 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "MENU": {
+      "Tasks": "Tasks",
       "Plugins": "Plugins",
       "Operations": "MCP Monitor",
       "MCP Monitor": "MCP Monitor",

@@ -1,3 +1,25 @@
+jest.mock('@cloud/app/@core', () => {
+  const { inject } = jest.requireActual('@angular/core')
+
+  class ToastrService {}
+  class XpertAPIService {}
+  class XpertWorkspaceService {}
+
+  return {
+    ToastrService,
+    XpertAPIService,
+    XpertWorkspaceService,
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    getErrorMessage: jest.fn((error: unknown) =>
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    ),
+    injectToastr: jest.fn(() => inject(ToastrService)),
+    injectXpertAPI: jest.fn(() => inject(XpertAPIService))
+  }
+})
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
@@ -61,12 +83,18 @@ const installResult: IPluginResourceInstallResult = {
   pendingAuth: []
 }
 
-async function createComponent(componentStates: IPluginResourceComponentState[] = []) {
+async function createComponent(
+  componentStates: IPluginResourceComponentState[] = [],
+  dialogData: Record<string, unknown> = {}
+) {
   const pluginAPI = {
     getPluginComponents: jest.fn(() => of({ items: components })),
     getPluginResourceStates: jest.fn(() => of({ items: componentStates })),
     installResourcesToWorkspace: jest.fn(() => of(installResult)),
     installResourcesToXpert: jest.fn(() => of(installResult))
+  }
+  const dialogRef = {
+    close: jest.fn()
   }
 
   await TestBed.configureTestingModule({
@@ -75,14 +103,13 @@ async function createComponent(componentStates: IPluginResourceComponentState[] 
       {
         provide: DIALOG_DATA,
         useValue: {
-          plugin
+          plugin,
+          ...dialogData
         }
       },
       {
         provide: DialogRef,
-        useValue: {
-          close: jest.fn()
-        }
+        useValue: dialogRef
       },
       {
         provide: PluginAPIService,
@@ -117,6 +144,7 @@ async function createComponent(componentStates: IPluginResourceComponentState[] 
   return {
     component: fixture.componentInstance,
     fixture,
+    dialogRef,
     pluginAPI
   }
 }
@@ -190,5 +218,38 @@ describe('PluginResourcesComponent', () => {
 
     component.toggleComponent(installedSkill, true)
     expect(component.selectedComponents().map((item) => item.componentKey)).toEqual(['browser-lab-mcp', 'browser-lab'])
+  })
+
+  it('uses the provided initial workspace instead of defaulting to the first workspace', async () => {
+    const { component, pluginAPI } = await createComponent([], {
+      initialWorkspaceId: 'workspace-2',
+      initialInstallMode: 'workspace'
+    })
+
+    expect(component.selectedWorkspaceId()).toBe('workspace-2')
+    expect(pluginAPI.getPluginResourceStates).toHaveBeenCalledWith('@xpert-ai/plugin-xpertai-browser-lab', {
+      pluginName: '@xpert-ai/plugin-xpertai-browser-lab',
+      target: 'workspace',
+      workspaceId: 'workspace-2'
+    })
+  })
+
+  it('closes with the install result when closeOnSuccess is enabled', async () => {
+    const { component, dialogRef } = await createComponent([], {
+      closeOnSuccess: true,
+      initialComponents: [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'browser-research'
+        }
+      ],
+      initialInstallMode: 'workspace'
+    })
+
+    expect(component.canSubmit()).toBe(true)
+
+    await component.submit()
+
+    expect(dialogRef.close).toHaveBeenCalledWith(installResult)
   })
 })

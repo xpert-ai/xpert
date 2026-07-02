@@ -87,6 +87,90 @@ Notes:
 - use an explicit single-major range such as `^3.8.0`
 - the host validates SDK compatibility before activating a plugin and rejects packages that bundle their own SDK copy
 
+## Plugin scope architecture
+
+Plugin scope is the runtime and persistence boundary for an installed plugin instance. It controls where the host stores the plugin package, where providers are registered, how configuration is resolved, and which tenants or organizations can see the plugin's capabilities.
+
+Do not use `organizationId` to encode synthetic scopes. The canonical scope identity is `scopeKey`.
+
+| Scope kind            | `scopeKey`                 | Persistence                                                                                                            | Meaning                                                                      |
+| --------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Organization          | `<organizationId>`         | `PluginInstance.scopeKey = organizationId`, with the tenant and organization fields kept for compatibility and display | Plugin installed for one organization.                                       |
+| Default tenant global | `global`                   | Legacy global scope. `tenantId` may be the Default tenant or `null`; `organizationId` is global/`null`                 | Global plugin for the Default tenant.                                        |
+| Tenant global         | `tenant:<tenantId>:global` | `PluginInstance.scopeKey` carries the tenant-specific global identity                                                  | Global plugin for one non-Default tenant. It must not leak to other tenants. |
+| System global         | `system:global`            | `PluginInstance.scopeKey = 'system:global'`; `tenantId` and `organizationId` are `null`                                | Platform singleton plugin shared by all tenants.                             |
+| Built-in global       | `builtin:global`           | No `PluginInstance`; no install/uninstall lifecycle                                                                    | Host-code provider fallback only.                                            |
+
+### `level` and scope are related, but not identical
+
+`meta.level = 'system'` means the plugin is a platform-level singleton. Use it only for plugins that provide system-wide module/entity capabilities and cannot safely exist in multiple tenant or organization copies.
+
+System plugins follow these rules:
+
+- only a Super Admin in the Default tenant can install or update a system plugin
+- installation is always routed to `scopeKey = 'system:global'`, regardless of the current organization header
+- repeated installs of the same system plugin update the same singleton instance instead of creating a second tenant instance
+- ordinary tenant and organization users can see system plugin capability results, but cannot install, uninstall, or configure the system instance
+- system plugins are defaults in the provider fallback chain; they are not stronger than organization or tenant-global overrides
+
+Non-system plugins keep their requested organization or tenant-global scope. If a package's marketplace/package metadata says `level=system`, the installer routes it to `system:global` before loading. After the plugin is loaded, the host checks `plugin.meta.level` again as a defensive guard and rejects any mismatch between the final level and the resolved scope.
+
+### Provider and strategy resolution
+
+Runtime provider resolution uses this precedence:
+
+```text
+organization -> tenant-global -> system-global -> builtin-global
+```
+
+For a request in an organization, the host first checks the organization scope. If there is no provider for the requested type, it checks the current tenant's global scope. For the Default tenant, tenant-global is the legacy `global` scope; for other tenants it is `tenant:<tenantId>:global`. If neither exists, the host falls back to `system:global`, and finally to `builtin:global`.
+
+This means:
+
+- an organization plugin can override a tenant-global provider
+- a tenant-global plugin can override a system plugin
+- a system plugin can override only built-in host providers
+- `builtin:global` is not an installed plugin and is never written to `plugin_instance`
+
+### `plugin_instance` persistence
+
+`plugin_instance.scopeKey` is the source of truth for plugin scope. New rows use a unique constraint on `(scopeKey, pluginName)` so the same plugin can exist once per explicit scope but system plugins can exist only once platform-wide.
+
+The legacy `(tenantId, organizationId, pluginName)` fields remain for compatibility, display, and old-row fallback. They must not be used to invent synthetic scope values such as `organizationId = 'system:global'`.
+
+During startup restore, old rows are backfilled into explicit scope keys:
+
+- rows with `level = 'system'` become `system:global`; duplicate legacy system rows for the same plugin are collapsed to one row
+- rows with `organizationId` become organization-scoped rows
+- non-Default tenant global rows become `tenant:<tenantId>:global`
+- Default tenant or legacy global rows remain `global`
+
+Restore and runtime install converge on the same scope model. System plugins are loaded once under `system:global` and then become visible to every tenant through the provider fallback chain.
+
+### Storage and bundle resources
+
+The plugin store path is derived from the resolved scope key. For example, `system:global` is stored under a safe path segment such as `system_global`, while non-Default tenant global plugins use their tenant-specific global scope segment.
+
+Plugin bundle resources (`skills/`, MCP definitions, apps, hooks, assets) are still read from the loaded plugin bundle. Visibility follows the same effective plugin order: organization, tenant-global, then system-global. Resource state remains runtime-specific; system plugin installation does not make every resource automatically installed into every workspace or Xpert.
+
+### Management and UI behavior
+
+Plugin list APIs return `scopeKey` so the frontend can distinguish organization, tenant-global, system-global, and failed legacy rows.
+
+In an organization view, visible plugins include:
+
+1. plugins installed in the current organization
+2. plugins installed in the current tenant's global scope
+3. system plugins from `system:global`
+
+When the same plugin exists in multiple scopes, effective behavior is:
+
+```text
+organization > tenant-global > system-global
+```
+
+System plugin cards should be shown as platform defaults for ordinary tenants, but install/uninstall/configure actions must remain unavailable outside the Super Admin system management path.
+
 ## Plugin webhook auth guard
 
 Use `PluginWebhookAuthGuard` when a plugin exposes an inbound webhook route for an external system. The webhook credential is scoped to one Integration. It is not a full platform API key, and plugins should not look up or embed platform API keys in callback URLs.

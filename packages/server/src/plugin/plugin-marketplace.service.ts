@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
+	type I18nObject,
 	PLUGIN_LEVEL,
 	PluginMarketplaceContribution,
 	type PluginMarketplaceDetailItem,
@@ -13,10 +14,17 @@ import {
 	type PluginMarketplaceResponse,
 	type PluginMarketplaceSourceInput,
 	type PluginMarketplaceSourceResponse,
+	type PluginMarketplaceTrialShortcut,
 	PluginMeta,
-	RolesEnum
+	RolesEnum,
+	type XpertPluginBundleManifest
 } from '@xpert-ai/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import {
+	GLOBAL_ORGANIZATION_SCOPE,
+	RequestContext,
+	SYSTEM_GLOBAL_SCOPE,
+	resolveTenantGlobalScopeKey
+} from '@xpert-ai/plugin-sdk'
 import { execFile as execFileCallback } from 'node:child_process'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -35,7 +43,7 @@ import {
 	PluginMarketplaceSourceType
 } from './plugin-marketplace-source.entity'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
-import { resolveLoadedPluginBundleRoot } from './plugin-bundle-manifest'
+import { readPluginBundleManifest, resolveLoadedPluginBundleRoot } from './plugin-bundle-manifest'
 
 const execFile = promisify(execFileCallback)
 const BUILTIN_SOURCE_ID = 'builtin-default'
@@ -93,6 +101,11 @@ interface InstalledPluginContext {
 	loadedMetaByName: Map<string, PluginMeta>
 }
 
+interface NpmPackageArchive {
+	version: string | null
+	tarball: string
+}
+
 export type {
 	PluginMarketplaceRegistryItemInput,
 	PluginMarketplaceRegistryItemResponse,
@@ -116,6 +129,7 @@ export class PluginMarketplaceService {
 	private readonly refreshJobs = new Map<string, Promise<void>>()
 	private readonly npmMetadataCache = new Map<string, { level?: PluginLevel } | null>()
 	private readonly npmReadmeCache = new Map<string, PluginMarketplaceReadme | null>()
+	private readonly npmBundleManifestCache = new Map<string, XpertPluginBundleManifest | null>()
 
 	constructor(
 		@InjectRepository(PluginMarketplaceSource)
@@ -270,6 +284,7 @@ export class PluginMarketplaceService {
 		}
 
 		const contributions = this.getMarketplaceContributions(marketplacePlugin, query.targetApp)
+		const trialShortcuts = this.getMarketplaceTrialShortcuts(marketplacePlugin, query.targetApp)
 		return {
 			name: packageName,
 			packageName,
@@ -288,6 +303,7 @@ export class PluginMarketplaceService {
 			keywords: meta.keywords ?? [],
 			installed: true,
 			contributions,
+			trialShortcuts,
 			operationSummary: this.countOperations(contributions),
 			targetApps: meta.targetApps ?? [],
 			targetAppMeta: meta.targetAppMeta ?? null,
@@ -323,6 +339,9 @@ export class PluginMarketplaceService {
 					currentOrganizationId !== GLOBAL_ORGANIZATION_SCOPE &&
 					(plugin.scopeKey ?? plugin.organizationId) === globalScopeKey &&
 					matches(plugin)
+			) ??
+			this.loadedPlugins.find(
+				(plugin) => (plugin.scopeKey ?? plugin.organizationId) === SYSTEM_GLOBAL_SCOPE && matches(plugin)
 			) ??
 			null
 		)
@@ -414,25 +433,15 @@ export class PluginMarketplaceService {
 		version: string | null,
 		locale: string | null
 	): Promise<PluginMarketplaceReadme | null> {
-		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
 		let tempDir: string | null = null
 
 		try {
-			const metadataResponse = await fetch(url)
-			if (!metadataResponse.ok) {
-				throw new Error(`npm registry returned ${metadataResponse.status}`)
-			}
-			const metadata = readRecord(await metadataResponse.json())
-			const versions = readRecord(metadata?.versions)
-			const distTags = readRecord(metadata?.['dist-tags'])
-			const latestVersion = this.normalizeOptionalString(distTags?.latest)
-			const manifest = readRecord(versions?.[version ?? '']) ?? readRecord(versions?.[latestVersion ?? ''])
-			const tarball = this.normalizeOptionalString(readRecord(manifest?.dist)?.tarball)
-			if (!tarball) {
+			const archive = await this.fetchNpmPackageArchive(packageName, version)
+			if (!archive) {
 				return null
 			}
 
-			const tarballResponse = await fetch(tarball)
+			const tarballResponse = await fetch(archive.tarball)
 			if (!tarballResponse.ok) {
 				throw new Error(`npm tarball returned ${tarballResponse.status}`)
 			}
@@ -449,6 +458,35 @@ export class PluginMarketplaceService {
 			if (tempDir) {
 				await rm(tempDir, { recursive: true, force: true })
 			}
+		}
+	}
+
+	private async fetchNpmPackageArchive(
+		packageName: string,
+		version: string | null
+	): Promise<NpmPackageArchive | null> {
+		const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
+		const metadataResponse = await fetch(url)
+		if (!metadataResponse.ok) {
+			throw new Error(`npm registry returned ${metadataResponse.status}`)
+		}
+
+		const metadata = readRecord(await metadataResponse.json())
+		const versions = readRecord(metadata?.versions)
+		const distTags = readRecord(metadata?.['dist-tags'])
+		const latestVersion = this.normalizeOptionalString(distTags?.latest)
+		const requestedVersion = this.normalizeOptionalString(version)
+		const selectedVersion =
+			requestedVersion && readRecord(versions?.[requestedVersion]) ? requestedVersion : latestVersion
+		const manifest = selectedVersion ? readRecord(versions?.[selectedVersion]) : null
+		const tarball = this.normalizeOptionalString(readRecord(manifest?.dist)?.tarball)
+		if (!tarball) {
+			return null
+		}
+
+		return {
+			version: selectedVersion ?? null,
+			tarball
 		}
 	}
 
@@ -809,7 +847,7 @@ export class PluginMarketplaceService {
 		const staleItems = items.filter((item) => this.isRegistryDownloadsCacheExpired(item))
 		this.schedulePlatformRegistryDownloadsRefresh(staleItems)
 
-		return this.enrichCatalogWithNpmMetadata(this.toPlatformRegistryCatalog(items))
+		return this.enrichCatalogWithNpmPackageData(this.toPlatformRegistryCatalog(items))
 	}
 
 	private toPlatformRegistryCatalog(items: PluginMarketplaceRegistryItem[]): NormalizedMarketplaceCatalog {
@@ -1280,7 +1318,7 @@ export class PluginMarketplaceService {
 			if (this.isSourceCacheExpired(source)) {
 				this.scheduleSourceRefresh(source)
 			}
-			source.lastCatalog = await this.enrichCatalogWithNpmMetadata(source.lastCatalog)
+			source.lastCatalog = await this.enrichCatalogWithNpmPackageData(source.lastCatalog)
 			return source.lastCatalog
 		}
 
@@ -1328,7 +1366,7 @@ export class PluginMarketplaceService {
 			await this.persistSourceRefreshFailure(source, error)
 			const cachedCatalog = this.readCachedCatalog(source.entity?.lastCatalog)
 			if (cachedCatalog) {
-				source.lastCatalog = await this.enrichCatalogWithNpmMetadata(cachedCatalog)
+				source.lastCatalog = await this.enrichCatalogWithNpmPackageData(cachedCatalog)
 				return source.lastCatalog
 			}
 			throw error
@@ -1382,7 +1420,7 @@ export class PluginMarketplaceService {
 			catalog = this.normalizeCatalog(raw, source)
 		}
 
-		return this.enrichCatalogWithNpmMetadata(await this.enrichCatalogWithNpmDownloads(catalog))
+		return this.enrichCatalogWithNpmPackageData(await this.enrichCatalogWithNpmDownloads(catalog))
 	}
 
 	private async fetchGithubCatalog(source: MarketplaceSourceRecord): Promise<NormalizedMarketplaceCatalog> {
@@ -1573,6 +1611,7 @@ export class PluginMarketplaceService {
 			level: this.readMarketplacePluginLevel(input),
 			category: input.category ?? pluginInterface.category ?? 'integration',
 			keywords: Array.isArray(input.keywords) ? input.keywords.filter((value) => typeof value === 'string') : [],
+			screenshots: this.readStringArray(input.screenshots ?? pluginInterface.screenshots),
 			targetApps: Array.isArray(input.targetApps)
 				? input.targetApps.filter((value) => typeof value === 'string')
 				: [],
@@ -1627,6 +1666,167 @@ export class PluginMarketplaceService {
 			type: source.builtin ? 'marketplace' : source.type,
 			source: source.builtin ? 'marketplace' : source.type,
 			url: source.url
+		}
+	}
+
+	private async enrichCatalogWithNpmPackageData(
+		catalog: NormalizedMarketplaceCatalog
+	): Promise<NormalizedMarketplaceCatalog> {
+		const withMetadata = await this.enrichCatalogWithNpmMetadata(catalog)
+		return this.enrichCatalogWithNpmBundleManifests(withMetadata)
+	}
+
+	private async enrichCatalogWithNpmBundleManifests(
+		catalog: NormalizedMarketplaceCatalog
+	): Promise<NormalizedMarketplaceCatalog> {
+		if (!catalog.plugins.length) {
+			return catalog
+		}
+
+		const plugins: MarketplaceRegistryPlugin[] = []
+		let changed = false
+		for (let index = 0; index < catalog.plugins.length; index += NPM_DOWNLOADS_CONCURRENCY) {
+			const batch = catalog.plugins.slice(index, index + NPM_DOWNLOADS_CONCURRENCY)
+			const hydrated = await Promise.all(batch.map((plugin) => this.hydratePluginWithNpmBundleManifest(plugin)))
+			for (let itemIndex = 0; itemIndex < hydrated.length; itemIndex += 1) {
+				if (hydrated[itemIndex] !== batch[itemIndex]) {
+					changed = true
+				}
+				plugins.push(hydrated[itemIndex])
+			}
+		}
+
+		return changed
+			? {
+					...catalog,
+					plugins
+				}
+			: catalog
+	}
+
+	private async hydratePluginWithNpmBundleManifest(
+		plugin: MarketplaceRegistryPlugin
+	): Promise<MarketplaceRegistryPlugin> {
+		const packageName = this.getNpmPackageName(plugin)
+		if (!packageName) {
+			return plugin
+		}
+
+		const manifest = await this.getNpmBundleManifest(packageName, this.normalizeOptionalString(plugin.version))
+		if (!manifest) {
+			return plugin
+		}
+
+		return this.mergeBundleManifestMeta(plugin, manifest)
+	}
+
+	private async getNpmBundleManifest(packageName: string, version: string | null) {
+		const normalizedVersion = this.normalizeOptionalString(version)
+		const cacheKey = `${normalizePluginName(packageName)}@${normalizedVersion ?? 'latest'}`
+		if (this.npmBundleManifestCache.has(cacheKey)) {
+			return this.npmBundleManifestCache.get(cacheKey) ?? null
+		}
+
+		try {
+			const manifest = await this.fetchNpmBundleManifest(packageName, normalizedVersion)
+			this.npmBundleManifestCache.set(cacheKey, manifest)
+			return manifest
+		} catch (error) {
+			this.logger.warn(
+				`Failed to load bundle manifest for npm plugin "${packageName}": ${this.toErrorMessage(error)}`
+			)
+			this.npmBundleManifestCache.set(cacheKey, null)
+			return null
+		}
+	}
+
+	private async fetchNpmBundleManifest(
+		packageName: string,
+		version: string | null
+	): Promise<XpertPluginBundleManifest | null> {
+		let tempDir: string | null = null
+
+		try {
+			const archive = await this.fetchNpmPackageArchive(packageName, version)
+			if (!archive) {
+				return null
+			}
+
+			const tarballResponse = await fetch(archive.tarball)
+			if (!tarballResponse.ok) {
+				throw new Error(`npm tarball returned ${tarballResponse.status}`)
+			}
+
+			tempDir = await mkdtemp(join(tmpdir(), 'xpert-plugin-manifest-'))
+			const archivePath = join(tempDir, 'package.tgz')
+			await writeFile(archivePath, Buffer.from(await tarballResponse.arrayBuffer()))
+			await execFile('tar', ['-xzf', archivePath, '-C', tempDir])
+			return readPluginBundleManifest(join(tempDir, 'package'))?.manifest ?? null
+		} finally {
+			if (tempDir) {
+				await rm(tempDir, { recursive: true, force: true })
+			}
+		}
+	}
+
+	private mergeBundleManifestMeta(
+		plugin: MarketplaceRegistryPlugin,
+		manifest: XpertPluginBundleManifest
+	): MarketplaceRegistryPlugin {
+		const registryInterface = readRecord(plugin.interface) ?? {}
+		const bundleInterface = readRecord(manifest.interface) ?? {}
+		const mergedInterface = {
+			...bundleInterface,
+			...registryInterface
+		}
+		const bundleAssets = readRecord(manifest.assets) ?? {}
+		const registryDefaultPrompt = this.readStringArray(plugin.defaultPrompt)
+		const bundleDefaultPrompt = this.readStringArray(mergedInterface.defaultPrompt)
+		const registryScreenshots = this.readStringArray(plugin.screenshots)
+		const bundleScreenshots = this.readStringArray(mergedInterface.screenshots ?? bundleAssets.screenshots)
+		const bundleLogo = this.normalizeOptionalString(mergedInterface.logo ?? bundleAssets.logo)
+		const bundleHomepage =
+			this.normalizeOptionalString(mergedInterface.websiteURL) ?? this.normalizeOptionalString(manifest.homepage)
+		const source = readRecord(plugin.source)
+		const packageName = this.normalizeOptionalString(plugin.packageName) ?? normalizePluginName(manifest.name)
+
+		return {
+			...plugin,
+			packageName,
+			version: this.normalizeOptionalString(plugin.version) ?? manifest.version ?? null,
+			displayName: this.hasPresentValue(plugin.displayName)
+				? plugin.displayName
+				: (this.normalizeOptionalString(mergedInterface.displayName) ?? manifest.name),
+			description: this.hasPresentValue(plugin.description)
+				? plugin.description
+				: (this.normalizeOptionalString(mergedInterface.shortDescription) ??
+					this.normalizeOptionalString(mergedInterface.longDescription) ??
+					manifest.description ??
+					''),
+			author: this.hasPresentValue(plugin.author)
+				? plugin.author
+				: (manifest.author ?? this.normalizeOptionalString(mergedInterface.developerName)),
+			homepage: this.hasPresentValue(plugin.homepage) ? plugin.homepage : (bundleHomepage ?? undefined),
+			repository: plugin.repository ?? manifest.repository,
+			keywords: this.readStringArray(plugin.keywords).length
+				? this.readStringArray(plugin.keywords)
+				: (manifest.keywords ?? []),
+			icon: plugin.icon ?? (bundleLogo ? { type: 'image', value: bundleLogo } : undefined),
+			screenshots: registryScreenshots.length ? registryScreenshots : bundleScreenshots,
+			targetApps: this.uniqueStrings([...(plugin.targetApps ?? []), ...(manifest.targetApps ?? [])]),
+			targetAppMeta: this.mergeTargetAppMeta(
+				readRecord(plugin.targetAppMeta) ?? {},
+				readRecord(manifest.targetAppMeta) ?? {}
+			),
+			source: source
+				? {
+						...source,
+						packageName: this.normalizeOptionalString(source.packageName) ?? packageName
+					}
+				: plugin.source,
+			policy: plugin.policy ?? manifest.policy,
+			interface: Object.keys(mergedInterface).length ? mergedInterface : undefined,
+			defaultPrompt: registryDefaultPrompt.length ? registryDefaultPrompt : bundleDefaultPrompt
 		}
 	}
 
@@ -1952,6 +2152,7 @@ export class PluginMarketplaceService {
 	): PluginMarketplaceItem {
 		const installed = this.isInstalled(plugin, installedContext.installedNames)
 		const contributions = this.getMarketplaceContributions(plugin, targetApp)
+		const trialShortcuts = this.getMarketplaceTrialShortcuts(plugin, targetApp)
 
 		return {
 			...plugin,
@@ -1959,6 +2160,7 @@ export class PluginMarketplaceService {
 			sourceName: plugin.sourceName,
 			installed,
 			contributions,
+			trialShortcuts,
 			operationSummary: this.countOperations(contributions),
 			marketplacePlugin: plugin
 		}
@@ -1986,6 +2188,92 @@ export class PluginMarketplaceService {
 			(item): item is PluginMarketplaceContribution =>
 				isRecord(item) && typeof item.name === 'string' && typeof item.type === 'string'
 		)
+	}
+
+	private getMarketplaceTrialShortcuts(plugin: MarketplaceRegistryPlugin, targetApp?: string) {
+		const structured = this.getMarketplaceTrialShortcutList(plugin, targetApp)
+		if (structured.length) {
+			return structured
+		}
+
+		return this.readStringArray(plugin.defaultPrompt ?? readRecord(plugin.interface)?.defaultPrompt)
+			.slice(0, 3)
+			.map(
+				(prompt, index): PluginMarketplaceTrialShortcut => ({
+					id: `default-${index + 1}`,
+					prompt: prompt.trim()
+				})
+			)
+	}
+
+	private getMarketplaceTrialShortcutList(plugin: MarketplaceRegistryPlugin, targetApp?: string) {
+		const targetAppMeta = readRecord(plugin.targetAppMeta) ?? {}
+		const metadataValues = targetApp
+			? [readRecord(targetAppMeta[targetApp])]
+			: Object.values(targetAppMeta).map((metadata) => readRecord(metadata))
+
+		return metadataValues
+			.flatMap((metadata) => this.readTrialShortcuts(readRecord(metadata?.marketplace)?.trialShortcuts))
+			.slice(0, 3)
+	}
+
+	private readTrialShortcuts(value: unknown): PluginMarketplaceTrialShortcut[] {
+		if (!Array.isArray(value)) {
+			return []
+		}
+
+		return value
+			.map((item) => {
+				const record = readRecord(item)
+				const prompt = this.normalizeOptionalString(record?.prompt)
+				if (!record || !prompt) {
+					return null
+				}
+
+				const shortcut: PluginMarketplaceTrialShortcut = {
+					prompt
+				}
+				const id = this.normalizeOptionalString(record.id)
+				const label = this.normalizeTrialShortcutLabel(record.label)
+				const skillKey = this.normalizeOptionalString(record.skillKey)
+				const icon = readRecord(record.icon)
+
+				if (id) {
+					shortcut.id = id
+				}
+				if (label) {
+					shortcut.label = label
+				}
+				if (skillKey) {
+					shortcut.skillKey = skillKey
+				}
+				if (icon) {
+					shortcut.icon = icon as PluginMarketplaceTrialShortcut['icon']
+				}
+
+				return shortcut
+			})
+			.filter((item): item is PluginMarketplaceTrialShortcut => !!item)
+	}
+
+	private normalizeTrialShortcutLabel(value: unknown): string | I18nObject | null {
+		const label = this.normalizeOptionalString(value)
+		if (label) {
+			return label
+		}
+
+		const record = readRecord(value)
+		const en_US = this.normalizeOptionalString(record?.en_US)
+		if (!record || !en_US) {
+			return null
+		}
+
+		const normalized: I18nObject = { en_US }
+		const zh_Hans = this.normalizeOptionalString(record.zh_Hans)
+		if (zh_Hans) {
+			normalized.zh_Hans = zh_Hans
+		}
+		return normalized
 	}
 
 	private countOperations(contributions: PluginMarketplaceContribution[]) {
@@ -2059,7 +2347,8 @@ export class PluginMarketplaceService {
 			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
 			if (
 				pluginScopeKey !== organizationScopeKey &&
-				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey)
+				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey) &&
+				pluginScopeKey !== SYSTEM_GLOBAL_SCOPE
 			) {
 				continue
 			}
@@ -2325,6 +2614,10 @@ export class PluginMarketplaceService {
 
 	private normalizeOptionalString(value: unknown) {
 		return typeof value === 'string' && value.trim() ? value.trim() : null
+	}
+
+	private hasPresentValue(value: unknown) {
+		return typeof value === 'string' ? value.trim().length > 0 : value !== undefined && value !== null
 	}
 
 	private toTimestamp(value?: Date | string | null) {

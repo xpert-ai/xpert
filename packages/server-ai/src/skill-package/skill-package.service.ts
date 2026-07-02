@@ -215,6 +215,54 @@ const readI18nText = (value?: string | I18nObject | null): string | undefined =>
 const normalizeTagList = (tags?: string[] | null) =>
     Array.from(new Set((tags ?? []).map((tag) => tag?.trim()).filter((tag): tag is string => !!tag)))
 
+function normalizeSkillMetadataOverrides(
+    metadata?: Partial<SkillMetadata> | null
+): SkillPackageInstallMetadata | undefined {
+    if (!metadata || !isObjectValue(metadata)) {
+        return undefined
+    }
+
+    const normalized: SkillPackageInstallMetadata = {}
+    if (metadata.name?.trim()) {
+        normalized.name = metadata.name.trim()
+    }
+    if (metadata.version?.trim()) {
+        normalized.version = metadata.version.trim()
+    }
+    if (metadata.displayName) {
+        normalized.displayName = metadata.displayName
+    }
+    if (metadata.description) {
+        normalized.description = metadata.description
+    }
+    if (metadata.icon) {
+        normalized.icon = metadata.icon
+    }
+    if (metadata.color?.trim()) {
+        normalized.color = metadata.color.trim()
+    }
+    if (metadata.tags?.length) {
+        normalized.tags = normalizeTagList(metadata.tags)
+    }
+    if (metadata.license?.trim()) {
+        normalized.license = metadata.license.trim()
+    }
+
+    return Object.keys(normalized).length ? normalized : undefined
+}
+
+function mergeSkillMetadataOverrides<T extends SkillPackageInstallMetadata>(
+    base: T,
+    metadata?: Partial<SkillMetadata> | null
+): T {
+    const overrides = normalizeSkillMetadataOverrides(metadata)
+    return overrides ? ({ ...base, ...overrides } as T) : base
+}
+
+function isSkillMetadataEqual(left: SkillMetadata | undefined, right: SkillMetadata | undefined) {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
+}
+
 const buildPublisherFromUser = (user?: IUser | null): ISkillRepositoryIndexPublisher | undefined => {
     const name = resolveUserDisplayName(user)
     if (!name) {
@@ -701,6 +749,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
             pluginName: string
             componentKey: string
             bundleRootPath: string
+            metadata?: Partial<SkillMetadata> | null
         },
         options?: {
             skipAccessCheck?: boolean
@@ -718,7 +767,8 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
             workspaceId,
             {
                 bundleRootPath: input.bundleRootPath,
-                sharedSkillId: `plugin:${input.pluginName.trim()}:skill:${input.componentKey.trim()}`
+                sharedSkillId: `plugin:${input.pluginName.trim()}:skill:${input.componentKey.trim()}`,
+                metadata: input.metadata
             },
             options
         )
@@ -729,6 +779,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
         input: {
             bundleRootPath: string
             sharedSkillId: string
+            metadata?: Partial<SkillMetadata> | null
         },
         options?: {
             skipAccessCheck?: boolean
@@ -793,6 +844,22 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
         }
 
         if (nextStatus === 'unchanged' && existingIndex) {
+            const metadataOverrides = normalizeSkillMetadataOverrides(input.metadata)
+            if (existingSkillPackage?.id && metadataOverrides) {
+                const metadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadataOverrides)
+                if (!isSkillMetadataEqual(existingSkillPackage.metadata, metadata)) {
+                    await this.update(existingSkillPackage.id, {
+                        workspaceId,
+                        metadata
+                    } as Partial<SkillPackage>)
+                    return {
+                        status: 'updated',
+                        hash: bundleHash,
+                        sharedSkillId,
+                        index: existingIndex
+                    }
+                }
+            }
             return {
                 status: nextStatus,
                 hash: bundleHash,
@@ -822,11 +889,14 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
             }
         })
         const persistedMetadata = this.withTemplateBundleHash(
-            this.buildMetadataForWorkspaceSkill(
-                frontmatter,
-                packagePath,
-                join(absolutePackagePath, 'SKILL.md'),
-                skillBaseName
+            mergeSkillMetadataOverrides(
+                this.buildMetadataForWorkspaceSkill(
+                    frontmatter,
+                    packagePath,
+                    join(absolutePackagePath, 'SKILL.md'),
+                    skillBaseName
+                ),
+                input.metadata
             ),
             bundleHash
         )

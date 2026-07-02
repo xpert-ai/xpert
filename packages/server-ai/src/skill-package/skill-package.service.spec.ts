@@ -1096,6 +1096,75 @@ describe('SkillPackageService', () => {
         expect(skillIndexService.create).not.toHaveBeenCalled()
     })
 
+    it('updates template bundle skill metadata when only plugin presentation metadata changes', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-metadata-'))
+        const bundleRoot = join(tempRoot, 'bundle')
+        const sharedSkillId = 'plugin:@xpert-ai/plugin-documents:skill:documents'
+        await mkdir(bundleRoot, { recursive: true })
+        await writeFile(
+            join(bundleRoot, 'SKILL.md'),
+            '---\nname: documents\ndescription: Bundle skill.\nversion: 1.0.0\n---\n# Documents\n',
+            'utf8'
+        )
+
+        skillRepositoryService.findAll.mockResolvedValue({
+            items: [{ id: 'repo-public', provider: 'workspace-public' }]
+        })
+        const validationResult = await service.syncTemplateSkillBundle(
+            'workspace-1',
+            {
+                bundleRootPath: bundleRoot,
+                sharedSkillId
+            },
+            {
+                validateOnly: true
+            }
+        )
+
+        repository.findOne.mockResolvedValue({
+            id: 'skill-existing-1',
+            workspaceId: 'workspace-1',
+            sharedSkillId,
+            packagePath: 'documents',
+            metadata: {
+                name: 'documents',
+                provenance: {
+                    templateBundleHash: validationResult.hash
+                }
+            }
+        })
+        skillIndexService.findAll.mockResolvedValue({
+            items: [{ id: 'index-existing-1', repositoryId: 'repo-public', skillId: sharedSkillId }]
+        })
+
+        const result = await service.syncTemplateSkillBundle('workspace-1', {
+            bundleRootPath: bundleRoot,
+            sharedSkillId,
+            metadata: {
+                color: '#2563EB',
+                icon: {
+                    type: 'svg',
+                    value: '<svg viewBox="0 0 16 16"></svg>'
+                }
+            }
+        })
+
+        expect(result.status).toBe('updated')
+        expect(createSpy).not.toHaveBeenCalled()
+        expect(service.update).toHaveBeenCalledWith('skill-existing-1', {
+            workspaceId: 'workspace-1',
+            metadata: expect.objectContaining({
+                name: 'documents',
+                color: '#2563EB',
+                icon: {
+                    type: 'svg',
+                    value: '<svg viewBox="0 0 16 16"></svg>'
+                }
+            })
+        })
+        expect(skillIndexService.create).not.toHaveBeenCalled()
+    })
+
     it('republishes a template bundle when the bundle contents change but the shared skill id stays the same', async () => {
         tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-update-'))
         const workspaceRoot = join(tempRoot, 'workspace')

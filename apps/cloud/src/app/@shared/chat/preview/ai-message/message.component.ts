@@ -30,6 +30,7 @@ export class XpertPreviewAiMessageComponent {
   // Inputs
   readonly message = input<IChatMessage>()
   readonly conversation = input<Partial<IChatConversation>>()
+  readonly organizationId = input<string | null>(null)
 
   // States
   readonly contents = computed(() => {

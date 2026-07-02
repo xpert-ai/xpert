@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { UpdatePluginCommand } from './commands'
-import { ResolveLatestPluginVersionQuery } from './queries'
+import { GetPluginSkillDocumentQuery, ResolveLatestPluginVersionQuery } from './queries'
 import type { PluginInstanceService } from './plugin-instance.service'
 import type { PluginManagementService } from './plugin-management.service'
 
@@ -35,6 +38,7 @@ jest.mock('@xpert-ai/contracts', () => ({
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
 		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
 	),
@@ -62,7 +66,7 @@ jest.mock('./plugin.helper', () => ({
 }))
 
 jest.mock('./plugin-instance.entity', () => ({
-	resolvePluginLevel: jest.fn(() => 'organization')
+	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
 }))
 
 jest.mock('./plugin-instance.service', () => ({
@@ -78,15 +82,24 @@ jest.mock('./plugin-marketplace.service', () => ({
 }))
 
 const { PLUGIN_LEVEL } = require('@xpert-ai/contracts')
-const { GLOBAL_ORGANIZATION_SCOPE, RequestContext, resolveTenantGlobalScopeKey } = require('@xpert-ai/plugin-sdk')
+const {
+	GLOBAL_ORGANIZATION_SCOPE,
+	SYSTEM_GLOBAL_SCOPE,
+	RequestContext,
+	resolveTenantGlobalScopeKey
+} = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
+const { resolvePluginConfigSchema } = require('./plugin-config-schema')
 const { findPluginLoadFailure } = require('./plugin.helper')
+const { resolvePluginLevel } = require('./plugin-instance.entity')
 const { PluginController } = require('./plugin.controller')
+const { GetPluginSkillDocumentHandler } = require('./queries/handlers/get-plugin-skill-document.handler')
 
 describe('PluginController', () => {
 	const pluginInstanceService = {
 		findOneByPluginName: jest.fn(),
 		findVisibleInOrganization: jest.fn(),
+		getDefaultTenantId: jest.fn(),
 		getConfig: jest.fn(),
 		upsert: jest.fn()
 	} as unknown as PluginInstanceService
@@ -125,9 +138,11 @@ describe('PluginController', () => {
 	const loadedPlugins: Array<any> = []
 
 	let controller: any
+	let tempDirs: string[] = []
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		tempDirs = []
 		resolveTenantGlobalScopeKey.mockImplementation((tenantId?: string | null) =>
 			tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : GLOBAL_ORGANIZATION_SCOPE
 		)
@@ -136,9 +151,20 @@ describe('PluginController', () => {
 		;(inspectConfig as jest.Mock).mockImplementation((_: string, config: Record<string, any>) => ({
 			config: config ?? {}
 		}))
+		;(resolvePluginLevel as jest.Mock).mockImplementation((level?: string) =>
+			level === PLUGIN_LEVEL.SYSTEM ? PLUGIN_LEVEL.SYSTEM : PLUGIN_LEVEL.ORGANIZATION
+		)
+		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue(undefined)
 		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
 		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([])
+		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('default-tenant')
 		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
+		;(queryBus as any).execute.mockImplementation((query: unknown) => {
+			if (query instanceof GetPluginSkillDocumentQuery) {
+				return new GetPluginSkillDocumentHandler(pluginManagementService).execute(query)
+			}
+			return undefined
+		})
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
@@ -156,6 +182,27 @@ describe('PluginController', () => {
 		})
 		RequestContext.hasRole.mockReturnValue(false)
 	})
+
+	afterEach(async () => {
+		await Promise.all(tempDirs.map((directory) => rm(directory, { recursive: true, force: true })))
+	})
+
+	async function createLoadedSkillBundle(skillContent = '# Review Skill\n\nUse this skill to review code.') {
+		const root = await mkdtemp(join(tmpdir(), 'xpert-plugin-controller-'))
+		tempDirs.push(root)
+		await mkdir(join(root, '.xpertai-plugin'), { recursive: true })
+		await mkdir(join(root, 'skills', 'review'), { recursive: true })
+		await writeFile(
+			join(root, '.xpertai-plugin', 'plugin.json'),
+			JSON.stringify({
+				name: '@xpert-ai/plugin-bundle-demo',
+				version: '0.0.1',
+				skills: './skills'
+			})
+		)
+		await writeFile(join(root, 'skills', 'review', 'SKILL.md'), skillContent)
+		return root
+	}
 
 	it('delegates installation to plugin management service', async () => {
 		;(pluginManagementService as any).installPlugin.mockResolvedValue({
@@ -233,6 +280,135 @@ describe('PluginController', () => {
 		})
 
 		expect(pluginManagementService.readLoadedPluginBundleComponents).toHaveBeenCalledWith(loadedPlugin)
+	})
+
+	it('returns a registered skill component SKILL.md document from the loaded plugin bundle', async () => {
+		const baseDir = await createLoadedSkillBundle('# Review Skill\n\nReview the current change.')
+		const loadedPlugin = {
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			baseDir,
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		}
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue(loadedPlugin)
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'skill',
+				componentKey: 'review',
+				sourcePath: './skills/review/SKILL.md',
+				definitionHash: 'skill-hash'
+			}
+		])
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/plugin-bundle-demo', 'review')).resolves.toEqual({
+			pluginName: '@xpert-ai/plugin-bundle-demo',
+			componentType: 'skill',
+			componentKey: 'review',
+			sourcePath: './skills/review/SKILL.md',
+			fileName: 'SKILL.md',
+			content: '# Review Skill\n\nReview the current change.'
+		})
+		expect(queryBus.execute).toHaveBeenCalledWith(
+			new GetPluginSkillDocumentQuery({
+				pluginName: '@xpert-ai/plugin-bundle-demo',
+				componentKey: 'review',
+				organizationId: 'org-1'
+			})
+		)
+		expect(pluginManagementService.readLoadedPluginBundleComponents).toHaveBeenCalledWith(loadedPlugin)
+	})
+
+	it('rejects skill document reads for missing plugins', async () => {
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue(null)
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/missing-plugin', 'review')).rejects.toThrow(
+			'plugin was not found'
+		)
+	})
+
+	it('rejects skill document reads for missing components', async () => {
+		const baseDir = await createLoadedSkillBundle()
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue({
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			baseDir,
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		})
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/plugin-bundle-demo', 'review')).rejects.toThrow(
+			'skill component was not found'
+		)
+	})
+
+	it('rejects skill document reads for non-skill components with the same key', async () => {
+		const baseDir = await createLoadedSkillBundle()
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue({
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			baseDir,
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		})
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'mcp_server',
+				componentKey: 'review',
+				sourcePath: './mcp.json',
+				definitionHash: 'mcp-hash'
+			}
+		])
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/plugin-bundle-demo', 'review')).rejects.toThrow(
+			'skill component was not found'
+		)
+	})
+
+	it('rejects skill document reads whose registered source path escapes the bundle root', async () => {
+		const baseDir = await createLoadedSkillBundle()
+		const outsideDir = await mkdtemp(join(tmpdir(), 'xpert-plugin-controller-outside-'))
+		tempDirs.push(outsideDir)
+		await writeFile(join(outsideDir, 'SKILL.md'), '# Outside')
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue({
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			baseDir,
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		})
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'skill',
+				componentKey: 'review',
+				sourcePath: join('..', outsideDir.split('/').at(-1) ?? '', 'SKILL.md'),
+				definitionHash: 'skill-hash'
+			}
+		])
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/plugin-bundle-demo', 'review')).rejects.toThrow(
+			'skill document was not found'
+		)
+	})
+
+	it('rejects skill document reads when the registered SKILL.md file is missing', async () => {
+		const baseDir = await createLoadedSkillBundle()
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue({
+			name: '@xpert-ai/plugin-bundle-demo',
+			packageName: '@xpert-ai/plugin-bundle-demo',
+			baseDir,
+			instance: { meta: { name: '@xpert-ai/plugin-bundle-demo' } }
+		})
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([
+			{
+				componentType: 'skill',
+				componentKey: 'review',
+				sourcePath: './skills/missing/SKILL.md',
+				definitionHash: 'skill-hash'
+			}
+		])
+
+		await expect(controller.getPluginSkillDocument('@xpert-ai/plugin-bundle-demo', 'review')).rejects.toThrow(
+			'skill document was not found'
+		)
 	})
 
 	it('returns merged configuration without validating when opening the configuration dialog', async () => {
@@ -350,6 +526,45 @@ describe('PluginController', () => {
 		)
 	})
 
+	it('rejects system plugin configuration from non-default tenants', async () => {
+		RequestContext.getOrganizationId.mockReturnValue(GLOBAL_ORGANIZATION_SCOPE)
+		RequestContext.currentTenantId.mockReturnValue('tenant-other')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-other',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE
+		})
+		RequestContext.hasRole.mockReturnValue(true)
+		const plugin = {
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: SYSTEM_GLOBAL_SCOPE,
+			name: '@xpert-ai/plugin-system-demo',
+			packageName: '@xpert-ai/plugin-system-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.SYSTEM,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-system-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.SYSTEM
+				},
+				config: {
+					defaults: {}
+				}
+			},
+			ctx: {}
+		}
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue(plugin)
+
+		await expect(controller.getConfiguration({ pluginName: plugin.name })).rejects.toThrow(
+			`Plugin "${plugin.name}" cannot be configured from the current scope`
+		)
+		await expect(controller.saveConfiguration({ pluginName: plugin.name, config: {} })).rejects.toThrow(
+			`Plugin "${plugin.name}" cannot be configured from the current scope`
+		)
+		expect((pluginInstanceService as any).findOneByPluginName).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+	})
+
 	it('includes configuration warning state in plugin descriptors', async () => {
 		loadedPlugins.push({
 			organizationId: 'org-1',
@@ -443,7 +658,8 @@ describe('PluginController', () => {
 
 		expect((pluginManagementService as any).uninstallByNamesWithGuard).toHaveBeenCalledWith(
 			['@xpert-ai/plugin-global-demo'],
-			GLOBAL_ORGANIZATION_SCOPE
+			GLOBAL_ORGANIZATION_SCOPE,
+			undefined
 		)
 	})
 
@@ -880,9 +1096,10 @@ describe('PluginController', () => {
 		)
 	})
 
-	it('keeps system plugins hidden from non-super-admin users', async () => {
+	it('lists system plugins for non-super-admin users as non-manageable defaults', async () => {
 		loadedPlugins.push({
 			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: SYSTEM_GLOBAL_SCOPE,
 			name: '@xpert-ai/plugin-system-demo',
 			packageName: '@xpert-ai/plugin-system-demo',
 			source: 'env',
@@ -897,7 +1114,58 @@ describe('PluginController', () => {
 			ctx: {}
 		})
 
-		await expect(controller.getPlugins()).resolves.toEqual([])
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-system-demo',
+				scopeKey: SYSTEM_GLOBAL_SCOPE,
+				level: PLUGIN_LEVEL.SYSTEM,
+				canUninstall: false,
+				canConfigure: false,
+				effectiveInCurrentScope: true
+			})
+		])
+	})
+
+	it('lists system plugins in non-default tenants without management actions', async () => {
+		RequestContext.getOrganizationId.mockReturnValue(GLOBAL_ORGANIZATION_SCOPE)
+		RequestContext.currentTenantId.mockReturnValue('tenant-other')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-other',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE
+		})
+		RequestContext.hasRole.mockReturnValue(true)
+		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue({ type: 'object' })
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: SYSTEM_GLOBAL_SCOPE,
+			name: '@xpert-ai/plugin-system-demo',
+			packageName: '@xpert-ai/plugin-system-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.SYSTEM,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-system-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.SYSTEM
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-system-demo',
+				scopeKey: SYSTEM_GLOBAL_SCOPE,
+				level: PLUGIN_LEVEL.SYSTEM,
+				canConfigure: false,
+				canRefresh: false,
+				canUninstall: false,
+				canUpdate: false,
+				effectiveInCurrentScope: true
+			})
+		])
+		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-system-demo'] })).resolves.toEqual([])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
 	})
 
 	it('includes persisted plugin instances that failed to load', async () => {

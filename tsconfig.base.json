@@ -52,7 +52,6 @@
       "@xpert-ai/store": ["packages/store/src/index.ts"],
       "@xpert-ai/story": ["libs/story-angular/src/index.ts"],
       "@xpert-ai/story/*": ["libs/story-angular/*/index.ts", "libs/story-angular/*"],
-      "@xpert-ai/plugin-agent-middlewares": ["packages/plugins/agent-middlewares/src/index.ts"],
       "@xpert-ai/plugin-draft": ["packages/plugins/draft/src/index.ts"],
       "@xpert-ai/plugin-integration-lark": ["packages/plugins/integration-lark/src/index.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],

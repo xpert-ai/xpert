@@ -3,9 +3,9 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
+import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 import type {
-  ChatKitQuoteReference,
   IconDefinition,
   I18nObject,
   TChatElementReference,
@@ -48,6 +48,10 @@ import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-p
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
+import {
+  ClawXpertSkillTrialIntentService,
+  type ClawXpertSkillTrialIntent
+} from './clawxpert-skill-trial-intent.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import {
@@ -84,16 +88,6 @@ const DEFAULT_FIXED_VIEW_ICON = {
   alt: 'Fixed view'
 } satisfies IconDefinition
 
-type ChatKitCodeComposerReference = {
-  type: 'code'
-  path: string
-  text: string
-  startLine: number
-  endLine: number
-  language?: string
-}
-
-type ChatKitComposerReference = ChatKitCodeComposerReference | ChatKitQuoteReference
 type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
 type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
@@ -135,18 +129,6 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
 const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
   id: 'files-initial',
   kind: 'files'
-}
-
-type ChatKitReferenceComposerControl = {
-  element: unknown
-  setComposerValue(params: {
-    text?: string
-    reply?: string
-    attachments?: unknown[]
-    references?: ChatKitComposerReference[]
-    appendReferences?: boolean
-  }): Promise<void>
-  focusComposer(): Promise<void>
 }
 
 @Component({
@@ -690,6 +672,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
+  readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
@@ -971,6 +954,32 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         }
 
         void this.facade.beginPendingConversation(pendingStartId, control)
+      })
+
+      onCleanup(() => {
+        cancelled = true
+        clearTimeout(timer)
+      })
+    })
+
+    effect((onCleanup) => {
+      const intent = this.#skillTrialIntent.peek()
+      const control = this.control()
+
+      if (!intent || this.facade.viewState() !== 'ready' || !control) {
+        return
+      }
+
+      let cancelled = false
+      const timer = setTimeout(() => {
+        if (cancelled) {
+          return
+        }
+
+        const consumedIntent = this.#skillTrialIntent.consume()
+        if (consumedIntent) {
+          void this.applySkillTrialIntent(consumedIntent, control)
+        }
       })
 
       onCleanup(() => {
@@ -1504,8 +1513,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
-  private async attachComposerReferences(references: ChatKitComposerReference[]) {
-    const control = this.control() as ChatKitReferenceComposerControl | null
+  private async attachComposerReferences(references: ChatKitReference[]) {
+    const control = this.control()
     if (!control?.element) {
       this.#toastr.warning('PAC.Chat.ClawXpert.ReferenceUnavailable', {
         Default: 'Chat composer is not ready yet. Try again in a moment.'
@@ -1526,6 +1535,30 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         {
           Default: 'Failed to attach the selected reference.'
         }
+      )
+    }
+  }
+
+  private async applySkillTrialIntent(intent: ClawXpertSkillTrialIntent, control: ChatKitControl) {
+    const selection = toSkillTrialRuntimeCapabilities(intent)
+    const prompt = readNonEmptyString(intent.prompt)
+
+    try {
+      setWritableSignalValue(this.facade.suppressAutoResume, true)
+      await control.setThreadId(null)
+      await control.setRuntimeCapabilities(selection)
+      await control.setComposerValue({
+        ...(prompt ? { text: prompt } : {}),
+        runtimeCapabilities: selection,
+        insertRuntimeCapabilities: true
+      })
+      await control.focusComposer()
+    } catch (error) {
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Plugin.TryInClawXpertFailed', {
+            Default: 'Failed to prepare ClawXpert for this skill.'
+          })
       )
     }
   }
@@ -1966,6 +1999,33 @@ function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQ
 
 function resolveEmbeddedChatkitElement(host: HTMLElement) {
   return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
+}
+
+function toSkillTrialRuntimeCapabilities(intent: ClawXpertSkillTrialIntent): RuntimeCapabilitiesSelection {
+  return {
+    mode: 'allowlist',
+    skills: {
+      workspaceId: intent.workspaceId,
+      ids: [intent.skillPackageId]
+    },
+    plugins: {
+      nodeKeys: []
+    },
+    subAgents: {
+      nodeKeys: []
+    }
+  }
+}
+
+function readNonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
+  const setter = (signalValue as Signal<T> & { set?: (next: T) => void }).set
+  if (typeof setter === 'function') {
+    setter.call(signalValue, value)
+  }
 }
 
 function normalizeConversationThreadId(threadId: string | null | undefined) {

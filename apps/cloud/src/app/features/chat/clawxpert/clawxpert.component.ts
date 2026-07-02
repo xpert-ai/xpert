@@ -4,7 +4,7 @@ import { Component, DestroyRef, effect, inject, Injector, OnDestroy, signal } fr
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
-import { XpertAPIService, XpertTypeEnum } from '../../../@core'
+import { Store, XpertAPIService, XpertTypeEnum } from '../../../@core'
 import { shouldCreateClawXpertAfterEntryOnboarding } from '../../features-onboarding'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
@@ -28,6 +28,7 @@ export class ClawXpertComponent implements OnDestroy {
   readonly #injector = inject(Injector)
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
+  readonly #store = inject(Store)
   readonly #xpertService = inject(XpertAPIService)
   readonly #entryOnboardingRequested = signal(false)
   #setupDialogRef: DialogRef<unknown, ClawXpertSetupWizardComponent> | null = null
@@ -104,19 +105,20 @@ export class ClawXpertComponent implements OnDestroy {
   }
 
   private async loadEntryOnboardingXpertCount(): Promise<number | null> {
+    const userId = this.#store.userId
+    if (!userId) {
+      return null
+    }
+
     const result = await firstValueFrom(
-      this.#xpertService.getMyAll(
-        {
-          where: {
-            type: XpertTypeEnum.Agent,
-            latest: true
-          },
-          take: 1
+      this.#xpertService.getMyAll({
+        where: {
+          createdById: userId,
+          type: XpertTypeEnum.Agent,
+          latest: true
         },
-        {
-          includeOrganizationWorkspacesInTenantScope: true
-        }
-      )
+        take: 1
+      })
     )
 
     return result.total ?? result.items?.length ?? null

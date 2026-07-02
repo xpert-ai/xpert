@@ -851,6 +851,7 @@
       "Category_agent": "智能體"
     },
     "MENU": {
+      "Tasks": "任務",
       "Plugins": "插件",
       "Operations": "MCP 監控",
       "MCP Monitor": "MCP 監控",

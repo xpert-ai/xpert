@@ -141,6 +141,36 @@ describe('RuntimeCommandService', () => {
         ])
     })
 
+    it('omits plugin-relative skill image icons from runtime commands', () => {
+        const service = new RuntimeCommandService()
+        const commands = service.normalizeSkillRuntimeSlashCommands(
+            {
+                id: 'documents-skill',
+                metadata: {
+                    icon: {
+                        type: 'image',
+                        value: './assets/icon.png'
+                    },
+                    commands: [
+                        {
+                            name: 'draft',
+                            label: 'Draft',
+                            action: {
+                                type: 'submit_prompt',
+                                template: 'Draft {{args}}'
+                            }
+                        }
+                    ]
+                }
+            },
+            { workspaceId: 'workspace-1', label: 'Documents' }
+        )
+
+        expect(commands).toHaveLength(1)
+        expect(commands[0].icon).toBeUndefined()
+        expect(commands[0].meta).toBeUndefined()
+    })
+
     it('filters invalid names, empty templates, unknown actions, and unsafe capability selection', () => {
         const service = new RuntimeCommandService()
 

@@ -1,5 +1,6 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
 	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
 	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
@@ -132,12 +133,18 @@ describe('PluginInstanceService', () => {
 
 		await service.uninstall('tenant-1', '__global__', ['@xpert-ai/plugin-broken-demo@1.0.0'])
 
-		expect(repo.delete).toHaveBeenCalledTimes(1)
-		const criteria = repo.delete.mock.calls[0][0]
+		expect(repo.delete).toHaveBeenCalledTimes(2)
+		expect(repo.delete).toHaveBeenCalledWith({
+			scopeKey: 'tenant:tenant-1:global',
+			pluginName: expect.anything()
+		})
+		const criteria = repo.delete.mock.calls[1][0]
 		expect(criteria.tenantId).toBe('tenant-1')
 		expect(criteria.organizationId).toEqual(IsNull())
+		expect(criteria.scopeKey).toEqual(IsNull())
 		expect(removePluginsSpy).toHaveBeenCalledWith('__global__', ['@xpert-ai/plugin-broken-demo'], {
-			tenantId: 'tenant-1'
+			tenantId: 'tenant-1',
+			scopeKey: 'tenant:tenant-1:global'
 		})
 	})
 
@@ -201,8 +208,13 @@ describe('PluginInstanceService', () => {
 		expect(repo.findOne).toHaveBeenCalledWith({
 			where: [
 				{
+					scopeKey: 'tenant:tenant-2:global',
+					pluginName: '@xpert-ai/plugin-global-demo'
+				},
+				{
 					tenantId: 'tenant-2',
 					organizationId: IsNull(),
+					scopeKey: IsNull(),
 					pluginName: '@xpert-ai/plugin-global-demo'
 				}
 			]
@@ -211,6 +223,7 @@ describe('PluginInstanceService', () => {
 			expect.objectContaining({
 				tenantId: 'tenant-2',
 				organizationId: null,
+				scopeKey: 'tenant:tenant-2:global',
 				pluginName: '@xpert-ai/plugin-global-demo'
 			})
 		)
@@ -222,13 +235,19 @@ describe('PluginInstanceService', () => {
 		expect(repo.findOne).toHaveBeenCalledWith({
 			where: [
 				{
+					scopeKey: '__global__',
+					pluginName: '@xpert-ai/plugin-global-demo'
+				},
+				{
 					tenantId: 'default-tenant',
 					organizationId: IsNull(),
+					scopeKey: IsNull(),
 					pluginName: '@xpert-ai/plugin-global-demo'
 				},
 				{
 					tenantId: IsNull(),
 					organizationId: IsNull(),
+					scopeKey: IsNull(),
 					pluginName: '@xpert-ai/plugin-global-demo'
 				}
 			]
@@ -246,12 +265,23 @@ describe('PluginInstanceService', () => {
 		expect(repo.find).toHaveBeenCalledWith({
 			where: [
 				{
-					tenantId: 'tenant-2',
-					organizationId: 'org-2'
+					scopeKey: 'system:global'
+				},
+				{
+					scopeKey: 'org-2'
+				},
+				{
+					scopeKey: 'tenant:tenant-2:global'
 				},
 				{
 					tenantId: 'tenant-2',
-					organizationId: IsNull()
+					organizationId: 'org-2',
+					scopeKey: IsNull()
+				},
+				{
+					tenantId: 'tenant-2',
+					organizationId: IsNull(),
+					scopeKey: IsNull()
 				}
 			]
 		})
@@ -260,11 +290,47 @@ describe('PluginInstanceService', () => {
 	it('uninstalls non-default tenant global plugins without deleting legacy default rows', async () => {
 		await service.uninstall('tenant-2', '__global__', ['@xpert-ai/plugin-global-demo'])
 
-		expect(repo.delete).toHaveBeenCalledTimes(1)
+		expect(repo.delete).toHaveBeenCalledTimes(2)
+		expect(repo.delete).toHaveBeenCalledWith({
+			scopeKey: 'tenant:tenant-2:global',
+			pluginName: expect.anything()
+		})
 		expect(repo.delete).toHaveBeenCalledWith({
 			tenantId: 'tenant-2',
 			organizationId: IsNull(),
+			scopeKey: IsNull(),
 			pluginName: expect.anything()
 		})
+	})
+
+	it('writes system plugins to the singleton system scope without tenant ownership', async () => {
+		repo.findOne.mockResolvedValue(null)
+
+		await service.upsert({
+			tenantId: 'tenant-2',
+			organizationId: 'org-2',
+			pluginName: '@xpert-ai/plugin-system-demo',
+			packageName: '@xpert-ai/plugin-system-demo',
+			source: 'marketplace',
+			level: 'system',
+			config: {}
+		} as any)
+
+		expect(repo.findOne).toHaveBeenCalledWith({
+			where: expect.arrayContaining([
+				{
+					scopeKey: 'system:global',
+					pluginName: '@xpert-ai/plugin-system-demo'
+				}
+			])
+		})
+		expect(repo.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: null,
+				organizationId: null,
+				scopeKey: 'system:global',
+				pluginName: '@xpert-ai/plugin-system-demo'
+			})
+		)
 	})
 })

@@ -1,8 +1,17 @@
 import { Injectable } from '@nestjs/common'
 import { HandoffPendingResultService } from './pending-result.service'
-import { getErrorMessage, HandoffMessage, HandoffProcessorRegistry, ProcessResult } from '@xpert-ai/plugin-sdk'
+import {
+	getErrorMessage,
+	HandoffMessage,
+	HandoffProcessorRegistry,
+	ProcessResult
+} from '@xpert-ai/plugin-sdk'
 import { HandoffCancelService } from './handoff-cancel.service'
 import { buildCanceledReason, isAbortLikeError } from './cancel-reason'
+import {
+	getHandoffMessageOrganizationId,
+	runWithHandoffMessageContext
+} from './message-context'
 
 @Injectable()
 export class MessageDispatcherService {
@@ -14,7 +23,10 @@ export class MessageDispatcherService {
 
 	async dispatch(message: HandoffMessage): Promise<ProcessResult> {
 		this.assertMessage(message)
+		return runWithHandoffMessageContext(message, () => this.dispatchWithContext(message))
+	}
 
+	private async dispatchWithContext(message: HandoffMessage): Promise<ProcessResult> {
 		const organizationId = this.getOrganizationId(message)
 		const resolved = this.processorRegistry.get(message.type, organizationId)
 		const runId = message.id
@@ -83,14 +95,6 @@ export class MessageDispatcherService {
 	}
 
 	private getOrganizationId(message: HandoffMessage): string | undefined {
-		return this.getHeader(message, 'organizationId')
-	}
-
-	private getHeader(message: HandoffMessage, key: string): string | undefined {
-		const value = message.headers?.[key]
-		if (typeof value === 'string' && value.length > 0) {
-			return value
-		}
-		return undefined
+		return getHandoffMessageOrganizationId(message)
 	}
 }

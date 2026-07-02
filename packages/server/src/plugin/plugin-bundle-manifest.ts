@@ -331,7 +331,7 @@ export function collectPluginBundleComponents(
 	manifest: XpertPluginBundleManifest
 ): PluginBundleComponentRegistration[] {
 	return [
-		...collectSkillComponents(rootDir, manifest.skills),
+		...collectSkillComponents(rootDir, manifest.skills, manifest),
 		...collectMcpServerComponents(rootDir, manifest.mcpServers),
 		...collectAppComponents(rootDir, manifest.apps),
 		...collectAppComponents(rootDir, manifest.connectors),
@@ -365,7 +365,11 @@ function getLoadedPluginBundleRootCandidates(plugin: LoadedPluginBundleRootInput
 	return candidates
 }
 
-function collectSkillComponents(rootDir: string, value: string | string[] | undefined) {
+function collectSkillComponents(
+	rootDir: string,
+	value: string | string[] | undefined,
+	manifest: XpertPluginBundleManifest
+) {
 	const paths = toStringList(value)
 	const components: PluginBundleComponentRegistration[] = []
 
@@ -384,6 +388,7 @@ function collectSkillComponents(rootDir: string, value: string | string[] | unde
 		for (const skillFile of skillFiles) {
 			const key = readSkillName(skillFile) ?? basename(dirname(skillFile))
 			const sourcePath = toPluginRelativePath(rootDir, skillFile)
+			const metadata = buildSkillComponentMetadata(key, manifest)
 			components.push(
 				createComponentRegistration({
 					componentType: PLUGIN_COMPONENT_TYPE.SKILL,
@@ -392,15 +397,59 @@ function collectSkillComponents(rootDir: string, value: string | string[] | unde
 					config: {
 						path: sourcePath
 					},
-					metadata: {
-						name: key
-					}
+					metadata
 				})
 			)
 		}
 	}
 
 	return components
+}
+
+function buildSkillComponentMetadata(componentKey: string, manifest: XpertPluginBundleManifest): JSONValue {
+	const contribution = findSkillMarketplaceContribution(manifest, componentKey)
+	const metadata = removeUndefinedFields({
+		name: componentKey,
+		displayName: normalizeJsonValue(contribution ? Reflect.get(contribution, 'displayName') : undefined),
+		description: normalizeJsonValue(contribution ? Reflect.get(contribution, 'description') : undefined),
+		icon: normalizeJsonValue(contribution ? Reflect.get(contribution, 'icon') : undefined),
+		color:
+			(contribution
+				? (readStringField(contribution, 'color') ?? readStringField(contribution, 'brandColor'))
+				: undefined) ?? manifest.interface?.brandColor
+	})
+
+	return normalizeJsonValue(metadata) ?? { name: componentKey }
+}
+
+function findSkillMarketplaceContribution(
+	manifest: XpertPluginBundleManifest,
+	componentKey: string
+): JsonDictionary | undefined {
+	const targetMeta = manifest.targetAppMeta
+	if (!targetMeta) {
+		return undefined
+	}
+
+	for (const metadata of Object.values(targetMeta)) {
+		const marketplace = readObjectField(metadata, 'marketplace')
+		const contents = marketplace ? Reflect.get(marketplace, 'contents') : undefined
+		if (!Array.isArray(contents)) {
+			continue
+		}
+
+		const contribution = contents.find(
+			(item) =>
+				isJsonDictionary(item) &&
+				readStringField(item, 'type') === PLUGIN_COMPONENT_TYPE.SKILL &&
+				readStringField(item, 'name') === componentKey
+		)
+		if (isJsonDictionary(contribution)) {
+			return contribution
+		}
+	}
+
+	return undefined
 }
 
 function findSkillFiles(directory: string) {
