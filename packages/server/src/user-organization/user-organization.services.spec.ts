@@ -2,7 +2,8 @@ jest.mock('../core/context', () => ({
 	RequestContext: {
 		currentTenantId: jest.fn(),
 		currentUser: jest.fn(),
-		currentUserId: jest.fn()
+		currentUserId: jest.fn(),
+		getOrganizationId: jest.fn()
 	}
 }))
 
@@ -18,6 +19,7 @@ import { UserOrganizationService } from './user-organization.services'
 describe('UserOrganizationService', () => {
 	const userOrganizationRepository = {
 		find: jest.fn(),
+		findOne: jest.fn(),
 		delete: jest.fn(),
 		update: jest.fn()
 	}
@@ -35,7 +37,10 @@ describe('UserOrganizationService', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks()
+		jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-1')
 		jest.mocked(RequestContext.currentUserId).mockReturnValue('actor-1')
+		jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
+		userOrganizationRepository.findOne.mockResolvedValue(null)
 		userOrganizationRepository.delete.mockResolvedValue({ affected: 3 })
 		userOrganizationRepository.update.mockResolvedValue({ affected: 1 })
 
@@ -137,5 +142,85 @@ describe('UserOrganizationService', () => {
 				userId: 'user-1'
 			})
 		)
+	})
+
+	it('marks the current organization entry guide as auto shown on the membership preferences', async () => {
+		const membership = {
+			id: 'membership-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'actor-1',
+			isDefault: true,
+			isActive: true,
+			preferences: {
+				defaultWorkspaceId: 'workspace-1'
+			}
+		}
+		const updatedMembership = {
+			...membership,
+			preferences: {
+				defaultWorkspaceId: 'workspace-1',
+				entryGuides: {
+					clawxpert: {
+						autoShownAt: '2026-07-02T00:00:00.000Z'
+					}
+				}
+			}
+		}
+		userOrganizationRepository.findOne
+			.mockResolvedValueOnce(membership)
+			.mockResolvedValueOnce(membership)
+			.mockResolvedValueOnce(updatedMembership)
+
+		const result = await service.markCurrentUserEntryGuideAutoShown(
+			'clawxpert',
+			new Date('2026-07-02T00:00:00.000Z')
+		)
+
+		expect(userOrganizationRepository.findOne).toHaveBeenCalledWith({
+			where: {
+				organizationId: 'org-1',
+				tenantId: 'tenant-1',
+				userId: 'actor-1'
+			}
+		})
+		expect(userOrganizationRepository.update).toHaveBeenCalledWith(
+			'membership-1',
+			expect.objectContaining({
+				preferences: {
+					defaultWorkspaceId: 'workspace-1',
+					entryGuides: {
+						clawxpert: {
+							autoShownAt: '2026-07-02T00:00:00.000Z'
+						}
+					}
+				}
+			})
+		)
+		expect(result.preferences?.entryGuides?.clawxpert?.autoShownAt).toBe('2026-07-02T00:00:00.000Z')
+	})
+
+	it('does not rewrite an entry guide preference that has already been auto shown', async () => {
+		const membership = {
+			id: 'membership-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'actor-1',
+			isDefault: true,
+			isActive: true,
+			preferences: {
+				entryGuides: {
+					clawxpert: {
+						autoShownAt: '2026-07-01T00:00:00.000Z'
+					}
+				}
+			}
+		}
+		userOrganizationRepository.findOne.mockResolvedValue(membership)
+
+		const result = await service.markCurrentUserEntryGuideAutoShown('clawxpert')
+
+		expect(result).toBe(membership)
+		expect(userOrganizationRepository.update).not.toHaveBeenCalled()
 	})
 })

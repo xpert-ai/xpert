@@ -1,7 +1,10 @@
 import {
   createFeatureEntryOnboardingSteps,
+  FEATURE_ENTRY_ONBOARDING_SIDEBAR_EXPAND_DELAY_MS,
   getAvailableFeatureEntryOnboardingSteps,
+  getFeatureEntryOnboardingOpenDelayMs,
   getFeatureEntryOnboardingFinishText,
+  hasFeatureEntryOnboardingAutoShown,
   isFeatureEntryOnboardingBlocked,
   shouldCreateClawXpertAfterEntryOnboarding,
   shouldExpandSidebarForEntryOnboarding,
@@ -47,9 +50,9 @@ describe('createFeatureEntryOnboardingSteps', () => {
       <button data-onboarding-target="workspace"></button>
     `
 
-    expect(getAvailableFeatureEntryOnboardingSteps(createFeatureEntryOnboardingSteps()).map((step) => step.title)).toEqual(
-      ['PAC.Chat.ClawXpert.EntryGuideScopeTitle', 'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle']
-    )
+    expect(
+      getAvailableFeatureEntryOnboardingSteps(createFeatureEntryOnboardingSteps()).map((step) => step.title)
+    ).toEqual(['PAC.Chat.ClawXpert.EntryGuideScopeTitle', 'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'])
   })
 
   it('does not show the entry guide over a dialog backdrop', () => {
@@ -84,7 +87,7 @@ describe('createFeatureEntryOnboardingSteps', () => {
     ).toBe(false)
   })
 
-  it('shows the entry guide only when the current account has no available xperts', () => {
+  it('shows the entry guide only when the current user has no self-created xperts', () => {
     expect(shouldShowFeatureEntryOnboardingForXpertCount(0)).toBe(true)
     expect(shouldShowFeatureEntryOnboardingForXpertCount(1)).toBe(false)
     expect(shouldShowFeatureEntryOnboardingForXpertCount(null)).toBe(false)
@@ -95,10 +98,29 @@ describe('createFeatureEntryOnboardingSteps', () => {
     expect(shouldShowFeatureEntryOnboardingForXpertCount(null, true)).toBe(true)
   })
 
-  it('starts the ClawXpert creation flow only when the account has no available xperts', () => {
+  it('treats a persisted ClawXpert entry guide timestamp as already auto shown', () => {
+    expect(hasFeatureEntryOnboardingAutoShown(null)).toBe(false)
+    expect(hasFeatureEntryOnboardingAutoShown({})).toBe(false)
+    expect(
+      hasFeatureEntryOnboardingAutoShown({
+        entryGuides: {
+          clawxpert: {
+            autoShownAt: '2026-07-02T00:00:00.000Z'
+          }
+        }
+      })
+    ).toBe(true)
+  })
+
+  it('starts the ClawXpert creation flow only when the current user has no self-created xperts', () => {
     expect(shouldCreateClawXpertAfterEntryOnboarding(0)).toBe(true)
     expect(shouldCreateClawXpertAfterEntryOnboarding(1)).toBe(false)
     expect(shouldCreateClawXpertAfterEntryOnboarding(null)).toBe(false)
+  })
+
+  it('does not start ClawXpert creation when creation is unavailable', () => {
+    expect(shouldCreateClawXpertAfterEntryOnboarding(0, false)).toBe(false)
+    expect(getFeatureEntryOnboardingFinishText(0, false)).toBe('PAC.ACTIONS.Done')
   })
 
   it('uses a completion action after the account already has an available xpert', () => {
@@ -110,5 +132,10 @@ describe('createFeatureEntryOnboardingSteps', () => {
     expect(shouldExpandSidebarForEntryOnboarding(true, true)).toBe(false)
     expect(shouldExpandSidebarForEntryOnboarding(true, false)).toBe(true)
     expect(shouldExpandSidebarForEntryOnboarding(false, true)).toBe(false)
+  })
+
+  it('waits for collapsed sidebar expansion before showing the entry guide highlight', () => {
+    expect(getFeatureEntryOnboardingOpenDelayMs(true)).toBe(FEATURE_ENTRY_ONBOARDING_SIDEBAR_EXPAND_DELAY_MS)
+    expect(getFeatureEntryOnboardingOpenDelayMs(false)).toBe(0)
   })
 })

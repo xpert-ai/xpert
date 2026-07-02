@@ -28,6 +28,7 @@ import {
   injectUserPreferences,
   UsersService
 } from '@xpert-ai/cloud/state'
+import type { IUserOrganization } from '@xpert-ai/cloud/state'
 import { isNotEmpty, nonNullable } from '@xpert-ai/core'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -36,6 +37,8 @@ import { combineLatestWith, firstValueFrom } from 'rxjs'
 import { filter, map, startWith, tap } from 'rxjs/operators'
 import {
   AbilityActions,
+  AIPermissionsEnum,
+  AiFeatureEnum,
   EmployeesService,
   IOrganization,
   IRolePermission,
@@ -44,6 +47,7 @@ import {
   IUser,
   MenuCatalog,
   Store,
+  UsersOrganizationsService,
   XpertAPIService,
   XpertTypeEnum,
   routeAnimations
@@ -51,8 +55,11 @@ import {
 import { AppService } from '../app.service'
 import {
   createFeatureEntryOnboardingSteps,
+  FEATURE_ENTRY_ONBOARDING_GUIDE_KEY,
   getAvailableFeatureEntryOnboardingSteps,
   getFeatureEntryOnboardingFinishText,
+  getFeatureEntryOnboardingOpenDelayMs,
+  hasFeatureEntryOnboardingAutoShown,
   isFeatureEntryOnboardingBlocked,
   isFeatureEntryOnboardingScopeStep,
   shouldCreateClawXpertAfterEntryOnboarding,
@@ -95,6 +102,7 @@ export class FeaturesComponent implements OnInit {
   readonly #store = inject(Store)
   readonly #scopeService = inject(ScopeService)
   readonly #xpertService = inject(XpertAPIService)
+  readonly #usersOrganizationsService = inject(UsersOrganizationsService)
   readonly appService = this.#appService
   readonly activeScope = this.#scopeService.activeScope
 
@@ -107,7 +115,12 @@ export class FeaturesComponent implements OnInit {
   readonly entryOnboardingBlocked = signal(false)
   readonly entryOnboardingXpertCount = signal<number | null>(null)
   readonly entryOnboardingManuallyRequested = signal(false)
-  readonly entryOnboardingFinishText = computed(() => getFeatureEntryOnboardingFinishText(this.entryOnboardingXpertCount()))
+  readonly entryOnboardingSidebarExpanded = signal(false)
+  readonly entryOnboardingAutoRequestKey = signal<string | null>(null)
+  readonly entryOnboardingAutoMarkKey = signal<string | null>(null)
+  readonly entryOnboardingFinishText = computed(() =>
+    getFeatureEntryOnboardingFinishText(this.entryOnboardingXpertCount(), this.canCreateEntryOnboardingXpert())
+  )
   readonly entryOnboardingVisible = computed(
     () =>
       this.entryOnboardingOpen() &&
@@ -119,7 +132,10 @@ export class FeaturesComponent implements OnInit {
       this.entryOnboardingSteps().length > 0
   )
   readonly renderedSidebarCollapsed = computed(() =>
-    shouldExpandSidebarForEntryOnboarding(this.sidebarCollapsed(), this.entryOnboardingVisible())
+    shouldExpandSidebarForEntryOnboarding(
+      this.sidebarCollapsed(),
+      this.entryOnboardingSidebarExpanded() || this.entryOnboardingVisible()
+    )
   )
   readonly activeRouteUrl = signal(this.#router.url)
   readonly pendingRouteUrl = signal<string | null>(null)
@@ -197,6 +213,7 @@ export class FeaturesComponent implements OnInit {
   */
   readonly menus = signal<CloudMenuItem[]>([])
   #entryOnboardingRefreshHandle: number | null = null
+  #entryOnboardingOpenHandle: number | null = null
   #entryOnboardingObserver: MutationObserver | null = null
   #entryOnboardingScopeLevel = this.#scopeService.scopeLevel()
 
@@ -212,6 +229,8 @@ export class FeaturesComponent implements OnInit {
       this.refreshEntryOnboardingState()
       this.observeEntryOnboardingTargets()
     })
+
+    this.#destroyRef.onDestroy(() => this.cancelEntryOnboardingOpen())
   }
 
   async ngOnInit() {
@@ -246,6 +265,7 @@ export class FeaturesComponent implements OnInit {
         this.organization = org
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
+        void this.maybeOpenEntryOnboardingGuide()
         if (this.shouldTrackEntryOnboardingTargets()) {
           this.reloadEntryOnboardingSteps()
           this.advanceEntryOnboardingAfterScopeChange(scope.level)
@@ -329,16 +349,21 @@ export class FeaturesComponent implements OnInit {
   }
 
   private async loadEntryOnboardingEligibility(): Promise<number | null> {
+    const userId = this.#store.userId
+    if (!userId || !this.canCreateEntryOnboardingXpert()) {
+      this.entryOnboardingXpertCount.set(null)
+      return null
+    }
+
     try {
       const result = await firstValueFrom(
         this.#xpertService.getMyAll({
           where: {
+            createdById: userId,
             type: XpertTypeEnum.Agent,
             latest: true
           },
           take: 1
-        }, {
-          includeOrganizationWorkspacesInTenantScope: true
         })
       )
       const xpertCount = result.total ?? result.items?.length ?? null
@@ -349,6 +374,14 @@ export class FeaturesComponent implements OnInit {
       this.entryOnboardingXpertCount.set(null)
       return null
     }
+  }
+
+  private canCreateEntryOnboardingXpert() {
+    return (
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+      this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT) &&
+      this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
+    )
   }
 
   loadItems() {
@@ -368,11 +401,7 @@ export class FeaturesComponent implements OnInit {
     if (item.data.permissionKeys || item.data.hide) {
       const anyPermission = item.data.permissionKeys
         ? item.data.permissionKeys.reduce((permission, key) => {
-            return (
-              !!this.#rolesService.getRole(key) ||
-              this.#store.hasPermission(key as Parameters<Store['hasPermission']>[0]) ||
-              permission
-            )
+            return !!this.#rolesService.getRole(key) || this.#store.hasPermission(key) || permission
           }, false)
         : true
 
@@ -422,7 +451,10 @@ export class FeaturesComponent implements OnInit {
   }
 
   async onEntryOnboardingFinish() {
-    const shouldCreateClawXpert = shouldCreateClawXpertAfterEntryOnboarding(await this.loadEntryOnboardingEligibility())
+    const shouldCreateClawXpert = shouldCreateClawXpertAfterEntryOnboarding(
+      await this.loadEntryOnboardingEligibility(),
+      this.canCreateEntryOnboardingXpert()
+    )
 
     this.entryOnboardingOpen.set(false)
     this.entryOnboardingManuallyRequested.set(false)
@@ -443,9 +475,129 @@ export class FeaturesComponent implements OnInit {
     this.entryOnboardingCurrent.set(0)
     this.entryOnboardingXpertCount.set(null)
     this.entryOnboardingManuallyRequested.set(true)
-    this.entryOnboardingOpen.set(true)
     void this.loadEntryOnboardingEligibility()
-    this.scheduleEntryOnboardingRefresh()
+    this.scheduleEntryOnboardingOpen()
+  }
+
+  private async maybeOpenEntryOnboardingGuide() {
+    if (this.entryOnboardingOpen() || this.entryOnboardingManuallyRequested()) {
+      return
+    }
+
+    const organizationId = this.currentEntryOnboardingOrganizationId()
+    const userId = this.#store.userId
+    const membership = this.currentEntryOnboardingMembership(organizationId)
+    if (
+      !organizationId ||
+      !userId ||
+      !membership ||
+      !this.canCreateEntryOnboardingXpert() ||
+      hasFeatureEntryOnboardingAutoShown(membership.preferences)
+    ) {
+      return
+    }
+
+    const requestKey = this.getEntryOnboardingAutoKey(userId, organizationId)
+    if (this.entryOnboardingAutoRequestKey() === requestKey) {
+      return
+    }
+
+    this.entryOnboardingAutoRequestKey.set(requestKey)
+    const xpertCount = await this.loadEntryOnboardingEligibility()
+    const latestMembership = this.currentEntryOnboardingMembership(organizationId)
+
+    if (
+      this.entryOnboardingAutoRequestKey() !== requestKey ||
+      !latestMembership ||
+      !shouldShowFeatureEntryOnboardingForXpertCount(xpertCount, false) ||
+      hasFeatureEntryOnboardingAutoShown(latestMembership.preferences)
+    ) {
+      if (xpertCount === null && this.entryOnboardingAutoRequestKey() === requestKey) {
+        this.entryOnboardingAutoRequestKey.set(null)
+      }
+      return
+    }
+
+    this.entryOnboardingCurrent.set(0)
+    this.entryOnboardingManuallyRequested.set(false)
+    this.scheduleEntryOnboardingOpen()
+  }
+
+  private currentEntryOnboardingOrganizationId() {
+    const scope = this.activeScope()
+    return scope.level === RequestScopeLevel.ORGANIZATION ? scope.organizationId : null
+  }
+
+  private currentEntryOnboardingMembership(organizationId = this.currentEntryOnboardingOrganizationId()) {
+    return (
+      this.user?.organizations?.find(
+        (membership) => membership.organizationId === organizationId && membership.isActive !== false
+      ) ?? null
+    )
+  }
+
+  private getEntryOnboardingAutoKey(userId: string, organizationId: string) {
+    return `${userId}:${organizationId}:${FEATURE_ENTRY_ONBOARDING_GUIDE_KEY}`
+  }
+
+  private async markEntryOnboardingAutoShownIfVisible() {
+    const organizationId = this.currentEntryOnboardingOrganizationId()
+    const userId = this.#store.userId
+    const membership = this.currentEntryOnboardingMembership(organizationId)
+
+    if (
+      this.entryOnboardingManuallyRequested() ||
+      !this.entryOnboardingVisible() ||
+      !organizationId ||
+      !userId ||
+      !membership ||
+      hasFeatureEntryOnboardingAutoShown(membership.preferences)
+    ) {
+      return
+    }
+
+    const markKey = this.getEntryOnboardingAutoKey(userId, organizationId)
+    if (this.entryOnboardingAutoMarkKey() === markKey) {
+      return
+    }
+
+    this.entryOnboardingAutoMarkKey.set(markKey)
+    try {
+      const updatedMembership = await this.#usersOrganizationsService.markEntryGuideAutoShown(
+        FEATURE_ENTRY_ONBOARDING_GUIDE_KEY
+      )
+      this.updateCurrentUserOrganizationMembership(updatedMembership)
+    } catch (error) {
+      this.#logger.warn('Failed to mark feature entry onboarding as shown', error)
+      if (this.entryOnboardingAutoMarkKey() === markKey) {
+        this.entryOnboardingAutoMarkKey.set(null)
+      }
+    }
+  }
+
+  private updateCurrentUserOrganizationMembership(membership: IUserOrganization) {
+    if (!membership?.id) {
+      return
+    }
+
+    const currentUser = this.#store.user
+    if (!currentUser?.organizations?.length) {
+      return
+    }
+
+    this.#store.user = {
+      ...currentUser,
+      organizations: currentUser.organizations.map((item) =>
+        item.id === membership.id
+          ? {
+              ...item,
+              ...membership,
+              organization: membership.organization ?? item.organization
+            }
+          : item
+      )
+    }
+    this.user = this.#store.user
   }
 
   entryOnboardingRequiresOrganizationSwitch(current: number) {
@@ -457,6 +609,14 @@ export class FeaturesComponent implements OnInit {
 
   openEntryOnboardingScopeSwitcher() {
     globalThis.document?.querySelector<HTMLElement>('[data-onboarding-target="scope-switcher"]')?.click()
+  }
+
+  onEntryOnboardingOpenChange(open: boolean) {
+    this.entryOnboardingOpen.set(open)
+    if (!open) {
+      this.cancelEntryOnboardingOpen()
+      this.entryOnboardingSidebarExpanded.set(false)
+    }
   }
 
   private advanceEntryOnboardingAfterScopeChange(nextScopeLevel: RequestScopeLevel) {
@@ -480,14 +640,46 @@ export class FeaturesComponent implements OnInit {
       return
     }
 
-    this.#entryOnboardingRefreshHandle = globalThis.window?.setTimeout(() => {
-      this.#entryOnboardingRefreshHandle = null
-      this.refreshEntryOnboardingState()
-    }, 0) ?? null
+    this.#entryOnboardingRefreshHandle =
+      globalThis.window?.setTimeout(() => {
+        this.#entryOnboardingRefreshHandle = null
+        this.refreshEntryOnboardingState()
+      }, 0) ?? null
 
     if (this.#entryOnboardingRefreshHandle === null) {
       this.refreshEntryOnboardingState()
     }
+  }
+
+  private scheduleEntryOnboardingOpen() {
+    this.cancelEntryOnboardingOpen()
+    this.entryOnboardingSidebarExpanded.set(true)
+
+    const open = () => {
+      this.#entryOnboardingOpenHandle = null
+      this.entryOnboardingOpen.set(true)
+      this.reloadEntryOnboardingSteps()
+      this.entryOnboardingSidebarExpanded.set(false)
+      this.scheduleEntryOnboardingRefresh()
+      void this.markEntryOnboardingAutoShownIfVisible()
+    }
+    const delayMs = getFeatureEntryOnboardingOpenDelayMs(this.sidebarCollapsed())
+
+    if (delayMs <= 0 || typeof globalThis.window === 'undefined') {
+      open()
+      return
+    }
+
+    this.#entryOnboardingOpenHandle = globalThis.window.setTimeout(open, delayMs)
+  }
+
+  private cancelEntryOnboardingOpen() {
+    if (this.#entryOnboardingOpenHandle === null) {
+      return
+    }
+
+    globalThis.window?.clearTimeout(this.#entryOnboardingOpenHandle)
+    this.#entryOnboardingOpenHandle = null
   }
 
   private refreshEntryOnboardingState() {
@@ -509,6 +701,8 @@ export class FeaturesComponent implements OnInit {
     if (this.entryOnboardingCurrent() >= availableSteps.length) {
       this.entryOnboardingCurrent.set(Math.max(availableSteps.length - 1, 0))
     }
+
+    void this.markEntryOnboardingAutoShownIfVisible()
   }
 
   private observeEntryOnboardingTargets() {
@@ -547,7 +741,10 @@ export class FeaturesComponent implements OnInit {
   private shouldTrackEntryOnboardingTargets() {
     return (
       this.entryOnboardingOpen() &&
-      shouldShowFeatureEntryOnboardingForXpertCount(this.entryOnboardingXpertCount(), this.entryOnboardingManuallyRequested())
+      shouldShowFeatureEntryOnboardingForXpertCount(
+        this.entryOnboardingXpertCount(),
+        this.entryOnboardingManuallyRequested()
+      )
     )
   }
 

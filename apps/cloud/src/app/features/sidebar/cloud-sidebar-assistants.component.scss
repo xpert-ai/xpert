@@ -34,7 +34,7 @@
   border-radius: 0.5rem;
   background: transparent;
   box-shadow: none;
-  padding: 0.5rem;
+  padding: 2px 4px;
   transition:
     background-color 160ms ease,
     box-shadow 160ms ease;
@@ -416,15 +416,15 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  min-height: 4rem;
+  min-height: 3.25rem;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   border: 1px solid transparent;
   border-radius: 0.5rem;
   background: transparent;
   color: var(--color-text-primary);
   cursor: pointer;
-  padding: 0.55rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   text-align: left;
   transition:
     background-color 160ms ease,
@@ -453,7 +453,7 @@
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   border: 0;
   background: transparent;
   color: inherit;
@@ -471,9 +471,9 @@
 
 .cloud-sidebar-assistants__avatar {
   display: block;
-  width: 2.55rem;
-  height: 2.55rem;
-  flex: 0 0 2.55rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
   overflow: hidden;
   border-radius: 0.5rem;
 }
@@ -517,6 +517,7 @@
 }
 
 .cloud-sidebar-assistants__settings {
+  top: 50%;
   display: inline-flex;
   width: 1.875rem;
   height: 1.875rem;
@@ -533,6 +534,7 @@
     background-color 160ms ease,
     color 160ms ease,
     opacity 160ms ease;
+  transform: translateY(-50%);
 }
 
 .cloud-sidebar-assistants__item:hover .cloud-sidebar-assistants__settings,
@@ -546,11 +548,14 @@
 }
 
 .cloud-sidebar-assistants__status {
+  top: 0;
+  right: 0;
   width: 0.5rem;
   height: 0.5rem;
   flex: 0 0 0.5rem;
   border-radius: 999px;
   background: var(--color-primary);
+  transform: translate(50%, -50%);
 }
 
 .cloud-sidebar-assistants__empty {

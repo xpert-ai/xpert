@@ -42,10 +42,16 @@
                   {{ currentAssistantLabel() }}
                 </span>
                 <span class="cloud-sidebar-assistants__current-status">
-                  <span class="cloud-sidebar-assistants__current-status-dot"></span>
-                  {{ 'PAC.Assistant.Online' | translate: { Default: 'Online' } }}
-                  <span class="cloud-sidebar-assistants__current-separator">·</span>
-                  {{ 'PAC.Assistant.ActiveAssistant' | translate: { Default: 'Current assistant' } }}
+                  @if (isClawXpertConfigured()) {
+                    <span class="cloud-sidebar-assistants__current-status-dot"></span>
+                    {{ 'PAC.Assistant.Online' | translate: { Default: 'Online' } }}
+                    <span class="cloud-sidebar-assistants__current-separator">·</span>
+                    {{ 'PAC.Assistant.ActiveAssistant' | translate: { Default: 'Current assistant' } }}
+                  } @else {
+                    {{ 'PAC.Assistant.NotConfigured' | translate: { Default: 'Not configured' } }}
+                    <span class="cloud-sidebar-assistants__current-separator">·</span>
+                    {{ 'PAC.Assistant.Configure' | translate: { Default: 'Configure' } }}
+                  }
                 </span>
               </span>
             </button>
@@ -67,8 +73,14 @@
               class="cloud-sidebar-assistants__current-action cloud-sidebar-assistants__current-action--primary"
               (click)="startClawXpertConversation($event)"
             >
-              <z-icon zType="message-circle-more"></z-icon>
-              <span>{{ 'PAC.Assistant.NewConversation' | translate: { Default: 'New conversation' } }}</span>
+              <z-icon [zType]="isClawXpertConfigured() ? 'message-circle-more' : 'settings'"></z-icon>
+              <span>
+                @if (isClawXpertConfigured()) {
+                  {{ 'PAC.Assistant.NewConversation' | translate: { Default: 'New conversation' } }}
+                } @else {
+                  {{ 'PAC.Assistant.Configure' | translate: { Default: 'Configure' } }}
+                }
+              </span>
             </button>
           </div>
         </div>
@@ -168,7 +180,7 @@
                     </button>
                   }
                   @if (hasAssistantUnread(xpert)) {
-                    <span class="cloud-sidebar-assistants__status absolute right-1 top-1"></span>
+                    <span class="cloud-sidebar-assistants__status absolute"></span>
                   }
                 }
               </div>

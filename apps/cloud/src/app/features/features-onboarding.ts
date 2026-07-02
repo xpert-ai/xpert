@@ -1,8 +1,12 @@
 import type { ElementRef } from '@angular/core'
+import type { IUserOrganizationPreferences } from '@xpert-ai/contracts'
+import { USER_ORGANIZATION_ENTRY_GUIDE_CLAWXPERT } from '@xpert-ai/contracts'
 import type { ZardHighlightStep, ZardHighlightTarget } from '@xpert-ai/headless-ui'
 import { RequestScopeLevel } from '../@core/types'
 
 export type FeatureEntryOnboardingStepKey = 'scope-switcher' | 'plugins-marketplace' | 'model-providers' | 'workspace'
+export const FEATURE_ENTRY_ONBOARDING_GUIDE_KEY = USER_ORGANIZATION_ENTRY_GUIDE_CLAWXPERT
+export const FEATURE_ENTRY_ONBOARDING_SIDEBAR_EXPAND_DELAY_MS = 320
 
 export interface FeatureEntryOnboardingStep extends ZardHighlightStep {
   key: FeatureEntryOnboardingStepKey
@@ -78,16 +82,29 @@ export function shouldShowFeatureEntryOnboardingForXpertCount(
   return manuallyRequested || xpertCount === 0
 }
 
-export function shouldCreateClawXpertAfterEntryOnboarding(xpertCount: number | null | undefined) {
-  return xpertCount === 0
+export function hasFeatureEntryOnboardingAutoShown(preferences: IUserOrganizationPreferences | null | undefined) {
+  return !!preferences?.entryGuides?.[FEATURE_ENTRY_ONBOARDING_GUIDE_KEY]?.autoShownAt
 }
 
-export function getFeatureEntryOnboardingFinishText(xpertCount: number | null | undefined) {
-  return shouldCreateClawXpertAfterEntryOnboarding(xpertCount) ? 'PAC.Chat.ClawXpert.EntryGuideCreate' : 'PAC.ACTIONS.Done'
+export function shouldCreateClawXpertAfterEntryOnboarding(
+  xpertCount: number | null | undefined,
+  canCreateXpert = true
+) {
+  return canCreateXpert && xpertCount === 0
+}
+
+export function getFeatureEntryOnboardingFinishText(xpertCount: number | null | undefined, canCreateXpert = true) {
+  return shouldCreateClawXpertAfterEntryOnboarding(xpertCount, canCreateXpert)
+    ? 'PAC.Chat.ClawXpert.EntryGuideCreate'
+    : 'PAC.ACTIONS.Done'
 }
 
 export function shouldExpandSidebarForEntryOnboarding(defaultCollapsed: boolean, entryOnboardingVisible: boolean) {
   return entryOnboardingVisible ? false : defaultCollapsed
+}
+
+export function getFeatureEntryOnboardingOpenDelayMs(defaultCollapsed: boolean) {
+  return defaultCollapsed ? FEATURE_ENTRY_ONBOARDING_SIDEBAR_EXPAND_DELAY_MS : 0
 }
 
 export function shouldAdvanceFeatureEntryOnboardingAfterScopeChange(

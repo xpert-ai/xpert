@@ -32,6 +32,7 @@ jest.mock('./../shared/pipes', () => ({
 }))
 
 jest.mock('./../shared/guards', () => ({
+	PermissionGuard: class PermissionGuard {},
 	TenantPermissionGuard: class TenantPermissionGuard {}
 }))
 
@@ -47,6 +48,7 @@ describe('UserOrganizationController', () => {
 			addUserToOrganization: jest.fn(),
 			findAll: jest.fn(),
 			findOne: jest.fn(),
+			markCurrentUserEntryGuideAutoShown: jest.fn(),
 			update: jest.fn()
 		}
 		const commandBus = {
@@ -68,6 +70,43 @@ describe('UserOrganizationController', () => {
 			userService
 		}
 	}
+
+	it('marks the current user entry guide through the current membership', async () => {
+		const { controller, userOrganizationService } = createController()
+		userOrganizationService.markCurrentUserEntryGuideAutoShown.mockResolvedValue({
+			id: 'membership-1',
+			preferences: {
+				entryGuides: {
+					clawxpert: {
+						autoShownAt: '2026-07-02T00:00:00.000Z'
+					}
+				}
+			}
+		})
+
+		const result = await controller.markCurrentUserEntryGuideAutoShown('clawxpert')
+
+		expect(userOrganizationService.markCurrentUserEntryGuideAutoShown).toHaveBeenCalledWith('clawxpert')
+		expect(result).toEqual({
+			id: 'membership-1',
+			preferences: {
+				entryGuides: {
+					clawxpert: {
+						autoShownAt: '2026-07-02T00:00:00.000Z'
+					}
+				}
+			}
+		})
+	})
+
+	it('rejects unknown current user entry guide keys', async () => {
+		const { controller, userOrganizationService } = createController()
+
+		await expect(controller.markCurrentUserEntryGuideAutoShown('unknown')).rejects.toBeInstanceOf(
+			BadRequestException
+		)
+		expect(userOrganizationService.markCurrentUserEntryGuideAutoShown).not.toHaveBeenCalled()
+	})
 
 	it('creates membership through addUserToOrganization so downstream listeners can react', async () => {
 		const { controller, userOrganizationService, userService } = createController()
