@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.2
+
+### Patch Changes
+
+- 8fded17: plugin scope for tenant
+
 ## 3.15.1
 
 ### Patch Changes

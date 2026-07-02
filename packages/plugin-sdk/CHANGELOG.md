@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.1
+
+### Patch Changes
+
+- 8fded17: plugin scope for tenant
+- Updated dependencies [8fded17]
+  - @xpert-ai/contracts@3.15.2
+
 ## 3.15.0
 
 ### Minor Changes
