@@ -2,7 +2,9 @@ import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
+import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -11,7 +13,14 @@ import {
   PLUGIN_COMPONENT_TYPE,
   PluginComponentType
 } from '@xpert-ai/cloud/state'
-import { I18nObject, PLUGIN_LEVEL, PluginMeta, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+  I18nObject,
+  IconDefinition,
+  PLUGIN_LEVEL,
+  PluginMarketplaceTrialShortcut,
+  PluginMeta,
+  XpertTypeEnum
+} from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { map, of } from 'rxjs'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
@@ -22,6 +31,8 @@ import {
   TPluginResourceContribution,
   TPluginWithDownloads
 } from '../types'
+import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
+import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
 
 type TAppSetupAction =
   | { type: 'install-app'; resource: TPluginResourceContribution }
@@ -29,9 +40,27 @@ type TAppSetupAction =
   | { type: 'select-template' }
   | { type: 'details' }
 
+type TTrialShortcutView = {
+  id: string
+  labelValue: string | I18nObject
+  prompt: string
+  skillLabel: string
+  color?: string | null
+  icon?: IconDefinition | null
+  resource: TPluginResourceContribution
+}
+
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, IconComponent, ZardBadgeComponent, ZardButtonComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    NgmI18nPipe,
+    NgmSpinComponent,
+    IconComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent
+  ],
   selector: 'xp-plugin-marketplace-detail',
   templateUrl: './marketplace-detail.component.html',
   styleUrls: ['./marketplace-detail.component.scss']
@@ -41,6 +70,8 @@ export class PluginMarketplaceDetailComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #pluginAPI = injectPluginAPI()
+  readonly #trialLauncher = inject(PluginSkillTrialLauncherService)
+  readonly #toastr = injectToastr()
   readonly #data = inject<{ plugin: TPluginWithDownloads }>(DIALOG_DATA)
 
   readonly plugin = signal(this.#data.plugin)
@@ -53,6 +84,8 @@ export class PluginMarketplaceDetailComponent {
   readonly selectedApp = signal<TPluginMarketplaceContribution | null>(
     this.#data.plugin?.contributions?.find((content) => content.type === 'app') ?? null
   )
+  readonly trialSubmitting = signal(false)
+  readonly activeTrialShortcutId = signal<string | null>(null)
 
   readonly #components = myRxResource({
     request: () => {
@@ -99,9 +132,14 @@ export class PluginMarketplaceDetailComponent {
       Array.from(map.entries()).map(([appName, capabilities]) => [appName, Array.from(capabilities.values())])
     )
   })
+  readonly trialShortcuts = computed(() => this.resolveTrialShortcuts())
+  readonly trialCardBackgroundImage = computed(() => toCssBackgroundImage(resolveTrialCardImage(this.plugin())))
+  readonly trialCardFallbackClass = computed(
+    () => `plugin-trial-card--fallback-${hashString(this.plugin()?.name ?? '') % 3}`
+  )
 
-  close() {
-    this.#dialogRef.close()
+  close(result?: unknown) {
+    this.#dialogRef.close(result)
   }
 
   selectApp(content: TPluginMarketplaceContribution) {
@@ -201,6 +239,44 @@ export class PluginMarketplaceDetailComponent {
     })
   }
 
+  openContentDetail(content: TPluginMarketplaceContribution, event?: Event) {
+    const resource = this.resourceContribution(content)
+    if (resource?.type === 'skill') {
+      this.openSkillDetail(resource, content, event)
+    }
+  }
+
+  openSkillDetail(resource: TPluginResourceContribution, content: TPluginMarketplaceContribution, event?: Event) {
+    event?.stopPropagation()
+    const plugin = this.plugin()
+    if (!plugin?.installed || resource.type !== 'skill') {
+      return
+    }
+
+    const component = this.componentDefinitionMap().get(
+      this.componentDefinitionKey(resource.componentType, resource.name)
+    )
+    if (!component) {
+      return
+    }
+
+    this.#dialog
+      .open(PluginMarketplaceSkillDetailDialogComponent, {
+        data: {
+          plugin,
+          content,
+          resource,
+          component
+        },
+        backdropClass: 'backdrop-blur-sm-black'
+      })
+      .closed.subscribe((result) => {
+        if (isTrialStartedDialogResult(result)) {
+          this.close()
+        }
+      })
+  }
+
   initializeAssistantTemplate(content: TPluginMarketplaceContribution, event?: MouseEvent) {
     event?.stopPropagation()
     const plugin = this.plugin()
@@ -254,6 +330,37 @@ export class PluginMarketplaceDetailComponent {
       case 'details':
         this.selectApp(app)
         break
+    }
+  }
+
+  async tryShortcut(shortcut: TTrialShortcutView, event?: MouseEvent) {
+    event?.stopPropagation()
+    if (this.trialSubmitting()) {
+      return
+    }
+
+    const plugin = this.plugin()
+    if (!plugin?.installed) {
+      return
+    }
+
+    this.trialSubmitting.set(true)
+    this.activeTrialShortcutId.set(shortcut.id)
+    try {
+      const started = await this.#trialLauncher.tryInClawXpert({
+        plugin,
+        resource: shortcut.resource,
+        label: shortcut.skillLabel,
+        prompt: shortcut.prompt
+      })
+      if (started) {
+        this.close({ action: 'trial-started' })
+      }
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error) || 'Failed to try this skill in ClawXpert.')
+    } finally {
+      this.trialSubmitting.set(false)
+      this.activeTrialShortcutId.set(null)
     }
   }
 
@@ -359,6 +466,58 @@ export class PluginMarketplaceDetailComponent {
     return content.type === 'assistant-template' || !!this.resourceContribution(content)
   }
 
+  private resolveTrialShortcuts(): TTrialShortcutView[] {
+    const plugin = this.plugin()
+    if (!plugin?.installed) {
+      return []
+    }
+
+    const skillResources = this.marketplaceContents()
+      .map((content) => ({
+        content,
+        resource: this.resourceContribution(content)
+      }))
+      .filter(
+        (entry): entry is { content: TPluginMarketplaceContribution; resource: TPluginResourceContribution } =>
+          entry.resource?.type === 'skill'
+      )
+    const defaultSkill = skillResources.length === 1 ? skillResources[0] : null
+    const shortcuts: TTrialShortcutView[] = []
+
+    for (const [index, shortcut] of getTrialShortcutCandidates(plugin).entries()) {
+      const prompt = readString(shortcut.prompt)
+      if (!prompt) {
+        continue
+      }
+
+      const skillKey = readString(shortcut.skillKey)
+      const target = skillKey
+        ? skillResources.find((entry) => entry.resource.name === skillKey || entry.content.name === skillKey)
+        : defaultSkill
+      if (!target) {
+        continue
+      }
+
+      const id = readString(shortcut.id) ?? `${target.resource.name}:${index}:${prompt}`
+      const skillLabel = readI18nText(target.content.displayName ?? target.content.name) ?? target.content.name
+      shortcuts.push({
+        id,
+        labelValue: shortcut.label ?? prompt,
+        prompt,
+        skillLabel,
+        color: readContributionColor(target.content),
+        icon: shortcut.icon ?? target.content.icon ?? plugin.icon,
+        resource: target.resource
+      })
+
+      if (shortcuts.length >= 3) {
+        break
+      }
+    }
+
+    return shortcuts
+  }
+
   private isAppCapability(content: TPluginMarketplaceContribution) {
     if (content.type === 'view' || content.type === 'feature' || content.type === 'middleware') {
       return true
@@ -402,6 +561,14 @@ function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function readContributionColor(content: TPluginMarketplaceContribution) {
+  return readString(content.color) ?? readString(content.metadata?.['color'])
+}
+
+function readStringArray(value: unknown) {
+  return Array.isArray(value) ? value.map(readString).filter((item): item is string => !!item) : []
+}
+
 function readI18nText(value: I18nObject | string | undefined) {
   if (typeof value === 'string') {
     return value.trim() ? value.trim() : null
@@ -415,6 +582,67 @@ function readI18nText(value: I18nObject | string | undefined) {
     Object.values(value).find((item): item is string => typeof item === 'string' && !!item.trim()) ??
     null
   )
+}
+
+function getTrialShortcutCandidates(plugin: TPluginWithDownloads): PluginMarketplaceTrialShortcut[] {
+  const structured = readTargetAppMarketplaceTrialShortcuts(plugin)
+  if (structured.length) {
+    return structured
+  }
+
+  return readStringArray(plugin.defaultPrompt).map((prompt, index) => ({
+    id: `default-${index + 1}`,
+    prompt
+  }))
+}
+
+function readTargetAppMarketplaceTrialShortcuts(plugin: TPluginWithDownloads) {
+  const targetAppMeta = plugin.targetAppMeta ?? {}
+  const xpertShortcuts = targetAppMeta['xpert']?.marketplace?.trialShortcuts
+  if (xpertShortcuts?.length) {
+    return xpertShortcuts
+  }
+
+  if (plugin.trialShortcuts?.length) {
+    return plugin.trialShortcuts
+  }
+
+  return Object.values(targetAppMeta).flatMap((metadata) => metadata?.marketplace?.trialShortcuts ?? [])
+}
+
+function resolveTrialCardImage(plugin: TPluginWithDownloads | null | undefined) {
+  if (!plugin) {
+    return null
+  }
+
+  const targetAppMeta = plugin.targetAppMeta ?? {}
+  return (
+    readFirstSafeImageUrl(targetAppMeta['xpert']?.marketplace?.screenshots) ??
+    readFirstSafeImageUrl(
+      Object.values(targetAppMeta).flatMap((metadata) => metadata?.marketplace?.screenshots ?? [])
+    ) ??
+    readFirstSafeImageUrl(plugin.screenshots)
+  )
+}
+
+function readFirstSafeImageUrl(value: unknown) {
+  return readStringArray(value).find(isSafeImageUrl) ?? null
+}
+
+function isSafeImageUrl(value: string) {
+  return /^(https?:\/\/|\/(?!\/)|\.{0,2}\/|assets\/|data:image\/)/i.test(value)
+}
+
+function toCssBackgroundImage(value: string | null) {
+  return value ? `url("${value.replace(/["\\]/g, '\\$&')}")` : null
+}
+
+function hashString(value: string) {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
+  }
+  return hash
 }
 
 function appCapabilityPriority(type: string) {
@@ -463,4 +691,8 @@ function marketplaceComponentType(type: string): PluginComponentType | null {
     default:
       return null
   }
+}
+
+function isTrialStartedDialogResult(value: unknown): value is { action: 'trial-started' } {
+  return !!value && typeof value === 'object' && Reflect.get(value, 'action') === 'trial-started'
 }

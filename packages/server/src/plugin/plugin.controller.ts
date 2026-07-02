@@ -19,6 +19,7 @@ import { ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
 import {
 	IPluginConfiguration,
+	type IPluginComponentDocument,
 	IPluginDescriptor,
 	IPluginLatestVersionStatus,
 	PLUGIN_COMPONENT_TYPE,
@@ -44,7 +45,7 @@ import {
 import { PluginManagementService } from './plugin-management.service'
 import { getCodeWorkspacePath } from './source-config'
 import { canUninstallPlugin, canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
-import { ResolveLatestPluginVersionQuery } from './queries'
+import { GetPluginSkillDocumentQuery, ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
 import { UploadedPluginArchiveFile } from './plugin-archive'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
@@ -91,6 +92,20 @@ export class PluginController {
 		return {
 			items: this.pluginManagementService.readLoadedPluginBundleComponents(loadedPlugin)
 		}
+	}
+
+	@Get(':name/components/skill/:componentKey/document')
+	async getPluginSkillDocument(
+		@Param('name') name: string,
+		@Param('componentKey') componentKey: string
+	): Promise<IPluginComponentDocument> {
+		return this.queryBus.execute(
+			new GetPluginSkillDocumentQuery({
+				pluginName: name,
+				componentKey,
+				organizationId: this.getCurrentOrganizationId()
+			})
+		)
 	}
 
 	@Post('configuration')

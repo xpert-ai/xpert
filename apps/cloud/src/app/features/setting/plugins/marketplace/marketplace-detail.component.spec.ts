@@ -1,3 +1,14 @@
+jest.mock('@cloud/app/@core', () => {
+  return {
+    getErrorMessage: jest.fn((error: unknown) =>
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    ),
+    injectToastr: jest.fn(() => ({
+      error: jest.fn()
+    }))
+  }
+})
+
 jest.mock('../../../xpert/xpert/blank/blank.component', () => {
   const { Component } = jest.requireActual('@angular/core')
 
@@ -24,6 +35,19 @@ jest.mock('../resources/resources.component', () => {
   return { PluginResourcesComponent }
 })
 
+jest.mock('./marketplace-skill-detail-dialog.component', () => {
+  const { Component } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-plugin-marketplace-skill-detail-dialog',
+    template: ''
+  })
+  class PluginMarketplaceSkillDetailDialogComponent {}
+
+  return { PluginMarketplaceSkillDetailDialogComponent }
+})
+
 jest.mock('@cloud/app/@shared/avatar/icon/icon.component', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
 
@@ -42,6 +66,7 @@ jest.mock('@cloud/app/@shared/avatar/icon/icon.component', () => {
 
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
@@ -51,6 +76,8 @@ import { XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.compone
 import { TPluginWithDownloads } from '../types'
 import { PluginResourcesComponent } from '../resources/resources.component'
 import { PluginMarketplaceDetailComponent } from './marketplace-detail.component'
+import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
+import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
 
 function createPlugin(overrides: Partial<TPluginWithDownloads> = {}): TPluginWithDownloads {
   return {
@@ -116,6 +143,10 @@ async function createComponent(
   const pluginAPI = {
     getPluginComponents: jest.fn(() => of({ items: components }))
   }
+  const trialLauncher = {
+    openInstallDialog: jest.fn(() => Promise.resolve(null)),
+    tryInClawXpert: jest.fn(() => Promise.resolve(true))
+  }
 
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), PluginMarketplaceDetailComponent],
@@ -139,6 +170,10 @@ async function createComponent(
       {
         provide: PluginAPIService,
         useValue: pluginAPI
+      },
+      {
+        provide: PluginSkillTrialLauncherService,
+        useValue: trialLauncher
       }
     ]
   }).compileComponents()
@@ -155,7 +190,8 @@ async function createComponent(
     dialogRef,
     fixture,
     pluginAPI,
-    router
+    router,
+    trialLauncher
   } satisfies {
     component: PluginMarketplaceDetailComponent
     dialog: typeof dialog
@@ -163,6 +199,7 @@ async function createComponent(
     fixture: ComponentFixture<PluginMarketplaceDetailComponent>
     pluginAPI: typeof pluginAPI
     router: typeof router
+    trialLauncher: typeof trialLauncher
   }
 }
 
@@ -297,6 +334,282 @@ describe('PluginMarketplaceDetailComponent', () => {
         })
       })
     )
+  })
+
+  it('opens the skill detail dialog for skill contributions', async () => {
+    const { component, dialog } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+
+    const content = component.contents()[0]
+    const resource = component.resourceContribution(content)
+    if (!resource) {
+      throw new Error('Expected skill resource contribution')
+    }
+
+    component.openSkillDetail(resource, content)
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      PluginMarketplaceSkillDetailDialogComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          content,
+          resource,
+          component: expect.objectContaining({
+            componentType: 'skill',
+            componentKey: 'browser-research'
+          })
+        })
+      })
+    )
+  })
+
+  it('opens skill details from the item row while keeping the skill action button as install', async () => {
+    const { dialog, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+
+    const skillRow = fixture.debugElement
+      .queryAll(By.css('[role="button"]'))
+      .find((element) => element.nativeElement.textContent?.includes('Browser Research Skill'))
+    expect(skillRow).toBeTruthy()
+
+    skillRow?.nativeElement.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    fixture.detectChanges()
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      PluginMarketplaceSkillDetailDialogComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          content: expect.objectContaining({
+            type: 'skill',
+            name: 'browser-research'
+          })
+        })
+      })
+    )
+
+    dialog.open.mockClear()
+    const installButton = fixture.debugElement
+      .queryAll(By.css('button'))
+      .find((button) => button.nativeElement.textContent?.includes('PAC.Plugin.InstallResource'))
+    expect(installButton).toBeTruthy()
+
+    installButton?.nativeElement.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    fixture.detectChanges()
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      PluginResourcesComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          initialComponents: [
+            {
+              componentType: 'skill',
+              componentKey: 'browser-research'
+            }
+          ],
+          initialInstallMode: 'workspace'
+        })
+      })
+    )
+    expect(dialog.open).not.toHaveBeenCalledWith(PluginMarketplaceSkillDetailDialogComponent, expect.anything())
+  })
+
+  it('closes the plugin detail dialog when skill trial starts', async () => {
+    const { component, dialog, dialogRef } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research Skill'
+          }
+        ]
+      })
+    )
+    dialog.open.mockReturnValueOnce({
+      closed: of({ action: 'trial-started' })
+    })
+
+    const content = component.contents()[0]
+    const resource = component.resourceContribution(content)
+    if (!resource) {
+      throw new Error('Expected skill resource contribution')
+    }
+
+    component.openSkillDetail(resource, content)
+
+    expect(dialogRef.close).toHaveBeenCalled()
+  })
+
+  it('renders up to three executable trial shortcuts and launches ClawXpert with the prompt', async () => {
+    const { component, dialogRef, fixture, trialLauncher } = await createComponent(
+      createPlugin({
+        icon: {
+          type: 'font',
+          value: 'ri-file-text-line'
+        },
+        contributions: [
+          {
+            type: 'skill',
+            name: 'documents',
+            displayName: 'Documents',
+            icon: {
+              type: 'font',
+              value: 'ri-file-text-line'
+            }
+          }
+        ],
+        trialShortcuts: [
+          {
+            id: 'memo',
+            label: 'Draft a project memo',
+            prompt: 'Draft a project memo as a document',
+            skillKey: 'documents'
+          },
+          {
+            id: 'outline',
+            label: 'Create from outline',
+            prompt: 'Create a document from this outline',
+            skillKey: 'documents'
+          },
+          {
+            id: 'plan',
+            label: 'Polish a plan',
+            prompt: 'Write a polished doc for this plan',
+            skillKey: 'documents'
+          },
+          {
+            id: 'ignored',
+            label: 'Ignored',
+            prompt: 'This prompt should not be rendered',
+            skillKey: 'documents'
+          }
+        ]
+      }),
+      [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'documents',
+          definitionHash: 'skill-hash'
+        }
+      ]
+    )
+
+    const shortcuts = component.trialShortcuts()
+    expect(shortcuts).toHaveLength(3)
+    expect(shortcuts.map((shortcut) => shortcut.id)).toEqual(['memo', 'outline', 'plan'])
+
+    const shortcutButtons = fixture.debugElement.queryAll(By.css('.plugin-trial-card button'))
+    expect(shortcutButtons).toHaveLength(3)
+    expect(fixture.nativeElement.textContent).toContain('Draft a project memo')
+    expect(fixture.nativeElement.textContent).not.toContain('Ignored')
+
+    shortcutButtons[0].nativeElement.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    fixture.detectChanges()
+
+    expect(trialLauncher.tryInClawXpert).toHaveBeenCalledWith({
+      plugin: expect.objectContaining({
+        name: '@xpert-ai/plugin-salesclaw'
+      }),
+      resource: expect.objectContaining({
+        name: 'documents',
+        componentType: PLUGIN_COMPONENT_TYPE.SKILL
+      }),
+      label: 'Documents',
+      prompt: 'Draft a project memo as a document'
+    })
+    expect(dialogRef.close).toHaveBeenCalledWith({ action: 'trial-started' })
+  })
+
+  it('shows the trial card background without fake shortcut buttons when no shortcut can run', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'documents',
+            displayName: 'Documents'
+          }
+        ]
+      }),
+      [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'documents',
+          definitionHash: 'skill-hash'
+        }
+      ]
+    )
+
+    expect(component.trialShortcuts()).toEqual([])
+    expect(fixture.debugElement.query(By.css('.plugin-trial-card'))).not.toBeNull()
+    expect(fixture.debugElement.queryAll(By.css('.plugin-trial-card button'))).toHaveLength(0)
+  })
+
+  it('filters ambiguous prompt-only shortcuts when a plugin exposes multiple skills', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'writer',
+            displayName: 'Writer'
+          },
+          {
+            type: 'skill',
+            name: 'reviewer',
+            displayName: 'Reviewer'
+          }
+        ],
+        trialShortcuts: [
+          {
+            id: 'ambiguous',
+            label: 'Ambiguous prompt',
+            prompt: 'Use whichever skill fits'
+          },
+          {
+            id: 'writer',
+            label: 'Draft with Writer',
+            prompt: 'Draft a memo',
+            skillKey: 'writer'
+          }
+        ]
+      }),
+      [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'writer',
+          definitionHash: 'writer-hash'
+        },
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'reviewer',
+          definitionHash: 'reviewer-hash'
+        }
+      ]
+    )
+
+    expect(component.trialShortcuts().map((shortcut) => shortcut.id)).toEqual(['writer'])
+    expect(fixture.nativeElement.textContent).toContain('Draft with Writer')
+    expect(fixture.nativeElement.textContent).not.toContain('Ambiguous prompt')
   })
 
   it('does not expose install action for app contributions without a real app component', async () => {

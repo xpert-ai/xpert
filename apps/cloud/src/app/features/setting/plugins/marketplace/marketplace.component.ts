@@ -568,7 +568,10 @@ function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDow
     sourceName,
     sourceNameI18nKey: item.sourceNameI18nKey ?? getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
     installed: item.installed,
+    screenshots: item.screenshots,
     contributions: mergeMarketplaceContributions(item.contributions),
+    defaultPrompt: item.defaultPrompt,
+    trialShortcuts: item.trialShortcuts,
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }
@@ -613,6 +616,7 @@ function isMarketplaceMetadataInput(value: unknown): value is PluginTargetAppMar
   const subcategory = Reflect.get(value, 'subcategory')
   const featured = Reflect.get(value, 'featured')
   const screenshots = Reflect.get(value, 'screenshots')
+  const trialShortcuts = Reflect.get(value, 'trialShortcuts')
   const readme = Reflect.get(value, 'readme')
   const updatedAt = Reflect.get(value, 'updatedAt')
 
@@ -622,6 +626,7 @@ function isMarketplaceMetadataInput(value: unknown): value is PluginTargetAppMar
     (subcategory === undefined || typeof subcategory === 'string') &&
     (featured === undefined || typeof featured === 'boolean') &&
     isOptionalStringArray(screenshots) &&
+    (trialShortcuts === undefined || Array.isArray(trialShortcuts)) &&
     (readme === undefined || typeof readme === 'string') &&
     (updatedAt === undefined || typeof updatedAt === 'string')
   )

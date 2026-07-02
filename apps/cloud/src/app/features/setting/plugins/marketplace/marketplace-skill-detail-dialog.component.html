@@ -1,0 +1,109 @@
+<div
+  class="grid max-h-[88vh] w-[min(960px,calc(100vw-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-3xl bg-components-card-bg shadow-2xl"
+>
+  <header class="flex items-start justify-between gap-4 border-b border-divider-regular px-6 py-5">
+    <div class="flex min-w-0 items-start gap-4">
+      <xp-icon
+        [icon]="icon()"
+        size="40"
+        class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-components-panel-bg"
+      />
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="truncate text-2xl font-semibold text-text-primary">
+            {{ titleValue() | i18n }}
+          </h2>
+          <z-badge zType="outline" class="h-5 border-state-success-hover bg-state-success-hover/20 text-text-success">
+            {{ 'PAC.Plugin.MarketplaceContentType_skill' | translate: { Default: 'Skill' } }}
+          </z-badge>
+        </div>
+        @if (descriptionValue()) {
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-text-tertiary">
+            {{ descriptionValue() | i18n }}
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-2">
+      <button
+        z-button
+        type="button"
+        zType="secondary"
+        class="gap-1 whitespace-nowrap"
+        [zDisabled]="!plugin()?.installed"
+        [title]="
+          plugin()?.installed
+            ? ''
+            : ('PAC.Plugin.InstallPluginBeforeInitializeResource'
+              | translate: { Default: 'Install or load this plugin before initializing the resource.' })
+        "
+        (click)="installToWorkspace($event)"
+      >
+        <i class="ri-download-cloud-2-line"></i>
+        <span>{{ 'PAC.Plugin.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}</span>
+      </button>
+      <button z-button type="button" zType="ghost" zSize="icon" zShape="circle" (click)="close()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+  </header>
+
+  <main #skillMarkdown class="min-h-0 overflow-auto px-6 py-5">
+    @if (documentLoading()) {
+      <div class="flex min-h-[420px] items-center justify-center">
+        <div class="flex items-center gap-3 text-sm text-text-tertiary">
+          <ngm-spin small />
+          <span>{{ 'PAC.Plugin.LoadingSkillDocument' | translate: { Default: 'Loading skill document...' } }}</span>
+        </div>
+      </div>
+    } @else if (documentError()) {
+      <div
+        class="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-lg border border-divider-regular px-6 text-center"
+      >
+        <i class="ri-error-warning-line text-3xl text-text-destructive"></i>
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'PAC.Plugin.LoadSkillDocumentFailed' | translate: { Default: 'Failed to load skill document' } }}
+        </div>
+        <div class="max-w-2xl break-words text-sm text-text-tertiary">
+          {{ documentError() }}
+        </div>
+      </div>
+    } @else if (document(); as skillDocument) {
+      <markdown
+        class="ngm-copilot-markdown plugin-readme-markdown block min-h-[420px]"
+        [data]="skillDocument.content || ''"
+        (ready)="normalizeMarkdownLinks()"
+      />
+    } @else {
+      <div
+        class="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-divider-regular px-6 text-center text-sm text-text-tertiary"
+      >
+        {{ 'PAC.Plugin.NoSkillDocument' | translate: { Default: 'No skill document is available.' } }}
+      </div>
+    }
+  </main>
+
+  <footer class="flex items-center justify-between gap-4 border-t border-divider-regular px-6 py-4">
+    <div class="min-w-0 truncate text-xs text-text-tertiary">
+      @if (document()?.sourcePath) {
+        <span class="font-mono">{{ document()?.sourcePath }}</span>
+      }
+    </div>
+    <button
+      z-button
+      type="button"
+      zType="default"
+      class="gap-1 whitespace-nowrap"
+      [zDisabled]="trialSubmitting()"
+      (click)="tryInClawXpert($event)"
+    >
+      @if (trialSubmitting()) {
+        <ngm-spin small />
+      } @else {
+        <i class="ri-chat-smile-2-line"></i>
+      }
+      <span>{{ 'PAC.Plugin.TryInClawXpert' | translate: { Default: 'Try in ClawXpert' } }}</span>
+    </button>
+  </footer>
+</div>

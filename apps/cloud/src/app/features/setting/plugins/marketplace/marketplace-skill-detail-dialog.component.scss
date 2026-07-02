@@ -1,0 +1,120 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep .plugin-readme-markdown {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+:host ::ng-deep .plugin-readme-markdown h1,
+:host ::ng-deep .plugin-readme-markdown h2,
+:host ::ng-deep .plugin-readme-markdown h3,
+:host ::ng-deep .plugin-readme-markdown h4 {
+  margin-top: 1.6em;
+  margin-bottom: 0.7em;
+  color: var(--color-text-primary);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+:host ::ng-deep .plugin-readme-markdown h1 {
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+:host ::ng-deep .plugin-readme-markdown h2 {
+  font-size: 1.45rem;
+}
+
+:host ::ng-deep .plugin-readme-markdown h3 {
+  font-size: 1.15rem;
+}
+
+:host ::ng-deep .plugin-readme-markdown p,
+:host ::ng-deep .plugin-readme-markdown ul,
+:host ::ng-deep .plugin-readme-markdown ol,
+:host ::ng-deep .plugin-readme-markdown pre,
+:host ::ng-deep .plugin-readme-markdown table,
+:host ::ng-deep .plugin-readme-markdown blockquote {
+  margin-top: 0.9em;
+  margin-bottom: 0.9em;
+}
+
+:host ::ng-deep .plugin-readme-markdown a {
+  color: var(--color-text-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+:host ::ng-deep .plugin-readme-markdown a:not([href]) {
+  cursor: default;
+  color: var(--color-text-tertiary);
+  text-decoration-style: dotted;
+}
+
+:host ::ng-deep .plugin-readme-markdown pre {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--color-divider-regular);
+  background: var(--color-components-card-bg);
+  padding: 1rem;
+}
+
+:host ::ng-deep .plugin-readme-markdown code {
+  border-radius: 6px;
+  background: var(--color-components-input-bg-normal);
+  padding: 0.12rem 0.32rem;
+  font-size: 0.92em;
+}
+
+:host ::ng-deep .plugin-readme-markdown :not(pre) > code[class*='language-'],
+:host ::ng-deep .plugin-readme-markdown code:not(pre *) {
+  position: static;
+  display: inline;
+  width: auto;
+  max-width: none;
+  margin: 0 0.05rem;
+  border: 1px solid var(--color-divider-subtle);
+  border-radius: 5px;
+  background: var(--color-components-input-bg-normal);
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  color: var(--color-text-primary);
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.88em;
+  line-height: 1.5;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+  scrollbar-width: auto;
+}
+
+:host ::ng-deep .plugin-readme-markdown code:not(pre *)::before {
+  content: none;
+}
+
+:host ::ng-deep .plugin-readme-markdown pre code {
+  display: block;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  white-space: pre;
+}
+
+:host ::ng-deep .plugin-readme-markdown blockquote {
+  border-left: 3px solid var(--color-divider-deep);
+  padding-left: 1rem;
+  color: var(--color-text-tertiary);
+}
+
+:host ::ng-deep .plugin-readme-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+:host ::ng-deep .plugin-readme-markdown th,
+:host ::ng-deep .plugin-readme-markdown td {
+  border: 1px solid var(--color-divider-regular);
+  padding: 0.5rem 0.65rem;
+}

@@ -246,6 +246,7 @@ import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
+import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 const TEST_LAYOUT_ICON = {
@@ -398,9 +399,21 @@ describe('ClawXpertConversationDetailComponent', () => {
   let viewExtensionApi: {
     getSlotViews: jest.Mock
   }
+  let skillTrialIntent: {
+    peek: jest.Mock
+    consume: jest.Mock
+    set: jest.Mock
+    clear: jest.Mock
+  }
   let hostEvents: ViewHostEventBus
 
   beforeEach(async () => {
+    skillTrialIntent = {
+      peek: jest.fn(() => null),
+      consume: jest.fn(() => null),
+      set: jest.fn(),
+      clear: jest.fn()
+    }
     const activeConversation = signal<IChatConversation | null>(null)
     facade = {
       definition: {
@@ -492,6 +505,10 @@ describe('ClawXpertConversationDetailComponent', () => {
         {
           provide: ViewExtensionApiService,
           useValue: viewExtensionApi
+        },
+        {
+          provide: ClawXpertSkillTrialIntentService,
+          useValue: skillTrialIntent
         }
       ]
     }).compileComponents()
@@ -537,6 +554,61 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
+  })
+
+  it('consumes a skill trial intent by opening a new ChatKit run with only that skill selected', async () => {
+    const intent = {
+      workspaceId: 'workspace-1',
+      skillPackageId: 'skill-package-documents',
+      label: 'Documents',
+      prompt: 'Draft a project memo as a document',
+      createdAt: Date.now()
+    }
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    const setRuntimeCapabilities = jest.fn().mockResolvedValue(undefined)
+    const setComposerValue = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+    skillTrialIntent.peek.mockReturnValue(intent)
+    skillTrialIntent.consume.mockReturnValue(intent)
+    facade.threadId.set(null)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        setRuntimeCapabilities,
+        setComposerValue,
+        focusComposer
+      })
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await settle(fixture)
+
+    expect(skillTrialIntent.consume).toHaveBeenCalled()
+    expect(setThreadId).toHaveBeenCalledWith(null)
+    const expectedSelection = {
+      mode: 'allowlist',
+      skills: {
+        workspaceId: 'workspace-1',
+        ids: ['skill-package-documents']
+      },
+      plugins: {
+        nodeKeys: []
+      },
+      subAgents: {
+        nodeKeys: []
+      }
+    }
+    expect(setRuntimeCapabilities).toHaveBeenCalledWith(expectedSelection)
+    expect(setComposerValue).toHaveBeenCalledWith({
+      text: 'Draft a project memo as a document',
+      runtimeCapabilities: expectedSelection,
+      insertRuntimeCapabilities: true
+    })
+    expect(focusComposer).toHaveBeenCalled()
+    expect(facade.suppressAutoResume()).toBe(true)
   })
 
   it('limits the embedded ChatKit column width for wide ClawXpert conversations', async () => {

@@ -813,7 +813,10 @@ function toOnboardingPlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
     sourceName: item.sourceName ?? null,
     sourceNameI18nKey: item.sourceNameI18nKey ?? null,
     installed: item.installed,
+    screenshots: item.screenshots,
     contributions: item.contributions ?? [],
+    defaultPrompt: item.defaultPrompt,
+    trialShortcuts: item.trialShortcuts,
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }

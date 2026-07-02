@@ -101,7 +101,9 @@ export type PluginMarketplaceContributionType =
   | 'app'
   | 'view'
   | 'feature'
+  | 'skill'
   | 'tool'
+  | 'hook'
   | 'assistant-template'
   | (string & {})
 export type PluginMarketplaceOperationAccess = 'read' | 'write' | 'admin' | (string & {})
@@ -235,9 +237,18 @@ export interface PluginMarketplaceContribution {
   displayName?: string | I18nObject
   description?: string | I18nObject
   icon?: IconDefinition
+  color?: string
   operations?: PluginMarketplaceOperation[]
   tags?: string[]
   metadata?: Record<string, unknown>
+}
+
+export interface PluginMarketplaceTrialShortcut {
+  id?: string
+  label?: string | I18nObject
+  prompt: string
+  skillKey?: string
+  icon?: IconDefinition
 }
 
 export type PluginMarketplaceCategory =
@@ -262,6 +273,7 @@ export interface PluginTargetAppMarketplaceMetadata {
   subcategory?: string
   featured?: boolean
   screenshots?: string[]
+  trialShortcuts?: PluginMarketplaceTrialShortcut[]
   readme?: string
   updatedAt?: string
 }
@@ -478,12 +490,15 @@ export interface PluginMarketplaceItem {
   author?: PluginMarketplaceAuthor | string | null
   source?: PluginMarketplaceItemSource | null
   keywords?: string[]
+  screenshots?: string[]
   downloads?: PluginMarketplaceDownloads | null
   sourceId?: string | null
   sourceName?: string | null
   sourceNameI18nKey?: string | null
   installed?: boolean
   contributions?: PluginMarketplaceContribution[]
+  defaultPrompt?: string[]
+  trialShortcuts?: PluginMarketplaceTrialShortcut[]
   operationSummary?: PluginMarketplaceOperationSummary
   targetApps?: PluginTargetApp[]
   targetAppMeta?: PluginTargetAppMeta | null
@@ -608,6 +623,15 @@ export interface IPluginComponentDefinition {
   config?: JSONValue | null
   metadata?: JSONValue | null
   definitionHash: string
+}
+
+export interface IPluginComponentDocument {
+  pluginName: PluginName
+  componentType: PluginComponentType
+  componentKey: string
+  sourcePath?: string | null
+  fileName?: string | null
+  content: string
 }
 
 export interface IPluginResourceComponentState {

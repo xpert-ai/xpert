@@ -3,3 +3,19 @@
 :host {
   @apply block;
 }
+
+.plugin-trial-card {
+  background-repeat: no-repeat;
+}
+
+.plugin-trial-card--fallback-0 {
+  background-image: url('/assets/images/bg/bg_1.jpg');
+}
+
+.plugin-trial-card--fallback-1 {
+  background-image: url('/assets/images/bg/bg_5.jpg');
+}
+
+.plugin-trial-card--fallback-2 {
+  background-image: url('/assets/images/bg/bg_4.png');
+}

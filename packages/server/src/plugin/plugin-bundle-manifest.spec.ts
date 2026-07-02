@@ -72,7 +72,26 @@ describe('plugin bundle manifest', () => {
 			hooks: './hooks/hooks.json',
 			interface: {
 				displayName: 'XpertAI Helper',
-				defaultPrompt: ['Use XpertAI Helper to summarize notes.']
+				defaultPrompt: ['Use XpertAI Helper to summarize notes.'],
+				brandColor: '#2563EB'
+			},
+			targetAppMeta: {
+				xpert: {
+					marketplace: {
+						contents: [
+							{
+								type: 'skill',
+								name: 'hello',
+								displayName: 'Hello Skill',
+								icon: {
+									type: 'svg',
+									value: '<svg viewBox="0 0 16 16"></svg>'
+								},
+								color: '#F04438'
+							}
+						]
+					}
+				}
 			},
 			assets: {
 				composerIcon: './assets/composer-icon.svg'
@@ -91,6 +110,15 @@ describe('plugin bundle manifest', () => {
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.SKILL)?.componentKey).toBe(
 			'hello'
 		)
+		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.SKILL)?.metadata).toEqual({
+			name: 'hello',
+			displayName: 'Hello Skill',
+			icon: {
+				type: 'svg',
+				value: '<svg viewBox="0 0 16 16"></svg>'
+			},
+			color: '#F04438'
+		})
 		expect(components.find((item) => item.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER)?.componentKey).toBe(
 			'docs'
 		)

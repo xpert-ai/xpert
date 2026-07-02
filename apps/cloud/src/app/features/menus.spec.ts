@@ -77,7 +77,7 @@ describe('getFeatureMenus', () => {
 
     expect(chat).toBeUndefined()
     expect(tasks).toMatchObject({
-      title: '任务',
+      title: 'Tasks',
       icon: 'ri-list-check-3',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'

@@ -8819,18 +8819,20 @@
         return Uu('executeAction', { actionKey: t, input: e, parameters: a }, 'actionResult')
     }
     function Tw(t, e, a, r) {
-        return e.arrayBuffer().then((n) =>
-            Uu(
-                'executeFileAction',
-                {
-                    actionKey: t,
-                    input: a,
-                    parameters: r,
-                    file: { name: e.name, type: e.type, size: e.size, buffer: n }
-                },
-                'fileActionResult'
+        return e
+            .arrayBuffer()
+            .then((n) =>
+                Uu(
+                    'executeFileAction',
+                    {
+                        actionKey: t,
+                        input: a,
+                        parameters: r,
+                        file: { name: e.name, type: e.type, size: e.size, buffer: n }
+                    },
+                    'fileActionResult'
+                )
             )
-        )
     }
     function Hu(t, e) {
         return Uu('invokeClientCommand', { commandKey: t, payload: e }, 'clientCommandResult')

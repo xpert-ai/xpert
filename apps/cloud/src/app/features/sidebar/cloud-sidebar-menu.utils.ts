@@ -71,7 +71,7 @@ export function isCloudMenuRouteForcedActive(currentUrl: string, item: CloudMenu
 
 function isWorkCloudMenuItem(item: CloudMenuItem) {
   const path = readMenuPath(item)
-  return path === '/chat' || path === '/chat/tasks'
+  return path === '/chat' || path === '/chat/clawxpert' || path === '/chat/tasks'
 }
 
 function isManagementCloudMenuItem(item: CloudMenuItem) {

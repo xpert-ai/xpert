@@ -60,6 +60,7 @@ export interface SkillMetadata {
   summary?: I18nObject // 80-char summary
   description?: I18nObject // Detailed description
   icon?: IconDefinition // Optional skill icon
+  color?: string // Optional UI accent color
   tags?: string[]
   author?: { name: string; email?: string; org?: string }
   license?: string

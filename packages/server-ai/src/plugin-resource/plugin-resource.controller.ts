@@ -1,20 +1,27 @@
 import { PLUGIN_COMPONENT_TYPE, PluginComponentType, PluginResourceComponentSelector } from '@xpert-ai/contracts'
 import { TransformInterceptor } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseInterceptors } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PluginResourceInstallComponent, PluginResourceInstallerService } from './plugin-resource-installer.service'
+import { ListPluginResourceComponentStatesQuery } from './queries'
 
 @ApiTags('PluginResources')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('plugin/:name/resources')
 export class PluginResourceController {
-    constructor(private readonly installer: PluginResourceInstallerService) {}
+    constructor(
+        private readonly installer: PluginResourceInstallerService,
+        private readonly queryBus: QueryBus
+    ) {}
 
     @Get('state')
     async getState(@Param('name') name: string, @Query() query: unknown) {
         return {
-            items: await this.installer.listComponentStates(name, parseComponentStateQuery(query))
+            items: await this.queryBus.execute(
+                new ListPluginResourceComponentStatesQuery(name, parseComponentStateQuery(query))
+            )
         }
     }
 

@@ -214,7 +214,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
-      title: '任务',
+      title: 'Tasks',
       icon: 'ri-list-check-3',
       link: '/chat/tasks',
       pathMatch: 'prefix',

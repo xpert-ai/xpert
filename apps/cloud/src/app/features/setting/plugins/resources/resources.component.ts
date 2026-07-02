@@ -27,14 +27,16 @@ import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, of } from 'rxjs'
 import { TInstalledPlugin } from '../types'
 
-type PluginResourcesDialogData = {
+export type PluginResourcesDialogData = {
   plugin: TInstalledPlugin
   reload?: () => void
   initialComponents?: Array<{
     componentType?: PluginComponentType
     componentKey: string
   }>
+  initialWorkspaceId?: string
   initialInstallMode?: InstallMode
+  closeOnSuccess?: boolean
 }
 
 type InstallMode = 'workspace' | 'xpert'
@@ -91,7 +93,7 @@ export class PluginResourcesComponent {
 
   readonly plugin = signal(this.data.plugin)
   readonly installMode = model<InstallMode>(this.data.initialInstallMode ?? 'workspace')
-  readonly selectedWorkspaceId = model<string>('')
+  readonly selectedWorkspaceId = model<string>(this.data.initialWorkspaceId ?? '')
   readonly selectedXpertId = model<string>('')
   readonly selectedAgentKey = model<string>('')
   readonly selectedKeys = signal<string[]>([])
@@ -486,6 +488,9 @@ export class PluginResourcesComponent {
             ? 'Plugin resources initialized in the workspace.'
             : 'Plugin resources initialized and attached to the Xpert.'
       })
+      if (this.data.closeOnSuccess) {
+        this.dialogRef.close(result)
+      }
     } catch (error) {
       this.actionError.set(getErrorMessage(error))
     } finally {

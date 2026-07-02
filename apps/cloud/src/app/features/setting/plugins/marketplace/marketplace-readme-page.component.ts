@@ -214,7 +214,10 @@ function toPluginWithDownloads(item: IPluginMarketplaceDetailItem): TPluginWithD
     sourceName,
     sourceNameI18nKey: item.sourceNameI18nKey ?? getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
     installed: item.installed,
+    screenshots: item.screenshots,
     contributions: mergeMarketplaceContributions(item.contributions),
+    defaultPrompt: item.defaultPrompt,
+    trialShortcuts: item.trialShortcuts,
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }
