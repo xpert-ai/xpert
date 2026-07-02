@@ -18,6 +18,7 @@ jest.mock('./clawxpert-setup-wizard.component', () => {
 })
 
 jest.mock('../../../@core', () => ({
+  Store: class Store {},
   XpertAPIService: class XpertAPIService {},
   XpertTypeEnum: {
     Agent: 'agent'
@@ -30,7 +31,7 @@ import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { of } from 'rxjs'
-import { XpertAPIService } from '../../../@core'
+import { Store, XpertAPIService } from '../../../@core'
 import { ClawXpertComponent } from './clawxpert.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
@@ -44,7 +45,7 @@ function createFacadeMock(viewState: 'organization-required' | 'wizard' | 'ready
 describe('ClawXpertComponent', () => {
   async function setup(
     viewState: 'organization-required' | 'wizard' | 'ready' | 'error' = 'ready',
-    options?: { onboarding?: string; xpertCount?: number }
+    options?: { onboarding?: string; xpertCount?: number; userId?: string }
   ) {
     const dialogRef = {
       closed: of(undefined)
@@ -66,6 +67,9 @@ describe('ClawXpertComponent', () => {
           total: options?.xpertCount ?? 0
         })
       )
+    }
+    const store = {
+      userId: options?.userId ?? 'user-1'
     }
 
     TestBed.resetTestingModule()
@@ -92,6 +96,10 @@ describe('ClawXpertComponent', () => {
         {
           provide: XpertAPIService,
           useValue: xpertService
+        },
+        {
+          provide: Store,
+          useValue: store
         }
       ]
     }).compileComponents()
@@ -104,6 +112,7 @@ describe('ClawXpertComponent', () => {
       facade,
       fixture,
       router,
+      store,
       xpertService
     }
   }
@@ -119,7 +128,7 @@ describe('ClawXpertComponent', () => {
     expect(fixture.debugElement.query(By.css('router-outlet'))).not.toBeNull()
   })
 
-  it('does not open the global onboarding dialog just because setup is required', async () => {
+  it('does not open the entry onboarding dialog just because setup is required', async () => {
     const { dialog } = await setup('wizard')
 
     expect(dialog.open).not.toHaveBeenCalled()
@@ -149,7 +158,22 @@ describe('ClawXpertComponent', () => {
     )
   })
 
-  it('does not open the onboarding dialog from the route when the current account already has an xpert', async () => {
+  it('checks entry onboarding creation eligibility against the current user self-created xperts', async () => {
+    const { fixture, xpertService } = await setup('ready', { onboarding: 'clawxpert', userId: 'user-42' })
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(xpertService.getMyAll).toHaveBeenCalledWith({
+      where: {
+        createdById: 'user-42',
+        type: 'agent',
+        latest: true
+      },
+      take: 1
+    })
+  })
+
+  it('does not open the onboarding dialog from the route when the current user already has a self-created xpert', async () => {
     const { dialog, fixture, router, xpertService } = await setup('ready', { onboarding: 'clawxpert', xpertCount: 1 })
     await Promise.resolve()
     fixture.detectChanges()

@@ -237,7 +237,7 @@ describe('chat routes', () => {
     expect(assistantBindingService.get).not.toHaveBeenCalled()
   })
 
-  it('guards direct ClawXpert child routes when the feature is unavailable', async () => {
+  it('guards direct ClawXpert child routes to Explore when the feature is unavailable', async () => {
     store.hasFeatureEnabled.mockImplementation((feature: string) => feature === 'FEATURE_XPERT')
 
     const route = children.find((item) => item.path === 'clawxpert')
@@ -245,20 +245,20 @@ describe('chat routes', () => {
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
     expect(currentUserHydrationService.getFeatureHydration).toHaveBeenCalledWith({ skipSessionCache: true })
-    expect(result).toBe('/chat/tasks')
+    expect(result).toBe('/explore')
   })
 
-  it('guards direct ClawXpert child routes when feature hydration fails', async () => {
+  it('guards direct ClawXpert child routes to Explore when feature hydration fails', async () => {
     currentUserHydrationService.getFeatureHydration.mockRejectedValue(new Error('hydration failed'))
 
     const route = children.find((item) => item.path === 'clawxpert')
     const guard = route?.canActivateChild?.[0] as () => any
     const result = await runInInjectionContext(injector, () => firstValueFrom(guard()))
 
-    expect(result).toBe('/chat/tasks')
+    expect(result).toBe('/explore')
   })
 
-  it('guards direct ClawXpert child routes when feature hydration stays pending', async () => {
+  it('guards direct ClawXpert child routes to Explore when feature hydration stays pending', async () => {
     jest.useFakeTimers()
     currentUserHydrationService.getFeatureHydration.mockReturnValue(new Promise(() => {}))
 
@@ -268,7 +268,7 @@ describe('chat routes', () => {
 
     jest.advanceTimersByTime(3000)
 
-    await expect(result).resolves.toBe('/chat/tasks')
+    await expect(result).resolves.toBe('/explore')
   })
 
   it('redirects /chat to ClawXpert when feature hydration fails', async () => {

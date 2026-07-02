@@ -196,6 +196,7 @@ export class CloudSidebarIdentityComponent {
       return
     }
 
+    let shouldRefreshFeatureHydration = false
     this.organizationsLoading.set(true)
     try {
       const loadedUser = await this.#usersService.getMe(
@@ -209,18 +210,17 @@ export class CloudSidebarIdentityComponent {
 
       this.#store.user = mergeLoadedCurrentUserOrganizations(currentUser, loadedUser)
       this.organizationsLoadedKey.set(loadKey)
-
-      if (this.#store.featureContextHydrated) {
-        try {
-          await this.#currentUserHydrationService.getFeatureHydration({ force: true })
-        } catch (error) {
-          console.warn('Refresh current-user feature hydration after loading organizations failed', error)
-        }
-      }
+      shouldRefreshFeatureHydration = this.#store.featureContextHydrated
     } catch (error) {
       console.warn('Load current-user organizations failed', error)
     } finally {
       this.organizationsLoading.set(false)
+    }
+
+    if (shouldRefreshFeatureHydration) {
+      void this.#currentUserHydrationService.getFeatureHydration({ force: true }).catch((error) => {
+        console.warn('Refresh current-user feature hydration after loading organizations failed', error)
+      })
     }
   }
 }

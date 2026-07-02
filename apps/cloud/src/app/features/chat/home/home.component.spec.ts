@@ -139,7 +139,7 @@ describe('ChatHomeComponent', () => {
     expect(homeService.conversation()).toBeNull()
   })
 
-  it('redirects away from ClawXpert when the feature is disabled after hydration', async () => {
+  it('redirects ClawXpert routes to Explore when the feature is disabled after hydration', async () => {
     store.hasFeatureEnabled.mockImplementation((feature: string) => feature === AiFeatureEnum.FEATURE_XPERT)
 
     const router = TestBed.inject(Router)
@@ -153,7 +153,7 @@ describe('ChatHomeComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    expect(navigateSpy).toHaveBeenCalledWith('/chat/tasks')
+    expect(navigateSpy).toHaveBeenCalledWith('/explore')
   })
 
   it('does not redirect away from ClawXpert while feature hydration is loading', async () => {

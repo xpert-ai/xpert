@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { map } from 'rxjs'
+import { map, Subject, tap } from 'rxjs'
 import {
   AssistantBindingScope,
   AssistantCode,
@@ -16,9 +16,16 @@ import { API_PREFIX } from '@xpert-ai/cloud/state'
 
 const API_ASSISTANT_BINDING = API_PREFIX + '/assistant-binding'
 
+export type AssistantBindingChange = {
+  code: AssistantCode
+  scope: AssistantBindingScope
+}
+
 @Injectable({ providedIn: 'root' })
 export class AssistantBindingService {
   readonly #http = inject(HttpClient)
+  readonly #changes = new Subject<AssistantBindingChange>()
+  readonly changes$ = this.#changes.asObservable()
 
   getByScope(scope: AssistantBindingScope) {
     return this.#http.get<IAssistantBinding[]>(API_ASSISTANT_BINDING, {
@@ -60,7 +67,9 @@ export class AssistantBindingService {
   }
 
   upsert(input: IAssistantBindingUpsertInput) {
-    return this.#http.post<IAssistantBinding>(API_ASSISTANT_BINDING, input)
+    return this.#http
+      .post<IAssistantBinding>(API_ASSISTANT_BINDING, input)
+      .pipe(tap((binding) => this.notifyChange(binding?.code ?? input.code, binding?.scope ?? input.scope)))
   }
 
   upsertPreference(code: AssistantCode, input: IAssistantBindingUserPreferenceUpsertInput) {
@@ -68,11 +77,17 @@ export class AssistantBindingService {
   }
 
   delete(code: AssistantCode, scope: AssistantBindingScope) {
-    return this.#http.delete(`${API_ASSISTANT_BINDING}/${code}`, {
-      params: {
-        scope
-      }
-    })
+    return this.#http
+      .delete(`${API_ASSISTANT_BINDING}/${code}`, {
+        params: {
+          scope
+        }
+      })
+      .pipe(tap(() => this.notifyChange(code, scope)))
+  }
+
+  private notifyChange(code: AssistantCode, scope: AssistantBindingScope) {
+    this.#changes.next({ code, scope })
   }
 }
 

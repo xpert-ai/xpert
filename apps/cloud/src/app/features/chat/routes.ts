@@ -113,7 +113,7 @@ export const routes: Routes = [
         path: 'clawxpert',
         component: ClawXpertComponent,
         canActivateChild: [
-          featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT], ['/chat/tasks'])
+          featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT], ['/explore'])
         ],
         data: {
           title: 'ClawXpert'
