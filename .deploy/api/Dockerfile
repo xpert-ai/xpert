@@ -73,7 +73,7 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     DEMO=false \
     LOG_LEVEL=
 
-# Install native build tools for runtime plugin dependencies such as node-pty.
+# Install native build tools for runtime dependencies such as node-pty.
 RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
       sudo \
@@ -119,7 +119,7 @@ RUN pnpm install --prod --no-frozen-lockfile && \
     # directory exists but the actual native addon does not. Validate by
     # loading the module for real, then fall back to a source rebuild only if
     # that runtime check fails.
-    (node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/plugins/agent-middlewares'),path.join(process.cwd(),'dist/packages/plugins/agent-middlewares')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } try { require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok'); } catch (error) { console.error(error instanceof Error ? error.stack ?? error.message : String(error)); process.exit(1); }" || (npm_config_build_from_source=true npm rebuild node-pty --foreground-scripts && node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/plugins/agent-middlewares'),path.join(process.cwd(),'dist/packages/plugins/agent-middlewares')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok after rebuild');")) && \
+    (node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } try { require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok'); } catch (error) { console.error(error instanceof Error ? error.stack ?? error.message : String(error)); process.exit(1); }" || (npm_config_build_from_source=true npm rebuild node-pty --foreground-scripts && node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok after rebuild');")) && \
     touch ormlogs.log && chown -R node:node /srv/xpert
 
 USER node:node

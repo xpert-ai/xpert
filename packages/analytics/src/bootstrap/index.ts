@@ -175,12 +175,7 @@ export async function preBootstrapPlugins() {
 	type BootstrapPlugin = NonNullable<Parameters<typeof registerPluginsAsync>[0]['plugins']>[number]
 
 	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
-	const defaultGlobalPlugins = [
-		'@xpert-ai/plugin-draft',
-		'@xpert-ai/plugin-agent-middlewares',
-		// '@xpert-ai/plugin-integration-lark',
-		'@xpert-ai/plugin-vlm-default'
-	]
+	const defaultGlobalPlugins = ['@xpert-ai/plugin-draft', '@xpert-ai/plugin-vlm-default']
 
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs()
 	const persistedGlobalGroup = organizationPluginConfigs.find(

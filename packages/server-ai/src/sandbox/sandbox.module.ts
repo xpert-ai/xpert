@@ -14,40 +14,45 @@ import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversationModule } from '../chat-conversation'
-import { SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
+import { SandboxFileMiddleware, SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
+import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/sandbox', module: SandboxModule }]),
-		TenantModule,
-		CqrsModule,
-		DiscoveryModule,
+    imports: [
+        RouterModule.register([{ path: '/sandbox', module: SandboxModule }]),
+        TenantModule,
+        CqrsModule,
+        DiscoveryModule,
         TypeOrmModule.forFeature([SandboxManagedServiceEntity]),
 
-		ChatConversationModule,
-		SuperAdminOrganizationScopeModule
-	],
-	controllers: [SandboxController],
-	providers: [
-		SandboxService,
-		SandboxManagedServiceService,
-		SandboxPreviewSessionService,
-		SandboxPreviewAuthGuard,
-		SandboxProviderRegistry,
-		SandboxConversationContextService,
-		SandboxTerminalGateway,
-		SandboxServiceMiddleware,
-		SandboxShellMiddleware,
-		...CommandHandlers
-	],
-	exports: [
-		SandboxService,
-		SandboxManagedServiceService,
-		SandboxProviderRegistry,
-		SandboxConversationContextService,
-		SandboxServiceMiddleware,
-		SandboxShellMiddleware
-	]
+        ChatConversationModule,
+        SuperAdminOrganizationScopeModule
+    ],
+    controllers: [SandboxController],
+    providers: [
+        SandboxService,
+        SandboxManagedServiceService,
+        SandboxPreviewSessionService,
+        SandboxPreviewAuthGuard,
+        SandboxProviderRegistry,
+        SandboxConversationContextService,
+        SandboxTerminalGateway,
+        LocalShellSandboxProvider,
+        SandboxFileMiddleware,
+        SandboxServiceMiddleware,
+        SandboxShellMiddleware,
+        ...CommandHandlers
+    ],
+    exports: [
+        SandboxService,
+        SandboxManagedServiceService,
+        SandboxProviderRegistry,
+        SandboxConversationContextService,
+        LocalShellSandboxProvider,
+        SandboxFileMiddleware,
+        SandboxServiceMiddleware,
+        SandboxShellMiddleware
+    ]
 })
 export class SandboxModule {}

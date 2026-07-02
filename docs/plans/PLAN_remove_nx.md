@@ -38,7 +38,7 @@
    - `tools/build/build-cloud.mjs`（调用 `ng build cloud`）
    - `tools/workspace/projects.manifest.json`（显式声明项目、构建器、依赖顺序、输出路径、资产拷贝规则）。
 2. 核心项目构建映射固定如下（决策完成，实施不再二次选型）：
-   - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, agent-middlewares, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, ocr-paddle, vstore-chroma, vstore-weaviate`
+   - `rollup`: `adapter, contracts, copilot, core, sql, store, xmla, plugin-sdk, retriever-common, textsplitter-common, transformer-common, trigger-schedule, vlm-default, ocr-paddle, vstore-chroma, vstore-weaviate`
    - `tsc`: `auth, common, config, server, server-ai, analytics, duckdb, echarts`
    - `ng-packagr`: `ngx-echarts, ocap-angular, copilot-angular, component-angular, formly, story-angular, core-angular`
    - `app`: `api(webpack)`, `cloud(angular cli)`

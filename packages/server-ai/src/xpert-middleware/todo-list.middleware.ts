@@ -4,10 +4,10 @@ import { Command } from '@langchain/langgraph'
 import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
-  AgentMiddleware,
-  AgentMiddlewareStrategy,
-  IAgentMiddlewareStrategy,
-  PromiseOrValue
+    AgentMiddleware,
+    AgentMiddlewareStrategy,
+    IAgentMiddlewareStrategy,
+    PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 
@@ -243,27 +243,24 @@ Writing todos takes time and tokens, use it when it is helpful for managing comp
 - The \`write_todos\` tool should never be called multiple times in parallel.
 - Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.`
 
-const TodoStatus = z
-  .enum(["pending", "in_progress", "completed"])
-  .describe("Status of the todo");
+const TodoStatus = z.enum(['pending', 'in_progress', 'completed']).describe('Status of the todo')
 const TodoSchema = z.object({
-  content: z.string().describe("Content of the todo item"),
-  status: TodoStatus,
-});
+    content: z.string().describe('Content of the todo item'),
+    status: TodoStatus
+})
 
 export interface TodoListMiddlewareOptions {
-  /**
-   * Custom system prompt to guide the agent on using the todo tool.
-   * If not provided, uses the default {@link PLANNING_MIDDLEWARE_SYSTEM_PROMPT}.
-   */
-  systemPrompt?: string
-  /**
-   * Custom description for the {@link writeTodos} tool.
-   * If not provided, uses the default {@link WRITE_TODOS_DESCRIPTION}.
-   */
-  toolDescription?: string
+    /**
+     * Custom system prompt to guide the agent on using the todo tool.
+     * If not provided, uses the default {@link PLANNING_MIDDLEWARE_SYSTEM_PROMPT}.
+     */
+    systemPrompt?: string
+    /**
+     * Custom description for the {@link writeTodos} tool.
+     * If not provided, uses the default {@link WRITE_TODOS_DESCRIPTION}.
+     */
+    toolDescription?: string
 }
-
 
 /**
  * Creates a middleware that provides todo list management capabilities to agents.
@@ -284,15 +281,15 @@ export interface TodoListMiddlewareOptions {
 @Injectable()
 @AgentMiddlewareStrategy('todoListMiddleware')
 export class TodoListMiddleware implements IAgentMiddlewareStrategy {
-  readonly meta: TAgentMiddlewareMeta = {
-    name: 'todoListMiddleware',
-    label: {
-      en_US: 'To-Do List Middleware',
-      zh_Hans: '待办事项中间件'
-    },
-    icon: {
-      type: 'svg',
-      value: `<svg height="128px" viewBox="0 0 128 128" width="128px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    readonly meta: TAgentMiddlewareMeta = {
+        name: 'todoListMiddleware',
+        label: {
+            en_US: 'To-Do List Middleware',
+            zh_Hans: '待办事项中间件'
+        },
+        icon: {
+            type: 'svg',
+            value: `<svg height="128px" viewBox="0 0 128 128" width="128px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <linearGradient id="a" gradientUnits="userSpaceOnUse" x1="19.999998" x2="112.778587" y1="29.118027" y2="97.447845">
         <stop offset="0" stop-color="#62a0ea"/>
         <stop offset="0.563959" stop-color="#9141ac"/>
@@ -314,90 +311,91 @@ export class TodoListMiddleware implements IAgentMiddlewareStrategy {
         <path d="m 64 84 h 18 v 4 h -18 z m 0 0"/>
     </g>
 </svg>`
-    },
-    description: {
-      en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
-      zh_Hans: '一个中间件，通过维护智能体的待办事项列表来帮助管理复杂任务。'
-    },
-    configSchema: {
-      type: 'object',
-      properties: {
-        systemPrompt: {
-          type: 'string',
-          default: '',
-          title: {
-            en_US: 'System Prompt',
-            zh_Hans: '系统提示词'
-          },
-          description: {
-            en_US: 'Custom system prompt to guide the agent on using the todo tool.',
-            zh_Hans: '自定义系统提示以指导智能体使用待办事项工具。'
-          },
-          'x-ui': {
-            component: 'textarea',
-            span: 2
-          }
         },
-        toolDescription: {
-          type: 'string',
-          default: '',
-          title: {
-            en_US: 'Tool Description',
-            zh_Hans: '工具描述'
-          },
-          description: {
-            en_US: 'Custom description for the write_todos tool.',
-            zh_Hans: '为 write_todos 工具提供自定义描述。'
-          },
-          'x-ui': {
-            component: 'textarea',
-            span: 2
-          }
+        description: {
+            en_US: 'A middleware that helps manage complex tasks by maintaining a to-do list for the agent.',
+            zh_Hans: '一个中间件，通过维护智能体的待办事项列表来帮助管理复杂任务。'
+        },
+        configSchema: {
+            type: 'object',
+            properties: {
+                systemPrompt: {
+                    type: 'string',
+                    default: '',
+                    title: {
+                        en_US: 'System Prompt',
+                        zh_Hans: '系统提示词'
+                    },
+                    description: {
+                        en_US: 'Custom system prompt to guide the agent on using the todo tool.',
+                        zh_Hans: '自定义系统提示以指导智能体使用待办事项工具。'
+                    },
+                    'x-ui': {
+                        component: 'textarea',
+                        span: 2
+                    }
+                },
+                toolDescription: {
+                    type: 'string',
+                    default: '',
+                    title: {
+                        en_US: 'Tool Description',
+                        zh_Hans: '工具描述'
+                    },
+                    description: {
+                        en_US: 'Custom description for the write_todos tool.',
+                        zh_Hans: '为 write_todos 工具提供自定义描述。'
+                    },
+                    'x-ui': {
+                        component: 'textarea',
+                        span: 2
+                    }
+                }
+            }
         }
-      }
-    },
-  }
-
-  createMiddleware(options: TodoListMiddlewareOptions): PromiseOrValue<AgentMiddleware> {
-    /**
-     * Write todos tool - manages todo list with Command return
-     */
-    const writeTodos = tool(
-      ({ todos }, config) => {
-        return new Command({
-          update: {
-            todos,
-            messages: [
-              new ToolMessage({
-                content: `Updated todo list to ${JSON.stringify(todos)}`,
-                tool_call_id: config.toolCall?.id as string
-              })
-            ]
-          }
-        })
-      },
-      {
-        name: 'write_todos',
-        description: options?.toolDescription ?? WRITE_TODOS_DESCRIPTION,
-        schema: z.object({
-          todos: z.array(TodoSchema).describe('List of todo items to update')
-        })
-      }
-    )
-    
-    return {
-      name: 'todoListMiddleware',
-      tools: [writeTodos],
-      wrapModelCall: (request, handler) => {
-        const systemMessage = request.systemMessage
-        const _content = typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
-        return handler({
-          ...request,
-          systemMessage: new SystemMessage(
-            _content.concat(`\n\n${options?.systemPrompt ?? TODO_LIST_MIDDLEWARE_SYSTEM_PROMPT}`)
-          )
-        })
-      }
     }
-  }
+
+    createMiddleware(options: TodoListMiddlewareOptions): PromiseOrValue<AgentMiddleware> {
+        /**
+         * Write todos tool - manages todo list with Command return
+         */
+        const writeTodos = tool(
+            ({ todos }, config) => {
+                return new Command({
+                    update: {
+                        todos,
+                        messages: [
+                            new ToolMessage({
+                                content: `Updated todo list to ${JSON.stringify(todos)}`,
+                                tool_call_id: config.toolCall?.id as string
+                            })
+                        ]
+                    }
+                })
+            },
+            {
+                name: 'write_todos',
+                description: options?.toolDescription ?? WRITE_TODOS_DESCRIPTION,
+                schema: z.object({
+                    todos: z.array(TodoSchema).describe('List of todo items to update')
+                })
+            }
+        )
+
+        return {
+            name: 'todoListMiddleware',
+            tools: [writeTodos],
+            wrapModelCall: (request, handler) => {
+                const systemMessage = request.systemMessage
+                const _content =
+                    typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
+                return handler({
+                    ...request,
+                    systemMessage: new SystemMessage(
+                        _content.concat(`\n\n${options?.systemPrompt ?? TODO_LIST_MIDDLEWARE_SYSTEM_PROMPT}`)
+                    )
+                })
+            }
+        }
+    }
 }
