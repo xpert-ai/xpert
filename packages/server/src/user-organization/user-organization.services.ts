@@ -1,20 +1,26 @@
-import { IUser, IUserOrganization, IUserOrganizationPreferences, RolesEnum } from '@xpert-ai/contracts';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import type { Cache } from 'cache-manager';
-import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm';
-import { TenantAwareCrudService } from './../core/crud';
+import {
+	IUser,
+	IUserOrganization,
+	IUserOrganizationEntryGuideKey,
+	IUserOrganizationPreferences,
+	RolesEnum
+} from '@xpert-ai/contracts'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import type { Cache } from 'cache-manager'
+import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'
+import { TenantAwareCrudService } from './../core/crud'
 import {
 	EVENT_USER_ORGANIZATION_CREATED,
 	EVENT_USER_ORGANIZATION_DELETED,
 	UserOrganizationCreatedEvent,
 	UserOrganizationDeletedEvent
-} from '../user/events';
-import { Organization, UserOrganization } from './../core/entities/internal';
-import { RequestContext } from '../core/context';
-import { touchCurrentUserFeatureUserCacheVersion } from '../user/current-user-feature-cache';
+} from '../user/events'
+import { Organization, UserOrganization } from './../core/entities/internal'
+import { RequestContext } from '../core/context'
+import { touchCurrentUserFeatureUserCacheVersion } from '../user/current-user-feature-cache'
 
 type DeleteMembershipOptions = FindOneOptions<UserOrganization> & {
 	allowDeletingLastMembership?: boolean
@@ -24,7 +30,6 @@ type DeleteOrganizationMembershipsInput = {
 	tenantId: string
 	organizationId: string
 }
-
 
 @Injectable()
 export class UserOrganizationService extends TenantAwareCrudService<UserOrganization> {
@@ -39,7 +44,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager?: Cache
 	) {
-		super(userOrganizationRepository);
+		super(userOrganizationRepository)
 	}
 
 	private currentTenantId(explicitTenantId?: string) {
@@ -60,11 +65,11 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			? {
 					userId,
 					tenantId
-			  }
+				}
 			: {
 					userId,
 					tenantId
-			  }
+				}
 
 		const memberships = await this.repository.find({
 			where
@@ -113,7 +118,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			? ({
 					...(criteria as FindOptionsWhere<UserOrganization>),
 					...(options.where as FindOptionsWhere<UserOrganization>)
-			  } as FindOptionsWhere<UserOrganization>)
+				} as FindOptionsWhere<UserOrganization>)
 			: criteria
 
 		return this.findOneByOptions({
@@ -211,10 +216,32 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		})
 	}
 
-	private async prepareCreateEntity(
-		entity: DeepPartial<UserOrganization>,
-		explicitTenantId?: string
-	) {
+	async markCurrentUserEntryGuideAutoShown(
+		guideKey: IUserOrganizationEntryGuideKey,
+		autoShownAt = new Date()
+	): Promise<IUserOrganization> {
+		const membership = await this.findCurrentUserMembership()
+
+		if (!membership) {
+			throw new NotFoundException('Current organization membership was not found.')
+		}
+
+		if (membership.preferences?.entryGuides?.[guideKey]?.autoShownAt) {
+			return membership
+		}
+
+		await this.update(membership.id, {
+			preferences: updateUserOrganizationEntryGuideAutoShownPreference(
+				membership.preferences,
+				guideKey,
+				autoShownAt.toISOString()
+			)
+		})
+
+		return this.findOne(membership.id)
+	}
+
+	private async prepareCreateEntity(entity: DeepPartial<UserOrganization>, explicitTenantId?: string) {
 		if (!entity.userId || !entity.organizationId) {
 			throw new BadRequestException('User and organization are required.')
 		}
@@ -261,25 +288,22 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 	}
 
-	async addUserToOrganization(
-		user: IUser,
-		organizationId: string
-	): Promise<IUserOrganization | IUserOrganization[]> {
-		const roleName: string = user.role?.name;
-		const tenantId = user.tenant?.id ?? user.tenantId;
+	async addUserToOrganization(user: IUser, organizationId: string): Promise<IUserOrganization | IUserOrganization[]> {
+		const roleName: string = user.role?.name
+		const tenantId = user.tenant?.id ?? user.tenantId
 
 		if (roleName === RolesEnum.SUPER_ADMIN) {
 			if (!tenantId) {
 				throw new Error('User tenant is required for SUPER_ADMIN role')
 			}
-			return this._addUserToAllOrganizations(user.id, tenantId);
+			return this._addUserToAllOrganizations(user.id, tenantId)
 		}
 
 		return await this.ensureMembership({
 			organizationId,
 			tenantId: user.tenantId,
 			userId: user.id
-		});
+		})
 	}
 
 	async ensureMembership({
@@ -297,55 +321,43 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 				tenantId,
 				userId
 			}
-		});
+		})
 
 		if (existing) {
-			return existing;
+			return existing
 		}
 
-		const entity: IUserOrganization = new UserOrganization();
-		entity.organizationId = organizationId;
-		entity.tenantId = tenantId;
-		entity.userId = userId;
-		const membership = await this.create(entity);
+		const entity: IUserOrganization = new UserOrganization()
+		entity.organizationId = organizationId
+		entity.tenantId = tenantId
+		entity.userId = userId
+		const membership = await this.create(entity)
 
 		this.eventEmitter.emit(
 			EVENT_USER_ORGANIZATION_CREATED,
-			new UserOrganizationCreatedEvent(
-				tenantId,
-				organizationId,
-				userId
-			)
-		);
+			new UserOrganizationCreatedEvent(tenantId, organizationId, userId)
+		)
 
-		return membership;
+		return membership
 	}
 
 	async findUserIdsByOrganization(organizationId: string): Promise<string[]> {
 		const memberships = await this.userOrganizationRepository.find({
 			select: ['userId'],
 			where: { organizationId }
-		});
+		})
 
-		return memberships.map(({ userId }) => userId);
+		return memberships.map(({ userId }) => userId)
 	}
 
 	override async create(entity: DeepPartial<UserOrganization>, ...options: any[]) {
 		const payload = await this.prepareCreateEntity(entity)
 		const membership = await super.create(payload, ...options)
-		await touchCurrentUserFeatureUserCacheVersion(
-			this.cacheManager,
-			payload.tenantId,
-			payload.userId
-		)
+		await touchCurrentUserFeatureUserCacheVersion(this.cacheManager, payload.tenantId, payload.userId)
 		return membership
 	}
 
-	override async update(
-		id: string | number,
-		entity: Partial<IUserOrganization>,
-		...options: any[]
-	) {
+	override async update(id: string | number, entity: Partial<IUserOrganization>, ...options: any[]) {
 		const membership = await this.findOneByIdString(String(id))
 
 		if (entity.isActive === false && membership.isActive) {
@@ -357,11 +369,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 
 		const result = await super.update(id, entity as Partial<UserOrganization>, ...options)
-		await touchCurrentUserFeatureUserCacheVersion(
-			this.cacheManager,
-			membership.tenantId,
-			membership.userId
-		)
+		await touchCurrentUserFeatureUserCacheVersion(this.cacheManager, membership.tenantId, membership.userId)
 		return result
 	}
 
@@ -374,8 +382,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			membership,
 			options?.allowDeletingLastMembership ?? false
 		)
-		const shouldReassignDefault =
-			membership.isDefault || !remainingMemberships.some((item) => item.isDefault)
+		const shouldReassignDefault = membership.isDefault || !remainingMemberships.some((item) => item.isDefault)
 
 		const result = await super.delete(criteria, options)
 
@@ -389,11 +396,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			}
 		}
 
-		await touchCurrentUserFeatureUserCacheVersion(
-			this.cacheManager,
-			membership.tenantId,
-			membership.userId
-		)
+		await touchCurrentUserFeatureUserCacheVersion(this.cacheManager, membership.tenantId, membership.userId)
 		return result
 	}
 
@@ -454,13 +457,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 
 		await Promise.all(
-			userIds.map((userId) =>
-				touchCurrentUserFeatureUserCacheVersion(
-					this.cacheManager,
-					tenantId,
-					userId
-				)
-			)
+			userIds.map((userId) => touchCurrentUserFeatureUserCacheVersion(this.cacheManager, tenantId, userId))
 		)
 
 		for (const membership of memberships) {
@@ -473,16 +470,13 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		return result
 	}
 
-	private async _addUserToAllOrganizations(
-		userId: string,
-		tenantId: string
-	): Promise<IUserOrganization[]> {
+	private async _addUserToAllOrganizations(userId: string, tenantId: string): Promise<IUserOrganization[]> {
 		const organizations = await this.organizationRepository.find({
 			select: ['id'],
 			where: { tenant: { id: tenantId } },
 			relations: ['tenant']
-		});
-		const memberships: IUserOrganization[] = [];
+		})
+		const memberships: IUserOrganization[] = []
 
 		for await (const organization of organizations) {
 			memberships.push(
@@ -491,10 +485,10 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 					tenantId,
 					userId
 				})
-			);
+			)
 		}
 
-		return memberships;
+		return memberships
 	}
 }
 
@@ -505,5 +499,24 @@ function updateUserOrganizationPreferences(
 	return {
 		...(preferences ?? {}),
 		defaultWorkspaceId
+	}
+}
+
+function updateUserOrganizationEntryGuideAutoShownPreference(
+	preferences: IUserOrganizationPreferences | null | undefined,
+	guideKey: IUserOrganizationEntryGuideKey,
+	autoShownAt: string
+): IUserOrganizationPreferences {
+	const entryGuides = preferences?.entryGuides ?? {}
+
+	return {
+		...(preferences ?? {}),
+		entryGuides: {
+			...entryGuides,
+			[guideKey]: {
+				...(entryGuides[guideKey] ?? {}),
+				autoShownAt
+			}
+		}
 	}
 }

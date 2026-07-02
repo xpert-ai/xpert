@@ -1,9 +1,9 @@
-import { Component } from '@angular/core'
+import { Component, signal, type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
-import { AiFeatureEnum, AssistantBindingService, ChatConversationService, Store } from '../../@core'
+import { AiFeatureEnum, AssistantBindingService, ChatConversationService, ScopeService, Store } from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
@@ -59,6 +59,8 @@ jest.mock('../../@core', () => {
       XPERT_EDIT: 'XPERT_EDIT'
     },
     AssistantBindingScope: {
+      TENANT: 'tenant',
+      ORGANIZATION: 'organization',
       USER: 'user'
     },
     AssistantCode: {
@@ -67,8 +69,13 @@ jest.mock('../../@core', () => {
       CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
+    RequestScopeLevel: {
+      TENANT: 'tenant',
+      ORGANIZATION: 'organization'
+    },
     AssistantBindingService,
     ChatConversationService,
+    ScopeService: class ScopeService {},
     Store
   }
 })
@@ -206,9 +213,11 @@ class DummyComponent {}
 
 describe('CloudSidebarAssistantsComponent', () => {
   let assistantBindingService: {
+    changes$: ReturnType<Subject<{ code: string; scope: string }>['asObservable']>
     get: jest.Mock
     getAvailableXperts: jest.Mock
   }
+  let assistantBindingChanges$: Subject<{ code: string; scope: string }>
   let conversationService: {
     getUnreadByXperts: jest.Mock
     unreadRefresh$: Subject<void>
@@ -223,9 +232,14 @@ describe('CloudSidebarAssistantsComponent', () => {
     hasFeatureEnabled: jest.Mock
     hasPermission: jest.Mock
   }
+  let scopeService: {
+    activeScope: WritableSignal<{ level: string; organizationId?: string | null }>
+  }
 
   beforeEach(async () => {
+    assistantBindingChanges$ = new Subject<{ code: string; scope: string }>()
     assistantBindingService = {
+      changes$: assistantBindingChanges$.asObservable(),
       get: jest.fn(() => of({ assistantId: 'bound-xpert' })),
       getAvailableXperts: jest.fn(() =>
         of([
@@ -280,6 +294,9 @@ describe('CloudSidebarAssistantsComponent', () => {
       ),
       hasPermission: jest.fn((permission: string) => permission === 'XPERT_EDIT')
     }
+    scopeService = {
+      activeScope: signal({ level: 'organization', organizationId: 'org-1' })
+    }
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), CloudSidebarAssistantsComponent],
@@ -292,6 +309,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         {
           provide: ChatConversationService,
           useValue: conversationService
+        },
+        {
+          provide: ScopeService,
+          useValue: scopeService
         },
         {
           provide: Store,
@@ -319,6 +340,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(names).toEqual(['Other Assistant'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
+    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('organization', 'chat_common')
   })
 
   it('renders the current bound ClawXpert card from the existing expert source', async () => {
@@ -336,6 +358,98 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__list')).toBeNull()
     expect(assistantBindingService.get).toHaveBeenCalledWith('clawxpert', 'user')
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
+  })
+
+  it('loads tenant-scoped assistants when the active sidebar scope is tenant', async () => {
+    store.organizationId = null
+    store.selectOrganizationId.mockReturnValue(of(null))
+    scopeService.activeScope.set({ level: 'tenant' })
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'tenant-xpert',
+          slug: 'tenant-assistant',
+          title: 'Tenant Assistant',
+          description: 'Tenant-level assistant',
+          latest: true
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const names = Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+      item.textContent.trim()
+    )
+
+    expect(fixture.componentInstance.shouldRender()).toBe(true)
+    expect(names).toEqual(['Tenant Assistant'])
+    expect(assistantBindingService.get).not.toHaveBeenCalled()
+    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('tenant', 'chat_common')
+  })
+
+  it('shows setup status and routes setup actions when ClawXpert is not bound', async () => {
+    assistantBindingService.get.mockReturnValue(of(null))
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateByUrlSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
+
+    fixture.componentRef.setInput('mode', 'current-card')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const statusText = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-status').textContent
+    const actionText = fixture.nativeElement.querySelector(
+      '.cloud-sidebar-assistants__current-action--primary'
+    ).textContent
+
+    expect(statusText).toContain('PAC.Assistant.NotConfigured')
+    expect(statusText).not.toContain('PAC.Assistant.Online')
+    expect(actionText).toContain('PAC.Assistant.Configure')
+    expect(actionText).not.toContain('PAC.Assistant.NewConversation')
+
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-main').click()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-action--primary').click()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-config').click()
+
+    expect(navigateByUrlSpy).toHaveBeenCalledTimes(3)
+    expect(navigateByUrlSpy).toHaveBeenCalledWith('/chat/clawxpert')
+  })
+
+  it('refreshes the current ClawXpert card after the binding changes', async () => {
+    let currentBinding: { assistantId: string } | null = null
+    assistantBindingService.get.mockImplementation(() => of(currentBinding))
+
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.componentRef.setInput('mode', 'current-card')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-status').textContent).toContain(
+      'PAC.Assistant.NotConfigured'
+    )
+
+    currentBinding = { assistantId: 'bound-xpert' }
+    assistantBindingChanges$.next({ code: 'clawxpert', scope: 'user' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const statusText = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-status').textContent
+    const actionText = fixture.nativeElement.querySelector(
+      '.cloud-sidebar-assistants__current-action--primary'
+    ).textContent
+
+    expect(statusText).toContain('PAC.Assistant.Online')
+    expect(statusText).not.toContain('PAC.Assistant.NotConfigured')
+    expect(actionText).toContain('PAC.Assistant.NewConversation')
+    expect(assistantBindingService.get).toHaveBeenCalledTimes(2)
   })
 
   it('routes the current ClawXpert card actions without changing the binding', async () => {

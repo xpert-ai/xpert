@@ -27,7 +27,9 @@
       }
 
       @if (isLast) {
-        <button z-button zSize="sm" type="button" (click)="finish()">{{ entryOnboardingFinishText() | translate }}</button>
+        <button z-button zSize="sm" type="button" (click)="finish()">
+          {{ entryOnboardingFinishText() | translate }}
+        </button>
       } @else {
         <button z-button zSize="sm" type="button" (click)="next()">{{ 'PAC.ACTIONS.Next' | translate }}</button>
       }
@@ -41,7 +43,7 @@
   [zSteps]="entryOnboardingSteps()"
   [zActions]="entryOnboardingActions"
   [zFinishText]="entryOnboardingFinishText() | translate"
-  (zOpenChange)="entryOnboardingOpen.set($event)"
+  (zOpenChange)="onEntryOnboardingOpenChange($event)"
   (zCurrentChange)="entryOnboardingCurrent.set($event)"
   (zFinish)="onEntryOnboardingFinish()"
 />
