@@ -100,7 +100,7 @@ export class FeaturesComponent implements OnInit {
 
   // States
   readonly sidebarCollapsed = signal(true)
-  readonly entryOnboardingOpen = signal(true)
+  readonly entryOnboardingOpen = signal(false)
   readonly entryOnboardingCurrent = signal(0)
   readonly entryOnboardingAllSteps = signal(this.createEntryOnboardingSteps())
   readonly entryOnboardingSteps = signal(this.entryOnboardingAllSteps())
@@ -216,9 +216,6 @@ export class FeaturesComponent implements OnInit {
 
   async ngOnInit() {
     await this._createEntryPoint()
-    if (this.user?.tenantId) {
-      void this.loadEntryOnboardingEligibility()
-    }
 
     this.#store.user$
       .pipe(
@@ -249,9 +246,13 @@ export class FeaturesComponent implements OnInit {
         this.organization = org
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
-        this.reloadEntryOnboardingSteps()
-        this.advanceEntryOnboardingAfterScopeChange(scope.level)
-        this.scheduleEntryOnboardingRefresh()
+        if (this.shouldTrackEntryOnboardingTargets()) {
+          this.reloadEntryOnboardingSteps()
+          this.advanceEntryOnboardingAfterScopeChange(scope.level)
+          this.scheduleEntryOnboardingRefresh()
+        } else {
+          this.#entryOnboardingScopeLevel = scope.level
+        }
       })
   }
 
@@ -471,6 +472,10 @@ export class FeaturesComponent implements OnInit {
   }
 
   private scheduleEntryOnboardingRefresh() {
+    if (!this.shouldTrackEntryOnboardingTargets()) {
+      return
+    }
+
     if (this.#entryOnboardingRefreshHandle !== null) {
       return
     }
@@ -486,6 +491,10 @@ export class FeaturesComponent implements OnInit {
   }
 
   private refreshEntryOnboardingState() {
+    if (!this.shouldTrackEntryOnboardingTargets()) {
+      return
+    }
+
     const availableSteps = getAvailableFeatureEntryOnboardingSteps(this.entryOnboardingAllSteps())
     const blocked = isFeatureEntryOnboardingBlocked()
 
@@ -533,6 +542,13 @@ export class FeaturesComponent implements OnInit {
   private reloadEntryOnboardingSteps() {
     this.entryOnboardingAllSteps.set(this.createEntryOnboardingSteps())
     this.refreshEntryOnboardingState()
+  }
+
+  private shouldTrackEntryOnboardingTargets() {
+    return (
+      this.entryOnboardingOpen() &&
+      shouldShowFeatureEntryOnboardingForXpertCount(this.entryOnboardingXpertCount(), this.entryOnboardingManuallyRequested())
+    )
   }
 
   navigate(link: MenuCatalog) {
