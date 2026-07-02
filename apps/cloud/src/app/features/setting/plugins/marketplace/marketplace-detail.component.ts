@@ -134,9 +134,6 @@ export class PluginMarketplaceDetailComponent {
   })
   readonly trialShortcuts = computed(() => this.resolveTrialShortcuts())
   readonly trialCardBackgroundImage = computed(() => toCssBackgroundImage(resolveTrialCardImage(this.plugin())))
-  readonly trialCardFallbackClass = computed(
-    () => `plugin-trial-card--fallback-${hashString(this.plugin()?.name ?? '') % 3}`
-  )
 
   close(result?: unknown) {
     this.#dialogRef.close(result)
@@ -635,14 +632,6 @@ function isSafeImageUrl(value: string) {
 
 function toCssBackgroundImage(value: string | null) {
   return value ? `url("${value.replace(/["\\]/g, '\\$&')}")` : null
-}
-
-function hashString(value: string) {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
-  }
-  return hash
 }
 
 function appCapabilityPriority(type: string) {

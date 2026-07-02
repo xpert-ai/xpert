@@ -465,6 +465,7 @@ describe('PluginMarketplaceDetailComponent', () => {
           type: 'font',
           value: 'ri-file-text-line'
         },
+        screenshots: ['/assets/images/plugins/documents-trial.png'],
         contributions: [
           {
             type: 'skill',
@@ -539,9 +540,10 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(dialogRef.close).toHaveBeenCalledWith({ action: 'trial-started' })
   })
 
-  it('shows the trial card background without fake shortcut buttons when no shortcut can run', async () => {
+  it('shows a declared trial card background without fake shortcut buttons when no shortcut can run', async () => {
     const { component, fixture } = await createComponent(
       createPlugin({
+        screenshots: ['/assets/images/plugins/documents-trial.png'],
         contributions: [
           {
             type: 'skill',
@@ -560,13 +562,49 @@ describe('PluginMarketplaceDetailComponent', () => {
     )
 
     expect(component.trialShortcuts()).toEqual([])
+    expect(component.trialCardBackgroundImage()).toBe('url("/assets/images/plugins/documents-trial.png")')
     expect(fixture.debugElement.query(By.css('.plugin-trial-card'))).not.toBeNull()
     expect(fixture.debugElement.queryAll(By.css('.plugin-trial-card button'))).toHaveLength(0)
+  })
+
+  it('does not render the trial card when the plugin does not declare a background image', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'documents',
+            displayName: 'Documents'
+          }
+        ],
+        trialShortcuts: [
+          {
+            id: 'memo',
+            label: 'Draft a project memo',
+            prompt: 'Draft a project memo as a document',
+            skillKey: 'documents'
+          }
+        ]
+      }),
+      [
+        {
+          componentType: PLUGIN_COMPONENT_TYPE.SKILL,
+          componentKey: 'documents',
+          definitionHash: 'skill-hash'
+        }
+      ]
+    )
+
+    expect(component.trialCardBackgroundImage()).toBeNull()
+    expect(component.trialShortcuts().map((shortcut) => shortcut.id)).toEqual(['memo'])
+    expect(fixture.debugElement.query(By.css('.plugin-trial-card'))).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Draft a project memo')
   })
 
   it('filters ambiguous prompt-only shortcuts when a plugin exposes multiple skills', async () => {
     const { component, fixture } = await createComponent(
       createPlugin({
+        screenshots: ['/assets/images/plugins/writer-trial.png'],
         contributions: [
           {
             type: 'skill',

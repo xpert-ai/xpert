@@ -47,50 +47,51 @@
     </header>
 
     <div class="min-h-0 overflow-auto px-6 py-5">
-      <section class="mb-6">
-        <div
-          class="plugin-trial-card relative flex min-h-56 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-cover bg-center px-5 py-7"
-          [ngClass]="trialCardFallbackClass()"
-          [style.background-image]="trialCardBackgroundImage()"
-        >
-          <div class="absolute inset-0 bg-components-card-bg/20"></div>
+      @if (trialCardBackgroundImage(); as backgroundImage) {
+        <section class="mb-6">
+          <div
+            class="plugin-trial-card relative flex min-h-56 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-cover bg-center px-5 py-7"
+            [style.background-image]="backgroundImage"
+          >
+            <div class="absolute inset-0 bg-components-card-bg/20"></div>
 
-          @if (trialShortcuts().length) {
-            <div class="relative z-[1] flex w-full max-w-xl flex-col gap-3">
-              @for (shortcut of trialShortcuts(); track shortcut.id) {
-                <button
-                  type="button"
-                  class="group flex min-h-12 w-full items-center gap-2 rounded-2xl bg-components-card-bg/85 px-4 py-2.5 text-left shadow-sm ring-1 ring-divider-regular backdrop-blur-sm transition hover:bg-components-card-bg hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
-                  [disabled]="trialSubmitting()"
-                  [title]="shortcut.prompt"
-                  (click)="tryShortcut(shortcut, $event)"
-                >
-                  <xp-icon
-                    [icon]="shortcut.icon"
-                    size="20"
-                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md"
-                  />
-                  <span class="min-w-0 grow text-sm">
-                    <span class="font-semibold text-primary" [style.color]="shortcut.color || null">{{
-                      shortcut.skillLabel
-                    }}</span>
-                    <span class="ml-2 text-text-primary">{{ shortcut.labelValue | i18n }}</span>
-                  </span>
-                  <span
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-components-panel-bg text-text-secondary transition group-hover:bg-hover-bg group-hover:text-text-primary"
+            @if (trialShortcuts().length) {
+              <div class="relative z-[1] flex w-full max-w-xl flex-col gap-3">
+                @for (shortcut of trialShortcuts(); track shortcut.id) {
+                  <button
+                    type="button"
+                    class="group flex min-h-12 w-full items-center gap-2 rounded-2xl bg-components-card-bg/85 px-4 py-2.5 text-left shadow-sm ring-1 ring-divider-regular backdrop-blur-sm transition hover:bg-components-card-bg hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+                    [disabled]="trialSubmitting()"
+                    [title]="shortcut.prompt"
+                    (click)="tryShortcut(shortcut, $event)"
                   >
-                    @if (activeTrialShortcutId() === shortcut.id) {
-                      <ngm-spin small />
-                    } @else {
-                      <i class="ri-arrow-right-line"></i>
-                    }
-                  </span>
-                </button>
-              }
-            </div>
-          }
-        </div>
-      </section>
+                    <xp-icon
+                      [icon]="shortcut.icon"
+                      size="20"
+                      class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md"
+                    />
+                    <span class="min-w-0 grow text-sm">
+                      <span class="font-semibold text-primary" [style.color]="shortcut.color || null">{{
+                        shortcut.skillLabel
+                      }}</span>
+                      <span class="ml-2 text-text-primary">{{ shortcut.labelValue | i18n }}</span>
+                    </span>
+                    <span
+                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-components-panel-bg text-text-secondary transition group-hover:bg-hover-bg group-hover:text-text-primary"
+                    >
+                      @if (activeTrialShortcutId() === shortcut.id) {
+                        <ngm-spin small />
+                      } @else {
+                        <i class="ri-arrow-right-line"></i>
+                      }
+                    </span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
 
       <section>
         <div class="flex items-center justify-between">
