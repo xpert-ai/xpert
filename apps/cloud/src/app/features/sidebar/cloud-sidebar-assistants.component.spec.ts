@@ -351,11 +351,11 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-main').click()
     fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-action--primary').click()
-    fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__current-action')[1].click()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-config').click()
 
-    expect(
-      fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-action--icon i').className
-    ).toContain('ri-equalizer-2-line')
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-config i').className).toContain(
+      'ri-equalizer-2-line'
+    )
     expect(
       fixture.nativeElement.querySelector('.cloud-sidebar-assistants__current-action--primary z-icon')
     ).not.toBeNull()
