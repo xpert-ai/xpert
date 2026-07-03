@@ -12,7 +12,21 @@
     />
   </div>
 
-  <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+    <div class="flex flex-wrap items-center gap-1">
+      @for (option of userTypeQuickFilters; track option.value ?? 'all') {
+        <button
+          z-button
+          type="button"
+          zSize="sm"
+          [zType]="isUserTypeQuickFilterActive(option.value) ? 'default' : 'ghost'"
+          (click)="selectUserTypeQuickFilter(option.value)"
+        >
+          {{ option.labelKey | translate: { Default: option.defaultLabel } }}
+        </button>
+      }
+    </div>
+
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
       <label class="shrink-0 text-sm text-text-tertiary">
         {{ 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
@@ -89,7 +103,7 @@
       {{ 'PAC.KEY_WORDS.Users' | translate: { Default: 'Users' } }}
     </span>
 
-    @if (roles.length || status !== allStatusFilter || organizationIds.length) {
+    @if (roles.length || !isDefaultUserTypeFilter() || status !== allStatusFilter || organizationIds.length) {
       <button z-button zType="ghost" zSize="sm" type="button" (click)="clearFilters()">
         {{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
       </button>
@@ -97,15 +111,15 @@
   </div>
 
   @if (users.length) {
-    <div class="min-h-0 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg">
+    <div class="min-h-0 overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
       <table z-table zSize="compact" class="min-w-max text-sm">
         <thead z-table-header class="text-text-secondary">
           <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-72 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="sticky top-0 z-10 w-80 bg-background px-4 whitespace-nowrap">
               {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-44 bg-background px-4 whitespace-nowrap">
-              {{ 'PAC.KEY_WORDS.Username' | translate: { Default: 'Username' } }}
+            <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
+              {{ 'PAC.Users.UserType' | translate: { Default: 'User type' } }}
             </th>
             <th z-table-head scope="col" class="sticky top-0 z-10 w-64 bg-background px-4 whitespace-nowrap">
               {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
@@ -143,13 +157,43 @@
               (click)="openUser(user)"
             >
               <td z-table-cell class="px-4 py-3">
-                <pac-user-profile-inline class="min-w-0" [user]="user" small />
+                <div class="flex min-w-0 items-center gap-3">
+                  <div class="relative h-8 w-8 shrink-0">
+                    <img
+                      class="h-full w-full rounded-full object-cover object-center"
+                      [src]="user.imageUrl || '/assets/images/avatar-default.svg'"
+                      [alt]="userIdentityTitle(user)"
+                    />
+                    @if (user.deletedAt) {
+                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"></span>
+                    } @else {
+                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"></span>
+                    }
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="max-w-64 truncate font-medium text-text-primary" [title]="userIdentityTitle(user)">
+                      {{ userIdentityTitle(user) || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                    </div>
+
+                    @if (userIdentitySubtitle(user)) {
+                      <div class="max-w-64 truncate text-xs text-text-tertiary" [title]="userIdentitySubtitle(user)">
+                        {{ userIdentitySubtitle(user) }}
+                      </div>
+                    }
+                  </div>
+                </div>
               </td>
 
-              <td z-table-cell class="px-4 py-3 text-text-secondary">
-                <span class="block max-w-40 truncate" [title]="user.username || ''">
-                  {{ user.username || ('PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                </span>
+              <td z-table-cell class="px-4 py-3">
+                <z-badge
+                  zType="secondary"
+                  zShape="pill"
+                  class="max-w-36 truncate"
+                  [ngClass]="userTypeBadgeClass(user.type)"
+                >
+                  {{ userTypeLabelKey(user.type) | translate: { Default: userTypeDefaultLabel(user.type) } }}
+                </z-badge>
               </td>
 
               <td z-table-cell class="px-4 py-3">
@@ -237,18 +281,20 @@
                       <z-icon zType="edit"></z-icon>
                     </button>
 
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon"
-                      zShape="circle"
-                      type="button"
-                      class="text-text-destructive"
-                      [attr.aria-label]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-                      (click)="remove(user); $event.stopPropagation()"
-                    >
-                      <z-icon zType="trash"></z-icon>
-                    </button>
+                    @if (!isTechnicalUser(user)) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        zShape="circle"
+                        type="button"
+                        class="text-text-destructive"
+                        [attr.aria-label]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                        (click)="remove(user); $event.stopPropagation()"
+                      >
+                        <z-icon zType="trash"></z-icon>
+                      </button>
+                    }
                   </div>
                 </td>
               }
@@ -259,7 +305,7 @@
     </div>
   } @else {
     <div
-      class="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-components-panel-bg px-6 py-10 text-center"
+      class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-panel-bg px-6 py-10 text-center"
     >
       <z-icon zType="users" class="text-text-tertiary" zSize="lg"></z-icon>
       <div class="mt-3 text-sm font-medium text-text-primary">

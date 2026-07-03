@@ -23,7 +23,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
         width: 100%;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
       }
     `
   ],
@@ -32,6 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 export class UserBasicComponent {
   // Inputs
   readonly allowRoleChange = input<boolean>()
+  readonly readOnly = input<boolean>(false)
 
   // Children
   readonly userBasicInfo = viewChild(BasicInfoFormComponent)
@@ -54,6 +55,10 @@ export class UserBasicComponent {
   // }
 
   async save() {
+    if (this.readOnly()) {
+      return
+    }
+
     const { email, username, firstName, lastName, tags, preferredLanguage, imageUrl, roleId, thirdPartyId, timeZone } =
       this.user
     let request: IUserUpdateInput = {

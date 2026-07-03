@@ -1,15 +1,22 @@
-<div class="w-full flex justify-center">
+<div class="w-full max-w-[700px]">
   <pac-user-basic-info-form
     #userBasicInfo
-    class="block max-w-[700px]"
+    class="block w-full"
     [isSuperAdmin]="true"
     [password]="false"
+    [readOnly]="readOnly()"
     [(ngModel)]="user"
   />
 </div>
 
-<div class="w-full flex justify-end p-2">
-  <button z-button zType="default" (click)="save()">
-    {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-  </button>
-</div>
+@if (readOnly()) {
+  <div class="w-full max-w-[700px] px-2 pt-2 text-sm text-text-tertiary">
+    {{ 'PAC.Users.TechnicalUserReadonlyHint' | translate: { Default: 'Basic account fields are read-only for technical users.' } }}
+  </div>
+} @else {
+  <div class="flex w-full max-w-[700px] justify-end p-2">
+    <button z-button zType="default" (click)="save()">
+      {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+    </button>
+  </div>
+}

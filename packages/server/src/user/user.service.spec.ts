@@ -2,7 +2,9 @@ jest.mock('../core/context', () => ({
 	RequestContext: {
 		currentUserId: jest.fn(),
 		currentTenantId: jest.fn(),
-		hasPermission: jest.fn()
+		currentRoleId: jest.fn(),
+		hasPermission: jest.fn(),
+		hasAnyPermission: jest.fn()
 	}
 }))
 
@@ -60,7 +62,8 @@ jest.mock('./events', () => ({
 }))
 
 const { RequestContext } = require('../core/context')
-const { RolesEnum } = require('@xpert-ai/contracts')
+const { BadRequestException } = require('@nestjs/common')
+const { RolesEnum, UserType } = require('@xpert-ai/contracts')
 const { UserService } = require('./user.service')
 
 describe('UserService', () => {
@@ -98,7 +101,9 @@ describe('UserService', () => {
 		jest.clearAllMocks()
 		RequestContext.currentUserId.mockReturnValue('requester-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		RequestContext.currentRoleId.mockReturnValue('role-1')
 		RequestContext.hasPermission.mockReturnValue(true)
+		RequestContext.hasAnyPermission.mockReturnValue(true)
 
 		service = new UserService(
 			userRepository as any,
@@ -540,6 +545,52 @@ describe('UserService', () => {
 			})
 		)
 		expect(userRepository.softDelete).toHaveBeenCalledWith('user-1')
+	})
+
+	it('rejects profile updates for technical users', async () => {
+		service.findOneByIdString = jest.fn().mockResolvedValue({
+			id: 'technical-user-1',
+			type: UserType.COMMUNICATION,
+			role: {
+				name: RolesEnum.ADMIN
+			}
+		})
+
+		await expect(
+			service.updateProfile('technical-user-1', {
+				id: 'technical-user-1',
+				username: 'updated-technical-user'
+			} as any)
+		).rejects.toBeInstanceOf(BadRequestException)
+	})
+
+	it('rejects password resets for technical users', async () => {
+		service.findOne = jest.fn().mockResolvedValue({
+			id: 'technical-user-1',
+			type: UserType.COMMUNICATION,
+			role: {
+				name: RolesEnum.ADMIN
+			}
+		})
+
+		await expect(service.resetPassword('technical-user-1', undefined, 'new-password')).rejects.toBeInstanceOf(
+			BadRequestException
+		)
+	})
+
+	it('rejects user deletion for technical users', async () => {
+		service.findOneByIdWithinTenant = jest.fn().mockResolvedValue({
+			id: 'technical-user-1',
+			tenantId: 'tenant-1',
+			type: UserType.COMMUNICATION,
+			role: {
+				name: RolesEnum.ADMIN
+			}
+		})
+
+		await expect(service.deleteWithGuards('technical-user-1')).rejects.toBeInstanceOf(BadRequestException)
+		expect(userOrganizationService.findAll).not.toHaveBeenCalled()
+		expect(userRepository.softDelete).not.toHaveBeenCalled()
 	})
 
 })

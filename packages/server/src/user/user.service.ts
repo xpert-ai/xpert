@@ -504,6 +504,10 @@ export class UserService extends TenantAwareCrudService<User> {
 			throw new NotFoundException(`The user was not found`)
 		}
 
+		if (user.type === UserType.COMMUNICATION) {
+			throw new BadRequestException('Technical users cannot be updated through user profile management.')
+		}
+
 		const isSelf = RequestContext.currentUserId() === id
 		const canManageUsers = RequestContext.hasAnyPermission([
 			PermissionsEnum.ALL_ORG_EDIT,
@@ -578,6 +582,10 @@ export class UserService extends TenantAwareCrudService<User> {
 			throw new NotFoundException(`The user '${id}' was not found`)
 		}
 
+		if (user.type === UserType.COMMUNICATION) {
+			throw new BadRequestException('Technical users cannot be updated through user profile management.')
+		}
+
 		if (user.role?.name === RolesEnum.SUPER_ADMIN) {
 			if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
 				throw new ForbiddenException()
@@ -610,6 +618,10 @@ export class UserService extends TenantAwareCrudService<User> {
 		const user = await this.findOneByIdWithinTenant(id, tenantId, {
 			relations: ['role']
 		})
+
+		if (user.type === UserType.COMMUNICATION) {
+			throw new BadRequestException('Technical users cannot be deleted through user management.')
+		}
 
 		if (!user.role?.name) {
 			throw new BadRequestException('The user role is required before deleting the user.')

@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectOrganization, Store } from '@xpert-ai/cloud/state'
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs'
-import { distinctUntilChanged } from 'rxjs/operators'
+import { distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgxPermissionsService } from 'ngx-permissions'
 import {
   IUser,
@@ -49,6 +49,17 @@ export class PACUsersComponent extends TranslationBaseComponent {
     initialValue: this.permissionsService.getPermissions()
   })
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
+  readonly childRoutePath = toSignal(
+    this.router.events.pipe(
+      startWith(null),
+      map(() => this._route.firstChild?.snapshot.routeConfig?.path ?? ''),
+      distinctUntilChanged()
+    ),
+    {
+      initialValue: this._route.firstChild?.snapshot.routeConfig?.path ?? ''
+    }
+  )
+  readonly isListRoute = computed(() => this.childRoutePath() === '')
   readonly canManageInvites = computed(() => {
     this.activeScope()
     this.permissions()

@@ -1,88 +1,130 @@
-<div class="pac-page-header px-8 py-4">
-  <div class="min-w-0 flex flex-col">
+<div class="flex flex-col gap-6 px-8 py-5">
+  <div class="flex min-w-0 flex-col gap-4">
     <button
       type="button"
-      class="mb-3 inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+      class="inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
       (click)="backToList()"
     >
       <i class="ri-arrow-left-line text-base"></i>
       <span>{{ 'PAC.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
     </button>
 
-    <div class="pac-page-title">
-      {{ user() ? userLabel(user()) : ('PAC.MENU.USERS' | translate: { Default: 'Users' }) }}
-    </div>
-  </div>
-</div>
-
-<div class="px-8 py-4">
-  <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.USERS_PAGE.BASIC' | translate: { Default: 'Basic' } }}
-  </div>
-
-  <pac-user-basic
-    class="border border-solid border-divider-regular rounded-xl p-4"
-    [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
-  />
-</div>
-
-<div class="px-8 py-4">
-  <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
-  </div>
-
-  <div class="border border-solid border-divider-regular rounded-xl p-4">
-    <pac-user-change-password-form
-      #password
-      [(ngModel)]="newPassword"
-      class="block max-w-lg m-auto ng-untouched ng-pristine ng-valid"
-    />
-
-    <div class="w-full flex justify-end p-2">
-      <button z-button zType="default" (click)="changePassword()">
-        {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="px-8 py-4">
-  <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.MENU.ORGANIZATIONS' | translate: { Default: 'Organizations' } }}
-  </div>
-  <pac-user-organizations class="border border-solid border-divider-regular rounded-xl" />
-</div>
-
-@if (user()?.id) {
-  <div class="px-8 py-4">
-    <div class="text-xl font-semibold pb-2">
-      {{ 'PAC.Membership.UserMembership' | translate: { Default: 'Membership' } }}
-    </div>
-    <pac-user-membership class="block border border-solid border-divider-regular rounded-xl p-4" [userId]="user().id" />
-  </div>
-}
-
-<div class="px-8 py-4">
-  <div class="text-xl font-semibold text-text-destructive pb-2">
-    {{ 'PAC.KEY_WORDS.DangerZone' | translate: { Default: 'Danger zone' } }}
-  </div>
-
-  <div class="border border-solid border-text-destructive rounded-xl flex flex-col">
-    <div class="w-full flex justify-between items-center p-4">
-      <div class="flex flex-col">
-        <div class="font-semibold">
-          {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+    @if (user(); as currentUser) {
+      <div class="flex min-w-0 flex-col gap-2">
+        <div class="pac-page-title truncate">
+          {{ userLabel(currentUser) }}
         </div>
-        <div>
-          {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' } }}.
+
+        <div class="flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
+          <z-badge
+            zType="secondary"
+            zShape="pill"
+            [class.text-text-accent]="isTechnicalUser(currentUser)"
+            [class.text-text-primary]="!isTechnicalUser(currentUser)"
+          >
+            {{ userTypeLabelKey(currentUser.type) | translate: { Default: userTypeDefaultLabel(currentUser.type) } }}
+          </z-badge>
+
+          <z-badge
+            zType="secondary"
+            zShape="pill"
+            [class.text-text-tertiary]="currentUser.deletedAt"
+            [class.text-text-success]="!currentUser.deletedAt"
+          >
+            {{ userStatusLabelKey(currentUser) | translate: { Default: userStatusDefaultLabel(currentUser) } }}
+          </z-badge>
+
+          @if (currentUser.role; as role) {
+            <z-badge zType="secondary" zShape="pill" class="uppercase text-text-primary">
+              {{ role.name }}
+            </z-badge>
+          } @else {
+            <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
+              {{ 'PAC.USERS_PAGE.NoRole' | translate: { Default: 'No role' } }}
+            </z-badge>
+          }
         </div>
+
+        @if (isTechnicalUser(currentUser)) {
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Users.TechnicalUserReadonlyHint' | translate: { Default: 'Basic account fields are read-only for technical users.' } }}
+          </div>
+        }
       </div>
-
-      <button type="button" class="btn btn-large danger pressable" (click)="deleteUser()">
-        {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
-      </button>
-    </div>
+    } @else {
+      <div class="pac-page-title">
+        {{ 'PAC.MENU.USERS' | translate: { Default: 'Users' } }}
+      </div>
+    }
   </div>
+
+  @if (user(); as currentUser) {
+    <z-tab-group
+      class="min-h-0"
+      fitInkBarToContent
+      preserveContent
+      [selectedIndex]="activeTabIndex()"
+      (selectedIndexChange)="selectTabByIndex($event)"
+    >
+      <z-tab [label]="'PAC.Users.Tabs.Basic' | translate: { Default: 'Basic information' }" bodyClass="pt-5">
+        <pac-user-basic
+          [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
+          [readOnly]="isTechnicalUser(currentUser)"
+        />
+      </z-tab>
+
+      <z-tab [label]="'PAC.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
+        @if (currentUser.id; as userId) {
+          <pac-user-membership class="block" [userId]="userId" />
+        }
+      </z-tab>
+
+      @if (!isTechnicalUser(currentUser)) {
+        <z-tab [label]="'PAC.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
+          <pac-user-organizations />
+        </z-tab>
+      }
+
+      @if (!isTechnicalUser(currentUser)) {
+        <z-tab [label]="'PAC.Users.Tabs.Security' | translate: { Default: 'Security' }" bodyClass="pt-5">
+          <section class="flex max-w-5xl flex-col gap-8">
+            <div class="max-w-xl">
+              <div class="mb-3 text-base font-semibold">
+                {{ 'PAC.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
+              </div>
+
+              <pac-user-change-password-form
+                #password
+                [(ngModel)]="newPassword"
+                class="block ng-untouched ng-pristine ng-valid"
+              />
+
+              <div class="flex justify-end pt-3">
+                <button z-button zType="default" (click)="changePassword()">
+                  {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div class="min-w-0">
+                <div class="font-semibold text-text-destructive">
+                  {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+                </div>
+                <div class="text-sm text-text-tertiary">
+                  {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' } }}.
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-large danger pressable shrink-0" (click)="deleteUser()">
+                {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+              </button>
+            </div>
+          </section>
+        </z-tab>
+      }
+    </z-tab-group>
+  }
 </div>
 
 @if (loading()) {
