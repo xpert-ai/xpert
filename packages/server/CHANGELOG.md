@@ -1,5 +1,13 @@
 # @xpert-ai/server-core
 
+## 3.9.20
+
+### Patch Changes
+
+- Updated dependencies [481ffba]
+    - @xpert-ai/plugin-sdk@3.15.2
+    - @xpert-ai/contracts@3.15.3
+
 ## 3.9.19
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.2
+
+### Patch Changes
+
+- 481ffba: file understanding & vector store
+- Updated dependencies [481ffba]
+  - @xpert-ai/contracts@3.15.3
+
 ## 3.15.1
 
 ### Patch Changes
