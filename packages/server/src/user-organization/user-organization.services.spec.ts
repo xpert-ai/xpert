@@ -10,8 +10,8 @@ jest.mock('../core/context', () => ({
 import type { Cache } from 'cache-manager'
 import type { EventEmitter2 } from '@nestjs/event-emitter'
 import type { Repository } from 'typeorm'
+import { RolesEnum, type IUser, type IUserOrganization } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
-import { Organization } from '../organization/organization.entity'
 import { EVENT_USER_ORGANIZATION_DELETED } from '../user/events'
 import { UserOrganization } from './user-organization.entity'
 import { UserOrganizationService } from './user-organization.services'
@@ -22,9 +22,6 @@ describe('UserOrganizationService', () => {
 		findOne: jest.fn(),
 		delete: jest.fn(),
 		update: jest.fn()
-	}
-	const organizationRepository = {
-		find: jest.fn()
 	}
 	const eventEmitter = {
 		emit: jest.fn()
@@ -46,10 +43,58 @@ describe('UserOrganizationService', () => {
 
 		service = new UserOrganizationService(
 			userOrganizationRepository as unknown as Repository<UserOrganization>,
-			organizationRepository as unknown as Repository<Organization>,
 			eventEmitter as unknown as EventEmitter2,
 			cacheManager as unknown as Cache
 		)
+	})
+
+	it('skips super admin users instead of creating organization memberships', async () => {
+		const ensureMembership = jest.spyOn(service, 'ensureMembership')
+
+		const result = await service.addUserToOrganization(
+			{
+				id: 'super-admin-1',
+				tenantId: 'tenant-1',
+				role: {
+					name: RolesEnum.SUPER_ADMIN
+				}
+			} as IUser,
+			'org-1'
+		)
+
+		expect(result).toEqual([])
+		expect(ensureMembership).not.toHaveBeenCalled()
+		expect(userOrganizationRepository.findOne).not.toHaveBeenCalled()
+	})
+
+	it('creates requested memberships for non-super-admin users', async () => {
+		const membership = {
+			id: 'membership-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'admin-1',
+			isDefault: true,
+			isActive: true
+		} as IUserOrganization
+		const ensureMembership = jest.spyOn(service, 'ensureMembership').mockResolvedValue(membership)
+
+		const result = await service.addUserToOrganization(
+			{
+				id: 'admin-1',
+				tenantId: 'tenant-1',
+				role: {
+					name: RolesEnum.ADMIN
+				}
+			} as IUser,
+			'org-1'
+		)
+
+		expect(result).toBe(membership)
+		expect(ensureMembership).toHaveBeenCalledWith({
+			organizationId: 'org-1',
+			tenantId: 'tenant-1',
+			userId: 'admin-1'
+		})
 	})
 
 	it('bulk removes organization memberships and preserves per-user side effects', async () => {

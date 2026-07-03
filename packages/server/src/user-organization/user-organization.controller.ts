@@ -20,11 +20,14 @@ import { CrudController } from './../core/crud'
 import {
 	IUserOrganization,
 	IUserOrganizationCreateInput,
+	IUserOrganizationFindInput,
 	LanguagesEnum,
 	IPagination,
 	PermissionsEnum,
+	RolesEnum,
 	isUserOrganizationEntryGuideKey
 } from '@xpert-ai/contracts'
+import { Not } from 'typeorm'
 import { UserOrganizationService } from './user-organization.services'
 import { UserOrganization } from './user-organization.entity'
 import { CommandBus } from '@nestjs/cqrs'
@@ -69,7 +72,7 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 			: created
 
 		if (!membership) {
-			throw new BadRequestException(`Unable to resolve membership for organization '${entity.organizationId}'`)
+			throw new BadRequestException('Super admin users are not organization members.')
 		}
 
 		const patch: Partial<IUserOrganization> = {}
@@ -110,12 +113,12 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		const { relations, findInput } = data
 		this.ensureAccessibleOrganization(findInput?.organizationId)
 		return this.userOrganizationService.findAll({
-			where: {
+			where: this.buildVisibleMembershipWhere({
 				...(findInput ?? {}),
 				...(!this.canViewAllOrganizations()
 					? { organizationId: this.requireAccessibleOrganizationId(findInput?.organizationId) }
 					: {})
-			},
+			}),
 			relations
 		})
 	}
@@ -217,10 +220,24 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		this.requireAccessibleOrganizationId(organizationId)
 	}
 
+	private buildVisibleMembershipWhere(findInput?: IUserOrganizationFindInput | null) {
+		return {
+			...(findInput ?? {}),
+			user: {
+				role: {
+					name: Not(RolesEnum.SUPER_ADMIN)
+				}
+			}
+		}
+	}
+
 	private async ensureMembershipAccess(id: string) {
 		const membership = await this.userOrganizationService.findOne(id, {
-			relations: ['organization']
+			relations: ['organization', 'user', 'user.role']
 		})
+		if (membership.user?.role?.name === RolesEnum.SUPER_ADMIN) {
+			throw new BadRequestException('Super admin users are not organization members.')
+		}
 		this.ensureAccessibleOrganization(membership.organizationId)
 		return membership
 	}
