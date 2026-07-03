@@ -1740,7 +1740,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       name: 'tool_log',
       data: {
         detail: {
-          tool: 'sandbox_shell'
+          tool: 'sandbox_append_file'
         }
       }
     })
@@ -1801,7 +1801,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 
-  it('refreshes the file list for legacy Bash execute log events', async () => {
+  it('ignores legacy Bash execute log events for file list refresh', async () => {
     jest.useFakeTimers()
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settleWithFakeTimers(fixture)
@@ -1821,12 +1821,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
     fixture.detectChanges()
 
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(filesPanel).not.toBeNull()
-
     jest.advanceTimersByTime(300)
     fixture.detectChanges()
-    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).not.toBeNull()
   })
 })
