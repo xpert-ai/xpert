@@ -1,7 +1,7 @@
 import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import { ChatConversationService, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
 import { XpertComponent } from '../xpert.component'
 import { XpertLogsComponent } from './logs.component'
@@ -75,6 +75,14 @@ function createConversation(overrides: Partial<TChatConversationLog> = {}): TCha
     updatedAt: new Date('2026-06-02T00:00:00.000Z'),
     ...overrides
   }
+}
+
+function createIntersectionEntry(overrides: Partial<IntersectionObserverEntry> = {}): IntersectionObserverEntry {
+  return {
+    isIntersecting: false,
+    intersectionRatio: 0,
+    ...overrides
+  } as IntersectionObserverEntry
 }
 
 async function setup(options?: { conversations?: TChatConversationLog[]; response?: unknown }) {
@@ -258,6 +266,58 @@ describe('XpertLogsComponent', () => {
     expect(context.component.conversations()).toEqual([])
     expect(context.component.total()).toBe(3)
     expect(fixture.nativeElement.textContent).toContain('PAC.Xpert.NoLogs')
+  })
+
+  it('ignores non-intersecting load-more observer events', async () => {
+    const firstPage = Array.from({ length: 20 }, (_, index) =>
+      createConversation({ id: `conversation-${index + 1}`, threadId: `thread-${index + 1}` })
+    )
+    const context = await setup({
+      conversations: firstPage,
+      response: { items: firstPage, total: 60 }
+    })
+    fixture = context.fixture
+
+    context.xpertService.getConversations.mockClear()
+    context.component.onIntersection([createIntersectionEntry()])
+
+    expect(context.xpertService.getConversations).not.toHaveBeenCalled()
+  })
+
+  it('coalesces repeated load-more observer events while a page request is in flight', async () => {
+    const firstPage = Array.from({ length: 20 }, (_, index) =>
+      createConversation({ id: `conversation-${index + 1}`, threadId: `thread-${index + 1}` })
+    )
+    const context = await setup({
+      conversations: firstPage,
+      response: { items: firstPage, total: 60 }
+    })
+    fixture = context.fixture
+    const pending = new Subject<{ items: TChatConversationLog[]; total: number }>()
+
+    context.xpertService.getConversations.mockClear()
+    context.xpertService.getConversations.mockReturnValue(pending.asObservable())
+
+    context.component.onIntersection([createIntersectionEntry({ isIntersecting: true, intersectionRatio: 1 })])
+    context.component.onIntersection([createIntersectionEntry({ isIntersecting: true, intersectionRatio: 1 })])
+
+    expect(context.xpertService.getConversations).toHaveBeenCalledTimes(1)
+    expect(context.xpertService.getConversations).toHaveBeenCalledWith(
+      'xpert-1',
+      expect.objectContaining({
+        take: 20,
+        skip: 20
+      }),
+      expect.any(Array),
+      ''
+    )
+
+    pending.next({ items: [createConversation({ id: 'conversation-21' })], total: 60 })
+    pending.complete()
+    await fixture.whenStable()
+
+    expect(context.component.conversations()).toHaveLength(21)
+    expect(context.component.conversations().at(-1)?.id).toBe('conversation-21')
   })
 
   it('persists manual column resizing', async () => {

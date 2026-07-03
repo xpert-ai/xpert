@@ -472,6 +472,7 @@ export class XpertLogsComponent {
   readonly previewOrganizationId = computed(() => this.previewConversation()?.organizationId ?? null)
 
   #requestSeq = 0
+  #activeLoadRequestId: number | null = null
   #activeResize: ColumnResizeState | null = null
 
   constructor() {
@@ -509,10 +510,11 @@ export class XpertLogsComponent {
 
   async loadConversations(reset = false, requestId = ++this.#requestSeq) {
     const xpertId = this.xpertId()
-    if (!xpertId || (!reset && (this.loading() || this.done()))) {
+    if (!xpertId || (!reset && !this.canLoadMore())) {
       return
     }
 
+    this.#activeLoadRequestId = requestId
     this.loading.set(true)
     this.error.set('')
 
@@ -552,15 +554,25 @@ export class XpertLogsComponent {
         this.done.set(true)
       }
     } finally {
+      if (this.#activeLoadRequestId === requestId) {
+        this.#activeLoadRequestId = null
+      }
+
       if (requestId === this.#requestSeq) {
         this.loading.set(false)
       }
     }
   }
 
-  onIntersection() {
-    if (!this.loading() && !this.done()) {
+  loadMore() {
+    if (this.canLoadMore()) {
       void this.loadConversations()
+    }
+  }
+
+  onIntersection(entries: IntersectionObserverEntry[]) {
+    if (this.isIntersecting(entries)) {
+      this.loadMore()
     }
   }
 
@@ -799,6 +811,14 @@ export class XpertLogsComponent {
     }
 
     return where
+  }
+
+  private canLoadMore() {
+    return !this.loading() && !this.done() && this.#activeLoadRequestId === null
+  }
+
+  private isIntersecting(entries: IntersectionObserverEntry[]) {
+    return entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)
   }
 
   private loadColumnSettings(xpertId: string | null) {
