@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.3
+
+### Patch Changes
+
+- bdcb73b: handoff messages
+- Updated dependencies [bdcb73b]
+  - @xpert-ai/contracts@3.15.4
+
 ## 3.15.2
 
 ### Patch Changes

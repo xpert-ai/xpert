@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.4
+
+### Patch Changes
+
+- bdcb73b: handoff messages
+
 ## 3.15.3
 
 ### Patch Changes
