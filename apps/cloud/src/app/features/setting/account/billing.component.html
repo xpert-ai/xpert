@@ -187,22 +187,22 @@
           <table class="min-w-full text-sm">
             <thead class="border-b border-divider-regular bg-components-panel-bg text-xs text-text-tertiary">
               <tr>
-                <th class="px-4 py-3 text-left font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
                   {{ 'PAC.KEY_WORDS.Date' | translate: { Default: 'Date' } }}
                 </th>
-                <th class="px-4 py-3 text-left font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
                   {{ 'PAC.Membership.Session' | translate: { Default: 'Session' } }}
                 </th>
-                <th class="px-4 py-3 text-left font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
                   {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
                 </th>
-                <th class="px-4 py-3 text-right font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-right font-medium">
                   {{ 'PAC.Membership.Calls' | translate: { Default: 'Calls' } }}
                 </th>
-                <th class="px-4 py-3 text-right font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-right font-medium">
                   {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
                 </th>
-                <th class="px-4 py-3 text-right font-medium">
+                <th class="whitespace-nowrap px-4 py-3 text-right font-medium">
                   {{ 'PAC.Membership.Tokens' | translate: { Default: 'Tokens' } }}
                 </th>
               </tr>
@@ -229,12 +229,21 @@
                       </div>
                     </div>
                   </td>
-                  <td class="px-4 py-3">
-                    <div class="min-w-32 text-text-primary">
-                      {{ shortId(summary.threadId) }}
+                  <td
+                    class="max-w-56 px-4 py-3"
+                    [title]="
+                      conversationLabel(summary) +
+                      ' / ' +
+                      ('PAC.Membership.Xpert' | translate: { Default: 'Xpert' }) +
+                      ' ' +
+                      xpertLabel(summary)
+                    "
+                  >
+                    <div class="truncate text-text-primary">
+                      {{ conversationLabel(summary) }}
                     </div>
-                    <div class="text-xs text-text-tertiary">
-                      {{ 'PAC.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ shortId(summary.xpertId) }}
+                    <div class="truncate text-xs text-text-tertiary">
+                      {{ 'PAC.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ xpertLabel(summary) }}
                     </div>
                   </td>
                   <td
