@@ -88,7 +88,7 @@ export type FileUploadUnderstandingOptions = {
 export type AgentFile = {
     id: string
     fileId: string
-    storageFileId: string
+    storageFileId?: string
     objectKey?: string
     url?: string
     fileUrl?: string

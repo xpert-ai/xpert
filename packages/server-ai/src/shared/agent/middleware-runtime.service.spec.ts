@@ -80,7 +80,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
-import { GetFileAssetQuery } from '../../file-understanding'
+import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
 import {
     CreateKnowledgebaseDocumentsCommand,
     DeleteAgentKnowledgeChunksCommand,
@@ -790,6 +790,80 @@ describe('AgentMiddlewareRuntimeService', () => {
                         fileName: 'v1-abcd1234.docx'
                     })
                 ]
+            })
+        )
+    })
+
+    it('registers workspace files for file understanding without creating storage files', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateWorkspaceFileAssetCommand) {
+                return {
+                    id: 'file-asset-1',
+                    originalName: 'contract.docx',
+                    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    size: 4,
+                    workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                    status: 'parsing',
+                    parseStatus: 'queued',
+                    purpose: 'chat_attachment',
+                    parseMode: 'auto',
+                    capabilities: ['workspace'],
+                    metadata: {
+                        workspace: {
+                            catalog: 'xperts',
+                            scopeId: 'xpert-1',
+                            relativePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                            fileUrl: 'https://files.example/files/wechat/contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            size: 4
+                        }
+                    }
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).understandFile({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            isolateByUser: false,
+            filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            originalName: 'contract.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            size: 4,
+            fileUrl: 'https://files.example/files/wechat/contract.docx',
+            purpose: 'chat_attachment',
+            parseMode: 'auto'
+        })
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                id: 'file-asset-1',
+                fileId: 'file-asset-1',
+                fileAssetId: 'file-asset-1',
+                filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                originalName: 'contract.docx',
+                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                size: 4,
+                catalog: 'xperts',
+                scopeId: 'xpert-1',
+                status: 'parsing',
+                parseStatus: 'parsing'
+            })
+        )
+        expect(result).not.toHaveProperty('storageFileId')
+        const command = commandBus.execute.mock.calls[0][0] as CreateWorkspaceFileAssetCommand
+        expect(command.input).toEqual(
+            expect.objectContaining({
+                catalog: 'xperts',
+                xpertId: 'xpert-1',
+                isolateByUser: false,
+                filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                originalName: 'contract.docx'
             })
         )
     })

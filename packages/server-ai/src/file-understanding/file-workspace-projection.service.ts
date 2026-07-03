@@ -59,11 +59,6 @@ export class FileWorkspaceProjectionService {
 
         try {
             const sandboxProvider = input.sandboxProvider ?? readWorkspaceProvider(asset.metadata)
-            const storageFile = await this.resolveStorageFile(input.storageFileId ?? asset.storageFileId)
-            if (!storageFile) {
-                return asset
-            }
-
             const workArea = await this.workAreaResolver.resolve({
                 tenantId,
                 userId,
@@ -74,17 +69,17 @@ export class FileWorkspaceProjectionService {
             })
             // Store paths in the workspace namespace visible to agent tools, not
             // the backend server path used to write the projected file.
-            const fileName = normalizeFileName(
-                storageFile.originalName ?? asset.originalName ?? path.basename(storageFile.file)
-            )
             const baseRelativePath =
                 workArea.sessionPath?.relativePath ?? normalizeRelativePath('sessions', conversationId)
-            const assetFolderRelativePath = normalizeRelativePath(baseRelativePath, 'files', asset.id)
-            const relativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
-            const serverPath = workArea.volume.path(relativePath)
-
+            const storageFile = await this.resolveStorageFile(input.storageFileId ?? asset.storageFileId)
             let projectedAsset = asset
-            if (!asset.workspacePath) {
+            let assetFolderRelativePath = normalizeRelativePath(baseRelativePath, 'files', asset.id)
+            if (storageFile && !asset.workspacePath) {
+                const fileName = normalizeFileName(
+                    storageFile.originalName ?? asset.originalName ?? path.basename(storageFile.file)
+                )
+                const relativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
+                const serverPath = workArea.volume.path(relativePath)
                 const buffer = input.buffer ?? (await this.readStorageFile(storageFile))
 
                 await fsPromises.mkdir(path.dirname(serverPath), { recursive: true })
@@ -107,11 +102,30 @@ export class FileWorkspaceProjectionService {
                     }
                 }
                 projectedAsset = await this.fileAssetRepository.save(asset)
+            } else if (asset.workspacePath) {
+                const workspaceRelativePath =
+                    readWorkspaceRelativePath(asset.metadata) ?? normalizeWorkspaceRelativePath(asset.workspacePath)
+                if (workspaceRelativePath) {
+                    assetFolderRelativePath = normalizeRelativePath(path.posix.dirname(workspaceRelativePath), asset.id)
+                }
+                const patch: Partial<FileAsset> = {
+                    conversationId,
+                    threadId: input.threadId ?? asset.threadId,
+                    projectId: projectId ?? asset.projectId,
+                    xpertId: xpertId ?? asset.xpertId,
+                    capabilities: Array.from(new Set([...(asset.capabilities ?? []), 'workspace']))
+                }
+                asset.conversationId = patch.conversationId
+                asset.threadId = patch.threadId
+                asset.projectId = patch.projectId
+                asset.xpertId = patch.xpertId
+                asset.capabilities = patch.capabilities
+                projectedAsset = await this.fileAssetRepository.save(asset)
             }
 
             await this.projectPageImageArtifacts({
                 fileAssetId: asset.id,
-                storageProvider: storageFile.storageProvider,
+                storageProvider: storageFile?.storageProvider,
                 assetFolderRelativePath,
                 workspaceRoot: workArea.workspaceRoot,
                 resolveServerPath: (relativePath) => workArea.volume.path(relativePath)
@@ -204,4 +218,24 @@ export class FileWorkspaceProjectionService {
             await this.fileArtifactRepository.save(projectedArtifacts)
         }
     }
+}
+
+function readWorkspaceRelativePath(metadata?: Record<string, unknown>) {
+    const workspace = metadata?.workspace
+    if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace)) {
+        return null
+    }
+    const record = workspace as Record<string, unknown>
+    return normalizeWorkspaceRelativePath(record.relativePath) ?? normalizeWorkspaceRelativePath(record.workspacePath)
+}
+
+function normalizeWorkspaceRelativePath(value: unknown) {
+    if (typeof value !== 'string' || !value.trim()) {
+        return null
+    }
+    const normalized = value.trim().replace(/\\/g, '/').replace(/^\/+/, '')
+    if (!normalized || normalized === '.' || normalized.startsWith('../') || normalized === '..') {
+        return null
+    }
+    return normalized
 }

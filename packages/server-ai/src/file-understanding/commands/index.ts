@@ -1,6 +1,7 @@
 export * from './attach-file-to-conversation.command'
 export * from './create-file-artifacts.command'
 export * from './create-file-asset.command'
+export * from './create-workspace-file-asset.command'
 export * from './delete-file-asset.command'
 export * from './enqueue-file-parse.command'
 export * from './index-file-chunks.command'

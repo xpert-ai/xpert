@@ -70,19 +70,20 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
 
         try {
             const storageFile = await this.resolveStorageFile(asset.storageFileId)
-            if (!storageFile) {
-                throw new Error(`Storage file "${asset.storageFileId}" not found`)
+            const workspaceSource = this.resolveWorkspaceSource(asset)
+            if (!storageFile && !workspaceSource?.absolutePath) {
+                throw new Error(`File asset "${asset.id}" does not have a readable storage or workspace source`)
             }
-            const filePath = this.resolveStorageFilePath(storageFile)
+            const filePath = storageFile ? this.resolveStorageFilePath(storageFile) : workspaceSource!.absolutePath
             const parseRunId = randomUUID()
             const stalePageImages = await this.listStalePageImages(asset.id)
             const source = {
                 filePath,
-                originalName: storageFile.originalName ?? asset.originalName,
-                mimeType: storageFile.mimetype ?? asset.mimeType,
-                size: storageFile.size ?? asset.size,
+                originalName: storageFile?.originalName ?? asset.originalName ?? workspaceSource?.originalName,
+                mimeType: storageFile?.mimetype ?? asset.mimeType ?? workspaceSource?.mimeType,
+                size: storageFile?.size ?? asset.size ?? workspaceSource?.size,
                 derivedOutput: {
-                    storageProvider: storageFile.storageProvider,
+                    storageProvider: storageFile?.storageProvider,
                     directory: this.resolveDerivedStorageDirectory(asset, parseRunId),
                     parseRunId
                 }
@@ -109,7 +110,7 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
             asset.error = null
             const savedAsset = await this.fileAssetRepository.save(asset)
             const projectedAsset = await this.projectParsedPageImages(savedAsset)
-            await this.deleteStalePageImages(storageFile.storageProvider, savedAsset, stalePageImages)
+            await this.deleteStalePageImages(storageFile?.storageProvider, savedAsset, stalePageImages)
             return projectedAsset ?? savedAsset
         } catch (error) {
             this.#logger.warn(
@@ -135,6 +136,24 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
     private resolveStorageFilePath(storageFile: IStorageFile) {
         const provider = new FileStorage().getProvider(storageFile.storageProvider)
         return provider.path(storageFile.file)
+    }
+
+    private resolveWorkspaceSource(asset: FileAsset) {
+        const workspace = asset.metadata?.workspace
+        if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace)) {
+            return null
+        }
+        const record = workspace as Record<string, unknown>
+        const absolutePath = readString(record.absolutePath)
+        if (!absolutePath) {
+            return null
+        }
+        return {
+            absolutePath,
+            originalName: readString(record.originalName) ?? asset.originalName,
+            mimeType: readString(record.mimeType) ?? asset.mimeType,
+            size: readNumber(record.size) ?? asset.size
+        }
     }
 
     private resolveDerivedStorageDirectory(asset: FileAsset, parseRunId: string) {
@@ -370,4 +389,12 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         }
         return `Chunk ${chunk.orderNo}`
     }
+}
+
+function readString(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readNumber(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }

@@ -28,6 +28,7 @@ type ResolvedFile = _TFile & {
     originalName?: string
     mimetype?: string
     size?: number
+    workspacePath?: string
     fileAsset?: FileAsset
 }
 
@@ -63,7 +64,7 @@ async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<R
 // resolving them to a single runtime shape before prompt construction.
 async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Promise<ResolvedFile | null> {
     const explicitAssetId = file.fileId ?? file.fileAssetId
-    const storageFileId = file.storageFileId ?? file.id
+    const storageFileId = file.storageFileId ?? (explicitAssetId ? undefined : file.id)
     const fileAsset = explicitAssetId
         ? await queryBus.execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(explicitAssetId))
         : storageFileId
@@ -86,14 +87,31 @@ async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Pr
         }
     }
 
-    if (file.filePath || file.fileUrl) {
+    const workspacePath = file.workspacePath ?? fileAsset?.workspacePath
+    if (file.filePath || file.fileUrl || workspacePath) {
         return {
             ...file,
+            filePath: file.filePath ?? workspacePath,
+            fileUrl: file.fileUrl ?? fileAssetUrl(fileAsset),
+            mimeType: file.mimeType ?? fileAsset?.mimeType,
+            originalName: file.originalName ?? fileAsset?.originalName,
+            size: file.size ?? fileAsset?.size,
+            workspacePath,
             fileAsset: fileAsset ?? file.fileAsset
         }
     }
 
     return null
+}
+
+function fileAssetUrl(fileAsset?: FileAsset | null) {
+    const storageFile = fileAsset?.metadata?.storageFile
+    if (!storageFile || typeof storageFile !== 'object' || Array.isArray(storageFile)) {
+        return undefined
+    }
+    const record = storageFile as Record<string, unknown>
+    const url = record.fileUrl ?? record.url
+    return typeof url === 'string' && url.trim() ? url.trim() : undefined
 }
 
 async function toImageContentPart(
