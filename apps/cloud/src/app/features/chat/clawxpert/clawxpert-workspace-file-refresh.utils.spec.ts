@@ -19,7 +19,7 @@ describe('clawxpert workspace file refresh utils', () => {
     ).toBe(true)
   })
 
-  it('refreshes for sandbox shell tools', () => {
+  it('ignores sandbox shell tools', () => {
     expect(
       shouldRefreshWorkspaceFilesFromLogEvent({
         name: 'tool_log',
@@ -29,10 +29,10 @@ describe('clawxpert workspace file refresh utils', () => {
           }
         }
       })
-    ).toBe(true)
+    ).toBe(false)
   })
 
-  it('refreshes for legacy Bash execute events', () => {
+  it('ignores legacy Bash execute events', () => {
     expect(
       shouldRefreshWorkspaceFilesFromLogEvent({
         name: 'tool_log',
@@ -43,7 +43,7 @@ describe('clawxpert workspace file refresh utils', () => {
           }
         }
       })
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('refreshes for prefixed legacy file mutation tools', () => {
