@@ -112,7 +112,7 @@ Important fields:
 - `tokenCount`
 - `anchor`
 
-The first implementation uses database text matching. `FileEmbedding` is reserved for vector search metadata.
+The current implementation searches file chunk vectors first, then falls back to database text matching when embeddings or the vector store are unavailable, when vector search returns no usable matches, or when chunk hydration fails.
 
 ### `FileCitationAnchor`
 
@@ -132,12 +132,14 @@ Examples:
 
 Table: `file_embedding`
 
-Reserved metadata for vector indexing:
+Metadata for vector indexing:
 
 - `provider`
 - `model`
 - `vectorId`
 - `metadata`
+
+`metadata` stores the collection name, collection scope, embedding fingerprint, dimensions, chunk order, and anchor. Collection names use `file-understanding:<scope>:<scopeId>:<embeddingFingerprint>`, scoped by `xpertId + embeddingFingerprint` first, then falling back to `projectId`, then `tenantId`.
 
 ### `ConversationFileLink`
 
@@ -451,11 +453,14 @@ Store results as artifacts, not only as summary text. Keep page or path anchors.
 
 ### Add vector search
 
+`SearchFileChunksQuery` now uses vector-first retrieval with text fallback:
+
 1. Create embeddings after chunks are built.
-2. Store vector ids in `file_embedding.vectorId`.
-3. Keep the `SearchFileChunksQuery` contract stable.
-4. Query vector store first, then hydrate chunks by id.
-5. Keep Agent tool schemas unchanged.
+2. Create the vector store through `RagCreateVStoreCommand`; the underlying store is supplied by plugin-backed `IVectorStoreStrategy`.
+3. Store vector ids in `file_embedding.vectorId`.
+4. Scope collections by `xpertId + embeddingFingerprint`, falling back to `projectId` and then `tenantId`.
+5. Query the vector store first, then hydrate chunks by id and file permissions; fall back to database text matching when needed.
+6. Keep Agent tool schemas unchanged.
 
 ### Add production migrations
 

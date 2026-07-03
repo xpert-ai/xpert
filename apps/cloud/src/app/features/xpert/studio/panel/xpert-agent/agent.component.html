@@ -374,6 +374,23 @@
           zSize="sm"
         />
       </div>
+      @if (showFileUnderstandingEmbeddingWarning()) {
+        <div
+          class="ml-6 flex w-[calc(100%-1.5rem)] items-start gap-1.5 rounded-md border border-status-warning-indicator-border bg-status-warning-bg px-2 py-1.5 text-xs leading-5 text-status-warning-fg"
+        >
+          <i class="ri-error-warning-line mt-0.5 text-sm text-status-warning-fg"></i>
+          <span>
+            {{
+              'PAC.Xpert.FileUnderstandingEmbeddingUnavailable'
+                | translate
+                  : {
+                      Default:
+                        'No available Embedding model is configured. Configure an enabled Embedding Copilot with a Text Embedding model before relying on file vector search.'
+                    }
+            }}
+          </span>
+        </div>
+      }
 
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-git-close-pull-request-fill text-base text-fuchsia-700"></i>
@@ -637,7 +654,9 @@
         (click)="openExecution(execution)"
       >
         {{ execution.updatedAt | relative }}
-        <span class="px-1 rounded-md border-[0.5px] border-solid border-divider-deep text-xs">{{ execution.elapsedTime | number }}ms</span>
+        <span class="px-1 rounded-md border-[0.5px] border-solid border-divider-deep text-xs"
+          >{{ execution.elapsedTime | number }}ms</span
+        >
       </button>
     } @empty {
       <div class="text-text-secondary m-2">

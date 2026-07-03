@@ -38,7 +38,9 @@ import {
   TSelectOption,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
-  CopilotServerService
+  CopilotServerService,
+  AiProviderRole,
+  ICopilot
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -219,6 +221,20 @@ export class XpertStudioPanelAgentComponent {
   readonly memories = computed(() => this.agentOptions()?.memories)
   readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
   readonly fileUnderstandingEnabled = computed(() => this.agentOptions()?.fileUnderstanding?.enabled !== false)
+  readonly embeddingCopilot = toSignal(
+    this.copilotServer.getAvailableByRole(AiProviderRole.Embedding).pipe(catchError(() => of(null as ICopilot | null))),
+    { initialValue: undefined as ICopilot | null | undefined }
+  )
+  readonly fileUnderstandingEmbeddingReady = computed(() => {
+    const copilot = this.embeddingCopilot()
+    return copilot === undefined ? true : isEmbeddingCopilotAvailable(copilot)
+  })
+  readonly showFileUnderstandingEmbeddingWarning = computed(
+    () =>
+      this.fileUnderstandingEnabled() &&
+      this.embeddingCopilot() !== undefined &&
+      !this.fileUnderstandingEmbeddingReady()
+  )
   readonly attachment = linkedModel({
     initialValue: null,
     compute: () => this.agentOptions()?.attachment ?? this.agentOptions()?.vision,
@@ -626,4 +642,14 @@ export class XpertStudioPanelAgentComponent {
   private sliderValue(value: ZardSliderValue) {
     return typeof value === 'number' ? value : value[0]
   }
+}
+
+function isEmbeddingCopilotAvailable(copilot: ICopilot | null | undefined) {
+  return (
+    copilot?.enabled === true &&
+    !!copilot.modelProvider &&
+    copilot.modelProvider.isValid !== false &&
+    copilot.copilotModel?.modelType === AiModelTypeEnum.TEXT_EMBEDDING &&
+    !!copilot.copilotModel.model
+  )
 }

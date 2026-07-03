@@ -16,6 +16,9 @@
   --color-media-caption-bg: var(--color-media-caption-bg);
   --color-media-caption-text: var(--color-media-caption-text);
   --color-status-error-bg: var(--color-status-error-bg);
+  --color-status-warning-bg: var(--color-status-warning-bg);
+  --color-status-warning-fg: var(--color-status-warning-fg);
+  --color-status-warning-indicator-border: var(--color-status-warning-indicator-border);
   --color-components-card-bg: var(--sys-surface-elevated);
   --color-components-panel-bg: var(--sys-surface-overlay);
   --color-components-panel-bg-blur: var(--color-components-panel-bg-blur);
