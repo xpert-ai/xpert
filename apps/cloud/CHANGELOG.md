@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.3
+
+### Patch Changes
+
+- 481ffba: file understanding & vector store
+
 ## 3.15.2
 
 ### Patch Changes
