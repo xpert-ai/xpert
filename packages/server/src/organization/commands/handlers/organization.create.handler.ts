@@ -1,55 +1,25 @@
-import { IOrganization, RolesEnum } from '@xpert-ai/contracts';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { getManager } from 'typeorm';
-import { RequestContext } from '../../../core/context/request-context';
-import { RoleService } from '../../../role/role.service';
-import { UserService } from '../../../user/user.service';
-import { UserOrganizationService } from '../../../user-organization/user-organization.services';
-import { EVENT_ORGANIZATION_CREATED, OrganizationCreatedEvent } from '../../events';
-import { OrganizationService } from '../../organization.service';
-import { OrganizationCreateCommand } from '../organization.create.command';
-import { Organization, UserOrganization } from './../../../core/entities/internal';
-import { ImportRecordUpdateOrCreateCommand } from './../../../export-import/import-record/commands/import-record-update-or-create.command';
-
+import { IOrganization } from '@xpert-ai/contracts'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { getManager } from 'typeorm'
+import { RequestContext } from '../../../core/context/request-context'
+import { EVENT_ORGANIZATION_CREATED, OrganizationCreatedEvent } from '../../events'
+import { OrganizationService } from '../../organization.service'
+import { OrganizationCreateCommand } from '../organization.create.command'
+import { Organization } from './../../../core/entities/internal'
+import { ImportRecordUpdateOrCreateCommand } from './../../../export-import/import-record/commands/import-record-update-or-create.command'
 
 @CommandHandler(OrganizationCreateCommand)
-export class OrganizationCreateHandler
-	implements ICommandHandler<OrganizationCreateCommand> {
+export class OrganizationCreateHandler implements ICommandHandler<OrganizationCreateCommand> {
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly organizationService: OrganizationService,
-		private readonly userOrganizationService: UserOrganizationService,
-		private readonly userService: UserService,
-		private readonly roleService: RoleService,
 		private readonly eventEmitter: EventEmitter2
 	) {}
 
-	public async execute(
-		command: OrganizationCreateCommand
-	): Promise<IOrganization> {
-		const { input } = command;
-		const { isImporting = false, sourceId = null, userOrganizationSourceId = null, tenantId = null } = input;
-
-		//1. Get roleId for Super Admin user of the Tenant
-		const { id: roleId } = await this.roleService.findOneByOptions({
-			where: {
-				name: RolesEnum.SUPER_ADMIN,
-				tenantId
-			}
-		});
-
-		// 2. Get all Super Admin Users of the Tenant
-		// have to get user from context, as user service is not tenant-aware
-		// const user = RequestContext.currentUser();
-
-		const { items: superAdminUsers } = await this.userService.findAll({
-			relations: ['role'],
-			where: {
-				tenant: { id: tenantId },
-				role: { id: roleId }
-			}
-		});
+	public async execute(command: OrganizationCreateCommand): Promise<IOrganization> {
+		const { input } = command
+		const { isImporting = false, sourceId = null, tenantId = null } = input
 
 		// let { contact = {} } = input;
 		// delete input['contact'];
@@ -65,35 +35,12 @@ export class OrganizationCreateHandler
 			show_minimum_project_size: input.show_minimum_project_size || true,
 			show_clients_count: input.show_clients_count || true,
 			show_clients: input.show_clients || true,
-			show_employees_count: input.show_employees_count || true,
+			show_employees_count: input.show_employees_count || true
 			// brandColor: faker.internet.color()
-		});
-
-		// 4. Take each super admin user and add him/her to created organization
-		try {
-			for await (const superAdmin of superAdminUsers) {
-				const userOrganization = await this.userOrganizationService.ensureMembership({
-					organizationId: createdOrganization.id,
-					tenantId,
-					userId: superAdmin.id
-				});
-				if (isImporting && userOrganizationSourceId) {
-					await this.commandBus.execute(
-						new ImportRecordUpdateOrCreateCommand({
-							entityType: getManager().getRepository(UserOrganization).metadata.tableName,
-							sourceId: userOrganizationSourceId,
-							destinationId: userOrganization.id,
-							tenantId
-						})
-					);
-				}
-			}
-		} catch (e) {
-			console.log('caught', e)
-		}
+		})
 
 		//5. Create contact details of created organization
-		const { id } = createdOrganization;
+		const { id } = createdOrganization
 		// contact = Object.assign({}, contact, {
 		// 	organizationId: id,
 		// 	tenantId
@@ -102,18 +49,17 @@ export class OrganizationCreateHandler
 		const organization = await this.organizationService.create({
 			// contact,
 			...createdOrganization
-		});
+		})
 
 		// //6. Create Enabled/Disabled reports for relative organization.
 		// await this.commandBus.execute(
 		// 	new ReportOrganizationCreateCommand(organization)
 		// );
 
-
 		//7. Create Import Records while migrating for relative organization.
 		if (isImporting && sourceId) {
-			const { sourceId } = input;
-			const entityType = getManager().getRepository(Organization).metadata.tableName;
+			const { sourceId } = input
+			const entityType = getManager().getRepository(Organization).metadata.tableName
 			await this.commandBus.execute(
 				new ImportRecordUpdateOrCreateCommand({
 					entityType,
@@ -121,18 +67,14 @@ export class OrganizationCreateHandler
 					destinationId: organization.id,
 					tenantId
 				})
-			);
+			)
 		}
 
 		this.eventEmitter.emit(
 			EVENT_ORGANIZATION_CREATED,
-			new OrganizationCreatedEvent(
-				organization.tenantId,
-				organization.id,
-				RequestContext.currentUserId() ?? superAdminUsers[0]?.id ?? null
-			)
-		);
+			new OrganizationCreatedEvent(organization.tenantId, organization.id, RequestContext.currentUserId() ?? null)
+		)
 
-		return await this.organizationService.findOne(id);
+		return await this.organizationService.findOne(id)
 	}
 }

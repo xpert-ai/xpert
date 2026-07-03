@@ -2,7 +2,8 @@ jest.mock('../core/context', () => ({
 	RequestContext: {
 		currentUserId: jest.fn(),
 		currentTenantId: jest.fn(),
-		hasPermission: jest.fn()
+		hasPermission: jest.fn(),
+		hasRole: jest.fn()
 	}
 }))
 
@@ -99,6 +100,7 @@ describe('UserService', () => {
 		RequestContext.currentUserId.mockReturnValue('requester-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
 		RequestContext.hasPermission.mockReturnValue(true)
+		RequestContext.hasRole.mockReturnValue(false)
 
 		service = new UserService(
 			userRepository as any,
@@ -131,7 +133,14 @@ describe('UserService', () => {
 		const result = await service.findCurrentUser('user-1', ['organizations', 'organizations.organization'])
 
 		expect(service.findOne).toHaveBeenCalledWith('user-1', {
-			relations: ['employee', 'role', 'role.rolePermissions', 'tenant', 'organizations', 'organizations.organization']
+			relations: [
+				'employee',
+				'role',
+				'role.rolePermissions',
+				'tenant',
+				'organizations',
+				'organizations.organization'
+			]
 		})
 		expect(result).toBe(user)
 	})
@@ -470,6 +479,34 @@ describe('UserService', () => {
 		expect(cacheManager.set.mock.calls[0][0]).toContain(':tenant-version-2.user-version-7')
 	})
 
+	it('treats super admins as having tenant-wide organization access without requiring membership', async () => {
+		const queryBuilder = {
+			leftJoin: jest.fn().mockReturnThis(),
+			where: jest.fn().mockReturnThis(),
+			andWhere: jest.fn().mockReturnThis(),
+			getCount: jest.fn().mockResolvedValue(1)
+		}
+		userRepository.createQueryBuilder.mockReturnValue(queryBuilder)
+
+		const result = await service.isActiveMemberOfOrganization('super-admin-1', 'org-1')
+
+		expect(result).toBe(true)
+		expect(queryBuilder.leftJoin).toHaveBeenNthCalledWith(1, 'user.role', 'role')
+		expect(queryBuilder.leftJoin).toHaveBeenNthCalledWith(
+			2,
+			'user.organizations',
+			'userOrganization',
+			'userOrganization.organizationId = :organizationId AND userOrganization.isActive = :isActive',
+			{
+				organizationId: 'org-1',
+				isActive: true
+			}
+		)
+		expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.anything(), {
+			superAdminRole: RolesEnum.SUPER_ADMIN
+		})
+	})
+
 	it('removes user organizations through the service and emits deletion events before soft deleting the user', async () => {
 		userRepository.findOne.mockResolvedValue({
 			id: 'user-1',
@@ -542,4 +579,22 @@ describe('UserService', () => {
 		expect(userRepository.softDelete).toHaveBeenCalledWith('user-1')
 	})
 
+	it('excludes super admins from organization non-member search results', async () => {
+		const queryBuilder = {
+			leftJoin: jest.fn().mockReturnThis(),
+			where: jest.fn().mockReturnThis(),
+			andWhere: jest.fn().mockReturnThis(),
+			take: jest.fn().mockReturnThis(),
+			getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+		}
+		userRepository.createQueryBuilder.mockReturnValue(queryBuilder)
+
+		const result = await service.search('ada', 'org-1', 'non-members')
+
+		expect(result).toEqual({ items: [], total: 0 })
+		expect(queryBuilder.leftJoin).toHaveBeenCalledWith('user.role', 'role')
+		expect(queryBuilder.andWhere).toHaveBeenCalledWith('(role.name IS NULL OR role.name != :superAdminRole)', {
+			superAdminRole: RolesEnum.SUPER_ADMIN
+		})
+	})
 })

@@ -1,15 +1,45 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef, Optional } from '@nestjs/common'
+import {
+	BadRequestException,
+	ForbiddenException,
+	Injectable,
+	Logger,
+	NotFoundException,
+	Inject,
+	forwardRef,
+	Optional
+} from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Cache } from 'cache-manager'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull, FindManyOptions, FindOptionsSelect, FindOptionsWhere } from 'typeorm'
+import {
+	Repository,
+	InsertResult,
+	Like,
+	Brackets,
+	WhereExpressionBuilder,
+	In,
+	FindOneOptions,
+	DeleteResult,
+	IsNull,
+	FindManyOptions,
+	FindOptionsSelect,
+	FindOptionsWhere
+} from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@xpert-ai/server-config'
 import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IFeatureOrganization, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
+import {
+	ID,
+	IFeatureOrganization,
+	IUser,
+	LanguagesEnum,
+	PermissionsEnum,
+	RolesEnum,
+	UserType
+} from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
@@ -206,7 +236,7 @@ export class UserService extends TenantAwareCrudService<User> {
 			? await organizationQuery({
 					...baseWhere,
 					organizationId: currentOrganizationId
-			  })
+				})
 			: null
 
 		const membership =
@@ -287,7 +317,7 @@ export class UserService extends TenantAwareCrudService<User> {
 						organizationId: In(organizationIds)
 					},
 					relations: ['feature']
-			  })
+				})
 			: []
 
 		this.attachFeatureOrganizationsToCurrentUser(user, tenantFeatureOrganizations, organizationFeatureOrganizations)
@@ -530,7 +560,8 @@ export class UserService extends TenantAwareCrudService<User> {
 
 		const total = await this.repository
 			.createQueryBuilder('user')
-			.innerJoin(
+			.leftJoin('user.role', 'role')
+			.leftJoin(
 				'user.organizations',
 				'userOrganization',
 				'userOrganization.organizationId = :organizationId AND userOrganization.isActive = :isActive',
@@ -541,6 +572,13 @@ export class UserService extends TenantAwareCrudService<User> {
 			)
 			.where('user.id = :userId', { userId })
 			.andWhere('user.tenantId = :tenantId', { tenantId })
+			.andWhere(
+				new Brackets((qb: WhereExpressionBuilder) => {
+					qb.where('role.name = :superAdminRole')
+					qb.orWhere('userOrganization.id IS NOT NULL')
+				}),
+				{ superAdminRole: RolesEnum.SUPER_ADMIN }
+			)
 			.getCount()
 
 		return total > 0
@@ -747,6 +785,7 @@ export class UserService extends TenantAwareCrudService<User> {
 						organizationId
 					}
 				)
+				.leftJoin('user.role', 'role')
 				.where(
 					new Brackets((qb: WhereExpressionBuilder) => {
 						qb.orWhere('user.email LIKE :searchText')
@@ -758,6 +797,9 @@ export class UserService extends TenantAwareCrudService<User> {
 				)
 				.andWhere('user.tenantId = :tenantId', { tenantId })
 				.andWhere('organizationMembership.id IS NULL')
+				.andWhere('(role.name IS NULL OR role.name != :superAdminRole)', {
+					superAdminRole: RolesEnum.SUPER_ADMIN
+				})
 				.take(20)
 
 			return query.getManyAndCount().then(([items, total]) => ({
