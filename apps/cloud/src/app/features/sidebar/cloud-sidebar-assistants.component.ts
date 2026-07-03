@@ -133,17 +133,12 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly state = toSignal(
     toObservable(this.request).pipe(
-      switchMap(({ enabled, mode, scopeLevel }) => {
+      switchMap(({ enabled, scopeLevel }) => {
         if (!enabled) {
           return of(EMPTY_ASSISTANT_STATE)
         }
 
-        const systemListScope =
-          mode === 'list'
-            ? scopeLevel === RequestScopeLevel.TENANT
-              ? AssistantBindingScope.TENANT
-              : AssistantBindingScope.ORGANIZATION
-            : null
+        const isTenantListScope = scopeLevel === RequestScopeLevel.TENANT
 
         return merge(
           of(null),
@@ -152,16 +147,15 @@ export class CloudSidebarAssistantsComponent {
           )
         ).pipe(
           switchMap(() => {
-            const binding$ =
-              systemListScope === AssistantBindingScope.TENANT
-                ? of(null)
-                : this.#assistantBindingService
-                    .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-                    .pipe(catchError(() => of(null)))
+            const binding$ = isTenantListScope
+              ? of(null)
+              : this.#assistantBindingService
+                  .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+                  .pipe(catchError(() => of(null)))
 
-            const items$ = systemListScope
+            const items$ = isTenantListScope
               ? this.#assistantBindingService
-                  .getAvailableXperts(systemListScope, SYSTEM_ASSISTANT_SCOPE_CODE)
+                  .getAvailableXperts(AssistantBindingScope.TENANT, SYSTEM_ASSISTANT_SCOPE_CODE)
                   .pipe(catchError(() => of([] as IXpert[])))
               : this.#assistantBindingService
                   .getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
