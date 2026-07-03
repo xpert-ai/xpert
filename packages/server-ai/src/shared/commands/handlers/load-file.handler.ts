@@ -2,11 +2,21 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
 import { TextLoader } from 'langchain/document_loaders/fs/text'
-import { GetFileAssetByStorageFileQuery, GetFileAssetQuery, SearchFileChunksQuery } from '../../../file-understanding'
+import path from 'node:path'
+import { RequestContext } from '@xpert-ai/server-core'
+import {
+    GetFileAssetByStorageFileQuery,
+    GetFileAssetQuery,
+    resolveFileAssetWorkspaceRelativePath,
+    resolveFileAssetWorkspaceVolumeScope,
+    SearchFileChunksQuery
+} from '../../../file-understanding'
+import type { FileAsset } from '../../../file-understanding'
+import { VOLUME_CLIENT, VolumeClient } from '../../volume'
 import { LoadFileCommand } from '../load-file.command'
 
 /**
@@ -18,46 +28,52 @@ import { LoadFileCommand } from '../load-file.command'
 export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
     readonly #logger = new Logger(LoadFileHandler.name)
 
-    constructor(private readonly queryBus: QueryBus) {}
+    constructor(
+        private readonly queryBus: QueryBus,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: Pick<VolumeClient, 'resolve'>
+    ) {}
 
     public async execute(command: LoadFileCommand) {
         const { file } = command
-        const understoodDocs = await this.tryLoadFileUnderstandingDocs(file as any)
+        const resolved = await this.resolveFileAsset(file as any)
+        const understoodDocs = await this.tryLoadFileUnderstandingDocs(resolved.fileAsset)
         if (understoodDocs?.length) {
             return understoodDocs
         }
 
-        const type = file.filePath.split('.').pop()
+        const filePath = this.resolveLocalFilePath(file.filePath, resolved.fileAsset)
+        const type = filePath.split('.').pop()
         let data: Document[]
         switch (type.toLowerCase()) {
             case 'md':
             case 'mdx':
             case 'markdown':
-                data = await this.processMarkdown(file.filePath)
+                data = await this.processMarkdown(filePath)
                 break
             case 'pdf':
-                data = await this.processPdf(file.filePath)
+                data = await this.processPdf(filePath)
                 break
             case 'epub':
-                data = await this.processEpub(file.filePath)
+                data = await this.processEpub(filePath)
                 break
             case 'doc':
             case 'docx':
-                data = await this.processDoc(file.filePath)
+                data = await this.processDoc(filePath)
                 break
             case 'pptx':
-                data = await this.processPPT(file.filePath)
+                data = await this.processPPT(filePath)
                 break
             case 'xlsx':
-                data = await this.processExcel(file.filePath)
+                data = await this.processExcel(filePath)
                 break
             case 'odt':
             case 'ods':
             case 'odp':
-                data = await this.processOpenDocument(file.filePath)
+                data = await this.processOpenDocument(filePath)
                 break
             default:
-                data = await this.processText(file.filePath)
+                data = await this.processText(filePath)
                 break
         }
 
@@ -102,7 +118,7 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
         return await loader.load()
     }
 
-    private async tryLoadFileUnderstandingDocs(file: {
+    private async resolveFileAsset(file: {
         fileId?: string
         fileAssetId?: string
         storageFileId?: string
@@ -114,6 +130,10 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
             : (file.storageFileId ?? file.id)
               ? await this.queryBus.execute(new GetFileAssetByStorageFileQuery(file.storageFileId ?? file.id))
               : null
+        return { fileAsset: (fileAsset ?? null) as FileAsset | null }
+    }
+
+    private async tryLoadFileUnderstandingDocs(fileAsset?: FileAsset | null) {
         if (!fileAsset || !['ready', 'partial'].includes(fileAsset.status)) {
             return null
         }
@@ -135,5 +155,23 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
                     }
                 })
         )
+    }
+
+    private resolveLocalFilePath(filePath?: string, fileAsset?: FileAsset | null) {
+        if (filePath && path.isAbsolute(filePath)) {
+            return filePath
+        }
+        const workspacePath = resolveFileAssetWorkspaceRelativePath(fileAsset, filePath)
+        if (!workspacePath) {
+            throw new BadRequestException('Workspace file path is required')
+        }
+        const volumeScope = resolveFileAssetWorkspaceVolumeScope(fileAsset, {
+            tenantId: RequestContext.currentTenantId(),
+            userId: RequestContext.currentUserId()
+        })
+        if (!volumeScope) {
+            throw new BadRequestException('Workspace file catalog/scope is required for relative file access')
+        }
+        return this.volumeClient.resolve(volumeScope).path(workspacePath)
     }
 }

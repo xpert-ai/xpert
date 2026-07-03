@@ -416,6 +416,47 @@ For a non-project ClawXpert conversation, `/api/chat-conversation/:id/files` the
 
 The `conversationId` is still used for lookup and permission context, but it is not a filesystem directory segment. Users sharing the same Xpert see the same workspace files.
 
+### Workspace File Relative Path Resolution
+
+Plugins, managed connections, and runtime capabilities should record workspace files as "relative path plus catalog/scope", not as an absolute path from the current process or sandbox.
+
+Standard input shape:
+
+```ts
+{
+  tenantId,
+  userId,
+  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts',
+  scopeId,
+  filePath: 'files/wechat/<integrationId>/<messageId>/<fileName>'
+}
+```
+
+The shared resolver lives in:
+
+```text
+packages/server-ai/src/file-understanding/domain/workspace-file.ts
+```
+
+It maps `catalog` / `scopeId` to `VolumeScope` consistently:
+
+| catalog      | Scope fields               | Volume scope output                                     |
+| ------------ | -------------------------- | ------------------------------------------------------- |
+| `projects`   | `projectId` or `scopeId`   | `{ catalog: 'projects', projectId, userId }`            |
+| `xperts`     | `xpertId` or `scopeId`     | `{ catalog: 'xperts', xpertId, userId, isolateByUser }` |
+| `users`      | `scopeId` or `userId`      | `{ catalog: 'users', userId }`                          |
+| `knowledges` | `knowledgeId` or `scopeId` | `{ catalog: 'knowledges', knowledgeId, userId }`        |
+| `skills`     | `rootId` or `scopeId`      | `{ catalog: 'skills', rootId, userId }`                 |
+
+Readers should pass only the relative path to `VolumeHandle.path(relativePath)`:
+
+```ts
+const { volumeScope } = resolveWorkspaceVolumeScope(input, { tenantId, userId })
+const absolutePath = volumeClient.resolve(volumeScope).path(input.filePath)
+```
+
+Do not pass `files/wechat/...` directly to Node `fs.open()`. That path would be resolved against the API process `cwd`, which can produce `ENOENT` in production even when the workspace file panel shows the file. Also do not persist `/workspace/...`, `/sandbox/...`, or local runtime directories as business paths; those are runtime / sandbox mappings and are not portable across deployments.
+
 ### Environment sandboxes
 
 When `sandboxEnvironmentId` exists, the environment sandbox has the highest priority and ignores project context:

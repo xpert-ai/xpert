@@ -519,6 +519,33 @@ packages/server-ai/src/shared/commands/handlers/load-file.handler.ts
 
 这保证旧会话可继续使用，同时新链路不会依赖 `StorageFile` 的业务语义。
 
+兼容层读取原始文件时必须区分两类路径：
+
+- 绝对路径：只用于旧链路或本地已解析出的 server-side 文件路径，可以直接交给 LangChain / Node 文件 loader。
+- workspace 相对路径：例如 `files/wechat/<integrationId>/<messageId>/<fileName>`。这类路径不能按进程 `cwd` 读取，必须结合 `FileAsset.metadata.workspace.catalog`、`scopeId` 以及 `tenantId` / `userId` 解析到 `VolumeScope`，再通过 `VolumeClient.resolve(scope).path(relativePath)` 得到 server-side 绝对路径。
+
+`FileAsset.metadata.workspace` 至少应保留：
+
+```ts
+{
+  source: 'platform.workspace.files',
+  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts',
+  scopeId: '<projectId | userId | knowledgeId | rootId | xpertId>',
+  relativePath: 'files/wechat/.../技术通知单.docx',
+  workspacePath: 'files/wechat/.../技术通知单.docx'
+}
+```
+
+公共解析逻辑在：
+
+```text
+packages/server-ai/src/file-understanding/domain/workspace-file.ts
+```
+
+其中 `resolveWorkspaceVolumeScope` / `inferWorkspaceVolumeScope` 负责 catalog 到 `VolumeScope` 的统一映射；`resolveFileAssetWorkspaceRelativePath` / `resolveFileAssetWorkspaceVolumeScope` 负责从 `FileAsset` 读取相对路径和 scope。`LoadFileHandler`、workspace file runtime capability 和 workspace-backed `FileAsset` 创建逻辑都应复用这套 helper，不要在各自 command handler 中重复维护 catalog 分支。
+
+这样插件或第三方连接器只需要传递相对路径和 catalog/scope 元数据。生产环境不要求进程 `cwd` 位于 workspace 根目录，也不需要把 `/sandbox/...` 或 `/workspace/...` 这类环境相关绝对路径持久化到消息中。
+
 ### Agent tools 与内置 middleware
 
 工具入口：

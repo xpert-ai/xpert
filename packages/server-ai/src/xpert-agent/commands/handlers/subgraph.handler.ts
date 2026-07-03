@@ -109,8 +109,6 @@ import {
     translate,
     stateVariable,
     createParameters,
-    STATE_VARIABLE_PENDING_FOLLOW_UPS,
-    TPendingFollowUpStateItem,
     TGraphTool,
     TSubAgent,
     TWorkflowGraphNode,

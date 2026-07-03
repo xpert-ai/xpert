@@ -1,5 +1,6 @@
 export * from './commands'
 export * from './domain/types'
+export * from './domain/workspace-file'
 export * from './entities'
 export * from './file-workspace-projection.service'
 export * from './file-understanding-vector.service'

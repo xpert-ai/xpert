@@ -11,12 +11,15 @@ import {
     WorkspaceUploadBufferInput
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
-import { CreateWorkspaceFileAssetCommand, type FileAsset } from '../../file-understanding'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient, type VolumeScope } from '../volume'
-
-type WorkspaceFileVolumeScope = Omit<VolumeScope, 'catalog'> & {
-    catalog: WorkspaceFile['catalog']
-}
+import {
+    CreateWorkspaceFileAssetCommand,
+    isWorkspaceFileCatalog,
+    resolveWorkspaceFileCatalog,
+    resolveWorkspaceVolumeScope,
+    type FileAsset,
+    type WorkspaceVolumeScopeResolution
+} from '../../file-understanding'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 @Injectable()
 export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi {
@@ -156,7 +159,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
     }
 
     private resolveVolumeScope(input: WorkspaceUploadBufferInput | WorkspaceFileReference): {
-        volumeScope: WorkspaceFileVolumeScope
+        volumeScope: WorkspaceVolumeScopeResolution['volumeScope']
         catalog: WorkspaceFile['catalog']
         scopeId?: string
     } {
@@ -165,90 +168,16 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             throw new BadRequestException('tenantId is required for workspace file access')
         }
         const userId = normalizeOptionalString(input.userId) ?? RequestContext.currentUserId()
-        const catalog = resolveWorkspaceFileCatalog(input)
-
-        switch (catalog) {
-            case 'projects': {
-                const projectId = normalizeOptionalString(input.projectId) ?? normalizeOptionalString(input.scopeId)
-                if (!projectId) {
-                    throw new BadRequestException('projectId is required for project workspace file access')
-                }
-                return {
-                    volumeScope: {
-                        tenantId,
-                        catalog,
-                        projectId,
-                        userId
-                    },
-                    catalog,
-                    scopeId: projectId
-                }
-            }
-            case 'xperts': {
-                const xpertId = normalizeOptionalString(input.xpertId) ?? normalizeOptionalString(input.scopeId)
-                if (!xpertId) {
-                    throw new BadRequestException('xpertId is required for xpert workspace file access')
-                }
-                return {
-                    volumeScope: {
-                        tenantId,
-                        catalog,
-                        xpertId,
-                        userId,
-                        isolateByUser: input.isolateByUser ?? false
-                    },
-                    catalog,
-                    scopeId: xpertId
-                }
-            }
-            case 'users': {
-                const targetUserId = normalizeOptionalString(input.scopeId) ?? userId
-                if (!targetUserId) {
-                    throw new BadRequestException('userId is required for user workspace file access')
-                }
-                return {
-                    volumeScope: {
-                        tenantId,
-                        catalog,
-                        userId: targetUserId
-                    },
-                    catalog,
-                    scopeId: targetUserId
-                }
-            }
-            case 'knowledges': {
-                const knowledgeId = normalizeOptionalString(input.knowledgeId) ?? normalizeOptionalString(input.scopeId)
-                if (!knowledgeId) {
-                    throw new BadRequestException('knowledgeId is required for knowledge workspace file access')
-                }
-                return {
-                    volumeScope: {
-                        tenantId,
-                        catalog,
-                        knowledgeId,
-                        userId
-                    },
-                    catalog,
-                    scopeId: knowledgeId
-                }
-            }
-            case 'skills': {
-                const rootId = normalizeOptionalString(input.rootId) ?? normalizeOptionalString(input.scopeId)
-                if (!rootId) {
-                    throw new BadRequestException('rootId is required for skill workspace file access')
-                }
-                return {
-                    volumeScope: {
-                        tenantId,
-                        catalog,
-                        rootId,
-                        userId
-                    },
-                    catalog,
-                    scopeId: rootId
-                }
-            }
+        const catalog = normalizeOptionalString(input.catalog)
+        if (catalog && !isWorkspaceFileCatalog(catalog)) {
+            throw new BadRequestException(`Unsupported workspace file catalog: ${catalog}`)
         }
+
+        const resolved = resolveWorkspaceVolumeScope(input, { tenantId, userId })
+        if (!resolved) {
+            throw new BadRequestException(resolveWorkspaceVolumeScopeError(input, 'workspace file access'))
+        }
+        return resolved
     }
 }
 
@@ -269,39 +198,28 @@ function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
-function resolveWorkspaceFileCatalog(
-    input: WorkspaceUploadBufferInput | WorkspaceFileReference
-): WorkspaceFile['catalog'] {
-    const catalog = normalizeOptionalString(input.catalog)
-    if (catalog) {
-        if (isWorkspaceFileCatalog(catalog)) {
-            return catalog
-        }
-        throw new BadRequestException(`Unsupported workspace file catalog: ${catalog}`)
-    }
-    if (normalizeOptionalString(input.projectId)) {
-        return 'projects'
-    }
-    if (normalizeOptionalString(input.knowledgeId)) {
-        return 'knowledges'
-    }
-    if (normalizeOptionalString(input.rootId)) {
-        return 'skills'
-    }
-    if (normalizeOptionalString(input.xpertId)) {
-        return 'xperts'
-    }
-    throw new BadRequestException('workspace file catalog is required')
-}
-
-function isWorkspaceFileCatalog(value: string): value is WorkspaceFile['catalog'] {
-    return ['projects', 'users', 'knowledges', 'skills', 'xperts'].includes(value)
-}
-
 function normalizeRequiredWorkspaceFilePath(value: unknown) {
     const normalized = normalizeOptionalString(value)?.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
     if (!normalized || normalized === '.' || normalized.split('/').includes('..')) {
         throw new BadRequestException('workspace file path is required')
     }
     return normalized
+}
+
+function resolveWorkspaceVolumeScopeError(input: WorkspaceUploadBufferInput | WorkspaceFileReference, context: string) {
+    const catalog = resolveWorkspaceFileCatalog(input)
+    switch (catalog) {
+        case 'projects':
+            return `projectId is required for project ${context}`
+        case 'xperts':
+            return `xpertId is required for xpert ${context}`
+        case 'users':
+            return `userId is required for user ${context}`
+        case 'knowledges':
+            return `knowledgeId is required for knowledge ${context}`
+        case 'skills':
+            return `rootId is required for skill ${context}`
+        default:
+            return 'workspace file catalog is required'
+    }
 }
