@@ -5,11 +5,13 @@ import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CommandHandlers } from './commands/handlers'
 import { ConversationFileLink, FileArtifact, FileAsset, FileChunk, FileCitationAnchor, FileEmbedding } from './entities'
+import { FileUnderstandingVectorService } from './file-understanding-vector.service'
 import { FileWorkspaceProjectionService } from './file-workspace-projection.service'
 import { FileUnderstandingController } from './file-understanding.controller'
 import { FileUnderstandingMiddleware } from './middlewares'
 import { FileParsers } from './parsers'
 import { QueryHandlers } from './queries/handlers'
+import { RagVStoreModule } from '../rag-vstore'
 import { VolumeModule } from '../shared/volume'
 
 @Module({
@@ -27,16 +29,18 @@ import { VolumeModule } from '../shared/volume'
         TenantModule,
         UserModule,
         StorageFileModule,
+        RagVStoreModule,
         VolumeModule
     ],
     controllers: [FileUnderstandingController],
     providers: [
+        FileUnderstandingVectorService,
         FileWorkspaceProjectionService,
         FileUnderstandingMiddleware,
         ...FileParsers,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [TypeOrmModule, FileWorkspaceProjectionService]
+    exports: [TypeOrmModule, FileUnderstandingVectorService, FileWorkspaceProjectionService]
 })
 export class FileUnderstandingModule {}

@@ -109,6 +109,9 @@ export function toLegacyChatStorageFileAttachments(files: unknown): IStorageFile
             if (readString(file, 'storageFileId')) {
                 return null
             }
+            if (isFileAssetLike(file)) {
+                return null
+            }
             const id = readString(file, 'id')
             return id
                 ? ({
@@ -289,6 +292,25 @@ function readFileAssetId(file: FileRecord) {
     const storageFileId = readString(file, 'storageFileId')
     const fileId = readString(file, 'fileId')
     return storageFileId && fileId ? fileId : null
+}
+
+function isFileAssetLike(file: FileRecord) {
+    if (readString(file, 'fileAssetId')) {
+        return true
+    }
+    if (readString(file, 'storageFileId')) {
+        return false
+    }
+    if (!readString(file, 'fileId')) {
+        return false
+    }
+    return Boolean(
+        readString(file, 'workspacePath') ||
+        readString(file, 'filePath') ||
+        readString(file, 'parseStatus') ||
+        readString(file, 'status') ||
+        Array.isArray(file.capabilities)
+    )
 }
 
 async function resolveOrCreateFileAssetForStorageFile(

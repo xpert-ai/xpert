@@ -91,12 +91,8 @@
   </div>
 }
 
-<div
-  class="mt-3 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background"
-  waIntersectionObserver
-  waIntersectionThreshold="0.5"
->
-  <div class="min-h-0 flex-1 overflow-auto">
+<div class="mt-3 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+  <div class="min-h-0 flex-1 overflow-auto" waIntersectionObserver waIntersectionRoot waIntersectionThreshold="0.5">
     @if (conversations().length) {
       <table z-table zSize="compact" class="min-w-full table-fixed text-sm" [style.min-width.px]="tableMinWidth()">
         <colgroup>
@@ -270,6 +266,10 @@
           }
         </tbody>
       </table>
+
+      @if (!loading() && !done()) {
+        <div (waIntersectionObservee)="onIntersection($event)" class="h-px w-full"></div>
+      }
     } @else {
       <div class="flex h-full min-h-[320px] items-center justify-center">
         @if (loading()) {
@@ -292,14 +292,7 @@
           <z-loader zSize="sm" />
         </div>
       } @else if (!done()) {
-        <button
-          z-button
-          zType="ghost"
-          zSize="sm"
-          class="w-full rounded-none"
-          (waIntersectionObservee)="onIntersection()"
-          (click)="onIntersection()"
-        >
+        <button z-button zType="ghost" zSize="sm" class="w-full rounded-none" (click)="loadMore()">
           <z-icon zType="chevron-down" />
           {{ 'PAC.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
         </button>

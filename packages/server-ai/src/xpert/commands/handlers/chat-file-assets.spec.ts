@@ -198,6 +198,47 @@ describe('normalizeChatHumanInputFiles', () => {
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
 
+    it('keeps workspace-backed FileAsset handles without entering the data URL conversion path', async () => {
+        const commandBus = {
+            execute: jest.fn()
+        }
+        const queryBus = {
+            execute: jest.fn()
+        }
+
+        const result = await normalizeChatHumanInputFiles(
+            {
+                input: 'read workspace file',
+                files: [
+                    {
+                        id: 'file-asset-workspace-1',
+                        fileAssetId: 'file-asset-workspace-1',
+                        filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                        workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                        originalName: 'contract.docx',
+                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    }
+                ]
+            } as any,
+            {
+                commandBus: commandBus as any,
+                queryBus: queryBus as any
+            }
+        )
+
+        expect(result.changed).toBe(true)
+        expect(result.input?.files?.[0]).toMatchObject({
+            id: 'file-asset-workspace-1',
+            fileId: 'file-asset-workspace-1',
+            fileAssetId: 'file-asset-workspace-1',
+            filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            originalName: 'contract.docx'
+        })
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
     it('leaves legacy fileId-only inputs unchanged', async () => {
         const commandBus = {
             execute: jest.fn()
@@ -247,6 +288,20 @@ describe('chat file asset persistence helpers', () => {
             toLegacyChatStorageFileAttachments([
                 { id: 'legacy-storage-1', originalName: 'old.pdf' },
                 { id: 'asset-1', fileAssetId: 'asset-1', storageFileId: 'storage-1' },
+                {
+                    id: 'workspace-asset-1',
+                    fileId: 'workspace-asset-1',
+                    fileAssetId: 'workspace-asset-1',
+                    filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                    workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+                    originalName: 'contract.docx'
+                },
+                {
+                    id: 'workspace-asset-2',
+                    fileId: 'workspace-asset-2',
+                    workspacePath: 'files/wechat/integration-1/uuid-1/msg-2/contract.docx',
+                    originalName: 'contract.docx'
+                },
                 { name: 'missing-id.txt' }
             ])
         ).toEqual([

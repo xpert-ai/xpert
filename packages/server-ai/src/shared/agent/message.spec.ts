@@ -1,5 +1,5 @@
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { GetFilePreviewQuery } from '../../file-understanding'
+import { GetFileAssetQuery, GetFilePreviewQuery } from '../../file-understanding'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -343,6 +343,67 @@ describe('createHumanMessage', () => {
         expect(fileCard).toContain('view-image')
         expect(fileCard).not.toContain('FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT')
         expect(fileCard).not.toContain('<preview_chunks>')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('creates file understanding cards from workspace-backed FileAsset handles without storage files', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileAssetQuery) {
+                    return {
+                        id: 'file-asset-1',
+                        originalName: 'contract.docx',
+                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        size: 22900,
+                        status: 'ready',
+                        capabilities: ['preview', 'read', 'workspace'],
+                        workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+                    }
+                }
+                if (query instanceof GetFilePreviewQuery) {
+                    return {
+                        file: {
+                            summary: 'Document summary',
+                            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+                        },
+                        artifacts: [],
+                        chunks: []
+                    }
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn()
+        }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: '这讲的什么内容',
+                    files: [
+                        {
+                            id: 'file-asset-1',
+                            fileId: 'file-asset-1',
+                            fileAssetId: 'file-asset-1',
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+                        }
+                    ]
+                }
+            },
+            undefined
+        )
+
+        expect(Array.isArray(message.content)).toBe(true)
+        const fileCard = (message.content as Array<{ type: string; text?: string }>)[0].text
+        expect(fileCard).toContain('fileId: file-asset-1')
+        expect(fileCard).toContain('storageFileId:')
+        expect(fileCard).toContain('workspacePath: files/wechat/integration-1/uuid-1/msg-1/contract.docx')
+        expect(fileCard).toContain('Document summary')
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
 })

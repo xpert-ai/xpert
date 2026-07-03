@@ -603,6 +603,109 @@ describe('XpertChatHandler', () => {
         expect(humanMessageCommand.entity.fileAssets).toBeUndefined()
     })
 
+    it('persists workspace-backed FileAsset handles only as fileAssets', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof AttachFileToConversationCommand) {
+                return command.input
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: command.entity.projectId ?? 'project-1',
+                    messages: [],
+                    status: command.entity.status,
+                    title: null,
+                    options: command.entity.options ?? {}
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    id: `${command.entity.role}-1`,
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const workspaceFile = {
+            id: 'file-asset-workspace-1',
+            fileId: 'file-asset-workspace-1',
+            fileAssetId: 'file-asset-workspace-1',
+            filePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            originalName: 'contract.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        }
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    projectId: 'project-1',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: '这讲的什么内容',
+                            files: [workspaceFile]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1',
+                    from: 'wechat'
+                }
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const humanMessageCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+        ) as ChatMessageUpsertCommand
+        expect(humanMessageCommand.entity.fileAssets).toEqual([{ id: 'file-asset-workspace-1' }])
+        expect(humanMessageCommand.entity.attachments).toBeUndefined()
+
+        const attachCommand = commands.find(
+            (command) => command instanceof AttachFileToConversationCommand
+        ) as AttachFileToConversationCommand
+        expect(attachCommand.input).toMatchObject({
+            fileAssetId: 'file-asset-workspace-1',
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1'
+        })
+        expect(attachCommand.input.storageFileId).toBeUndefined()
+    })
+
     it('normalizes data URL request files before persisting execution, message and conversation parameters', async () => {
         const commands: any[] = []
         const storageFile = {

@@ -3705,6 +3705,7 @@
       "Reducer": "歸約",
       "FileUnderstanding": "文件理解",
       "FileUnderstandingTip": "啟用內置文件搜索與讀取工具，用於理解對話關聯文件",
+      "FileUnderstandingEmbeddingUnavailable": "未配置可用的嵌入模型。請在模型提供商設置中啟用嵌入角色並選擇默認嵌入模型後，再使用文件向量檢索。",
       "ParallelToolCalls": "並行工具調用",
       "ParallelToolCallsTip": "是否啟用工具的並行調用能力，針對像 OpenAI 等的部分模型起作用",
       "JoinTheCommunity": "參與社區",

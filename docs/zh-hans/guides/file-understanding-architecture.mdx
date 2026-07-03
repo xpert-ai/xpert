@@ -115,7 +115,7 @@ Parser 输出的结构化产物。
 - `tokenCount`
 - `anchor`
 
-当前实现使用数据库文本匹配查询 chunk；`FileEmbedding` 已预留向量索引元数据，后续可接入现有 vector store。
+当前实现优先使用文件 chunk 向量检索，并在 embedding 或 vector store 不可用、无命中或回表失败时降级到数据库文本匹配。
 
 ### `FileCitationAnchor`
 
@@ -135,14 +135,14 @@ Parser 输出的结构化产物。
 
 表名：`file_embedding`
 
-预留 chunk 向量索引元数据：
+chunk 向量索引元数据：
 
 - `provider`
 - `model`
 - `vectorId`
 - `metadata`
 
-第一版不会强制创建真实 embedding。升级为语义检索时，应在这里记录外部向量库 id。
+`metadata` 保存 collection 名称、collection scope、embedding 指纹、维度、chunk 序号和 anchor。collection 名称规则为 `file-understanding:<scope>:<scopeId>:<embeddingFingerprint>`，优先按 `xpertId + embeddingFingerprint` 隔离；没有 `xpertId` 时 fallback 到 `projectId`，再 fallback 到 `tenantId`。
 
 ### `ConversationFileLink`
 
@@ -667,13 +667,14 @@ chatkit-js/packages/chatkit-ui/src/components/chat.tsx
 
 ### 接入向量检索
 
-当前 `SearchFileChunksQuery` 使用数据库文本匹配。升级语义检索时：
+当前 `SearchFileChunksQuery` 已使用向量优先、文本降级的检索策略：
 
-1. 在 parse/index 后为 chunk 创建 embedding。
-2. 将外部向量 id 写入 `file_embedding.vectorId`。
-3. 保持 `SearchFileChunksQuery` 的输入输出稳定。
-4. 在 query handler 内先走 vector store，再按权限和 fileId 回表读取 chunk。
-5. 保持 `FileUnderstandingMiddleware` 的 tool schema 不变，尤其是 `file_search`。
+1. parse/index 后为 chunk 创建 embedding。
+2. 通过 `RagCreateVStoreCommand` 创建 vector store，底层由 `IVectorStoreStrategy` 对接插件化 vector store。
+3. 将外部向量 id 写入 `file_embedding.vectorId`。
+4. collection 按 `xpertId + embeddingFingerprint` 隔离；没有 `xpertId` 时依次 fallback 到 `projectId` 和 `tenantId`。
+5. query handler 先走 vector store，再按权限和 fileId 回表读取 chunk；失败或无命中时降级到数据库文本匹配。
+6. `FileUnderstandingMiddleware` 的 tool schema 保持不变，尤其是 `file_search`。
 
 这样可以不改 ChatKit 和 Agent tool 调用方式。
 

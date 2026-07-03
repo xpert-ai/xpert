@@ -13,6 +13,7 @@ import {
     FileCitationAnchor,
     FileEmbedding
 } from '../../entities'
+import { FileUnderstandingVectorService } from '../../file-understanding-vector.service'
 import { DeleteFileAssetCommand } from '../delete-file-asset.command'
 import { normalizeRelativePath } from '../../../shared/file-upload-targets/utils'
 
@@ -31,7 +32,8 @@ export class DeleteFileAssetHandler implements ICommandHandler<DeleteFileAssetCo
         private readonly fileEmbeddingRepository: Repository<FileEmbedding>,
         @InjectRepository(ConversationFileLink)
         private readonly conversationFileLinkRepository: Repository<ConversationFileLink>,
-        private readonly storageFileService: StorageFileService
+        private readonly storageFileService: StorageFileService,
+        private readonly fileVectorService: FileUnderstandingVectorService
     ) {}
 
     async execute(command: DeleteFileAssetCommand) {
@@ -39,6 +41,7 @@ export class DeleteFileAssetHandler implements ICommandHandler<DeleteFileAssetCo
         const pageImageStorageKeys = await this.listPageImageStorageKeys(command.fileAssetId)
         const storageProvider = await this.resolveStorageProvider(asset)
 
+        await this.fileVectorService.deleteFileVectors(command.fileAssetId, asset)
         await this.fileCitationAnchorRepository.delete({ fileAssetId: command.fileAssetId })
         await this.fileEmbeddingRepository.delete({ fileAssetId: command.fileAssetId })
         await this.fileChunkRepository.delete({ fileAssetId: command.fileAssetId })

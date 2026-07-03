@@ -6,9 +6,12 @@ import {
     WorkspaceFileBuffer,
     WorkspaceFileReference,
     WorkspaceFilesApi,
+    WorkspaceUnderstandFileInput,
+    WorkspaceUnderstoodFile,
     WorkspaceUploadBufferInput
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
+import { CreateWorkspaceFileAssetCommand, type FileAsset } from '../../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient, type VolumeScope } from '../volume'
 
 type WorkspaceFileVolumeScope = Omit<VolumeScope, 'catalog'> & {
@@ -70,6 +73,57 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             catalog,
             scopeId,
             metadata: destination.metadata
+        }
+    }
+
+    async understandFile(input: WorkspaceUnderstandFileInput): Promise<WorkspaceUnderstoodFile> {
+        const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
+        const { catalog, scopeId } = this.resolveVolumeScope(input)
+        const fileAsset = await this.commandBus.execute<CreateWorkspaceFileAssetCommand, FileAsset>(
+            new CreateWorkspaceFileAssetCommand({
+                ...input,
+                filePath
+            })
+        )
+        const metadata = readWorkspaceMetadata(fileAsset.metadata)
+        const fileUrl = normalizeOptionalString(input.fileUrl) ?? normalizeOptionalString(input.url) ?? metadata.fileUrl
+        const originalName =
+            normalizeOptionalString(input.originalName) ??
+            normalizeOptionalString(fileAsset.originalName) ??
+            filePath.split('/').filter(Boolean).pop() ??
+            filePath
+        const mimeType =
+            normalizeOptionalString(input.mimeType) ??
+            normalizeOptionalString(fileAsset.mimeType) ??
+            normalizeOptionalString(metadata.mimeType)
+        const size =
+            typeof input.size === 'number' && Number.isFinite(input.size)
+                ? input.size
+                : typeof fileAsset.size === 'number'
+                  ? fileAsset.size
+                  : metadata.size
+
+        return {
+            id: fileAsset.id,
+            fileId: fileAsset.id,
+            fileAssetId: fileAsset.id,
+            ...(fileAsset.storageFileId ? { storageFileId: fileAsset.storageFileId } : {}),
+            name: originalName,
+            originalName,
+            filePath,
+            workspacePath: fileAsset.workspacePath ?? filePath,
+            ...(fileUrl ? { fileUrl, url: fileUrl } : {}),
+            ...(mimeType ? { mimeType } : {}),
+            ...(typeof size === 'number' ? { size } : {}),
+            catalog,
+            scopeId,
+            status: fileAsset.status,
+            parseStatus: fileAsset.status,
+            purpose: fileAsset.purpose,
+            parseMode: fileAsset.parseMode,
+            capabilities: fileAsset.capabilities ?? [],
+            summary: fileAsset.summary,
+            metadata: fileAsset.metadata
         }
     }
 
@@ -195,6 +249,19 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
                 }
             }
         }
+    }
+}
+
+function readWorkspaceMetadata(metadata?: Record<string, unknown>) {
+    const workspace = metadata?.workspace
+    if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace)) {
+        return {}
+    }
+    const record = workspace as Record<string, unknown>
+    return {
+        fileUrl: normalizeOptionalString(record.fileUrl),
+        mimeType: normalizeOptionalString(record.mimeType),
+        size: typeof record.size === 'number' && Number.isFinite(record.size) ? record.size : undefined
     }
 }
 
