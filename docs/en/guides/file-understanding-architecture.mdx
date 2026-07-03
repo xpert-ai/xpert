@@ -362,6 +362,33 @@ Behavior:
 - Let Agents use `file_search` / `file_read` when exact content is needed.
 - Fall back to `LoadFileCommand` for failed parsing or legacy-only files.
 
+`LoadFileCommand` must distinguish two path kinds when it reads original bytes:
+
+- Absolute paths are legacy or already-resolved server-side paths and can be passed directly to LangChain / Node file loaders.
+- Workspace-relative paths, for example `files/wechat/<integrationId>/<messageId>/<fileName>`, must not be opened relative to the process `cwd`. They must be resolved through `FileAsset.metadata.workspace.catalog`, `scopeId`, and `tenantId` / `userId`, then mapped with `VolumeClient.resolve(scope).path(relativePath)`.
+
+Workspace-backed assets should keep this metadata:
+
+```ts
+{
+  source: 'platform.workspace.files',
+  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts',
+  scopeId: '<projectId | userId | knowledgeId | rootId | xpertId>',
+  relativePath: 'files/wechat/.../technical-notice.docx',
+  workspacePath: 'files/wechat/.../technical-notice.docx'
+}
+```
+
+The shared resolver lives in:
+
+```text
+packages/server-ai/src/file-understanding/domain/workspace-file.ts
+```
+
+`resolveWorkspaceVolumeScope` / `inferWorkspaceVolumeScope` own the catalog-to-`VolumeScope` mapping. `resolveFileAssetWorkspaceRelativePath` / `resolveFileAssetWorkspaceVolumeScope` read the path and scope from `FileAsset`. `LoadFileHandler`, the workspace file runtime capability, and workspace-backed `FileAsset` creation should reuse these helpers instead of maintaining command-handler-local catalog branches.
+
+With this contract, plugins and external connectors only need to provide a relative path plus catalog/scope metadata. Production does not depend on the API process `cwd` being the workspace root, and messages do not need to persist environment-specific absolute paths such as `/sandbox/...` or `/workspace/...`.
+
 Agent tools and built-in middleware:
 
 ```text

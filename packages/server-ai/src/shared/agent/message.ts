@@ -5,6 +5,7 @@ import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import fs from 'fs'
 import { get } from 'lodash'
+import path from 'path'
 import sharp from 'sharp'
 import {
     FileAsset,
@@ -20,7 +21,8 @@ import { isPromptWorkflowInvocationCandidate } from './prompt-workflow-invocatio
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 import { buildSelectedRuntimeSkillsPrompt } from './runtime-skills-prompt'
 
-type ResolvedFile = _TFile & {
+type ResolvedFile = Omit<_TFile, 'filePath'> & {
+    filePath?: string
     id?: string
     fileId?: string
     fileAssetId?: string
@@ -87,17 +89,29 @@ async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Pr
         }
     }
 
-    const workspacePath = file.workspacePath ?? fileAsset?.workspacePath
+    const localFilePath = file.filePath && path.isAbsolute(file.filePath) ? file.filePath : undefined
+    const workspacePath = file.workspacePath ?? fileAsset?.workspacePath ?? (localFilePath ? undefined : file.filePath)
+    const { filePath: _filePath, ...fileWithoutLocalPath } = file
     if (file.filePath || file.fileUrl || workspacePath) {
         return {
-            ...file,
-            filePath: file.filePath ?? workspacePath,
+            ...fileWithoutLocalPath,
+            ...(localFilePath ? { filePath: localFilePath } : {}),
             fileUrl: file.fileUrl ?? fileAssetUrl(fileAsset),
             mimeType: file.mimeType ?? fileAsset?.mimeType,
             originalName: file.originalName ?? fileAsset?.originalName,
             size: file.size ?? fileAsset?.size,
             workspacePath,
             fileAsset: fileAsset ?? file.fileAsset
+        }
+    }
+
+    if (fileAsset) {
+        return {
+            ...fileWithoutLocalPath,
+            mimeType: file.mimeType ?? fileAsset.mimeType,
+            originalName: file.originalName ?? fileAsset.originalName,
+            size: file.size ?? fileAsset.size,
+            fileAsset
         }
     }
 
@@ -240,11 +254,20 @@ export async function createHumanMessage(
         const fileParts = await Promise.all(
             files.map(async (file) => {
                 if (file.mimeType?.startsWith('image')) {
+                    if (!file.filePath && !file.fileUrl) {
+                        return {
+                            type: 'text',
+                            text: buildFileUnderstandingPrompt(file, null)
+                        }
+                    }
                     return await toImageContentPart(file, attachment)
                 }
 
                 if (file.mimeType?.startsWith('video')) {
                     // Process video files
+                    if (!file.filePath) {
+                        throw new Error('Video file path is required')
+                    }
                     const videoData = await fs.promises.readFile(file.filePath)
                     return {
                         type: 'video_url',
@@ -268,12 +291,29 @@ export async function createHumanMessage(
                     }
                 }
 
+                const loadFilePath = file.filePath ?? file.workspacePath
+                if (file.fileAsset?.id && !loadFilePath) {
+                    return {
+                        type: 'text',
+                        text: buildFileUnderstandingPrompt(file, null)
+                    }
+                }
+
+                if (!loadFilePath) {
+                    return {
+                        type: 'text',
+                        text: `Attachment File: ${formatAttachmentPath(file)}\n<file_content>\nNo local file path available.\n</file_content>`
+                    }
+                }
+
                 // Compatibility fallback for legacy attachments or unsupported
                 // parser states. Ready FileAssets should reach the compact card above.
-                const docs = await commandBus.execute(new LoadFileCommand(file))
+                const docs = await commandBus.execute(
+                    new LoadFileCommand({ ...file, filePath: loadFilePath } as _TFile)
+                )
                 return {
                     type: 'text',
-                    text: `Attachment File: ${file.filePath}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
+                    text: `Attachment File: ${formatAttachmentPath(file)}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
                 }
             })
         )
@@ -291,6 +331,10 @@ export async function createHumanMessage(
     }
 
     return new HumanMessage(finalText)
+}
+
+function formatAttachmentPath(file: ResolvedFile) {
+    return file.workspacePath ?? file.originalName ?? file.filePath ?? file.fileAssetId ?? file.fileId ?? 'attachment'
 }
 
 /**

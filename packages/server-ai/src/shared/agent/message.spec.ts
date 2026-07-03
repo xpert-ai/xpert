@@ -1,5 +1,6 @@
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { GetFileAssetQuery, GetFilePreviewQuery } from '../../file-understanding'
+import { LoadFileCommand } from '../commands'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
@@ -405,5 +406,109 @@ describe('createHumanMessage', () => {
         expect(fileCard).toContain('workspacePath: files/wechat/integration-1/uuid-1/msg-1/contract.docx')
         expect(fileCard).toContain('Document summary')
         expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('loads workspace-backed FileAsset fallbacks with the relative workspace path', async () => {
+        const workspacePath = 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileAssetQuery) {
+                    return {
+                        id: 'file-asset-1',
+                        originalName: 'contract.docx',
+                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        size: 22900,
+                        status: 'uploaded',
+                        capabilities: ['preview', 'workspace'],
+                        workspacePath,
+                        metadata: {
+                            workspace: {
+                                catalog: 'xperts',
+                                scopeId: 'xpert-1',
+                                relativePath: workspacePath,
+                                workspacePath
+                            }
+                        }
+                    }
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue([{ pageContent: '合同正文' }])
+        }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: '提取产品信息',
+                    files: [
+                        {
+                            id: 'file-asset-1',
+                            fileId: 'file-asset-1',
+                            fileAssetId: 'file-asset-1',
+                            filePath: workspacePath,
+                            workspacePath,
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                        } as any
+                    ]
+                }
+            },
+            undefined
+        )
+
+        expect(commandBus.execute).toHaveBeenCalledWith(expect.any(LoadFileCommand))
+        const loadCommand = commandBus.execute.mock.calls[0][0] as LoadFileCommand
+        expect(loadCommand.file.filePath).toBe(workspacePath)
+        const fileText = (message.content as Array<{ type: string; text?: string }>)[0].text
+        expect(fileText).toContain(`Attachment File: ${workspacePath}`)
+        expect(fileText).toContain('合同正文')
+    })
+
+    it('does not raw-load a FileAsset when no workspace path is available', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof GetFileAssetQuery) {
+                    return {
+                        id: 'file-asset-1',
+                        originalName: 'contract.docx',
+                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        status: 'uploaded',
+                        capabilities: ['preview', 'workspace']
+                    }
+                }
+                return null
+            })
+        }
+        const commandBus = {
+            execute: jest.fn()
+        }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: '提取产品信息',
+                    files: [
+                        {
+                            fileId: 'file-asset-1',
+                            fileAssetId: 'file-asset-1',
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                        } as any
+                    ]
+                }
+            },
+            undefined
+        )
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        const fileCard = (message.content as Array<{ type: string; text?: string }>)[0].text
+        expect(fileCard).toContain('fileId: file-asset-1')
+        expect(fileCard).toContain('status: uploaded')
     })
 })

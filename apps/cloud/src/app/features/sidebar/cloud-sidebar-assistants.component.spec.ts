@@ -340,7 +340,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(names).toEqual(['Other Assistant'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
-    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('organization', 'chat_common')
+    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
   })
 
   it('renders the current bound ClawXpert card from the existing expert source', async () => {

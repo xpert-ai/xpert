@@ -418,6 +418,47 @@ DELETE /api/chat-conversation/:conversationId/file
 
 `conversationId` 仍用于会话定位和权限上下文，但不再作为文件系统目录片段。同一个 Xpert 的多个用户会看到同一份 workspace 文件。
 
+### Workspace 文件相对路径解析
+
+插件、managed connection 和 runtime capability 写入 workspace 文件时，应把文件记录为“相对路径 + catalog/scope”，而不是记录当前进程或 sandbox 里的绝对路径。
+
+标准输入形态：
+
+```ts
+{
+  tenantId,
+  userId,
+  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts',
+  scopeId,
+  filePath: 'files/wechat/<integrationId>/<messageId>/<fileName>'
+}
+```
+
+公共解析函数位于：
+
+```text
+packages/server-ai/src/file-understanding/domain/workspace-file.ts
+```
+
+它们负责把 `catalog` / `scopeId` 统一映射为 `VolumeScope`：
+
+| catalog      | scope 字段                 | Volume scope 输出                                       |
+| ------------ | -------------------------- | ------------------------------------------------------- |
+| `projects`   | `projectId` 或 `scopeId`   | `{ catalog: 'projects', projectId, userId }`            |
+| `xperts`     | `xpertId` 或 `scopeId`     | `{ catalog: 'xperts', xpertId, userId, isolateByUser }` |
+| `users`      | `scopeId` 或 `userId`      | `{ catalog: 'users', userId }`                          |
+| `knowledges` | `knowledgeId` 或 `scopeId` | `{ catalog: 'knowledges', knowledgeId, userId }`        |
+| `skills`     | `rootId` 或 `scopeId`      | `{ catalog: 'skills', rootId, userId }`                 |
+
+读取文件时，调用方只应把相对路径交给 `VolumeHandle.path(relativePath)`：
+
+```ts
+const { volumeScope } = resolveWorkspaceVolumeScope(input, { tenantId, userId })
+const absolutePath = volumeClient.resolve(volumeScope).path(input.filePath)
+```
+
+不要把 `files/wechat/...` 直接交给 Node `fs.open()`；那会按 API 进程 `cwd` 解析，在生产环境中容易出现文件存在于 workspace 面板但后端报 `ENOENT` 的情况。也不要把 `/workspace/...`、`/sandbox/...` 或本机 runtime 目录持久化为业务路径；这些路径属于具体 runtime / sandbox 映射，跨部署不可移植。
+
 ### 环境 sandbox
 
 当 `sandboxEnvironmentId` 存在时，环境 sandbox 优先级最高，会忽略项目上下文：
