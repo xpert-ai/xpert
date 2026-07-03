@@ -4055,6 +4055,18 @@
     },
     "Users": {
       "BackToList": "返回用户列表",
+      "UserType": "用户类型",
+      "UserTypes": {
+        "Regular": "普通用户",
+        "Technical": "技术用户"
+      },
+      "TechnicalUserReadonlyHint": "技术用户的基础账号字段保持只读。",
+      "Tabs": {
+        "Basic": "基本信息",
+        "Membership": "会员",
+        "Organizations": "组织",
+        "Security": "安全"
+      },
       "NoMoreOrganizations": "没有更多的组织可添加",
       "GroupsHint": "查看用户在各个有效组织下所属的用户组。",
       "NoActiveOrganizations": "该用户当前不在任何有效组织中。",

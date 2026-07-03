@@ -1,7 +1,14 @@
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ToastrService, UsersService } from '@xpert-ai/cloud/state'
-import { type IOrganization, type IUser, type IUserOrganization, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import {
+  type IOrganization,
+  type IUser,
+  type IUserOrganization,
+  PermissionsEnum,
+  RolesEnum,
+  UserType
+} from '@xpert-ai/contracts'
 import { NgmConfirmDeleteService } from '@xpert-ai/ocap-angular/common'
 import {
   DateRelativePipe,
@@ -14,7 +21,6 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { includes } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
@@ -36,6 +42,22 @@ type UserStatusFilter = 'all' | 'active' | 'disabled'
 type UserTableRow = IUser & {
   displayOrganizations: IOrganization[]
 }
+
+const MANAGED_USER_TYPES = [UserType.USER, UserType.COMMUNICATION]
+const DEFAULT_USER_TYPES = [UserType.USER]
+
+const USER_TYPE_OPTIONS: Array<{ value: UserType; labelKey: string; defaultLabel: string }> = [
+  {
+    value: UserType.USER,
+    labelKey: 'PAC.Users.UserTypes.Regular',
+    defaultLabel: 'Regular user'
+  },
+  {
+    value: UserType.COMMUNICATION,
+    labelKey: 'PAC.Users.UserTypes.Technical',
+    defaultLabel: 'Technical user'
+  }
+]
 
 const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; defaultLabel: string }> = [
   {
@@ -71,7 +93,6 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
     ZardInputDirective,
     ...ZardSelectImports,
     ...ZardTableImports,
-    UserProfileInlineComponent,
     DateRelativePipe
   ]
 })
@@ -95,6 +116,15 @@ export class ManageUserComponent extends TranslationBaseComponent {
   }
 
   private search$ = new BehaviorSubject<string>('')
+  readonly userTypeQuickFilters: Array<{ value: UserType | null; labelKey: string; defaultLabel: string }> = [
+    {
+      value: null,
+      labelKey: 'PAC.KEY_WORDS.All',
+      defaultLabel: 'All'
+    },
+    ...USER_TYPE_OPTIONS
+  ]
+  private userTypes$ = new BehaviorSubject<UserType[]>(DEFAULT_USER_TYPES)
   readonly allStatusFilter: UserStatusFilter = 'all'
   readonly statusOptions = USER_STATUS_OPTIONS
   private status$ = new BehaviorSubject<UserStatusFilter>(this.allStatusFilter)
@@ -138,6 +168,13 @@ export class ManageUserComponent extends TranslationBaseComponent {
     this.search$.next(value)
   }
 
+  get userTypes() {
+    return this.userTypes$.value
+  }
+  set userTypes(value) {
+    this.userTypes$.next(value)
+  }
+
   get status() {
     return this.status$.value
   }
@@ -156,6 +193,21 @@ export class ManageUserComponent extends TranslationBaseComponent {
     this.roles = Array.isArray(value) ? value.map((item) => `${item}`) : []
   }
 
+  selectUserTypeQuickFilter(value: UserType | null) {
+    this.userTypes = value ? [value] : []
+  }
+
+  isUserTypeQuickFilterActive(value: UserType | null) {
+    return value ? this.userTypes.length === 1 && this.userTypes[0] === value : !this.userTypes.length
+  }
+
+  isDefaultUserTypeFilter() {
+    return (
+      this.userTypes.length === DEFAULT_USER_TYPES.length &&
+      DEFAULT_USER_TYPES.every((type, index) => this.userTypes[index] === type)
+    )
+  }
+
   onStatusSelectionChange(value: string | number | Array<string | number>) {
     this.status = this.normalizeStatusFilter(value)
   }
@@ -166,6 +218,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
 
   clearFilters() {
     this.roles = []
+    this.userTypes = DEFAULT_USER_TYPES
     this.status = this.allStatusFilter
     this.organizationIds = []
   }
@@ -175,22 +228,26 @@ export class ManageUserComponent extends TranslationBaseComponent {
     this.refresh$,
     this.scopeLevel$,
     this.roles$,
+    this.userTypes$,
     this.search$,
     this.status$,
     this.organizationIds$
   ]).pipe(
-    switchMap(([, scopeLevel, roles, search, status, organizationIds]) =>
+    switchMap(([, scopeLevel, roles, userTypes, search, status, organizationIds]) =>
       scopeLevel === RequestScopeLevel.TENANT
         ? combineLatest([
-            this.userService.getAll(['role']),
+            this.userService.getAll(['role'], undefined, undefined, {
+              types: userTypes.length ? userTypes : MANAGED_USER_TYPES,
+              withDeleted: true
+            }),
             this.userOrganizationsService.getAll(['organization'])
           ]).pipe(
             map(([users, { items }]) => this.mapUsersWithMemberships(users, items)),
-            map((users) => this.filterUsers(users, search, roles, status, organizationIds, true))
+            map((users) => this.filterUsers(users, search, roles, userTypes, status, organizationIds, true))
           )
         : this.userOrganizationsService.getAllInOrg(['user', 'user.role', 'organization']).pipe(
             map(({ items }) => this.mapMembershipsToUsers(items)),
-            map((users) => this.filterUsers(users, search, roles, status, organizationIds, true))
+            map((users) => this.filterUsers(users, search, roles, userTypes, status, organizationIds, true))
           )
     )
   )
@@ -201,6 +258,16 @@ export class ManageUserComponent extends TranslationBaseComponent {
 
   openUser(user: IUser) {
     this.usersComponent.navUser(user)
+  }
+
+  userIdentityTitle(user: IUser) {
+    return userLabel(user)
+  }
+
+  userIdentitySubtitle(user: IUser) {
+    return [user.email, user.username && user.username !== userLabel(user) ? user.username : null]
+      .filter(Boolean)
+      .join(' / ')
   }
 
   /**
@@ -269,15 +336,19 @@ export class ManageUserComponent extends TranslationBaseComponent {
     users: UserTableRow[],
     search: string,
     roles: string[],
+    userTypes: UserType[],
     status: UserStatusFilter,
     organizationIds: string[],
     allowRoleFilter: boolean
   ) {
     const searchText = search?.toLowerCase().trim()
+    const filteredByType = userTypes?.length
+      ? users.filter((user) => includes(userTypes, this.normalizedUserType(user)))
+      : users
     const filteredByRole =
       allowRoleFilter && roles?.length
-        ? users.filter((user) => user.role?.name && includes(roles, user.role.name))
-        : users
+        ? filteredByType.filter((user) => user.role?.name && includes(roles, user.role.name))
+        : filteredByType
     const filteredByStatus =
       status === 'active'
         ? filteredByRole.filter((user) => !user.deletedAt)
@@ -304,7 +375,8 @@ export class ManageUserComponent extends TranslationBaseComponent {
         user.email?.toLowerCase().includes(searchText) ||
         user.username?.toLowerCase().includes(searchText) ||
         user.mobile?.toLowerCase().includes(searchText) ||
-        user.displayOrganizations.some((organization) => organization.name?.toLowerCase().includes(searchText))
+        user.displayOrganizations.some((organization) => organization.name?.toLowerCase().includes(searchText)) ||
+        this.userTypeDefaultLabel(user.type).toLowerCase().includes(searchText)
     )
   }
 
@@ -347,6 +419,35 @@ export class ManageUserComponent extends TranslationBaseComponent {
 
   private sortOrganizations(organizations: IOrganization[]) {
     return [...organizations].sort((left, right) => left.name.localeCompare(right.name))
+  }
+
+  isTechnicalUser(user: IUser) {
+    return user.type === UserType.COMMUNICATION
+  }
+
+  userTypeLabelKey(type?: UserType) {
+    return this.userTypeOption(type).labelKey
+  }
+
+  userTypeDefaultLabel(type?: UserType) {
+    return this.userTypeOption(type).defaultLabel
+  }
+
+  userTypeBadgeClass(type?: UserType) {
+    return this.normalizedUserType({ type } as IUser) === UserType.COMMUNICATION
+      ? 'text-text-accent'
+      : 'text-text-primary'
+  }
+
+  private userTypeOption(type?: UserType) {
+    return (
+      USER_TYPE_OPTIONS.find((option) => option.value === this.normalizedUserType({ type } as IUser)) ??
+      USER_TYPE_OPTIONS[0]
+    )
+  }
+
+  private normalizedUserType(user: Pick<IUser, 'type'>) {
+    return user.type ?? UserType.USER
   }
 
   private normalizeStatusFilter(value: string | number | Array<string | number>): UserStatusFilter {

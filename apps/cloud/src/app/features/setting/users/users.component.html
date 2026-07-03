@@ -4,26 +4,28 @@
       <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_USERS' | translate: { Default: 'Manage Users' } }}</div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      @if (canBatchImport()) {
-        <button type="button" z-button zType="secondary" (click)="batImport()">
-          <z-icon zType="upload"></z-icon>
-          {{ 'PAC.USERS_PAGE.BatchImport' | translate: { Default: 'Batch Import' } }}
-        </button>
-      }
-      @if (canInviteUsers()) {
-        <button type="button" z-button zType="secondary" (click)="invite()">
-          <z-icon zType="person_add"></z-icon>
-          {{ 'PAC.ACTIONS.INVITE' | translate: { Default: 'Invite' } }}
-        </button>
-      }
-      @if (canCreateUsers()) {
-        <button type="button" z-button zType="default" (click)="addUser()">
-          <z-icon zType="add"></z-icon>
-          {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }}
-        </button>
-      }
-    </div>
+    @if (isListRoute()) {
+      <div class="flex flex-wrap items-center gap-2">
+        @if (canBatchImport()) {
+          <button type="button" z-button zType="secondary" (click)="batImport()">
+            <z-icon zType="upload"></z-icon>
+            {{ 'PAC.USERS_PAGE.BatchImport' | translate: { Default: 'Batch Import' } }}
+          </button>
+        }
+        @if (canInviteUsers()) {
+          <button type="button" z-button zType="secondary" (click)="invite()">
+            <z-icon zType="person_add"></z-icon>
+            {{ 'PAC.ACTIONS.INVITE' | translate: { Default: 'Invite' } }}
+          </button>
+        }
+        @if (canCreateUsers()) {
+          <button type="button" z-button zType="default" (click)="addUser()">
+            <z-icon zType="add"></z-icon>
+            {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }}
+          </button>
+        }
+      </div>
+    }
   </div>
 
   <nav

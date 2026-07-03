@@ -114,6 +114,9 @@ export class HandoffQueueService implements HandoffPermissionService {
 		if (route.policy.timeoutMs && !headers['policyTimeoutMs']) {
 			headers['policyTimeoutMs'] = String(route.policy.timeoutMs)
 		}
+		if (route.policy.idleTimeoutMs && !headers['policyIdleTimeoutMs']) {
+			headers['policyIdleTimeoutMs'] = String(route.policy.idleTimeoutMs)
+		}
 
 		return {
 			...message,

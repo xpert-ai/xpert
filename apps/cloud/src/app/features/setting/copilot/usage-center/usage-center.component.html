@@ -34,7 +34,7 @@
       z-input
       zSize="sm"
       class="w-48"
-      [placeholder]="'PAC.Copilot.UserId' | translate: { Default: 'User ID' }"
+      [placeholder]="userFilterPlaceholder()"
       [(ngModel)]="userFilter"
       (keyup.enter)="reload()"
     />
@@ -126,7 +126,7 @@
                 ? ('PAC.Copilot.Model' | translate: { Default: 'Model' })
                 : dimension() === 'organization'
                   ? ('PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' })
-                  : ('PAC.KEY_WORDS.User' | translate: { Default: 'User' })
+                  : ('PAC.Copilot.Creator' | translate: { Default: 'Creator' })
             }}
           </th>
           @if (dimension() === 'user') {
@@ -143,7 +143,7 @@
           <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
             {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
           </th>
-          @if (dimension() !== 'model') {
+          @if (dimension() === 'organization') {
             <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
               {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
             </th>
@@ -200,11 +200,20 @@
                   <z-icon [zType]="isExpanded(item) ? 'chevron-down' : 'chevron-right'"></z-icon>
                 </button>
                 @if (dimension() === 'user') {
-                  @if (item.user) {
-                    <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
-                  } @else {
-                    <span class="truncate">{{ item.userId || '-' }}</span>
-                  }
+                  <div class="min-w-0">
+                    @if (item.user) {
+                      <pac-user-profile-inline class="min-w-0" [user]="item.user" small />
+                    } @else {
+                      <span class="truncate">{{ item.userId || '-' }}</span>
+                    }
+                    @if (item.runtimeUserCount || item.xpertCount) {
+                      <div class="truncate text-xs text-text-quaternary">
+                        {{ 'PAC.Copilot.RuntimeUsers' | translate: { Default: 'Runtime users' } }}:
+                        {{ item.runtimeUserCount || 0 }} /
+                        {{ 'PAC.Copilot.Xperts' | translate: { Default: 'Xperts' } }}: {{ item.xpertCount || 0 }}
+                      </div>
+                    }
+                  </div>
                 } @else if (dimension() === 'organization') {
                   @if (item.organization) {
                     <pac-org-avatar
@@ -238,7 +247,7 @@
             <td z-table-cell class="px-4 py-2 truncate">{{ item.provider || '-' }}</td>
             <td z-table-cell class="px-4 py-2 truncate">{{ item.model || '-' }}</td>
             <td z-table-cell class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
-            @if (dimension() !== 'model') {
+            @if (dimension() === 'organization') {
               <td z-table-cell class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
             }
             <td z-table-cell class="px-4 py-2">{{ item.tokenGrandTotal | number: '0.0-0' }}</td>
@@ -294,7 +303,7 @@
 
           @if (isExpanded(item)) {
             <tr z-table-row class="border-b border-divider-regular bg-background-default-subtle">
-              <td z-table-cell [attr.colspan]="dimension() === 'user' ? 12 : 11" class="p-0">
+              <td z-table-cell [attr.colspan]="dimension() === 'model' ? 10 : 11" class="p-0">
                 <div class="px-12 py-3">
                   @if (isLoadingDetails(item)) {
                     <div class="flex justify-center py-4"><ngm-spin /></div>
@@ -304,6 +313,9 @@
                         <tr z-table-row>
                           <th z-table-head class="w-40 px-3 py-2">
                             {{ 'PAC.Copilot.UsageHour' | translate: { Default: 'Usage Hour' } }}
+                          </th>
+                          <th z-table-head class="w-56 px-3 py-2">
+                            {{ 'PAC.Copilot.RuntimeUser' | translate: { Default: 'Runtime User' } }}
                           </th>
                           <th z-table-head class="w-52 px-3 py-2">
                             {{ 'PAC.KEY_WORDS.Thread' | translate: { Default: 'Thread' } }}
@@ -332,6 +344,13 @@
                         @for (detail of item.details; track detail.id) {
                           <tr z-table-row class="border-t border-divider-regular">
                             <td z-table-cell class="px-3 py-2 truncate">{{ detail.usageHour || '-' }}</td>
+                            <td z-table-cell class="px-3 py-2">
+                              @if (detail.user) {
+                                <pac-user-profile-inline class="min-w-0" [user]="detail.user" small />
+                              } @else {
+                                <span class="truncate" [title]="detail.userId">{{ detail.userId || '-' }}</span>
+                              }
+                            </td>
                             <td z-table-cell class="px-3 py-2 truncate" [title]="detail.threadId">
                               {{ detail.threadId || '-' }}
                             </td>

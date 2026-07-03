@@ -20,6 +20,7 @@ import { formatInUTC0 } from '../shared/utils'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
+import { Xpert } from '../xpert/xpert.entity'
 
 const DEFAULT_PLAN_CODE = 'default'
 const DEFAULT_PLAN_NAME = 'Default'
@@ -39,6 +40,8 @@ type RecordUsageInput = {
     copilotId?: string
 }
 
+type BillableUserInput = Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId'>
+
 type MembershipWithPlan = UserMembership & { plan: MembershipPlan }
 
 type NumericRaw = Record<string, string | number | null | undefined>
@@ -51,6 +54,9 @@ type MembershipUsageSummaryRaw = NumericRaw & {
     xpertId?: string | null
     threadId?: string | null
     copilotId?: string | null
+    conversationTitle?: string | null
+    xpertTitle?: string | null
+    xpertName?: string | null
     firstUsedAt?: Date | string | null
     lastUsedAt?: Date | string | null
 }
@@ -93,7 +99,9 @@ export class MembershipService {
         @InjectRepository(UserMembership)
         private readonly membershipRepository: Repository<UserMembership>,
         @InjectRepository(MembershipPointLedger)
-        private readonly ledgerRepository: Repository<MembershipPointLedger>
+        private readonly ledgerRepository: Repository<MembershipPointLedger>,
+        @InjectRepository(Xpert)
+        private readonly xpertRepository: Repository<Xpert>
     ) {}
 
     async findPlans(): Promise<MembershipPlan[]> {
@@ -402,6 +410,9 @@ export class MembershipService {
                 .addSelect('ledger.xpertId', 'xpertId')
                 .addSelect('ledger.threadId', 'threadId')
                 .addSelect('ledger.copilotId', 'copilotId')
+                .addSelect('MAX(conversation.title)', 'conversationTitle')
+                .addSelect('MAX(usage_xpert.title)', 'xpertTitle')
+                .addSelect('MAX(usage_xpert.name)', 'xpertName')
                 .addSelect('COUNT(ledger.id)', 'callCount')
                 .addSelect('COALESCE(SUM(ledger.pointsDelta), 0)', 'pointsDelta')
                 .addSelect('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'pointsUsed')
@@ -409,6 +420,16 @@ export class MembershipService {
                 .addSelect('MIN(ledger.createdAt)', 'firstUsedAt')
                 .addSelect('MAX(ledger.createdAt)', 'lastUsedAt')
                 .addSelect('COUNT(*) OVER()', 'total')
+                .leftJoin(
+                    'chat_conversation',
+                    'conversation',
+                    `"conversation"."tenantId" = ledger."tenantId" AND "conversation"."threadId" = ledger."threadId"`
+                )
+                .leftJoin(
+                    'xpert',
+                    'usage_xpert',
+                    `"usage_xpert"."tenantId" = ledger."tenantId" AND "usage_xpert"."id"::text = ledger."xpertId"`
+                )
                 .where('ledger.tenantId = :tenantId', { tenantId })
                 .andWhere('ledger.userId = :userId', { userId })
                 .andWhere('ledger.source = :source', { source: MembershipLedgerSourceEnum.Usage })
@@ -459,8 +480,11 @@ export class MembershipService {
         return { items, total }
     }
 
-    async assertCanUse(input: Pick<RecordUsageInput, 'tenantId' | 'userId' | 'provider' | 'model'>): Promise<void> {
-        const membership = await this.ensureActiveMembership(input.tenantId, input.userId)
+    async assertCanUse(
+        input: Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId' | 'provider' | 'model'>
+    ): Promise<void> {
+        const billableUserId = await this.resolveBillableUserId(input)
+        const membership = await this.ensureActiveMembership(input.tenantId, billableUserId)
         if (this.pointsRemaining(membership) <= 0) {
             throw new ExceedingLimitException('Membership points limit exceeded.')
         }
@@ -475,13 +499,14 @@ export class MembershipService {
 
         let exceeded = false
         const ledger = await this.dataSource.transaction(async (manager) => {
-            const membership = await this.ensureActiveMembership(input.tenantId, input.userId, manager, true)
+            const billableUserId = await this.resolveBillableUserId(input, manager)
+            const membership = await this.ensureActiveMembership(input.tenantId, billableUserId, manager, true)
             const pointsUsed = this.calculatePoints(tokenUsed, membership.plan, input.provider, input.model)
             membership.pointsUsed = (membership.pointsUsed ?? 0) + pointsUsed
             const saved = await manager.getRepository(UserMembership).save(membership)
             const ledger = await this.createLedger(manager, {
                 tenantId: input.tenantId,
-                userId: input.userId,
+                userId: billableUserId,
                 membershipId: saved.id,
                 planId: saved.planId,
                 source: MembershipLedgerSourceEnum.Usage,
@@ -508,6 +533,27 @@ export class MembershipService {
         }
 
         return ledger
+    }
+
+    private async resolveBillableUserId(input: BillableUserInput, manager?: EntityManager): Promise<string> {
+        const xpertId = input.xpertId?.trim()
+        if (!xpertId) {
+            return input.userId
+        }
+
+        const repository = manager?.getRepository(Xpert) ?? this.xpertRepository
+        const xpert = await repository.findOne({
+            where: {
+                tenantId: input.tenantId,
+                id: xpertId
+            },
+            select: {
+                id: true,
+                createdById: true
+            }
+        })
+
+        return xpert?.createdById ?? input.userId
     }
 
     calculatePoints(tokenUsed: number, plan: MembershipPlan, provider?: string, model?: string): number {
@@ -830,6 +876,9 @@ export class MembershipService {
         return {
             ...groupKey,
             groupKey,
+            conversationTitle: row.conversationTitle,
+            xpertTitle: row.xpertTitle,
+            xpertName: row.xpertName,
             callCount: toNumber(row.callCount),
             pointsDelta: toNumber(row.pointsDelta),
             pointsUsed: toNumber(row.pointsUsed),

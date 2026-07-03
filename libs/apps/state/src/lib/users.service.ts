@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput } from '@xpert-ai/contracts'
+import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput, UserType } from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 
@@ -26,6 +26,11 @@ export type UserMeSelect = {
 export type UserMeOptions = {
   currentOrganizationId?: string | null
   limitOrganizations?: boolean
+}
+
+export type UserListOptions = {
+  types?: UserType[]
+  withDeleted?: boolean
 }
 
 export const CURRENT_USER_BOOTSTRAP_SELECT: UserMeSelect = {
@@ -145,8 +150,8 @@ export class UsersService {
     )
   }
 
-  getAll(relations?: string[], findInput?: IUserFindInput, search?: string) {
-    const data = JSON.stringify({ relations, findInput, search })
+  getAll(relations?: string[], findInput?: IUserFindInput, search?: string, options?: UserListOptions) {
+    const data = JSON.stringify({ relations, findInput, search, ...(options ?? {}) })
     return this.http
       .get<{ items: IUser[]; total: number }>(`${this.API_URL}`, {
         params: { data }

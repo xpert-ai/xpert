@@ -128,6 +128,18 @@ export class PACAccountBillingComponent implements OnInit {
     return value ? value.slice(0, 8) : '-'
   }
 
+  conversationLabel(summary: IMembershipUsageSummary) {
+    return this.trimmed(summary.conversationTitle) || this.shortId(summary.threadId)
+  }
+
+  xpertLabel(summary: IMembershipUsageSummary) {
+    return this.trimmed(summary.xpertTitle) || this.trimmed(summary.xpertName) || this.shortId(summary.xpertId)
+  }
+
+  private trimmed(value?: string | null) {
+    return value?.trim() || null
+  }
+
   private toDetailsQuery(summary: IMembershipUsageSummary): IMembershipUsageQuery {
     return {
       usageHour: summary.usageHour ?? undefined,

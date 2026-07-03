@@ -312,6 +312,47 @@ describe('AgentChatDispatchHandoffProcessor', () => {
         expect(callbackPayloads.map((payload) => payload.kind)).toEqual(['stream', 'stream', 'complete'])
     })
 
+    it('heartbeats for handoff callback stream events', async () => {
+        const commandBus = { execute: jest.fn() }
+        const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+        const agentChatRealtime = { publish: jest.fn() }
+        const processor = new AgentChatDispatchHandoffProcessor(
+            commandBus as any,
+            handoffQueueService as any,
+            agentChatRealtime as any
+        )
+        const heartbeat = jest.fn()
+
+        commandBus.execute.mockResolvedValue(
+            of(
+                { data: { type: 'message', data: 'hello' } } as MessageEvent,
+                { data: { type: 'message', data: 'world' } } as MessageEvent
+            )
+        )
+
+        const result = await processor.process(
+            createMessage({
+                request: { input: { input: 'hello world' } },
+                options: { xpertId: 'xpert-id' },
+                callback: {
+                    messageType: 'channel.lark.chat_stream_event.v1'
+                }
+            }) as any,
+            {
+                ...createContext(),
+                heartbeat
+            } as any
+        )
+
+        expect(result).toEqual({ status: 'ok' })
+        expect(heartbeat.mock.calls.map(([reason]) => reason)).toEqual([
+            'agent_chat_dispatch_stream_start',
+            'agent_chat_dispatch_stream_event',
+            'agent_chat_dispatch_stream_event',
+            'agent_chat_dispatch_stream_complete'
+        ])
+    })
+
     it('emits error callback message when source observable fails', async () => {
         const commandBus = { execute: jest.fn() }
         const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
@@ -388,6 +429,99 @@ describe('AgentChatDispatchHandoffProcessor', () => {
             'complete'
         ])
         expect(agentChatRealtime.publish.mock.calls.map(([, payload]) => payload.sequence)).toEqual([1, 2, 3])
+    })
+
+    it('heartbeats for redis pubsub stream events', async () => {
+        const commandBus = { execute: jest.fn() }
+        const handoffQueueService = { enqueue: jest.fn() }
+        const agentChatRealtime = { publish: jest.fn().mockResolvedValue(undefined) }
+        const processor = new AgentChatDispatchHandoffProcessor(
+            commandBus as any,
+            handoffQueueService as any,
+            agentChatRealtime as any
+        )
+        const heartbeat = jest.fn()
+
+        commandBus.execute.mockResolvedValue(
+            of(
+                { data: { type: 'message', data: 'hello' } } as MessageEvent,
+                { data: { type: 'message', data: 'world' } } as MessageEvent
+            )
+        )
+
+        const result = await processor.process(
+            createMessage({
+                request: { input: { input: 'hello world' } },
+                options: { xpertId: 'xpert-id' },
+                callback: {
+                    transport: 'redis-pubsub',
+                    context: { requestId: 'request-id' }
+                }
+            }) as any,
+            {
+                ...createContext(),
+                heartbeat
+            } as any
+        )
+
+        expect(result).toEqual({ status: 'ok' })
+        expect(heartbeat.mock.calls.map(([reason]) => reason)).toEqual([
+            'agent_chat_dispatch_stream_start',
+            'agent_chat_dispatch_stream_event',
+            'agent_chat_dispatch_stream_event',
+            'agent_chat_dispatch_stream_complete'
+        ])
+    })
+
+    it('enqueues abort callback with the dispatcher abort reason', async () => {
+        const commandBus = { execute: jest.fn() }
+        const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+        const agentChatRealtime = { publish: jest.fn() }
+        const processor = new AgentChatDispatchHandoffProcessor(
+            commandBus as any,
+            handoffQueueService as any,
+            agentChatRealtime as any
+        )
+        const abortController = new AbortController()
+        let markSubscribed!: () => void
+        const subscribed = new Promise<void>((resolve) => {
+            markSubscribed = resolve
+        })
+
+        commandBus.execute.mockResolvedValue(
+            new Observable<MessageEvent>(() => {
+                markSubscribed()
+            })
+        )
+
+        const resultPromise = processor.process(
+            createMessage({
+                request: { input: { input: 'hello world' } },
+                options: { xpertId: 'xpert-id' },
+                callback: {
+                    messageType: 'channel.wechat.chat_final_event.v1',
+                    context: { integrationId: 'integration-id' }
+                }
+            }) as any,
+            {
+                runId: 'run-id',
+                traceId: 'trace-id',
+                abortSignal: abortController.signal,
+                getAbortReason: () => 'Handoff idle timeout after 120000ms'
+            } as any
+        )
+
+        await subscribed
+        abortController.abort()
+
+        await expect(resultPromise).resolves.toEqual({ status: 'ok' })
+        expect(handoffQueueService.enqueue).toHaveBeenCalledTimes(1)
+        expect(handoffQueueService.enqueue.mock.calls[0][0].payload).toEqual(
+            expect.objectContaining({
+                kind: 'error',
+                error: 'Agent chat dispatch aborted: Handoff idle timeout after 120000ms'
+            })
+        )
     })
 
     it('publishes redis pubsub error when command dispatch fails before stream starts', async () => {

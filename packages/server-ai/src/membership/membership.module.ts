@@ -8,11 +8,12 @@ import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { MembershipService } from './membership.service'
 import { UserMembership } from './user-membership.entity'
+import { Xpert } from '../xpert/xpert.entity'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/membership', module: MembershipModule }]),
-        TypeOrmModule.forFeature([MembershipPlan, UserMembership, MembershipPointLedger]),
+        TypeOrmModule.forFeature([MembershipPlan, UserMembership, MembershipPointLedger, Xpert]),
         TenantModule,
         CqrsModule
     ],

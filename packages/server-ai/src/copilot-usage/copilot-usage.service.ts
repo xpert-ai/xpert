@@ -13,8 +13,8 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { OrganizationPublicDTO, RequestContext, UserPublicDTO } from '@xpert-ai/server-core'
-import { FindOptionsWhere, IsNull, ObjectLiteral, Repository } from 'typeorm'
+import { OrganizationPublicDTO, RequestContext, User, UserPublicDTO } from '@xpert-ai/server-core'
+import { EntityTarget, FindOptionsWhere, IsNull, ObjectLiteral, Repository } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { formatInUTC0 } from '../shared/utils'
@@ -40,6 +40,8 @@ type UsageSummaryRaw = {
     priceLimit?: string | number | null
     priceTotalUsed?: string | number | null
     userCount?: string | number | null
+    runtimeUserCount?: string | number | null
+    xpertCount?: string | number | null
     organizationCount?: string | number | null
     detailCount?: string | number | null
     updatedAt?: Date | string | null
@@ -69,6 +71,10 @@ type QuotaRaw = {
 
 type WhereQueryBuilder = {
     andWhere(where: string, parameters?: ObjectLiteral): unknown
+}
+
+type UsageOwnerQueryBuilder = WhereQueryBuilder & {
+    leftJoin(table: EntityTarget<unknown>, alias: string, condition?: string): unknown
 }
 
 const GROUP_ID_SEPARATOR = '|'
@@ -112,6 +118,7 @@ export class CopilotUsageService {
             .where('usage.tenantId = :tenantId', { tenantId: scope.tenantId })
             .groupBy("COALESCE(usage.currency, '')")
 
+        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -146,6 +153,7 @@ export class CopilotUsageService {
             .orderBy('usage.updatedAt', OrderTypeEnum.DESC)
             .take(DETAIL_LIMIT)
 
+        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyGroupKeyFilters(qb, 'usage', { ...groupKey, dimension })
 
@@ -154,6 +162,7 @@ export class CopilotUsageService {
 
     async adjustQuota(input: TCopilotQuotaAdjustInput): Promise<ICopilotUsageSummary | null> {
         const dimension = this.normalizeQuotaDimension(input.dimension)
+        this.assertQuotaDimensionManageable(dimension)
         const records = await this.findQuotaRecords(dimension, input.groupKey, true)
         const tokenLimit = this.calculateAdjustedLimit(
             records.map((record) => record.tokenLimit),
@@ -181,6 +190,7 @@ export class CopilotUsageService {
 
     async renewQuota(input: TCopilotQuotaRenewInput): Promise<ICopilotUsageSummary | null> {
         const dimension = this.normalizeQuotaDimension(input.dimension)
+        this.assertQuotaDimensionManageable(dimension)
         const records = await this.findQuotaRecords(dimension, input.groupKey, true)
 
         for (const record of records) {
@@ -274,42 +284,41 @@ export class CopilotUsageService {
         options?: { take?: number; skip?: number; order?: { updatedAt?: unknown } }
     ): Promise<IPagination<ICopilotUsageSummary>> {
         const scope = this.resolveScope(query.organizationId)
+        const ownerUserIdSql = this.usageOwnerUserIdSql('usage')
         const qb = this.baseUsageSummaryQuery(scope, query, options)
-            .leftJoin('usage.user', 'usage_user')
+            .leftJoin(User, 'usage_user', `"usage_user"."id"::text = ${ownerUserIdSql}`)
             .leftJoin('usage.organization', 'usage_organization')
             .leftJoin('usage.org', 'usage_org')
-            .addSelect('usage.userId', 'userId')
+            .addSelect(ownerUserIdSql, 'userId')
             .addSelect('usage.orgId', 'orgId')
-            .addSelect('usage_user.id', 'userRelationId')
-            .addSelect('usage_user.firstName', 'userFirstName')
-            .addSelect('usage_user.lastName', 'userLastName')
-            .addSelect('usage_user.email', 'userEmail')
-            .addSelect('usage_user.username', 'userUsername')
-            .addSelect('usage_user.imageUrl', 'userImageUrl')
+            .addSelect('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
+            .addSelect('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
+            .addSelect('"usage_user"."id"', 'userRelationId')
+            .addSelect('"usage_user"."firstName"', 'userFirstName')
+            .addSelect('"usage_user"."lastName"', 'userLastName')
+            .addSelect('"usage_user"."email"', 'userEmail')
+            .addSelect('"usage_user"."username"', 'userUsername')
+            .addSelect('"usage_user"."imageUrl"', 'userImageUrl')
             .addSelect('usage_organization.id', 'organizationRelationId')
             .addSelect('usage_organization.name', 'organizationName')
             .addSelect('usage_organization.imageUrl', 'organizationImageUrl')
             .addSelect('usage_org.id', 'orgRelationId')
             .addSelect('usage_org.name', 'orgName')
             .addSelect('usage_org.imageUrl', 'orgImageUrl')
-            .addGroupBy('usage.userId')
+            .addGroupBy(ownerUserIdSql)
             .addGroupBy('usage.orgId')
-            .addGroupBy('usage_user.id')
-            .addGroupBy('usage_user.firstName')
-            .addGroupBy('usage_user.lastName')
-            .addGroupBy('usage_user.email')
-            .addGroupBy('usage_user.username')
-            .addGroupBy('usage_user.imageUrl')
+            .addGroupBy('"usage_user"."id"')
+            .addGroupBy('"usage_user"."firstName"')
+            .addGroupBy('"usage_user"."lastName"')
+            .addGroupBy('"usage_user"."email"')
+            .addGroupBy('"usage_user"."username"')
+            .addGroupBy('"usage_user"."imageUrl"')
             .addGroupBy('usage_organization.id')
             .addGroupBy('usage_organization.name')
             .addGroupBy('usage_organization.imageUrl')
             .addGroupBy('usage_org.id')
             .addGroupBy('usage_org.name')
             .addGroupBy('usage_org.imageUrl')
-
-        if (query.userId) {
-            qb.andWhere('usage.userId = :userId', { userId: query.userId })
-        }
 
         const rows = await qb.getRawMany<UsageSummaryRaw>()
         return this.toPagination(rows, 'user')
@@ -385,6 +394,7 @@ export class CopilotUsageService {
             .take(take)
             .skip(skip)
 
+        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -436,6 +446,7 @@ export class CopilotUsageService {
             .take(take)
             .skip(skip)
 
+        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -628,7 +639,7 @@ export class CopilotUsageService {
             qb.andWhere(`${alias}.currency = :currency`, { currency: query.currency })
         }
         if (!options?.skipUser && query.userId) {
-            qb.andWhere(`${alias}.userId = :filterUserId`, { filterUserId: query.userId })
+            qb.andWhere(`${this.usageOwnerUserIdSql(alias)} = :filterUserId`, { filterUserId: query.userId })
         }
         if (!options?.skipTime) {
             const start = this.toUsageHour(query.start)
@@ -647,7 +658,7 @@ export class CopilotUsageService {
             if (!groupKey.userId) {
                 throw new BadRequestException('Missing required user usage group fields.')
             }
-            qb.andWhere(`${alias}.userId = :groupUserId`, { groupUserId: groupKey.userId })
+            qb.andWhere(`${this.usageOwnerUserIdSql(alias)} = :groupUserId`, { groupUserId: groupKey.userId })
             if (groupKey.orgId) {
                 qb.andWhere(`${alias}.orgId = :groupOrgId`, { groupOrgId: groupKey.orgId })
             } else {
@@ -715,6 +726,28 @@ export class CopilotUsageService {
         throw new BadRequestException('Quota changes are only supported for user or organization dimensions.')
     }
 
+    private assertQuotaDimensionManageable(dimension: 'user' | 'organization') {
+        if (dimension === 'user') {
+            throw new BadRequestException(
+                'Creator-aggregated user usage quota changes are not supported. Use copilot user usage endpoints for runtime-user quota management.'
+            )
+        }
+    }
+
+    private leftJoinUsageXpert(qb: UsageOwnerQueryBuilder, alias: string) {
+        const xpertAlias = this.usageXpertAlias(alias)
+        qb.leftJoin('xpert', xpertAlias, `"${xpertAlias}"."id"::text = "${alias}"."xpertId"`)
+    }
+
+    private usageOwnerUserIdSql(alias: string) {
+        const xpertAlias = this.usageXpertAlias(alias)
+        return `COALESCE("${xpertAlias}"."createdById"::text, "${alias}"."userId")`
+    }
+
+    private usageXpertAlias(alias: string) {
+        return `${alias}_xpert`
+    }
+
     private calculateAdjustedLimit(
         currentValues: Array<string | number | null | undefined>,
         inputValue: number | null | undefined,
@@ -773,14 +806,16 @@ export class CopilotUsageService {
             model: groupKey.model,
             currency: groupKey.currency,
             tokenUsed,
-            tokenLimit: toOptionalNumber(row.tokenLimit) ?? null,
+            tokenLimit: dimension === 'user' ? null : (toOptionalNumber(row.tokenLimit) ?? null),
             tokenTotalUsed,
             tokenGrandTotal: tokenUsed + tokenTotalUsed,
             priceUsed,
-            priceLimit: toOptionalNumber(row.priceLimit) ?? null,
+            priceLimit: dimension === 'user' ? null : (toOptionalNumber(row.priceLimit) ?? null),
             priceTotalUsed,
             priceGrandTotal: priceUsed + priceTotalUsed,
             userCount: toOptionalNumber(row.userCount),
+            runtimeUserCount: toOptionalNumber(row.runtimeUserCount),
+            xpertCount: toOptionalNumber(row.xpertCount),
             organizationCount: toOptionalNumber(row.organizationCount),
             detailCount: toOptionalNumber(row.detailCount),
             updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined

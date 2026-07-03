@@ -66,32 +66,33 @@ describe('CopilotUsageService', () => {
         mockRequestContext()
     })
 
-    it('summarizes user usage with current and grand totals', async () => {
+    it('summarizes user usage by xpert creator with current and grand totals', async () => {
+        const qb = createQueryBuilderMock<CopilotUser>([
+            {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                orgId: 'provider-org-1',
+                userId: 'owner-user',
+                provider: 'openai',
+                model: 'gpt-4.1',
+                currency: 'USD',
+                tokenUsed: '40',
+                tokenTotalUsed: '60',
+                priceUsed: '0.4',
+                priceTotalUsed: '0.6',
+                tokenLimit: '1000',
+                runtimeUserCount: '2',
+                xpertCount: '3',
+                updatedAt: new Date('2026-06-01T00:00:00.000Z'),
+                userRelationId: 'owner-user',
+                userEmail: 'owner@example.com',
+                organizationRelationId: 'org-1',
+                organizationName: 'Org 1',
+                total: '1'
+            }
+        ])
         const userRepository: RepositoryMock = {
-            createQueryBuilder: jest.fn().mockReturnValue(
-                createQueryBuilderMock<CopilotUser>([
-                    {
-                        tenantId: 'tenant-1',
-                        organizationId: 'org-1',
-                        orgId: 'provider-org-1',
-                        userId: 'user-1',
-                        provider: 'openai',
-                        model: 'gpt-4.1',
-                        currency: 'USD',
-                        tokenUsed: '40',
-                        tokenTotalUsed: '60',
-                        priceUsed: '0.4',
-                        priceTotalUsed: '0.6',
-                        tokenLimit: '1000',
-                        updatedAt: new Date('2026-06-01T00:00:00.000Z'),
-                        userRelationId: 'user-1',
-                        userEmail: 'user@example.com',
-                        organizationRelationId: 'org-1',
-                        organizationName: 'Org 1',
-                        total: '1'
-                    }
-                ])
-            ),
+            createQueryBuilder: jest.fn().mockReturnValue(qb),
             find: jest.fn(),
             findOne: jest.fn(),
             create: jest.fn((input) => input),
@@ -111,11 +112,25 @@ describe('CopilotUsageService', () => {
             { order: { updatedAt: OrderTypeEnum.DESC }, take: 20, skip: 0 }
         )
 
+        expect((qb as any).leftJoin).toHaveBeenCalledWith(
+            'xpert',
+            'usage_xpert',
+            '"usage_xpert"."id"::text = "usage"."xpertId"'
+        )
+        expect((qb as any).addSelect).toHaveBeenCalledWith(
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId")',
+            'userId'
+        )
+        expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
+        expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
+        expect((qb as any).addGroupBy).toHaveBeenCalledWith(
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId")'
+        )
         expect(result.total).toBe(1)
         expect(result.items[0]).toMatchObject({
             dimension: 'user',
             organizationId: 'org-1',
-            userId: 'user-1',
+            userId: 'owner-user',
             provider: 'openai',
             model: 'gpt-4.1',
             currency: 'USD',
@@ -125,7 +140,87 @@ describe('CopilotUsageService', () => {
             priceUsed: 0.4,
             priceTotalUsed: 0.6,
             priceGrandTotal: 1,
-            tokenLimit: 1000
+            tokenLimit: null,
+            priceLimit: null,
+            runtimeUserCount: 2,
+            xpertCount: 3
+        })
+    })
+
+    it('filters usage summaries and totals by xpert creator user id', async () => {
+        const summaryQb = createQueryBuilderMock<CopilotUser>([])
+        const totalsQb = createQueryBuilderMock<CopilotUser>([])
+        const userRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn().mockReturnValueOnce(summaryQb).mockReturnValueOnce(totalsQb),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const orgRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const service = createService(userRepository, orgRepository)
+
+        await service.findSummaries({ dimension: 'user', userId: 'owner-user' })
+        await service.findTotals({ dimension: 'user', userId: 'owner-user' })
+
+        for (const qb of [summaryQb, totalsQb]) {
+            expect((qb as any).andWhere).toHaveBeenCalledWith(
+                'COALESCE("usage_xpert"."createdById"::text, "usage"."userId") = :filterUserId',
+                { filterUserId: 'owner-user' }
+            )
+        }
+    })
+
+    it('filters user details by creator but returns runtime user usage rows', async () => {
+        const detail = {
+            id: 'detail-1',
+            userId: 'assistant-tech-user',
+            xpertId: 'xpert-1',
+            provider: 'openai',
+            model: 'gpt-4.1',
+            currency: 'USD',
+            tokenUsed: 10
+        }
+        const qb = createQueryBuilderMock<CopilotUser>([detail])
+        const userRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn().mockReturnValue(qb),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const orgRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn(),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const service = createService(userRepository, orgRepository)
+
+        const result = await service.findDetails({
+            dimension: 'user',
+            organizationId: 'org-1',
+            orgId: null,
+            userId: 'owner-user',
+            provider: 'openai',
+            model: 'gpt-4.1',
+            currency: 'USD'
+        })
+
+        expect((qb as any).andWhere).toHaveBeenCalledWith(
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId") = :groupUserId',
+            { groupUserId: 'owner-user' }
+        )
+        expect(result[0]).toMatchObject({
+            userId: 'assistant-tech-user',
+            xpertId: 'xpert-1'
         })
     })
 
@@ -186,7 +281,7 @@ describe('CopilotUsageService', () => {
         })
     })
 
-    it('increases a user quota without resetting current usage', async () => {
+    it('rejects quota changes for creator-aggregated user usage', async () => {
         const quotaRow = {
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -215,27 +310,24 @@ describe('CopilotUsageService', () => {
         }
         const service = createService(userRepository, orgRepository)
 
-        await service.adjustQuota({
-            dimension: 'user',
-            mode: 'increase',
-            groupKey: {
+        await expect(
+            service.adjustQuota({
                 dimension: 'user',
-                organizationId: 'org-1',
-                userId: 'user-1',
-                provider: 'openai',
-                model: 'gpt-4.1',
-                currency: 'USD'
-            },
-            tokenLimit: 50
-        })
-
-        expect(userRepository.save).toHaveBeenCalledWith([
-            expect.objectContaining({
-                tokenUsed: 25,
-                tokenTotalUsed: 75,
-                tokenLimit: 150
+                mode: 'increase',
+                groupKey: {
+                    dimension: 'user',
+                    organizationId: 'org-1',
+                    userId: 'owner-user',
+                    provider: 'openai',
+                    model: 'gpt-4.1',
+                    currency: 'USD'
+                },
+                tokenLimit: 50
             })
-        ])
+        ).rejects.toThrow('Creator-aggregated user usage quota changes are not supported')
+
+        expect(userRepository.find).not.toHaveBeenCalled()
+        expect(userRepository.save).not.toHaveBeenCalled()
     })
 
     it('renews organization quota by rolling current usage into total usage', async () => {

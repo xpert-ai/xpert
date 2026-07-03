@@ -126,6 +126,9 @@ export interface IMembershipUsageGroupKey {
 
 export interface IMembershipUsageSummary extends IMembershipUsageGroupKey {
   groupKey: IMembershipUsageGroupKey
+  conversationTitle?: string | null
+  xpertTitle?: string | null
+  xpertName?: string | null
   callCount: number
   pointsDelta: number
   pointsUsed: number

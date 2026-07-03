@@ -31,6 +31,16 @@ export class MessageDispatcherService {
 		const resolved = this.processorRegistry.get(message.type, organizationId)
 		const runId = message.id
 		const abortController = new AbortController()
+		const timeoutPolicy = this.resolveTimeoutPolicy(message)
+		let localAbortReason: string | undefined
+		const abortWithReason = (reason: string) => {
+			if (abortController.signal.aborted) {
+				return
+			}
+			localAbortReason = reason
+			abortController.abort()
+		}
+		const timeoutTimers = this.startTimeoutTimers(timeoutPolicy, abortWithReason)
 		this.handoffCancelService.register(runId, abortController)
 
 		try {
@@ -38,6 +48,10 @@ export class MessageDispatcherService {
 				runId,
 				traceId: message.traceId,
 				abortSignal: abortController.signal,
+				heartbeat: () => {
+					timeoutTimers.heartbeat()
+				},
+				getAbortReason: () => this.resolveVisibleAbortReason(runId, localAbortReason),
 				emit: (event) => {
 					this.pendingResults.publish(message.id, event)
 				}
@@ -45,7 +59,7 @@ export class MessageDispatcherService {
 			if (abortController.signal.aborted) {
 				return {
 					status: 'dead',
-					reason: this.resolveCanceledReason(runId)
+					reason: this.resolveCanceledReason(runId, localAbortReason)
 				}
 			}
 			return result
@@ -53,21 +67,103 @@ export class MessageDispatcherService {
 			if (abortController.signal.aborted || isAbortLikeError(error)) {
 				return {
 					status: 'dead',
-					reason: this.resolveCanceledReason(runId, error)
+					reason: this.resolveCanceledReason(runId, localAbortReason, error)
 				}
 			}
 			throw error
 		} finally {
+			timeoutTimers.clear()
 			this.handoffCancelService.unregister(runId)
 		}
 	}
 
-	private resolveCanceledReason(messageId: string, error?: unknown): string {
+	private resolveCanceledReason(messageId: string, localAbortReason?: string, error?: unknown): string {
 		const reason = this.handoffCancelService.getCancelReason(messageId)
 		if (reason) {
 			return reason
 		}
+		if (localAbortReason) {
+			return buildCanceledReason(localAbortReason)
+		}
 		return buildCanceledReason(getErrorMessage(error))
+	}
+
+	private resolveVisibleAbortReason(messageId: string, localAbortReason?: string): string | undefined {
+		const reason = this.handoffCancelService.getCancelReason(messageId)
+		return this.stripCanceledReason(reason) ?? localAbortReason
+	}
+
+	private stripCanceledReason(reason?: string): string | undefined {
+		const prefix = 'canceled:'
+		if (!reason) {
+			return undefined
+		}
+		return reason.startsWith(prefix) ? reason.slice(prefix.length) : reason
+	}
+
+	private resolveTimeoutPolicy(message: HandoffMessage): {
+		timeoutMs?: number
+		idleTimeoutMs?: number
+	} {
+		return {
+			timeoutMs: this.parsePositiveIntegerHeader(message.headers?.policyTimeoutMs),
+			idleTimeoutMs: this.parsePositiveIntegerHeader(message.headers?.policyIdleTimeoutMs)
+		}
+	}
+
+	private parsePositiveIntegerHeader(value?: string): number | undefined {
+		if (!value) {
+			return undefined
+		}
+		const parsed = parseInt(value, 10)
+		return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+	}
+
+	private startTimeoutTimers(
+		policy: { timeoutMs?: number; idleTimeoutMs?: number },
+		abortWithReason: (reason: string) => void
+	): {
+		heartbeat: () => void
+		clear: () => void
+	} {
+		let totalTimer: ReturnType<typeof setTimeout> | undefined
+		let idleTimer: ReturnType<typeof setTimeout> | undefined
+
+		const clearIdleTimer = () => {
+			if (idleTimer) {
+				clearTimeout(idleTimer)
+				idleTimer = undefined
+			}
+		}
+		const scheduleIdleTimer = () => {
+			clearIdleTimer()
+			if (!policy.idleTimeoutMs) {
+				return
+			}
+			idleTimer = setTimeout(() => {
+				abortWithReason(`Handoff idle timeout after ${policy.idleTimeoutMs}ms`)
+			}, policy.idleTimeoutMs)
+		}
+
+		if (policy.timeoutMs) {
+			totalTimer = setTimeout(() => {
+				abortWithReason(`Handoff total timeout after ${policy.timeoutMs}ms`)
+			}, policy.timeoutMs)
+		}
+		scheduleIdleTimer()
+
+		return {
+			heartbeat: () => {
+				scheduleIdleTimer()
+			},
+			clear: () => {
+				if (totalTimer) {
+					clearTimeout(totalTimer)
+					totalTimer = undefined
+				}
+				clearIdleTimer()
+			}
+		}
 	}
 
 	private assertMessage(message: HandoffMessage) {

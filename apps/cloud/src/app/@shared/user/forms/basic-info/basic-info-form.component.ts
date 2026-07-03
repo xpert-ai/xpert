@@ -1,4 +1,16 @@
-import { DestroyRef, Component, ElementRef, EventEmitter, forwardRef, inject, Input, Output, ViewChild } from '@angular/core'
+import {
+  DestroyRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  forwardRef,
+  inject,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild
+} from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { AuthService } from '@xpert-ai/cloud/state'
@@ -25,7 +37,7 @@ import { LANGUAGES, RoleService, Store } from '../../../../@core'
     }
   ]
 })
-export class BasicInfoFormComponent implements ControlValueAccessor {
+export class BasicInfoFormComponent implements ControlValueAccessor, OnChanges {
   eDisplayBehaviour = DisplayBehaviour
 
   readonly #store = inject(Store)
@@ -49,6 +61,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
   @Input() public isSuperAdmin = false
   @Input() public createdById: string
   @Input() public selectedTags: ITag[]
+  @Input() public readOnly = false
 
   readonly roleOptions$ = new ReplaySubject<Array<{ key: string; caption: string }>>(1)
   private roles: IRole[] = []
@@ -71,12 +84,19 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
       this.model = obj
     }
     this.syncRoleOptions()
+    this.syncReadOnlyState()
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
   }
   registerOnTouched(fn: any): void {}
   setDisabledState?(isDisabled: boolean): void {}
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['readOnly']) {
+      this.syncReadOnlyState()
+    }
+  }
 
   ngOnInit() {
     const TRANSLATES = this.#translate.instant('PAC.SHARED.USER_BASIC')
@@ -198,10 +218,11 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
             key: 'roleId',
             type: 'select',
             props: {
+              baseDisabled: !this.isSuperAdmin && !this.isAdmin,
               label: TRANSLATES?.Role ?? 'Role',
               placeholder: '',
               required: true,
-              disabled: !this.isSuperAdmin && !this.isAdmin,
+              disabled: this.readOnly || (!this.isSuperAdmin && !this.isAdmin),
               valueProp: 'id',
               labelProp: 'name',
               options: this.roleOptions$.asObservable(),
@@ -226,10 +247,11 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
             key: 'thirdPartyId',
             type: 'input',
             props: {
+              baseDisabled: !this.isSuperAdmin && !this.isAdmin,
               label: TRANSLATES?.ThirdPartyId ?? 'Third Party Id',
               placeholder: '',
               appearance: 'fill',
-              disabled: !this.isSuperAdmin && !this.isAdmin
+              disabled: this.readOnly || (!this.isSuperAdmin && !this.isAdmin)
             }
           },
           {
@@ -259,6 +281,7 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
         }
       }
     ]
+    this.syncReadOnlyState()
 
     // Emit validity so parent (OnPush) can enable/disable Apply button
     queueMicrotask(() => this.validityChange.emit(this.form.valid))
@@ -269,6 +292,25 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
 
   onFormChange(model: any) {
     this.onChange?.(model)
+  }
+
+  private syncReadOnlyState(fields = this.fields) {
+    for (const field of fields) {
+      const baseDisabled = !!field.props?.['baseDisabled']
+      if (field.props) {
+        field.props.disabled = this.readOnly || baseDisabled
+      }
+      if (field.formControl) {
+        if (this.readOnly || baseDisabled) {
+          field.formControl.disable({ emitEvent: false })
+        } else {
+          field.formControl.enable({ emitEvent: false })
+        }
+      }
+      if (field.fieldGroup) {
+        this.syncReadOnlyState(field.fieldGroup)
+      }
+    }
   }
 
   private syncRoleOptions() {

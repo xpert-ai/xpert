@@ -39,6 +39,8 @@ export interface ICopilotUsageSummary extends IBasePerTenantAndOrganizationEntit
   priceTotalUsed: number
   priceGrandTotal: number
   userCount?: number
+  runtimeUserCount?: number
+  xpertCount?: number
   organizationCount?: number
   detailCount?: number
   updatedAt?: Date

@@ -559,6 +559,21 @@
     "USERS_PAGE": {
       "ADD_USER": "Add User"
     },
+    "Users": {
+      "BackToList": "Back to users",
+      "UserType": "User type",
+      "UserTypes": {
+        "Regular": "Regular user",
+        "Technical": "Technical user"
+      },
+      "TechnicalUserReadonlyHint": "Basic account fields are read-only for technical users.",
+      "Tabs": {
+        "Basic": "Basic information",
+        "Membership": "Membership",
+        "Organizations": "Organizations",
+        "Security": "Security"
+      }
+    },
     "ACTIONS": {
       "NEW": "New",
       "CREATE": "Create",

@@ -1,110 +1,68 @@
-import { rimraf } from 'rimraf';
-import path from 'path';
-import { Injectable } from '@nestjs/common';
+import { rimraf } from 'rimraf'
+import path from 'path'
+import { Injectable } from '@nestjs/common'
+import { Connection, createConnection, ConnectionOptions, getConnection, getManager } from 'typeorm'
+import chalk from 'chalk'
+import moment from 'moment'
+import { IPluginConfig, SEEDER_DB_CONNECTION } from '@xpert-ai/server-common'
+import { environment as env, getConfig, ConfigService } from '@xpert-ai/server-config'
+import { IEmployee, IOrganization, IRole, ITenant, IUser, DEFAULT_TENANT } from '@xpert-ai/contracts'
+import { createRoles } from '../../role/role.seed'
 import {
-	Connection,
-	createConnection,
-	ConnectionOptions,
-	getConnection,
-	getManager
-} from 'typeorm';
-import chalk from 'chalk';
-import moment from 'moment';
-import { IPluginConfig, SEEDER_DB_CONNECTION } from '@xpert-ai/server-common';
-import { environment as env, getConfig, ConfigService } from '@xpert-ai/server-config';
-import {
-	IEmployee,
-	IOrganization,
-	IRole,
-	ITenant,
-	IUser,
-	DEFAULT_TENANT
-} from '@xpert-ai/contracts';
-import { createRoles } from '../../role/role.seed';
-import {	
 	createDefaultAdminUsers,
 	createDefaultEmployeesUsers,
 	createDefaultUsers,
 	createRandomSuperAdminUsers,
 	createRandomUsers
-} from '../../user/user.seed';
-import {
-	createDefaultEmployees,
-	createRandomEmployees
-} from '../../employee/employee.seed';
-import {
-	createDefaultOrganizations,
-	DEFAULT_ORGANIZATIONS,
-	getTenantDefaultOrganization,
-} from '../../organization';
+} from '../../user/user.seed'
+import { createDefaultEmployees, createRandomEmployees } from '../../employee/employee.seed'
+import { createDefaultOrganizations, DEFAULT_ORGANIZATIONS, getTenantDefaultOrganization } from '../../organization'
 import {
 	createDefaultUsersOrganizations,
 	createRandomUsersOrganizations
-} from '../../user-organization/user-organization.seed';
-import { createCountries } from '../../country/country.seed';
-import { cleanUpRolePermissions, createRolePermissions } from '../../role-permission/';
-import {
-	createDefaultTenant,
-	createRandomTenants,
-	TenantService
-} from '../../tenant';
-import {
-	createDefaultTenantSetting
-} from './../../tenant/tenant-setting/tenant-setting.seed';
-import { createDefaultEmailTemplates } from '../../email-template/email-template.seed';
-import {
-	createDefaultTags,
-	createRandomOrganizationTags,
-	createTags
-} from '../../tags/tag.seed';
-import { createCurrencies } from '../../currency/currency.seed';
-import {
-	createDefaultFeatureToggle,
-	createFeatures,
-} from '../../feature/feature.seed';
-import { DEFAULT_EMPLOYEES, DEFAULT_PEANUT_EMPLOYEES } from './../../employee';
-import { createLanguages } from '../../language/language.seed';
-import { Role, Tenant } from '../entities/internal';
-
+} from '../../user-organization/user-organization.seed'
+import { createCountries } from '../../country/country.seed'
+import { cleanUpRolePermissions, createRolePermissions } from '../../role-permission/'
+import { createDefaultTenant, createRandomTenants, TenantService } from '../../tenant'
+import { createDefaultTenantSetting } from './../../tenant/tenant-setting/tenant-setting.seed'
+import { createDefaultEmailTemplates } from '../../email-template/email-template.seed'
+import { createDefaultTags, createRandomOrganizationTags, createTags } from '../../tags/tag.seed'
+import { createCurrencies } from '../../currency/currency.seed'
+import { createDefaultFeatureToggle, createFeatures } from '../../feature/feature.seed'
+import { DEFAULT_EMPLOYEES, DEFAULT_PEANUT_EMPLOYEES } from './../../employee'
+import { createLanguages } from '../../language/language.seed'
+import { Role, Tenant } from '../entities/internal'
 
 export enum SeederTypeEnum {
 	ALL = 'all',
 	DEFAULT = 'default',
-	TENANT = 'tenant',
+	TENANT = 'tenant'
 }
 
 @Injectable()
 export class SeedDataService {
-	connection: Connection;
-	log = console.log;
+	connection: Connection
+	log = console.log
 
-	organizations: IOrganization[] = [];
-	defaultOrganization: IOrganization;
-	tenant: ITenant;
-	roles: IRole[] = [];
-	superAdminUsers: IUser[] = [];
-	defaultUsers: IUser[] = [];
-	defaultCandidateUsers: IUser[] = [];
-	defaultEmployees: IEmployee[] = [];
-	adminUser: IUser;
+	organizations: IOrganization[] = []
+	defaultOrganization: IOrganization
+	tenant: ITenant
+	roles: IRole[] = []
+	superAdminUsers: IUser[] = []
+	defaultUsers: IUser[] = []
+	defaultCandidateUsers: IUser[] = []
+	defaultEmployees: IEmployee[] = []
+	adminUser: IUser
 
-	config: IPluginConfig = getConfig();
-	seedType: SeederTypeEnum;
+	config: IPluginConfig = getConfig()
+	seedType: SeederTypeEnum
 
 	constructor(
 		// private readonly moduleRef: ModuleRef,
-		protected readonly configService: ConfigService,
+		protected readonly configService: ConfigService
 	) {
-		this.log(
-			chalk.blueBright(
-				`📧 Environments ${JSON.stringify(this.configService.environment)}`
-			)
-		);
-		this.log(
-			chalk.blueBright(
-				`📧 Configs ${JSON.stringify(this.configService.config)}`
-			)
-		);
+		this.log(chalk.blueBright(`📧 Environments ${JSON.stringify(this.configService.environment)}`))
+		this.log(chalk.blueBright(`📧 Configs ${JSON.stringify(this.configService.config)}`))
 	}
 
 	/**
@@ -115,243 +73,194 @@ export class SeedDataService {
 		logging: true,
 		logger: 'file' //Removes console logging, instead logs all queries in a file ormlogs.log
 		// dropSchema: !env.production //Drops the schema each time connection is being established in development mode.
-	};
+	}
 
 	/**
-	* Seed All Data
-	*/
+	 * Seed All Data
+	 */
 	public async runAllSeed() {
 		try {
-			this.seedType = SeederTypeEnum.ALL;
+			this.seedType = SeederTypeEnum.ALL
 
-			await this.cleanUpPreviousRuns();
+			await this.cleanUpPreviousRuns()
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Reset database to start with new, fresh data
-			await this.resetDatabase();
+			await this.resetDatabase()
 
 			// Seed basic default data for default tenant
-			await this.seedBasicDefaultData();
+			await this.seedBasicDefaultData()
 
 			// Seed data with mock / fake data for default tenant
-			await this.seedDefaultData();
+			await this.seedDefaultData()
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log('Database All Seed Completed');
+			console.log('Database All Seed Completed')
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
 	/**
-	* Seed Default Data
-	*/
+	 * Seed Default Data
+	 */
 	public async runDefaultSeed(fromAPI: boolean) {
 		try {
 			if (this.configService.get('demo') === true && fromAPI === true) {
-				this.seedType = SeederTypeEnum.ALL;
+				this.seedType = SeederTypeEnum.ALL
 			} else {
-				this.seedType = SeederTypeEnum.DEFAULT;
+				this.seedType = SeederTypeEnum.DEFAULT
 			}
 
-			await this.cleanUpPreviousRuns();
+			await this.cleanUpPreviousRuns()
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Reset database to start with new, fresh data
-			await this.resetDatabase();
+			await this.resetDatabase()
 
 			// Seed basic default data for default tenant
-			await this.seedBasicDefaultData();
+			await this.seedBasicDefaultData()
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log('Database Default Seed Completed');
+			console.log('Database Default Seed Completed')
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
 	/**
-	* Seed Tenant Data
-	*/
+	 * Seed Tenant Data
+	 */
 	public async runTenantSeed(name: string) {
 		try {
-			this.seedType = SeederTypeEnum.TENANT;
-			
-			await this.cleanUpPreviousRuns();
+			this.seedType = SeederTypeEnum.TENANT
+
+			await this.cleanUpPreviousRuns()
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Seed basic default data for default tenant
-			await this.seedTenantDefaultData(name || DEFAULT_TENANT);
+			await this.seedTenantDefaultData(name || DEFAULT_TENANT)
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log(`Database for Tenant '${name}' Seed Completed`);
+			console.log(`Database for Tenant '${name}' Seed Completed`)
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
 	public async runTenantEmailTSeed(name: string) {
 		name = name || DEFAULT_TENANT
 		try {
-			this.seedType = SeederTypeEnum.TENANT;
-			
-			await this.cleanUpPreviousRuns();
+			this.seedType = SeederTypeEnum.TENANT
+
+			await this.cleanUpPreviousRuns()
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Find tenant or default tenant
-			this.tenant = await (await this.connection.getRepository(Tenant)).findOne({where: {name}})
+			this.tenant = await (await this.connection.getRepository(Tenant)).findOne({ where: { name } })
 
 			// Seed email templates
-			await this.tryExecute(
-				'Default Email Templates',
-				createDefaultEmailTemplates(this.connection, this.tenant)
-			);
+			await this.tryExecute('Default Email Templates', createDefaultEmailTemplates(this.connection, this.tenant))
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log(`Email Templates for Tenant '${name}' Seed Completed`);
+			console.log(`Email Templates for Tenant '${name}' Seed Completed`)
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
 	/**
-	* Seed Default & Random Data
-	*/
+	 * Seed Default & Random Data
+	 */
 	public async excuteDemoSeed() {
 		try {
-			console.log('Database Demo Seed Started');
+			console.log('Database Demo Seed Started')
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Seed default data
-			await this.seedDefaultData();
+			await this.seedDefaultData()
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log('Database Demo Seed Completed');
+			console.log('Database Demo Seed Completed')
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
 	/**
-	* Populate Database with Basic Default Data
-	*/
+	 * Populate Database with Basic Default Data
+	 */
 	private async seedBasicDefaultData() {
-		this.log(
-			chalk.magenta(
-				`🌱 SEEDING BASIC ${env.production ? 'PRODUCTION' : ''
-				} DATABASE...`
-			)
-		);
+		this.log(chalk.magenta(`🌱 SEEDING BASIC ${env.production ? 'PRODUCTION' : ''} DATABASE...`))
 
 		// Seed data which only needs connection
-		await this.tryExecute(
-			'Countries',
-			createCountries(this.connection)
-		);
+		await this.tryExecute('Countries', createCountries(this.connection))
 
-		await this.tryExecute(
-			'Currencies',
-			createCurrencies(this.connection)
-		);
+		await this.tryExecute('Currencies', createCurrencies(this.connection))
 
-		await this.tryExecute(
-			'Languages', 
-			createLanguages(this.connection)
-		);
+		await this.tryExecute('Languages', createLanguages(this.connection))
 
-		await this.tryExecute(
-			'Features', 
-			createFeatures(this.connection)
-		);
+		await this.tryExecute('Features', createFeatures(this.connection))
 
 		// default and internal tenant
 		await this.seedTenantDefaultData(DEFAULT_TENANT)
-		
-		this.log(
-			chalk.magenta(
-				`✅ SEEDED BASIC ${env.production ? 'PRODUCTION' : ''} DATABASE`
-			)
-		);
+
+		this.log(chalk.magenta(`✅ SEEDED BASIC ${env.production ? 'PRODUCTION' : ''} DATABASE`))
 	}
 
 	/**
 	 * Populate default data for default tenant
 	 */
 	private async seedDefaultData() {
-		this.log(
-			chalk.magenta(
-				`🌱 SEEDING DEFAULT ${env.production ? 'PRODUCTION' : ''
-				} DATABASE...`
-			)
-		);
+		this.log(chalk.magenta(`🌱 SEEDING DEFAULT ${env.production ? 'PRODUCTION' : ''} DATABASE...`))
 
-		await this.tryExecute(
-			'Default Tags',
-			createDefaultTags(
-				this.connection, 
-				this.tenant, 
-				this.organizations
-			)
-		);
+		await this.tryExecute('Default Tags', createDefaultTags(this.connection, this.tenant, this.organizations))
 
-		const {
-			defaultEmployeeUsers 
-		} = await createDefaultEmployeesUsers(
-			this.connection, 
-			this.tenant
-		);
+		const { defaultEmployeeUsers } = await createDefaultEmployeesUsers(this.connection, this.tenant)
 
 		if (this.seedType !== SeederTypeEnum.DEFAULT) {
-			const { 
-				defaultPeanutEmployeeUsers,
-				defaultCandidateUsers 
-			} = await createDefaultUsers(
-				this.connection, 
+			const { defaultPeanutEmployeeUsers, defaultCandidateUsers } = await createDefaultUsers(
+				this.connection,
 				this.tenant
-			);
-			this.defaultCandidateUsers.push(...defaultCandidateUsers);
-			defaultEmployeeUsers.push(...defaultPeanutEmployeeUsers);
+			)
+			this.defaultCandidateUsers.push(...defaultCandidateUsers)
+			defaultEmployeeUsers.push(...defaultPeanutEmployeeUsers)
 		}
 
 		await this.tryExecute(
 			'Users',
-			createDefaultUsersOrganizations(
-				this.connection,
-				this.tenant,
-				this.organizations,
-				defaultEmployeeUsers
-			)
-		);
+			createDefaultUsersOrganizations(this.connection, this.tenant, this.organizations, defaultEmployeeUsers)
+		)
 
-		const allDefaultEmployees = DEFAULT_EMPLOYEES.concat(DEFAULT_PEANUT_EMPLOYEES);
+		const allDefaultEmployees = DEFAULT_EMPLOYEES.concat(DEFAULT_PEANUT_EMPLOYEES)
 		//User level data that needs connection, tenant, organization, role, users
 		this.defaultEmployees = await createDefaultEmployees(
-			this.connection, 
+			this.connection,
 			this.tenant,
 			this.defaultOrganization,
 			defaultEmployeeUsers,
 			allDefaultEmployees
-		);
+		)
 
 		// // run all plugins default seed method
 		// await this.bootstrapPluginSeedMethods(
@@ -365,103 +274,59 @@ export class SeedDataService {
 		// 	}
 		// );
 
-		this.log(
-			chalk.magenta(
-				`✅ SEEDED DEFAULT ${env.production ? 'PRODUCTION' : ''} DATABASE`
-			)
-		);
+		this.log(chalk.magenta(`✅ SEEDED DEFAULT ${env.production ? 'PRODUCTION' : ''} DATABASE`))
 	}
 
 	/**
 	 * Create a new Tenant and initialize the corresponding default data
-	 * 
-	 * @param tenantName 
+	 *
+	 * @param tenantName
 	 */
 	public async seedTenantDefaultData(tenantName: string) {
+		this.tenant = (await this.tryExecute('Tenant', createDefaultTenant(this.connection, tenantName))) as ITenant
 
-		this.tenant = await this.tryExecute(
-			'Tenant',
-			createDefaultTenant(
-				this.connection,
-				tenantName
-			) 
-		) as ITenant;
+		this.roles = await createRoles(this.connection, [this.tenant])
 
-		this.roles = await createRoles(
-			this.connection, 
-			[this.tenant]
-		);
+		await createDefaultTenantSetting(this.connection, [this.tenant])
 
-		await createDefaultTenantSetting(
-			this.connection, 
-			[this.tenant]
-		);
-
-		const isDemo = this.configService.get('demo') as boolean;
-		await createRolePermissions(
-			this.connection, 
-			this.roles,
-			[this.tenant],
-			isDemo
-		);
+		const isDemo = this.configService.get('demo') as boolean
+		await createRolePermissions(this.connection, this.roles, [this.tenant], isDemo)
 
 		// Tenant level inserts which only need connection, tenant, roles
 		const organizations = [...DEFAULT_ORGANIZATIONS]
 		if (this.seedType !== SeederTypeEnum.DEFAULT) {
 			organizations.push(getTenantDefaultOrganization(this.tenant.name))
 		}
-		this.organizations = await this.tryExecute(
+		this.organizations = (await this.tryExecute(
 			'Organizations',
-			createDefaultOrganizations(
-				this.connection,
-				this.tenant,
-				organizations
-			)
-		) as IOrganization[];
+			createDefaultOrganizations(this.connection, this.tenant, organizations)
+		)) as IOrganization[]
 
 		//default organization set as main orgnaization
-		this.defaultOrganization = this.organizations.find(
-			(organization: IOrganization) => organization.isDefault
-		);
+		this.defaultOrganization = this.organizations.find((organization: IOrganization) => organization.isDefault)
 
 		await this.tryExecute(
 			'Default Feature Toggle',
-			createDefaultFeatureToggle(
-				this.connection,
-				this.config,
-				this.tenant
-			)
-		);
+			createDefaultFeatureToggle(this.connection, this.config, this.tenant)
+		)
 
-		await this.tryExecute(
-			'Default Email Templates',
-			createDefaultEmailTemplates(this.connection, this.tenant)
-		);
+		await this.tryExecute('Default Email Templates', createDefaultEmailTemplates(this.connection, this.tenant))
 
-		const {
-			defaultSuperAdminUsers,
-			defaultAdminUsers
-		} = await createDefaultAdminUsers(
-			this.connection, 
+		const { defaultSuperAdminUsers, defaultAdminUsers } = await createDefaultAdminUsers(
+			this.connection,
 			this.tenant
-		);
-		this.superAdminUsers.push(...defaultSuperAdminUsers as IUser[]);
+		)
+		this.superAdminUsers.push(...(defaultSuperAdminUsers as IUser[]))
 		this.adminUser = defaultAdminUsers[0]
 
-		const defaultUsers = [ 
-			...this.superAdminUsers,
-			...defaultAdminUsers,
+		const defaultUsers = [
+			...defaultAdminUsers
 			// ...defaultEmployeeUsers
-		];
+		]
 		await this.tryExecute(
 			'Users',
-			createDefaultUsersOrganizations(
-				this.connection,
-				this.tenant,
-				this.organizations,
-				defaultUsers
-			)
-		);
+			createDefaultUsersOrganizations(this.connection, this.tenant, this.organizations, defaultUsers)
+		)
 
 		// run all plugins random seed method
 		// await this.bootstrapPluginSeedMethods(
@@ -473,50 +338,40 @@ export class SeedDataService {
 		// 	}
 		// );
 
-		await this.seedTenantMoreDefault(
-			this.connection, 
-			this.tenant
-		)
+		await this.seedTenantMoreDefault(this.connection, this.tenant)
 
 		// Trigger create demo command for the default organization; After all default data is seeded
 		if (isDemo) {
 			await this.tryExecute(
 				'Demos',
-				this.seedOrganizationDemo(
-					this.connection,
-					this.tenant,
-					this.defaultOrganization
-				)
-			);
+				this.seedOrganizationDemo(this.connection, this.tenant, this.defaultOrganization)
+			)
 		}
 
-		this.log(
-			chalk.magenta(
-				`✅ SEEDED TENANT '${tenantName}' ${env.production ? 'PRODUCTION' : ''} DATABASE`
-			)
-		);
-		
+		this.log(chalk.magenta(`✅ SEEDED TENANT '${tenantName}' ${env.production ? 'PRODUCTION' : ''} DATABASE`))
 	}
 
 	public async runRolePermissionsSeed(tenantName: string) {
 		try {
-			await this.cleanUpPreviousRuns();
+			await this.cleanUpPreviousRuns()
 
 			// Connect to database
-			await this.createConnection();
+			await this.createConnection()
 
 			// Find tenant or default tenant
-			this.tenant = await (await this.connection.getRepository(Tenant)).findOne({where: {name: tenantName} })
+			this.tenant = await (await this.connection.getRepository(Tenant)).findOne({ where: { name: tenantName } })
 
 			// Find all roles in tenant
-			this.roles = await (await this.connection.getRepository(Role)).find({
+			this.roles = await (
+				await this.connection.getRepository(Role)
+			).find({
 				relations: ['tenant'],
 				where: {
 					tenantId: this.tenant.id
 				}
 			})
 
-			const isDemo = this.configService.get('demo') as boolean;
+			const isDemo = this.configService.get('demo') as boolean
 			// Clean role permissions
 			await this.tryExecute(
 				'Clean Role Permissions',
@@ -525,20 +380,15 @@ export class SeedDataService {
 			// Seed role permissions
 			await this.tryExecute(
 				'Role Permissions',
-				createRolePermissions(
-					this.connection, 
-					this.roles,
-					[this.tenant],
-					isDemo
-				)
+				createRolePermissions(this.connection, this.roles, [this.tenant], isDemo)
 			)
 
 			// Disconnect to database
-			await this.closeConnection();
+			await this.closeConnection()
 
-			console.log('Database Default Seed Completed');
+			console.log('Database Default Seed Completed')
 		} catch (error) {
-			this.handleError(error);
+			this.handleError(error)
 		}
 	}
 
@@ -572,62 +422,60 @@ export class SeedDataService {
 	// }
 
 	/**
-	* Cleans all the previous generate screenshots, reports etc
-	*/
+	 * Cleans all the previous generate screenshots, reports etc
+	 */
 	protected async cleanUpPreviousRuns() {
-		this.log(chalk.green(`CLEANING UP FROM PREVIOUS RUNS...`));
+		this.log(chalk.green(`CLEANING UP FROM PREVIOUS RUNS...`))
 
 		await new Promise((resolve) => {
-			const assetOptions = this.config.assetOptions;
-			const dir = path.join(assetOptions.assetPublicPath, 'screenshots');
+			const assetOptions = this.config.assetOptions
+			const dir = path.join(assetOptions.assetPublicPath, 'screenshots')
 
 			// delete old generated screenshots
 			rimraf(`${dir}/!(rimraf|.gitkeep)`).then(() => {
-				this.log(chalk.green(`✅ CLEANED UP`));
-				resolve(true);
+				this.log(chalk.green(`✅ CLEANED UP`))
+				resolve(true)
 			})
-		});
+		})
 	}
 
 	/**
-	* Create connection from database
-	*/
+	 * Create connection from database
+	 */
 	protected async createConnection() {
 		try {
-			this.connection = getConnection(SEEDER_DB_CONNECTION);
+			this.connection = getConnection(SEEDER_DB_CONNECTION)
 		} catch (error) {
-			this.log(
-				'NOTE: DATABASE CONNECTION DOES NOT EXIST YET. NEW ONE WILL BE CREATED!'
-			);
+			this.log('NOTE: DATABASE CONNECTION DOES NOT EXIST YET. NEW ONE WILL BE CREATED!')
 		}
-		const { dbConnectionOptions } = this.config;
+		const { dbConnectionOptions } = this.config
 		if (!this.connection || !this.connection.isConnected) {
 			try {
-				this.log(chalk.green(`CONNECTING TO DATABASE...`));
-				this.connection = await createConnection({ 
-					name: SEEDER_DB_CONNECTION, 
-					...dbConnectionOptions, 
-					...this.overrideDbConfig 
-				} as ConnectionOptions);
-				this.log(chalk.green(`✅ CONNECTED TO DATABASE!`));
+				this.log(chalk.green(`CONNECTING TO DATABASE...`))
+				this.connection = await createConnection({
+					name: SEEDER_DB_CONNECTION,
+					...dbConnectionOptions,
+					...this.overrideDbConfig
+				} as ConnectionOptions)
+				this.log(chalk.green(`✅ CONNECTED TO DATABASE!`))
 			} catch (error) {
-				this.handleError(error, 'Unable to connect to database');
+				this.handleError(error, 'Unable to connect to database')
 			}
 		}
 	}
 
 	/**
-	* Close connection from database
-	*/
+	 * Close connection from database
+	 */
 	protected async closeConnection() {
 		try {
-			this.connection = getConnection(SEEDER_DB_CONNECTION);
+			this.connection = getConnection(SEEDER_DB_CONNECTION)
 			if (this.connection && this.connection.isConnected) {
-				await this.connection.close();
-				this.log(chalk.green(`✅ DISCONNECTED TO DATABASE!`));
+				await this.connection.close()
+				this.log(chalk.green(`✅ DISCONNECTED TO DATABASE!`))
 			}
 		} catch (error) {
-			this.log('NOTE: DATABASE CONNECTION DOES NOT EXIST YET. CANT CLOSE CONNECTION!');
+			this.log('NOTE: DATABASE CONNECTION DOES NOT EXIST YET. CANT CLOSE CONNECTION!')
 		}
 	}
 
@@ -635,39 +483,32 @@ export class SeedDataService {
 	 * Use this wrapper function for all seed functions which are not essential.
 	 * Essentials seeds are ONLY those which are required to start the UI/login
 	 */
-	public tryExecute<T>(
-		name: string,
-		p: Promise<T>
-	): Promise<T> | Promise<void> {
-		this.log(chalk.green(`${moment().format('DD.MM.YYYY HH:mm:ss')} SEEDING ${name}`));
+	public tryExecute<T>(name: string, p: Promise<T>): Promise<T> | Promise<void> {
+		this.log(chalk.green(`${moment().format('DD.MM.YYYY HH:mm:ss')} SEEDING ${name}`))
 
 		return (p as any).then(
 			(x: T) => x,
 			(error: Error) => {
-				this.log(
-					chalk.bgRed(
-						`🛑 ERROR: ${error ? error.message : 'unknown'}`
-					)
-				);
+				this.log(chalk.bgRed(`🛑 ERROR: ${error ? error.message : 'unknown'}`))
 			}
-		);
+		)
 	}
 
 	/**
 	 * Retrieve entities metadata
 	 */
 	private async getEntities() {
-		const entities = [];
+		const entities = []
 		try {
 			this.connection.entityMetadatas.forEach((entity) =>
 				entities.push({
 					name: entity.name,
 					tableName: entity.tableName
 				})
-			);
-			return entities;
+			)
+			return entities
 		} catch (error) {
-			this.handleError(error, 'Unable to retrieve database metadata');
+			this.handleError(error, 'Unable to retrieve database metadata')
 		}
 	}
 
@@ -677,30 +518,24 @@ export class SeedDataService {
 	 */
 	private async cleanAll(entities: Array<any>) {
 		try {
-			const manager = getManager(SEEDER_DB_CONNECTION);
-			const database = this.config.dbConnectionOptions;
+			const manager = getManager(SEEDER_DB_CONNECTION)
+			const database = this.config.dbConnectionOptions
 
 			switch (database.type) {
 				case 'postgres': {
-					const tables = entities.map(
-						(entity) => '"' + entity.tableName + '"'
-					);
-					const truncateSql = `TRUNCATE TABLE ${tables.join(
-						','
-					)} RESTART IDENTITY CASCADE;`;
-					await manager.query(truncateSql);
-					break;
+					const tables = entities.map((entity) => '"' + entity.tableName + '"')
+					const truncateSql = `TRUNCATE TABLE ${tables.join(',')} RESTART IDENTITY CASCADE;`
+					await manager.query(truncateSql)
+					break
 				}
 				default:
-					await manager.query(`PRAGMA foreign_keys = OFF;`);
+					await manager.query(`PRAGMA foreign_keys = OFF;`)
 					for (const entity of entities) {
-						await manager.query(
-							`DELETE FROM "${entity.tableName}";`
-						);
+						await manager.query(`DELETE FROM "${entity.tableName}";`)
 					}
 			}
 		} catch (error) {
-			this.handleError(error, 'Unable to clean database');
+			this.handleError(error, 'Unable to clean database')
 		}
 	}
 
@@ -708,22 +543,17 @@ export class SeedDataService {
 	 * Reset the database, truncate all tables (remove all data)
 	 */
 	private async resetDatabase() {
-		this.log(chalk.green(`RESETTING DATABASE`));
+		this.log(chalk.green(`RESETTING DATABASE`))
 
-		const entities = await this.getEntities();
-		await this.cleanAll(entities);
+		const entities = await this.getEntities()
+		await this.cleanAll(entities)
 
-		this.log(chalk.green(`✅ RESET DATABASE SUCCESSFUL`));
+		this.log(chalk.green(`✅ RESET DATABASE SUCCESSFUL`))
 	}
 
 	private handleError(error: Error, message?: string): void {
-		this.log(
-			chalk.bgRed(
-				`🛑 ERROR: ${message ? message + '-> ' : ''} ${error ? error.message : ''
-				}`
-			)
-		);
-		throw error;
+		this.log(chalk.bgRed(`🛑 ERROR: ${message ? message + '-> ' : ''} ${error ? error.message : ''}`))
+		throw error
 	}
 
 	// private async bootstrapPluginSeedMethods(

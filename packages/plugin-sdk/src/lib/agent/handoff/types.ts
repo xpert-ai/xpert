@@ -103,6 +103,8 @@ export interface HandoffMessageHeaders extends Record<string, string> {
 	source?: RunSource
 	requestedLane?: LaneName
 	integrationId?: string
+	policyTimeoutMs?: string
+	policyIdleTimeoutMs?: string
 }
 
 /**
@@ -111,12 +113,15 @@ export interface HandoffMessageHeaders extends Record<string, string> {
 export interface ProcessorPolicy {
 	lane: LaneName
 	timeoutMs?: number
+	idleTimeoutMs?: number
 }
 
 export interface ProcessContext {
 	runId: string
 	traceId: string
 	abortSignal: AbortSignal
+	heartbeat?: (reason?: string) => void
+	getAbortReason?: () => string | undefined
 	/**
 	 * Optional local-process event channel for queue waiters (e.g. SSE connection awaiting this message).
 	 * This is intentionally process-local and best-effort.

@@ -19,11 +19,12 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
 
     public async execute(command: CopilotCheckLimitCommand): Promise<void> {
         const { input } = command
-        const { copilot, tenantId, organizationId, userId } = input
+        const { copilot, tenantId, organizationId, userId, xpertId } = input
 
         await this.membershipService.assertCanUse({
             tenantId,
             userId,
+            xpertId,
             provider: copilot.modelProvider.providerName,
             model: input.model
         })

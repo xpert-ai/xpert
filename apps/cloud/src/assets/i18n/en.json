@@ -565,6 +565,18 @@
     },
     "Users": {
       "BackToList": "Back to users",
+      "UserType": "User type",
+      "UserTypes": {
+        "Regular": "Regular user",
+        "Technical": "Technical user"
+      },
+      "TechnicalUserReadonlyHint": "Basic account fields are read-only for technical users.",
+      "Tabs": {
+        "Basic": "Basic information",
+        "Membership": "Membership",
+        "Organizations": "Organizations",
+        "Security": "Security"
+      },
       "GroupsHint": "Manage which groups the user belongs to in each active organization.",
       "NoActiveOrganizations": "This user is not active in any organization.",
       "DefaultOrganizationUpdated": "Default organization updated",

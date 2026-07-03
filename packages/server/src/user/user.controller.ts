@@ -38,7 +38,7 @@ import { CurrentUserFindOptions, UserService } from './user.service'
 import { UserBulkCreateCommand, UserCreateCommand } from './commands'
 import { FactoryResetService } from './factory-reset/factory-reset.service'
 import { UserDeleteCommand } from './commands/user.delete.command'
-import { Like, Not } from 'typeorm'
+import { In, Like, Not } from 'typeorm'
 import { UserPasswordDTO } from './dto'
 
 @ApiTags('User')
@@ -181,19 +181,26 @@ export class UserController extends CrudController<User> {
 	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	@Get()
 	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<User>> {
-		const { relations, search } = data
-		let { findInput } = data
+		const { relations, search, types, withDeleted } = data ?? {}
+		let { findInput } = data ?? {}
 		if (search) {
 			findInput = findInput ?? {}
 			findInput.email = Like(`%${search.split('%').join('')}%`)
 		}
+		const requestedTypes = Array.isArray(types)
+			? types.filter((type): type is UserType => Object.values(UserType).includes(type))
+			: []
+		const typeFilter = requestedTypes.length
+			? { type: In(requestedTypes) }
+			: { type: Not(UserType.COMMUNICATION) }
 
 		return this.userService.findAll({
 			where: {
 				...(findInput ?? {}),
-				type: Not(UserType.COMMUNICATION)
+				...typeFilter
 			},
-			relations
+			relations,
+			withDeleted: !!withDeleted
 		})
 	}
 

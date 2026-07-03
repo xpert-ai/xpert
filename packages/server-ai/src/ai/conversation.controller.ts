@@ -23,7 +23,7 @@ import {
     UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
-import { FindOptionsOrder, Like } from 'typeorm'
+import { FindOptionsOrder, In, Like } from 'typeorm'
 import {
     IChatConversation,
     IChatMessage,
@@ -44,6 +44,7 @@ import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
+import { XpertService } from '../xpert'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -79,7 +80,8 @@ export class ConversationsController {
         private readonly goalService: ChatConversationGoalService,
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly xpertService: XpertService
     ) {}
 
     @Post()
@@ -103,13 +105,12 @@ export class ConversationsController {
             where['title'] = Like(`%${body.search}%`)
         }
         const currentUser = RequestContext.currentUserId()
-        if (currentUser) {
-            where['createdById'] = currentUser
-        }
         const publicScope = getPublicXpertSessionConversationScope()
         if (publicScope) {
             where['createdById'] = publicScope.createdById
             where['xpertId'] = publicScope.xpertId
+        } else if (currentUser) {
+            where['createdById'] = await this.resolveConversationCreatedByFilter(currentUser, body.where)
         }
         const result = await this.conversationService.findAllInOrganizationOrTenant({
             where,
@@ -121,6 +122,50 @@ export class ConversationsController {
             ...result,
             items: result.items.map((item) => new ConversationDTO(item))
         }
+    }
+
+    private async resolveConversationCreatedByFilter(
+        currentUser: string,
+        rawWhere?: ConversationSearchRequest['where']
+    ) {
+        const xpertId = this.extractSingleXpertId(rawWhere)
+        if (!xpertId) {
+            return currentUser
+        }
+
+        try {
+            // Conversation search is read-only: when a user filters one owned xpert, include conversations
+            // created by that xpert's existing technical account, but never create or initialize that account here.
+            const xpert = await this.xpertService.findOneInOrganizationOrTenant(xpertId, {
+                select: ['id', 'createdById', 'userId'],
+                where: { createdById: currentUser }
+            })
+            const xpertPrincipalUserId = this.normalizeString(xpert?.userId)
+            if (xpert?.createdById === currentUser && xpertPrincipalUserId) {
+                return In([currentUser, xpertPrincipalUserId])
+            }
+        } catch {
+            return currentUser
+        }
+
+        return currentUser
+    }
+
+    private extractSingleXpertId(where?: ConversationSearchRequest['where']) {
+        const value = where?.xpertId as unknown
+        if (typeof value === 'string') {
+            return this.normalizeString(value)
+        }
+
+        if (!value || typeof value !== 'object' || Array.isArray(value) || !('$eq' in value)) {
+            return null
+        }
+
+        return this.normalizeString((value as { $eq?: unknown }).$eq)
+    }
+
+    private normalizeString(value: unknown) {
+        return typeof value === 'string' ? value.trim() : ''
     }
 
     @Get(':conversation_id')

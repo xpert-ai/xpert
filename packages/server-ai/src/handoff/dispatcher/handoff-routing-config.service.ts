@@ -73,6 +73,7 @@ const HandoffTypePolicySchema = z.object({
 	queue: z.string().min(1).optional(),
 	lane: z.string().min(1).optional(),
 	timeoutMs: z.number().int().positive().optional(),
+	idleTimeoutMs: z.number().int().positive().optional(),
 	retry: HandoffTypeRetryPolicySchema.optional(),
 	idempotency: HandoffTypeIdempotencyPolicySchema.optional()
 })
@@ -80,7 +81,8 @@ const HandoffTypePolicySchema = z.object({
 const HandoffRouteTargetSchema = z.object({
 	queue: z.string().min(1),
 	lane: z.string().min(1).optional(),
-	timeoutMs: z.number().int().positive().optional()
+	timeoutMs: z.number().int().positive().optional(),
+	idleTimeoutMs: z.number().int().positive().optional()
 })
 
 const HandoffRoutingFileSchema = z.object({
@@ -114,6 +116,7 @@ export interface HandoffRouteRule {
 		queue: HandoffQueueName
 		lane?: LaneName
 		timeoutMs?: number
+		idleTimeoutMs?: number
 	}
 }
 
@@ -148,6 +151,7 @@ export interface HandoffTypePolicy {
 	queue?: HandoffQueueName
 	lane?: LaneName
 	timeoutMs?: number
+	idleTimeoutMs?: number
 	retry?: HandoffTypeRetryPolicy
 	idempotency?: HandoffTypeIdempotencyPolicy
 }
@@ -265,7 +269,8 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 								defaultLane
 						  )
 						: undefined,
-					timeoutMs: route.target.timeoutMs
+					timeoutMs: route.target.timeoutMs,
+					idleTimeoutMs: route.target.idleTimeoutMs
 				}
 			})),
 			queueAliases
@@ -349,9 +354,10 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 							`typePolicies.${messageType}.lane`,
 							lanePolicy,
 							defaultLane
-					  )
+						  )
 					: undefined,
 				timeoutMs: typePolicy.timeoutMs,
+				idleTimeoutMs: typePolicy.idleTimeoutMs,
 				retry: typePolicy.retry,
 				idempotency: typePolicy.idempotency
 			}

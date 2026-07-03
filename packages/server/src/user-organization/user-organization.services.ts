@@ -18,7 +18,7 @@ import {
 	UserOrganizationCreatedEvent,
 	UserOrganizationDeletedEvent
 } from '../user/events'
-import { Organization, UserOrganization } from './../core/entities/internal'
+import { UserOrganization } from './../core/entities/internal'
 import { RequestContext } from '../core/context'
 import { touchCurrentUserFeatureUserCacheVersion } from '../user/current-user-feature-cache'
 
@@ -37,8 +37,6 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		@InjectRepository(UserOrganization)
 		private readonly userOrganizationRepository: Repository<UserOrganization>,
 
-		@InjectRepository(Organization)
-		private readonly organizationRepository: Repository<Organization>,
 		private readonly eventEmitter: EventEmitter2,
 		@Optional()
 		@Inject(CACHE_MANAGER)
@@ -289,14 +287,8 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 	}
 
 	async addUserToOrganization(user: IUser, organizationId: string): Promise<IUserOrganization | IUserOrganization[]> {
-		const roleName: string = user.role?.name
-		const tenantId = user.tenant?.id ?? user.tenantId
-
-		if (roleName === RolesEnum.SUPER_ADMIN) {
-			if (!tenantId) {
-				throw new Error('User tenant is required for SUPER_ADMIN role')
-			}
-			return this._addUserToAllOrganizations(user.id, tenantId)
+		if (user.role?.name === RolesEnum.SUPER_ADMIN) {
+			return []
 		}
 
 		return await this.ensureMembership({
@@ -468,27 +460,6 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 
 		return result
-	}
-
-	private async _addUserToAllOrganizations(userId: string, tenantId: string): Promise<IUserOrganization[]> {
-		const organizations = await this.organizationRepository.find({
-			select: ['id'],
-			where: { tenant: { id: tenantId } },
-			relations: ['tenant']
-		})
-		const memberships: IUserOrganization[] = []
-
-		for await (const organization of organizations) {
-			memberships.push(
-				await this.ensureMembership({
-					organizationId: organization.id,
-					tenantId,
-					userId
-				})
-			)
-		}
-
-		return memberships
 	}
 }
 

@@ -68,7 +68,7 @@ export class CopilotUsageCenterComponent {
     this.languageChange()
 
     return [
-      { value: 'user', label: this.translate.instant('PAC.KEY_WORDS.User', { Default: 'User' }) },
+      { value: 'user', label: this.translate.instant('PAC.Copilot.Creator', { Default: 'Creator' }) },
       {
         value: 'organization',
         label: this.translate.instant('PAC.KEY_WORDS.Organization', { Default: 'Organization' })
@@ -131,6 +131,13 @@ export class CopilotUsageCenterComponent {
   })
   readonly showOrganizationFilter = this.isTenantScope
   readonly canLoadMore = computed(() => !this.loading() && !this.done())
+  readonly userFilterPlaceholder = computed(() => {
+    this.languageChange()
+
+    return this.dimension() === 'user'
+      ? this.translate.instant('PAC.Copilot.CreatorUserId', { Default: 'Creator User ID' })
+      : this.translate.instant('PAC.Copilot.UserId', { Default: 'User ID' })
+  })
   readonly quotaTitle = computed(() => {
     this.languageChange()
 
@@ -294,7 +301,7 @@ export class CopilotUsageCenterComponent {
 
   saveQuota() {
     const item = this.quotaItem()
-    if (!item || item.dimension === 'model') {
+    if (!item || item.dimension !== 'organization') {
       return
     }
 
@@ -341,7 +348,7 @@ export class CopilotUsageCenterComponent {
   }
 
   canManageQuota(item: ICopilotUsageSummary) {
-    return item.dimension === 'user' || item.dimension === 'organization'
+    return item.dimension === 'organization'
   }
 
   usageId(item: ICopilotUsageSummary) {
