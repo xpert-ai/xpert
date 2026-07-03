@@ -32,13 +32,14 @@ export class HandoffRouteResolver {
 			config.defaultQueue
 		const lane = this.resolveLane(message, typePolicy, matchedRoute, config.defaultLane)
 		const timeoutMs = this.resolveTimeoutMs(message, typePolicy, matchedRoute)
-		const policy: ProcessorPolicy =
-			timeoutMs === undefined
-				? { lane }
-				: {
-						lane,
-						timeoutMs
-				  }
+		const idleTimeoutMs = this.resolveIdleTimeoutMs(message, typePolicy, matchedRoute)
+		const policy: ProcessorPolicy = { lane }
+		if (timeoutMs !== undefined) {
+			policy.timeoutMs = timeoutMs
+		}
+		if (idleTimeoutMs !== undefined) {
+			policy.idleTimeoutMs = idleTimeoutMs
+		}
 
 		return {
 			queue,
@@ -85,6 +86,21 @@ export class HandoffRouteResolver {
 			}
 		}
 		return typePolicy?.timeoutMs ?? route?.target.timeoutMs
+	}
+
+	private resolveIdleTimeoutMs(
+		message: HandoffMessage,
+		typePolicy: HandoffTypePolicy | undefined,
+		route: HandoffRouteRule | undefined
+	): number | undefined {
+		const idleTimeoutHeader = message.headers?.policyIdleTimeoutMs
+		if (idleTimeoutHeader) {
+			const idleTimeoutMs = parseInt(idleTimeoutHeader, 10)
+			if (Number.isFinite(idleTimeoutMs) && idleTimeoutMs > 0) {
+				return idleTimeoutMs
+			}
+		}
+		return typePolicy?.idleTimeoutMs ?? route?.target.idleTimeoutMs
 	}
 
 	private matches(message: HandoffMessage, route: HandoffRouteRule): boolean {

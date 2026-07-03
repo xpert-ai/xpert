@@ -197,7 +197,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 enqueueCallback({
                     kind: 'error',
                     sourceMessageId: sourceMessage.id,
-                    error: 'Agent chat dispatch aborted',
+                    error: this.getAbortError(ctx),
                     context: callback.context
                 }).finally(() => {
                     finish(() => resolve())
@@ -205,9 +205,11 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             }
 
             ctx.abortSignal.addEventListener('abort', onAbort, { once: true })
+            ctx.heartbeat?.('agent_chat_dispatch_stream_start')
 
             subscription = observable.subscribe({
                 next: (event) => {
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_event')
                     // this.logger.debug(`Received stream event for source message "${sourceMessage.id}"`, event)
                     enqueueCallback({
                         kind: 'stream',
@@ -223,6 +225,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                         `Stream error for source message "${sourceMessage.id}": ${this.getErrorMessage(error)}`,
                         error instanceof Error ? error.stack : undefined
                     )
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_error')
                     enqueueCallback({
                         kind: 'error',
                         sourceMessageId: sourceMessage.id,
@@ -238,6 +241,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 },
                 complete: () => {
                     this.logger.debug(`Stream completed for source message "${sourceMessage.id}"`)
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_complete')
                     enqueueCallback({
                         kind: 'complete',
                         sourceMessageId: sourceMessage.id,
@@ -292,7 +296,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 publish({
                     kind: 'error',
                     sourceMessageId: sourceMessage.id,
-                    error: 'Agent chat dispatch aborted',
+                    error: this.getAbortError(ctx),
                     context: callback.context
                 }).finally(() => {
                     finish(() => resolve())
@@ -300,9 +304,11 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             }
 
             ctx.abortSignal.addEventListener('abort', onAbort, { once: true })
+            ctx.heartbeat?.('agent_chat_dispatch_stream_start')
 
             subscription = observable.subscribe({
                 next: (event) => {
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_event')
                     publish({
                         kind: 'stream',
                         sourceMessageId: sourceMessage.id,
@@ -317,6 +323,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                         `Realtime stream error for source message "${sourceMessage.id}": ${this.getErrorMessage(error)}`,
                         error instanceof Error ? error.stack : undefined
                     )
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_error')
                     publish({
                         kind: 'error',
                         sourceMessageId: sourceMessage.id,
@@ -332,6 +339,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 },
                 complete: () => {
                     this.logger.debug(`Realtime stream completed for source message "${sourceMessage.id}"`)
+                    ctx.heartbeat?.('agent_chat_dispatch_stream_complete')
                     publish({
                         kind: 'complete',
                         sourceMessageId: sourceMessage.id,
@@ -557,6 +565,11 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         return (
             !!callback && callback.transport !== 'redis-pubsub' && 'messageType' in callback && !!callback.messageType
         )
+    }
+
+    private getAbortError(ctx: ProcessContext): string {
+        const reason = ctx.getAbortReason?.()
+        return reason ? `Agent chat dispatch aborted: ${reason}` : 'Agent chat dispatch aborted'
     }
 
     private getErrorMessage(error: unknown): string {

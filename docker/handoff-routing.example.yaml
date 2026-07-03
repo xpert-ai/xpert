@@ -68,7 +68,7 @@ typePolicies:
   agent.chat_dispatch.v1:
     queue: realtime
     lane: high
-    timeoutMs: 120000
+    idleTimeoutMs: 120000
     retry:
       maxAttempts: 2
       backoff: exponential
