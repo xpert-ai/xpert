@@ -1,6 +1,6 @@
 {
     "name": "@xpert-ai/server-ai",
-    "version": "3.9.6",
+    "version": "3.9.7",
     "private": true,
     "type": "commonjs",
     "license": "AGPL-3.0",
