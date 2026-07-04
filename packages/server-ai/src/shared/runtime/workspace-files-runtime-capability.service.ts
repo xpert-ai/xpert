@@ -1,9 +1,15 @@
 import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
+import path from 'node:path'
 import {
     RequestContext,
     WorkspaceFile,
     WorkspaceFileBuffer,
+    WorkspaceFileLocator,
+    WorkspaceFileScope,
+    WorkspacePortableFileReference,
+    WorkspaceRuntimeFileBuffer,
+    WorkspaceRuntimeWriteInput,
     WorkspaceFileReference,
     WorkspaceFilesApi,
     WorkspaceUnderstandFileInput,
@@ -21,6 +27,19 @@ import {
 } from '../../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
+const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
+
+/**
+ * Runtime workspace defaults captured from the current Agent execution.
+ *
+ * These values let plugin code pass simple paths while the platform supplies
+ * tenant, user, project/Xpert scope, and sandbox workspace root information.
+ */
+export type WorkspaceFilesRuntimeDefaults = WorkspaceFileScope & {
+    workspaceRoot?: string | null
+    workspacePath?: string | null
+}
+
 @Injectable()
 export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi {
     readonly api: WorkspaceFilesApi = this
@@ -31,6 +50,24 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>
     ) {}
+
+    /**
+     * Create a workspace-files facade bound to one Agent runtime scope.
+     *
+     * Middleware tools receive this scoped API so `/workspace/foo` can be read
+     * without exposing catalog, scopeId, tenantId, or projectId to the Agent.
+     */
+    createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
+        return {
+            uploadBuffer: (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            understandFile: (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
+            readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
+            resolveRuntimeReference: (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
+            readRuntimeBuffer: (input) => this.readRuntimeBufferWithDefaults(input, defaults),
+            writeRuntimeBuffer: (input) => this.writeRuntimeBufferWithDefaults(input, defaults)
+        }
+    }
 
     async uploadBuffer(input: WorkspaceUploadBufferInput): Promise<WorkspaceFile> {
         if (!Buffer.isBuffer(input.buffer) || !input.buffer.length) {
@@ -130,6 +167,23 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
+    /** Resolve a locator without Agent-specific defaults. Prefer scoped APIs in middleware runtimes. */
+    async resolveRuntimeReference(input: WorkspaceFileLocator): Promise<WorkspacePortableFileReference> {
+        return this.resolveRuntimeReferenceWithDefaults(input, {})
+    }
+
+    /** Read a runtime locator without Agent-specific defaults. Prefer scoped APIs in middleware runtimes. */
+    async readRuntimeBuffer(input: WorkspaceFileLocator): Promise<WorkspaceRuntimeFileBuffer> {
+        return this.readRuntimeBufferWithDefaults(input, {})
+    }
+
+    /** Write bytes without Agent-specific defaults. Prefer scoped APIs in middleware runtimes. */
+    async writeRuntimeBuffer(
+        input: WorkspaceRuntimeWriteInput
+    ): Promise<WorkspaceFile & { reference: WorkspacePortableFileReference }> {
+        return this.writeRuntimeBufferWithDefaults(input, {})
+    }
+
     async readBuffer(input: WorkspaceFileReference): Promise<WorkspaceFileBuffer> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
@@ -156,6 +210,130 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const { volumeScope } = this.resolveVolumeScope(input)
         const client = new VolumeSubtreeClient(this.volumeClient.resolve(volumeScope), { allowRootWorkspace: true })
         await client.deleteFile('', filePath)
+    }
+
+    /**
+     * Normalize a sandbox path, relative path, or portable reference into a
+     * scoped reference that can be persisted and replayed outside this request.
+     */
+    private async resolveRuntimeReferenceWithDefaults(
+        input: WorkspaceFileLocator,
+        defaults: WorkspaceFilesRuntimeDefaults
+    ): Promise<WorkspacePortableFileReference> {
+        const descriptor = toWorkspaceRuntimeDescriptor(input)
+        const filePath = normalizeRuntimeWorkspaceFilePath(readRuntimeFilePath(descriptor), defaults)
+        const scopedInput = applyRuntimeScopeDefaults(
+            {
+                ...readRuntimeScope(descriptor),
+                filePath
+            },
+            defaults
+        )
+        const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(scopedInput)
+        const workspacePath = toRuntimeWorkspacePath(filePath, defaults)
+        const originalName = normalizeOptionalString(descriptor.originalName)
+        const name = normalizeOptionalString(descriptor.name) ?? originalName
+        const mimeType =
+            normalizeOptionalString(descriptor.mimeType) ??
+            normalizeOptionalString((descriptor as { mimetype?: unknown }).mimetype)
+        const size =
+            typeof descriptor.size === 'number' && Number.isFinite(descriptor.size) ? descriptor.size : undefined
+
+        return {
+            source: WORKSPACE_FILES_SOURCE,
+            filePath,
+            workspacePath,
+            tenantId: volumeScope.tenantId,
+            ...(volumeScope.userId ? { userId: volumeScope.userId } : {}),
+            catalog,
+            ...(scopeId ? { scopeId } : {}),
+            ...(volumeScope.projectId ? { projectId: volumeScope.projectId } : {}),
+            ...(volumeScope.knowledgeId ? { knowledgeId: volumeScope.knowledgeId } : {}),
+            ...(volumeScope.rootId ? { rootId: volumeScope.rootId } : {}),
+            ...(volumeScope.xpertId ? { xpertId: volumeScope.xpertId } : {}),
+            ...(typeof volumeScope.isolateByUser === 'boolean' ? { isolateByUser: volumeScope.isolateByUser } : {}),
+            ...(originalName ? { originalName } : {}),
+            ...(name ? { name } : {}),
+            ...(mimeType ? { mimeType } : {}),
+            ...(typeof size === 'number' ? { size } : {})
+        }
+    }
+
+    /**
+     * Read file bytes through the same resolver used to produce the returned
+     * portable reference.
+     */
+    private async readRuntimeBufferWithDefaults(
+        input: WorkspaceFileLocator,
+        defaults: WorkspaceFilesRuntimeDefaults
+    ): Promise<WorkspaceRuntimeFileBuffer> {
+        const reference = await this.resolveRuntimeReferenceWithDefaults(input, defaults)
+        const file = await this.readBuffer(reference)
+        return {
+            ...file,
+            workspacePath: reference.workspacePath,
+            ...(reference.name || reference.originalName
+                ? { name: reference.name ?? reference.originalName ?? file.name }
+                : {}),
+            ...(reference.mimeType ? { mimeType: reference.mimeType } : {}),
+            reference
+        }
+    }
+
+    /**
+     * Write bytes into the scoped runtime workspace and return the platform
+     * reference that future async jobs should store.
+     */
+    private async writeRuntimeBufferWithDefaults(
+        input: WorkspaceRuntimeWriteInput,
+        defaults: WorkspaceFilesRuntimeDefaults
+    ): Promise<WorkspaceFile & { reference: WorkspacePortableFileReference }> {
+        const descriptor = toWorkspaceRuntimeDescriptor(input)
+        const rawRuntimePath = readRuntimeFilePath(descriptor, false)
+        let folder = normalizeOptionalString(input.folder)
+        let fileName = normalizeOptionalString(input.fileName)
+        if (rawRuntimePath) {
+            const filePath = normalizeRuntimeWorkspaceFilePath(rawRuntimePath, defaults)
+            folder = folder ?? normalizeUploadFolder(path.posix.dirname(filePath))
+            fileName = fileName ?? path.posix.basename(filePath)
+        }
+
+        const originalName =
+            normalizeOptionalString(input.originalName) ??
+            normalizeOptionalString(input.name) ??
+            fileName ??
+            'workspace-file'
+        const mimeType = normalizeOptionalString(input.mimeType) ?? normalizeOptionalString(input.mimetype)
+        const uploaded = await this.uploadBuffer(
+            applyRuntimeScopeDefaults(
+                {
+                    ...input,
+                    originalName,
+                    ...(mimeType ? { mimeType } : {}),
+                    ...(folder ? { folder } : {}),
+                    ...(fileName ? { fileName } : {})
+                },
+                defaults
+            )
+        )
+        const reference = await this.resolveRuntimeReferenceWithDefaults(
+            {
+                ...input,
+                filePath: uploaded.filePath,
+                workspacePath: uploaded.filePath,
+                originalName,
+                name: uploaded.name,
+                mimeType: uploaded.mimeType,
+                size: uploaded.size
+            },
+            defaults
+        )
+
+        return {
+            ...uploaded,
+            workspacePath: reference.workspacePath,
+            reference
+        }
     }
 
     private resolveVolumeScope(input: WorkspaceUploadBufferInput | WorkspaceFileReference): {
@@ -198,12 +376,159 @@ function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
+function toWorkspaceRuntimeDescriptor(
+    input: WorkspaceFileLocator | WorkspaceRuntimeWriteInput
+): Record<string, unknown> {
+    return typeof input === 'string' ? { path: input } : ((input ?? {}) as Record<string, unknown>)
+}
+
+function readRuntimeFilePath(descriptor: Record<string, unknown>, required = true) {
+    const raw =
+        normalizeOptionalString(descriptor.filePath) ??
+        normalizeOptionalString(descriptor.workspacePath) ??
+        normalizeOptionalString(descriptor.path)
+    if (!raw && required) {
+        throw new BadRequestException('workspace file path is required')
+    }
+    return raw
+}
+
+function readRuntimeScope(descriptor: Record<string, unknown>): WorkspaceFileScope {
+    return {
+        tenantId: normalizeOptionalString(descriptor.tenantId),
+        userId: normalizeOptionalString(descriptor.userId),
+        catalog: normalizeOptionalString(descriptor.catalog) as WorkspaceFileScope['catalog'],
+        scopeId: normalizeOptionalString(descriptor.scopeId),
+        projectId: normalizeOptionalString(descriptor.projectId),
+        knowledgeId: normalizeOptionalString(descriptor.knowledgeId),
+        rootId: normalizeOptionalString(descriptor.rootId),
+        xpertId: normalizeOptionalString(descriptor.xpertId),
+        isolateByUser: typeof descriptor.isolateByUser === 'boolean' ? descriptor.isolateByUser : undefined
+    }
+}
+
+/**
+ * Fill missing scope fields from the current runtime and infer the default
+ * workspace catalog. Project scope wins over Xpert scope because project
+ * workspaces are the broader collaboration boundary.
+ */
+function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defaults: WorkspaceFilesRuntimeDefaults): T {
+    const scoped = { ...input } as T & WorkspaceFileScope
+    scoped.tenantId = normalizeOptionalString(scoped.tenantId) ?? normalizeOptionalString(defaults.tenantId)
+    scoped.userId = normalizeOptionalString(scoped.userId) ?? normalizeOptionalString(defaults.userId)
+
+    if (!hasExplicitWorkspaceScope(scoped)) {
+        const projectId = normalizeOptionalString(defaults.projectId)
+        const xpertId = normalizeOptionalString(defaults.xpertId)
+        if (projectId) {
+            scoped.projectId = projectId
+        } else if (xpertId) {
+            scoped.xpertId = xpertId
+            scoped.isolateByUser = scoped.isolateByUser ?? false
+        }
+    } else if (!normalizeOptionalString(scoped.scopeId)) {
+        const catalog = normalizeOptionalString(scoped.catalog)
+        if (catalog === 'projects' && !normalizeOptionalString(scoped.projectId)) {
+            scoped.projectId = normalizeOptionalString(defaults.projectId)
+        } else if (catalog === 'xperts' && !normalizeOptionalString(scoped.xpertId)) {
+            scoped.xpertId = normalizeOptionalString(defaults.xpertId)
+            scoped.isolateByUser = scoped.isolateByUser ?? false
+        }
+    }
+
+    return scoped
+}
+
+function hasExplicitWorkspaceScope(scope: WorkspaceFileScope) {
+    return Boolean(
+        normalizeOptionalString(scope.catalog) ||
+        normalizeOptionalString(scope.scopeId) ||
+        normalizeOptionalString(scope.projectId) ||
+        normalizeOptionalString(scope.knowledgeId) ||
+        normalizeOptionalString(scope.rootId) ||
+        normalizeOptionalString(scope.xpertId)
+    )
+}
+
 function normalizeRequiredWorkspaceFilePath(value: unknown) {
     const normalized = normalizeOptionalString(value)?.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
     if (!normalized || normalized === '.' || normalized.split('/').includes('..')) {
         throw new BadRequestException('workspace file path is required')
     }
     return normalized
+}
+
+/**
+ * Convert sandbox-visible or workspace-relative paths into safe Volume-relative
+ * paths. Absolute paths are accepted only when they are inside the runtime
+ * workspace root, including Docker's canonical `/workspace` mount.
+ */
+function normalizeRuntimeWorkspaceFilePath(value: unknown, defaults: WorkspaceFilesRuntimeDefaults) {
+    const raw = normalizeOptionalString(value)
+    if (!raw) {
+        throw new BadRequestException('workspace file path is required')
+    }
+    if (raw.includes('\0')) {
+        throw new BadRequestException('workspace file path contains invalid characters')
+    }
+
+    const unixPath = raw.replace(/\\/g, '/')
+    let relativePath = unixPath
+    if (path.posix.isAbsolute(unixPath)) {
+        const roots = uniqueWorkspaceRoots(defaults)
+        const normalizedCandidate = path.posix.normalize(unixPath)
+        const matchedRoot = roots.find((root) => {
+            const normalizedRoot = path.posix.normalize(root)
+            return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`)
+        })
+        if (!matchedRoot) {
+            throw new BadRequestException('absolute workspace file path must be inside the runtime workspace root')
+        }
+        const normalizedRoot = path.posix.normalize(matchedRoot)
+        if (normalizedCandidate === normalizedRoot) {
+            throw new BadRequestException('workspace file path must point to a file below the workspace root')
+        }
+        relativePath = unixPath.slice(matchedRoot.length).replace(/^\/+/, '')
+    }
+
+    const parts = relativePath.split('/').filter((part) => part && part !== '.')
+    if (!parts.length || parts.some((part) => part === '..')) {
+        throw new BadRequestException('invalid workspace file path')
+    }
+
+    const normalized = path.posix.normalize(parts.join('/'))
+    if (
+        !normalized ||
+        normalized === '.' ||
+        normalized === '..' ||
+        normalized.startsWith('../') ||
+        path.posix.isAbsolute(normalized)
+    ) {
+        throw new BadRequestException('invalid workspace file path')
+    }
+    return normalized
+}
+
+/** Return the possible sandbox workspace roots for the current runtime scope. */
+function uniqueWorkspaceRoots(defaults: WorkspaceFilesRuntimeDefaults) {
+    const roots = [
+        normalizeOptionalString(defaults.workspaceRoot),
+        normalizeOptionalString(defaults.workspacePath),
+        '/workspace'
+    ].filter(Boolean) as string[]
+    return Array.from(
+        new Set(roots.map((root) => path.posix.normalize(root.replace(/\\/g, '/')).replace(/\/+$/, '') || '/'))
+    )
+}
+
+/** Rebuild the sandbox-visible workspace path stored in portable references. */
+function toRuntimeWorkspacePath(filePath: string, defaults: WorkspaceFilesRuntimeDefaults) {
+    const workspaceRoot = uniqueWorkspaceRoots(defaults)[0] ?? '/workspace'
+    return path.posix.join(workspaceRoot, filePath)
+}
+
+function normalizeUploadFolder(value: string) {
+    return value && value !== '.' ? value : undefined
 }
 
 function resolveWorkspaceVolumeScopeError(input: WorkspaceUploadBufferInput | WorkspaceFileReference, context: string) {

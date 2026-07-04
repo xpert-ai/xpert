@@ -146,6 +146,56 @@ Docker sandbox 会把一个精确的 Volume 根挂到容器内 `/workspace`。
 - `workspaceRoot === '/workspace'`
 - `workspacePath` 是把 server 侧子路径映射到 `/workspace/...` 之后的结果
 
+## Runtime Workspace 文件能力
+
+插件、Agent middleware 和异步队列不要直接用 Node `fs` 读取 sandbox 里的 `/workspace/...` 路径。`/workspace` 是 sandbox 视角的工作区挂载点，不一定存在于 API 进程或宿主服务器的同一路径上。
+
+平台通过 runtime capability 提供统一的 workspace 文件入口：
+
+```ts
+const workspaceFiles = context.runtime.capabilities.require(WorkspaceFilesRuntimeCapability)
+const file = await workspaceFiles.readRuntimeBuffer('/workspace/report.docx')
+```
+
+`platform.workspace.files` 支持三类 runtime locator：
+
+- sandbox 绝对路径：`/workspace/report.docx`
+- workspace 相对路径：`report.docx` 或 `./report.docx`
+- 平台返回的 portable reference：`{ source: 'platform.workspace.files', filePath, workspacePath, catalog, scopeId, ... }`
+
+解析规则：
+
+- `/workspace/foo.docx` 或当前 `workspaceRoot/foo.docx` 会归一化为 Volume 相对路径 `foo.docx`。
+- `foo.docx`、`./foo.docx` 按当前 Agent runtime workspace 的相对路径处理。
+- 已持久化的 portable reference 会按其中的显式 catalog/scope 读取。
+- 默认 scope 由当前 Agent runtime 推断：存在 `projectId` 时使用 `catalog: 'projects'`；否则存在 `xpertId` 时使用 `catalog: 'xperts'` 且 `isolateByUser: false`。
+
+安全规则：
+
+- 拒绝空路径、空字节、`..`、workspace 根目录本身，以及逃逸当前 workspace root 的绝对路径。
+- 不在业务插件里硬编码 `/workspace -> /sandbox` 或本机路径映射。
+- 不把 `/workspace/...`、`/sandbox/...`、宿主绝对路径持久化为业务文件引用。
+
+读取接口会返回文件 bytes 和平台生成的 `WorkspacePortableFileReference`。需要延迟发送、重试或异步处理时，只持久化 portable reference 以及 `size`、`sha256` 等校验信息，不要把 base64 或 buffer 写入队列 payload。
+
+写入新文件时使用 `writeRuntimeBuffer()`：
+
+```ts
+const written = await workspaceFiles.writeRuntimeBuffer({
+  path: 'exports/report.docx',
+  originalName: 'report.docx',
+  mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  buffer
+})
+
+await outboundQueue.enqueue({
+  fileRef: written.reference,
+  size: written.size ?? buffer.length
+})
+```
+
+这样插件只处理业务文件引用，路径归一化、scope 推断、Volume 读写和租户隔离都由平台统一负责。
+
 ## 根路径矩阵
 
 根路径计算集中在 [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1)。

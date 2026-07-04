@@ -114,6 +114,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                         rootController: abortController,
                         signal: abortController.signal,
                         subscriber,
+                        workspaceRoot: command.options.workspaceRoot,
+                        workspacePath: command.options.workspacePath,
                         environment
                     }
                 )
@@ -137,6 +139,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                         signal: abortController.signal,
                         execution,
                         subscriber,
+                        workspaceRoot: command.options.workspaceRoot,
+                        workspacePath: command.options.workspacePath,
                         disableCheckpointer: true, // The loop node cannot record the execution log correctly, so the Checkpointer is temporarily disabled.
                         channel: channelName(agentKey),
                         partners: [],
