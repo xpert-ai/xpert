@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.5
+
+### Patch Changes
+
+- 693806f: workspace files
+
 ## 3.15.4
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.4
+
+### Patch Changes
+
+- 693806f: workspace files
+- Updated dependencies [693806f]
+  - @xpert-ai/contracts@3.15.5
+
 ## 3.15.3
 
 ### Patch Changes
