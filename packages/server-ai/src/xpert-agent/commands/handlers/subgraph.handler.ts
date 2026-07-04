@@ -754,6 +754,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
+        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
+            tenantId: xpert.tenantId,
+            userId: RequestContext.currentUserId(),
+            projectId: options.projectId,
+            xpertId: xpert.id,
+            workspaceRoot: options.workspaceRoot,
+            workspacePath: options.workspacePath
+        })
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: xpert.tenantId,
             organizationId,
@@ -767,7 +775,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             knowledgebaseIds: agent.knowledgebaseIds,
             store: options.store,
             tools: toolMap,
-            runtime: this.agentMiddlewareRuntimeService.api
+            runtime: middlewareRuntime
         }
         const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = []
         if (isFileUnderstandingEnabled(agent)) {

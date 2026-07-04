@@ -113,6 +113,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                         rootController: abortController,
                         signal: abortController.signal,
                         subscriber,
+                        workspaceRoot: command.options.workspaceRoot,
+                        workspacePath: command.options.workspacePath,
                         environment
                     }
                 )
@@ -136,6 +138,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                         signal: abortController.signal,
                         execution: _execution,
                         subscriber,
+                        workspaceRoot: command.options.workspaceRoot,
+                        workspacePath: command.options.workspacePath,
                         // disableCheckpointer: true,
                         channel: channelName(agentKey),
                         partners: [],

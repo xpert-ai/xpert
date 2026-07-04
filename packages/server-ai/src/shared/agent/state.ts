@@ -71,6 +71,8 @@ export type TXpertAgentRuntimeOptions = {
     toolPreferences?: IAssistantBindingToolPreferences | null
     planMode?: boolean
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended | null
+    workspacePath?: string | null
+    workspaceRoot?: string | null
 }
 
 export const AgentStateAnnotation = Annotation.Root({

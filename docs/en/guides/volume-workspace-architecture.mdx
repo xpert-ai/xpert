@@ -144,6 +144,56 @@ So:
 - `workspaceRoot === '/workspace'`
 - `workspacePath` is the server-side subpath translated into `/workspace/...`
 
+## Runtime Workspace File Capability
+
+Plugins, Agent middleware, and async queues should not read sandbox `/workspace/...` paths with Node `fs` directly. `/workspace` is the sandbox-visible mount point and may not exist at the same path in the API process or on the host server.
+
+The platform exposes a single workspace-file entry point through runtime capabilities:
+
+```ts
+const workspaceFiles = context.runtime.capabilities.require(WorkspaceFilesRuntimeCapability)
+const file = await workspaceFiles.readRuntimeBuffer('/workspace/report.docx')
+```
+
+`platform.workspace.files` accepts three runtime locator shapes:
+
+- sandbox absolute paths: `/workspace/report.docx`
+- workspace-relative paths: `report.docx` or `./report.docx`
+- platform portable references: `{ source: 'platform.workspace.files', filePath, workspacePath, catalog, scopeId, ... }`
+
+Resolution rules:
+
+- `/workspace/foo.docx` or `workspaceRoot/foo.docx` is normalized to the Volume-relative path `foo.docx`.
+- `foo.docx` and `./foo.docx` are resolved relative to the current Agent runtime workspace.
+- Persisted portable references are read from their explicit catalog/scope.
+- Default scope is inferred from the current Agent runtime: `projectId` resolves to `catalog: 'projects'`; otherwise `xpertId` resolves to `catalog: 'xperts'` with `isolateByUser: false`.
+
+Safety rules:
+
+- Empty paths, null bytes, `..`, the workspace root itself, and absolute paths escaping the current workspace root are rejected.
+- Business plugins must not hardcode `/workspace -> /sandbox` or local host path mappings.
+- Business records should not persist `/workspace/...`, `/sandbox/...`, or host absolute paths as file references.
+
+Read APIs return both file bytes and a platform-generated `WorkspacePortableFileReference`. For delayed sending, retries, or async processing, persist only the portable reference plus validation fields such as `size` and `sha256`; do not store base64 or buffers in queue payloads.
+
+Use `writeRuntimeBuffer()` for new files:
+
+```ts
+const written = await workspaceFiles.writeRuntimeBuffer({
+  path: 'exports/report.docx',
+  originalName: 'report.docx',
+  mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  buffer
+})
+
+await outboundQueue.enqueue({
+  fileRef: written.reference,
+  size: written.size ?? buffer.length
+})
+```
+
+This keeps business plugins focused on file references while the platform owns path normalization, scope inference, Volume IO, and tenant isolation.
+
 ## Root path matrix
 
 Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1).

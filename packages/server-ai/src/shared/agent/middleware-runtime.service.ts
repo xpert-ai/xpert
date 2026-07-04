@@ -84,45 +84,23 @@ import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
+/**
+ * Scope values captured from the current Agent invocation and bound into
+ * runtime capabilities exposed to middleware plugins.
+ */
+export type AgentMiddlewareRuntimeScope = {
+    tenantId?: string | null
+    userId?: string | null
+    projectId?: string | null
+    xpertId?: string | null
+    workspaceRoot?: string | null
+    workspacePath?: string | null
+}
+
 @Injectable()
 export class AgentMiddlewareRuntimeService {
     readonly #logger = new Logger(AgentMiddlewareRuntimeService.name)
-    private readonly capabilities = new DefaultRuntimeCapabilityRegistry([
-        [
-            KnowledgebaseRuntimeCapability,
-            {
-                list: (input) => this.listKnowledgebases(input),
-                search: (input) => this.searchKnowledgebase(input),
-                writeChunk: (input) => this.writeKnowledgeChunk(input),
-                deleteChunks: (input) => this.deleteKnowledgeChunks(input)
-            }
-        ],
-        [
-            KnowledgebaseDocumentsRuntimeCapability,
-            {
-                uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
-                importArchive: (input) => this.importKnowledgebaseArchive(input),
-                createDocuments: (input) => this.createKnowledgebaseDocuments(input),
-                startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
-                getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
-                deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
-            }
-        ],
-        [
-            AssistantTaskRuntimeCapability,
-            {
-                startTask: (input) => this.startAssistantTask(input),
-                getTaskStatus: (input) => this.getAssistantTaskStatus(input)
-            }
-        ],
-        [
-            FileRuntimeCapability,
-            {
-                resolveFile: (input) => this.resolveFile(input)
-            }
-        ],
-        [WorkspaceFilesRuntimeCapability, this.workspaceFiles.api]
-    ])
+    readonly api: AgentMiddlewareRuntimeApi
 
     async createModelClient<T = AgentMiddlewareModelClient>(
         copilotModel: ICopilotModel,
@@ -456,19 +434,70 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
-    readonly api = {
-        createModelClient: (...args) => this.createModelClient(...args),
-        wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
-        emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
-        capabilities: this.capabilities
-    } satisfies AgentMiddlewareRuntimeApi
-
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService
-    ) {}
+    ) {
+        this.api = this.createScopedApi()
+    }
+
+    /**
+     * Build an Agent middleware runtime API for a specific invocation scope.
+     *
+     * The workspace-files capability is scoped here so plugin tools can receive
+     * simple sandbox paths while server-side reads still honor the current
+     * project/Xpert workspace boundary.
+     */
+    createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
+        const workspaceFilesApi = hasRuntimeWorkspaceScope(scope)
+            ? this.workspaceFiles.createScopedApi(scope)
+            : this.workspaceFiles.api
+        const capabilities = new DefaultRuntimeCapabilityRegistry([
+            [
+                KnowledgebaseRuntimeCapability,
+                {
+                    list: (input) => this.listKnowledgebases(input),
+                    search: (input) => this.searchKnowledgebase(input),
+                    writeChunk: (input) => this.writeKnowledgeChunk(input),
+                    deleteChunks: (input) => this.deleteKnowledgeChunks(input)
+                }
+            ],
+            [
+                KnowledgebaseDocumentsRuntimeCapability,
+                {
+                    uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
+                    importArchive: (input) => this.importKnowledgebaseArchive(input),
+                    createDocuments: (input) => this.createKnowledgebaseDocuments(input),
+                    startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
+                    getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
+                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
+                }
+            ],
+            [
+                AssistantTaskRuntimeCapability,
+                {
+                    startTask: (input) => this.startAssistantTask(input),
+                    getTaskStatus: (input) => this.getAssistantTaskStatus(input)
+                }
+            ],
+            [
+                FileRuntimeCapability,
+                {
+                    resolveFile: (input) => this.resolveFile(input)
+                }
+            ],
+            [WorkspaceFilesRuntimeCapability, workspaceFilesApi]
+        ])
+
+        return {
+            createModelClient: (...args) => this.createModelClient(...args),
+            wrapWorkflowNodeExecution: (...args) => this.wrapWorkflowNodeExecution(...args),
+            emitMiddlewareEvent: (...args) => this.emitMiddlewareEvent(...args),
+            capabilities
+        } satisfies AgentMiddlewareRuntimeApi
+    }
 
     private resolveStorageFileUrl(storageFile: IStorageFile | null) {
         if (!storageFile) {
@@ -524,6 +553,18 @@ export class AgentMiddlewareRuntimeService {
 
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+/** Check whether a middleware runtime needs a per-invocation workspace facade. */
+function hasRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
+    return Boolean(
+        normalizeOptionalString(scope.tenantId) ||
+        normalizeOptionalString(scope.userId) ||
+        normalizeOptionalString(scope.projectId) ||
+        normalizeOptionalString(scope.xpertId) ||
+        normalizeOptionalString(scope.workspaceRoot) ||
+        normalizeOptionalString(scope.workspacePath)
+    )
 }
 
 function mapConversationStatusToTaskStatus(

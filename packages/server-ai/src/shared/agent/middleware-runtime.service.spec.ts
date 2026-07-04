@@ -902,6 +902,139 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(existsSync(join(volumeRoot, relativePath))).toBe(false)
     })
 
+    it('resolves sandbox workspace paths through scoped runtime workspace files', async () => {
+        mkdirSync(join(volumeRoot, 'reports'), { recursive: true })
+        writeFileSync(join(volumeRoot, 'reports/a.docx'), Buffer.from('docx'))
+
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            workspaceRoot: '/workspace'
+        })
+        const result = await runtime.capabilities
+            ?.require(WorkspaceFilesRuntimeCapability)
+            .readRuntimeBuffer('/workspace/reports/a.docx')
+
+        expect(result?.buffer).toEqual(Buffer.from('docx'))
+        expect(result?.filePath).toBe('reports/a.docx')
+        expect(result?.workspacePath).toBe('/workspace/reports/a.docx')
+        expect(result?.reference).toEqual(
+            expect.objectContaining({
+                source: 'platform.workspace.files',
+                filePath: 'reports/a.docx',
+                workspacePath: '/workspace/reports/a.docx',
+                catalog: 'projects',
+                scopeId: 'project-1',
+                projectId: 'project-1'
+            })
+        )
+        expect(volumeClient.resolve).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                catalog: 'projects',
+                projectId: 'project-1',
+                userId: 'user-1'
+            })
+        )
+    })
+
+    it('uses the xpert scope for relative runtime workspace paths when no project is active', async () => {
+        writeFileSync(join(volumeRoot, 'summary.txt'), Buffer.from('summary'))
+
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1'
+        })
+        const result = await runtime.capabilities
+            ?.require(WorkspaceFilesRuntimeCapability)
+            .readRuntimeBuffer('summary.txt')
+
+        expect(result?.buffer.toString()).toBe('summary')
+        expect(result?.reference).toEqual(
+            expect.objectContaining({
+                catalog: 'xperts',
+                scopeId: 'xpert-1',
+                xpertId: 'xpert-1',
+                isolateByUser: false
+            })
+        )
+    })
+
+    it('rejects unsafe runtime workspace paths before volume access', async () => {
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            projectId: 'project-1',
+            workspaceRoot: '/workspace'
+        })
+        const files = runtime.capabilities!.require(WorkspaceFilesRuntimeCapability)
+
+        await expect(files.resolveRuntimeReference('../secret.txt')).rejects.toThrow('invalid workspace file path')
+        await expect(files.resolveRuntimeReference('/workspace')).rejects.toThrow(
+            'workspace file path must point to a file below the workspace root'
+        )
+        await expect(files.resolveRuntimeReference('/etc/passwd')).rejects.toThrow(
+            'absolute workspace file path must be inside the runtime workspace root'
+        )
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
+    })
+
+    it('writes runtime workspace buffers with inferred scope and returns a portable reference', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof UploadFileCommand) {
+                return {
+                    status: 'success',
+                    destinations: [
+                        {
+                            kind: 'volume',
+                            status: 'success',
+                            path: 'exports/report.txt',
+                            url: 'https://files.example/exports/report.txt',
+                            metadata: {
+                                fileUrl: 'https://files.example/exports/report.txt'
+                            }
+                        }
+                    ]
+                }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            workspaceRoot: '/workspace'
+        })
+        const result = await runtime.capabilities?.require(WorkspaceFilesRuntimeCapability).writeRuntimeBuffer({
+            path: '/workspace/exports/report.txt',
+            originalName: 'report.txt',
+            mimeType: 'text/plain',
+            buffer: Buffer.from('report')
+        })
+
+        expect(result?.reference).toEqual(
+            expect.objectContaining({
+                source: 'platform.workspace.files',
+                filePath: 'exports/report.txt',
+                workspacePath: '/workspace/exports/report.txt',
+                catalog: 'projects',
+                projectId: 'project-1'
+            })
+        )
+        const command = commandBus.execute.mock.calls[0][0] as UploadFileCommand
+        expect(command.input.targets[0]).toEqual(
+            expect.objectContaining({
+                catalog: 'projects',
+                projectId: 'project-1',
+                folder: 'exports',
+                fileName: 'report.txt'
+            })
+        )
+    })
+
     it('resolves file asset references through the runtime facade', async () => {
         queryBus.execute.mockImplementation(async (query: unknown) => {
             if (query instanceof GetFileAssetQuery) {
