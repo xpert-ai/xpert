@@ -128,7 +128,14 @@ export class UserMembershipComponent implements OnChanges {
 
   remainingPoints() {
     const membership = this.membership()
+    if (membership?.pointsGranted === null) {
+      return null
+    }
     return Math.max(0, (membership?.pointsGranted ?? 0) - (membership?.pointsUsed ?? 0))
+  }
+
+  isUnlimited() {
+    return this.membership()?.pointsGranted === null
   }
 
   private handleError(error: unknown) {

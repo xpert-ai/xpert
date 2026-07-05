@@ -1,25 +1,23 @@
 import {
-	AiModelTypeEnum,
-	AiProviderRole,
-	LanguagesEnum,
-	RolesEnum,
-	TCopilotModel,
-	TXpertTeamDraft,
-	IUser,
-	WorkflowNodeTypeEnum
+    AiModelTypeEnum,
+    AiProviderRole,
+    LanguagesEnum,
+    RolesEnum,
+    TCopilotModel,
+    TXpertTeamDraft,
+    IUser,
+    WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
-	OrganizationCreatedEvent,
-	OrganizationService,
-	TenantCreatedEvent,
-	UserOrganizationCreatedEvent,
-	UserOrganizationDeletedEvent,
-	UserOrganizationService,
-	UserService,
-	runWithRequestContext as runWithLegacyRequestContext
+    OrganizationCreatedEvent,
+    OrganizationService,
+    TenantCreatedEvent,
+    UserOrganizationCreatedEvent,
+    UserOrganizationDeletedEvent,
+    UserOrganizationService,
+    UserService
 } from '@xpert-ai/server-core'
-import { RequestContext, runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
@@ -31,668 +29,666 @@ import { EnvironmentService } from '../environment'
 import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.service'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
+import { MembershipService } from '../membership'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
 export type OrganizationBootstrapResult = {
-	repositoryIds: string[]
+    repositoryIds: string[]
 }
 
 export type TenantSkillRepositoryBootstrapResult = {
-	repositoryIds: string[]
+    repositoryIds: string[]
 }
 
 export type UserOrganizationBootstrapResult = {
-	workspaceId: string | null
-	createdNewUserDefaultWorkspace: boolean
+    workspaceId: string | null
+    createdNewUserDefaultWorkspace: boolean
 }
 
 type EnsuredUserWorkspaceResult = {
-	workspace: WorkspaceWithId
-	created: boolean
+    workspace: WorkspaceWithId
+    created: boolean
 }
 
 type WorkspaceWithId = {
-	id: string
-	ownerId?: string | null
+    id: string
+    ownerId?: string | null
 }
 
 const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
 
 type BootstrapModelScanContext = {
-	nodeType?: string
-	workflowEntityType?: WorkflowNodeTypeEnum | string
+    nodeType?: string
+    workflowEntityType?: WorkflowNodeTypeEnum | string
 }
 
 const isObjectValue = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value)
+    typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const hasWorkspaceId = (workspace: { id?: string | null }): workspace is WorkspaceWithId =>
-	typeof workspace.id === 'string' && !!workspace.id
+    typeof workspace.id === 'string' && !!workspace.id
 
 @Injectable()
 export class ServerAIBootstrapService {
-	private readonly logger = new Logger(ServerAIBootstrapService.name)
-
-	constructor(
-		private readonly configService: ConfigService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus,
-		private readonly organizationService: OrganizationService,
-		private readonly userService: UserService,
-		private readonly userOrganizationService: UserOrganizationService,
-		private readonly workspaceService: XpertWorkspaceService,
-		private readonly environmentService: EnvironmentService,
-		private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
-		private readonly skillPackageService: SkillPackageService,
-		private readonly xpertService: XpertService,
-		private readonly xpertTemplateService: XpertTemplateService,
-		private readonly templateSkillSyncService: TemplateSkillSyncService
-	) {}
-
-	async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
-		const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
-		const organization = await this.organizationService.findOne(event.organizationId)
-		const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
-
-		await this.runInOrganizationContext(owner, event.organizationId, async () => {
-			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
-			await this.ensureDefaultEnvironment(workspace.id)
-
-			for (const memberId of memberIds) {
-				await this.workspaceService.ensureMember(workspace.id, memberId)
-			}
-
-			await this.importDefaultTemplates({
-				organizationId: event.organizationId,
-				organizationName: organization.name,
-				owner,
-				tenantId: event.tenantId,
-				workspaceId: workspace.id
-			})
-		})
-
-		return {
-			repositoryIds: []
-		}
-	}
-
-	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
-		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
-		await this.runInTenantContext(owner, async () => {
-			await this.templateSkillSyncService.syncCurrentTenantSkillAssets({
-				mode: 'full',
-				validateOnly: false,
-				skipLock: true,
-				updateFingerprint: true
-			})
-		})
-
-		return { repositoryIds: [] }
-	}
-
-	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
-		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
-		let workspaceId: string | null = null
-		let createdNewUserDefaultWorkspace = false
-
-		await this.runInOrganizationContext(user, event.organizationId, async () => {
-			if (this.shouldBootstrapPersonalWorkspace(user)) {
-				const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)
-				await this.ensureDefaultEnvironment(workspace.id)
-				workspaceId = workspace.id
-				createdNewUserDefaultWorkspace = created
-			}
-
-			const organizationWorkspace = await this.workspaceService.findOrganizationDefaultWorkspace(event.organizationId)
-			if (organizationWorkspace) {
-				// await this.bootstrapTemplateSkillBundlesToPublicRepository(organizationWorkspace.id)
-				await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
-			}
-		})
-
-		return {
-			workspaceId,
-			createdNewUserDefaultWorkspace
-		}
-	}
-
-	async bootstrapUserDefaultWorkspaceSkills(event: {
-		tenantId: string
-		organizationId: string
-		userId: string
-		workspaceId: string
-	}) {
-		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
-
-		await this.runInOrganizationContext(user, event.organizationId, async () => {
-			const skillRefs = await this.xpertTemplateService.getBootstrapDefaultSkillRefs()
-			if (!skillRefs.length) {
-				return
-			}
-
-			const resolvedSkills = await this.xpertTemplateService.resolveSkillRefs(skillRefs)
-			const resolvedKeys = new Set(
-				resolvedSkills.map(({ ref }) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
-			)
-			const unresolvedRefs = skillRefs.filter(
-				(ref) => !resolvedKeys.has(`${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
-			)
-			const failedInstalls: Array<{ label: string; reason: string }> = []
-
-			for (const { ref, skill } of resolvedSkills) {
-				try {
-					await this.skillPackageService.ensureInstalledSkillPackage(event.workspaceId, skill.id)
-				} catch (error) {
-					const label = `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
-					const reason = getErrorMessage(error)
-					failedInstalls.push({ label, reason })
-					this.logger.error(
-						`Failed installing default workspace skill '${label}' into '${event.workspaceId}': ${reason}`,
-						error as Error
-					)
-				}
-			}
-
-			if (unresolvedRefs.length) {
-				const unresolvedLabels = unresolvedRefs.map(
-					(ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
-				)
-				this.logger.warn(
-					`Default workspace skills are not ready for '${event.workspaceId}', waiting for repository indexes: ${unresolvedLabels.join(
-						', '
-					)}`
-				)
-			}
-
-			if (failedInstalls.length || unresolvedRefs.length) {
-				const reasons = [
-					unresolvedRefs.length
-						? `unresolved: ${unresolvedRefs
-								.map((ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
-								.join(', ')}`
-						: null,
-					failedInstalls.length
-						? `failed: ${failedInstalls
-								.map(({ label, reason }) => `${label} (${reason})`)
-								.join(', ')}`
-						: null
-				].filter(Boolean)
-				throw new Error(`Default workspace skill bootstrap incomplete for '${event.workspaceId}' (${reasons.join('; ')})`)
-			}
-		})
-	}
-
-	async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
-		await this.workspaceService.removeMemberFromOrganizationWorkspaces(
-			event.tenantId,
-			event.organizationId,
-			event.userId
-		)
-	}
-
-	async syncSkillRepository(event: {
-		tenantId: string
-		organizationId?: string | null
-		repositoryId: string
-		ownerUserId?: string | null
-	}) {
-		const owner = await this.resolveSyncBootstrapUser(event)
-
-		if (event.organizationId) {
-			await this.runInOrganizationContext(owner, event.organizationId, async () => {
-				await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
-			})
-			return
-		}
-
-		await this.runInTenantContext(owner, async () => {
-			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
-		})
-	}
-
-	private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {
-		if (preferredUserId) {
-			try {
-				return await this.userService.findOne(preferredUserId, { relations: ['role'] })
-			} catch (error) {
-				this.logger.warn(
-					`Failed to resolve preferred bootstrap user '${preferredUserId}' for organization '${organizationId}': ${getErrorMessage(
-						error
-					)}`
-				)
-			}
-		}
-
-		const [userId] = await this.userOrganizationService.findUserIdsByOrganization(organizationId)
-		if (!userId) {
-			throw new Error(`No organization member found for bootstrap '${organizationId}'`)
-		}
-
-		return this.userService.findOne(userId, { relations: ['role'] })
-	}
-
-	private async resolveTenantBootstrapUser(tenantId: string) {
-		const adminUsers = await this.userService.getAdminUsers(tenantId)
-		const owner = adminUsers.find((user) => user.role?.name === RolesEnum.SUPER_ADMIN) ?? adminUsers[0]
-		if (!owner?.id) {
-			throw new Error(`No tenant bootstrap user found for tenant '${tenantId}'`)
-		}
-
-		return this.userService.findOne(owner.id, { relations: ['role'] })
-	}
-
-	private async resolveSyncBootstrapUser(event: {
-		tenantId: string
-		organizationId?: string | null
-		ownerUserId?: string | null
-	}) {
-		if (event.ownerUserId) {
-			try {
-				return await this.userService.findOne(event.ownerUserId, { relations: ['role'] })
-			} catch (error) {
-				const scopeLabel = event.organizationId
-					? `organization '${event.organizationId}'`
-					: `tenant '${event.tenantId}'`
-				this.logger.warn(
-					`Failed to resolve preferred sync user '${event.ownerUserId}' for ${scopeLabel}: ${getErrorMessage(error)}`
-				)
-			}
-		}
-
-		if (event.organizationId) {
-			return this.resolveBootstrapUser(event.organizationId).catch(() => this.resolveTenantBootstrapUser(event.tenantId))
-		}
-
-		return this.resolveTenantBootstrapUser(event.tenantId)
-	}
-
-	private async ensureOrganizationWorkspace(organizationId: string, ownerId: string) {
-		let workspace = await this.workspaceService.findOrganizationDefaultWorkspace(organizationId)
-
-		if (!workspace) {
-			workspace = await this.workspaceService.create({
-				name: getDefaultOrganizationWorkspaceName(),
-				status: 'active',
-				ownerId,
-				settings: {
-					system: {
-						kind: 'org-default'
-					}
-				}
-			})
-		}
-
-		if (!workspace.ownerId) {
-			await this.workspaceService.update(workspace.id, { ownerId })
-			workspace = await this.workspaceService.findOne(workspace.id)
-		}
-
-		return workspace
-	}
-
-	private async ensureUserWorkspace(organizationId: string, user: IUser): Promise<EnsuredUserWorkspaceResult> {
-		let workspace = await this.workspaceService.findUserDefaultWorkspace(organizationId, user.id)
-		let created = false
-
-		if (!workspace) {
-			workspace = await this.workspaceService.create({
-				name: `${this.getUserDisplayName(user)} Workspace`,
-				status: 'active',
-				ownerId: user.id,
-				settings: {
-					system: {
-						kind: 'user-default',
-						userId: user.id
-					}
-				}
-			})
-			created = true
-		}
-
-		if (!hasWorkspaceId(workspace)) {
-			throw new Error(`User default workspace for '${user.id}' is missing an id`)
-		}
-
-		await this.workspaceService.ensureMember(workspace.id, user.id)
-		return {
-			workspace,
-			created
-		}
-	}
-
-	private shouldBootstrapPersonalWorkspace(user: IUser) {
-		return user.role?.name !== RolesEnum.SUPER_ADMIN
-	}
-
-	private async ensureDefaultEnvironment(workspaceId: string) {
-		const existing = await this.environmentService.getDefaultByWorkspace(workspaceId)
-		if (existing) {
-			return existing
-		}
-
-		return this.environmentService.create({
-			name: DEFAULT_ENVIRONMENT_NAME,
-			workspaceId,
-			isDefault: true,
-			variables: []
-		})
-	}
-
-	private async importDefaultTemplates({
-		organizationId,
-		organizationName,
-		owner,
-		tenantId,
-		workspaceId
-	}: {
-		organizationId: string
-		organizationName: string
-		owner: IUser
-		tenantId: string
-		workspaceId: string
-	}) {
-		const templateKeys = this.getDefaultTemplateKeys()
-		if (!templateKeys.length) {
-			return
-		}
-
-		for (const templateKey of templateKeys) {
-			const template = await this.xpertTemplateService.getTemplateDetail(
-				templateKey,
-				(owner.preferredLanguage as LanguagesEnum) ?? LanguagesEnum.English
-			)
-			const draft = yaml.parse(template.export_data) as TXpertTeamDraft
-			if (!draft?.team) {
-				this.logger.warn(`Template '${templateKey}' has no team definition, skipping`)
-				continue
-			}
-			await this.applyDefaultAssistantPrimaryModel({
-				draft,
-				organizationId,
-				templateKey,
-				tenantId
-			})
-
-			const existing = await this.findBootstrapXpert(workspaceId, templateKey)
-			const name = existing
-				? existing.name
-				: await this.resolveTemplateImportName(
-						draft.team.name || template.name || templateKey,
-						organizationName,
-						organizationId
-				  )
-
-			draft.team = {
-				...draft.team,
-				name,
-				workspaceId,
-				options: {
-					...(draft.team.options ?? {}),
-					bootstrap: {
-						source: 'template',
-						templateKey,
-						workspaceKind: 'org-default'
-					}
-				}
-			}
-
-			await this.commandBus.execute(
-				new XpertImportCommand(draft, existing ? { targetXpertId: existing.id } : {})
-			)
-		}
-	}
-
-	private async applyDefaultAssistantPrimaryModel({
-		draft,
-		organizationId,
-		templateKey,
-		tenantId
-	}: {
-		draft: TXpertTeamDraft
-		organizationId: string
-		templateKey: string
-		tenantId: string | null
-	}) {
-		if (templateKey !== DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY || !tenantId) {
-			return
-		}
-
-		const primaryCopilot = await this.queryBus.execute(
-			new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Primary)
-		)
-		const primaryModel = primaryCopilot?.copilotModel
-		if (
-			!primaryCopilot?.id ||
-			!primaryModel?.model?.trim() ||
-			(primaryModel.modelType && primaryModel.modelType !== AiModelTypeEnum.LLM)
-		) {
-			this.logger.warn(
-				`Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because no enabled primary LLM copilot is configured`
-			)
-			return
-		}
-
-		const availableCopilots = await this.queryBus.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
-		const primaryModelAvailable = (availableCopilots ?? []).some(
-			(copilot) =>
-				copilot?.id === primaryCopilot.id &&
-				(copilot.providerWithModels?.models ?? []).some(
-					(model) =>
-						model?.model === primaryModel.model &&
-						(model?.model_type ?? AiModelTypeEnum.LLM) === AiModelTypeEnum.LLM
-				)
-		)
-		if (!primaryModelAvailable) {
-			this.logger.warn(
-				`Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because primary model '${primaryModel.model}' is not available`
-			)
-			return
-		}
-
-		const changed = this.injectPrimaryLlmSelectionForMissingCopilotIds(draft, {
-			copilotId: primaryCopilot.id,
-			model: primaryModel.model,
-			modelType: AiModelTypeEnum.LLM,
-			options: primaryModel.options ?? null
-		})
-		if (changed) {
-			this.logger.log(
-				`Applied primary default model '${primaryModel.model}' to bootstrap template '${templateKey}' in organization '${organizationId}'`
-			)
-		}
-	}
-
-	private injectPrimaryLlmSelectionForMissingCopilotIds(
-		draft: TXpertTeamDraft,
-		selection: Pick<TCopilotModel, 'copilotId' | 'model' | 'modelType' | 'options'>
-	) {
-		let changed = false
-
-		const visit = (value: unknown, context: BootstrapModelScanContext = {}) => {
-			if (Array.isArray(value)) {
-				value.forEach((item) => visit(item, context))
-				return
-			}
-
-			if (!isObjectValue(value)) {
-				return
-			}
-
-			for (const [key, child] of Object.entries(value)) {
-				const childRecord = isObjectValue(child) ? child : null
-				const nextContext = this.extendBootstrapModelScanContext(value, key, childRecord, context)
-
-				if (childRecord && this.shouldTreatAsBootstrapModelTarget(key, childRecord, nextContext)) {
-					const modelType = this.inferBootstrapTargetModelType(key, nextContext, childRecord)
-					const configuredCopilotId =
-						typeof childRecord['copilotId'] === 'string' ? childRecord['copilotId'].trim() : ''
-
-					if (!configuredCopilotId && modelType === AiModelTypeEnum.LLM) {
-						childRecord['copilotId'] = selection.copilotId
-						childRecord['model'] = selection.model
-						childRecord['modelType'] = selection.modelType
-						if (!isObjectValue(childRecord['options']) && selection.options) {
-							childRecord['options'] = structuredClone(selection.options)
-						}
-						changed = true
-					}
-				}
-
-				visit(child, nextContext)
-			}
-		}
-
-		visit(draft)
-		return changed
-	}
-
-	private extendBootstrapModelScanContext(
-		record: Record<string, unknown>,
-		key: string,
-		child: Record<string, unknown> | null,
-		context: BootstrapModelScanContext
-	): BootstrapModelScanContext {
-		if (key === 'entity' && child) {
-			return {
-				...context,
-				nodeType: typeof record['type'] === 'string' ? record['type'] : context.nodeType,
-				workflowEntityType:
-					typeof child['type'] === 'string' ? (child['type'] as WorkflowNodeTypeEnum) : context.workflowEntityType
-			}
-		}
-
-		return context
-	}
-
-	private shouldTreatAsBootstrapModelTarget(
-		key: string,
-		value: Record<string, unknown>,
-		context: BootstrapModelScanContext
-	) {
-		if (key === 'model') {
-			return this.isBootstrapCopilotModelConfig(value) || context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
-		}
-
-		return key.endsWith('Model')
-	}
-
-	private inferBootstrapTargetModelType(
-		key: string,
-		context: BootstrapModelScanContext,
-		value: Record<string, unknown>
-	): AiModelTypeEnum {
-		const explicitModelType =
-			typeof value['modelType'] === 'string' && value['modelType'].trim()
-				? (value['modelType'] as AiModelTypeEnum)
-				: null
-		if (explicitModelType) {
-			return explicitModelType
-		}
-
-		if (key === 'copilotModel' && context.nodeType === 'knowledge') {
-			return AiModelTypeEnum.TEXT_EMBEDDING
-		}
-
-		return AiModelTypeEnum.LLM
-	}
-
-	private isBootstrapCopilotModelConfig(value: Record<string, unknown>) {
-		return (
-			'model' in value ||
-			'copilotId' in value ||
-			'copilot' in value ||
-			'modelType' in value ||
-			'options' in value
-		)
-	}
-
-	private findBootstrapXpert(workspaceId: string, templateKey: string) {
-		return this.xpertService.repository
-			.createQueryBuilder('xpert')
-			.where('xpert.workspaceId = :workspaceId', { workspaceId })
-			.andWhere('xpert.latest = true')
-			.andWhere('xpert.deletedAt IS NULL')
-			.andWhere(
-				`COALESCE((xpert.options)::jsonb -> 'bootstrap' ->> 'templateKey', '') = :templateKey`,
-				{ templateKey }
-			)
-			.andWhere(
-				`COALESCE((xpert.options)::jsonb -> 'bootstrap' ->> 'workspaceKind', '') = :workspaceKind`,
-				{ workspaceKind: 'org-default' }
-			)
-			.getOne()
-	}
-
-	private async resolveTemplateImportName(templateName: string, organizationName: string, organizationId: string) {
-		const candidates = [
-			templateName,
-			`${templateName} (${organizationName})`,
-			`${templateName} (${organizationName} ${organizationId.slice(0, 8)})`
-		]
-
-		for (const candidate of candidates) {
-			if (await this.xpertService.validateName(candidate)) {
-				return candidate
-			}
-		}
-
-		throw new Error(`Unable to resolve unique xpert name for template '${templateName}'`)
-	}
-
-	private getDefaultTemplateKeys() {
-		return (this.configService.get<string>('ORG_DEFAULT_XPERT_TEMPLATE_KEYS') ?? '')
-			.split(',')
-			.map((key) => key.trim())
-			.filter(Boolean)
-	}
-
-	private getUserDisplayName(user: Partial<IUser>) {
-		const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
-		return user.name || fullName || user.email || user.username || 'User'
-	}
-
-	private async runInOrganizationContext<T>(user: IUser, organizationId: string, callback: () => Promise<T>) {
-		return this.runInRequestContext(
-			user,
-			{
-				['organization-id']: organizationId,
-				language: user.preferredLanguage ?? LanguagesEnum.English
-			},
-			callback
-		)
-	}
-
-	private async runInTenantContext<T>(user: IUser, callback: () => Promise<T>) {
-		return this.runInRequestContext(
-			user,
-			{
-				language: user.preferredLanguage ?? LanguagesEnum.English
-			},
-			callback
-		)
-	}
-
-	private async runInRequestContext<T>(
-		user: IUser,
-		headers: Record<string, string>,
-		callback: () => Promise<T>
-	) {
-		const request = {
-			user,
-			headers
-		}
-
-		return new Promise<T>((resolve, reject) => {
-			runWithRequestContext(
-				request,
-				{},
-				() => {
-					const scopedRequest = RequestContext.currentRequest() ?? request
-					runWithLegacyRequestContext(scopedRequest, () => {
-						callback().then(resolve).catch(reject)
-					})
-				}
-			)
-		})
-	}
+    private readonly logger = new Logger(ServerAIBootstrapService.name)
+
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly organizationService: OrganizationService,
+        private readonly userService: UserService,
+        private readonly userOrganizationService: UserOrganizationService,
+        private readonly workspaceService: XpertWorkspaceService,
+        private readonly environmentService: EnvironmentService,
+        private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
+        private readonly skillPackageService: SkillPackageService,
+        private readonly xpertService: XpertService,
+        private readonly xpertTemplateService: XpertTemplateService,
+        private readonly templateSkillSyncService: TemplateSkillSyncService,
+        private readonly membershipService: MembershipService
+    ) {}
+
+    async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
+        const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
+        const organization = await this.organizationService.findOne(event.organizationId)
+        const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
+
+        await this.runInOrganizationContext(owner, event.organizationId, async () => {
+            const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
+            await this.ensureDefaultEnvironment(workspace.id)
+
+            for (const memberId of memberIds) {
+                await this.workspaceService.ensureMember(workspace.id, memberId)
+            }
+
+            await this.importDefaultTemplates({
+                organizationId: event.organizationId,
+                organizationName: organization.name,
+                owner,
+                tenantId: event.tenantId,
+                workspaceId: workspace.id
+            })
+        })
+
+        return {
+            repositoryIds: []
+        }
+    }
+
+    async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
+        const owner = await this.resolveTenantBootstrapUser(event.tenantId)
+        await this.runInTenantContext(owner, async () => {
+            await this.templateSkillSyncService.syncCurrentTenantSkillAssets({
+                mode: 'full',
+                validateOnly: false,
+                skipLock: true,
+                updateFingerprint: true
+            })
+        })
+
+        return { repositoryIds: [] }
+    }
+
+    async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
+        const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+        let workspaceId: string | null = null
+        let createdNewUserDefaultWorkspace = false
+
+        await this.runInOrganizationContext(user, event.organizationId, async () => {
+            if (this.shouldBootstrapPersonalWorkspace(user)) {
+                const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)
+                await this.ensureDefaultEnvironment(workspace.id)
+                workspaceId = workspace.id
+                createdNewUserDefaultWorkspace = created
+            }
+
+            const organizationWorkspace = await this.workspaceService.findOrganizationDefaultWorkspace(
+                event.organizationId
+            )
+            if (organizationWorkspace) {
+                // await this.bootstrapTemplateSkillBundlesToPublicRepository(organizationWorkspace.id)
+                await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
+            }
+
+            await this.membershipService.ensureUserAssignedIfScopeInitialized({
+                tenantId: event.tenantId,
+                organizationId: event.organizationId,
+                userId: event.userId,
+                assignedById: event.userId
+            })
+        })
+
+        return {
+            workspaceId,
+            createdNewUserDefaultWorkspace
+        }
+    }
+
+    async bootstrapUserDefaultWorkspaceSkills(event: {
+        tenantId: string
+        organizationId: string
+        userId: string
+        workspaceId: string
+    }) {
+        const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+
+        await this.runInOrganizationContext(user, event.organizationId, async () => {
+            const skillRefs = await this.xpertTemplateService.getBootstrapDefaultSkillRefs()
+            if (!skillRefs.length) {
+                return
+            }
+
+            const resolvedSkills = await this.xpertTemplateService.resolveSkillRefs(skillRefs)
+            const resolvedKeys = new Set(
+                resolvedSkills.map(({ ref }) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+            )
+            const unresolvedRefs = skillRefs.filter(
+                (ref) => !resolvedKeys.has(`${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+            )
+            const failedInstalls: Array<{ label: string; reason: string }> = []
+
+            for (const { ref, skill } of resolvedSkills) {
+                try {
+                    await this.skillPackageService.ensureInstalledSkillPackage(event.workspaceId, skill.id)
+                } catch (error) {
+                    const label = `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
+                    const reason = getErrorMessage(error)
+                    failedInstalls.push({ label, reason })
+                    this.logger.error(
+                        `Failed installing default workspace skill '${label}' into '${event.workspaceId}': ${reason}`,
+                        error as Error
+                    )
+                }
+            }
+
+            if (unresolvedRefs.length) {
+                const unresolvedLabels = unresolvedRefs.map(
+                    (ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
+                )
+                this.logger.warn(
+                    `Default workspace skills are not ready for '${event.workspaceId}', waiting for repository indexes: ${unresolvedLabels.join(
+                        ', '
+                    )}`
+                )
+            }
+
+            if (failedInstalls.length || unresolvedRefs.length) {
+                const reasons = [
+                    unresolvedRefs.length
+                        ? `unresolved: ${unresolvedRefs
+                              .map((ref) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
+                              .join(', ')}`
+                        : null,
+                    failedInstalls.length
+                        ? `failed: ${failedInstalls.map(({ label, reason }) => `${label} (${reason})`).join(', ')}`
+                        : null
+                ].filter(Boolean)
+                throw new Error(
+                    `Default workspace skill bootstrap incomplete for '${event.workspaceId}' (${reasons.join('; ')})`
+                )
+            }
+        })
+    }
+
+    async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
+        await this.workspaceService.removeMemberFromOrganizationWorkspaces(
+            event.tenantId,
+            event.organizationId,
+            event.userId
+        )
+    }
+
+    async syncSkillRepository(event: {
+        tenantId: string
+        organizationId?: string | null
+        repositoryId: string
+        ownerUserId?: string | null
+    }) {
+        const owner = await this.resolveSyncBootstrapUser(event)
+
+        if (event.organizationId) {
+            await this.runInOrganizationContext(owner, event.organizationId, async () => {
+                await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
+            })
+            return
+        }
+
+        await this.runInTenantContext(owner, async () => {
+            await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
+        })
+    }
+
+    private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {
+        if (preferredUserId) {
+            try {
+                return await this.userService.findOne(preferredUserId, { relations: ['role'] })
+            } catch (error) {
+                this.logger.warn(
+                    `Failed to resolve preferred bootstrap user '${preferredUserId}' for organization '${organizationId}': ${getErrorMessage(
+                        error
+                    )}`
+                )
+            }
+        }
+
+        const [userId] = await this.userOrganizationService.findUserIdsByOrganization(organizationId)
+        if (!userId) {
+            throw new Error(`No organization member found for bootstrap '${organizationId}'`)
+        }
+
+        return this.userService.findOne(userId, { relations: ['role'] })
+    }
+
+    private async resolveTenantBootstrapUser(tenantId: string) {
+        const adminUsers = await this.userService.getAdminUsers(tenantId)
+        const owner = adminUsers.find((user) => user.role?.name === RolesEnum.SUPER_ADMIN) ?? adminUsers[0]
+        if (!owner?.id) {
+            throw new Error(`No tenant bootstrap user found for tenant '${tenantId}'`)
+        }
+
+        return this.userService.findOne(owner.id, { relations: ['role'] })
+    }
+
+    private async resolveSyncBootstrapUser(event: {
+        tenantId: string
+        organizationId?: string | null
+        ownerUserId?: string | null
+    }) {
+        if (event.ownerUserId) {
+            try {
+                return await this.userService.findOne(event.ownerUserId, { relations: ['role'] })
+            } catch (error) {
+                const scopeLabel = event.organizationId
+                    ? `organization '${event.organizationId}'`
+                    : `tenant '${event.tenantId}'`
+                this.logger.warn(
+                    `Failed to resolve preferred sync user '${event.ownerUserId}' for ${scopeLabel}: ${getErrorMessage(error)}`
+                )
+            }
+        }
+
+        if (event.organizationId) {
+            return this.resolveBootstrapUser(event.organizationId).catch(() =>
+                this.resolveTenantBootstrapUser(event.tenantId)
+            )
+        }
+
+        return this.resolveTenantBootstrapUser(event.tenantId)
+    }
+
+    private async ensureOrganizationWorkspace(organizationId: string, ownerId: string) {
+        let workspace = await this.workspaceService.findOrganizationDefaultWorkspace(organizationId)
+
+        if (!workspace) {
+            workspace = await this.workspaceService.create({
+                name: getDefaultOrganizationWorkspaceName(),
+                status: 'active',
+                ownerId,
+                settings: {
+                    system: {
+                        kind: 'org-default'
+                    }
+                }
+            })
+        }
+
+        if (!workspace.ownerId) {
+            await this.workspaceService.update(workspace.id, { ownerId })
+            workspace = await this.workspaceService.findOne(workspace.id)
+        }
+
+        return workspace
+    }
+
+    private async ensureUserWorkspace(organizationId: string, user: IUser): Promise<EnsuredUserWorkspaceResult> {
+        let workspace = await this.workspaceService.findUserDefaultWorkspace(organizationId, user.id)
+        let created = false
+
+        if (!workspace) {
+            workspace = await this.workspaceService.create({
+                name: `${this.getUserDisplayName(user)} Workspace`,
+                status: 'active',
+                ownerId: user.id,
+                settings: {
+                    system: {
+                        kind: 'user-default',
+                        userId: user.id
+                    }
+                }
+            })
+            created = true
+        }
+
+        if (!hasWorkspaceId(workspace)) {
+            throw new Error(`User default workspace for '${user.id}' is missing an id`)
+        }
+
+        await this.workspaceService.ensureMember(workspace.id, user.id)
+        return {
+            workspace,
+            created
+        }
+    }
+
+    private shouldBootstrapPersonalWorkspace(user: IUser) {
+        return user.role?.name !== RolesEnum.SUPER_ADMIN
+    }
+
+    private async ensureDefaultEnvironment(workspaceId: string) {
+        const existing = await this.environmentService.getDefaultByWorkspace(workspaceId)
+        if (existing) {
+            return existing
+        }
+
+        return this.environmentService.create({
+            name: DEFAULT_ENVIRONMENT_NAME,
+            workspaceId,
+            isDefault: true,
+            variables: []
+        })
+    }
+
+    private async importDefaultTemplates({
+        organizationId,
+        organizationName,
+        owner,
+        tenantId,
+        workspaceId
+    }: {
+        organizationId: string
+        organizationName: string
+        owner: IUser
+        tenantId: string
+        workspaceId: string
+    }) {
+        const templateKeys = this.getDefaultTemplateKeys()
+        if (!templateKeys.length) {
+            return
+        }
+
+        for (const templateKey of templateKeys) {
+            const template = await this.xpertTemplateService.getTemplateDetail(
+                templateKey,
+                (owner.preferredLanguage as LanguagesEnum) ?? LanguagesEnum.English
+            )
+            const draft = yaml.parse(template.export_data) as TXpertTeamDraft
+            if (!draft?.team) {
+                this.logger.warn(`Template '${templateKey}' has no team definition, skipping`)
+                continue
+            }
+            await this.applyDefaultAssistantPrimaryModel({
+                draft,
+                organizationId,
+                templateKey,
+                tenantId
+            })
+
+            const existing = await this.findBootstrapXpert(workspaceId, templateKey)
+            const name = existing
+                ? existing.name
+                : await this.resolveTemplateImportName(
+                      draft.team.name || template.name || templateKey,
+                      organizationName,
+                      organizationId
+                  )
+
+            draft.team = {
+                ...draft.team,
+                name,
+                workspaceId,
+                options: {
+                    ...(draft.team.options ?? {}),
+                    bootstrap: {
+                        source: 'template',
+                        templateKey,
+                        workspaceKind: 'org-default'
+                    }
+                }
+            }
+
+            await this.commandBus.execute(new XpertImportCommand(draft, existing ? { targetXpertId: existing.id } : {}))
+        }
+    }
+
+    private async applyDefaultAssistantPrimaryModel({
+        draft,
+        organizationId,
+        templateKey,
+        tenantId
+    }: {
+        draft: TXpertTeamDraft
+        organizationId: string
+        templateKey: string
+        tenantId: string | null
+    }) {
+        if (templateKey !== DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY || !tenantId) {
+            return
+        }
+
+        const primaryCopilot = await this.queryBus.execute(
+            new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Primary)
+        )
+        const primaryModel = primaryCopilot?.copilotModel
+        if (
+            !primaryCopilot?.id ||
+            !primaryModel?.model?.trim() ||
+            (primaryModel.modelType && primaryModel.modelType !== AiModelTypeEnum.LLM)
+        ) {
+            this.logger.warn(
+                `Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because no enabled primary LLM copilot is configured`
+            )
+            return
+        }
+
+        const availableCopilots = await this.queryBus.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+        const primaryModelAvailable = (availableCopilots ?? []).some(
+            (copilot) =>
+                copilot?.id === primaryCopilot.id &&
+                (copilot.providerWithModels?.models ?? []).some(
+                    (model) =>
+                        model?.model === primaryModel.model &&
+                        (model?.model_type ?? AiModelTypeEnum.LLM) === AiModelTypeEnum.LLM
+                )
+        )
+        if (!primaryModelAvailable) {
+            this.logger.warn(
+                `Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because primary model '${primaryModel.model}' is not available`
+            )
+            return
+        }
+
+        const changed = this.injectPrimaryLlmSelectionForMissingCopilotIds(draft, {
+            copilotId: primaryCopilot.id,
+            model: primaryModel.model,
+            modelType: AiModelTypeEnum.LLM,
+            options: primaryModel.options ?? null
+        })
+        if (changed) {
+            this.logger.log(
+                `Applied primary default model '${primaryModel.model}' to bootstrap template '${templateKey}' in organization '${organizationId}'`
+            )
+        }
+    }
+
+    private injectPrimaryLlmSelectionForMissingCopilotIds(
+        draft: TXpertTeamDraft,
+        selection: Pick<TCopilotModel, 'copilotId' | 'model' | 'modelType' | 'options'>
+    ) {
+        let changed = false
+
+        const visit = (value: unknown, context: BootstrapModelScanContext = {}) => {
+            if (Array.isArray(value)) {
+                value.forEach((item) => visit(item, context))
+                return
+            }
+
+            if (!isObjectValue(value)) {
+                return
+            }
+
+            for (const [key, child] of Object.entries(value)) {
+                const childRecord = isObjectValue(child) ? child : null
+                const nextContext = this.extendBootstrapModelScanContext(value, key, childRecord, context)
+
+                if (childRecord && this.shouldTreatAsBootstrapModelTarget(key, childRecord, nextContext)) {
+                    const modelType = this.inferBootstrapTargetModelType(key, nextContext, childRecord)
+                    const configuredCopilotId =
+                        typeof childRecord['copilotId'] === 'string' ? childRecord['copilotId'].trim() : ''
+
+                    if (!configuredCopilotId && modelType === AiModelTypeEnum.LLM) {
+                        childRecord['copilotId'] = selection.copilotId
+                        childRecord['model'] = selection.model
+                        childRecord['modelType'] = selection.modelType
+                        if (!isObjectValue(childRecord['options']) && selection.options) {
+                            childRecord['options'] = structuredClone(selection.options)
+                        }
+                        changed = true
+                    }
+                }
+
+                visit(child, nextContext)
+            }
+        }
+
+        visit(draft)
+        return changed
+    }
+
+    private extendBootstrapModelScanContext(
+        record: Record<string, unknown>,
+        key: string,
+        child: Record<string, unknown> | null,
+        context: BootstrapModelScanContext
+    ): BootstrapModelScanContext {
+        if (key === 'entity' && child) {
+            return {
+                ...context,
+                nodeType: typeof record['type'] === 'string' ? record['type'] : context.nodeType,
+                workflowEntityType:
+                    typeof child['type'] === 'string'
+                        ? (child['type'] as WorkflowNodeTypeEnum)
+                        : context.workflowEntityType
+            }
+        }
+
+        return context
+    }
+
+    private shouldTreatAsBootstrapModelTarget(
+        key: string,
+        value: Record<string, unknown>,
+        context: BootstrapModelScanContext
+    ) {
+        if (key === 'model') {
+            return (
+                this.isBootstrapCopilotModelConfig(value) ||
+                context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
+            )
+        }
+
+        return key.endsWith('Model')
+    }
+
+    private inferBootstrapTargetModelType(
+        key: string,
+        context: BootstrapModelScanContext,
+        value: Record<string, unknown>
+    ): AiModelTypeEnum {
+        const explicitModelType =
+            typeof value['modelType'] === 'string' && value['modelType'].trim()
+                ? (value['modelType'] as AiModelTypeEnum)
+                : null
+        if (explicitModelType) {
+            return explicitModelType
+        }
+
+        if (key === 'copilotModel' && context.nodeType === 'knowledge') {
+            return AiModelTypeEnum.TEXT_EMBEDDING
+        }
+
+        return AiModelTypeEnum.LLM
+    }
+
+    private isBootstrapCopilotModelConfig(value: Record<string, unknown>) {
+        return (
+            'model' in value || 'copilotId' in value || 'copilot' in value || 'modelType' in value || 'options' in value
+        )
+    }
+
+    private findBootstrapXpert(workspaceId: string, templateKey: string) {
+        return this.xpertService.repository
+            .createQueryBuilder('xpert')
+            .where('xpert.workspaceId = :workspaceId', { workspaceId })
+            .andWhere('xpert.latest = true')
+            .andWhere('xpert.deletedAt IS NULL')
+            .andWhere(`COALESCE((xpert.options)::jsonb -> 'bootstrap' ->> 'templateKey', '') = :templateKey`, {
+                templateKey
+            })
+            .andWhere(`COALESCE((xpert.options)::jsonb -> 'bootstrap' ->> 'workspaceKind', '') = :workspaceKind`, {
+                workspaceKind: 'org-default'
+            })
+            .getOne()
+    }
+
+    private async resolveTemplateImportName(templateName: string, organizationName: string, organizationId: string) {
+        const candidates = [
+            templateName,
+            `${templateName} (${organizationName})`,
+            `${templateName} (${organizationName} ${organizationId.slice(0, 8)})`
+        ]
+
+        for (const candidate of candidates) {
+            if (await this.xpertService.validateName(candidate)) {
+                return candidate
+            }
+        }
+
+        throw new Error(`Unable to resolve unique xpert name for template '${templateName}'`)
+    }
+
+    private getDefaultTemplateKeys() {
+        return (this.configService.get<string>('ORG_DEFAULT_XPERT_TEMPLATE_KEYS') ?? '')
+            .split(',')
+            .map((key) => key.trim())
+            .filter(Boolean)
+    }
+
+    private getUserDisplayName(user: Partial<IUser>) {
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+        return user.name || fullName || user.email || user.username || 'User'
+    }
+
+    private async runInOrganizationContext<T>(user: IUser, organizationId: string, callback: () => Promise<T>) {
+        return this.runInRequestContext(
+            user,
+            {
+                ['organization-id']: organizationId,
+                language: user.preferredLanguage ?? LanguagesEnum.English
+            },
+            callback
+        )
+    }
+
+    private async runInTenantContext<T>(user: IUser, callback: () => Promise<T>) {
+        return this.runInRequestContext(
+            user,
+            {
+                language: user.preferredLanguage ?? LanguagesEnum.English
+            },
+            callback
+        )
+    }
+
+    private async runInRequestContext<T>(user: IUser, headers: Record<string, string>, callback: () => Promise<T>) {
+        const context = captureRequestContext({
+            user,
+            tenantId: user.tenantId,
+            organizationId: headers['organization-id'],
+            language: headers.language,
+            headers
+        })
+        return runWithCapturedRequestContext(context, callback)
+    }
 }

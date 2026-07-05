@@ -117,6 +117,14 @@
     <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+      [cdkMenuTriggerFor]="columnsMenu"
+    >
+      <i class="ri-layout-column-line mr-1"></i>
+      {{ 'PAC.KEY_WORDS.Columns' | translate: { Default: 'Columns' } }}
+    </button>
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
       [cdkMenuTriggerFor]="metadataTemplate"
       #ref="cdkMenuTriggerFor"
       [cdkMenuTriggerData]="{ ref: ref }"
@@ -138,10 +146,10 @@
   </div>
 </div>
 <div class="relative px-4 overflow-auto">
-  <table class="table-fixed w-full text-sm text-left text-text-tertiary">
+  <table class="table-fixed w-full text-sm text-left text-text-tertiary" [style.min-width.px]="tableMinWidth()">
     <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle">
       <tr>
-        <th scope="col" class="px-6 py-3 w-20">
+        <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="selectColumnWidth">
           <ngm-checkbox
             class="shrink-0"
             [indeterminate]="isPartialSelected()"
@@ -150,32 +158,57 @@
             >#</ngm-checkbox
           >
         </th>
-        <th scope="col" class="px-6 py-3">
-          {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
-        </th>
-        @for (column of columnsToDisplay; track column.name) {
-          @switch (column.name) {
-            @case ('disabled') {
-              <th scope="col" class="px-6 py-3 w-24">
-                {{ 'PAC.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
-              </th>
+        @for (column of visibleDocumentColumns(); track column.key) {
+          <th
+            #headerCell
+            scope="col"
+            class="group relative px-6 py-3 whitespace-nowrap"
+            [style.width.px]="column.width"
+            [style.min-width.px]="column.minWidth"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 items-center gap-1 text-left"
+              [class.cursor-pointer]="column.sortable"
+              [class.cursor-default]="!column.sortable"
+              (click)="toggleSort(column)"
+            >
+              <span class="truncate">
+                {{ column.labelKey | translate: { Default: column.defaultLabel } }}
+              </span>
+              @if (column.sortable) {
+                @switch (sortDirection(column)) {
+                  @case ('asc') {
+                    <i class="ri-sort-asc text-text-accent"></i>
+                  }
+                  @case ('desc') {
+                    <i class="ri-sort-desc text-text-accent"></i>
+                  }
+                  @default {
+                    <i class="ri-arrow-up-down-line text-text-tertiary opacity-0 group-hover:opacity-100"></i>
+                  }
+                }
+              }
+            </button>
+            @if (column.resizable) {
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 flex w-3 cursor-col-resize items-center justify-center bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                [attr.aria-label]="
+                  ('PAC.Knowledgebase.ResizeColumn' | translate: { Default: 'Resize column' }) +
+                  ': ' +
+                  (column.labelKey | translate: { Default: column.defaultLabel })
+                "
+                tabindex="-1"
+                (mousedown)="startColumnResize($event, column, headerCell)"
+                (click)="$event.preventDefault(); $event.stopPropagation()"
+              >
+                <span class="pointer-events-none h-6 w-px bg-divider-deep"></span>
+              </button>
             }
-            @case ('processMsg') {
-              <th scope="col" class="px-6 py-3 w-60">
-                {{ 'PAC.KEY_WORDS.Message' | translate: { Default: 'Message' } }}
-              </th>
-            }
-            @default {
-              <th scope="col" class="px-6 py-3 w-44">
-                {{ 'PAC.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
-              </th>
-            }
-          }
+          </th>
         }
-        <th scope="col" class="px-6 py-3 w-48">
-          {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
-        </th>
-        <th scope="col" class="px-6 py-3 w-36">
+        <th scope="col" class="px-6 py-3 whitespace-nowrap" [style.width.px]="actionsColumnWidth">
           {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
         </th>
       </tr>
@@ -184,7 +217,7 @@
     <tbody>
       @for (element of filteredData(); track element.id; let i = $index) {
         <tr class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
-          <td class="px-6 py-2">
+          <td class="px-6 py-2" [style.width.px]="selectColumnWidth">
             <ngm-checkbox
               class="shrink-0"
               [disabled]="element.sourceType === eKDocumentSourceType.FOLDER"
@@ -194,203 +227,219 @@
               {{ i + 1 }}
             </ngm-checkbox>
           </td>
-          <td class="px-6 py-2">
-            @if (element.sourceType === eKDocumentSourceType.FOLDER) {
-              <a [routerLink]="['.']" [queryParams]="{ parentId: element.id }" class="hover:underline">
-                <knowledge-doc-id [doc]="element" [searchText]="search()" />
-              </a>
-            } @else {
-              <a
-                [routerLink]="['.', element.id]"
-                [queryParams]="{ parentId: parentId() }"
-                class="cursor-pointer hover:underline"
-              >
-                <knowledge-doc-id [doc]="element" [searchText]="search()" />
-              </a>
-            }
-          </td>
-          @for (column of columnsToDisplay; track column.name) {
-            @switch (column.name) {
-              @case ('disabled') {
-                <td class="px-6 py-2 w-24">
+          @for (column of visibleDocumentColumns(); track column.key) {
+            <td class="px-6 py-2" [style.width.px]="column.width" [style.min-width.px]="column.minWidth">
+              @switch (column.key) {
+                @case ('name') {
+                  @if (element.sourceType === eKDocumentSourceType.FOLDER) {
+                    <a [routerLink]="['.']" [queryParams]="{ parentId: element.id }" class="hover:underline">
+                      <knowledge-doc-id [doc]="element" [searchText]="search()" />
+                    </a>
+                  } @else {
+                    <a
+                      [routerLink]="['.', element.id]"
+                      [queryParams]="{ parentId: parentId() }"
+                      class="cursor-pointer hover:underline"
+                    >
+                      <knowledge-doc-id [doc]="element" [searchText]="search()" />
+                    </a>
+                  }
+                }
+                @case ('disabled') {
                   <div class="flex items-center text-sm">
                     <z-switch
                       [ngModel]="!element.disabled"
+                      zSize="sm"
                       (ngModelChange)="updateDocument(element.id, { disabled: !$event })"
                     />
                   </div>
-                </td>
-              }
-              @case ('processMsg') {
-                <td class="px-6 py-2 w-60">
-                  <div class="max-w-sm truncate text-sm text-red-600 dark:text-red-400" [title]="element.processMsg">
+                }
+                @case ('processMsg') {
+                  <div class="max-w-full truncate text-sm text-text-danger" [title]="element.processMsg">
                     {{ element.processMsg }}
                   </div>
-                </td>
-              }
-              @default {
-                <td class="px-6 py-2 w-44">
-                  {{ getValue(element, column.name) }}
-                </td>
-              }
-            }
-          }
-
-          <!-- progress Column -->
-          <td class="px-6 py-2 w-48">
-            @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-              <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
-                @switch (knowledgebase()?.status) {
-                  @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[
-                        {
-                          caption:
-                            'PAC.Knowledgebase.Status_RebuildRequired'
-                            | translate: { Default: 'Pending vector rebuild' }
+                }
+                @case ('progress') {
+                  @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
+                    <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
+                      @switch (knowledgebase()?.status) {
+                        @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
+                          <ngm-tags
+                            class="text-sm"
+                            [tags]="[
+                              {
+                                caption:
+                                  'PAC.Knowledgebase.Status_RebuildRequired'
+                                  | translate: { Default: 'Pending vector rebuild' }
+                              }
+                            ]"
+                            color="orange"
+                          />
                         }
-                      ]"
-                      color="orange"
-                    />
-                  }
-                  @case (eKnowledgebaseStatusEnum.REBUILDING) {
-                    <ngm-tags
-                      class="text-sm"
-                      [tags]="[
-                        {
-                          caption: 'PAC.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
+                        @case (eKnowledgebaseStatusEnum.REBUILDING) {
+                          <ngm-tags
+                            class="text-sm"
+                            [tags]="[
+                              {
+                                caption:
+                                  'PAC.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' }
+                              }
+                            ]"
+                            color="blue"
+                          />
                         }
-                      ]"
-                      color="blue"
-                    />
-                  }
-                  @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
-                    <ngm-tags
-                      class="text-sm"
-                      [zTooltip]="knowledgebase()?.embeddingRebuildError"
-                      zPosition="left"
-                      [tags]="[
-                        {
-                          caption:
-                            'PAC.Knowledgebase.Status_RebuildFailed' | translate: { Default: 'Vector rebuild failed' }
+                        @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
+                          <ngm-tags
+                            class="text-sm"
+                            [zTooltip]="knowledgebase()?.embeddingRebuildError"
+                            zPosition="left"
+                            [tags]="[
+                              {
+                                caption:
+                                  'PAC.Knowledgebase.Status_RebuildFailed'
+                                  | translate: { Default: 'Vector rebuild failed' }
+                              }
+                            ]"
+                            color="red"
+                          />
                         }
-                      ]"
-                      color="red"
-                    />
-                  }
-                  @default {
-                    @switch (element.status) {
-                      @case (eKBDocumentStatusEnum.RUNNING) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }]"
-                          color="blue"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.FINISH) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
-                          color="green"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.ERROR) {
-                        <ngm-tags
-                          class="text-sm"
-                          [zTooltip]="element.processMsg"
-                          zPosition="left"
-                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
-                          color="red"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.WAITING) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[{ caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }]"
-                          color="orange"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.TRANSFORMED) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[
-                            {
-                              caption: 'PAC.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
+                        @default {
+                          @switch (element.status) {
+                            @case (eKBDocumentStatusEnum.RUNNING) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  { caption: 'PAC.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }
+                                ]"
+                                color="blue"
+                              />
                             }
-                          ]"
-                          color="orange"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.SPLITTED) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[
-                            { caption: 'PAC.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' } }
-                          ]"
-                          color="orange"
-                        />
-                      }
-                      @case (eKBDocumentStatusEnum.UNDERSTOOD) {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[
-                            {
-                              caption: 'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                            @case (eKBDocumentStatusEnum.FINISH) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  { caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }
+                                ]"
+                                color="green"
+                              />
                             }
-                          ]"
-                          color="orange"
-                        />
+                            @case (eKBDocumentStatusEnum.ERROR) {
+                              <ngm-tags
+                                class="text-sm"
+                                [zTooltip]="element.processMsg"
+                                zPosition="left"
+                                [tags]="[
+                                  { caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }
+                                ]"
+                                color="red"
+                              />
+                            }
+                            @case (eKBDocumentStatusEnum.WAITING) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  { caption: 'PAC.Knowledgebase.Status_Waiting' | translate: { Default: 'Waiting' } }
+                                ]"
+                                color="orange"
+                              />
+                            }
+                            @case (eKBDocumentStatusEnum.TRANSFORMED) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  {
+                                    caption:
+                                      'PAC.Knowledgebase.Status_Transformed' | translate: { Default: 'Transformed' }
+                                  }
+                                ]"
+                                color="orange"
+                              />
+                            }
+                            @case (eKBDocumentStatusEnum.SPLITTED) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  {
+                                    caption: 'PAC.Knowledgebase.Status_Splitted' | translate: { Default: 'Splitted' }
+                                  }
+                                ]"
+                                color="orange"
+                              />
+                            }
+                            @case (eKBDocumentStatusEnum.UNDERSTOOD) {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  {
+                                    caption:
+                                      'PAC.Knowledgebase.Status_Understood' | translate: { Default: 'Understood' }
+                                  }
+                                ]"
+                                color="orange"
+                              />
+                            }
+                            @case (eKBDocumentStatusEnum.EMBEDDING) {
+                              <div class="flex items-center gap-1">
+                                <ngm-progress-spinner
+                                  class="w-6 h-6 shrink-0 text-text-success"
+                                  [value]="element.progress"
+                                />
+                                <span>{{ element.progress }}%</span>
+                              </div>
+                            }
+                            @default {
+                              <ngm-tags
+                                class="text-sm"
+                                [tags]="[
+                                  {
+                                    caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' }
+                                  }
+                                ]"
+                                color="gray"
+                              />
+                            }
+                          }
+                        }
                       }
-                      @case (eKBDocumentStatusEnum.EMBEDDING) {
-                        <div class="flex items-center gap-1">
-                          <ngm-progress-spinner class="w-6 h-6 shrink-0 text-text-success" [value]="element.progress" />
-                          <span>{{ element.progress }}%</span>
+                      @if (graphJobStatus(element.id); as graphJob) {
+                        <div
+                          class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
+                        >
+                          <i class="ri-node-tree"></i>
+                          @switch (graphJob.status) {
+                            @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
+                              <span>
+                                {{ 'PAC.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
+                              </span>
+                            }
+                            @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
+                              <span class="text-text-accent">
+                                {{ 'PAC.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
+                              </span>
+                            }
+                            @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
+                              <span class="text-text-success">
+                                {{ 'PAC.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
+                              </span>
+                            }
+                            @case (eKnowledgeGraphIndexJobStatus.FAILED) {
+                              <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
+                                {{ 'PAC.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
+                              </span>
+                            }
+                          }
                         </div>
                       }
-                      @default {
-                        <ngm-tags
-                          class="text-sm"
-                          [tags]="[
-                            { caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }
-                          ]"
-                          color="gray"
-                        />
-                      }
-                    }
+                    </div>
                   }
                 }
-                @if (graphJobStatus(element.id); as graphJob) {
-                  <div
-                    class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
-                  >
-                    <i class="ri-node-tree"></i>
-                    @switch (graphJob.status) {
-                      @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
-                        <span>{{ 'PAC.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}</span>
-                      }
-                      @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
-                        <span class="text-text-accent">
-                          {{ 'PAC.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
-                        </span>
-                      }
-                      @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
-                        <span class="text-text-success">
-                          {{ 'PAC.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
-                        </span>
-                      }
-                      @case (eKnowledgeGraphIndexJobStatus.FAILED) {
-                        <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
-                          {{ 'PAC.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
-                        </span>
-                      }
-                    }
-                  </div>
+                @default {
+                  {{ getValue(element, column.key) }}
                 }
-              </div>
-            }
-          </td>
-          <td class="px-6 py-2 w-36">
+              }
+            </td>
+          }
+          <td class="px-6 py-2" [style.width.px]="actionsColumnWidth">
             <div class="flex items-center gap-1">
               @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
                 <button
@@ -483,6 +532,77 @@
 }
 
 <router-outlet #o="outlet"></router-outlet>
+
+<ng-template #columnsMenu>
+  <div cdkMenu class="cdk-menu__large w-[360px] !p-2" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between gap-3 px-2 py-1">
+      <div class="system-sm-semibold text-text-primary">
+        {{ 'PAC.Knowledgebase.TableColumns' | translate: { Default: 'Table columns' } }}
+      </div>
+      <button type="button" class="btn btn-ghost btn-small" (click)="resetColumns()">
+        <i class="ri-reset-left-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+      </button>
+    </div>
+    <div class="px-2 pb-2 system-xs-regular text-text-tertiary">
+      {{ 'PAC.Knowledgebase.TableColumnsHint' | translate: { Default: 'Show, resize, and reorder columns.' } }}
+    </div>
+
+    <div class="space-y-1">
+      @for (column of tableColumns(); track column.key; let first = $first; let last = $last) {
+        <div class="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-hover-bg">
+          <ngm-checkbox
+            class="min-w-0 flex-1"
+            [disabled]="!column.hideable"
+            [ngModel]="column.visible"
+            (ngModelChange)="toggleColumnVisibility(column.key, $event)"
+          >
+            <span class="truncate">
+              {{ column.labelKey | translate: { Default: column.defaultLabel } }}
+            </span>
+          </ngm-checkbox>
+
+          <input
+            class="xp-input h-7 w-20 px-2 text-xs"
+            type="number"
+            [min]="column.minWidth"
+            [max]="column.maxWidth || null"
+            [ngModel]="column.width"
+            [attr.aria-label]="
+              ('PAC.KEY_WORDS.Width' | translate: { Default: 'Width' }) +
+              ': ' +
+              (column.labelKey | translate: { Default: column.defaultLabel })
+            "
+            (ngModelChange)="setColumnWidth(column.key, $event)"
+          />
+
+          <div class="flex items-center">
+            <button
+              type="button"
+              class="btn btn-ghost btn-small h-7 w-7 p-0"
+              [disabled]="first"
+              [zTooltip]="'PAC.ACTIONS.MoveUp' | translate: { Default: 'Move up' }"
+              zPosition="top"
+              (click)="moveColumn(column.key, -1)"
+            >
+              <i class="ri-arrow-up-s-line"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-small h-7 w-7 p-0"
+              [disabled]="last"
+              [zTooltip]="'PAC.ACTIONS.MoveDown' | translate: { Default: 'Move down' }"
+              zPosition="top"
+              (click)="moveColumn(column.key, 1)"
+            >
+              <i class="ri-arrow-down-s-line"></i>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>
 
 <ng-template #docMenu>
   <div cdkMenu class="cdk-menu__large">

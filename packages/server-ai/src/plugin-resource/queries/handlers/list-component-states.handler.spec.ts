@@ -58,6 +58,19 @@ describe('ListPluginResourceComponentStatesHandler', () => {
         ] as never)
     })
 
+    it('requires authoring access to inspect workspace install states', async () => {
+        const { handler, workspaceAccess } = createHandler()
+
+        await handler.execute(
+            new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-documents', {
+                target: 'workspace',
+                workspaceId: 'workspace-1'
+            })
+        )
+
+        expect(workspaceAccess.assertCanAuthor).toHaveBeenCalledWith('workspace-1')
+    })
+
     it('does not mark a plugin skill as installed when its runtime skill package was deleted', async () => {
         const { handler, skillPackageRepo } = createHandler({
             installations: [
@@ -150,12 +163,13 @@ function createHandler(options?: { installations?: any[]; skillPackages?: any[] 
             return Promise.resolve(skillPackages)
         })
     }
+    const workspaceAccess = {
+        assertCanAuthor: jest.fn(() => Promise.resolve(null))
+    }
     const handler = new ListPluginResourceComponentStatesHandler(
         installationRepo as any,
         skillPackageRepo as any,
-        {
-            assertCanRead: jest.fn(() => Promise.resolve(null))
-        } as any,
+        workspaceAccess as any,
         {
             getTeam: jest.fn(() => Promise.resolve(null))
         } as any,
@@ -165,7 +179,8 @@ function createHandler(options?: { installations?: any[]; skillPackages?: any[] 
     return {
         handler,
         installationRepo,
-        skillPackageRepo
+        skillPackageRepo,
+        workspaceAccess
     }
 }
 

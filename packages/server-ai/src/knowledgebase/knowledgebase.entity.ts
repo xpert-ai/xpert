@@ -24,6 +24,11 @@ import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { XpertIdentiDto } from '../xpert/dto'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
 export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase {
@@ -233,7 +238,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()
     @IsOptional()
-    @Column({ nullable: true })
+    @Column({ type: 'bigint', nullable: true, transformer: bigintNumberTransformer })
     tokenNum?: number
 
     @ApiPropertyOptional({ type: () => Number })

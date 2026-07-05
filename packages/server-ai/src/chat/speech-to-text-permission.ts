@@ -2,7 +2,6 @@ import {
     createOperationGuardedPermissionService,
     PluginServicePermissionHandler,
     registerPluginServicePermissionHandler,
-    runWithRequestContext as runWithLegacyRequestContext,
     resolvePermissionOperations
 } from '@xpert-ai/server-core'
 import {
@@ -14,8 +13,7 @@ import {
     SpeechToTextPermissionOperation,
     SpeechToTextPermissionService,
     SpeechToTextTranscribeInput,
-    SpeechToTextTranscribeResult,
-    runWithRequestContext as runWithPluginRequestContext
+    SpeechToTextTranscribeResult
 } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import type { IApiKey, IApiPrincipal } from '@xpert-ai/contracts'
@@ -23,6 +21,7 @@ import { ApiKeyBindingType } from '@xpert-ai/contracts'
 import type { IncomingMessage } from 'node:http'
 import { SpeechToTextService } from './speech-to-text.service'
 import { XpertPrincipalService } from '../xpert'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
 const SPEECH_TO_TEXT_ALL_OPERATIONS = ['transcribe'] as const
 type SpeechToTextContextRequest = Partial<IncomingMessage> & {
@@ -72,14 +71,13 @@ export class PluginSpeechToTextPermissionService implements SpeechToTextPermissi
     }
 
     private async runInRequestContext<T>(request: SpeechToTextContextRequest, callback: () => Promise<T>): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
-            runWithPluginRequestContext(request, {}, () => {
-                const scopedRequest = PluginRequestContext.currentRequest() ?? request
-                runWithLegacyRequestContext(scopedRequest, () => {
-                    callback().then(resolve).catch(reject)
-                })
-            })
+        const context = captureRequestContext({
+            user: request.user,
+            tenantId: request.headers['tenant-id'],
+            organizationId: request.headers['organization-id'],
+            headers: request.headers
         })
+        return runWithCapturedRequestContext(context, callback)
     }
 
     private async createAssistantRequestContext(

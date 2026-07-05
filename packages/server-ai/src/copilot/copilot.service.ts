@@ -15,6 +15,7 @@ import { IsNull, Repository } from 'typeorm'
 import { ListModelProvidersQuery } from '../ai-model'
 import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
 import { CopilotProviderService } from '../copilot-provider/copilot-provider.service'
+import { MembershipService } from '../membership'
 import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
 
@@ -39,7 +40,8 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         repository: Repository<Copilot>,
 
         private readonly queryBus: QueryBus,
-        private readonly copilotProviderService: CopilotProviderService
+        private readonly copilotProviderService: CopilotProviderService,
+        private readonly membershipService: MembershipService
     ) {
         super(repository)
     }
@@ -94,21 +96,36 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
     ) {
         tenantId = tenantId ?? RequestContext.currentTenantId()
         organizationId = organizationId ?? RequestContext.getOrganizationId()
-        const resolvedRelations = this.mergeCopilotRelations(relations)
-        const items = await this.repository.find({
-            where: { ...(where ?? {}), tenantId, organizationId: organizationId ?? IsNull(), enabled: true },
-            relations: resolvedRelations
-        })
-        if (items.length || !organizationId) {
-            return this.hydrateVisibleModelProviders(items, tenantId, organizationId)
+        if (!tenantId) {
+            return []
+        }
+        if (
+            organizationId &&
+            (await this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)) > 0
+        ) {
+            await this.membershipService.ensureScopeInitialized({
+                tenantId,
+                organizationId,
+                assignedById: RequestContext.currentUserId()
+            })
         }
 
-        const tenantItems = await this.repository.find({
-            where: { ...(where ?? {}), tenantId, organizationId: IsNull(), enabled: true },
+        const access = await this.membershipService.findModelAccess({
+            tenantId,
+            organizationId
+        })
+        if (!access) {
+            return []
+        }
+
+        const copilotOrganizationId = access.organizationId
+        const resolvedRelations = this.mergeCopilotRelations(relations)
+        const items = await this.repository.find({
+            where: { ...(where ?? {}), tenantId, organizationId: copilotOrganizationId ?? IsNull(), enabled: true },
             relations: resolvedRelations
         })
 
-        return this.hydrateVisibleModelProviders(tenantItems, tenantId, organizationId)
+        return this.hydrateVisibleModelProviders(items, tenantId, copilotOrganizationId)
     }
 
     private mergeCopilotRelations(relations?: string[]) {

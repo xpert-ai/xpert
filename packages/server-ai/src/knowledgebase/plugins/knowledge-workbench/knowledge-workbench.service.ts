@@ -4,9 +4,14 @@ import {
     DocumentMetadata,
     DocumentSourceProviderCategoryEnum,
     DocumentTypeEnum,
+    IKnowledgeDocumentChunk,
     IKnowledgeDocument,
+    IKnowledgeGraphEntity,
+    IKnowledgeGraphMention,
+    IKnowledgeGraphRelation,
     KBDocumentStatusEnum,
     KDocumentSourceType,
+    KnowledgeGraphEntityChunksQuery,
     KnowledgeDocumentMetadata,
     KnowledgeGraphStatus,
     KnowledgeGraphStatusResponse,
@@ -23,7 +28,7 @@ import { KnowledgeSearchQuery } from '../../queries'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
-import { KnowledgeGraphViewQuery } from '../../../graphrag/queries'
+import { KnowledgeGraphNodeDetailQuery, KnowledgeGraphViewQuery } from '../../../graphrag/queries'
 import { addKnowledgebaseCitationLink } from '../../citation'
 
 const DEFAULT_PAGE = 1
@@ -32,6 +37,12 @@ const MAX_PAGE_SIZE = 100
 const DEFAULT_PREVIEW_CHUNK_LIMIT = 6
 const DEFAULT_SEARCH_TOP_K = 6
 const MAX_SEARCH_TOP_K = 20
+const DEFAULT_GRAPH_NODE_EVIDENCE_LIMIT = 6
+const MAX_GRAPH_NODE_EVIDENCE_LIMIT = 20
+const DEFAULT_GRAPH_NODE_MENTION_LIMIT = 3
+const MAX_GRAPH_NODE_MENTION_LIMIT = 10
+const DEFAULT_GRAPH_NODE_NEIGHBOR_HOPS = 1
+const MAX_GRAPH_NODE_NEIGHBOR_HOPS = 2
 
 export type KnowledgeWorkbenchKnowledgebaseRow = {
     id: string
@@ -47,6 +58,9 @@ export type KnowledgeWorkbenchKnowledgebaseRow = {
     graphIndexError?: string | null
 }
 
+// Export the server-side document status as the workbench API contract instead of duplicating strings in the UI.
+export type KnowledgeWorkbenchDocumentStatus = KBDocumentStatusEnum
+
 export type KnowledgeWorkbenchDocumentRow = {
     id: string
     knowledgebaseId?: string
@@ -59,7 +73,7 @@ export type KnowledgeWorkbenchDocumentRow = {
     mimeType?: string | null
     size?: string | number | null
     folder?: string | null
-    status?: string | null
+    status?: KnowledgeWorkbenchDocumentStatus | null
     progress?: number | null
     processMsg?: string | null
     tokenNum?: number | null
@@ -81,6 +95,9 @@ export type KnowledgeWorkbenchChunkPreview = {
     chunkId?: string
     documentId?: string
     pageContent: string
+    chunkIndex?: number
+    page?: number | string | null
+    parentId?: string | null
     metadata?: unknown
 }
 
@@ -143,12 +160,65 @@ export type KnowledgeWorkbenchGraphSummary = {
     unavailable?: boolean
 }
 
+export type KnowledgeWorkbenchGraphEntityDetail = KnowledgeGraphViewResponse['nodes'][number] & {
+    aliases?: string[] | null
+    description?: string | null
+    summary?: string | null
+    revision?: number | null
+    metadata?: unknown
+}
+
+export type KnowledgeWorkbenchGraphRelationDetail = KnowledgeGraphViewResponse['edges'][number] & {
+    description?: string | null
+    confidence?: number | null
+    sourceName?: string
+    sourceType?: string
+    targetName?: string
+    targetType?: string
+}
+
+export type KnowledgeWorkbenchGraphEvidenceMention = {
+    id?: string
+    entityId?: string
+    relationId?: string | null
+    documentId?: string
+    chunkId?: string
+    quote?: string | null
+    confidence?: number | null
+}
+
+export type KnowledgeWorkbenchGraphEvidenceChunk = KnowledgeWorkbenchCitation & {
+    pageContent: string
+    chunkIndex?: number
+    page?: number | string | null
+    evidence: KnowledgeWorkbenchGraphEvidenceMention[]
+}
+
+export type KnowledgeWorkbenchGraphNodeDetail = {
+    entity: KnowledgeWorkbenchGraphEntityDetail
+    relations: KnowledgeWorkbenchGraphRelationDetail[]
+    connectedEntities: KnowledgeWorkbenchGraphEntityDetail[]
+    chunks: KnowledgeWorkbenchGraphEvidenceChunk[]
+    evidenceByChunkId: Record<string, KnowledgeWorkbenchGraphEvidenceMention[]>
+    totals: {
+        chunks: number
+        mentions: number
+        entityIds: number
+        relations: number
+    }
+    truncated?: {
+        chunks?: boolean
+        mentions?: boolean
+    }
+}
+
 export type KnowledgeWorkbenchViewSummary = {
     knowledgebases: KnowledgeWorkbenchKnowledgebaseRow[]
     activeKnowledgebaseId?: string
     breadcrumb: KnowledgeWorkbenchBreadcrumbItem[]
     selectedDocument?: KnowledgeWorkbenchDocumentPreview
     graph?: KnowledgeWorkbenchGraphSummary
+    graphNodeDetail?: KnowledgeWorkbenchGraphNodeDetail
 }
 
 @Injectable()
@@ -180,7 +250,8 @@ export class KnowledgeWorkbenchService {
         const parentId = getStringInput(query.parameters, 'parentId')
         const documentId = getStringInput(query.parameters, 'documentId')
         const chunkId = getStringInput(query.parameters, 'chunkId')
-        if (getStringInput(query.parameters, 'table') === 'graph') {
+        const table = getStringInput(query.parameters, 'table')
+        if (table === 'graph') {
             return {
                 items: [],
                 total: 0,
@@ -196,6 +267,25 @@ export class KnowledgeWorkbenchService {
                         relationType: getStringInput(query.parameters, 'relationType'),
                         focusEntityId: getStringInput(query.parameters, 'focusEntityId'),
                         take: getNumberInput(query.parameters, 'take')
+                    })
+                } satisfies KnowledgeWorkbenchViewSummary
+            }
+        }
+        if (table === 'graph-node-detail') {
+            return {
+                items: [],
+                total: 0,
+                summary: {
+                    knowledgebases,
+                    activeKnowledgebaseId,
+                    breadcrumb: [],
+                    graphNodeDetail: await this.getGraphNodeDetail({
+                        allowedKnowledgebaseIds,
+                        knowledgebaseId: activeKnowledgebaseId,
+                        entityId: getStringInput(query.parameters, 'entityId'),
+                        neighborHops: getNumberInput(query.parameters, 'neighborHops'),
+                        take: getNumberInput(query.parameters, 'take'),
+                        mentionTake: getNumberInput(query.parameters, 'mentionTake')
                     })
                 } satisfies KnowledgeWorkbenchViewSummary
             }
@@ -339,6 +429,86 @@ export class KnowledgeWorkbenchService {
         }
     }
 
+    async getGraphNodeDetail(input: {
+        allowedKnowledgebaseIds: string[]
+        knowledgebaseId?: string
+        entityId?: string
+        neighborHops?: number
+        take?: number
+        mentionTake?: number
+    }): Promise<KnowledgeWorkbenchGraphNodeDetail> {
+        const knowledgebaseId = await this.assertKnowledgebaseAllowed(
+            input.knowledgebaseId,
+            input.allowedKnowledgebaseIds
+        )
+        const entityId = getString(input.entityId)
+        if (!entityId) {
+            throw new BadRequestException('entityId is required')
+        }
+        const knowledgebase = await this.getKnowledgebaseInScope(knowledgebaseId)
+        if (knowledgebase?.graphRag?.enabled !== true) {
+            throw new BadRequestException('GraphRAG is not enabled for the selected knowledgebase')
+        }
+
+        const result = await this.queryBus.execute<
+            KnowledgeGraphNodeDetailQuery,
+            {
+                entity: IKnowledgeGraphEntity
+                relations: IKnowledgeGraphRelation[]
+                connectedEntities: IKnowledgeGraphEntity[]
+                chunks: IKnowledgeDocumentChunk[]
+                evidenceByChunkId: Record<string, IKnowledgeGraphMention[]>
+                totals: KnowledgeWorkbenchGraphNodeDetail['totals']
+                truncated?: KnowledgeWorkbenchGraphNodeDetail['truncated']
+            }
+        >(
+            new KnowledgeGraphNodeDetailQuery({
+                knowledgebaseId,
+                entityId,
+                query: {
+                    neighborHops: clampNumberInput(
+                        input.neighborHops,
+                        DEFAULT_GRAPH_NODE_NEIGHBOR_HOPS,
+                        0,
+                        MAX_GRAPH_NODE_NEIGHBOR_HOPS
+                    ),
+                    take: clampNumberInput(
+                        input.take,
+                        DEFAULT_GRAPH_NODE_EVIDENCE_LIMIT,
+                        1,
+                        MAX_GRAPH_NODE_EVIDENCE_LIMIT
+                    ),
+                    includeMentions: true,
+                    mentionTake: clampNumberInput(
+                        input.mentionTake,
+                        DEFAULT_GRAPH_NODE_MENTION_LIMIT,
+                        1,
+                        MAX_GRAPH_NODE_MENTION_LIMIT
+                    )
+                } satisfies KnowledgeGraphEntityChunksQuery
+            })
+        )
+        const connectedEntityById = new Map(
+            result.connectedEntities.map((entity) => [entity.id, toGraphEntityDetail(entity)])
+        )
+        const evidenceByChunkId = mapEvidenceByChunkId(result.evidenceByChunkId)
+
+        return {
+            entity: toGraphEntityDetail(result.entity),
+            relations: result.relations.map((relation) =>
+                toGraphRelationDetail(relation, result.entity.id, connectedEntityById)
+            ),
+            connectedEntities: Array.from(connectedEntityById.values()),
+            // The graph node itself is derived; chunks remain the auditable evidence and keep the normal citation URL.
+            chunks: result.chunks.map((chunk, index) =>
+                toGraphEvidenceChunk(chunk, evidenceByChunkId, index + 1, knowledgebaseId)
+            ),
+            evidenceByChunkId,
+            totals: result.totals,
+            ...(result.truncated ? { truncated: result.truncated } : {})
+        }
+    }
+
     async listDocuments(input: {
         allowedKnowledgebaseIds: string[]
         knowledgebaseId?: string
@@ -419,6 +589,7 @@ export class KnowledgeWorkbenchService {
                 chunks.items.push(targetChunk)
             }
         }
+        const previewChunks = sortChunksByDocumentOrder(chunks.items)
         const transformedPreview = await this.documentService
             .previewFile(document.id)
             .then((docs) =>
@@ -426,6 +597,9 @@ export class KnowledgeWorkbenchService {
                     id: `${document.id}:preview:${index}`,
                     documentId: document.id,
                     pageContent: trimSnippet(doc.pageContent, 2400),
+                    chunkIndex: getNumberField(doc.metadata, 'chunkIndex'),
+                    page: getChunkPage(doc.metadata),
+                    parentId: getStringField(doc.metadata, 'parentId') ?? null,
                     metadata: doc.metadata
                 }))
             )
@@ -433,11 +607,14 @@ export class KnowledgeWorkbenchService {
 
         return {
             document: toDocumentRow(document),
-            chunks: chunks.items.map((chunk) => ({
+            chunks: previewChunks.map((chunk) => ({
                 id: chunk.id,
                 chunkId: getStringField(chunk.metadata, 'chunkId') ?? chunk.id,
                 documentId: chunk.documentId ?? document.id,
                 pageContent: trimSnippet(chunk.pageContent, 2400),
+                chunkIndex: getNumberField(chunk.metadata, 'chunkIndex'),
+                page: getChunkPage(chunk.metadata),
+                parentId: getChunkParentId(chunk),
                 metadata: chunk.metadata
             })),
             totalChunks: chunks.total,
@@ -774,6 +951,156 @@ function normalizeChunkPage(value: unknown): {
     }
 }
 
+function sortChunksByDocumentOrder<T extends { metadata?: unknown }>(chunks: T[]) {
+    return chunks
+        .map((chunk, index) => ({ chunk, index, chunkIndex: getNumberField(chunk.metadata, 'chunkIndex') }))
+        .sort((left, right) => {
+            if (
+                left.chunkIndex !== undefined &&
+                right.chunkIndex !== undefined &&
+                left.chunkIndex !== right.chunkIndex
+            ) {
+                return left.chunkIndex - right.chunkIndex
+            }
+            if (left.chunkIndex !== undefined || right.chunkIndex !== undefined) {
+                return left.chunkIndex !== undefined ? -1 : 1
+            }
+            return left.index - right.index
+        })
+        .map(({ chunk }) => chunk)
+}
+
+function getChunkParentId(chunk: Pick<KnowledgeWorkbenchChunkPreview, 'parentId' | 'metadata'>) {
+    // New chunk rows may expose parentId directly, while older rows keep it in metadata.
+    return getString(chunk.parentId) ?? getStringField(chunk.metadata, 'parentId') ?? null
+}
+
+function getChunkPage(metadata: unknown) {
+    // Keep page available as a stable DTO field; metadata shapes vary across PDF, DOCX, and VLM chunks.
+    return (
+        getNumberOrStringField(metadata, 'page') ??
+        getNumberOrStringField(metadata, 'pageNumber') ??
+        getNumberOrStringField(metadata, 'pageNo') ??
+        getNumberOrStringField(getRecord(metadata)?.loc, 'page') ??
+        getNumberOrStringField(getRecord(metadata)?.loc, 'pageNumber') ??
+        getNumberOrStringFieldFromAssets(metadata, 'page') ??
+        null
+    )
+}
+
+function toGraphEntityDetail(entity: IKnowledgeGraphEntity): KnowledgeWorkbenchGraphEntityDetail {
+    const value = entity.mentionCount ?? 0
+    return {
+        id: entity.id,
+        name: entity.name,
+        type: entity.type,
+        origin: entity.origin ?? 'extracted',
+        visibility: entity.visibility ?? 'active',
+        mentionCount: value,
+        confidence: entity.confidence ?? null,
+        value,
+        symbolSize: Math.min(54, Math.max(22, 22 + value * 2)),
+        aliases: entity.aliases ?? [],
+        description: entity.description ?? null,
+        summary: entity.summary ?? null,
+        revision: entity.revision ?? null,
+        metadata: entity.metadata ?? null
+    }
+}
+
+function toGraphRelationDetail(
+    relation: IKnowledgeGraphRelation,
+    focusedEntityId: string,
+    connectedEntityById: Map<string, KnowledgeWorkbenchGraphEntityDetail>
+): KnowledgeWorkbenchGraphRelationDetail {
+    const source = getString(relation.sourceEntityId) ?? getString(relation.sourceEntity?.id) ?? ''
+    const target = getString(relation.targetEntityId) ?? getString(relation.targetEntity?.id) ?? ''
+    const sourceDetail = source === focusedEntityId ? relation.sourceEntity : connectedEntityById.get(source)
+    const targetDetail = target === focusedEntityId ? relation.targetEntity : connectedEntityById.get(target)
+
+    return {
+        id: relation.id,
+        source,
+        target,
+        type: relation.type,
+        origin: relation.origin ?? 'extracted',
+        visibility: relation.visibility ?? 'active',
+        weight: relation.weight ?? null,
+        evidenceCount: relation.evidenceCount ?? 0,
+        description: relation.description ?? null,
+        confidence: relation.confidence ?? null,
+        sourceName: sourceDetail?.name,
+        sourceType: sourceDetail?.type,
+        targetName: targetDetail?.name,
+        targetType: targetDetail?.type
+    }
+}
+
+function mapEvidenceByChunkId(input: Record<string, IKnowledgeGraphMention[]>) {
+    const result: Record<string, KnowledgeWorkbenchGraphEvidenceMention[]> = {}
+    for (const [chunkId, mentions] of Object.entries(input ?? {})) {
+        result[chunkId] = mentions.map(toGraphEvidenceMention)
+    }
+    return result
+}
+
+function toGraphEvidenceMention(mention: IKnowledgeGraphMention): KnowledgeWorkbenchGraphEvidenceMention {
+    return {
+        id: mention.id,
+        entityId: mention.entityId,
+        relationId: mention.relationId ?? null,
+        documentId: mention.documentId,
+        chunkId: mention.chunkId,
+        quote: mention.quote ?? null,
+        confidence: mention.confidence ?? null
+    }
+}
+
+function toGraphEvidenceChunk(
+    chunk: IKnowledgeDocumentChunk,
+    evidenceByChunkId: Record<string, KnowledgeWorkbenchGraphEvidenceMention[]>,
+    index: number,
+    fallbackKnowledgebaseId: string
+): KnowledgeWorkbenchGraphEvidenceChunk {
+    const metadata = getRecord(chunk.metadata) ?? {}
+    const chunkId = getString(metadata.chunkId) ?? getString(chunk.id)
+    const documentId =
+        getString(chunk.documentId) ??
+        getString(metadata.documentId) ??
+        getString(metadata.knowledgeId) ??
+        getString(chunk.document?.id)
+    const score = getNumber(metadata.score)
+    const relevanceScore = getNumber(metadata.relevanceScore)
+    const citation = addCitationLink(
+        {
+            index,
+            ...(chunkId ? { chunkId } : {}),
+            ...(documentId ? { documentId } : {}),
+            knowledgebaseId: getString(chunk.knowledgebaseId),
+            documentName:
+                getString(chunk.document?.name) ??
+                getString(metadata.title) ??
+                getString(metadata.originalFileName) ??
+                getString(metadata.filename),
+            fileUrl: getString(chunk.document?.fileUrl) ?? getString(metadata.fileUrl),
+            mimeType: getString(chunk.document?.mimeType) ?? getString(metadata.mimeType),
+            ...(score !== undefined ? { score } : {}),
+            ...(relevanceScore !== undefined ? { relevanceScore } : {}),
+            snippet: trimSnippet(chunk.pageContent, 1200),
+            metadata
+        },
+        fallbackKnowledgebaseId
+    )
+
+    return {
+        ...citation,
+        page: getChunkPage(metadata),
+        pageContent: trimSnippet(chunk.pageContent, 1600),
+        chunkIndex: getNumberField(metadata, 'chunkIndex'),
+        evidence: chunkId ? (evidenceByChunkId[chunkId] ?? []) : []
+    }
+}
+
 function dedupeAndSortCitations(docs: DocumentInterface<DocumentMetadata>[]): KnowledgeWorkbenchCitation[] {
     const byChunk = new Map<string, KnowledgeWorkbenchCitation>()
     for (const doc of docs) {
@@ -850,6 +1177,11 @@ function normalizePageSize(pageSize?: number) {
     return Math.min(Math.floor(pageSize), MAX_PAGE_SIZE)
 }
 
+function clampNumberInput(value: number | undefined, fallback: number, min: number, max: number) {
+    const resolved = Number.isFinite(value) ? value : fallback
+    return Math.min(Math.max(Math.floor(resolved), min), max)
+}
+
 function uniqueStrings(values: Array<string | undefined | null> | undefined) {
     const seen = new Set<string>()
     const result: string[] = []
@@ -888,6 +1220,30 @@ function getString(value: unknown) {
 
 function getStringField(value: unknown, key: string) {
     return getString(getRecord(value)?.[key])
+}
+
+function getNumberField(value: unknown, key: string) {
+    return getNumber(getRecord(value)?.[key])
+}
+
+function getNumberOrStringField(value: unknown, key: string) {
+    const field = getRecord(value)?.[key]
+    return getNumber(field) ?? getString(field)
+}
+
+function getNumberOrStringFieldFromAssets(value: unknown, key: string) {
+    const assets = getRecord(value)?.assets
+    if (!Array.isArray(assets)) {
+        return undefined
+    }
+
+    for (const asset of assets) {
+        const field = getNumberOrStringField(asset, key)
+        if (field !== undefined) {
+            return field
+        }
+    }
+    return undefined
 }
 
 function getNumber(value: unknown) {

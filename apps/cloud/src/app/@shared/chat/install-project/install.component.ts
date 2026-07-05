@@ -74,7 +74,7 @@ export class XpertProjectInstallComponent {
     request: () => this.#refreshWS(),
     loader: ({ request }) => {
       return this.workspaceService
-        .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } })
+        .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' })
         .pipe(map(({ items }) => items))
     }
   })
@@ -123,14 +123,12 @@ export class XpertProjectInstallComponent {
   readonly loading = computed(() => this.#loading() || this.#templateRs.status() === 'loading')
 
   constructor() {
-    effect(
-      () => {
-        const dsl = this.#templateRs.value()
-        if (dsl) {
-          this.dsl.set(dsl)
-        }
+    effect(() => {
+      const dsl = this.#templateRs.value()
+      if (dsl) {
+        this.dsl.set(dsl)
       }
-    )
+    })
   }
 
   close() {

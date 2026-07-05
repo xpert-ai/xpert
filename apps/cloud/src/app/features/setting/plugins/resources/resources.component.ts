@@ -105,9 +105,12 @@ export class PluginResourcesComponent {
     request: () => 'workspace-list',
     loader: () =>
       this.workspaceService
-        .getAllMy({
-          order: { updatedAt: OrderTypeEnum.DESC }
-        })
+        .getAllMy(
+          {
+            order: { updatedAt: OrderTypeEnum.DESC }
+          },
+          { purpose: 'authoring' }
+        )
         .pipe(map((response) => response.items ?? []))
   })
 

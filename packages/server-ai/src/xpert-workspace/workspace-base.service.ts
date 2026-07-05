@@ -27,7 +27,8 @@ import {
 } from './workspace-access.service'
 import { XpertWorkspace } from './workspace.entity'
 
-const READABLE_SCOPE_SELECT_FIELDS = ['tenantId', 'organizationId', 'workspaceId'] as const
+// TypeORM relation selects still need the root primary key for its DISTINCT alias query.
+const READABLE_SCOPE_SELECT_FIELDS = ['id', 'tenantId', 'organizationId', 'workspaceId'] as const
 
 type WorkspaceScopedPartial<T extends WorkspaceBaseEntity> = DeepPartial<T> & {
     id?: string | number
@@ -66,7 +67,7 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
                 createdById: user.id
             }
         } else {
-            await this.assertWorkspaceReadAccess(workspaceId)
+            await this.assertWorkspaceAuthoringAccess(workspaceId)
             where = {
                 ...(where as FindOptionsWhere<T>),
                 workspaceId
@@ -199,6 +200,10 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
 
     protected async assertWorkspaceWriteAccess(workspaceId: string): Promise<XpertWorkspaceAccessResult> {
         return this.assertWorkspaceAccess(workspaceId, 'write')
+    }
+
+    protected async assertWorkspaceAuthoringAccess(workspaceId: string): Promise<XpertWorkspaceAccessResult> {
+        return this.workspaceAccessService.assertCanAuthor(workspaceId)
     }
 
     protected async assertWorkspaceAccess(

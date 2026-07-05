@@ -52,7 +52,7 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
         if (input.workspaceId && xpert?.workspaceId && input.workspaceId !== xpert.workspaceId) {
             throw new BadRequestException('workspaceId does not match Xpert workspace')
         }
-        await this.workspaceAccess.assertCanRead(workspaceId)
+        await this.workspaceAccess.assertCanAuthor(workspaceId)
 
         const target = input.target ?? (input.xpertId ? 'xpert' : 'workspace')
         const rootDir = resolveLoadedPluginResourceRoot(pluginName, this.loadedPlugins)

@@ -1,6 +1,7 @@
 import { ISemanticModelQueryLog, QueryStatusEnum, TGatewayQueryEvent } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { runWithRequestContext, UserService } from '@xpert-ai/server-core'
+import { UserService } from '@xpert-ai/server-core'
+import { captureRequestContext, runWithCapturedRequestContext } from '@xpert-ai/server-ai'
 import { Process, Processor } from '@nestjs/bull'
 import { forwardRef, Inject } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -22,10 +23,11 @@ export class ModelQueryProcessor {
 		private readonly userService: UserService
 	) {}
 
-	@Process({concurrency: 20})
+	@Process({ concurrency: 20 })
 	async handleQuery(job: Job<{ sessionId: string; userId: string; logId: string; data: TGatewayQueryEvent }>) {
 		const { sessionId, userId, logId, data } = job.data
-		const { id, tenantId, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh, isDraft } = data
+		const { id, tenantId, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh, isDraft } =
+			data
 		const user = await this.userService.findOne(userId)
 
 		const timeStart = Date.now()
@@ -39,7 +41,13 @@ export class ModelQueryProcessor {
 			})
 		)
 
-		runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId, language: acceptLanguage } }, async () => {
+		const context = captureRequestContext({
+			user,
+			tenantId,
+			organizationId,
+			language: acceptLanguage
+		})
+		await runWithCapturedRequestContext(context, async () => {
 			let error = null
 			let status = QueryStatusEnum.SUCCESS
 			let data = null

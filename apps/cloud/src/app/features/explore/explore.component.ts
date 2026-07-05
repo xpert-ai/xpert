@@ -104,7 +104,7 @@ export class ExploreComponent {
     this.loadingDefaultWorkspace.set(true)
 
     try {
-      this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault()))
+      this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' })))
     } catch (error) {
       this.defaultWorkspace.set(null)
     } finally {

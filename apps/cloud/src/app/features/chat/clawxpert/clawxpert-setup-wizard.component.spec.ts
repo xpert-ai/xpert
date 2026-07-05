@@ -84,7 +84,7 @@ jest.mock('../../../@shared/copilot', () => {
             modelType: string
           }
         }
-      }
+      })
     }
     canSubmit = jest.fn(() => true)
     hasSelectedModel = jest.fn(() => true)
@@ -895,7 +895,10 @@ describe('ClawXpertSetupWizardComponent', () => {
         })
       })
     )
-    expect(xpertService.saveDraft).toHaveBeenCalledWith('created-xpert', expect.objectContaining({ team: expect.anything() }))
+    expect(xpertService.saveDraft).toHaveBeenCalledWith(
+      'created-xpert',
+      expect.objectContaining({ team: expect.anything() })
+    )
     expect(xpertService.publish).toHaveBeenCalledWith('created-xpert', false, {
       environmentId: null,
       releaseNotes: 'Initial ClawXpert bootstrap release.'
@@ -962,7 +965,7 @@ describe('ClawXpertSetupWizardComponent', () => {
 
     await component.createAndBindClawXpert()
 
-    expect(workspaceService.getMyDefault).toHaveBeenCalled()
+    expect(workspaceService.getMyDefault).toHaveBeenCalledWith({ purpose: 'authoring' })
     expect(workspaceService.create).toHaveBeenCalledWith({
       name: 'Default Workspace'
     })

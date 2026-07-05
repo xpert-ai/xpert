@@ -7,6 +7,7 @@
     "docs": "pnpm typedoc --out ./.docs"
   },
   "dependencies": {
+    "@langchain/langgraph-checkpoint": "0.1.1",
     "@langchain/openai": "0.6.9",
     "@xpert-ai/contracts": "workspace:*"
   },

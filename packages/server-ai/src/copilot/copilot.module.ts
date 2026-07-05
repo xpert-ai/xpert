@@ -11,6 +11,7 @@ import { CopilotService } from './copilot.service'
 import { AIModelModule } from '../ai-model'
 import { CommandHandlers } from './commands/handlers'
 import { CopilotProviderModule } from '../copilot-provider'
+import { MembershipModule } from '../membership'
 
 @Module({
     imports: [
@@ -20,7 +21,8 @@ import { CopilotProviderModule } from '../copilot-provider'
         CqrsModule,
         UserModule,
         AIModelModule,
-        CopilotProviderModule
+        CopilotProviderModule,
+        MembershipModule
     ],
     controllers: [CopilotController],
     providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],

@@ -1,6 +1,11 @@
-import { AiProviderRole, embeddingCubeCollectionName } from '@xpert-ai/contracts'
-import { runWithRequestContext, UserService } from '@xpert-ai/server-core'
-import { CopilotOneByRoleQuery, CopilotTokenRecordCommand, getCopilotModel } from '@xpert-ai/server-ai'
+import { embeddingCubeCollectionName } from '@xpert-ai/contracts'
+import { UserService } from '@xpert-ai/server-core'
+import {
+	CopilotTokenRecordCommand,
+	captureRequestContext,
+	getCopilotModel,
+	runWithCapturedRequestContext
+} from '@xpert-ai/server-ai'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -38,7 +43,13 @@ export class EntityMemberProcessor {
 			`[Job: entity '${job.id}'] Start sync dimension memebrs for model '${modelId}' and cube '${cube}' ...`
 		)
 
-		runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId } }, async () => {
+		const context = captureRequestContext({
+			user,
+			tenantId,
+			organizationId,
+			language: user?.preferredLanguage
+		})
+		await runWithCapturedRequestContext(context, async () => {
 			try {
 				const entity = await this.entityService.findOne(entityId)
 				const model = await this.modelService.findOne(modelId, {
@@ -50,7 +61,9 @@ export class EntityMemberProcessor {
 				)
 
 				const collectionName = embeddingCubeCollectionName(model.id, cube, false)
-				const {vectorStore, copilot} = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
+				const { vectorStore, copilot } = await this.commandBus.execute(
+					new CreateVectorStoreCommand(collectionName)
+				)
 				// Clear all dimensions
 				await vectorStore?.clear()
 				// Remove previous members

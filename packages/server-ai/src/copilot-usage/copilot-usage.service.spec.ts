@@ -118,13 +118,13 @@ describe('CopilotUsageService', () => {
             '"usage_xpert"."id"::text = "usage"."xpertId"'
         )
         expect((qb as any).addSelect).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId")',
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text)',
             'userId'
         )
         expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
         expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
         expect((qb as any).addGroupBy).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId")'
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text)'
         )
         expect(result.total).toBe(1)
         expect(result.items[0]).toMatchObject({
@@ -171,7 +171,7 @@ describe('CopilotUsageService', () => {
 
         for (const qb of [summaryQb, totalsQb]) {
             expect((qb as any).andWhere).toHaveBeenCalledWith(
-                'COALESCE("usage_xpert"."createdById"::text, "usage"."userId") = :filterUserId',
+                'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text) = :filterUserId',
                 { filterUserId: 'owner-user' }
             )
         }
@@ -215,7 +215,7 @@ describe('CopilotUsageService', () => {
         })
 
         expect((qb as any).andWhere).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId") = :groupUserId',
+            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text) = :groupUserId',
             { groupUserId: 'owner-user' }
         )
         expect(result[0]).toMatchObject({

@@ -58,6 +58,10 @@ export class PACAccountUsageComponent implements OnInit {
     return Math.min(100, Math.round((overview.pointsUsed / overview.pointsGranted) * 100))
   }
 
+  isUnlimited() {
+    return this.overview()?.pointsGranted === null
+  }
+
   heatmapOpacity(bucket: IMembershipUsageBucket) {
     const max = Math.max(...this.buckets().map((item) => item.pointsUsed), 1)
     return bucket.pointsUsed ? Math.max(0.18, bucket.pointsUsed / max) : 0.08

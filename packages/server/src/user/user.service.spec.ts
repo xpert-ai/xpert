@@ -644,6 +644,7 @@ describe('UserService', () => {
 
 		expect(result).toEqual({ items: [], total: 0 })
 		expect(queryBuilder.leftJoin).toHaveBeenCalledWith('user.role', 'role')
+		expect(queryBuilder.andWhere).toHaveBeenCalledWith('user.type = :userType', { userType: UserType.USER })
 		expect(queryBuilder.andWhere).toHaveBeenCalledWith('(role.name IS NULL OR role.name != :superAdminRole)', {
 			superAdminRole: RolesEnum.SUPER_ADMIN
 		})

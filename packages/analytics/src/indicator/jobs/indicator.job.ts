@@ -1,7 +1,8 @@
 import { BaseStore } from '@langchain/langgraph'
 import { EmbeddingStatusEnum, IndicatorStatusEnum } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { runWithRequestContext, UserService } from '@xpert-ai/server-core'
+import { UserService } from '@xpert-ai/server-core'
+import { captureRequestContext, runWithCapturedRequestContext } from '@xpert-ai/server-ai'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -47,7 +48,13 @@ export class EmbeddingIndicatorsConsumer {
 			return
 		}
 
-		runWithRequestContext({ user: user, headers: { ['organization-id']: items[0].organizationId } }, async () => {
+		const context = captureRequestContext({
+			user,
+			tenantId: user?.tenantId,
+			organizationId: items[0].organizationId,
+			language: user?.preferredLanguage
+		})
+		await runWithCapturedRequestContext(context, async () => {
 			const store = await this.commandBus.execute<CreateProjectStoreCommand, BaseStore>(
 				new CreateProjectStoreCommand({ index: { fields: EMBEDDING_INDICATOR_FIELDS } })
 			)

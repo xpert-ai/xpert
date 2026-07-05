@@ -7,6 +7,7 @@ import {
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
+import { KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION } from '../../citation'
 import {
     KNOWLEDGE_WORKBENCH_FEATURE,
     KNOWLEDGE_WORKBENCH_ICON,
@@ -180,8 +181,7 @@ export class KnowledgeWorkbenchMiddleware implements IAgentMiddlewareStrategy<Re
             },
             {
                 name: KNOWLEDGE_WORKBENCH_SEARCH_TOOL,
-                description:
-                    'Search the knowledgebases connected to this assistant and return source-aware chunks. Defaults to the documents selected in the Knowledgebase Workbench context. When a chunk is used to support an answer, append its citationMarkdown immediately after the supported sentence or paragraph.',
+                description: `Search the knowledgebases connected to this assistant and return source-aware chunks. Defaults to the documents selected in the Knowledgebase Workbench context. ${KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION}`,
                 schema: searchKnowledgeWorkbenchSchema
             }
         )

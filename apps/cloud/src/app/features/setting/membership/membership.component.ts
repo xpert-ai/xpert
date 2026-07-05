@@ -2,8 +2,14 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
-import { IMembershipPlan, MembershipPeriodEnum, MembershipPlanStatusEnum } from '@xpert-ai/contracts'
+import {
+  IMembershipPlan,
+  IMembershipScopeStatus,
+  MembershipPeriodEnum,
+  MembershipPlanStatusEnum
+} from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { forkJoin } from 'rxjs'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -38,6 +44,7 @@ export class MembershipAdminComponent implements OnInit {
   readonly #translate = inject(TranslateService)
 
   readonly plans = signal<IMembershipPlan[]>([])
+  readonly scopeStatus = signal<IMembershipScopeStatus | null>(null)
   readonly loading = signal(false)
   readonly editing = signal(false)
   readonly selectedPlanId = signal<string | null>(null)
@@ -48,6 +55,11 @@ export class MembershipAdminComponent implements OnInit {
     () => this.plans().filter((plan) => plan.status === MembershipPlanStatusEnum.Archived).length
   )
   readonly defaultPlan = computed(() => this.plans().find((plan) => plan.isDefault) ?? null)
+  readonly isOrganizationScope = computed(() => this.scopeStatus()?.scope === 'organization')
+  readonly showScopeAction = computed(() => {
+    const status = this.scopeStatus()
+    return !!status && status.scope === 'organization' && (!status.initialized || status.needsRepair)
+  })
   readonly selectedPlan = computed(() => {
     const selectedPlanId = this.selectedPlanId()
     return selectedPlanId ? (this.plans().find((plan) => plan.id === selectedPlanId) ?? null) : null
@@ -66,14 +78,37 @@ export class MembershipAdminComponent implements OnInit {
 
   load() {
     this.loading.set(true)
-    this.#membership.getPlans().subscribe({
-      next: (plans) => {
+    forkJoin({
+      status: this.#membership.getScopeStatus(),
+      plans: this.#membership.getPlans()
+    }).subscribe({
+      next: ({ status, plans }) => {
+        this.scopeStatus.set(status)
         this.plans.set(plans)
         const selectedPlanId = this.selectedPlanId()
         if (!selectedPlanId || !plans.some((plan) => plan.id === selectedPlanId)) {
           this.selectedPlanId.set(plans.find((plan) => plan.isDefault)?.id ?? plans[0]?.id ?? null)
         }
         this.loading.set(false)
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
+
+  initializeScope() {
+    this.loading.set(true)
+    this.#membership.initializeScope().subscribe({
+      next: (status) => {
+        this.scopeStatus.set(status)
+        this.#toastr.success(
+          this.#translate.instant('PAC.Membership.InitializeSuccess', {
+            Default: 'Organization membership is ready.'
+          })
+        )
+        this.load()
       },
       error: (error) => {
         this.loading.set(false)
@@ -150,7 +185,37 @@ export class MembershipAdminComponent implements OnInit {
   }
 
   remainingLabel(plan: IMembershipPlan) {
-    return `${plan.includedPoints ?? 0} / ${plan.tokensPerPoint ?? 0}`
+    return `${this.pointsLabel(plan.includedPoints)} / ${plan.tokensPerPoint ?? 0}`
+  }
+
+  pointsLabel(points?: number | null) {
+    return points === null
+      ? this.#translate.instant('PAC.Membership.Unlimited', { Default: 'Unlimited' })
+      : String(points ?? 0)
+  }
+
+  scopeDefaultPlanLabel(status: IMembershipScopeStatus | null) {
+    if (!status?.defaultPlan) {
+      return this.#translate.instant('PAC.Membership.NoDefaultPlan', { Default: 'No default plan' })
+    }
+    return `${status.defaultPlan.name} · ${this.pointsLabel(status.defaultPlan.includedPoints)}`
+  }
+
+  scopeStatusLabel(status: IMembershipScopeStatus | null) {
+    if (!status) {
+      return this.#translate.instant('PAC.KEY_WORDS.Loading', { Default: 'Loading...' })
+    }
+    if (status.initialized) {
+      return this.#translate.instant('PAC.Membership.ScopeInitialized', { Default: 'Initialized' })
+    }
+    if (status.needsRepair) {
+      return this.#translate.instant('PAC.Membership.ScopeNeedsRepair', { Default: 'Needs repair' })
+    }
+    return this.#translate.instant('PAC.Membership.ScopeNotInitialized', { Default: 'Not initialized' })
+  }
+
+  setDraftUnlimited(enabled: boolean) {
+    this.draft.includedPoints = enabled ? null : 1000
   }
 
   selectPlan(plan: IMembershipPlan) {
@@ -177,7 +242,7 @@ export class MembershipAdminComponent implements OnInit {
     try {
       return {
         ...this.draft,
-        includedPoints: Number(this.draft.includedPoints ?? 0),
+        includedPoints: this.draft.includedPoints === null ? null : Number(this.draft.includedPoints ?? 0),
         tokensPerPoint: Number(this.draft.tokensPerPoint ?? 0),
         priceAmount:
           this.draft.priceAmount === null || this.draft.priceAmount === undefined

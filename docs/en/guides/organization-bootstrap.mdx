@@ -261,6 +261,105 @@ To avoid that, the implementation uses an incremental helper:
 
 It only ensures presence and does not rewrite the whole member list.
 
+## Membership-Driven Copilot Access Semantics
+
+Copilot model availability is determined by the effective membership plan scope of the current user, or billable user, instead of directly checking whether the current organization scope has configured copilot models.
+
+Core rules:
+
+- Tenant-scope requests use only tenant-scope membership.
+- Organization-scope requests prefer membership in the current organization scope.
+- Tenant-scope membership is used as fallback only when the current organization has no active membership plan.
+- As soon as the current organization has any active membership plan, it enters organization-managed mode; even if it currently has no enabled local copilots, it does not fall back to tenant models.
+- Tenant copilots can only be used, limited, and recorded by tenant membership.
+- Organization copilots can only be used, limited, and recorded by membership in the same organization.
+- `includedPoints = null` means an unlimited plan: total point-limit checks are skipped, but usage ledger entries are still written and explicit `rateLimits` still apply.
+
+### Organization membership initialization
+
+Organization membership initialization is idempotent. The initialization entry point ensures the current organization has an active default plan and assigns active `UserMembership` records to all active `UserOrganization` members.
+
+The default plan is:
+
+```ts
+{
+  code: 'default-unlimited',
+  name: 'Default Unlimited',
+  includedPoints: null,
+  tokensPerPoint: 1000,
+  isDefault: true,
+  status: 'active'
+}
+```
+
+Initialization behavior:
+
+- If an active default plan already exists, use it.
+- If active plans exist but none is default, mark the first active plan as default.
+- If only an archived `default-unlimited` exists, reactivate it and make it default.
+- If no usable plan exists, create a new `default-unlimited` plan.
+- Member assignment only creates memberships for active organization members without an active membership; existing active memberships are not overwritten.
+- Unlimited assignment ledger entries use `pointsDelta = 0`.
+
+### Runtime self-healing
+
+To support legacy data, runtime allows one idempotent repair path:
+
+- If an organization scope has enabled local copilots but no organization membership plan, available-model lookup initializes organization membership first and then returns only organization local models.
+- If a user directly calls an organization local copilot, `assertCanUse` / `recordUsage` detects `copilotOrganizationId === request organizationId` and missing organization membership, initializes organization membership, and validates again.
+- If the requested copilot is tenant-scoped but the effective membership is organization-scoped, usage is rejected.
+- If the requested copilot is organization-scoped but the effective membership is tenant-scoped, usage is rejected unless the copilot belongs to the current organization and triggers the self-healing path above.
+
+With this rule, when an organization admin removes the tenant membership plan during onboarding or settings and enables organization-owned copilot models, the system automatically enters organization-managed membership mode. Chat usage and ledger records are then written in organization scope.
+
+### Scope status and management entry points
+
+The backend exposes two scope management APIs:
+
+- `GET /api/membership/scope/status`
+- `POST /api/membership/scope/initialize`
+
+Both use the current request scope and require `AIPermissionsEnum.MEMBERSHIP_EDIT`.
+
+`/settings/membership` is a dual-scope page:
+
+- Tenant scope: shows tenant plan status and the plan catalog.
+- Organization scope: shows organization-managed status, default plan, active members, assigned members, and local copilot model count.
+- If the organization is not initialized, the page shows “Initialize organization membership”.
+- If plans exist but member assignment is incomplete, the page shows “Repair assignments”.
+
+Organization local admins can access the organization-scope membership page as long as they have `MEMBERSHIP_EDIT`.
+
+### User-join repair
+
+User bootstrap also calls membership repair:
+
+- If the organization already has an active membership plan, the newly joined user receives an active membership.
+- If the organization has no active plan, no plan is created and the organization is not accidentally switched into organization-managed membership mode.
+
+## Workspace Access Semantics
+
+Xpert workspace access is split into two purposes:
+
+- **Runtime / usage access**: used by chat, ClawXpert, assistant binding, and published Xpert read/run flows. Organization-scope users can still read and run published Xperts from tenant-shared workspaces.
+- **Authoring / editing access**: used by `/xpert/w`, workspace selectors, Xpert creation, skill or plugin resource installation, workspace resource editing, and default-workspace selection. Organization-scope users only see and operate on owner/member workspaces in the current organization; tenant-shared workspaces are excluded.
+
+Backend API contract:
+
+- `GET /api/xpert-workspace/my` defaults to `purpose=runtime` for backward compatibility.
+- `GET /api/xpert-workspace/my?purpose=authoring` returns only workspaces that can be used as editing/write targets.
+- `GET /api/xpert-workspace/my/default?purpose=authoring` ignores an existing tenant-shared default workspace and falls back to an editable workspace.
+- `POST /api/xpert-workspace/:id/default` requires authoring/write access; organization-scope users cannot set a tenant-shared workspace as their default.
+- Workspace resource list and install endpoints, including xperts, toolsets, knowledgebases, skills, prompt workflows, plugin resources, and template install, validate the target workspace with authoring semantics.
+
+Capability results stay split:
+
+- Organization-scope users still get `canRead=true` and `canRun=true` for tenant-shared workspaces.
+- The same users get `canWrite=false` and `canManage=false` for tenant-shared workspaces in organization scope.
+- Tenant-scope owners/admins can still manage tenant-shared workspaces.
+
+Because of this split, `/api/assistant-binding/xperts`, published Xpert runtime access, and `assertCanRun` flows are not affected by workspace authoring restrictions. If organization users need a browsing surface for tenant-shared public resources later, that should be a separate entry point instead of reusing the `/xpert/w` authoring pages.
+
 ## Template xpert import
 
 Default organization xperts are configured through:

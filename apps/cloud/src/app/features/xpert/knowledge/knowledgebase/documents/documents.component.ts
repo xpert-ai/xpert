@@ -56,6 +56,111 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const REFRESH_DEBOUNCE_TIME = 5000
+const SELECT_COLUMN_WIDTH = 80
+const ACTIONS_COLUMN_WIDTH = 144
+
+type DocumentTableColumnKey = 'name' | 'type' | 'createdAtRelative' | 'disabled' | 'processMsg' | 'progress'
+type DocumentTableSortDirection = 'asc' | 'desc' | ''
+type ActiveDocumentTableSortState = DocumentTableSortState & {
+  active: DocumentTableColumnKey
+  direction: Exclude<DocumentTableSortDirection, ''>
+}
+
+interface DocumentTableColumn {
+  key: DocumentTableColumnKey
+  labelKey: string
+  defaultLabel: string
+  width: number
+  minWidth: number
+  maxWidth?: number
+  visible: boolean
+  hideable: boolean
+  sortable: boolean
+  resizable: boolean
+}
+
+interface DocumentTableSortState {
+  active: DocumentTableColumnKey | null
+  direction: DocumentTableSortDirection
+}
+
+const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
+  {
+    key: 'name',
+    labelKey: 'PAC.KEY_WORDS.Name',
+    defaultLabel: 'Name',
+    width: 300,
+    minWidth: 180,
+    visible: true,
+    hideable: false,
+    sortable: true,
+    resizable: true
+  },
+  {
+    key: 'type',
+    labelKey: 'PAC.KEY_WORDS.Type',
+    defaultLabel: 'Type',
+    width: 176,
+    minWidth: 120,
+    visible: true,
+    hideable: true,
+    sortable: true,
+    resizable: true
+  },
+  {
+    key: 'createdAtRelative',
+    labelKey: 'PAC.KEY_WORDS.Created At',
+    defaultLabel: 'Created At',
+    width: 176,
+    minWidth: 140,
+    visible: true,
+    hideable: true,
+    sortable: true,
+    resizable: true
+  },
+  {
+    key: 'disabled',
+    labelKey: 'PAC.KEY_WORDS.Enabled',
+    defaultLabel: 'Enabled',
+    width: 112,
+    minWidth: 96,
+    visible: true,
+    hideable: true,
+    sortable: true,
+    resizable: true
+  },
+  {
+    key: 'processMsg',
+    labelKey: 'PAC.KEY_WORDS.Message',
+    defaultLabel: 'Message',
+    width: 240,
+    minWidth: 160,
+    visible: true,
+    hideable: true,
+    sortable: true,
+    resizable: true
+  },
+  {
+    key: 'progress',
+    labelKey: 'PAC.Knowledgebase.ParsingProgress',
+    defaultLabel: 'Parsing Progress',
+    width: 192,
+    minWidth: 160,
+    visible: true,
+    hideable: true,
+    sortable: true,
+    resizable: true
+  }
+]
+
+const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledgeDocument) => unknown> = {
+  name: (document) => document.name,
+  type: (document) => document.type,
+  createdAtRelative: (document) => document.updatedAt ?? document.createdAt,
+  disabled: (document) => (document.disabled ? 0 : 1),
+  processMsg: (document) => document.processMsg,
+  progress: (document) => document.progress
+}
 
 @Component({
   standalone: true,
@@ -115,27 +220,21 @@ export class KnowledgeDocumentsComponent {
   readonly hasPipeline = computed(() => !!this.pipeline()?.publishAt)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
-  readonly delayRefresh$ = new Subject<boolean>()
+  readonly documentDelayRefresh$ = new Subject<void>()
+  readonly knowledgebaseDelayRefresh$ = new Subject<void>()
 
-  columnsToDisplay = [
-    {
-      name: 'type',
-      caption: 'Type'
-    },
-    {
-      name: 'createdAtRelative',
-      caption: 'Created At'
-    },
-    {
-      name: 'disabled',
-      caption: 'Enabled'
-    },
-    {
-      name: 'processMsg',
-      caption: 'Message'
-    }
-  ]
-  columnsToDisplayWithExpand = [...this.columnsToDisplay.map(({ name }) => name), 'progress', 'expand']
+  readonly selectColumnWidth = SELECT_COLUMN_WIDTH
+  readonly actionsColumnWidth = ACTIONS_COLUMN_WIDTH
+  // One table-column model drives width, visibility, order, and sort affordances.
+  readonly tableColumns = signal<DocumentTableColumn[]>(createDefaultDocumentColumns())
+  readonly visibleDocumentColumns = computed(() => this.tableColumns().filter((column) => column.visible))
+  readonly sortState = signal<DocumentTableSortState>({ active: null, direction: '' })
+  readonly tableMinWidth = computed(
+    () =>
+      SELECT_COLUMN_WIDTH +
+      ACTIONS_COLUMN_WIDTH +
+      this.visibleDocumentColumns().reduce((width, column) => width + column.width, 0)
+  )
   expandedElement: any | null
 
   readonly isLoading = signal(false)
@@ -162,7 +261,13 @@ export class KnowledgeDocumentsComponent {
   )
   readonly filteredData = computed(() => {
     const filterValue = this.searchTerm()?.toLowerCase() ?? ''
-    return this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
+    const rows = this.#data().filter((item) => item.name?.toLowerCase().includes(filterValue))
+    const sortState = this.sortState()
+    if (!sortState.active || !sortState.direction) {
+      return rows
+    }
+
+    return [...rows].sort((a, b) => compareDocumentSortValues(a, b, sortState as ActiveDocumentTableSortState))
   })
 
   // Folders
@@ -280,30 +385,128 @@ export class KnowledgeDocumentsComponent {
           ].includes(item.status)
         )
       ) {
-        this.delayRefresh$.next(true)
+        this.documentDelayRefresh$.next()
       }
     })
 
     effect(() => {
       if (this.knowledgebase()?.graphStatus === KnowledgeGraphStatus.INDEXING) {
-        this.delayRefresh$.next(true)
+        this.knowledgebaseDelayRefresh$.next()
       }
     })
 
     effect(() => {
       if (this.vectorMutationLocked()) {
-        this.delayRefresh$.next(true)
+        this.knowledgebaseDelayRefresh$.next()
       }
     })
 
-    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => {
-      this.knowledgebaseComponent.refresh()
+    this.documentDelayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => {
       this.refresh()
+    })
+
+    this.knowledgebaseDelayRefresh$.pipe(takeUntilDestroyed(), debounceTime(REFRESH_DEBOUNCE_TIME)).subscribe(() => {
+      // Knowledgebase-level polling is only needed for aggregate states such as GraphRAG indexing
+      // and vector rebuild locks; normal document parsing can refresh the document list alone.
+      this.knowledgebaseComponent.refresh()
+      this.refreshGraphJobs()
     })
   }
 
   getValue(row: any, name: string) {
     return get(row, name)
+  }
+
+  setColumnWidth(columnKey: DocumentTableColumnKey, value: number | string) {
+    const width = Number(value)
+    if (!Number.isFinite(width)) {
+      return
+    }
+
+    this.tableColumns.update((columns) =>
+      columns.map((column) =>
+        column.key === columnKey ? { ...column, width: normalizeColumnWidth(width, column) } : column
+      )
+    )
+  }
+
+  startColumnResize(event: MouseEvent, column: DocumentTableColumn, headerCell: HTMLElement) {
+    if (!column.resizable || event.button !== 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const startX = event.clientX
+    const startWidth = headerCell.getBoundingClientRect().width || column.width
+
+    // Keep listening on the document so the drag does not stop when the pointer leaves the header cell.
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      this.setColumnWidth(column.key, startWidth + moveEvent.clientX - startX)
+    }
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  toggleColumnVisibility(columnKey: DocumentTableColumnKey, visible: boolean) {
+    this.tableColumns.update((columns) =>
+      columns.map((column) => (column.key === columnKey && column.hideable ? { ...column, visible } : column))
+    )
+
+    if (!visible && this.sortState().active === columnKey) {
+      this.sortState.set({ active: null, direction: '' })
+    }
+  }
+
+  moveColumn(columnKey: DocumentTableColumnKey, offset: -1 | 1) {
+    this.tableColumns.update((columns) => {
+      const nextColumns = [...columns]
+      const index = nextColumns.findIndex((column) => column.key === columnKey)
+      const targetIndex = index + offset
+      if (index < 0 || targetIndex < 0 || targetIndex >= nextColumns.length) {
+        return columns
+      }
+
+      const [column] = nextColumns.splice(index, 1)
+      nextColumns.splice(targetIndex, 0, column)
+      return nextColumns
+    })
+  }
+
+  resetColumns() {
+    this.tableColumns.set(createDefaultDocumentColumns())
+    this.sortState.set({ active: null, direction: '' })
+  }
+
+  toggleSort(column: DocumentTableColumn) {
+    if (!column.sortable) {
+      return
+    }
+
+    const sortState = this.sortState()
+    const direction: DocumentTableSortDirection =
+      sortState.active !== column.key
+        ? 'asc'
+        : sortState.direction === 'asc'
+          ? 'desc'
+          : sortState.direction === 'desc'
+            ? ''
+            : 'asc'
+    this.sortState.set({
+      active: direction ? column.key : null,
+      direction
+    })
+  }
+
+  sortDirection(column: DocumentTableColumn): DocumentTableSortDirection {
+    const sortState = this.sortState()
+    return sortState.active === column.key ? sortState.direction : ''
   }
 
   refresh() {
@@ -312,11 +515,7 @@ export class KnowledgeDocumentsComponent {
   }
 
   canDownloadOriginalFile(doc: IKnowledgeDocument) {
-    return (
-      doc.sourceType !== KDocumentSourceType.FOLDER &&
-      !isSystemManagedDocument(doc) &&
-      !!doc.filePath
-    )
+    return doc.sourceType !== KDocumentSourceType.FOLDER && !isSystemManagedDocument(doc) && !!doc.filePath
   }
 
   isOriginalFileDownloading(id: string) {
@@ -798,4 +997,55 @@ function triggerOriginalFileDownload(blob: Blob, fileName: string) {
   anchor.click()
   document.body.removeChild(anchor)
   URL.revokeObjectURL(objectUrl)
+}
+
+function createDefaultDocumentColumns() {
+  return DEFAULT_DOCUMENT_COLUMNS.map((column) => ({ ...column }))
+}
+
+function normalizeColumnWidth(width: number, column: Pick<DocumentTableColumn, 'minWidth' | 'maxWidth'>) {
+  const maxWidth = column.maxWidth ?? Number.POSITIVE_INFINITY
+  return Math.min(Math.max(Math.round(width), column.minWidth), maxWidth)
+}
+
+function compareDocumentSortValues(
+  a: IKnowledgeDocument,
+  b: IKnowledgeDocument,
+  sortState: ActiveDocumentTableSortState
+) {
+  const getSortValue = SORT_VALUE_BY_COLUMN[sortState.active]
+  const direction = sortState.direction === 'desc' ? -1 : 1
+  const aValue = normalizeSortValue(getSortValue(a))
+  const bValue = normalizeSortValue(getSortValue(b))
+
+  if (aValue < bValue) {
+    return -1 * direction
+  }
+
+  if (aValue > bValue) {
+    return direction
+  }
+
+  return 0
+}
+
+function normalizeSortValue(value: unknown): number | string {
+  if (value instanceof Date) {
+    return value.getTime()
+  }
+
+  if (typeof value === 'string') {
+    const timestamp = Date.parse(value)
+    return Number.isNaN(timestamp) ? value.toLocaleLowerCase() : timestamp
+  }
+
+  if (typeof value === 'number') {
+    return value
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 1 : 0
+  }
+
+  return ''
 }

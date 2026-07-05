@@ -52,10 +52,14 @@ export class ExploreAgentInstallComponent {
   readonly #workspaceTouched = signal(false)
 
   readonly workspaces = toSignal(
-    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)),
+    this.workspaceService
+      .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' })
+      .pipe(map(({ items }) => items)),
     { initialValue: [] }
   )
-  readonly defaultWorkspace = toSignal(this.workspaceService.getMyDefault(), { initialValue: null })
+  readonly defaultWorkspace = toSignal(this.workspaceService.getMyDefault({ purpose: 'authoring' }), {
+    initialValue: null
+  })
   readonly workspaceOptions = computed(() =>
     (this.workspaces() ?? []).map((workspace) => ({
       value: workspace.id,
@@ -79,7 +83,9 @@ export class ExploreAgentInstallComponent {
       () => {
         const workspaces = this.workspaces()
         const preferredWorkspaceId =
-          this.defaultWorkspace()?.id ?? this.selectedWorkspace()?.id ?? workspaces?.[0]?.id ?? ''
+          [this.defaultWorkspace()?.id, this.selectedWorkspace()?.id, workspaces?.[0]?.id].find(
+            (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
+          ) ?? ''
 
         if (!preferredWorkspaceId) {
           return

@@ -1,4 +1,4 @@
-import { IBasePerTenantEntityModel } from '../base-entity.model'
+import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
 
 export enum MembershipPlanStatusEnum {
@@ -39,14 +39,14 @@ export interface IMembershipRateLimit {
   pointLimit: number
 }
 
-export interface IMembershipPlan extends IBasePerTenantEntityModel {
+export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityModel {
   code: string
   name: string
   description?: string | null
   status: MembershipPlanStatusEnum
   isDefault?: boolean
   period: MembershipPeriodEnum
-  includedPoints: number
+  includedPoints: number | null
   tokensPerPoint: number
   priceAmount?: number | null
   priceCurrency?: string | null
@@ -54,7 +54,7 @@ export interface IMembershipPlan extends IBasePerTenantEntityModel {
   rateLimits?: IMembershipRateLimit[]
 }
 
-export interface IUserMembership extends IBasePerTenantEntityModel {
+export interface IUserMembership extends IBasePerTenantAndOrganizationEntityModel {
   userId: string
   user?: IUser
   planId: string
@@ -62,7 +62,7 @@ export interface IUserMembership extends IBasePerTenantEntityModel {
   status: MembershipStatusEnum
   currentPeriodStart: Date
   currentPeriodEnd: Date
-  pointsGranted: number
+  pointsGranted: number | null
   pointsUsed: number
   pointsTotalUsed: number
   assignedById?: string | null
@@ -93,12 +93,26 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
 export interface IMembershipMe {
   membership: IUserMembership
   plan: IMembershipPlan
-  pointsGranted: number
+  pointsGranted: number | null
   pointsUsed: number
-  pointsRemaining: number
+  pointsRemaining: number | null
   pointsTotalUsed: number
   currentPeriodStart: Date
   currentPeriodEnd: Date
+}
+
+export interface IMembershipScopeStatus {
+  tenantId: string
+  organizationId?: string | null
+  scope: 'tenant' | 'organization'
+  planCount: number
+  activePlanCount: number
+  defaultPlan?: IMembershipPlan | null
+  initialized: boolean
+  needsRepair: boolean
+  activeMemberCount?: number | null
+  assignedMemberCount?: number | null
+  localCopilotCount?: number | null
 }
 
 export interface IMembershipUsageBucket {

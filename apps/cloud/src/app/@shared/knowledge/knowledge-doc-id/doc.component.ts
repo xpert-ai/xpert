@@ -1,8 +1,8 @@
-
 import { Component, computed, effect, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgeDocument, KDocumentSourceType } from '../../../@core/types'
-import { NgmCommonModule } from "@xpert-ai/ocap-angular/common";
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { resolveKnowledgeDocumentFileKind } from '../document-file-kind'
 
 @Component({
   standalone: true,
@@ -24,5 +24,6 @@ export class KnowledgeDocIdComponent {
   readonly category = computed(() => this.doc().category)
   readonly storageFile = computed(() => this.doc().storageFile)
   readonly label = computed(() => this.doc().name || this.storageFile()?.originalName || this.doc().options?.url)
-
+  // Resolve the icon from file evidence instead of relying only on the backend document type label.
+  readonly fileKind = computed(() => resolveKnowledgeDocumentFileKind(this.doc()))
 }

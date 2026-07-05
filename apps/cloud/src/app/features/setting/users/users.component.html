@@ -69,7 +69,7 @@
 <z-tab-nav-panel
   #tabPanel
   class="pac-page-body"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+  [@routeAnimations]="o.isActivated ? (o.activatedRoute.routeConfig?.path ?? '') : ''"
 >
   <router-outlet #o="outlet"></router-outlet>
 </z-tab-nav-panel>

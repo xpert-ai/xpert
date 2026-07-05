@@ -7,26 +7,28 @@ import { SkillPackageModule } from '../skill-package'
 import { SkillRepositoryIndexModule, SkillRepositoryModule } from '../skill-repository'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
+import { MembershipModule } from '../membership'
 import { AI_BOOTSTRAP_QUEUE } from './constants'
 import { ServerAIBootstrapProcessor } from './bootstrap.processor'
 import { ServerAIBootstrapService } from './bootstrap.service'
 
 @Module({
-	imports: [
-		BullModule.registerQueue({
-			name: AI_BOOTSTRAP_QUEUE
-		}),
-		OrganizationModule,
-		UserModule,
-		UserOrganizationModule,
-		XpertWorkspaceModule,
-		EnvironmentModule,
-		SkillPackageModule,
-		SkillRepositoryModule,
-		SkillRepositoryIndexModule,
-		XpertModule,
-		XpertTemplateModule
-	],
-	providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService]
+    imports: [
+        BullModule.registerQueue({
+            name: AI_BOOTSTRAP_QUEUE
+        }),
+        OrganizationModule,
+        UserModule,
+        UserOrganizationModule,
+        XpertWorkspaceModule,
+        EnvironmentModule,
+        SkillPackageModule,
+        SkillRepositoryModule,
+        SkillRepositoryIndexModule,
+        XpertModule,
+        XpertTemplateModule,
+        MembershipModule
+    ],
+    providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService]
 })
 export class InitializationModule {}

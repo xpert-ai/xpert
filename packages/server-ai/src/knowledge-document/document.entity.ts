@@ -1,320 +1,348 @@
 import {
-	TDocumentWebOptions,
-	IIntegration,
-	IKnowledgebase,
-	IKnowledgeDocument,
-	IKnowledgeDocumentPage,
-	IStorageFile,
-	KBDocumentCategoryEnum,
-	DocumentTextParserConfig,
-	KBDocumentStatusEnum,
-	IKnowledgebaseTask,
-	TDocSourceConfig,
-	IKnowledgeDocumentChunk,
-	TKnowledgeDocument,
-	DocumentSourceProviderCategoryEnum,
-	DocumentTypeEnum,
-	KnowledgeDocumentMetadata,
+    TDocumentWebOptions,
+    IIntegration,
+    IKnowledgebase,
+    IKnowledgeDocument,
+    IKnowledgeDocumentPage,
+    IStorageFile,
+    KBDocumentCategoryEnum,
+    DocumentTextParserConfig,
+    KBDocumentStatusEnum,
+    IKnowledgebaseTask,
+    TDocSourceConfig,
+    IKnowledgeDocumentChunk,
+    TKnowledgeDocument,
+    DocumentSourceProviderCategoryEnum,
+    DocumentTypeEnum,
+    KnowledgeDocumentMetadata
 } from '@xpert-ai/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId, Tree, TreeChildren, TreeParent, VersionColumn } from 'typeorm'
-import { Knowledgebase, KnowledgebaseTask, KnowledgeDocumentChunk, KnowledgeDocumentPage } from '../core/entities/internal'
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    RelationId,
+    Tree,
+    TreeChildren,
+    TreeParent,
+    VersionColumn
+} from 'typeorm'
+import {
+    Knowledgebase,
+    KnowledgebaseTask,
+    KnowledgeDocumentChunk,
+    KnowledgeDocumentPage
+} from '../core/entities/internal'
+
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
 
 @Entity('knowledge_document')
 @Index('IDX_knowledge_document_kb_source_hash', ['knowledgebaseId', 'sourceHash'])
 @Index('IDX_knowledge_document_kb_source_key', ['knowledgebaseId', 'sourceType', 'sourceKey'])
-@Tree('closure-table') 
-export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata> extends TenantOrganizationBaseEntity implements IKnowledgeDocument<T> {
-	@ApiProperty({ type: () => Boolean })
-	@IsBoolean()
-	@IsOptional()
-	@Column({ nullable: true })
-	disabled?: boolean
+@Tree('closure-table')
+export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata>
+    extends TenantOrganizationBaseEntity
+    implements IKnowledgeDocument<T>
+{
+    @ApiProperty({ type: () => Boolean })
+    @IsBoolean()
+    @IsOptional()
+    @Column({ nullable: true })
+    disabled?: boolean
 
-	@Optional()
-	@Column({ type: 'varchar', nullable: true, length: 20 })
-	sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
+    @Optional()
+    @Column({ type: 'varchar', nullable: true, length: 20 })
+    sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	sourceConfig?: TDocSourceConfig
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    sourceConfig?: TDocSourceConfig
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ type: 'varchar', nullable: true, length: 512 })
-	sourceKey?: string | null
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true, length: 512 })
+    sourceKey?: string | null
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ type: 'varchar', nullable: true, length: 64 })
-	sourceHash?: string | null
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true, length: 64 })
+    sourceHash?: string | null
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ type: 'varchar', nullable: true, length: 64 })
-	processingHash?: string | null
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true, length: 64 })
+    processingHash?: string | null
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ type: 'varchar', nullable: true, length: 64 })
-	contentHash?: string | null
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ type: 'varchar', nullable: true, length: 64 })
+    contentHash?: string | null
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@VersionColumn({ type: 'int', default: 1 })
-	version?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @VersionColumn({ type: 'int', default: 1 })
+    version?: number
 
-	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
-	@IsEnum(KBDocumentCategoryEnum)
-	@Optional()
-	@Column({ type: 'varchar', nullable: true })
-	category?: KBDocumentCategoryEnum | null
+    @ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
+    @IsEnum(KBDocumentCategoryEnum)
+    @Optional()
+    @Column({ type: 'varchar', nullable: true })
+    category?: KBDocumentCategoryEnum | null
 
-	@ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	type: string
+    @ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    type: string
 
-	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
-	@ManyToOne(() => Knowledgebase, {
-		nullable: true,
-		onUpdate: 'CASCADE',
-		onDelete: 'CASCADE'
-	})
-	@JoinColumn()
-	@IsOptional()
-	knowledgebase?: IKnowledgebase
+    @ApiProperty({ type: () => Knowledgebase, readOnly: true })
+    @ManyToOne(() => Knowledgebase, {
+        nullable: true,
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
+    @IsOptional()
+    knowledgebase?: IKnowledgebase
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgeDocument) => it.knowledgebase)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	knowledgebaseId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgeDocument) => it.knowledgebase)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    knowledgebaseId?: string
 
-	@ApiProperty({ type: () => StorageFile, readOnly: true })
-	@ManyToOne(() => StorageFile, {
-		nullable: true,
-	})
-	@JoinColumn()
-	@IsOptional()
-	storageFile?: IStorageFile
+    @ApiProperty({ type: () => StorageFile, readOnly: true })
+    @ManyToOne(() => StorageFile, {
+        nullable: true
+    })
+    @JoinColumn()
+    @IsOptional()
+    storageFile?: IStorageFile
 
-	@ApiProperty({ type: 'string', format: 'uuid', description: 'Storage file ID' })
-	@RelationId((it: KnowledgeDocument) => it.storageFile)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	storageFileId?: string
+    @ApiProperty({ type: 'string', format: 'uuid', description: 'Storage file ID' })
+    @RelationId((it: KnowledgeDocument) => it.storageFile)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    storageFileId?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	thumbnail?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    thumbnail?: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	parserId: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    parserId: string
 
-	@ApiProperty({
-		type: () => Object,
-		description: 'Parser Config',
-		example: {
-			chunkSize: 1000,
-			chunkOverlap: 100,
-			delimiter: '; , .'
-		}
-	})
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	parserConfig: DocumentTextParserConfig
+    @ApiProperty({
+        type: () => Object,
+        description: 'Parser Config',
+        example: {
+            chunkSize: 1000,
+            chunkOverlap: 100,
+            delimiter: '; , .'
+        }
+    })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    parserConfig: DocumentTextParserConfig
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	name: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    name: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	filePath: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    filePath: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	fileUrl: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    fileUrl: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	folder?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    folder?: string
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true })
-	size: string
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ nullable: true })
+    size: string
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	mimeType?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    mimeType?: string
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true })
-	tokenNum?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ type: 'bigint', nullable: true, transformer: bigintNumberTransformer })
+    tokenNum?: number
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true })
-	chunkNum?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ nullable: true })
+    chunkNum?: number
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true, type: 'float' })
-	progress?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ nullable: true, type: 'float' })
+    progress?: number
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	processMsg?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    processMsg?: string
 
-	@ApiPropertyOptional({ type: () => Date })
-	@IsDate()
-	@Optional()
-	@Column({ type: 'timestamp', nullable: true })
-	processBeginAt?: Date
+    @ApiPropertyOptional({ type: () => Date })
+    @IsDate()
+    @Optional()
+    @Column({ type: 'timestamp', nullable: true })
+    processBeginAt?: Date
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true })
-	processDuation?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ nullable: true })
+    processDuation?: number
 
-	@ApiPropertyOptional({ type: () => Number })
-	@IsNumber()
-	@Optional()
-	@Column({ nullable: true })
-	processDuration?: number
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @Optional()
+    @Column({ nullable: true })
+    processDuration?: number
 
-	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
-	@IsEnum(KBDocumentStatusEnum)
-	@Optional()
-	@Column({ type: 'varchar', nullable: true })
-	status?: KBDocumentStatusEnum
+    @ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
+    @IsEnum(KBDocumentStatusEnum)
+    @Optional()
+    @Column({ type: 'varchar', nullable: true })
+    status?: KBDocumentStatusEnum
 
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@Optional()
-	@Column({ nullable: true })
-	jobId?: string
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @Optional()
+    @Column({ nullable: true })
+    jobId?: string
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	options?: TDocumentWebOptions
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    options?: TDocumentWebOptions
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	metadata?: T
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    metadata?: T
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	draft?: TKnowledgeDocument
-	
-	/*
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    draft?: TKnowledgeDocument
+
+    /*
     |--------------------------------------------------------------------------
     | Parent-children relationship 
     |--------------------------------------------------------------------------
     */
-	@TreeChildren()
-	children: KnowledgeDocument[]
+    @TreeChildren()
+    children: KnowledgeDocument[]
 
-	@ApiPropertyOptional({ type: () => KnowledgeDocument, description: 'Parent document' })
-	@IsOptional()
-	@TreeParent()
-	parent: KnowledgeDocument;
+    @ApiPropertyOptional({ type: () => KnowledgeDocument, description: 'Parent document' })
+    @IsOptional()
+    @TreeParent()
+    parent: KnowledgeDocument
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | @OneToOne
     |--------------------------------------------------------------------------
     */
-	@ApiProperty({ type: () => Integration, readOnly: true })
-	@OneToOne(() => Integration, {
-		nullable: true,
-		onDelete: 'SET NULL'
-	})
-	@JoinColumn()
-	@IsOptional()
-	integration?: IIntegration
+    @ApiProperty({ type: () => Integration, readOnly: true })
+    @OneToOne(() => Integration, {
+        nullable: true,
+        onDelete: 'SET NULL'
+    })
+    @JoinColumn()
+    @IsOptional()
+    integration?: IIntegration
 
-	@ApiProperty({ type: () => String, readOnly: true })
-	@RelationId((it: KnowledgeDocument) => it.integration)
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	integrationId?: string
+    @ApiProperty({ type: () => String, readOnly: true })
+    @RelationId((it: KnowledgeDocument) => it.integration)
+    @IsString()
+    @IsOptional()
+    @Column({ nullable: true })
+    integrationId?: string
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | @OneToMany 
     |--------------------------------------------------------------------------
     */
 
-	/**
-	 * @deprecated use chunks instead
-	 */
-	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
-	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
-	})
-	pages?: IKnowledgeDocumentPage[]
+    /**
+     * @deprecated use chunks instead
+     */
+    @ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
+    @OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
+        cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+    })
+    pages?: IKnowledgeDocumentPage[]
 
-	@ApiProperty({ type: () => KnowledgeDocumentChunk, isArray: true })
-	@OneToMany(() => KnowledgeDocumentChunk, (chunk) => chunk.document, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
-	})
-	chunks?: IKnowledgeDocumentChunk[]
+    @ApiProperty({ type: () => KnowledgeDocumentChunk, isArray: true })
+    @OneToMany(() => KnowledgeDocumentChunk, (chunk) => chunk.document, {
+        cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+    })
+    chunks?: IKnowledgeDocumentChunk[]
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | Bi-directional @ManyToMany 
     |--------------------------------------------------------------------------
     */
-	@ManyToMany(() => KnowledgebaseTask, (t) => t.documents)
-	@JoinTable({
-		name: 'knowledgebase_task_document'
-	})
+    @ManyToMany(() => KnowledgebaseTask, (t) => t.documents)
+    @JoinTable({
+        name: 'knowledgebase_task_document'
+    })
     tasks?: IKnowledgebaseTask[]
 }

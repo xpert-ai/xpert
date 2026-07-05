@@ -1,5 +1,7 @@
 import {
     IMembershipMe,
+    IMembershipPlan,
+    IMembershipScopeStatus,
     IMembershipUsageSummary,
     IMembershipUsageOverview,
     IMembershipUsageQuery,
@@ -11,26 +13,30 @@ import {
     TMembershipAssignInput,
     TMembershipPointAdjustInput
 } from '@xpert-ai/contracts'
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { RequestContext } from '@xpert-ai/server-core'
-import { DataSource, EntityManager, Repository } from 'typeorm'
+import { RequestContext, UserOrganization } from '@xpert-ai/server-core'
+import { t } from 'i18next'
+import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
 import { ExceedingLimitException } from '../core/errors'
 import { formatInUTC0 } from '../shared/utils'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
+import { Copilot } from '../copilot/copilot.entity'
 
-const DEFAULT_PLAN_CODE = 'default'
 const DEFAULT_PLAN_NAME = 'Default'
 const DEFAULT_INCLUDED_POINTS = 1000
+const DEFAULT_UNLIMITED_PLAN_CODE = 'default-unlimited'
+const DEFAULT_UNLIMITED_PLAN_NAME = 'Default Unlimited'
 const DEFAULT_TOKENS_PER_POINT = 1000
 const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 
 type RecordUsageInput = {
     tenantId: string
-    organizationId?: string
+    organizationId?: string | null
+    copilotOrganizationId?: string | null
     userId: string
     provider?: string
     model?: string
@@ -42,7 +48,27 @@ type RecordUsageInput = {
 
 type BillableUserInput = Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId'>
 
-type MembershipWithPlan = UserMembership & { plan: MembershipPlan }
+type MembershipWithPlan = UserMembership & { plan: IMembershipPlan }
+
+type MembershipScope = {
+    tenantId: string
+    organizationId: string | null
+}
+
+type ResolveScopeInput = {
+    tenantId?: string | null
+    organizationId?: string | null
+}
+
+type EnsureScopeInitializedInput = ResolveScopeInput & {
+    assignedById?: string | null
+}
+
+export type MembershipModelAccess = {
+    tenantId: string
+    organizationId: string | null
+    membership: MembershipWithPlan
+}
 
 type NumericRaw = Record<string, string | number | null | undefined>
 
@@ -101,31 +127,35 @@ export class MembershipService {
         @InjectRepository(MembershipPointLedger)
         private readonly ledgerRepository: Repository<MembershipPointLedger>,
         @InjectRepository(Xpert)
-        private readonly xpertRepository: Repository<Xpert>
+        private readonly xpertRepository: Repository<Xpert>,
+        @Optional()
+        @InjectRepository(UserOrganization)
+        private readonly userOrganizationRepository?: Repository<UserOrganization>,
+        @Optional()
+        @InjectRepository(Copilot)
+        private readonly copilotRepository?: Repository<Copilot>
     ) {}
 
     async findPlans(): Promise<MembershipPlan[]> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
-        await this.ensureDefaultPlan(tenantId)
+        const { tenantId, organizationId } = this.requireCurrentScope()
         return this.planRepository.find({
-            where: { tenantId },
+            where: this.scopeWhere(tenantId, organizationId),
             order: { isDefault: 'DESC', createdAt: 'ASC' }
         })
     }
 
     async createPlan(input: Partial<MembershipPlan>): Promise<MembershipPlan> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         const plan = this.planRepository.create({
             tenantId,
+            organizationId,
             code: input.code?.trim() || this.slugify(input.name || DEFAULT_PLAN_NAME),
             name: input.name?.trim() || DEFAULT_PLAN_NAME,
             description: input.description,
             status: input.status ?? MembershipPlanStatusEnum.Active,
             isDefault: input.isDefault ?? false,
             period: input.period ?? MembershipPeriodEnum.Monthly,
-            includedPoints: this.positiveInteger(input.includedPoints, DEFAULT_INCLUDED_POINTS),
+            includedPoints: this.positiveIntegerOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS),
             tokensPerPoint: this.positiveInteger(input.tokensPerPoint, DEFAULT_TOKENS_PER_POINT),
             priceAmount: input.priceAmount,
             priceCurrency: input.priceCurrency,
@@ -134,25 +164,32 @@ export class MembershipService {
         })
 
         return this.dataSource.transaction(async (manager) => {
+            await this.assertPlanCodeAvailable(
+                manager.getRepository(MembershipPlan),
+                tenantId,
+                organizationId,
+                plan.code
+            )
             if (plan.isDefault) {
-                await this.clearDefaultPlan(tenantId, manager)
+                await this.clearDefaultPlan(tenantId, organizationId, manager)
             }
             return manager.getRepository(MembershipPlan).save(plan)
         })
     }
 
     async updatePlan(id: string, input: Partial<MembershipPlan>): Promise<MembershipPlan> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         return this.dataSource.transaction(async (manager) => {
             const repository = manager.getRepository(MembershipPlan)
-            const plan = await repository.findOne({ where: { id, tenantId } })
+            const plan = await repository.findOne({ where: { ...this.scopeWhere(tenantId, organizationId), id } })
             if (!plan) {
                 throw new BadRequestException('Membership plan not found.')
             }
 
             if (input.code !== undefined) {
-                plan.code = input.code.trim()
+                const code = input.code.trim()
+                await this.assertPlanCodeAvailable(repository, tenantId, organizationId, code, plan.id)
+                plan.code = code
             }
             if (input.name !== undefined) {
                 plan.name = input.name.trim()
@@ -167,7 +204,7 @@ export class MembershipService {
                 plan.period = input.period
             }
             if (input.includedPoints !== undefined) {
-                plan.includedPoints = this.positiveInteger(input.includedPoints, DEFAULT_INCLUDED_POINTS)
+                plan.includedPoints = this.positiveIntegerOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS)
             }
             if (input.tokensPerPoint !== undefined) {
                 plan.tokensPerPoint = this.positiveInteger(input.tokensPerPoint, DEFAULT_TOKENS_PER_POINT)
@@ -187,7 +224,7 @@ export class MembershipService {
             if (input.isDefault !== undefined) {
                 plan.isDefault = input.isDefault
                 if (plan.isDefault) {
-                    await this.clearDefaultPlan(tenantId, manager, plan.id)
+                    await this.clearDefaultPlan(tenantId, organizationId, manager, plan.id)
                 }
             }
 
@@ -199,16 +236,48 @@ export class MembershipService {
         return this.updatePlan(id, { status: MembershipPlanStatusEnum.Archived, isDefault: false })
     }
 
+    async getScopeStatus(input?: ResolveScopeInput, manager?: EntityManager): Promise<IMembershipScopeStatus> {
+        const scope = this.resolveScope(input)
+        return this.buildScopeStatus(scope, manager)
+    }
+
+    async ensureScopeInitialized(
+        input?: EnsureScopeInitializedInput,
+        manager?: EntityManager
+    ): Promise<IMembershipScopeStatus> {
+        const scope = this.resolveScope(input)
+        if (!scope.organizationId) {
+            return this.buildScopeStatus(scope, manager)
+        }
+
+        const initialize = async (txManager: EntityManager) => {
+            const plan = await this.ensureDefaultOrganizationPlan(scope, txManager)
+            await this.ensureOrganizationMemberMemberships(scope, plan, input?.assignedById ?? null, txManager)
+            return this.buildScopeStatus(scope, txManager)
+        }
+
+        return manager ? initialize(manager) : this.dataSource.transaction(initialize)
+    }
+
+    async ensureUserAssignedIfScopeInitialized(input: EnsureScopeInitializedInput & { userId: string }) {
+        const scope = this.resolveScope(input)
+        if (!scope.organizationId) {
+            return null
+        }
+        if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId))) {
+            return null
+        }
+
+        await this.ensureScopeInitialized(input)
+        return this.findActiveMembership(scope.tenantId, scope.organizationId, input.userId)
+    }
+
     async findAdminUsers(options?: {
         userId?: string
         take?: number
         skip?: number
     }): Promise<IPagination<UserMembership>> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
-        if (options?.userId) {
-            await this.ensureActiveMembership(tenantId, options.userId)
-        }
+        const { tenantId, organizationId } = this.requireCurrentScope()
 
         const take = Number(options?.take ?? 20)
         const skip = Number(options?.skip ?? 0)
@@ -222,6 +291,8 @@ export class MembershipService {
             .take(take)
             .skip(skip)
 
+        this.applyScopeFilter(qb, 'membership.organizationId', organizationId)
+
         if (options?.userId) {
             qb.andWhere('membership.userId = :userId', { userId: options.userId })
         }
@@ -231,19 +302,22 @@ export class MembershipService {
     }
 
     async assignUser(userId: string, input: TMembershipAssignInput): Promise<UserMembership> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         const assignedById = RequestContext.currentUserId()
 
         return this.dataSource.transaction(async (manager) => {
             const plan = await manager.getRepository(MembershipPlan).findOne({
-                where: { tenantId, id: input.planId, status: MembershipPlanStatusEnum.Active }
+                where: {
+                    ...this.scopeWhere(tenantId, organizationId),
+                    id: input.planId,
+                    status: MembershipPlanStatusEnum.Active
+                }
             })
             if (!plan) {
                 throw new BadRequestException('Membership plan not found.')
             }
 
-            const membership = await this.findActiveMembershipForUpdate(tenantId, userId, manager)
+            const membership = await this.findActiveMembershipForUpdate(tenantId, organizationId, userId, manager)
             const start = input.currentPeriodStart ? new Date(input.currentPeriodStart) : new Date()
             const end = input.currentPeriodEnd ? new Date(input.currentPeriodEnd) : periodEndFor(start, plan.period)
             const repository = manager.getRepository(UserMembership)
@@ -251,6 +325,7 @@ export class MembershipService {
                 membership ??
                 repository.create({
                     tenantId,
+                    organizationId,
                     userId,
                     status: MembershipStatusEnum.Active,
                     pointsTotalUsed: 0
@@ -272,11 +347,12 @@ export class MembershipService {
             const saved = await repository.save(record)
             await this.createLedger(manager, {
                 tenantId,
+                organizationId,
                 userId,
                 membershipId: saved.id,
                 planId: plan.id,
                 source: MembershipLedgerSourceEnum.Assignment,
-                pointsDelta: plan.includedPoints,
+                pointsDelta: plan.includedPoints ?? 0,
                 reason: input.note ?? null
             })
 
@@ -285,18 +361,21 @@ export class MembershipService {
     }
 
     async adjustUserPoints(userId: string, input: TMembershipPointAdjustInput): Promise<UserMembership> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         if (!Number.isFinite(input.pointDelta) || input.pointDelta === 0) {
             throw new BadRequestException('pointDelta must be a non-zero number.')
         }
 
         return this.dataSource.transaction(async (manager) => {
-            const membership = await this.ensureActiveMembership(tenantId, userId, manager, true)
+            const membership = await this.requireActiveMembership(tenantId, organizationId, userId, manager, true)
+            if (membership.pointsGranted === null) {
+                throw new BadRequestException('Cannot adjust points for an unlimited membership.')
+            }
             membership.pointsGranted = Math.max(0, (membership.pointsGranted ?? 0) + Math.trunc(input.pointDelta))
             const saved = await manager.getRepository(UserMembership).save(membership)
             await this.createLedger(manager, {
                 tenantId,
+                organizationId,
                 userId,
                 membershipId: saved.id,
                 planId: saved.planId,
@@ -309,24 +388,28 @@ export class MembershipService {
     }
 
     async renewUser(userId: string): Promise<UserMembership> {
-        this.assertTenantScope()
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         return this.dataSource.transaction(async (manager) => {
-            const membership = await this.ensureActiveMembership(tenantId, userId, manager, true)
+            const membership = await this.requireActiveMembership(tenantId, organizationId, userId, manager, true)
             const renewed = await this.renewMembership(membership, manager)
             return this.findMembershipById(renewed.id, manager)
         })
     }
 
-    async getMe(): Promise<IMembershipMe> {
-        const membership = await this.ensureActiveMembership(this.requireTenant(), this.requireUser())
-        return this.toMembershipMe(membership)
+    async getMe(): Promise<IMembershipMe | null> {
+        const { tenantId, organizationId } = this.requireCurrentScope()
+        const access = await this.findModelAccess({ tenantId, organizationId, userId: this.requireUser() })
+        return access ? this.toMembershipMe(access.membership) : null
     }
 
-    async getOverview(query?: IMembershipUsageQuery): Promise<IMembershipUsageOverview> {
-        const tenantId = this.requireTenant()
+    async getOverview(query?: IMembershipUsageQuery): Promise<IMembershipUsageOverview | null> {
+        const { tenantId, organizationId } = this.requireCurrentScope()
         const userId = this.requireUser()
-        const membership = await this.ensureActiveMembership(tenantId, userId)
+        const access = await this.findModelAccess({ tenantId, organizationId, userId })
+        if (!access) {
+            return null
+        }
+        const membership = access.membership
         const base = this.toMembershipMe(membership)
         const { start, end } = this.resolveDateRange(query)
 
@@ -338,6 +421,7 @@ export class MembershipService {
                 .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
                 .where('ledger.tenantId = :tenantId', { tenantId })
                 .andWhere('ledger.userId = :userId', { userId })
+                .andWhere('ledger.membershipId = :membershipId', { membershipId: membership.id })
                 .andWhere('ledger.source = :source', { source: MembershipLedgerSourceEnum.Usage })
                 .andWhere('ledger.createdAt >= :start', { start })
                 .andWhere('ledger.createdAt <= :end', { end })
@@ -353,9 +437,9 @@ export class MembershipService {
         }))
 
         const [topModels, topXperts, topThreads] = await Promise.all([
-            this.findTopLedgerRanks(tenantId, userId, 'model', query, start, end),
-            this.findTopLedgerRanks(tenantId, userId, 'xpertId', query, start, end),
-            this.findTopLedgerRanks(tenantId, userId, 'threadId', query, start, end)
+            this.findTopLedgerRanks(tenantId, userId, membership.id, 'model', query, start, end),
+            this.findTopLedgerRanks(tenantId, userId, membership.id, 'xpertId', query, start, end),
+            this.findTopLedgerRanks(tenantId, userId, membership.id, 'threadId', query, start, end)
         ])
 
         const totalTokens = buckets.reduce((sum, item) => sum + item.tokenUsed, 0)
@@ -377,25 +461,34 @@ export class MembershipService {
         query?: IMembershipUsageQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<MembershipPointLedger>> {
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         const userId = this.requireUser()
-        return this.findUserUsage(tenantId, userId, query, options)
+        const access = await this.findModelAccess({ tenantId, organizationId, userId })
+        if (!access) {
+            return { items: [], total: 0 }
+        }
+        return this.findUserUsage(tenantId, userId, query, options, access.membership.id)
     }
 
     async findMyUsageSummaries(
         query?: IMembershipUsageQuery,
         options?: { take?: number; skip?: number }
     ): Promise<IPagination<IMembershipUsageSummary>> {
-        const tenantId = this.requireTenant()
+        const { tenantId, organizationId } = this.requireCurrentScope()
         const userId = this.requireUser()
-        return this.findUserUsageSummaries(tenantId, userId, query, options)
+        const access = await this.findModelAccess({ tenantId, organizationId, userId })
+        if (!access) {
+            return { items: [], total: 0 }
+        }
+        return this.findUserUsageSummaries(tenantId, userId, query, options, access.membership.id)
     }
 
     async findUserUsageSummaries(
         tenantId: string,
         userId: string,
         query?: IMembershipUsageQuery,
-        options?: { take?: number; skip?: number }
+        options?: { take?: number; skip?: number },
+        membershipId?: string
     ): Promise<IPagination<IMembershipUsageSummary>> {
         const take = Number(options?.take ?? 20)
         const skip = Number(options?.skip ?? 0)
@@ -448,6 +541,10 @@ export class MembershipService {
             query
         )
 
+        if (membershipId) {
+            qb.andWhere('ledger.membershipId = :membershipId', { membershipId })
+        }
+
         const rows = await qb.getRawMany<MembershipUsageSummaryRaw>()
         return {
             items: rows.map((row) => this.toUsageSummary(row)),
@@ -459,7 +556,8 @@ export class MembershipService {
         tenantId: string,
         userId: string,
         query?: IMembershipUsageQuery,
-        options?: { take?: number; skip?: number }
+        options?: { take?: number; skip?: number },
+        membershipId?: string
     ): Promise<IPagination<MembershipPointLedger>> {
         const take = Number(options?.take ?? 20)
         const skip = Number(options?.skip ?? 0)
@@ -475,20 +573,48 @@ export class MembershipService {
             .take(take)
             .skip(skip)
 
+        if (membershipId) {
+            qb.andWhere('ledger.membershipId = :membershipId', { membershipId })
+        }
+
         this.applyLedgerFilters(qb, query)
         const [items, total] = await qb.getManyAndCount()
         return { items, total }
     }
 
     async assertCanUse(
-        input: Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId' | 'provider' | 'model'>
+        input: Pick<
+            RecordUsageInput,
+            'tenantId' | 'organizationId' | 'copilotOrganizationId' | 'userId' | 'xpertId' | 'provider' | 'model'
+        >
     ): Promise<void> {
-        const billableUserId = await this.resolveBillableUserId(input)
-        const membership = await this.ensureActiveMembership(input.tenantId, billableUserId)
-        if (this.pointsRemaining(membership) <= 0) {
-            throw new ExceedingLimitException('Membership points limit exceeded.')
+        const access = await this.findModelAccessWithOrganizationSelfHeal({
+            tenantId: input.tenantId,
+            organizationId: input.organizationId,
+            copilotOrganizationId: input.copilotOrganizationId,
+            userId: input.userId,
+            xpertId: input.xpertId
+        })
+        if (!access) {
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPlanRequired',
+                    'Membership plan is required to use Copilot models.'
+                )
+            )
         }
-        await this.assertRateLimits(membership, input.provider, input.model)
+        this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
+
+        const pointsRemaining = this.pointsRemaining(access.membership)
+        if (pointsRemaining !== null && pointsRemaining <= 0) {
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPointsLimitExceeded',
+                    'Membership points limit exceeded.'
+                )
+            )
+        }
+        await this.assertRateLimits(access.membership, input.provider, input.model)
     }
 
     async recordUsage(input: RecordUsageInput): Promise<MembershipPointLedger | null> {
@@ -499,8 +625,29 @@ export class MembershipService {
 
         let exceeded = false
         const ledger = await this.dataSource.transaction(async (manager) => {
-            const billableUserId = await this.resolveBillableUserId(input, manager)
-            const membership = await this.ensureActiveMembership(input.tenantId, billableUserId, manager, true)
+            const access = await this.findModelAccessWithOrganizationSelfHeal(
+                {
+                    tenantId: input.tenantId,
+                    organizationId: input.organizationId,
+                    copilotOrganizationId: input.copilotOrganizationId,
+                    userId: input.userId,
+                    xpertId: input.xpertId
+                },
+                manager,
+                true
+            )
+            if (!access) {
+                throw new ExceedingLimitException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPlanRequired',
+                        'Membership plan is required to use Copilot models.'
+                    )
+                )
+            }
+            this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
+
+            const { membership, organizationId } = access
+            const billableUserId = membership.userId
             const pointsUsed = this.calculatePoints(tokenUsed, membership.plan, input.provider, input.model)
             membership.pointsUsed = (membership.pointsUsed ?? 0) + pointsUsed
             const saved = await manager.getRepository(UserMembership).save(membership)
@@ -514,14 +661,14 @@ export class MembershipService {
                 tokenUsed,
                 provider: input.provider,
                 model: input.model,
-                organizationId: input.organizationId,
+                organizationId,
                 xpertId: input.xpertId,
                 threadId: input.threadId,
                 copilotId: input.copilotId,
                 usageHour: formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
             })
 
-            if (saved.pointsGranted && saved.pointsUsed > saved.pointsGranted) {
+            if (saved.pointsGranted !== null && saved.pointsUsed > saved.pointsGranted) {
                 exceeded = true
             }
 
@@ -529,7 +676,12 @@ export class MembershipService {
         })
 
         if (exceeded) {
-            throw new ExceedingLimitException('Membership points limit exceeded.')
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPointsLimitExceeded',
+                    'Membership points limit exceeded.'
+                )
+            )
         }
 
         return ledger
@@ -562,88 +714,380 @@ export class MembershipService {
         return Math.max(1, Math.ceil((tokenUsed / tokensPerPoint) * multiplier))
     }
 
-    private async ensureDefaultPlan(tenantId: string, manager?: EntityManager): Promise<MembershipPlan> {
-        const repository = manager?.getRepository(MembershipPlan) ?? this.planRepository
-        let plan = await repository.findOne({
-            where: {
+    async findModelAccess(
+        input?: {
+            tenantId?: string | null
+            organizationId?: string | null
+            userId?: string | null
+            xpertId?: string | null
+        },
+        manager?: EntityManager,
+        forUpdate = false
+    ): Promise<MembershipModelAccess | null> {
+        const tenantId = input?.tenantId ?? this.requireTenant()
+        const organizationId = this.normalizeScopeOrganizationId(input?.organizationId)
+        const userId = input?.userId ?? this.requireUser()
+        const billableUserId = await this.resolveBillableUserId(
+            {
                 tenantId,
-                isDefault: true,
-                status: MembershipPlanStatusEnum.Active
+                userId,
+                xpertId: input?.xpertId ?? undefined
+            },
+            manager
+        )
+        if (organizationId) {
+            const membership = await this.findUsableMembership(
+                tenantId,
+                organizationId,
+                billableUserId,
+                manager,
+                forUpdate
+            )
+            if (membership) {
+                return {
+                    tenantId,
+                    organizationId,
+                    membership
+                }
             }
-        })
-        if (plan) {
-            return plan
+
+            if (await this.hasActivePlan(tenantId, organizationId, manager)) {
+                return null
+            }
         }
 
-        plan = await repository.findOne({
-            where: {
+        const tenantMembership = await this.findUsableMembership(tenantId, null, billableUserId, manager, forUpdate)
+        if (tenantMembership) {
+            return {
                 tenantId,
-                code: DEFAULT_PLAN_CODE
+                organizationId: null,
+                membership: tenantMembership
             }
-        })
-        if (plan) {
-            plan.isDefault = true
-            plan.status = MembershipPlanStatusEnum.Active
-            return repository.save(plan)
         }
 
-        return repository.save(
-            repository.create({
-                tenantId,
-                code: DEFAULT_PLAN_CODE,
-                name: DEFAULT_PLAN_NAME,
-                status: MembershipPlanStatusEnum.Active,
-                isDefault: true,
-                period: MembershipPeriodEnum.Monthly,
-                includedPoints: DEFAULT_INCLUDED_POINTS,
-                tokensPerPoint: DEFAULT_TOKENS_PER_POINT,
-                modelMultipliers: [],
-                rateLimits: []
-            })
+        return null
+    }
+
+    private async findModelAccessWithOrganizationSelfHeal(
+        input: {
+            tenantId: string
+            organizationId?: string | null
+            copilotOrganizationId?: string | null
+            userId: string
+            xpertId?: string | null
+        },
+        manager?: EntityManager,
+        forUpdate = false
+    ) {
+        let access = await this.findModelAccess(input, manager, forUpdate)
+        if (!this.shouldSelfHealOrganizationAccess(input.organizationId, input.copilotOrganizationId)) {
+            return access
+        }
+        if (access?.organizationId === this.normalizeScopeOrganizationId(input.copilotOrganizationId)) {
+            return access
+        }
+
+        await this.ensureScopeInitialized(
+            {
+                tenantId: input.tenantId,
+                organizationId: input.organizationId,
+                assignedById: input.userId
+            },
+            manager
+        )
+        access = await this.findModelAccess(input, manager, forUpdate)
+        return access
+    }
+
+    private shouldSelfHealOrganizationAccess(organizationId?: string | null, copilotOrganizationId?: string | null) {
+        const normalizedOrganizationId = this.normalizeScopeOrganizationId(organizationId)
+        return (
+            !!normalizedOrganizationId &&
+            normalizedOrganizationId === this.normalizeScopeOrganizationId(copilotOrganizationId)
         )
     }
 
-    private async ensureActiveMembership(
-        tenantId: string,
-        userId: string,
-        manager?: EntityManager,
-        forUpdate = false
-    ): Promise<MembershipWithPlan> {
-        let membership = forUpdate
-            ? await this.findActiveMembershipForUpdate(tenantId, userId, manager)
-            : await this.findActiveMembership(tenantId, userId, manager)
+    private async buildScopeStatus(scope: MembershipScope, manager?: EntityManager): Promise<IMembershipScopeStatus> {
+        const planRepository = manager?.getRepository(MembershipPlan) ?? this.planRepository
+        const [plans, defaultPlan] = await Promise.all([
+            planRepository.find({
+                where: this.scopeWhere(scope.tenantId, scope.organizationId),
+                order: { isDefault: 'DESC', createdAt: 'ASC' }
+            }),
+            this.findDefaultPlan(scope.tenantId, scope.organizationId, manager)
+        ])
+        const activePlanCount = plans.filter((plan) => plan.status === MembershipPlanStatusEnum.Active).length
+        const isOrganizationScope = !!scope.organizationId
+        const activeUserIds = isOrganizationScope
+            ? await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+            : []
+        const assignedMemberCount = isOrganizationScope
+            ? await this.countAssignedOrganizationMemberships(scope, activeUserIds, manager)
+            : null
+        const localCopilotCount = isOrganizationScope
+            ? await this.countEnabledOrganizationCopilots(scope.tenantId, scope.organizationId, manager)
+            : null
+        const hasDefaultPlan = !!defaultPlan
+        const initialized = isOrganizationScope
+            ? hasDefaultPlan && assignedMemberCount === activeUserIds.length
+            : activePlanCount > 0
 
-        if (!membership) {
-            const plan = await this.ensureDefaultPlan(tenantId, manager)
-            const start = new Date()
-            const repository = manager?.getRepository(UserMembership) ?? this.membershipRepository
-            membership = (await repository.save(
+        return {
+            tenantId: scope.tenantId,
+            organizationId: scope.organizationId,
+            scope: isOrganizationScope ? 'organization' : 'tenant',
+            planCount: plans.length,
+            activePlanCount,
+            defaultPlan,
+            initialized,
+            needsRepair: isOrganizationScope
+                ? (!!activePlanCount && (!hasDefaultPlan || assignedMemberCount !== activeUserIds.length)) ||
+                  (!activePlanCount && !!localCopilotCount)
+                : false,
+            activeMemberCount: isOrganizationScope ? activeUserIds.length : null,
+            assignedMemberCount,
+            localCopilotCount
+        }
+    }
+
+    private async ensureDefaultOrganizationPlan(scope: MembershipScope, manager: EntityManager) {
+        const repository = manager.getRepository(MembershipPlan)
+        const existingDefaultPlan = await this.findDefaultPlan(scope.tenantId, scope.organizationId, manager)
+        if (existingDefaultPlan) {
+            return existingDefaultPlan
+        }
+
+        const activePlan = await repository.findOne({
+            where: {
+                ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                status: MembershipPlanStatusEnum.Active
+            },
+            order: { createdAt: 'ASC' }
+        })
+        if (activePlan) {
+            await this.clearDefaultPlan(scope.tenantId, scope.organizationId, manager, activePlan.id)
+            activePlan.isDefault = true
+            return repository.save(activePlan)
+        }
+
+        const archivedDefaultPlan = await repository.findOne({
+            where: {
+                ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                code: DEFAULT_UNLIMITED_PLAN_CODE
+            }
+        })
+        if (archivedDefaultPlan) {
+            await this.clearDefaultPlan(scope.tenantId, scope.organizationId, manager, archivedDefaultPlan.id)
+            archivedDefaultPlan.name = archivedDefaultPlan.name || DEFAULT_UNLIMITED_PLAN_NAME
+            archivedDefaultPlan.status = MembershipPlanStatusEnum.Active
+            archivedDefaultPlan.isDefault = true
+            archivedDefaultPlan.includedPoints = null
+            archivedDefaultPlan.tokensPerPoint = archivedDefaultPlan.tokensPerPoint || DEFAULT_TOKENS_PER_POINT
+            archivedDefaultPlan.period = archivedDefaultPlan.period || MembershipPeriodEnum.Monthly
+            archivedDefaultPlan.modelMultipliers = archivedDefaultPlan.modelMultipliers ?? []
+            archivedDefaultPlan.rateLimits = archivedDefaultPlan.rateLimits ?? []
+            return repository.save(archivedDefaultPlan)
+        }
+
+        const plan = repository.create({
+            tenantId: scope.tenantId,
+            organizationId: scope.organizationId,
+            code: DEFAULT_UNLIMITED_PLAN_CODE,
+            name: DEFAULT_UNLIMITED_PLAN_NAME,
+            status: MembershipPlanStatusEnum.Active,
+            isDefault: true,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: null,
+            tokensPerPoint: DEFAULT_TOKENS_PER_POINT,
+            modelMultipliers: [],
+            rateLimits: []
+        })
+        await this.clearDefaultPlan(scope.tenantId, scope.organizationId, manager)
+        return repository.save(plan)
+    }
+
+    private async ensureOrganizationMemberMemberships(
+        scope: MembershipScope,
+        plan: MembershipPlan,
+        assignedById: string | null,
+        manager: EntityManager
+    ) {
+        if (!scope.organizationId) {
+            return
+        }
+
+        const userIds = await this.findActiveOrganizationUserIds(scope.tenantId, scope.organizationId, manager)
+        if (!userIds.length) {
+            return
+        }
+
+        const repository = manager.getRepository(UserMembership)
+        const existingMemberships = await repository.find({
+            select: ['userId'],
+            where: {
+                ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                userId: In(userIds),
+                status: MembershipStatusEnum.Active
+            }
+        })
+        const existingUserIds = new Set(existingMemberships.map((membership) => membership.userId))
+        const missingUserIds = userIds.filter((userId) => !existingUserIds.has(userId))
+        if (!missingUserIds.length) {
+            return
+        }
+
+        const start = new Date()
+        const end = periodEndFor(start, plan.period)
+        for (const userId of missingUserIds) {
+            const membership = await repository.save(
                 repository.create({
-                    tenantId,
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
                     userId,
                     planId: plan.id,
                     status: MembershipStatusEnum.Active,
                     currentPeriodStart: start,
-                    currentPeriodEnd: periodEndFor(start, plan.period),
+                    currentPeriodEnd: end,
                     pointsGranted: plan.includedPoints,
                     pointsUsed: 0,
-                    pointsTotalUsed: 0
+                    pointsTotalUsed: 0,
+                    assignedById: assignedById ?? undefined,
+                    note: 'Organization membership initialized'
                 })
-            )) as MembershipWithPlan
-            membership.plan = plan
+            )
             await this.createLedger(manager, {
-                tenantId,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
                 userId,
                 membershipId: membership.id,
                 planId: plan.id,
-                source: MembershipLedgerSourceEnum.Grant,
-                pointsDelta: plan.includedPoints,
-                reason: 'Default plan grant'
+                source: MembershipLedgerSourceEnum.Assignment,
+                pointsDelta: plan.includedPoints ?? 0,
+                reason: 'Organization membership initialized'
             })
+        }
+    }
+
+    private async findDefaultPlan(
+        tenantId: string,
+        organizationId: string | null,
+        manager?: EntityManager
+    ): Promise<MembershipPlan | null> {
+        const repository = manager?.getRepository(MembershipPlan) ?? this.planRepository
+        return repository.findOne({
+            where: {
+                ...this.scopeWhere(tenantId, organizationId),
+                status: MembershipPlanStatusEnum.Active,
+                isDefault: true
+            }
+        })
+    }
+
+    private async hasActivePlan(tenantId: string, organizationId: string | null, manager?: EntityManager) {
+        const repository = manager?.getRepository(MembershipPlan) ?? this.planRepository
+        if (!repository?.count) {
+            return false
+        }
+        return (
+            (await repository.count({
+                where: {
+                    ...this.scopeWhere(tenantId, organizationId),
+                    status: MembershipPlanStatusEnum.Active
+                }
+            })) > 0
+        )
+    }
+
+    private async findActiveOrganizationUserIds(
+        tenantId: string,
+        organizationId: string,
+        manager?: EntityManager
+    ): Promise<string[]> {
+        const repository = manager?.getRepository(UserOrganization) ?? this.userOrganizationRepository
+        if (!repository?.find) {
+            return []
+        }
+        const memberships = await repository.find({
+            select: ['userId'],
+            where: {
+                tenantId,
+                organizationId,
+                isActive: true
+            }
+        })
+        return Array.from(new Set(memberships.map((membership) => membership.userId).filter(Boolean)))
+    }
+
+    private async countAssignedOrganizationMemberships(
+        scope: MembershipScope,
+        userIds: string[],
+        manager?: EntityManager
+    ) {
+        if (!scope.organizationId || !userIds.length) {
+            return 0
+        }
+        const repository = manager?.getRepository(UserMembership) ?? this.membershipRepository
+        return repository.count({
+            where: {
+                ...this.scopeWhere(scope.tenantId, scope.organizationId),
+                userId: In(userIds),
+                status: MembershipStatusEnum.Active
+            }
+        })
+    }
+
+    async countEnabledOrganizationCopilots(tenantId: string, organizationId: string | null, manager?: EntityManager) {
+        if (!organizationId) {
+            return 0
+        }
+        const repository = manager?.getRepository(Copilot) ?? this.copilotRepository
+        if (!repository?.count) {
+            return 0
+        }
+        return repository.count({
+            where: {
+                tenantId,
+                organizationId,
+                enabled: true
+            }
+        })
+    }
+
+    private async requireActiveMembership(
+        tenantId: string,
+        organizationId: string | null,
+        userId: string,
+        manager?: EntityManager,
+        forUpdate = false
+    ): Promise<MembershipWithPlan> {
+        const membership = await this.findUsableMembership(tenantId, organizationId, userId, manager, forUpdate)
+        if (!membership) {
+            throw new BadRequestException('Membership not found.')
+        }
+        return membership
+    }
+
+    private async findUsableMembership(
+        tenantId: string,
+        organizationId: string | null,
+        userId: string,
+        manager?: EntityManager,
+        forUpdate = false
+    ): Promise<MembershipWithPlan | null> {
+        let membership = forUpdate
+            ? await this.findActiveMembershipForUpdate(tenantId, organizationId, userId, manager)
+            : await this.findActiveMembership(tenantId, organizationId, userId, manager)
+
+        if (!membership) {
+            return null
         }
 
         if (!membership.plan) {
             membership = await this.findMembershipById(membership.id, manager)
+        }
+
+        if (membership.plan.status !== MembershipPlanStatusEnum.Active) {
+            return null
         }
 
         if (new Date(membership.currentPeriodEnd).getTime() <= Date.now()) {
@@ -655,26 +1099,28 @@ export class MembershipService {
 
     private async findActiveMembership(
         tenantId: string,
+        organizationId: string | null,
         userId: string,
         manager?: EntityManager
     ): Promise<MembershipWithPlan | null> {
         const repository = manager?.getRepository(UserMembership) ?? this.membershipRepository
         return (await repository.findOne({
-            where: { tenantId, userId, status: MembershipStatusEnum.Active },
+            where: { ...this.scopeWhere(tenantId, organizationId), userId, status: MembershipStatusEnum.Active },
             relations: ['plan']
         })) as MembershipWithPlan | null
     }
 
     private async findActiveMembershipForUpdate(
         tenantId: string,
+        organizationId: string | null,
         userId: string,
         manager?: EntityManager
     ): Promise<MembershipWithPlan | null> {
         if (!manager) {
-            return this.findActiveMembership(tenantId, userId)
+            return this.findActiveMembership(tenantId, organizationId, userId)
         }
 
-        const membership = (await manager
+        const qb = manager
             .getRepository(UserMembership)
             .createQueryBuilder('membership')
             .leftJoinAndSelect('membership.plan', 'plan')
@@ -682,7 +1128,9 @@ export class MembershipService {
             .andWhere('membership.userId = :userId', { userId })
             .andWhere('membership.status = :status', { status: MembershipStatusEnum.Active })
             .setLock('pessimistic_write', undefined, ['membership'])
-            .getOne()) as MembershipWithPlan | null
+
+        this.applyScopeFilter(qb, 'membership.organizationId', organizationId)
+        const membership = (await qb.getOne()) as MembershipWithPlan | null
 
         return membership
     }
@@ -702,11 +1150,12 @@ export class MembershipService {
         saved.plan = membership.plan
         await this.createLedger(manager, {
             tenantId: saved.tenantId,
+            organizationId: saved.organizationId ?? null,
             userId: saved.userId,
             membershipId: saved.id,
             planId: saved.planId,
             source: MembershipLedgerSourceEnum.Renew,
-            pointsDelta: saved.pointsGranted,
+            pointsDelta: saved.pointsGranted ?? 0,
             reason: 'Membership period renewed'
         })
         return saved
@@ -732,7 +1181,12 @@ export class MembershipService {
         return repository.save(repository.create(input))
     }
 
-    private async clearDefaultPlan(tenantId: string, manager: EntityManager, exceptId?: string) {
+    private async clearDefaultPlan(
+        tenantId: string,
+        organizationId: string | null,
+        manager: EntityManager,
+        exceptId?: string
+    ) {
         const qb = manager
             .getRepository(MembershipPlan)
             .createQueryBuilder()
@@ -740,11 +1194,36 @@ export class MembershipService {
             .set({ isDefault: false })
             .where('tenantId = :tenantId', { tenantId })
 
+        this.applyScopeFilter(qb, 'organizationId', organizationId)
+
         if (exceptId) {
             qb.andWhere('id != :exceptId', { exceptId })
         }
 
         await qb.execute()
+    }
+
+    private async assertPlanCodeAvailable(
+        repository: Repository<MembershipPlan>,
+        tenantId: string,
+        organizationId: string | null,
+        code: string,
+        exceptId?: string
+    ) {
+        const qb = repository
+            .createQueryBuilder('plan')
+            .where('plan.tenantId = :tenantId', { tenantId })
+            .andWhere('plan.code = :code', { code })
+
+        this.applyScopeFilter(qb, 'plan.organizationId', organizationId)
+
+        if (exceptId) {
+            qb.andWhere('plan.id != :exceptId', { exceptId })
+        }
+
+        if ((await qb.getCount()) > 0) {
+            throw new BadRequestException('Membership plan code already exists.')
+        }
     }
 
     private async assertRateLimits(membership: MembershipWithPlan, provider?: string, model?: string) {
@@ -761,6 +1240,7 @@ export class MembershipService {
                 .select('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'pointsUsed')
                 .where('ledger.tenantId = :tenantId', { tenantId: membership.tenantId })
                 .andWhere('ledger.userId = :userId', { userId: membership.userId })
+                .andWhere('ledger.membershipId = :membershipId', { membershipId: membership.id })
                 .andWhere('ledger.source = :source', { source: MembershipLedgerSourceEnum.Usage })
                 .andWhere('ledger.createdAt >= :start', { start })
                 .andWhere(limit.provider ? 'ledger.provider = :provider' : '1=1', { provider: limit.provider })
@@ -802,6 +1282,7 @@ export class MembershipService {
     private async findTopLedgerRanks(
         tenantId: string,
         userId: string,
+        membershipId: string,
         dimension: 'model' | 'xpertId' | 'threadId',
         query: IMembershipUsageQuery | undefined,
         start: Date,
@@ -815,6 +1296,7 @@ export class MembershipService {
                 .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
                 .where('ledger.tenantId = :tenantId', { tenantId })
                 .andWhere('ledger.userId = :userId', { userId })
+                .andWhere('ledger.membershipId = :membershipId', { membershipId })
                 .andWhere('ledger.source = :source', { source: MembershipLedgerSourceEnum.Usage })
                 .andWhere('ledger.createdAt >= :start', { start })
                 .andWhere('ledger.createdAt <= :end', { end })
@@ -899,14 +1381,14 @@ export class MembershipService {
     }
 
     private toMembershipMe(membership: MembershipWithPlan): IMembershipMe {
-        const pointsGranted = membership.pointsGranted ?? 0
+        const pointsGranted = membership.pointsGranted ?? null
         const pointsUsed = membership.pointsUsed ?? 0
         return {
             membership,
             plan: membership.plan,
             pointsGranted,
             pointsUsed,
-            pointsRemaining: Math.max(0, pointsGranted - pointsUsed),
+            pointsRemaining: pointsGranted === null ? null : Math.max(0, pointsGranted - pointsUsed),
             pointsTotalUsed: (membership.pointsTotalUsed ?? 0) + pointsUsed,
             currentPeriodStart: membership.currentPeriodStart,
             currentPeriodEnd: membership.currentPeriodEnd
@@ -914,12 +1396,39 @@ export class MembershipService {
     }
 
     private pointsRemaining(membership: MembershipWithPlan) {
+        if (membership.pointsGranted === null) {
+            return null
+        }
         return Math.max(0, (membership.pointsGranted ?? 0) - (membership.pointsUsed ?? 0))
+    }
+
+    private assertCopilotScopeMatches(access: MembershipModelAccess, copilotOrganizationId?: string | null) {
+        const normalizedCopilotOrganizationId = this.normalizeScopeOrganizationId(copilotOrganizationId)
+        if (normalizedCopilotOrganizationId !== access.organizationId) {
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.CopilotModelUnavailableForMembershipPlan',
+                    'Copilot model is not available for the current membership plan.'
+                )
+            )
+        }
+    }
+
+    private translateMembershipError(key: string, fallback: string) {
+        const message = t(key, { defaultValue: fallback })
+        return typeof message === 'string' && message !== key ? message : fallback
     }
 
     private positiveInteger(value: unknown, fallback: number) {
         const numberValue = Number(value)
         return Number.isFinite(numberValue) && numberValue > 0 ? Math.trunc(numberValue) : fallback
+    }
+
+    private positiveIntegerOrNull(value: unknown, fallback: number) {
+        if (value === null) {
+            return null
+        }
+        return this.positiveInteger(value, fallback)
     }
 
     private slugify(value: string) {
@@ -928,6 +1437,44 @@ export class MembershipService {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '')
+    }
+
+    private requireCurrentScope(): MembershipScope {
+        return {
+            tenantId: this.requireTenant(),
+            organizationId: this.normalizeScopeOrganizationId(RequestContext.getOrganizationId())
+        }
+    }
+
+    private resolveScope(input?: ResolveScopeInput): MembershipScope {
+        return {
+            tenantId: input?.tenantId ?? this.requireTenant(),
+            organizationId: this.normalizeScopeOrganizationId(
+                input?.organizationId ?? RequestContext.getOrganizationId()
+            )
+        }
+    }
+
+    private scopeWhere(tenantId: string, organizationId: string | null) {
+        return {
+            tenantId,
+            organizationId: organizationId ?? IsNull()
+        }
+    }
+
+    private applyScopeFilter<T extends { andWhere: (where: string, parameters?: Record<string, unknown>) => T }>(
+        qb: T,
+        column: string,
+        organizationId: string | null
+    ) {
+        if (organizationId) {
+            return qb.andWhere(`${column} = :organizationId`, { organizationId })
+        }
+        return qb.andWhere(`${column} IS NULL`)
+    }
+
+    private normalizeScopeOrganizationId(organizationId?: string | null) {
+        return organizationId?.trim() || null
     }
 
     private requireTenant() {
@@ -944,11 +1491,5 @@ export class MembershipService {
             throw new ForbiddenException('User is required.')
         }
         return userId
-    }
-
-    private assertTenantScope() {
-        if (RequestContext.isOrganizationScope()) {
-            throw new ForbiddenException('Membership administration requires tenant scope.')
-        }
     }
 }

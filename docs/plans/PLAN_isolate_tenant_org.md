@@ -1,6 +1,7 @@
 ## Tenant / Organization 作用域重构方案
 
 ### Summary
+
 - 现状已经确认：
   - 前端把 `Tenant` 混入 organization 列表，用户在一个 selector 里切换了两种不同语义的上下文，见 [organization-selector.component.ts](/Users/xpertai03/GitHub/xpert/apps/cloud/src/app/@theme/header/organization-selector/organization-selector.component.ts)。
   - 请求层默认靠是否带 `Organization-Id` 判断组织上下文，见 [tenant.interceptor.ts](/Users/xpertai03/GitHub/xpert/apps/cloud/src/app/@core/interceptors/tenant.interceptor.ts)。
@@ -12,6 +13,7 @@
   - tenant 模式仅 `super admin` 可进入。
 
 ### Key Changes
+
 - 前端交互重构：
   - 把当前左上角入口从“组织选择器”升级为“作用域切换器”。
   - 列表分两组而不是同组混排：
@@ -85,6 +87,7 @@
     - tenant scope 不提供“所有 organization 混合数据”的默认列表；跨组织总览以后若做，单独设计为 admin report，不复用 tenant scope
 
 ### Public Interfaces
+
 - 前端 store / 组件接口：
   - `ActiveScope` 联合类型替代“null organization = tenant”
   - 所有 selector / guard / page facade 只消费 `activeScope`
@@ -103,6 +106,7 @@
   - 对 inheritable 资源增加 `sourceScope` / `effectiveScope`
 
 ### Test Plan
+
 - 前端：
   - super admin 可见 tenant scope；普通 org admin 不可见
   - tenant scope 与 organization scope 切换时，路由按兼容性正确重定向
@@ -123,8 +127,9 @@
   - assistants 配置页成为标准样板，后续复用不再重新发明 scope 交互
 
 ### Assumptions
+
 - tenant scope 本期定义为“租户级治理与默认配置”，不承担跨组织聚合浏览。
-- workspace 继续保持 organization-owned，不支持 tenant-shared workspace。
+- workspace authoring 继续保持 organization-owned；tenant-shared workspace 只保留 runtime/read-run 语义，不作为 organization scope 下的 `/xpert/w` 编辑、安装、创建或默认 workspace 目标。
 - 本期先不做数据库 schema 迁移；`organizationId = null` 仍是存储层兼容表示，但不再暴露为 UI/接口语义。
 - 后端大规模 service 替换分两步走：
   - 第一步补 `ScopeContext` 与兼容 helper

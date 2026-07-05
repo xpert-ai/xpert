@@ -22,7 +22,7 @@ import {
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
-import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
@@ -42,6 +42,7 @@ import { AutoTaskTemplate } from './auto-task-template.entity'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -188,7 +189,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 timeZone: task.timeZone,
 
                 onTick: () => {
-                    this.runWithTaskRequestContext(task, user, () => {
+                    void this.runWithTaskRequestContext(task, user, () => {
                         runs += 1
                         this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
                         if (task.xpertId) {
@@ -204,6 +205,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                                 this.#logger.error(err)
                             })
                         }
+                    }).catch((err) => {
+                        this.#logger.error(err)
                     })
                 }
             })
@@ -217,25 +220,32 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         if (RequestContext.currentUser()) {
             scheduleJob()
         } else {
-            runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
+            void this.runWithTaskRequestContext(task, user, () => {
                 try {
                     scheduleJob()
                 } catch (err) {
                     console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
                 }
+            }).catch((err) => {
+                this.#logger.error(err)
             })
         }
 
         this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
     }
 
-    private runWithTaskRequestContext(task: IXpertTask, user: IUser, callback: () => void) {
+    private runWithTaskRequestContext(task: IXpertTask, user: IUser, callback: () => void | Promise<void>) {
         if (!user) {
-            callback()
-            return
+            return Promise.resolve(callback())
         }
 
-        runWithRequestContext({ user, headers: { ['organization-id']: task.organizationId } }, callback)
+        const context = captureRequestContext({
+            user,
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            language: user.preferredLanguage
+        })
+        return runWithCapturedRequestContext(context, callback)
     }
 
     async removeTasks(tasks: XpertTask[]) {
@@ -1589,12 +1599,13 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         if (RequestContext.currentUser()) {
             await execute()
         } else if (createdBy) {
-            await runWithRequestContext(
-                { user: createdBy, headers: { ['organization-id']: task.organizationId } },
-                async () => {
-                    await execute()
-                }
-            )
+            const context = captureRequestContext({
+                user: createdBy,
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                language: createdBy.preferredLanguage
+            })
+            await runWithCapturedRequestContext(context, execute)
         } else {
             throw new BadRequestException('Missing createdBy context for auto task execution')
         }

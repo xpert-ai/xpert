@@ -808,6 +808,7 @@ export class UserService extends TenantAwareCrudService<User> {
 					{ searchText: `%${sanitizedText}%` }
 				)
 				.andWhere('user.tenantId = :tenantId', { tenantId })
+				.andWhere('user.type = :userType', { userType: UserType.USER })
 				.andWhere('organizationMembership.id IS NULL')
 				.andWhere('(role.name IS NULL OR role.name != :superAdminRole)', {
 					superAdminRole: RolesEnum.SUPER_ADMIN

@@ -257,6 +257,105 @@ userDefault:
 
 它只负责“如果不存在则加入”，不重写整份成员列表。
 
+## Membership 驱动的 Copilot 访问语义
+
+Copilot model 的可用性由当前用户或计费用户的有效 membership plan scope 决定，而不是由“当前组织 scope 是否配置了 copilot model”直接决定。
+
+核心规则：
+
+- tenant scope 请求只使用 tenant scope membership。
+- organization scope 请求优先使用当前组织 scope membership。
+- 当前组织没有 active membership plan 时，才回退 tenant scope membership。
+- 当前组织只要存在 active membership plan，就进入组织自管模式；即使组织暂时没有 enabled local copilots，也不会回退 tenant models。
+- tenant copilot 只能被 tenant membership 使用、限流和记账。
+- organization copilot 只能被同一 organization membership 使用、限流和记账。
+- `includedPoints = null` 表示 unlimited plan：不触发总点数上限，但仍写 usage ledger，也仍执行显式 `rateLimits`。
+
+### 组织 membership 初始化
+
+组织 membership 初始化是幂等的。初始化入口会确保当前组织有一个 active default plan，并给全部 active `UserOrganization` 成员补齐 active `UserMembership`。
+
+默认 plan 为：
+
+```ts
+{
+  code: 'default-unlimited',
+  name: 'Default Unlimited',
+  includedPoints: null,
+  tokensPerPoint: 1000,
+  isDefault: true,
+  status: 'active'
+}
+```
+
+初始化策略：
+
+- 已有 active default plan：直接使用它。
+- 有 active plan 但没有 default：把第一个 active plan 设为 default。
+- 只有 archived `default-unlimited`：重新激活并设为 default。
+- 没有可用 plan：创建新的 `default-unlimited`。
+- 成员补齐只给缺少 active membership 的 active organization members 创建记录；已有 active membership 不覆盖。
+- unlimited assignment ledger 的 `pointsDelta = 0`。
+
+### 运行时自愈
+
+为兼容旧数据，运行时允许一次幂等自愈：
+
+- 如果 organization scope 下存在 enabled local copilots，但组织没有 membership plan，查询可用模型时会先初始化组织 membership，再只返回组织 local models。
+- 如果用户直接调用 organization local copilot，`assertCanUse` / `recordUsage` 发现 `copilotOrganizationId === request organizationId` 且组织 membership 缺失时，会先初始化组织 membership，再重新校验。
+- 如果请求的是 tenant copilot，但当前有效 membership 是 organization scope，则拒绝使用。
+- 如果请求的是 organization copilot，但当前有效 membership 是 tenant scope，也拒绝使用，除非它属于当前组织并触发了上面的组织初始化自愈。
+
+因此，组织管理员在首次登录向导或设置页中移除 tenant membership plan，并启用组织自有 copilot models 后，系统会自动进入组织自管 membership 模式，聊天和 ledger 都落在 organization scope。
+
+### Scope 状态与管理入口
+
+后端提供两个 scope 管理接口：
+
+- `GET /api/membership/scope/status`
+- `POST /api/membership/scope/initialize`
+
+这两个接口使用当前 request scope，并要求 `AIPermissionsEnum.MEMBERSHIP_EDIT`。
+
+`/settings/membership` 是 dual-scope 页面：
+
+- tenant scope：展示租户计划状态和计划目录。
+- organization scope：展示组织自管状态、default plan、active members、assigned members、local copilot models 数量。
+- 未初始化时显示 “Initialize organization membership”。
+- 已有 plan 但成员 membership 不完整时显示 “Repair assignments”。
+
+组织 local admin 只要具备 `MEMBERSHIP_EDIT` 权限即可访问组织 scope 的会员页面。
+
+### 用户加入组织后的补齐
+
+用户 bootstrap 会调用 membership 补齐逻辑：
+
+- 如果当前组织已经有 active membership plan，则为新加入用户补 active membership。
+- 如果当前组织没有 active plan，不会创建 plan，也不会把普通组织误切换为自管 membership 模式。
+
+## Workspace 访问语义
+
+Xpert workspace 现在明确区分两种访问语义：
+
+- **Runtime / 使用语义**：用于聊天、ClawXpert、assistant binding、已发布 Xpert 的读取和运行。组织 scope 用户可以读取和运行 tenant-shared workspace 中已发布的 Xpert。
+- **Authoring / 编辑语义**：用于 `/xpert/w` 工作空间首页、workspace 下拉、创建 Xpert、安装 skill / plugin resource、编辑 workspace 资源和设置默认 workspace。组织 scope 用户只能看到和操作当前组织内 owner/member workspace，不会看到 tenant-shared workspace。
+
+后端接口约定：
+
+- `GET /api/xpert-workspace/my` 默认按 `purpose=runtime` 返回，保持向后兼容。
+- `GET /api/xpert-workspace/my?purpose=authoring` 只返回当前用户可作为编辑/写入目标的 workspace。
+- `GET /api/xpert-workspace/my/default?purpose=authoring` 会忽略不可编辑的 tenant-shared 默认 workspace，并回退到可编辑 workspace。
+- `POST /api/xpert-workspace/:id/default` 要求 authoring/write access；组织 scope 用户不能把 tenant-shared workspace 设为默认。
+- workspace 下的资源列表和安装类接口，例如 xperts、toolsets、knowledgebases、skills、prompt workflows、plugin resources、template install，按 authoring 语义校验目标 workspace。
+
+权限结果保持分层：
+
+- 组织 scope 用户访问 tenant-shared workspace 时仍然是 `canRead=true`、`canRun=true`。
+- 同一用户在组织 scope 下对 tenant-shared workspace 的 `canWrite=false`、`canManage=false`。
+- tenant scope 的 owner/admin 仍可管理 tenant-shared workspace。
+
+因此 `/api/assistant-binding/xperts`、published Xpert runtime access、`assertCanRun` 等使用链路不受 workspace authoring 收紧影响。将来如果需要让组织用户浏览 tenant-shared 公共资源，应新增独立入口，不复用 `/xpert/w` 这种 workspace 编辑页。
+
 ## 模板 xpert 导入
 
 组织默认 xpert 导入由环境变量控制：

@@ -43,10 +43,25 @@ import { KnowledgeGraphPanel } from './graph-components'
 import { setLocale, t } from './i18n'
 import { IconButton, KnowledgebaseOverview } from './layout-components'
 import { WorkbenchPreviewPanel } from './preview-components'
-import type { DocumentPreview, DocumentRow, GraphSummary, KnowledgebaseRow } from './types'
+import type {
+    DocumentPreview,
+    DocumentRow,
+    GraphEvidenceChunk,
+    GraphNodeDetail,
+    GraphSummary,
+    KnowledgebaseRow
+} from './types'
 import { compact, extractCitationTarget, readError } from './utils'
 
 declare const ReactDOM: any
+
+const PREVIEW_WIDTH_STORAGE_KEY = 'xpert.knowledgeWorkbench.previewWidth'
+// Store the preview column as a percentage so it survives different workbench widths.
+const DEFAULT_PREVIEW_WIDTH_PERCENT = 46
+const MIN_PREVIEW_WIDTH_PERCENT = 28
+const MAX_PREVIEW_WIDTH_PERCENT = 72
+const MIN_WORKBENCH_COLUMN_WIDTH = 320
+const RESIZE_HANDLE_WIDTH = 10
 
 function App() {
     const [ready, setReady] = React.useState(false)
@@ -69,12 +84,18 @@ function App() {
     const [graphLoading, setGraphLoading] = React.useState(false)
     const [graphSearch, setGraphSearch] = React.useState('')
     const [graphEntityType, setGraphEntityType] = React.useState('')
+    const [graphRelationType, setGraphRelationType] = React.useState('')
     const [focusedGraphNodeId, setFocusedGraphNodeId] = React.useState<string | null>(null)
+    const [focusedGraphNodeDetail, setFocusedGraphNodeDetail] = React.useState<GraphNodeDetail | null>(null)
+    const [graphDetailLoading, setGraphDetailLoading] = React.useState(false)
     const [highlightedChunkId, setHighlightedChunkId] = React.useState<string | null>(null)
     const [searchOpen, setSearchOpen] = React.useState(false)
     const [sortMode, setSortMode] = React.useState<'updated' | 'name'>('updated')
     const [createFolderDialogOpen, setCreateFolderDialogOpen] = React.useState(false)
     const [folderNameInput, setFolderNameInput] = React.useState('')
+    const [previewWidth, setPreviewWidth] = React.useState(readStoredPreviewWidth)
+    const [isNarrowViewport, setIsNarrowViewport] = React.useState(isNarrowWorkbenchViewport)
+    const layoutRef = React.useRef<HTMLElement | null>(null)
     const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
     const selectedRows = React.useMemo(() => Object.values(selected), [selected])
@@ -148,6 +169,7 @@ function App() {
                 nextKbId?: string
                 nextSearch?: string
                 nextEntityType?: string
+                nextRelationType?: string
                 nextFocusEntityId?: string | null
             } = {}
         ) => {
@@ -162,6 +184,8 @@ function App() {
             setError(null)
             try {
                 const entityType = options.nextEntityType === undefined ? graphEntityType : options.nextEntityType
+                const relationType =
+                    options.nextRelationType === undefined ? graphRelationType : options.nextRelationType
                 const focusEntityId =
                     options.nextFocusEntityId === undefined ? focusedGraphNodeId : options.nextFocusEntityId
                 const data = await requestData({
@@ -172,6 +196,7 @@ function App() {
                         table: 'graph',
                         knowledgebaseId: resolvedKbId,
                         entityType,
+                        relationType,
                         focusEntityId,
                         take: 120
                     })
@@ -188,7 +213,38 @@ function App() {
                 setGraphLoading(false)
             }
         },
-        [ready, activeKnowledgebaseId, graphSearch, graphEntityType, focusedGraphNodeId]
+        [ready, activeKnowledgebaseId, graphSearch, graphEntityType, graphRelationType, focusedGraphNodeId]
+    )
+
+    const loadGraphNodeDetail = React.useCallback(
+        async (entityId: string) => {
+            if (!ready || !activeKnowledgebaseId) {
+                return
+            }
+            setGraphDetailLoading(true)
+            setError(null)
+            try {
+                const data = await requestData({
+                    page: 1,
+                    pageSize: 1,
+                    parameters: compact({
+                        table: 'graph-node-detail',
+                        knowledgebaseId: activeKnowledgebaseId,
+                        entityId,
+                        neighborHops: 1,
+                        take: 6,
+                        mentionTake: 3
+                    })
+                })
+                setFocusedGraphNodeDetail(data.summary?.graphNodeDetail ?? null)
+            } catch (detailError) {
+                setFocusedGraphNodeDetail(null)
+                setError(readError(detailError))
+            } finally {
+                setGraphDetailLoading(false)
+            }
+        },
+        [ready, activeKnowledgebaseId]
     )
 
     React.useEffect(() => {
@@ -250,6 +306,8 @@ function App() {
     React.useEffect(() => {
         if (!graphSupported && viewMode === 'graph') {
             setViewMode('documents')
+            setFocusedGraphNodeId(null)
+            setFocusedGraphNodeDetail(null)
         }
     }, [graphSupported, viewMode])
 
@@ -271,11 +329,43 @@ function App() {
             void loadGraphData()
         }, 250)
         return () => window.clearTimeout(timer)
-    }, [viewMode, graphSupported, activeKnowledgebaseId, graphSearch, graphEntityType, focusedGraphNodeId])
+    }, [
+        viewMode,
+        graphSupported,
+        activeKnowledgebaseId,
+        graphSearch,
+        graphEntityType,
+        graphRelationType,
+        focusedGraphNodeId
+    ])
+
+    React.useEffect(() => {
+        if (viewMode !== 'graph' || !graphSupported || !focusedGraphNodeId) {
+            setFocusedGraphNodeDetail(null)
+            setGraphDetailLoading(false)
+            return
+        }
+        const timer = window.setTimeout(() => {
+            void loadGraphNodeDetail(focusedGraphNodeId)
+        }, 120)
+        return () => window.clearTimeout(timer)
+    }, [viewMode, graphSupported, focusedGraphNodeId, loadGraphNodeDetail])
 
     React.useEffect(() => {
         syncAssistantContext(activeKnowledgebaseId, selectedRows)
     }, [activeKnowledgebaseId, selectedIds])
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) {
+            return
+        }
+
+        const media = window.matchMedia('(max-width: 760px)')
+        const syncViewport = () => setIsNarrowViewport(media.matches)
+        syncViewport()
+        media.addEventListener?.('change', syncViewport)
+        return () => media.removeEventListener?.('change', syncViewport)
+    }, [])
 
     React.useEffect(() => {
         const resize = () =>
@@ -297,7 +387,9 @@ function App() {
         setGraph(null)
         setGraphSearch('')
         setGraphEntityType('')
+        setGraphRelationType('')
         setFocusedGraphNodeId(null)
+        setFocusedGraphNodeDetail(null)
         setViewMode('documents')
         setHighlightedChunkId(null)
         void loadData({ nextKbId: value, nextParentId: null, nextPage: 1 })
@@ -409,6 +501,40 @@ function App() {
         })
     }
 
+    const openGraphEvidence = React.useCallback(
+        (chunk: GraphEvidenceChunk) => {
+            if (!chunk.documentId) {
+                return
+            }
+            setViewMode('documents')
+            setParentId(null)
+            setPage(1)
+            setPreviewMode('markdown')
+            setHighlightedChunkId(chunk.chunkId ?? null)
+            setPreview({
+                document: {
+                    id: chunk.documentId,
+                    knowledgebaseId: chunk.knowledgebaseId ?? activeKnowledgebaseId,
+                    name: chunk.documentName ?? chunk.documentId,
+                    type: chunk.mimeType ?? null,
+                    mimeType: chunk.mimeType ?? null,
+                    fileUrl: chunk.fileUrl ?? null,
+                    isFolder: false
+                },
+                chunks: [],
+                totalChunks: 0
+            })
+            void loadData({
+                documentId: chunk.documentId,
+                chunkId: chunk.chunkId,
+                nextParentId: null,
+                nextKbId: chunk.knowledgebaseId ?? activeKnowledgebaseId
+            })
+            notify(t('sourceHighlighted'))
+        },
+        [activeKnowledgebaseId, loadData]
+    )
+
     const openKnowledgebaseDocuments = async () => {
         if (!activeKnowledgebaseId) {
             return
@@ -419,6 +545,82 @@ function App() {
             knowledgebaseId: activeKnowledgebaseId
         })
     }
+
+    const resolvePreviewWidth = React.useCallback(
+        (clientX: number) => {
+            const rect = layoutRef.current?.getBoundingClientRect()
+            if (!rect?.width) {
+                return previewWidth
+            }
+            // Pixel minimum wins on narrow containers so neither pane collapses below usable width.
+            const minByPixels = (MIN_WORKBENCH_COLUMN_WIDTH / rect.width) * 100
+            const minWidth = Math.max(MIN_PREVIEW_WIDTH_PERCENT, Math.min(45, minByPixels))
+            const maxWidth = Math.min(MAX_PREVIEW_WIDTH_PERCENT, 100 - minWidth)
+            return clampPreviewWidth(((rect.right - clientX) / rect.width) * 100, minWidth, maxWidth)
+        },
+        [previewWidth]
+    )
+
+    const handlePreviewResizeStart = React.useCallback(
+        (event: React.PointerEvent<HTMLDivElement>) => {
+            if (isNarrowViewport) {
+                return
+            }
+
+            event.preventDefault()
+            let nextWidth = previewWidth
+            const previousCursor = document.body.style.cursor
+            const previousUserSelect = document.body.style.userSelect
+            document.body.style.cursor = 'col-resize'
+            document.body.style.userSelect = 'none'
+
+            // Capture movement on document so dragging remains smooth outside the narrow handle.
+            const onPointerMove = (moveEvent: PointerEvent) => {
+                nextWidth = resolvePreviewWidth(moveEvent.clientX)
+                setPreviewWidth(nextWidth)
+            }
+            const onPointerUp = () => {
+                document.removeEventListener('pointermove', onPointerMove)
+                document.removeEventListener('pointerup', onPointerUp)
+                document.body.style.cursor = previousCursor
+                document.body.style.userSelect = previousUserSelect
+                storePreviewWidth(nextWidth)
+            }
+
+            document.addEventListener('pointermove', onPointerMove)
+            document.addEventListener('pointerup', onPointerUp)
+        },
+        [isNarrowViewport, previewWidth, resolvePreviewWidth]
+    )
+
+    const handlePreviewResizeKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+            return
+        }
+        event.preventDefault()
+        setPreviewWidth((current) => {
+            const next = clampPreviewWidth(current + (event.key === 'ArrowLeft' ? 2 : -2))
+            storePreviewWidth(next)
+            return next
+        })
+    }, [])
+
+    const resetPreviewWidth = React.useCallback(() => {
+        setPreviewWidth(DEFAULT_PREVIEW_WIDTH_PERCENT)
+        storePreviewWidth(DEFAULT_PREVIEW_WIDTH_PERCENT)
+    }, [])
+
+    const layoutStyle = React.useMemo<React.CSSProperties | undefined>(
+        () =>
+            isNarrowViewport
+                ? undefined
+                : {
+                      gridTemplateColumns: `minmax(${MIN_WORKBENCH_COLUMN_WIDTH}px, ${
+                          100 - previewWidth
+                      }fr) ${RESIZE_HANDLE_WIDTH}px minmax(${MIN_WORKBENCH_COLUMN_WIDTH}px, ${previewWidth}fr)`
+                  },
+        [isNarrowViewport, previewWidth]
+    )
 
     const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
@@ -470,7 +672,11 @@ function App() {
                     </div>
                 ) : null}
 
-                <section className="grid min-h-0 flex-1 grid-cols-[minmax(320px,0.54fr)_minmax(320px,0.46fr)] gap-3 max-[760px]:grid-cols-1 max-[760px]:grid-rows-[minmax(280px,1fr)_minmax(260px,0.8fr)]">
+                <section
+                    ref={layoutRef}
+                    className="grid min-h-0 flex-1 grid-cols-[minmax(320px,0.54fr)_10px_minmax(320px,0.46fr)] gap-0 max-[760px]:grid-cols-1 max-[760px]:grid-rows-[minmax(280px,1fr)_minmax(260px,0.8fr)] max-[760px]:gap-3"
+                    style={layoutStyle}
+                >
                     <section className="flex min-h-0 flex-col overflow-hidden rounded-xl bg-background">
                         <KnowledgebaseOverview
                             knowledgebase={activeKnowledgebase}
@@ -525,6 +731,7 @@ function App() {
                                                 placeholder={t('search')}
                                                 onChange={(event) => {
                                                     setFocusedGraphNodeId(null)
+                                                    setFocusedGraphNodeDetail(null)
                                                     setGraphSearch(event.target.value)
                                                 }}
                                             />
@@ -533,6 +740,7 @@ function App() {
                                             value={graphEntityType || '__all'}
                                             onValueChange={(value) => {
                                                 setFocusedGraphNodeId(null)
+                                                setFocusedGraphNodeDetail(null)
                                                 setGraphEntityType(value === '__all' ? '' : value)
                                             }}
                                             disabled={!graph?.entityTypes?.length}
@@ -549,12 +757,36 @@ function App() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        <Select
+                                            value={graphRelationType || '__all'}
+                                            onValueChange={(value) => {
+                                                setFocusedGraphNodeId(null)
+                                                setFocusedGraphNodeDetail(null)
+                                                setGraphRelationType(value === '__all' ? '' : value)
+                                            }}
+                                            disabled={!graph?.relationTypes?.length}
+                                        >
+                                            <SelectTrigger className="h-8 w-[136px] bg-card">
+                                                <SelectValue placeholder={t('relationType')} />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper">
+                                                <SelectItem value="__all">{t('allRelations')}</SelectItem>
+                                                {(graph?.relationTypes ?? []).map((type) => (
+                                                    <SelectItem key={type} value={type}>
+                                                        {type}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         {focusedGraphNodeId ? (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-8 rounded-md px-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                onClick={() => setFocusedGraphNodeId(null)}
+                                                onClick={() => {
+                                                    setFocusedGraphNodeId(null)
+                                                    setFocusedGraphNodeDetail(null)
+                                                }}
                                             >
                                                 {t('clearFocus')}
                                             </Button>
@@ -635,9 +867,16 @@ function App() {
                             <KnowledgeGraphPanel
                                 graph={graph}
                                 loading={graphLoading}
+                                searchTerm={graphSearch}
                                 focusedNodeId={focusedGraphNodeId}
-                                onFocusNode={(nodeId) => setFocusedGraphNodeId(nodeId)}
-                                onClearFocus={() => setFocusedGraphNodeId(null)}
+                                onFocusNode={(nodeId) => {
+                                    setFocusedGraphNodeId(nodeId)
+                                    setFocusedGraphNodeDetail(null)
+                                }}
+                                onClearFocus={() => {
+                                    setFocusedGraphNodeId(null)
+                                    setFocusedGraphNodeDetail(null)
+                                }}
                             />
                         ) : (
                             <div className="flex min-h-0 flex-1 flex-col">
@@ -707,17 +946,46 @@ function App() {
                         )}
                     </section>
 
+                    <div
+                        role="separator"
+                        aria-label={t('resizePreview')}
+                        aria-orientation="vertical"
+                        tabIndex={0}
+                        className="group flex cursor-col-resize items-stretch justify-center px-1 outline-none max-[760px]:hidden"
+                        onPointerDown={handlePreviewResizeStart}
+                        onKeyDown={handlePreviewResizeKeyDown}
+                        onDoubleClick={resetPreviewWidth}
+                    >
+                        <span className="my-1 w-px rounded-full bg-border transition-colors group-hover:bg-primary group-focus-visible:bg-primary" />
+                    </div>
+
                     <WorkbenchPreviewPanel
                         viewMode={viewMode}
                         graph={graph}
                         focusedGraphNode={focusedGraphNode}
+                        focusedGraphNodeDetail={focusedGraphNodeDetail}
                         focusedGraphEdges={focusedGraphEdges}
                         graphLoading={graphLoading}
+                        graphDetailLoading={graphDetailLoading}
                         preview={preview}
                         previewMode={previewMode}
                         selected={selected}
                         highlightedChunkId={highlightedChunkId}
-                        onFocusGraphNode={(nodeId) => setFocusedGraphNodeId(nodeId)}
+                        onFocusGraphNode={(nodeId) => {
+                            setFocusedGraphNodeId(nodeId)
+                            setFocusedGraphNodeDetail(null)
+                        }}
+                        onFilterGraphEntityType={(type) => {
+                            setFocusedGraphNodeId(null)
+                            setFocusedGraphNodeDetail(null)
+                            setGraphEntityType(type)
+                        }}
+                        onFilterGraphRelationType={(type) => {
+                            setFocusedGraphNodeId(null)
+                            setFocusedGraphNodeDetail(null)
+                            setGraphRelationType(type)
+                        }}
+                        onOpenGraphEvidence={openGraphEvidence}
                         onPreviewModeChange={setPreviewMode}
                         onOpenOriginal={(row) => {
                             void openOriginal(row)
@@ -769,6 +1037,29 @@ function App() {
             </main>
         </TooltipProvider>
     )
+}
+
+function readStoredPreviewWidth() {
+    if (typeof window === 'undefined') {
+        return DEFAULT_PREVIEW_WIDTH_PERCENT
+    }
+    const stored = Number(window.localStorage?.getItem(PREVIEW_WIDTH_STORAGE_KEY))
+    return Number.isFinite(stored) ? clampPreviewWidth(stored) : DEFAULT_PREVIEW_WIDTH_PERCENT
+}
+
+function storePreviewWidth(value: number) {
+    if (typeof window === 'undefined') {
+        return
+    }
+    window.localStorage?.setItem(PREVIEW_WIDTH_STORAGE_KEY, String(Math.round(clampPreviewWidth(value))))
+}
+
+function clampPreviewWidth(value: number, min = MIN_PREVIEW_WIDTH_PERCENT, max = MAX_PREVIEW_WIDTH_PERCENT) {
+    return Math.min(Math.max(value, min), max)
+}
+
+function isNarrowWorkbenchViewport() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 760px)').matches
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />)

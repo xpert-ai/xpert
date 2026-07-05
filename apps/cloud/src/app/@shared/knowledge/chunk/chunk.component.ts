@@ -26,6 +26,7 @@ export class KnowledgeChunkComponent {
   // Inputs
   readonly chunk = input<IKnowledgeDocumentChunk<DocumentMetadata>>()
   readonly index = input<number>()
+  readonly sequence = input<number>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -41,13 +42,25 @@ export class KnowledgeChunkComponent {
   readonly enabled = computed(() => this.chunk()?.metadata?.enabled ?? true)
   readonly children = computed(() => this.chunk()?.children || this.chunk()?.metadata?.children)
   readonly document = computed(() => this.chunk()?.document)
+  // Prefer the persisted document-order index so chunk labels stay stable after sorting/filtering.
+  readonly displayIndex = computed(() => {
+    const sequence = this.sequence()
+    if (Number.isFinite(sequence) && sequence > 0) {
+      return sequence
+    }
+
+    const chunkIndex = this.chunk()?.metadata?.chunkIndex
+    if (Number.isFinite(chunkIndex)) {
+      return chunkIndex + 1
+    }
+
+    return (this.index() ?? 0) + 1
+  })
 
   constructor() {
-    effect(
-      () => {
-        this._preview.set(this.preview())
-      }
-    )
+    effect(() => {
+      this._preview.set(this.preview())
+    })
   }
 
   togglePreview() {

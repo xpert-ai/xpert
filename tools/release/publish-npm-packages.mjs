@@ -9,7 +9,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -17,11 +17,12 @@ import { getPackages } from '@manypkg/get-packages'
 
 const workspaceRoot = process.cwd()
 const dependencySections = ['dependencies', 'peerDependencies', 'optionalDependencies']
+const publishDependencySections = [...dependencySections, 'devDependencies']
 const releaseManagedPackageNames = new Set([
   '@xpert-ai/plugin-sdk',
   '@xpert-ai/contracts',
   '@xpert-ai/ocap-core',
-  '@xpert-ai/store',
+  '@xpert-ai/store'
 ])
 const args = parseArgs(process.argv.slice(2))
 
@@ -29,8 +30,10 @@ async function main() {
   const [changesetsConfig, preState, workspacePackages] = await Promise.all([
     readJsonIfExists(path.join(workspaceRoot, '.changeset', 'config.json')),
     readJsonIfExists(path.join(workspaceRoot, '.changeset', 'pre.json')),
-    getWorkspacePackages(),
+    getWorkspacePackages()
   ])
+  const workspacePackagesByName = new Map(workspacePackages.filter((pkg) => pkg.name).map((pkg) => [pkg.name, pkg]))
+  const workspacePackagesByDir = new Map(workspacePackages.map((pkg) => [path.normalize(pkg.dir), pkg]))
 
   const publishablePackages = workspacePackages
     .filter(isPublishablePackage)
@@ -44,12 +47,13 @@ async function main() {
   console.log(`Found ${publishablePackages.length} publishable workspace packages to evaluate.`)
 
   const orderedPackages = topologicallySortPackages(publishablePackages)
+  const preparedPackages = []
   const publishedPackages = []
 
   for (const pkg of orderedPackages) {
     const spec = `${pkg.name}@${pkg.version}`
 
-    if (await isVersionPublished(pkg.name, pkg.version)) {
+    if (!args.prepareOnly && (await isVersionPublished(pkg.name, pkg.version))) {
       console.log(`Skipping ${spec}; this version is already available on npm.`)
       continue
     }
@@ -57,7 +61,16 @@ async function main() {
     await buildPackageIfNeeded(pkg)
 
     const publishRoot = await resolvePublishRoot(pkg)
-    const publishManifest = await readPublishManifest(pkg, publishRoot)
+    const publishManifest = await preparePublishManifest(pkg, publishRoot, {
+      workspacePackagesByDir,
+      workspacePackagesByName
+    })
+
+    if (args.prepareOnly) {
+      preparedPackages.push(`${spec} from ${relativeToWorkspace(publishRoot)}`)
+      continue
+    }
+
     const distTag = resolveDistTag(publishManifest.version, preState)
     const accessLevel = resolveAccessLevel(pkg, publishManifest, changesetsConfig)
 
@@ -79,6 +92,14 @@ async function main() {
     publishedPackages.push(`${spec} (${distTag})`)
   }
 
+  if (args.prepareOnly) {
+    console.log(`Prepared ${preparedPackages.length} package manifest(s) for publishing:`)
+    for (const spec of preparedPackages) {
+      console.log(`- ${spec}`)
+    }
+    return
+  }
+
   if (publishedPackages.length === 0) {
     console.log('No npm packages were published in this run.')
     console.log('All publishable workspace package versions are already available on npm.')
@@ -94,12 +115,18 @@ async function main() {
 function parseArgs(argv) {
   const filters = []
   let dryRun = false
+  let prepareOnly = false
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
 
     if (arg === '--dry-run') {
       dryRun = true
+      continue
+    }
+
+    if (arg === '--prepare-only') {
+      prepareOnly = true
       continue
     }
 
@@ -126,11 +153,15 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${arg}`)
   }
 
-  return { dryRun, filters }
+  if (dryRun && prepareOnly) {
+    throw new Error('Use either --dry-run or --prepare-only, not both.')
+  }
+
+  return { dryRun, filters, prepareOnly }
 }
 
 function printUsage() {
-  console.log('Usage: node tools/release/publish-npm-packages.mjs [--dry-run] [--filter <value>]')
+  console.log('Usage: node tools/release/publish-npm-packages.mjs [--dry-run|--prepare-only] [--filter <value>]')
 }
 
 async function getWorkspacePackages() {
@@ -149,7 +180,7 @@ async function getWorkspacePackages() {
         project,
         projectName: project?.name ?? null,
         relativeDir,
-        version: workspacePackage.packageJson.version,
+        version: workspacePackage.packageJson.version
       }
     })
   )
@@ -197,9 +228,7 @@ function matchesFilter(pkg, filters) {
     return true
   }
 
-  return filters.some(
-    (filter) => filter === pkg.name || filter === pkg.projectName || filter === pkg.relativeDir
-  )
+  return filters.some((filter) => filter === pkg.name || filter === pkg.projectName || filter === pkg.relativeDir)
 }
 
 function topologicallySortPackages(packages) {
@@ -274,10 +303,7 @@ async function buildPackageIfNeeded(pkg) {
 
   if (!pkg.projectName) {
     throw new Error(
-      `Cannot build ${pkg.name} because ${path.join(
-        pkg.relativeDir,
-        'project.json'
-      )} does not declare a project name.`
+      `Cannot build ${pkg.name} because ${path.join(pkg.relativeDir, 'project.json')} does not declare a project name.`
     )
   }
 
@@ -372,6 +398,159 @@ async function readPublishManifest(pkg, publishRoot) {
   return publishManifest
 }
 
+async function preparePublishManifest(pkg, publishRoot, workspacePackageIndex) {
+  const manifestPath = path.join(publishRoot, 'package.json')
+  const publishManifest = await readPublishManifest(pkg, publishRoot)
+  const rewrites = rewriteWorkspaceProtocolDependencies(pkg, publishManifest, workspacePackageIndex)
+
+  assertNoWorkspaceProtocolDependencies(pkg, publishManifest)
+
+  if (rewrites.length > 0) {
+    await writeFile(manifestPath, `${JSON.stringify(publishManifest, null, 2)}\n`)
+    console.log(
+      `Rewrote ${rewrites.length} workspace protocol dependency specifier(s) in ${relativeToWorkspace(manifestPath)}.`
+    )
+    for (const rewrite of rewrites) {
+      console.log(`- ${rewrite}`)
+    }
+  }
+
+  return publishManifest
+}
+
+function rewriteWorkspaceProtocolDependencies(pkg, publishManifest, workspacePackageIndex) {
+  const rewrites = []
+
+  for (const section of publishDependencySections) {
+    const dependencies = publishManifest[section]
+    if (!isPlainObject(dependencies)) {
+      continue
+    }
+
+    for (const [dependencyName, specifier] of Object.entries(dependencies)) {
+      if (typeof specifier !== 'string' || !specifier.startsWith('workspace:')) {
+        continue
+      }
+
+      const resolvedSpecifier = resolveWorkspaceProtocolSpecifier(pkg, dependencyName, specifier, workspacePackageIndex)
+      dependencies[dependencyName] = resolvedSpecifier
+      rewrites.push(`${section}.${dependencyName}: ${specifier} -> ${resolvedSpecifier}`)
+    }
+  }
+
+  return rewrites
+}
+
+function resolveWorkspaceProtocolSpecifier(
+  pkg,
+  dependencyName,
+  specifier,
+  { workspacePackagesByDir, workspacePackagesByName }
+) {
+  const rawSpecifier = specifier.slice('workspace:'.length).trim()
+  const alias = parseWorkspaceAliasSpecifier(rawSpecifier)
+  const usesPathSpecifier = alias === null && isWorkspacePathSpecifier(rawSpecifier)
+  const pathTarget = usesPathSpecifier ? resolveWorkspacePathTarget(pkg, rawSpecifier, workspacePackagesByDir) : null
+
+  if (usesPathSpecifier && pathTarget === null) {
+    throw new Error(
+      `Cannot rewrite ${specifier} for ${pkg.name}'s dependency "${dependencyName}" because no workspace package was found at that path.`
+    )
+  }
+
+  const targetPackageName = alias?.packageName ?? pathTarget?.name ?? dependencyName
+  const workspaceRange = alias?.range ?? (pathTarget ? '*' : rawSpecifier)
+  const targetPackage = workspacePackagesByName.get(targetPackageName)
+
+  if (!targetPackage?.version) {
+    throw new Error(
+      `Cannot rewrite ${specifier} for ${pkg.name}'s dependency "${dependencyName}" because workspace package "${targetPackageName}" was not found with a version.`
+    )
+  }
+
+  if (targetPackage.packageJson?.private) {
+    throw new Error(
+      `Cannot rewrite ${specifier} for ${pkg.name}'s dependency "${dependencyName}" because workspace package "${targetPackageName}" is private.`
+    )
+  }
+
+  const resolvedRange = resolveWorkspaceVersionRange(workspaceRange, targetPackage.version)
+  return targetPackageName === dependencyName ? resolvedRange : `npm:${targetPackageName}@${resolvedRange}`
+}
+
+function parseWorkspaceAliasSpecifier(rawSpecifier) {
+  const match = rawSpecifier.match(/^(@[^/]+\/[^@]+|[^@/]+)@(.+)$/)
+  if (!match) {
+    return null
+  }
+
+  return {
+    packageName: match[1],
+    range: match[2]
+  }
+}
+
+function resolveWorkspacePathTarget(pkg, rawSpecifier, workspacePackagesByDir) {
+  if (!isWorkspacePathSpecifier(rawSpecifier)) {
+    return null
+  }
+
+  const targetDir = path.normalize(path.isAbsolute(rawSpecifier) ? rawSpecifier : path.resolve(pkg.dir, rawSpecifier))
+
+  return workspacePackagesByDir.get(targetDir) ?? null
+}
+
+function isWorkspacePathSpecifier(rawSpecifier) {
+  return (
+    rawSpecifier === '.' ||
+    rawSpecifier.startsWith('./') ||
+    rawSpecifier.startsWith('../') ||
+    rawSpecifier.startsWith('/') ||
+    (rawSpecifier.includes('/') && !rawSpecifier.startsWith('@'))
+  )
+}
+
+function resolveWorkspaceVersionRange(workspaceRange, version) {
+  if (workspaceRange === '' || workspaceRange === '*') {
+    return version
+  }
+
+  if (workspaceRange === '^' || workspaceRange === '~') {
+    return `${workspaceRange}${version}`
+  }
+
+  return workspaceRange
+}
+
+function assertNoWorkspaceProtocolDependencies(pkg, publishManifest) {
+  const workspaceDependencies = []
+
+  for (const section of publishDependencySections) {
+    const dependencies = publishManifest[section]
+    if (!isPlainObject(dependencies)) {
+      continue
+    }
+
+    for (const [dependencyName, specifier] of Object.entries(dependencies)) {
+      if (typeof specifier === 'string' && specifier.startsWith('workspace:')) {
+        workspaceDependencies.push(`${section}.${dependencyName}`)
+      }
+    }
+  }
+
+  if (workspaceDependencies.length > 0) {
+    throw new Error(
+      `Publish manifest for ${pkg.name} still contains workspace protocol dependency specifiers: ${workspaceDependencies.join(
+        ', '
+      )}.`
+    )
+  }
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
 function resolveDistTag(version, preState) {
   const tagFromEnv = process.env.NPM_DIST_TAG ?? process.env.npm_config_tag
   if (tagFromEnv?.trim()) {
@@ -421,9 +600,9 @@ async function isVersionPublished(packageName, version) {
 
   const response = await fetch(registryUrl, {
     headers: {
-      accept: 'application/json',
+      accept: 'application/json'
     },
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(15000)
   })
 
   if (response.status === 200) {
@@ -435,16 +614,14 @@ async function isVersionPublished(packageName, version) {
   }
 
   const responseBody = await response.text()
-  throw new Error(
-    `Failed to query npm for ${spec}: ${response.status} ${response.statusText}\n${responseBody.trim()}`
-  )
+  throw new Error(`Failed to query npm for ${spec}: ${response.status} ${response.statusText}\n${responseBody.trim()}`)
 }
 
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
     cwd: options.cwd ?? workspaceRoot,
     env: { ...process.env, ...options.env },
-    stdio: 'inherit',
+    stdio: 'inherit'
   })
 
   if (result.error) {
@@ -479,6 +656,6 @@ function ensureTrailingSlash(url) {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.stack ?? error.message : error)
+  console.error(error instanceof Error ? (error.stack ?? error.message) : error)
   process.exit(1)
 })

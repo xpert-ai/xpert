@@ -67,7 +67,7 @@ jest.mock('./guards/xpert.guard', () => ({
 }))
 
 jest.mock('../xpert-workspace/', () => ({
-    WorkspaceGuard: class {}
+    WorkspaceAuthoringGuard: class {}
 }))
 
 jest.mock('./xpert.service', () => ({

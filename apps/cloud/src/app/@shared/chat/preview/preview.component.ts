@@ -606,10 +606,6 @@ export class ChatConversationPreviewComponent {
         this.closePalettes()
       }
     })
-
-    effect(() => {
-      console.log(this.runtimeCapabilities())
-    })
   }
 
   resumeOperation(decision: TXpertChatResumeDecision['type'], command?: TInterruptCommand) {

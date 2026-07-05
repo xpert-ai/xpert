@@ -705,7 +705,7 @@ export class ClawXpertSetupWizardComponent {
   }
 
   private async ensureDefaultWorkspace(): Promise<IXpertWorkspace> {
-    const defaultWorkspace = await firstValueFrom(this.#workspaceService.getMyDefault())
+    const defaultWorkspace = await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' }))
     if (defaultWorkspace?.id) {
       return defaultWorkspace
     }

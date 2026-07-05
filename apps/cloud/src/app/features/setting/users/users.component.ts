@@ -52,11 +52,11 @@ export class PACUsersComponent extends TranslationBaseComponent {
   readonly childRoutePath = toSignal(
     this.router.events.pipe(
       startWith(null),
-      map(() => this._route.firstChild?.snapshot.routeConfig?.path ?? ''),
+      map(() => this.getChildRoutePath()),
       distinctUntilChanged()
     ),
     {
-      initialValue: this._route.firstChild?.snapshot.routeConfig?.path ?? ''
+      initialValue: this.getChildRoutePath()
     }
   )
   readonly isListRoute = computed(() => this.childRoutePath() === '')
@@ -68,19 +68,15 @@ export class PACUsersComponent extends TranslationBaseComponent {
       this.store.hasPermission(permission)
     )
   })
-  readonly canCreateUsers = computed(
-    () => {
-      this.permissions()
-      return this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
-    }
-  )
+  readonly canCreateUsers = computed(() => {
+    this.permissions()
+    return this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
+  })
   readonly canBatchImport = this.canCreateUsers
   readonly canInviteUsers = computed(
     () => !this.isTenantScope() && !!this.organization()?.id && this.canManageInvites()
   )
-  readonly showInviteTab = computed(
-    () => !this.isTenantScope() && this.canManageInvites()
-  )
+  readonly showInviteTab = computed(() => !this.isTenantScope() && this.canManageInvites())
 
   readonly refresh$ = new BehaviorSubject<void>(null)
 
@@ -90,7 +86,7 @@ export class PACUsersComponent extends TranslationBaseComponent {
     effect(
       () => {
         const scopeLevel = this.activeScope().level
-        const childPath = this._route.firstChild?.snapshot.routeConfig?.path ?? ''
+        const childPath = this.getChildRoutePath()
 
         const shouldResetToList =
           (scopeLevel === RequestScopeLevel.TENANT && childPath === 'invites') ||
@@ -106,6 +102,10 @@ export class PACUsersComponent extends TranslationBaseComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  private getChildRoutePath() {
+    return this._route.firstChild?.snapshot?.routeConfig?.path ?? ''
   }
 
   navUser(user: IUser) {
@@ -138,7 +138,7 @@ export class PACUsersComponent extends TranslationBaseComponent {
     }
 
     const result = await firstValueFrom(
-      this._dialog.open<{user: IUser;}>(UserMutationComponent, { 
+      this._dialog.open<{ user: IUser }>(UserMutationComponent, {
         disableClose: true,
         data: { isAdmin: true }
       }).closed
@@ -153,7 +153,7 @@ export class PACUsersComponent extends TranslationBaseComponent {
       return
     }
 
-    this._dialog.open(UserUploadComponent, {disableClose: true}).closed.subscribe({
+    this._dialog.open(UserUploadComponent, { disableClose: true }).closed.subscribe({
       next: (users) => {
         if (users) {
           this.refresh$.next()

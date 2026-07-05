@@ -65,6 +65,8 @@ describe('KnowledgeRetriever', () => {
         const retriever = createKnowledgeRetriever(queryBus, 'knowledgebase-1')
 
         const knowledgeTool = await retriever.toTool()
+        expect(knowledgeTool.description).toContain('Use the exact citationMarkdown string verbatim')
+        expect(knowledgeTool.description).toContain('[label](url)')
         const output = await knowledgeTool.invoke({ input: '质量' })
         const parsed = JSON.parse(String(output))
 
@@ -101,5 +103,8 @@ describe('KnowledgeRetriever', () => {
                     '[⟦1⟧](xpert://knowledgebase/chunk?knowledgebaseId=knowledgebase-1&documentId=doc-1&chunkId=chunk-1)'
             })
         ])
+        expect(parsed.instructions).toContain('Use the exact citationMarkdown string verbatim')
+        expect(parsed.instructions).toContain('[label](url)')
+        expect(parsed.instructions).toContain('do not rewrite it as a footnote')
     })
 })

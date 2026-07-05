@@ -6,7 +6,7 @@
         {{
           'PAC.Membership.AdminDescription'
             | translate
-              : { Default: 'Configure tenant-level membership plans, point allowances, and model usage rules.' }
+              : { Default: 'Configure current-scope membership plans, point allowances, and model usage rules.' }
         }}
       </div>
     </div>
@@ -19,13 +19,121 @@
 </div>
 
 <div class="pac-page-body flex flex-1 flex-col gap-4 p-4">
+  @if (scopeStatus(); as status) {
+    <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
+      <z-card-content class="flex flex-col gap-4 p-4 xl:flex-row xl:items-center xl:justify-between">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+            >
+              <z-icon [zType]="status.scope === 'organization' ? 'corporate_fare' : 'storage'" class="size-6"></z-icon>
+            </span>
+            <div class="min-w-0">
+              <div class="text-base font-semibold text-text-primary">
+                @if (status.scope === 'organization') {
+                  {{ 'PAC.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
+                } @else {
+                  {{ 'PAC.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
+                }
+              </div>
+              <div class="mt-1 text-sm text-text-tertiary">
+                @if (status.scope === 'organization') {
+                  {{
+                    'PAC.Membership.OrganizationScopeHint'
+                      | translate
+                        : {
+                            Default:
+                              'Organization plans control organization local Copilot models. Tenant models are used only when this scope has no plan.'
+                          }
+                  }}
+                } @else {
+                  {{
+                    'PAC.Membership.TenantScopeHint'
+                      | translate: { Default: 'Tenant plans control tenant Copilot models and tenant fallback access.' }
+                  }}
+                }
+              </div>
+            </div>
+            <z-badge
+              zType="outline"
+              zShape="pill"
+              [class]="
+                status.initialized
+                  ? 'border-state-success-hover bg-state-success-hover/20 text-text-success'
+                  : status.needsRepair
+                    ? 'border-state-warning-hover bg-state-warning-hover/20 text-text-warning'
+                    : 'border-divider-regular text-text-tertiary'
+              "
+            >
+              {{ scopeStatusLabel(status) }}
+            </z-badge>
+          </div>
+        </div>
+
+        <div class="grid shrink-0 grid-cols-2 gap-2 text-sm md:grid-cols-4">
+          <div class="rounded-lg bg-components-card-bg px-3 py-2">
+            <div class="text-xs text-text-tertiary">
+              {{ 'PAC.Membership.DefaultPlanLabel' | translate: { Default: 'Default plan' } }}
+            </div>
+            <div class="mt-1 truncate font-semibold text-text-primary" [title]="scopeDefaultPlanLabel(status)">
+              {{ scopeDefaultPlanLabel(status) }}
+            </div>
+          </div>
+          <div class="rounded-lg bg-components-card-bg px-3 py-2">
+            <div class="text-xs text-text-tertiary">
+              {{ 'PAC.Membership.ActivePlans' | translate: { Default: 'Active plans' } }}
+            </div>
+            <div class="mt-1 font-semibold text-text-primary">{{ status.activePlanCount | number }}</div>
+          </div>
+          @if (status.scope === 'organization') {
+            <div class="rounded-lg bg-components-card-bg px-3 py-2">
+              <div class="text-xs text-text-tertiary">
+                {{ 'PAC.Membership.AssignedMembers' | translate: { Default: 'Assigned members' } }}
+              </div>
+              <div class="mt-1 font-semibold text-text-primary">
+                {{ status.assignedMemberCount ?? 0 | number }} / {{ status.activeMemberCount ?? 0 | number }}
+              </div>
+            </div>
+            <div class="rounded-lg bg-components-card-bg px-3 py-2">
+              <div class="text-xs text-text-tertiary">
+                {{ 'PAC.Membership.LocalCopilots' | translate: { Default: 'Local Copilots' } }}
+              </div>
+              <div class="mt-1 font-semibold text-text-primary">{{ status.localCopilotCount ?? 0 | number }}</div>
+            </div>
+          }
+        </div>
+
+        @if (showScopeAction()) {
+          <button
+            z-button
+            zType="default"
+            type="button"
+            class="shrink-0"
+            [disabled]="loading()"
+            (click)="initializeScope()"
+          >
+            <z-icon zType="settings_backup_restore"></z-icon>
+            @if (status.activePlanCount > 0) {
+              {{ 'PAC.Membership.RepairAssignments' | translate: { Default: 'Repair assignments' } }}
+            } @else {
+              {{
+                'PAC.Membership.InitializeOrganization' | translate: { Default: 'Initialize organization membership' }
+              }}
+            }
+          </button>
+        }
+      </z-card-content>
+    </z-card>
+  }
+
   <div class="grid gap-3 md:grid-cols-3">
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex items-center gap-3 p-4">
         <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+          class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
         >
-          <z-icon zType="credit-card"></z-icon>
+          <z-icon zType="credit-card" class="size-6"></z-icon>
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
@@ -39,9 +147,9 @@
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex items-center gap-3 p-4">
         <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+          class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
         >
-          <z-icon zType="circle-check"></z-icon>
+          <z-icon zType="circle-check" class="size-6"></z-icon>
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
@@ -55,9 +163,9 @@
     <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
       <z-card-content class="flex items-center gap-3 p-4">
         <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+          class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
         >
-          <z-icon zType="archive"></z-icon>
+          <z-icon zType="archive" class="size-6"></z-icon>
         </span>
         <div class="min-w-0">
           <div class="text-xs font-medium text-text-tertiary">
@@ -142,7 +250,13 @@
                   <div class="text-xs text-text-tertiary">
                     {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
                   </div>
-                  <div class="mt-1 font-semibold text-text-primary">{{ plan.includedPoints | number }}</div>
+                  <div class="mt-1 font-semibold text-text-primary">
+                    @if (plan.includedPoints === null) {
+                      {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                    } @else {
+                      {{ plan.includedPoints | number }}
+                    }
+                  </div>
                 </div>
                 <div class="rounded-lg bg-components-panel-bg px-3 py-2">
                   <div class="text-xs text-text-tertiary">
@@ -302,7 +416,21 @@
                   <span class="text-sm text-text-secondary">
                     {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                   </span>
-                  <input z-input type="number" min="1" [(ngModel)]="draft.includedPoints" />
+                  <input
+                    z-input
+                    type="number"
+                    min="1"
+                    [disabled]="draft.includedPoints === null"
+                    [(ngModel)]="draft.includedPoints"
+                  />
+                  <z-checkbox
+                    class="mt-1 min-h-8 items-center"
+                    displayDensity="cosy"
+                    [ngModel]="draft.includedPoints === null"
+                    (checkChange)="setDraftUnlimited($event)"
+                  >
+                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                  </z-checkbox>
                 </label>
 
                 <label class="flex flex-col gap-1">
@@ -416,7 +544,13 @@
                 <div class="text-xs font-medium text-text-tertiary">
                   {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
                 </div>
-                <div class="mt-1 text-xl font-semibold text-text-primary">{{ plan.includedPoints | number }}</div>
+                <div class="mt-1 text-xl font-semibold text-text-primary">
+                  @if (plan.includedPoints === null) {
+                    {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                  } @else {
+                    {{ plan.includedPoints | number }}
+                  }
+                </div>
               </div>
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
@@ -463,7 +597,7 @@
                       {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
-                  <z-icon zType="tune" class="text-text-tertiary"></z-icon>
+                  <z-icon zType="tune" class="size-6 text-text-tertiary"></z-icon>
                 </div>
               </section>
 
@@ -478,7 +612,7 @@
                       {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
                     </div>
                   </div>
-                  <z-icon zType="activity" class="text-text-tertiary"></z-icon>
+                  <z-icon zType="activity" class="size-6 text-text-tertiary"></z-icon>
                 </div>
               </section>
             </div>

@@ -1,8 +1,9 @@
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { runWithRequestContext, UserService } from '@xpert-ai/server-core'
+import { UserService } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { Job } from 'bull'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { GraphragService } from './graphrag.service'
 import { JOB_KNOWLEDGE_GRAPH_INDEX, TKnowledgeGraphIndexQueueJob } from './types'
 
@@ -21,25 +22,22 @@ export class KnowledgeGraphIndexConsumer {
     @Process({ concurrency: 2 })
     async process(job: Job<TKnowledgeGraphIndexQueueJob>) {
         const user = job.data.userId ? await this.userService.findOne(job.data.userId, { relations: ['role'] }) : null
-        return new Promise((resolve, reject) => {
-            runWithRequestContext(
-                {
-                    user,
-                    headers: {
-                        ['organization-id']: job.data.organizationId,
-                        language: user?.preferredLanguage
-                    }
-                },
-                () => {
-                    this.service
-                        .processIndexJob(job.data.graphIndexJobId)
-                        .then(resolve)
-                        .catch((error) => {
-                            this.logger.error(`Knowledge graph index job failed: ${getErrorMessage(error)}`)
-                            reject(error)
-                        })
-                }
-            )
+        const context = captureRequestContext({
+            user,
+            tenantId: job.data.tenantId,
+            organizationId: job.data.organizationId,
+            language: user?.preferredLanguage
         })
+
+        try {
+            // Graph extraction can call model clients, so queued jobs must restore both
+            // plugin-sdk and legacy request scopes.
+            return await runWithCapturedRequestContext(context, () =>
+                this.service.processIndexJob(job.data.graphIndexJobId)
+            )
+        } catch (error) {
+            this.logger.error(`Knowledge graph index job failed: ${getErrorMessage(error)}`)
+            throw error
+        }
     }
 }

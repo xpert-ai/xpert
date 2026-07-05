@@ -13,14 +13,25 @@
             <div class="text-sm text-text-tertiary">
               {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
             </div>
-            <div class="font-medium">{{ remainingPoints() | number }}</div>
+            <div class="font-medium">
+              @if (isUnlimited()) {
+                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+              } @else {
+                {{ remainingPoints() | number }}
+              }
+            </div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
               {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="font-medium">
-              {{ membership()?.pointsUsed | number }} / {{ membership()?.pointsGranted | number }}
+              @if (isUnlimited()) {
+                {{ membership()?.pointsUsed | number }} /
+                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+              } @else {
+                {{ membership()?.pointsUsed | number }} / {{ membership()?.pointsGranted | number }}
+              }
             </div>
           </div>
           <div>

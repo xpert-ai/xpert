@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { IKnowledgebase, IKnowledgeDocument, KBDocumentStatusEnum } from '@xpert-ai/contracts'
+import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { UserService } from '@xpert-ai/server-core'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
@@ -19,9 +20,17 @@ jest.mock('@xpert-ai/server-core', () => {
         runWithRequestContext: (_req: unknown, next: () => unknown) => {
             mockContextActive = true
             try {
-                return next()
-            } finally {
+                const result = next()
+                if (result && typeof (result as Promise<unknown>).finally === 'function') {
+                    return (result as Promise<unknown>).finally(() => {
+                        mockContextActive = false
+                    })
+                }
                 mockContextActive = false
+                return result
+            } catch (error) {
+                mockContextActive = false
+                throw error
             }
         }
     }
@@ -50,6 +59,9 @@ describe('KnowledgeDocumentConsumer', () => {
             findOne: jest.fn(async () => {
                 if (!mockContextActive) {
                     throw new ForbiddenException('Tenant context is required.')
+                }
+                if (PluginRequestContext.getOrganizationId() !== 'organization-id') {
+                    throw new ForbiddenException('Plugin organization context is required.')
                 }
                 return {
                     id: 'knowledgebase-id',

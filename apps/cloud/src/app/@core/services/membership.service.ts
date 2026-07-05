@@ -4,6 +4,7 @@ import {
   IMembershipMe,
   IMembershipPlan,
   IMembershipPointLedger,
+  IMembershipScopeStatus,
   IMembershipUsageOverview,
   IMembershipUsageQuery,
   IMembershipUsageSummary,
@@ -20,6 +21,14 @@ export class MembershipService {
 
   getPlans() {
     return this.#http.get<IMembershipPlan[]>(`${API_MEMBERSHIP}/plans`)
+  }
+
+  getScopeStatus() {
+    return this.#http.get<IMembershipScopeStatus>(`${API_MEMBERSHIP}/scope/status`)
+  }
+
+  initializeScope() {
+    return this.#http.post<IMembershipScopeStatus>(`${API_MEMBERSHIP}/scope/initialize`, {})
   }
 
   createPlan(input: Partial<IMembershipPlan>) {
@@ -53,11 +62,11 @@ export class MembershipService {
   }
 
   getMe() {
-    return this.#http.get<IMembershipMe>(`${API_MEMBERSHIP}/me`)
+    return this.#http.get<IMembershipMe | null>(`${API_MEMBERSHIP}/me`)
   }
 
   getOverview(query?: IMembershipUsageQuery) {
-    return this.#http.get<IMembershipUsageOverview>(`${API_MEMBERSHIP}/me/overview`, {
+    return this.#http.get<IMembershipUsageOverview | null>(`${API_MEMBERSHIP}/me/overview`, {
       params: this.toParams(query)
     })
   }

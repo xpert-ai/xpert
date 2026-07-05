@@ -31,7 +31,7 @@ export class WorkspaceSelectorComponent {
 
   readonly loading = signal(true)
   readonly workspaces = toSignal(
-    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
+    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' }).pipe(
       map(({ items }) => items),
       tap(() => this.loading.set(false))
     ),

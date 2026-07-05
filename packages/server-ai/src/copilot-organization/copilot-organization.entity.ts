@@ -11,6 +11,11 @@ import {
 } from '@xpert-ai/server-core'
 import { Copilot } from '../core/entities/internal'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('copilot_organization')
 @Index('IDX_copilot_organization_scope_model', ['tenantId', 'organizationId', 'provider', 'model'])
 @Index('IDX_copilot_organization_scope_copilot_model', ['tenantId', 'organizationId', 'copilotId', 'provider', 'model'])
@@ -30,7 +35,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()
     @IsOptional()
-    @Column({ type: 'integer', nullable: true })
+    @Column({ type: 'bigint', nullable: true, transformer: bigintNumberTransformer })
     tokenLimit?: number
 
     @ApiPropertyOptional({ type: () => Number })
@@ -38,7 +43,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     @IsOptional()
     @Column({
         type: 'numeric',
-        precision: 10,
+        precision: 20,
         scale: 7,
         nullable: true,
         transformer: {
@@ -51,13 +56,13 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()
     @IsOptional()
-    @Column({ type: 'integer', nullable: true, default: 0 })
+    @Column({ type: 'bigint', nullable: true, default: 0, transformer: bigintNumberTransformer })
     tokenUsed?: number
 
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()
     @IsOptional()
-    @Column({ type: 'integer', nullable: true, default: 0 })
+    @Column({ type: 'bigint', nullable: true, default: 0, transformer: bigintNumberTransformer })
     tokenTotalUsed?: number
 
     @ApiPropertyOptional({ type: () => Number })
@@ -65,7 +70,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     @IsOptional()
     @Column({
         type: 'numeric',
-        precision: 10,
+        precision: 20,
         scale: 7,
         nullable: true,
         transformer: {
@@ -80,7 +85,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     @IsOptional()
     @Column({
         type: 'numeric',
-        precision: 10,
+        precision: 20,
         scale: 7,
         nullable: true,
         transformer: {

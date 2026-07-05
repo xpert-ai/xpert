@@ -88,12 +88,14 @@ export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
         const splitter = new RecursiveCharacterTextSplitter({ ...options, separators })
         const chunks = await splitter.splitDocuments(documents)
         const chunkDocuments: Document<ChunkMetadata>[] = chunks.map(
-            (chunk) =>
+            (chunk, index) =>
                 new Document<ChunkMetadata>({
                     pageContent: chunk.pageContent,
                     metadata: {
                         ...chunk.metadata,
-                        chunkId: uuid() // Assign a new UUID for each splitted chunk
+                        chunkId: uuid(), // Assign a new UUID for each splitted chunk
+                        // Carry a stable document-order index into previews and retrieval citations.
+                        chunkIndex: index
                     }
                 })
         )

@@ -113,7 +113,7 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
                 createdById: user.id
             }
         } else {
-            await this.assertWorkspaceReadAccess(workspaceId)
+            await this.assertWorkspaceAuthoringAccess(workspaceId)
             where = {
                 ...(<FindOptionsWhere<XpertToolset>>where),
                 workspaceId: workspaceId
@@ -250,10 +250,7 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
             new Set(
                 toolsets
                     .filter(
-                        (item) =>
-                            item.category === XpertToolsetCategoryEnum.BUILTIN &&
-                            item.type &&
-                            item.tools?.length
+                        (item) => item.category === XpertToolsetCategoryEnum.BUILTIN && item.type && item.tools?.length
                     )
                     .map((item) => item.type)
             )
@@ -268,8 +265,7 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
 
                 toolsets
                     .filter(
-                        (toolset) =>
-                            toolset.category === XpertToolsetCategoryEnum.BUILTIN && toolset.type === provider
+                        (toolset) => toolset.category === XpertToolsetCategoryEnum.BUILTIN && toolset.type === provider
                     )
                     .forEach((toolset) => {
                         toolset.tools?.forEach((tool) => {

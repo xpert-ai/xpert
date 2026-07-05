@@ -19,6 +19,9 @@
   "module": "./index.esm.js",
   "main": "./index.cjs.js",
   "dependencies": {
-    "@xpert-ai/chatkit-types": "~0.4.5"
+    "@octokit/types": "13.10.0",
+    "@types/json-schema": "^7.0.15",
+    "@xpert-ai/chatkit-types": "~0.4.5",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

@@ -1,13 +1,18 @@
 import { IMembershipPlan, IUser, IUserMembership, MembershipStatusEnum } from '@xpert-ai/contracts'
-import { TenantBaseEntity, User } from '@xpert-ai/server-core'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { MembershipPlan } from './membership-plan.entity'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('user_membership')
-@Index('IDX_user_membership_tenant_user_status', ['tenantId', 'userId', 'status'])
-@Index('IDX_user_membership_tenant_plan', ['tenantId', 'planId'])
-export class UserMembership extends TenantBaseEntity implements IUserMembership {
+@Index('IDX_user_membership_scope_user_status', ['tenantId', 'organizationId', 'userId', 'status'])
+@Index('IDX_user_membership_scope_plan', ['tenantId', 'organizationId', 'planId'])
+export class UserMembership extends TenantOrganizationBaseEntity implements IUserMembership {
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
         nullable: false,
@@ -49,15 +54,15 @@ export class UserMembership extends TenantBaseEntity implements IUserMembership 
     currentPeriodEnd: Date
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
-    pointsGranted: number
+    @Column({ type: 'bigint', nullable: true, default: 0, transformer: bigintNumberTransformer })
+    pointsGranted: number | null
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsUsed: number
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsTotalUsed: number
 
     @ApiProperty({ type: () => User })

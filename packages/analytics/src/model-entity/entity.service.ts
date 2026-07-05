@@ -1,6 +1,13 @@
-import { embeddingCubeCollectionName, generateCronExpression, ISemanticModelEntity, IUser, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import {
+	embeddingCubeCollectionName,
+	generateCronExpression,
+	ISemanticModelEntity,
+	IUser,
+	ScheduleTaskStatus
+} from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext, runWithRequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
+import { captureRequestContext, runWithCapturedRequestContext } from '@xpert-ai/server-ai'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -18,7 +25,10 @@ import { CreateVectorStoreCommand } from '../model-member'
 import { EVENT_SEMANTIC_MODEL_DELETED, SemanticModelDeletedEvent } from '../model/types'
 
 @Injectable()
-export class SemanticModelEntityService extends BusinessAreaAwareCrudService<SemanticModelEntity> implements OnModuleInit {
+export class SemanticModelEntityService
+	extends BusinessAreaAwareCrudService<SemanticModelEntity>
+	implements OnModuleInit
+{
 	readonly #logger = new Logger(SemanticModelEntityService.name)
 
 	constructor(
@@ -45,7 +55,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 	}
 
 	async getActiveJobs() {
-		const {items, total} = await this.findAll({
+		const { items, total } = await this.findAll({
 			where: {
 				status: ScheduleTaskStatus.SCHEDULED
 			},
@@ -54,7 +64,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		// Processing previously running tasks, mark as cancelled.
 		for await (const entity of items) {
 			if (entity.job?.status === 'processing') {
-				this.update(entity.id, {job: {...entity.job, status: 'cancel', error: 'Job stopped' }})
+				this.update(entity.id, { job: { ...entity.job, status: 'cancel', error: 'Job stopped' } })
 			}
 		}
 
@@ -63,9 +73,9 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 
 	public async create(entity: DeepPartial<SemanticModelEntity>, ...options: any[]): Promise<SemanticModelEntity> {
 		const _entity = await this.findOneOrFailByWhereOptions({
-				modelId: entity.modelId,
-				name: entity.name
-			})
+			modelId: entity.modelId,
+			name: entity.name
+		})
 
 		if (_entity.success) {
 			await this.update(_entity.record.id, entity)
@@ -95,7 +105,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 				id: job.id,
 				status: 'processing',
 				progress: 0,
-				createdAt: new Date(),
+				createdAt: new Date()
 			}
 		})
 	}
@@ -112,11 +122,11 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 					await job.moveToFailed({ message: 'Job stopped by user' }, true)
 				}
 			}
-		} catch(err) {
+		} catch (err) {
 			//
 		}
 
-		await this.update(entity.id, {job: {...entity.job, progress: null, status: 'cancel'}})
+		await this.update(entity.id, { job: { ...entity.job, progress: null, status: 'cancel' } })
 	}
 
 	/**
@@ -129,8 +139,10 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 				cronTime: cronTime,
 				timeZone: task.timeZone,
 				onTick: () => {
-					this.#logger.debug(`Job ${task.name} to run!`)
-					this.startSync(task).catch((err) => {
+					void this.runWithTaskRequestContext(task, user, async () => {
+						this.#logger.debug(`Job ${task.name} to run!`)
+						await this.startSync(task)
+					}).catch((err) => {
 						this.#logger.error(`Error starting sync for entity ${task.name}: ${getErrorMessage(err)}`)
 					})
 				}
@@ -143,16 +155,32 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 		if (RequestContext.currentUser()) {
 			scheduleJob()
 		} else {
-			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
+			void this.runWithTaskRequestContext(task, user, () => {
 				try {
 					scheduleJob()
 				} catch (err) {
 					console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
 				}
+			}).catch((err) => {
+				this.#logger.error(err)
 			})
 		}
 
 		this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
+	}
+
+	private runWithTaskRequestContext(task: ISemanticModelEntity, user: IUser, callback: () => void | Promise<void>) {
+		if (!user) {
+			return Promise.resolve(callback())
+		}
+
+		const context = captureRequestContext({
+			user,
+			tenantId: task.tenantId,
+			organizationId: task.organizationId,
+			language: user.preferredLanguage
+		})
+		return runWithCapturedRequestContext(context, callback)
 	}
 
 	rescheduleTask(task: ISemanticModelEntity, user: IUser) {
@@ -186,11 +214,11 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 
 	async deleteEntity(id: string) {
 		const entity = await this.findOne(id)
-		
+
 		await this.pauseSchedule(id)
 
 		const collectionName = embeddingCubeCollectionName(entity.modelId, entity.name, false)
-		const {vectorStore} = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
+		const { vectorStore } = await this.commandBus.execute(new CreateVectorStoreCommand(collectionName))
 		// Clear all dimensions
 		await vectorStore?.clear()
 
@@ -201,7 +229,7 @@ export class SemanticModelEntityService extends BusinessAreaAwareCrudService<Sem
 	async handle(event: SemanticModelDeletedEvent) {
 		const id = event.id
 		// Delete all entity by model id
-		const {items} = await this.findAll({where: {modelId: id}})
+		const { items } = await this.findAll({ where: { modelId: id } })
 		for await (const item of items) {
 			await this.deleteEntity(item.id)
 		}

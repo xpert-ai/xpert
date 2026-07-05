@@ -28,14 +28,10 @@ await build({
     plugins: [xpertRemoteComponentPlugin()]
 })
 
-execFileSync(
-    process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
-    ['exec', 'tailwindcss', '-i', cssSourcePath, '-o', cssTargetPath, '--minify'],
-    {
-        cwd: workspaceRoot,
-        stdio: 'inherit'
-    }
-)
+execFileSync(resolveLocalBin(workspaceRoot, 'tailwindcss'), ['-i', cssSourcePath, '-o', cssTargetPath, '--minify'], {
+    cwd: workspaceRoot,
+    stdio: 'inherit'
+})
 
 stripTrailingWhitespace(scriptTargetPath)
 stripTrailingWhitespace(cssTargetPath)
@@ -49,6 +45,16 @@ function findWorkspaceRoot(startDir) {
         current = dirname(current)
     }
     return resolve(startDir)
+}
+
+function resolveLocalBin(workspaceRoot, name) {
+    // Use the already-installed binary directly; pnpm exec can trigger install-time side effects in this repo.
+    const executable = process.platform === 'win32' ? `${name}.cmd` : name
+    const binPath = join(workspaceRoot, 'node_modules', '.bin', executable)
+    if (!existsSync(binPath)) {
+        throw new Error(`Missing local binary '${name}'. Run pnpm install before building remote components.`)
+    }
+    return binPath
 }
 
 function xpertRemoteComponentPlugin() {

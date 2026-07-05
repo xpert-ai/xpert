@@ -28,6 +28,7 @@ import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
+import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
 import { GetXpertMemoryEmbeddingsQuery } from './queries'
@@ -109,7 +110,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
                 createdById: user.id
             }
         } else {
-            await this.assertWorkspaceReadAccess(workspaceId)
+            await this.assertWorkspaceAuthoringAccess(workspaceId)
             where = {
                 ...(<FindOptionsWhere<Xpert>>where),
                 workspaceId: workspaceId
@@ -131,9 +132,11 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     async countMy(where: FindOptionsWhere<Xpert>) {
         const userId = RequestContext.currentUserId()
         const { items: userWorkspaces } = await this.queryBus.execute(new MyXpertWorkspaceQuery(userId, {}))
+        const accountWorkspaces = this.filterOrganizationAccountWorkspaces(userWorkspaces)
+        const accountWhere = this.withOrganizationAccountScope(where ?? {})
 
         where = {
-            ...(<FindOptionsWhere<Xpert>>where ?? {}),
+            ...accountWhere,
             publishAt: Not(IsNull()),
             createdById: userId
         }
@@ -143,14 +146,16 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             where
         })
 
-        const xpertsInUserWorkspaces = await this.repository.find({
-            where: {
-                ...(where ?? {}),
-                publishAt: Not(IsNull()),
-                workspaceId: In(userWorkspaces.map((workspace) => workspace.id))
-            },
-            select: ['id']
-        })
+        const xpertsInUserWorkspaces = accountWorkspaces.length
+            ? await this.repository.find({
+                  where: {
+                      ...accountWhere,
+                      publishAt: Not(IsNull()),
+                      workspaceId: In(accountWorkspaces.map((workspace) => workspace.id))
+                  },
+                  select: ['id']
+              })
+            : []
 
         const allXperts = uniqBy([...xpertsCreatedByUser.items, ...xpertsInUserWorkspaces], 'id')
 
@@ -165,21 +170,25 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     ) {
         const userId = RequestContext.currentUserId()
         const { items: userWorkspaces } = await this.queryBus.execute(
-            new MyXpertWorkspaceQuery(userId, {}, {
-                includeOrganizationWorkspacesInTenantScope: options?.includeOrganizationWorkspacesInTenantScope
-            })
+            new MyXpertWorkspaceQuery(
+                userId,
+                {},
+                {
+                    includeOrganizationWorkspacesInTenantScope: options?.includeOrganizationWorkspacesInTenantScope
+                }
+            )
         )
+        const accountWorkspaces = this.filterOrganizationAccountWorkspaces(userWorkspaces)
         const workspaceAccesses = await Promise.all(
-            userWorkspaces.map((workspace) => this.workspaceAccessService.buildAccess(workspace))
+            accountWorkspaces.map((workspace) => this.workspaceAccessService.buildAccess(workspace))
         )
         const workspaceById = new Map(workspaceAccesses.map((access) => [access.workspace.id, access.workspace]))
 
         const { relations, order, take } = params ?? {}
-        let { where } = params ?? {}
-        where = where ?? {}
+        const accountWhere = this.withOrganizationAccountScope(transformWhere<Xpert>(params?.where ?? {}) ?? {})
 
-        where = {
-            ...(<FindOptionsWhere<Xpert>>where),
+        const where = {
+            ...accountWhere,
             publishAt: Not(IsNull()),
             createdById: userId
         }
@@ -191,16 +200,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             take
         })
 
-        const xpertsInUserWorkspaces = await this.repository.find({
-            where: {
-                ...(params.where ?? {}),
-                publishAt: Not(IsNull()),
-                workspaceId: In(userWorkspaces.map((workspace) => workspace.id))
-            },
-            relations,
-            order,
-            take
-        })
+        const xpertsInUserWorkspaces = accountWorkspaces.length
+            ? await this.repository.find({
+                  where: {
+                      ...accountWhere,
+                      publishAt: Not(IsNull()),
+                      workspaceId: In(accountWorkspaces.map((workspace) => workspace.id))
+                  },
+                  relations,
+                  order,
+                  take
+              })
+            : []
 
         const allXperts = uniqBy([...xpertsCreatedByUser.items, ...xpertsInUserWorkspaces], 'id')
         allXperts.forEach((xpert) => {
@@ -213,6 +224,27 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return {
             items: allXperts.map((item) => new XpertIdentiDto(item)),
             total: allXperts.length
+        }
+    }
+
+    private filterOrganizationAccountWorkspaces(workspaces: XpertWorkspace[]) {
+        const organizationId = RequestContext.getOrganizationId()
+        if (!organizationId) {
+            return workspaces
+        }
+
+        return workspaces.filter((workspace) => workspace.organizationId === organizationId)
+    }
+
+    private withOrganizationAccountScope(where: FindOptionsWhere<Xpert>) {
+        const organizationId = RequestContext.getOrganizationId()
+        if (!organizationId) {
+            return where
+        }
+
+        return {
+            ...where,
+            organizationId
         }
     }
 

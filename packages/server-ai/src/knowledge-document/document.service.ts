@@ -32,7 +32,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
-import { compact, uniq } from 'lodash-es'
+import { compact, uniq } from 'lodash'
 import { DataSource, DeepPartial, FindOptionsWhere, In, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
@@ -134,6 +134,32 @@ function getChunkLogicalId(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata
 function getChunkMatchType(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'>) {
     const metadata = getChunkMetadata(chunk)
     return `${metadata.mediaType ?? 'text'}:${metadata.type ?? ''}:${metadata.source ?? ''}`
+}
+
+// Keep chunk previews in document order even when database order falls back to creation time.
+function sortChunksByDocumentOrder<T extends Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'>>(
+    chunks: T[]
+) {
+    return chunks
+        .map((chunk, index) => ({ chunk, index, chunkIndex: getFiniteNumber(getChunkMetadata(chunk).chunkIndex) }))
+        .sort((left, right) => {
+            if (
+                left.chunkIndex !== undefined &&
+                right.chunkIndex !== undefined &&
+                left.chunkIndex !== right.chunkIndex
+            ) {
+                return left.chunkIndex - right.chunkIndex
+            }
+            if (left.chunkIndex !== undefined || right.chunkIndex !== undefined) {
+                return left.chunkIndex !== undefined ? -1 : 1
+            }
+            return left.index - right.index
+        })
+        .map(({ chunk }) => chunk)
+}
+
+function getFiniteNumber(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 function popFirstAvailable(
@@ -295,11 +321,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         usedFileNames: Set<string>,
         usedFilePaths: Set<string>
     ): Promise<OriginalFileDownloadTarget | null> {
-        if (
-            !document ||
-            document.sourceType === KDocumentSourceType.FOLDER ||
-            isSystemManagedDocument(document)
-        ) {
+        if (!document || document.sourceType === KDocumentSourceType.FOLDER || isSystemManagedDocument(document)) {
             return null
         }
 
@@ -330,7 +352,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         return {
             absolutePath: workArea.volume.path(filePath),
-            fileName: getUniqueFileName(document.name || path.basename(filePath) || `${document.id}.download`, usedFileNames),
+            fileName: getUniqueFileName(
+                document.name || path.basename(filePath) || `${document.id}.download`,
+                usedFileNames
+            ),
             mimeType: document.mimeType || 'application/octet-stream'
         }
     }
@@ -747,11 +772,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                         fileUrl: true
                     }
                 },
+                order: { createdAt: 'ASC' },
                 skip: params.skip,
                 take: params.take
             })
 
-            return chunks
+            return {
+                ...chunks,
+                items: sortChunksByDocumentOrder(chunks.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[])
+            }
         }
         const document = await this.findOne(id, {
             relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
@@ -1080,7 +1109,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return chunks.map((chunk, index) => {
             const metadata = {
                 ...(chunk.metadata ?? {}),
-                chunkId: chunk.metadata?.chunkId || chunk.id || `chunk-${index}`
+                // Persist a stable sequence for display, retrieval payloads, and incremental comparisons.
+                chunkId: chunk.metadata?.chunkId || chunk.id || `chunk-${index}`,
+                chunkIndex: getFiniteNumber(chunk.metadata?.chunkIndex) ?? index
             } as TDocChunkMetadata
             const prepared = {
                 ...chunk,

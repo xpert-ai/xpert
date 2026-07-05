@@ -1,9 +1,9 @@
-import { IUser, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
+import { IUser, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import {
-	PaginationParams,
-	RequestContext,
-	TenantOrganizationAwareCrudService,
-	UserOrganizationService
+    PaginationParams,
+    RequestContext,
+    TenantOrganizationAwareCrudService,
+    UserOrganizationService
 } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -14,200 +14,215 @@ import { XpertWorkspace } from './workspace.entity'
 
 @Injectable()
 export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<XpertWorkspace> {
-	readonly #logger = new Logger(XpertWorkspaceService.name)
+    readonly #logger = new Logger(XpertWorkspaceService.name)
 
-	constructor(
-		@InjectRepository(XpertWorkspace)
-		private readonly workspaceRepository: Repository<XpertWorkspace>,
-		private readonly userOrganizationService: UserOrganizationService,
-		private readonly workspaceAccessService: XpertWorkspaceAccessService
-	) {
-		super(workspaceRepository)
-	}
+    constructor(
+        @InjectRepository(XpertWorkspace)
+        private readonly workspaceRepository: Repository<XpertWorkspace>,
+        private readonly userOrganizationService: UserOrganizationService,
+        private readonly workspaceAccessService: XpertWorkspaceAccessService
+    ) {
+        super(workspaceRepository)
+    }
 
-	async findAllMy(options: PaginationParams<XpertWorkspace>) {
-		const workspaces = await this.workspaceAccessService.findAccessibleWorkspaces(options?.order)
-		const items = await Promise.all(
-			workspaces.map(async (item) => {
-				const access = await this.workspaceAccessService.buildAccess(item)
-				return new WorkspacePublicDTO(access.workspace)
-			})
-		)
+    async findAllMy(options: PaginationParams<XpertWorkspace>, purpose: TXpertWorkspaceAccessPurpose = 'runtime') {
+        const workspaces = await this.workspaceAccessService.findAccessibleWorkspaces(options?.order, { purpose })
+        const items = await Promise.all(
+            workspaces.map(async (item) => {
+                const access = await this.workspaceAccessService.buildAccess(item)
+                return new WorkspacePublicDTO(access.workspace)
+            })
+        )
 
-		return {
-			items
-		}
-	}
+        return {
+            items
+        }
+    }
 
-	async findOne(id: string | number | FindOneOptions<XpertWorkspace>, options?: FindOneOptions<XpertWorkspace>) {
-		if (typeof id === 'string') {
-			const { workspace } = await this.workspaceAccessService.assertCanRead(id, { relations: options?.relations })
-			return workspace
-		}
+    async findOne(id: string | number | FindOneOptions<XpertWorkspace>, options?: FindOneOptions<XpertWorkspace>) {
+        if (typeof id === 'string') {
+            const { workspace } = await this.workspaceAccessService.assertCanRead(id, { relations: options?.relations })
+            return workspace
+        }
 
-		return super.findOne(id, options)
-	}
+        return super.findOne(id, options)
+    }
 
-	async findMyDefault() {
-		const user = RequestContext.currentUser()
-		const userId = RequestContext.currentUserId()
-		const organizationId = RequestContext.getOrganizationId()
-		const tenantId = user?.tenantId
+    async findMyDefault(purpose: TXpertWorkspaceAccessPurpose = 'runtime') {
+        const user = RequestContext.currentUser()
+        const userId = RequestContext.currentUserId()
+        const organizationId = RequestContext.getOrganizationId()
+        const tenantId = user?.tenantId
 
-		if (!userId || !organizationId || !tenantId) {
-			return null
-		}
+        if (!userId || !organizationId || !tenantId) {
+            return null
+        }
 
-		const defaultWorkspaceId = await this.userOrganizationService.getCurrentUserDefaultWorkspaceId()
-		if (defaultWorkspaceId) {
-			try {
-				const { workspace } = await this.workspaceAccessService.assertCanRead(defaultWorkspaceId)
-				return workspace
-			} catch {
-				//
-			}
-		}
+        const defaultWorkspaceId = await this.userOrganizationService.getCurrentUserDefaultWorkspaceId()
+        if (defaultWorkspaceId) {
+            try {
+                const { workspace } = await this.assertDefaultWorkspaceAccess(defaultWorkspaceId, purpose)
+                return workspace
+            } catch {
+                //
+            }
+        }
 
-		const workspace = await this.findUserDefaultWorkspace(organizationId, userId)
-		return workspace ? (await this.workspaceAccessService.buildAccess(workspace)).workspace : null
-	}
+        const workspace = await this.findUserDefaultWorkspace(organizationId, userId)
+        if (!workspace) {
+            return null
+        }
 
-	async setMyDefault(workspaceId: string) {
-		const user = RequestContext.currentUser()
-		const userId = RequestContext.currentUserId()
-		const organizationId = RequestContext.getOrganizationId()
-		const tenantId = user?.tenantId
-		const normalizedWorkspaceId = workspaceId?.trim()
+        if (purpose === 'authoring') {
+            const access = await this.workspaceAccessService.assertCanAuthor(workspace.id).catch(() => null)
+            return access?.workspace ?? null
+        }
 
-		if (!normalizedWorkspaceId) {
-			throw new BadRequestException('Workspace id is required.')
-		}
+        return (await this.workspaceAccessService.buildAccess(workspace)).workspace
+    }
 
-		if (!userId || !organizationId || !tenantId) {
-			throw new BadRequestException('Organization scope is required for this operation.')
-		}
+    async setMyDefault(workspaceId: string) {
+        const user = RequestContext.currentUser()
+        const userId = RequestContext.currentUserId()
+        const organizationId = RequestContext.getOrganizationId()
+        const tenantId = user?.tenantId
+        const normalizedWorkspaceId = workspaceId?.trim()
 
-		const access = await this.workspaceAccessService.assertCanRead(normalizedWorkspaceId).catch(() => null)
+        if (!normalizedWorkspaceId) {
+            throw new BadRequestException('Workspace id is required.')
+        }
 
-		if (!access) {
-			throw new NotFoundException(`Workspace '${normalizedWorkspaceId}' was not found`)
-		}
+        if (!userId || !organizationId || !tenantId) {
+            throw new BadRequestException('Organization scope is required for this operation.')
+        }
 
-		await this.userOrganizationService.setCurrentUserDefaultWorkspaceId(access.workspace.id)
+        const access = await this.workspaceAccessService.assertCanAuthor(normalizedWorkspaceId).catch(() => null)
 
-		return access.workspace
-	}
+        if (!access) {
+            throw new NotFoundException(`Workspace '${normalizedWorkspaceId}' was not found`)
+        }
 
-	async updateMembers(id: string, members: string[]) {
-		const workspace = await this.findOne(id)
-		workspace.members = members.map((id) => ({ id }) as IUser)
-		await this.workspaceRepository.save(workspace)
+        await this.userOrganizationService.setCurrentUserDefaultWorkspaceId(access.workspace.id)
 
-		return await this.findOne(id, { relations: ['members'] })
-	}
+        return access.workspace
+    }
 
-	async updateVisibility(id: string, visibility: TXpertWorkspaceVisibility) {
-		if (visibility !== 'private' && visibility !== 'tenant-shared') {
-			throw new BadRequestException('Invalid workspace visibility.')
-		}
+    private assertDefaultWorkspaceAccess(workspaceId: string, purpose: TXpertWorkspaceAccessPurpose) {
+        return purpose === 'authoring'
+            ? this.workspaceAccessService.assertCanAuthor(workspaceId)
+            : this.workspaceAccessService.assertCanRead(workspaceId)
+    }
 
-		const { workspace } = await this.workspaceAccessService.assertCanManage(id)
-		if (visibility === 'tenant-shared' && workspace.organizationId) {
-			throw new BadRequestException('Only tenant-level workspaces can be shared across the tenant.')
-		}
+    async updateMembers(id: string, members: string[]) {
+        const workspace = await this.findOne(id)
+        workspace.members = members.map((id) => ({ id }) as IUser)
+        await this.workspaceRepository.save(workspace)
 
-		workspace.settings = {
-			...(workspace.settings ?? {}),
-			access: {
-				...(workspace.settings?.access ?? {}),
-				visibility
-			}
-		}
+        return await this.findOne(id, { relations: ['members'] })
+    }
 
-		const saved = await this.workspaceRepository.save(workspace)
-		return (await this.workspaceAccessService.buildAccess(saved)).workspace
-	}
+    async updateVisibility(id: string, visibility: TXpertWorkspaceVisibility) {
+        if (visibility !== 'private' && visibility !== 'tenant-shared') {
+            throw new BadRequestException('Invalid workspace visibility.')
+        }
 
-	async canAccess(id: string, userId: string) {
-		if (!id || userId !== RequestContext.currentUserId()) {
-			return false
-		}
+        const { workspace } = await this.workspaceAccessService.assertCanManage(id)
+        if (visibility === 'tenant-shared' && workspace.organizationId) {
+            throw new BadRequestException('Only tenant-level workspaces can be shared across the tenant.')
+        }
 
-		const access = await this.workspaceAccessService.assertCanRead(id, { relations: ['members'] }).catch(() => null)
-		if (!access) {
-			return false
-		}
+        workspace.settings = {
+            ...(workspace.settings ?? {}),
+            access: {
+                ...(workspace.settings?.access ?? {}),
+                visibility
+            }
+        }
 
-		return access.capabilities.canRead
-	}
+        const saved = await this.workspaceRepository.save(workspace)
+        return (await this.workspaceAccessService.buildAccess(saved)).workspace
+    }
 
-	async findOrganizationDefaultWorkspace(organizationId: string) {
-		return this.workspaceRepository
-			.createQueryBuilder('workspace')
-			.where('workspace.organizationId = :organizationId', { organizationId })
-			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
-				kind: 'org-default'
-			})
-			.getOne()
-	}
+    async canAccess(id: string, userId: string) {
+        if (!id || userId !== RequestContext.currentUserId()) {
+            return false
+        }
 
-	async findUserDefaultWorkspace(organizationId: string, userId: string) {
-		return this.workspaceRepository
-			.createQueryBuilder('workspace')
-			.where('workspace.organizationId = :organizationId', { organizationId })
-			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
-				kind: 'user-default'
-			})
-			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = :userId`, {
-				userId
-			})
-			.getOne()
-	}
+        const access = await this.workspaceAccessService.assertCanRead(id, { relations: ['members'] }).catch(() => null)
+        if (!access) {
+            return false
+        }
 
-	async ensureMember(id: string, userId: string) {
-		const workspace = await this.workspaceRepository.findOne({
-			where: { id },
-			relations: ['members']
-		})
+        return access.capabilities.canRead
+    }
 
-		if (!workspace) {
-			throw new NotFoundException(`Workspace '${id}' was not found`)
-		}
+    async findOrganizationDefaultWorkspace(organizationId: string) {
+        return this.workspaceRepository
+            .createQueryBuilder('workspace')
+            .where('workspace.organizationId = :organizationId', { organizationId })
+            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
+                kind: 'org-default'
+            })
+            .getOne()
+    }
 
-		const isOwner = workspace.ownerId === userId
-		const isMember = workspace.members?.some((member) => member.id === userId)
+    async findUserDefaultWorkspace(organizationId: string, userId: string) {
+        return this.workspaceRepository
+            .createQueryBuilder('workspace')
+            .where('workspace.organizationId = :organizationId', { organizationId })
+            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
+                kind: 'user-default'
+            })
+            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = :userId`, {
+                userId
+            })
+            .getOne()
+    }
 
-		if (isOwner || isMember) {
-			return workspace
-		}
+    async ensureMember(id: string, userId: string) {
+        const workspace = await this.workspaceRepository.findOne({
+            where: { id },
+            relations: ['members']
+        })
 
-		workspace.members = [...(workspace.members ?? []), { id: userId } as IUser]
-		await this.workspaceRepository.save(workspace)
+        if (!workspace) {
+            throw new NotFoundException(`Workspace '${id}' was not found`)
+        }
 
-		return workspace
-	}
+        const isOwner = workspace.ownerId === userId
+        const isMember = workspace.members?.some((member) => member.id === userId)
 
-	async removeMemberFromOrganizationWorkspaces(tenantId: string, organizationId: string, userId: string) {
-		const workspaceIds = await this.workspaceRepository
-			.createQueryBuilder('workspace')
-			.leftJoin('workspace.members', 'member')
-			.select('workspace.id', 'id')
-			.where('workspace.tenantId = :tenantId', { tenantId })
-			.andWhere('workspace.organizationId = :organizationId', { organizationId })
-			.andWhere('member.id = :userId', { userId })
-			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') <> :kind`, {
-				kind: 'user-default'
-			})
-			.getRawMany<{ id: string }>()
+        if (isOwner || isMember) {
+            return workspace
+        }
 
-		for (const { id } of workspaceIds) {
-			await this.workspaceRepository
-				.createQueryBuilder()
-				.relation(XpertWorkspace, 'members')
-				.of(id)
-				.remove(userId)
-		}
+        workspace.members = [...(workspace.members ?? []), { id: userId } as IUser]
+        await this.workspaceRepository.save(workspace)
 
-		return workspaceIds.length
-	}
+        return workspace
+    }
+
+    async removeMemberFromOrganizationWorkspaces(tenantId: string, organizationId: string, userId: string) {
+        const workspaceIds = await this.workspaceRepository
+            .createQueryBuilder('workspace')
+            .leftJoin('workspace.members', 'member')
+            .select('workspace.id', 'id')
+            .where('workspace.tenantId = :tenantId', { tenantId })
+            .andWhere('workspace.organizationId = :organizationId', { organizationId })
+            .andWhere('member.id = :userId', { userId })
+            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') <> :kind`, {
+                kind: 'user-default'
+            })
+            .getRawMany<{ id: string }>()
+
+        for (const { id } of workspaceIds) {
+            await this.workspaceRepository
+                .createQueryBuilder()
+                .relation(XpertWorkspace, 'members')
+                .of(id)
+                .remove(userId)
+        }
+
+        return workspaceIds.length
+    }
 }

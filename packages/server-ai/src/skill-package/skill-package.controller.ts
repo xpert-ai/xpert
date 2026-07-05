@@ -24,7 +24,7 @@ import type { Response } from 'express'
 import archiver from 'archiver'
 import { SkillPackage } from './skill-package.entity'
 import { InstallGithubSkillPackagesInput, SkillPackageService } from './skill-package.service'
-import { WorkspaceGuard } from '../xpert-workspace'
+import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 import { SimpleSkillPackageDTO } from './dto'
 
 type SkillPackageDownloadTarget = {
@@ -62,7 +62,7 @@ export class SkillPackageController {
         createReadStream(file.absolutePath).pipe(res)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('by-workspace/:workspaceId')
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,
@@ -85,7 +85,7 @@ export class SkillPackageController {
         }
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/install')
     async installSkillPackageInWorkspace(@Param('workspaceId') workspaceId: string, @Body() body: { indexId: string }) {
         try {
@@ -100,13 +100,13 @@ export class SkillPackageController {
         await Promise.all(body.map((id) => this.service.uninstallSkillPackage(id)))
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Delete('workspace/:workspaceId/:id')
     async uninstallSkillPackageInWorkspace(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
         await this.service.uninstallSkillPackageInWorkspace(workspaceId, id)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/upload')
     @UseInterceptors(FileInterceptor('file'))
     async uploadSkillPackage(@Param('workspaceId') workspaceId: string, @UploadedFile() file: Express.Multer.File) {
@@ -117,7 +117,7 @@ export class SkillPackageController {
         }
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/install-repository/:repositoryId')
     async installRepositorySkillPackages(
         @Param('workspaceId') workspaceId: string,
@@ -126,7 +126,7 @@ export class SkillPackageController {
         return this.service.installRepositorySkillPackages(workspaceId, repositoryId)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/install-github')
     async installGithubSkillPackages(
         @Param('workspaceId') workspaceId: string,
@@ -139,7 +139,7 @@ export class SkillPackageController {
         }
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/:id/share')
     async shareSkillPackage(
         @Param('workspaceId') workspaceId: string,
@@ -153,7 +153,7 @@ export class SkillPackageController {
         }
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('workspace/:workspaceId/:id/files')
     async getSkillPackageFiles(
         @Param('workspaceId') workspaceId: string,
@@ -164,7 +164,7 @@ export class SkillPackageController {
         return this.service.getSkillPackageFiles(workspaceId, id, path, deepth ? Number(deepth) : undefined)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('workspace/:workspaceId/:id/file')
     async getSkillPackageFile(
         @Param('workspaceId') workspaceId: string,
@@ -174,7 +174,7 @@ export class SkillPackageController {
         return this.service.readSkillPackageFile(workspaceId, id, path)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId/:id/file/upload')
     @UseInterceptors(FileInterceptor('file'))
     async uploadSkillPackageFile(
@@ -186,7 +186,7 @@ export class SkillPackageController {
         return this.service.uploadSkillPackageFile(workspaceId, id, path, file)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('workspace/:workspaceId/:id/download')
     async downloadSkillPackage(
         @Param('workspaceId') workspaceId: string,
@@ -197,7 +197,7 @@ export class SkillPackageController {
         await this.sendSkillPackageDownload(file, res)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('workspace/:workspaceId/:id/file/download')
     async downloadSkillPackageFile(
         @Param('workspaceId') workspaceId: string,
@@ -209,7 +209,7 @@ export class SkillPackageController {
         await this.sendSkillPackageDownload(file, res)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Put('workspace/:workspaceId/:id/file')
     async saveSkillPackageFile(
         @Param('workspaceId') workspaceId: string,
@@ -219,7 +219,7 @@ export class SkillPackageController {
         return this.service.saveSkillPackageFile(workspaceId, id, body?.path, body?.content)
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Delete('workspace/:workspaceId/:id/file')
     async deleteSkillPackageFile(
         @Param('workspaceId') workspaceId: string,
