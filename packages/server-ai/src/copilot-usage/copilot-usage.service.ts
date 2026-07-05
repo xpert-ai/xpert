@@ -741,7 +741,7 @@ export class CopilotUsageService {
 
     private usageOwnerUserIdSql(alias: string) {
         const xpertAlias = this.usageXpertAlias(alias)
-        return `COALESCE("${xpertAlias}"."createdById"::text, "${alias}"."userId")`
+        return `COALESCE("${xpertAlias}"."createdById"::text, "${alias}"."userId"::text)`
     }
 
     private usageXpertAlias(alias: string) {
