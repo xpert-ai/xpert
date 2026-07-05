@@ -1,5 +1,12 @@
+jest.mock('../../knowledgebase.service', () => ({
+    KnowledgebaseService: class KnowledgebaseService {}
+}))
+jest.mock('../../../knowledge-document', () => ({
+    KnowledgeDocumentService: class KnowledgeDocumentService {}
+}))
+
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentTypeEnum, KnowledgeGraphStatus } from '@xpert-ai/contracts'
+import { DocumentTypeEnum, KBDocumentStatusEnum, KnowledgeGraphStatus } from '@xpert-ai/contracts'
 import { QueryBus } from '@nestjs/cqrs'
 import { KnowledgeWorkbenchService } from './knowledge-workbench.service'
 
@@ -153,7 +160,8 @@ describe('KnowledgeWorkbenchService', () => {
                         documentId: 'doc-1',
                         pageContent: '首屏 chunk',
                         metadata: {
-                            chunkId: 'chunk-1'
+                            chunkId: 'chunk-1',
+                            chunkIndex: 0
                         }
                     }
                 ],
@@ -166,7 +174,8 @@ describe('KnowledgeWorkbenchService', () => {
                         documentId: 'doc-1',
                         pageContent: '引用目标 chunk',
                         metadata: {
-                            chunkId: 'chunk-8'
+                            chunkId: 'chunk-8',
+                            chunkIndex: 7
                         }
                     }
                 ],
@@ -186,14 +195,107 @@ describe('KnowledgeWorkbenchService', () => {
         expect(preview.chunks).toEqual([
             expect.objectContaining({
                 chunkId: 'chunk-1',
+                chunkIndex: 0,
                 pageContent: '首屏 chunk'
             }),
             expect.objectContaining({
                 chunkId: 'chunk-8',
+                chunkIndex: 7,
                 pageContent: '引用目标 chunk'
             })
         ])
         expect(preview.totalChunks).toBe(8)
+    })
+
+    it('exposes preview chunk parent ids while preserving document order', async () => {
+        const { service, documentService } = createService()
+        documentService.findAll.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'doc-1',
+                    knowledgebaseId: 'kb-1',
+                    sourceType: 'local-file',
+                    type: 'docx',
+                    name: '操作手册.docx',
+                    fileUrl: 'https://files.local/doc-1.docx'
+                }
+            ],
+            total: 1
+        })
+        documentService.getChunks.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'db-child-metadata',
+                    documentId: 'doc-1',
+                    pageContent: '视觉理解 chunk',
+                    metadata: {
+                        chunkId: 'child-metadata',
+                        parentId: 'parent-chunk',
+                        chunkIndex: 2,
+                        mediaType: 'image',
+                        page: 3,
+                        order: 1
+                    }
+                },
+                {
+                    id: 'db-parent',
+                    documentId: 'doc-1',
+                    pageContent: '包含图片的父 chunk',
+                    metadata: {
+                        chunkId: 'parent-chunk',
+                        chunkIndex: 0,
+                        assets: [
+                            {
+                                type: 'image',
+                                url: 'https://files.local/page-3.png',
+                                filePath: 'images/page-3.png',
+                                page: 3
+                            }
+                        ]
+                    }
+                },
+                {
+                    id: 'db-child-direct',
+                    documentId: 'doc-1',
+                    pageContent: '顶层 parentId 优先的子 chunk',
+                    parentId: 'parent-chunk',
+                    metadata: {
+                        chunkId: 'child-direct',
+                        parentId: 'stale-parent',
+                        chunkIndex: 1,
+                        page: 4
+                    }
+                }
+            ],
+            total: 3
+        })
+        documentService.previewFile.mockResolvedValueOnce([])
+
+        const preview = await service.getDocumentPreview('doc-1', ['kb-1'])
+
+        expect(preview.chunks).toEqual([
+            expect.objectContaining({
+                chunkId: 'parent-chunk',
+                chunkIndex: 0,
+                page: 3,
+                parentId: null,
+                pageContent: '包含图片的父 chunk'
+            }),
+            expect.objectContaining({
+                chunkId: 'child-direct',
+                chunkIndex: 1,
+                page: 4,
+                parentId: 'parent-chunk',
+                pageContent: '顶层 parentId 优先的子 chunk'
+            }),
+            expect.objectContaining({
+                chunkId: 'child-metadata',
+                chunkIndex: 2,
+                page: 3,
+                parentId: 'parent-chunk',
+                pageContent: '视觉理解 chunk'
+            })
+        ])
     })
 
     it('loads graph summary for a connected graph-enabled knowledgebase', async () => {
@@ -271,6 +373,212 @@ describe('KnowledgeWorkbenchService', () => {
             })
         )
     })
+
+    it('loads focused graph node detail with auditable evidence chunk citations', async () => {
+        const { service, knowledgebaseService, queryBus } = createService()
+        knowledgebaseService.findAll.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'kb-1',
+                    name: '制造知识库',
+                    graphRag: { enabled: true },
+                    graphStatus: KnowledgeGraphStatus.READY,
+                    graphRevision: 2
+                } as any
+            ],
+            total: 1
+        })
+        queryBus.execute.mockResolvedValueOnce({
+            entity: {
+                id: 'entity-1',
+                name: 'MES',
+                type: 'system',
+                origin: 'extracted',
+                visibility: 'active',
+                mentionCount: 4,
+                confidence: 0.91,
+                aliases: ['制造执行系统'],
+                summary: '制造执行系统'
+            },
+            relations: [
+                {
+                    id: 'relation-1',
+                    sourceEntityId: 'entity-1',
+                    targetEntityId: 'entity-2',
+                    targetEntity: {
+                        id: 'entity-2',
+                        name: '工单',
+                        type: 'concept'
+                    },
+                    type: 'manages',
+                    origin: 'extracted',
+                    visibility: 'active',
+                    evidenceCount: 2,
+                    confidence: 0.82
+                }
+            ],
+            connectedEntities: [
+                {
+                    id: 'entity-2',
+                    name: '工单',
+                    type: 'concept',
+                    origin: 'extracted',
+                    visibility: 'active',
+                    mentionCount: 3
+                }
+            ],
+            chunks: [
+                {
+                    id: 'db-chunk-7',
+                    documentId: 'doc-1',
+                    knowledgebaseId: 'kb-1',
+                    pageContent: 'MES 管理工单流转。',
+                    metadata: {
+                        chunkId: 'chunk-7',
+                        chunkIndex: 7,
+                        page: 3,
+                        score: 0.88
+                    },
+                    document: {
+                        id: 'doc-1',
+                        name: '操作手册.docx',
+                        fileUrl: 'https://files.local/doc-1.docx',
+                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    }
+                }
+            ],
+            evidenceByChunkId: {
+                'chunk-7': [
+                    {
+                        id: 'mention-1',
+                        entityId: 'entity-1',
+                        relationId: 'relation-1',
+                        documentId: 'doc-1',
+                        chunkId: 'chunk-7',
+                        quote: 'MES 管理工单',
+                        confidence: 0.79
+                    }
+                ]
+            },
+            totals: {
+                chunks: 1,
+                mentions: 1,
+                entityIds: 2,
+                relations: 1
+            },
+            truncated: {
+                chunks: false,
+                mentions: false
+            }
+        })
+
+        const result = await service.getGraphNodeDetail({
+            allowedKnowledgebaseIds: ['kb-1'],
+            knowledgebaseId: 'kb-1',
+            entityId: 'entity-1'
+        })
+
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    knowledgebaseId: 'kb-1',
+                    entityId: 'entity-1',
+                    query: expect.objectContaining({
+                        neighborHops: 1,
+                        take: 6,
+                        includeMentions: true,
+                        mentionTake: 3
+                    })
+                })
+            })
+        )
+        expect(result.entity).toEqual(
+            expect.objectContaining({
+                id: 'entity-1',
+                name: 'MES',
+                aliases: ['制造执行系统']
+            })
+        )
+        expect(result.relations).toEqual([
+            expect.objectContaining({
+                id: 'relation-1',
+                type: 'manages',
+                targetName: '工单',
+                confidence: 0.82
+            })
+        ])
+        expect(result.chunks).toEqual([
+            expect.objectContaining({
+                chunkId: 'chunk-7',
+                documentId: 'doc-1',
+                documentName: '操作手册.docx',
+                chunkIndex: 7,
+                page: 3,
+                citationUrl: 'xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-7',
+                citationMarkdown:
+                    '[⟦1⟧](xpert://knowledgebase/chunk?knowledgebaseId=kb-1&documentId=doc-1&chunkId=chunk-7)',
+                evidence: [
+                    expect.objectContaining({
+                        quote: 'MES 管理工单',
+                        confidence: 0.79
+                    })
+                ]
+            })
+        ])
+    })
+
+    it('uploads PDF documents with default visual parser and VLM understanding enabled', async () => {
+        const { service, commandBus, documentService } = createService()
+        commandBus.execute.mockResolvedValueOnce({
+            name: 'manual.pdf',
+            filePath: 'manual.pdf',
+            fileUrl: 'https://files.local/manual.pdf',
+            mimeType: 'application/pdf',
+            size: 128,
+            sourceHash: 'source-hash'
+        })
+        documentService.createDocumentWithIncrementalSync.mockResolvedValueOnce({
+            shouldProcess: true,
+            document: {
+                id: 'doc-2',
+                knowledgebaseId: 'kb-1',
+                name: 'manual.pdf',
+                type: 'pdf',
+                status: KBDocumentStatusEnum.WAITING
+            }
+        })
+        documentService.startProcessing.mockResolvedValueOnce([
+            {
+                id: 'doc-2',
+                knowledgebaseId: 'kb-1',
+                name: 'manual.pdf',
+                type: 'pdf',
+                status: KBDocumentStatusEnum.RUNNING
+            }
+        ])
+
+        const result = await service.uploadDocument({
+            allowedKnowledgebaseIds: ['kb-1'],
+            knowledgebaseId: 'kb-1',
+            file: {
+                buffer: Buffer.from('pdf'),
+                originalname: 'manual.pdf',
+                mimetype: 'application/pdf',
+                size: 128
+            }
+        })
+
+        expect(documentService.createDocumentWithIncrementalSync).toHaveBeenCalledWith(
+            expect.objectContaining({
+                parserConfig: expect.objectContaining({
+                    transformerType: 'pdf-visual',
+                    imageUnderstandingType: 'vlm-default'
+                })
+            })
+        )
+        expect(documentService.startProcessing).toHaveBeenCalledWith(['doc-2'], 'kb-1')
+        expect(result.processingStarted).toBe(true)
+    })
 })
 
 function createService() {
@@ -311,6 +619,7 @@ function createService() {
         getChunks: jest.fn(),
         previewFile: jest.fn(),
         createDocument: jest.fn(),
+        createDocumentWithIncrementalSync: jest.fn(),
         startProcessing: jest.fn()
     }
     const commandBus = {

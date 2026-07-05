@@ -1,3 +1,10 @@
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    AgentMiddlewareStrategy: () => () => undefined
+}))
+jest.mock('./knowledge-workbench.service', () => ({
+    KnowledgeWorkbenchService: class KnowledgeWorkbenchService {}
+}))
+
 import { IWFNMiddleware, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import {
@@ -9,7 +16,7 @@ import {
     KNOWLEDGE_WORKBENCH_SEARCH_TOOL
 } from './constants'
 import { KnowledgeWorkbenchMiddleware } from './knowledge-workbench.middleware'
-import { KnowledgeWorkbenchService } from './knowledge-workbench.service'
+import type { KnowledgeWorkbenchService } from './knowledge-workbench.service'
 
 describe('KnowledgeWorkbenchMiddleware', () => {
     it('exposes the knowledge workbench feature and tools', async () => {
@@ -26,6 +33,9 @@ describe('KnowledgeWorkbenchMiddleware', () => {
             KNOWLEDGE_WORKBENCH_LIST_DOCUMENTS_TOOL,
             KNOWLEDGE_WORKBENCH_PREVIEW_DOCUMENT_TOOL
         ])
+        const searchTool = middleware.tools?.find((item) => item.name === KNOWLEDGE_WORKBENCH_SEARCH_TOOL)
+        expect(searchTool?.description).toContain('Use the exact citationMarkdown string verbatim')
+        expect(searchTool?.description).toContain('[label](url)')
     })
 
     it('passes selected workbench documents into the search service', async () => {

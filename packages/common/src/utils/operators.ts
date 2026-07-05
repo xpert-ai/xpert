@@ -1,4 +1,4 @@
-import { Response } from 'express'
+import type { Response } from 'express'
 import { Observable, OperatorFunction } from 'rxjs'
 
 export function takeUntilClose<T>(res: Response): OperatorFunction<T, T> {

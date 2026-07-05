@@ -19,7 +19,7 @@ import { instanceToPlain } from 'class-transformer'
 import { omit } from 'lodash'
 import z from 'zod'
 import { DocumentChunkDTO } from '../knowledge-document/dto'
-import { formatKnowledgebaseRetrievalToolOutput } from './citation'
+import { formatKnowledgebaseRetrievalToolOutput, KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION } from './citation'
 import { KnowledgebaseGetOneQuery, KnowledgeSearchQuery } from './queries'
 
 /**
@@ -200,7 +200,7 @@ export class KnowledgeRetriever extends BaseRetriever {
                 description:
                     `Get knowledges from knowledgebase '${knowledgebase.name}', it be described by ` +
                     knowledgebase.description +
-                    `. The result includes chunks and citations. When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph.`,
+                    `. The result includes chunks and citations. ${KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION}`,
                 schema: z.object({
                     ...schema,
                     input: z.string().describe(`key information of question`)

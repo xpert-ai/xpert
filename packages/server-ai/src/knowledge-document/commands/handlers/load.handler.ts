@@ -7,7 +7,7 @@ import {
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum
 } from '@xpert-ai/contracts'
-import { loadCsvWithAutoEncoding, loadExcel, pick } from '@xpert-ai/server-common'
+import { getErrorMessage, loadCsvWithAutoEncoding, loadExcel, pick } from '@xpert-ai/server-common'
 import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -31,6 +31,15 @@ import { PluginPermissionsCommand } from '../../../knowledgebase/commands'
 import { TDocChunkMetadata } from '../../types'
 import { KnowledgeDocumentService } from '../../document.service'
 import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
+
+type ImageUnderstandingWarning = {
+    type: 'image_understanding_skipped' | 'image_understanding_failed'
+    message: string
+    assetCount?: number
+    imagePath?: string
+    imageUrl?: string
+    parentChunkId?: string
+}
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -165,55 +174,71 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     // Image understanding
                     const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
                     if (images?.length && docParserConfig.imageUnderstandingType) {
-                        const imageCacheConfig = {
-                            document: { ...transItem, chunks: splitted.chunks },
-                            parserConfig: pick(docParserConfig, [
-                                'imageUnderstandingType',
-                                'imageUnderstandingIntegration',
-                                'imageUnderstanding'
-                            ]),
-                            stage
-                        }
-                        const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
-                        let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
-                        if (!imgTransformed) {
-                            if (!visionModel) {
-                                visionModel = await this.knowledgebaseService.getVisionModel(
-                                    doc.knowledgebaseId,
-                                    docParserConfig.imageUnderstandingModel
-                                )
+                        try {
+                            const imageCacheConfig = {
+                                document: { ...transItem, chunks: splitted.chunks },
+                                parserConfig: pick(docParserConfig, [
+                                    'imageUnderstandingType',
+                                    'imageUnderstandingIntegration',
+                                    'imageUnderstanding'
+                                ]),
+                                stage
                             }
-                            const imageUnderstanding = this.imageUnderstandingRegistry.get(
-                                docParserConfig.imageUnderstandingType
-                            )
-                            const permissions = await this.commandBus.execute(
-                                new PluginPermissionsCommand(imageUnderstanding.permissions, {
-                                    knowledgebaseId: doc.knowledgebaseId,
-                                    integrationId: docParserConfig.imageUnderstandingIntegration
-                                    // folder: stage === 'test' ? 'temp/' : `/`
-                                })
-                            )
-                            imgTransformed = await imageUnderstanding.understandImages(
-                                {
-                                    ...transItem,
-                                    chunks: splitted.chunks
-                                } as IKnowledgeDocument<ChunkMetadata>,
-                                {
-                                    ...(docParserConfig.imageUnderstanding ?? {}),
-                                    stage,
-                                    visionModel,
-                                    permissions
+                            const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
+                            let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
+                            if (!imgTransformed) {
+                                if (!visionModel) {
+                                    visionModel = await this.knowledgebaseService.getVisionModel(
+                                        doc.knowledgebaseId,
+                                        docParserConfig.imageUnderstandingModel
+                                    )
                                 }
+                                const imageUnderstanding = this.imageUnderstandingRegistry.get(
+                                    docParserConfig.imageUnderstandingType
+                                )
+                                const permissions = await this.commandBus.execute(
+                                    new PluginPermissionsCommand(imageUnderstanding.permissions, {
+                                        knowledgebaseId: doc.knowledgebaseId,
+                                        integrationId: docParserConfig.imageUnderstandingIntegration
+                                        // folder: stage === 'test' ? 'temp/' : `/`
+                                    })
+                                )
+                                imgTransformed = await imageUnderstanding.understandImages(
+                                    {
+                                        ...transItem,
+                                        chunks: splitted.chunks
+                                    } as IKnowledgeDocument<ChunkMetadata>,
+                                    {
+                                        ...(docParserConfig.imageUnderstanding ?? {}),
+                                        stage,
+                                        visionModel,
+                                        permissions
+                                    }
+                                )
+
+                                await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
+                            }
+
+                            chunks.push(...imgTransformed.chunks)
+                            await this.recordImageUnderstandingWarnings(
+                                doc,
+                                stage,
+                                normalizeImageUnderstandingWarnings(imgTransformed.metadata?.warnings)
                             )
 
-                            await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
-                        }
-
-                        chunks.push(...imgTransformed.chunks)
-
-                        // Update document status
-                        if (stage !== 'test') {
-                            await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
+                            // Update document status
+                            if (stage !== 'test') {
+                                await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
+                            }
+                        } catch (error) {
+                            chunks.push(...splitted.chunks)
+                            await this.recordImageUnderstandingWarnings(doc, stage, [
+                                {
+                                    type: 'image_understanding_skipped',
+                                    message: getErrorMessage(error),
+                                    assetCount: images.length
+                                }
+                            ])
                         }
                     } else {
                         chunks.push(...splitted.chunks)
@@ -230,6 +255,23 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         }
 
         return this.loadWeb(doc)
+    }
+
+    private async recordImageUnderstandingWarnings(
+        doc: IKnowledgeDocument,
+        stage: string,
+        warnings: ImageUnderstandingWarning[]
+    ) {
+        if (stage === 'test' || !warnings.length || !doc.id) {
+            return
+        }
+
+        const metadata = {
+            ...(doc.metadata ?? {}),
+            imageUnderstandingWarnings: [...getExistingImageUnderstandingWarnings(doc.metadata), ...warnings]
+        }
+        doc.metadata = metadata
+        await this.kbDocumentService.update(doc.id, { metadata } as Partial<IKnowledgeDocument>)
     }
 
     async loadWeb(doc: IKnowledgeDocument) {
@@ -338,4 +380,43 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
         return loadExcel(filePath)
     }
+}
+
+function normalizeImageUnderstandingWarnings(value: unknown): ImageUnderstandingWarning[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+
+    const warnings: Array<ImageUnderstandingWarning | null> = value.map((warning) => {
+        if (!warning || typeof warning !== 'object') {
+            return null
+        }
+        const record = warning as Record<string, unknown>
+        const message = typeof record.message === 'string' ? record.message : ''
+        if (!message) {
+            return null
+        }
+        const type =
+            record.type === 'image_understanding_skipped' || record.type === 'image_understanding_failed'
+                ? record.type
+                : 'image_understanding_failed'
+        return {
+            type,
+            message,
+            assetCount: typeof record.assetCount === 'number' ? record.assetCount : undefined,
+            imagePath: typeof record.imagePath === 'string' ? record.imagePath : undefined,
+            imageUrl: typeof record.imageUrl === 'string' ? record.imageUrl : undefined,
+            parentChunkId: typeof record.parentChunkId === 'string' ? record.parentChunkId : undefined
+        } satisfies ImageUnderstandingWarning
+    })
+    return warnings.filter((warning): warning is ImageUnderstandingWarning => !!warning)
+}
+
+function getExistingImageUnderstandingWarnings(metadata: unknown): ImageUnderstandingWarning[] {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+        return []
+    }
+
+    const warnings = (metadata as Record<string, unknown>).imageUnderstandingWarnings
+    return normalizeImageUnderstandingWarnings(warnings)
 }

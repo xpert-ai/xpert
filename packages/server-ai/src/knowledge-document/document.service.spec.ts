@@ -1,3 +1,62 @@
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    DocumentSourceRegistry: class DocumentSourceRegistry {},
+    TextSplitterRegistry: class TextSplitterRegistry {},
+    mergeParentChildChunks: jest.fn((_pages, chunks) => chunks)
+}))
+jest.mock('../knowledgebase', () => ({
+    KnowledgebaseService: class KnowledgebaseService {}
+}))
+jest.mock('../shared', () => ({
+    KnowledgeWorkAreaResolver: class KnowledgeWorkAreaResolver {},
+    LoadStorageFileCommand: class LoadStorageFileCommand {
+        constructor(public readonly input: unknown) {}
+    }
+}))
+jest.mock('@xpert-ai/server-core', () => ({
+    RequestContext: {
+        currentTenantId: jest.fn(() => 'tenant-1'),
+        currentUserId: jest.fn(() => 'user-1')
+    },
+    StorageFileService: class StorageFileService {},
+    TenantBaseEntity: class TenantBaseEntity {},
+    TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
+    TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
+        protected readonly repository: any
+
+        constructor(repository: any) {
+            this.repository = repository
+        }
+
+        async findOne(id: string, options?: object) {
+            return this.repository.findOne?.({ ...(options ?? {}), where: { id } })
+        }
+
+        async findAll(options?: object) {
+            if (this.repository.findAndCount) {
+                const [items, total] = await this.repository.findAndCount(options)
+                return { items, total }
+            }
+            return { items: [], total: 0 }
+        }
+
+        async update(id: string, entity: Partial<T>) {
+            return this.repository.update?.(id, entity)
+        }
+
+        async create(entity: Partial<T>) {
+            return this.repository.save?.(entity)
+        }
+
+        async delete(where: object) {
+            return this.repository.delete?.(where)
+        }
+
+        async save(entity: T | T[]) {
+            return this.repository.save?.(entity)
+        }
+    }
+}))
+
 import { ConflictException } from '@nestjs/common'
 import {
     DocumentSourceProviderCategoryEnum,
@@ -11,8 +70,8 @@ import { DataSource, Repository } from 'typeorm'
 import { StorageFileService } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
-import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import type { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase'
+import type { KnowledgeWorkAreaResolver } from '../shared'
 import { computeKnowledgeDocumentChunkHash, computeKnowledgeDocumentProcessingHash } from './document-hash'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
@@ -111,12 +170,14 @@ describe('KnowledgeDocumentService original file downloads', () => {
             }
         ])
 
-        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual([
-            expect.objectContaining({
-                absolutePath: '/knowledge-volume/files/local.txt',
-                fileName: 'local.txt'
-            })
-        ])
+        await expect(service.getOriginalFileDownloadTargets(['doc-local', 'doc-agent', 'doc-folder'])).resolves.toEqual(
+            [
+                expect.objectContaining({
+                    absolutePath: '/knowledge-volume/files/local.txt',
+                    fileName: 'local.txt'
+                })
+            ]
+        )
     })
 
     it('deduplicates selected documents that reference the same original file path', async () => {
@@ -798,6 +859,42 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
                 contentHash: 'chunk-content-hash'
             })
         )
+    })
+
+    it('returns stored document chunks in chunkIndex order when not searching', async () => {
+        const service = createService([])
+        const findAll = jest.fn(async () => ({
+            items: [
+                {
+                    id: 'chunk-2',
+                    pageContent: 'second',
+                    metadata: { chunkId: 'chunk-2', chunkIndex: 1 }
+                },
+                {
+                    id: 'chunk-1',
+                    pageContent: 'first',
+                    metadata: { chunkId: 'chunk-1', chunkIndex: 0 }
+                }
+            ],
+            total: 2
+        }))
+        Object.assign(service, {
+            chunkService: {
+                findAll
+            }
+        })
+
+        const result = await service.getChunks('doc-1', {
+            skip: 0,
+            take: 20
+        } as any)
+
+        expect(findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                order: { createdAt: 'ASC' }
+            })
+        )
+        expect(result.items.map((chunk) => chunk.id)).toEqual(['chunk-1', 'chunk-2'])
     })
 
     it('checks all bulk versions before updating any document', async () => {

@@ -16,6 +16,7 @@ import {
 import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, UserOrganization } from '@xpert-ai/server-core'
+import { t } from 'i18next'
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
 import { ExceedingLimitException } from '../core/errors'
 import { formatInUTC0 } from '../shared/utils'
@@ -595,13 +596,23 @@ export class MembershipService {
             xpertId: input.xpertId
         })
         if (!access) {
-            throw new ExceedingLimitException('Membership plan is required to use Copilot models.')
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPlanRequired',
+                    'Membership plan is required to use Copilot models.'
+                )
+            )
         }
         this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
 
         const pointsRemaining = this.pointsRemaining(access.membership)
         if (pointsRemaining !== null && pointsRemaining <= 0) {
-            throw new ExceedingLimitException('Membership points limit exceeded.')
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPointsLimitExceeded',
+                    'Membership points limit exceeded.'
+                )
+            )
         }
         await this.assertRateLimits(access.membership, input.provider, input.model)
     }
@@ -626,7 +637,12 @@ export class MembershipService {
                 true
             )
             if (!access) {
-                throw new ExceedingLimitException('Membership plan is required to use Copilot models.')
+                throw new ExceedingLimitException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPlanRequired',
+                        'Membership plan is required to use Copilot models.'
+                    )
+                )
             }
             this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
 
@@ -660,7 +676,12 @@ export class MembershipService {
         })
 
         if (exceeded) {
-            throw new ExceedingLimitException('Membership points limit exceeded.')
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.MembershipPointsLimitExceeded',
+                    'Membership points limit exceeded.'
+                )
+            )
         }
 
         return ledger
@@ -1384,8 +1405,18 @@ export class MembershipService {
     private assertCopilotScopeMatches(access: MembershipModelAccess, copilotOrganizationId?: string | null) {
         const normalizedCopilotOrganizationId = this.normalizeScopeOrganizationId(copilotOrganizationId)
         if (normalizedCopilotOrganizationId !== access.organizationId) {
-            throw new ExceedingLimitException('Copilot model is not available for the current membership plan.')
+            throw new ExceedingLimitException(
+                this.translateMembershipError(
+                    'server-ai:Error.CopilotModelUnavailableForMembershipPlan',
+                    'Copilot model is not available for the current membership plan.'
+                )
+            )
         }
+    }
+
+    private translateMembershipError(key: string, fallback: string) {
+        const message = t(key, { defaultValue: fallback })
+        return typeof message === 'string' && message !== key ? message : fallback
     }
 
     private positiveInteger(value: unknown, fallback: number) {

@@ -22,6 +22,7 @@ import { v4 as uuid } from 'uuid'
 import path from 'path'
 import * as XLSX from 'xlsx'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
+import { loadDocxStructuredMarkdown } from './docx-outline'
 
 type TResolvedDocumentFile = {
     absolutePath: string
@@ -121,10 +122,14 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                     data = await this.processEpub(fileAbsPath)
                     break
                 case 'doc':
-                    data = await this.processDoc(fileAbsPath)
+                    data = await this.processDoc(fileAbsPath, extension?.toLowerCase())
                     break
                 case 'docx':
-                    data = await this.processDoc(fileAbsPath)
+                    data = await this.processDoc(fileAbsPath, extension?.toLowerCase(), {
+                        file,
+                        xpFileSystem,
+                        assets
+                    })
                     break
                 case 'pptx':
                     data = await this.processPPT(fileAbsPath)
@@ -144,7 +149,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                             assets.push({
                                 type: 'image',
                                 url: runtimeFileUrl,
-                                filePath: runtimeFilePath
+                                filePath: runtimeFilePath,
+                                sourceType: 'image_file',
+                                order: 0,
+                                altText: file.name
                             })
                             break
                         }
@@ -158,9 +166,10 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
 
             results.push({
                 id: file.id,
-                chunks: data.map((_) => {
+                chunks: data.map((_, index) => {
                     const doc = _ as DocumentInterface<ChunkMetadata>
                     doc.metadata['chunkId'] ??= uuid()
+                    doc.metadata['chunkIndex'] ??= index
 
                     // Text Preprocessing
                     if (config?.replaceWhitespace) {
@@ -296,7 +305,40 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
         return toChunkDocuments(await loader.load())
     }
 
-    async processDoc(filePath: string): Promise<Document<ChunkMetadata>[]> {
+    async processDoc(
+        filePath: string,
+        extension?: string,
+        options?: {
+            file?: Partial<IKnowledgeDocument>
+            xpFileSystem?: XpFileSystem
+            assets?: TDocumentAsset[]
+        }
+    ): Promise<Document<ChunkMetadata>[]> {
+        if (extension === 'docx') {
+            try {
+                // Prefer the OOXML path for DOCX because it preserves TOC/heading structure for chunking.
+                const structured = await loadDocxStructuredMarkdown(filePath, {
+                    writeImage: options?.xpFileSystem
+                        ? async (image) => {
+                              const fileName = `${safeBaseName(options.file?.name ?? filePath)}-image-${String(
+                                  image.order + 1
+                              ).padStart(4, '0')}-${randomUUID()}.${image.extension}`
+                              const imagePath = path.posix.join('images', fileName)
+                              const url = await options.xpFileSystem.writeFile(imagePath, image.data)
+                              return { filePath: imagePath, url }
+                          }
+                        : undefined
+                })
+                if (structured?.documents.length) {
+                    options?.assets?.push(...structured.assets)
+                    return structured.documents
+                }
+            } catch (error) {
+                this.#logger.warn(
+                    `Failed to extract structured DOCX outline for '${filePath}'. Falling back to DocxLoader. ${error instanceof Error ? error.message : String(error)}`
+                )
+            }
+        }
         const loader = new DocxLoader(filePath)
         return toChunkDocuments(await loader.load())
     }
@@ -323,6 +365,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                         pageContent: JSON.stringify(row),
                         metadata: {
                             chunkId: uuid(),
+                            chunkIndex: documents.length,
                             sheetName,
                             rowNumber: index + 1,
                             raw: row
@@ -345,21 +388,36 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                 pageContent: `![${name}](${url})`,
                 metadata: {
                     chunkId: uuid(),
-                    source: url
+                    chunkIndex: 0,
+                    source: url,
+                    mediaType: 'image',
+                    sourceType: 'image_file'
                 }
             })
         ]
     }
 }
 
+function safeBaseName(value: string) {
+    return (
+        path
+            .basename(value)
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9._-]+/g, '-')
+            .slice(0, 80) || 'document'
+    )
+}
+
 function toChunkDocuments(documents: DocumentInterface[]): Document<ChunkMetadata>[] {
     return documents.map(
-        (document) =>
+        (document, index) =>
             new Document<ChunkMetadata>({
                 pageContent: document.pageContent,
                 metadata: {
                     ...document.metadata,
-                    chunkId: document.metadata?.chunkId ?? uuid()
+                    chunkId: document.metadata?.chunkId ?? uuid(),
+                    // Preserve loader-provided order metadata, otherwise assign sequence by transformed order.
+                    chunkIndex: document.metadata?.chunkIndex ?? index
                 }
             })
     )

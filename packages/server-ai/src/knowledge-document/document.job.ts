@@ -7,7 +7,7 @@ import {
     KnowledgeDocumentMetadata
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { runWithRequestContext, UserService } from '@xpert-ai/server-core'
+import { UserService } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -20,6 +20,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
 import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
 @Processor({
     name: JOB_EMBEDDING_DOCUMENT
@@ -44,26 +45,21 @@ export class KnowledgeDocumentConsumer {
             return {}
         }
 
-        return new Promise((resolve, reject) => {
-            runWithRequestContext(
-                {
-                    user,
-                    headers: {
-                        ['organization-id']: firstDoc.organizationId,
-                        language: user.preferredLanguage
-                    }
-                },
-                () => {
-                    this.processInRequestContext(job)
-                        .then(resolve)
-                        .catch(async (err) => {
-                            this.logger.error(err)
-                            await this.markQueuedDocsFailed(job, err)
-                            reject(err)
-                        })
-                }
-            )
+        const context = captureRequestContext({
+            user,
+            organizationId: firstDoc.organizationId,
+            language: user.preferredLanguage
         })
+
+        try {
+            // Embedding model creation reads plugin-sdk RequestContext, while older CRUD paths
+            // still read server-core context; queued work needs both scopes restored.
+            return await runWithCapturedRequestContext(context, () => this.processInRequestContext(job))
+        } catch (err) {
+            this.logger.error(err)
+            await this.markQueuedDocsFailed(job, err)
+            throw err
+        }
     }
 
     private async processInRequestContext(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {

@@ -6,7 +6,9 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@nestjs/common": "^11.1.6",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/typeorm": "^11.0.0",
+    "chalk": "4.1.2",
     "dotenv": "^16.0.0",
     "tslib": "^2.3.0",
     "typeorm": "^0.2.37"

@@ -1,10 +1,10 @@
 import {
 	OrganizationCreatedEvent,
 	OrganizationService,
-	runWithRequestContext,
 	UserOrganizationService,
 	UserService
 } from '@xpert-ai/server-core'
+import { captureRequestContext, runWithCapturedRequestContext } from '@xpert-ai/server-ai'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -19,12 +19,9 @@ import {
 	SemanticModel,
 	Story,
 	StoryPoint,
-	StoryWidget,
+	StoryWidget
 } from '../core/entities/internal'
-import {
-	AnalyticsBootstrapMode,
-	seedOrganizationAnalyticsData
-} from '../core/events/handlers/seeds'
+import { AnalyticsBootstrapMode, seedOrganizationAnalyticsData } from '../core/events/handlers/seeds'
 import { CommandBus, ICommand } from '@nestjs/cqrs'
 import {
 	LanguagesEnum,
@@ -101,9 +98,7 @@ export class AnalyticsBootstrapService {
 			throw new Error(`No organization member found for analytics bootstrap '${organizationId}'`)
 		}
 
-		const users = (
-			await Promise.all(userIds.map((userId) => this.tryResolveUser(userId)))
-		).filter(Boolean)
+		const users = (await Promise.all(userIds.map((userId) => this.tryResolveUser(userId)))).filter(Boolean)
 		const trialUser = users.find((user) => this.isTrialUser(user))
 		if (trialUser) {
 			return trialUser
@@ -170,19 +165,12 @@ export class AnalyticsBootstrapService {
 	}
 
 	private async runInOrganizationContext<T>(user: IUser, organizationId: string, callback: () => Promise<T>) {
-		return new Promise<T>((resolve, reject) => {
-			runWithRequestContext(
-				{
-					user,
-					headers: {
-						['organization-id']: organizationId,
-						language: user.preferredLanguage ?? LanguagesEnum.English
-					}
-				},
-				() => {
-					callback().then(resolve).catch(reject)
-				}
-			)
+		const context = captureRequestContext({
+			user,
+			tenantId: user.tenantId,
+			organizationId,
+			language: user.preferredLanguage ?? LanguagesEnum.English
 		})
+		return runWithCapturedRequestContext(context, callback)
 	}
 }

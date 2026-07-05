@@ -26,6 +26,12 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
 
+### Backend I18n
+
+- New server-side runtime messages and errors must use `i18next`, not `nestjs-i18n` service injection.
+- Import `t` from `i18next` and call namespace-qualified keys such as `t('server-ai:Error.SomeKey', { defaultValue })`; request language is supplied by the existing i18next bootstrap through `RequestContext`.
+- Add `server-ai` namespace resources to `packages/server-ai/src/i18n/en.json`, `packages/server-ai/src/i18n/en-US.json`, and `packages/server-ai/src/i18n/zh-Hans.json`. Do not add new business error keys only to the nested `en/**` or `zh/**` `nestjs-i18n` resource files.
+
 ## Frontend (Angular)
 
 - Services live in `apps/cloud/src/app/@core/services`; export them via the barrel.

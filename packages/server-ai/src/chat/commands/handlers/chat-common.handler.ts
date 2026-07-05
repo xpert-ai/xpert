@@ -73,7 +73,10 @@ import {
 import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
-import { formatKnowledgebaseRetrievalToolOutput } from '../../../knowledgebase/citation'
+import {
+    formatKnowledgebaseRetrievalToolOutput,
+    KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION
+} from '../../../knowledgebase/citation'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
@@ -909,8 +912,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     },
                     {
                         name: knowledgeToolName,
-                        description:
-                            'Get information about question. The result includes chunks and citations. When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph.',
+                        description: `Get information about question. The result includes chunks and citations. ${KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION}`,
                         schema: z.string()
                     }
                 ) as any

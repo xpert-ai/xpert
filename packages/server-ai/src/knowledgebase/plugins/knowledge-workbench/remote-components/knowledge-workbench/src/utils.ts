@@ -1,4 +1,8 @@
 import { getLocale, t } from './i18n'
+import type { DocumentStatus } from './types'
+
+// Finished documents are the normal steady state, so the list only badges active/error statuses.
+const COMPLETED_DOCUMENT_STATUS: DocumentStatus = 'finish'
 
 export function formatPercent(value: number) {
     return `${Math.round(value * 100)}%`
@@ -18,8 +22,8 @@ export function getAvatarEmoji(value: unknown) {
     return getStringValue(avatar?.emoji) || (typeof value === 'string' && !value.startsWith('{') ? value : undefined)
 }
 
-export function isCompletedStatus(status: string) {
-    return ['success', 'completed', 'done', 'finish', 'finished'].includes(status.toLowerCase())
+export function isCompletedStatus(status?: DocumentStatus | null): status is typeof COMPLETED_DOCUMENT_STATUS {
+    return status === COMPLETED_DOCUMENT_STATUS
 }
 
 export function extractCitationTarget(event: any) {

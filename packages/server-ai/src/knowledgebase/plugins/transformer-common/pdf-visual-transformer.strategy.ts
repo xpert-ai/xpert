@@ -141,10 +141,11 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
 
             results.push({
                 id: file.id,
-                chunks: chunks.map((chunk) => {
+                chunks: chunks.map((chunk, index) => {
                     const metadata: ChunkMetadata = {
                         ...(chunk.metadata ?? {}),
-                        chunkId: chunk.metadata?.chunkId ?? uuid()
+                        chunkId: chunk.metadata?.chunkId ?? uuid(),
+                        chunkIndex: chunk.metadata?.chunkIndex ?? index
                     }
                     chunk.metadata = metadata
                     return chunk
@@ -207,7 +208,11 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
                 const asset = {
                     type: 'image',
                     filePath,
-                    url
+                    url,
+                    sourceType: 'pdf_page',
+                    page,
+                    order: page - 1,
+                    altText: `Page ${page}`
                 } satisfies TDocumentAsset
                 assets.push(asset)
 
@@ -218,10 +223,12 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
                         metadata: {
                             ...(textByPage.get(page)?.metadata ?? {}),
                             chunkId: textByPage.get(page)?.metadata?.chunkId ?? uuid(),
+                            chunkIndex: textByPage.get(page)?.metadata?.chunkIndex ?? page - 1,
                             page,
                             source: file.filePath ?? file.fileUrl,
                             mediaType: 'image',
-                            sourceType: 'pdf_page'
+                            sourceType: 'pdf_page',
+                            assets: [asset]
                         }
                     })
                 )

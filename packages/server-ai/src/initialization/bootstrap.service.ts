@@ -16,10 +16,8 @@ import {
     UserOrganizationCreatedEvent,
     UserOrganizationDeletedEvent,
     UserOrganizationService,
-    UserService,
-    runWithRequestContext as runWithLegacyRequestContext
+    UserService
 } from '@xpert-ai/server-core'
-import { RequestContext, runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
@@ -32,6 +30,7 @@ import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { MembershipService } from '../membership'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { DEFAULT_ENVIRONMENT_NAME, getDefaultOrganizationWorkspaceName } from './constants'
 
 export type OrganizationBootstrapResult = {
@@ -683,18 +682,13 @@ export class ServerAIBootstrapService {
     }
 
     private async runInRequestContext<T>(user: IUser, headers: Record<string, string>, callback: () => Promise<T>) {
-        const request = {
+        const context = captureRequestContext({
             user,
+            tenantId: user.tenantId,
+            organizationId: headers['organization-id'],
+            language: headers.language,
             headers
-        }
-
-        return new Promise<T>((resolve, reject) => {
-            runWithRequestContext(request, {}, () => {
-                const scopedRequest = RequestContext.currentRequest() ?? request
-                runWithLegacyRequestContext(scopedRequest, () => {
-                    callback().then(resolve).catch(reject)
-                })
-            })
         })
+        return runWithCapturedRequestContext(context, callback)
     }
 }

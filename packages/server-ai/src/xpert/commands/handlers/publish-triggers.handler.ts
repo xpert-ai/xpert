@@ -4,11 +4,8 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { HandoffMessage, IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { HandoffQueueService } from '../../../handoff/message-queue.service'
-import {
-    captureAgentRequestContext,
-    runWithCapturedAgentRequestContext
-} from '../../../shared/agent/request-context'
-import type { AgentRequestContextSnapshot } from '../../../shared/agent/request-context'
+import { captureRequestContext, runWithCapturedRequestContext } from '../../../shared/request-context'
+import type { RequestContextSnapshot } from '../../../shared/request-context'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 
@@ -58,7 +55,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         const { xpert, options } = command
         const strict = options?.strict ?? false
         const providers = options?.providers?.length ? new Set(options.providers) : null
-        const requestContext = captureAgentRequestContext({
+        const requestContext = captureRequestContext({
             user: options?.context?.user,
             tenantId: options?.context?.tenantId ?? xpert.tenantId,
             organizationId: options?.context?.organizationId ?? xpert.organizationId,
@@ -206,7 +203,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         provider: IWorkflowTriggerStrategy<any>,
         xpert: IXpert,
         trigger: IWFNTrigger,
-        requestContext: AgentRequestContextSnapshot
+        requestContext: RequestContextSnapshot
     ): Promise<void> {
         await Promise.resolve(
             provider.publish(
@@ -215,7 +212,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
                     config: trigger.config
                 },
                 (payload) => {
-                    return runWithCapturedAgentRequestContext(requestContext, () =>
+                    return runWithCapturedRequestContext(requestContext, () =>
                         this.handleTriggerPayload(xpert, trigger, payload)
                     ).catch((error) => {
                         this.#logger.error(

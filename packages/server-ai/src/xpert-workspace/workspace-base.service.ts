@@ -27,7 +27,8 @@ import {
 } from './workspace-access.service'
 import { XpertWorkspace } from './workspace.entity'
 
-const READABLE_SCOPE_SELECT_FIELDS = ['tenantId', 'organizationId', 'workspaceId'] as const
+// TypeORM relation selects still need the root primary key for its DISTINCT alias query.
+const READABLE_SCOPE_SELECT_FIELDS = ['id', 'tenantId', 'organizationId', 'workspaceId'] as const
 
 type WorkspaceScopedPartial<T extends WorkspaceBaseEntity> = DeepPartial<T> & {
     id?: string | number

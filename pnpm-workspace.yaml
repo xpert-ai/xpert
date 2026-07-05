@@ -5,3 +5,38 @@ packages:
   - 'packages/plugins/*'
   - 'docs'
   - 'legacies/*'
+
+overrides:
+  '@xpert-ai/plugin-sdk': workspace:*
+  '@langchain/core': 0.3.72
+  langchain: 0.3.31
+  '@modelcontextprotocol/sdk': 1.12.1
+  '@modelcontextprotocol/ext-apps>@modelcontextprotocol/sdk': 1.29.0
+  '@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk': 1.29.0
+  zod: 3.25.67
+  web-streams-polyfill: ^4.2.0
+
+allowBuilds:
+  '@apollo/protobufjs': set this to true or false
+  '@compodoc/compodoc': set this to true or false
+  '@nestjs/core': true
+  '@parcel/watcher': set this to true or false
+  '@scarf/scarf': set this to true or false
+  '@swc/core': set this to true or false
+  aws-sdk: set this to true or false
+  core-js: set this to true or false
+  cypress: set this to true or false
+  es5-ext: set this to true or false
+  esbuild: set this to true or false
+  isolated-vm: set this to true or false
+  less: set this to true or false
+  lmdb: set this to true or false
+  msgpackr-extract: set this to true or false
+  ngx-float-ui: set this to true or false
+  ngx-popperjs: set this to true or false
+  node-pty: set this to true or false
+  nx: set this to true or false
+  protobufjs: set this to true or false
+  sharp: set this to true or false
+  swiper: set this to true or false
+  unrs-resolver: set this to true or false

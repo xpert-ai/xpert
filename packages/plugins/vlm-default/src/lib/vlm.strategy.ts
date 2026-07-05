@@ -17,13 +17,20 @@ import { v4 as uuid } from 'uuid'
 import { SvgIcon, VlmDefault } from './types'
 
 // Regex for markdown image tag: ![](image.png) or ![alt](image.png)
-const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g;
+const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g
 const DEFAULT_PROMPT_TEMPLATE =
   'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
 const CONTEXT_PLACEHOLDER = '{{context}}'
 
 type VlmDefaultConfig = TImageUnderstandingConfig & {
   promptTemplate?: string
+}
+
+type ImageUnderstandingWarning = {
+  imagePath?: string
+  imageUrl?: string
+  parentChunkId?: string
+  message: string
 }
 
 @Injectable()
@@ -37,10 +44,10 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     } as FileSystemPermission,
     {
       type: 'llm',
-      capability: 'vision',
+      capability: 'vision'
     } as LLMPermission
   ]
-  
+
   readonly meta = {
     name: VlmDefault,
     label: { en_US: 'VLM', zh_Hans: '视觉语言模型' },
@@ -60,8 +67,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
           description: {
             en_US:
               'Optional system prompt template for image understanding. Supports {{context}} to inject the current chunk content. Leave empty to use the default prompt.',
-            zh_Hans:
-              '可选的视觉理解系统提示词模板。支持使用 {{context}} 注入当前分块内容；留空时使用默认提示词。'
+            zh_Hans: '可选的视觉理解系统提示词模板。支持使用 {{context}} 注入当前分块内容；留空时使用默认提示词。'
           },
           default: DEFAULT_PROMPT_TEMPLATE,
           'x-ui': {
@@ -91,12 +97,11 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     doc: IKnowledgeDocument<ChunkMetadata>,
     config: VlmDefaultConfig
   ): Promise<TImageUnderstandingResult> {
-
     await this.validateConfig(config)
 
     const client = config.visionModel // ✅ Injected by the core system
     const params = {
-      files: doc.metadata?.assets?.filter((asset) => asset.type === 'image'),
+      files: doc.metadata?.assets?.filter((asset) => asset.type === 'image') ?? [],
       chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]
     }
 
@@ -104,11 +109,15 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     const leaves = collectTreeLeaves(tree)
 
     const chunks: Document<Partial<ChunkMetadata>>[] = []
+    const warnings: ImageUnderstandingWarning[] = []
     // const pages : Document<Partial<ChunkMetadata>>[] = []
 
     for await (const chunk of leaves) {
       const assets: string[] = []
       chunk.metadata['chunkId'] ??= uuid()
+      const parentChunkId = String(chunk.metadata['chunkId'])
+      const parentChunkIndex = getNumber(chunk.metadata['chunkIndex'], chunks.length)
+      let imageOffset = 0
 
       // Source Document Block
       chunks.push(chunk)
@@ -119,19 +128,39 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         const url = match[1] // image-url.png
         const asset = params.files.find((a) => a.url === url)
         if (asset && !assets.some((_) => _ === asset.url)) {
-          const description = await this.runV(client, chunk.pageContent, asset.filePath, config)
-          assets.push(asset.url)
-          chunks.push(new Document({
-            pageContent: description,
-            metadata: {
-              mediaType: 'image',
-              chunkId: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              parentId: chunk.metadata['chunkId'],
+          let description: string
+          try {
+            description = await this.runV(client, chunk.pageContent, asset.filePath, config)
+          } catch (error) {
+            warnings.push({
               imagePath: asset.filePath,
-              // source: asset.filename,
-              parser: 'vlm'
-            }
-          }))
+              imageUrl: asset.url,
+              parentChunkId,
+              message: getErrorMessage(error)
+            })
+            continue
+          }
+
+          imageOffset++
+          assets.push(asset.url)
+          chunks.push(
+            new Document({
+              pageContent: description,
+              metadata: {
+                mediaType: 'image',
+                chunkId: buildImageChunkId(parentChunkId, asset.filePath, asset.order ?? imageOffset),
+                chunkIndex: parentChunkIndex + imageOffset / 1000,
+                parentId: parentChunkId,
+                imagePath: asset.filePath,
+                imageUrl: asset.url,
+                sourceType: asset.sourceType,
+                page: asset.page,
+                order: asset.order,
+                altText: asset.altText,
+                parser: 'vlm'
+              }
+            })
+          )
         }
       }
     }
@@ -139,14 +168,21 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     return {
       chunks,
       // pages,
-      metadata: {}
+      metadata: {
+        warnings
+      }
     }
   }
 
-  private async runV(client: BaseChatModel, context: string, imagePath: string, config: VlmDefaultConfig): Promise<string> {
+  private async runV(
+    client: BaseChatModel,
+    context: string,
+    imagePath: string,
+    config: VlmDefaultConfig
+  ): Promise<string> {
     const imageStr = await config.permissions.fileSystem.readFile(imagePath)
     const sharped = sharp(imageStr)
-    
+
     // Reduce image size to minimize Base64 encoding length and avoid exceeding token limits
     // Some model services (e.g., Xinference) have strict input length limits (2048 tokens)
     // Resize to smaller dimension and compress to reduce Base64 string length
@@ -154,11 +190,11 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 85, mozjpeg: true })
       .toBuffer()
-    
+
     const mimetype = 'image/jpeg'
 
     const systemMessage = this.buildSystemMessage(context, config)
-    
+
     try {
       const response = await client.invoke([
         {
@@ -184,7 +220,9 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       // Handle specific error about input length limit
       const errorMessage = getErrorMessage(error)
       if (errorMessage.includes('Range of input length') || errorMessage.includes('2048')) {
-        throw new Error(`Image understanding failed: Input length exceeds model limit (2048 tokens). The image may be too large or the model service has strict input length restrictions. Please try with a smaller image or adjust the model configuration. Original error: ${errorMessage}`)
+        throw new Error(
+          `Image understanding failed: Input length exceeds model limit (2048 tokens). The image may be too large or the model service has strict input length restrictions. Please try with a smaller image or adjust the model configuration. Original error: ${errorMessage}`
+        )
       }
       // Re-throw other errors
       throw error
@@ -201,4 +239,12 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       .replace(/\n{3,}/g, '\n\n')
       .trim()
   }
+}
+
+function buildImageChunkId(parentChunkId: string, imagePath: string, order: number) {
+  return `img-${parentChunkId}-${order}-${imagePath}`.replace(/[^a-zA-Z0-9._:-]+/g, '-').slice(0, 180)
+}
+
+function getNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }

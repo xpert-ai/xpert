@@ -9,6 +9,7 @@ import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { RequestContext } from '@xpert-ai/server-core'
 import { MembershipPeriodEnum, MembershipPlanStatusEnum, MembershipStatusEnum } from '@xpert-ai/contracts'
+import i18next from 'i18next'
 
 describe('MembershipService', () => {
     afterEach(() => {
@@ -744,6 +745,62 @@ describe('MembershipService', () => {
                 model: 'qwen3.6-plus'
             })
         ).rejects.toThrow('Copilot model is not available for the current membership plan.')
+    })
+
+    it('translates copilot model membership scope errors', async () => {
+        const previousLanguage = i18next.language
+        if (!i18next.isInitialized) {
+            await i18next.init({
+                lng: 'zh-Hans',
+                fallbackLng: 'en',
+                ns: ['server-ai'],
+                defaultNS: 'server-ai',
+                resources: {
+                    'zh-Hans': {
+                        'server-ai': {
+                            Error: {
+                                CopilotModelUnavailableForMembershipPlan: '当前会员计划无法使用该 Copilot 模型。'
+                            }
+                        }
+                    }
+                }
+            })
+        } else {
+            i18next.addResourceBundle(
+                'zh-Hans',
+                'server-ai',
+                {
+                    Error: {
+                        CopilotModelUnavailableForMembershipPlan: '当前会员计划无法使用该 Copilot 模型。'
+                    }
+                },
+                true,
+                true
+            )
+            await i18next.changeLanguage('zh-Hans')
+        }
+
+        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership: createMembership({ organizationId: 'org-1', pointsUsed: 0 })
+        })
+
+        try {
+            await expect(
+                service.assertCanUse({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    copilotOrganizationId: null,
+                    userId: 'assistant-tech-user',
+                    provider: 'tongyi',
+                    model: 'qwen3.6-plus'
+                })
+            ).rejects.toThrow('当前会员计划无法使用该 Copilot 模型。')
+        } finally {
+            await i18next.changeLanguage(previousLanguage ?? 'en')
+        }
     })
 
     it('records usage for unlimited memberships without total point limit failures', async () => {

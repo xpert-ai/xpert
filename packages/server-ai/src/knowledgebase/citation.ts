@@ -27,6 +27,10 @@ export type KnowledgebaseRetrievalToolOutput = {
     instructions: string
 }
 
+// Keep the link contract centralized so every retriever/tool prompt asks for the same Markdown form.
+export const KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION =
+    'When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph. Use the exact citationMarkdown string verbatim as an inline Markdown link in the form [label](url); do not rewrite it as a footnote, plain [1], reference-style link, bare URL, or separate source list.'
+
 export function createKnowledgebaseCitationUrl(input: {
     knowledgebaseId: string
     documentId: string
@@ -48,6 +52,7 @@ export function addKnowledgebaseCitationLink<T extends KnowledgebaseCitation>(
 ): T {
     const knowledgebaseId = citation.knowledgebaseId ?? fallbackKnowledgebaseId
     const citationLabel = `⟦${citation.index}⟧`
+    // The agent receives this exact string and should copy it verbatim into the final answer.
     const citationUrl =
         citation.documentId && knowledgebaseId
             ? createKnowledgebaseCitationUrl({
@@ -119,8 +124,7 @@ export function formatKnowledgebaseRetrievalToolOutput(
         {
             chunks,
             citations,
-            instructions:
-                'When using a chunk in the final answer, append its citationMarkdown immediately after the supported sentence or paragraph.'
+            instructions: KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION
         } satisfies KnowledgebaseRetrievalToolOutput,
         null,
         2

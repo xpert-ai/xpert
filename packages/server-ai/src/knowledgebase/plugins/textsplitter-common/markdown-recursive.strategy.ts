@@ -112,12 +112,14 @@ export class MarkdownRecursiveStrategy implements ITextSplitterStrategy<
         const chunks = await splitter.transformDocuments(documents)
         return {
             chunks: chunks.map(
-                (chunk) =>
+                (chunk, index) =>
                     new Document<ChunkMetadata>({
                         pageContent: chunk.pageContent,
                         metadata: {
                             ...chunk.metadata,
-                            chunkId: chunk.metadata?.chunkId ?? uuid()
+                            chunkId: chunk.metadata?.chunkId ?? uuid(),
+                            // Carry a stable document-order index into previews and retrieval citations.
+                            chunkIndex: index
                         }
                     })
             )

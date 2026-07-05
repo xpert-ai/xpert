@@ -18,8 +18,13 @@ const DEFAULT_RECURSIVE_TEXT_SPLITTER = {
     }
 } satisfies DocumentParserConfig
 
+const DEFAULT_IMAGE_UNDERSTANDING_CONFIG = {
+    imageUnderstandingType: 'vlm-default'
+} satisfies DocumentParserConfig
+
 const DEFAULT_PDF_VISUAL_PARSER_CONFIG = {
     ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    ...DEFAULT_IMAGE_UNDERSTANDING_CONFIG,
     transformerType: 'pdf-visual',
     transformer: {
         renderPageImages: true,
@@ -34,8 +39,11 @@ const DEFAULT_TEXT_DOCUMENT_PARSER_CONFIG = {
 } satisfies DocumentParserConfig
 
 const DEFAULT_IMAGE_DOCUMENT_PARSER_CONFIG = {
+    ...DEFAULT_IMAGE_UNDERSTANDING_CONFIG,
     transformerType: 'default'
 } satisfies DocumentParserConfig
+
+const DOCX_EXTENSIONS = new Set(['docx'])
 
 const IMAGE_EXTENSIONS = new Set([
     'apng',
@@ -71,6 +79,12 @@ function defaultParserConfigFor(type: string, category: IKnowledgeDocument['cate
     }
     if (type === 'pdf') {
         return DEFAULT_PDF_VISUAL_PARSER_CONFIG
+    }
+    if (DOCX_EXTENSIONS.has(type)) {
+        return {
+            ...DEFAULT_TEXT_DOCUMENT_PARSER_CONFIG,
+            ...DEFAULT_IMAGE_UNDERSTANDING_CONFIG
+        } satisfies DocumentParserConfig
     }
     if (category === KBDocumentCategoryEnum.Image || IMAGE_EXTENSIONS.has(type)) {
         return DEFAULT_IMAGE_DOCUMENT_PARSER_CONFIG

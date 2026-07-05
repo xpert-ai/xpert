@@ -17,3 +17,7 @@
 tr td {
   @apply whitespace-nowrap truncate;
 }
+
+thead th {
+  @apply whitespace-nowrap;
+}

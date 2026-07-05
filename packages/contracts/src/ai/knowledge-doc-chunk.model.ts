@@ -7,6 +7,10 @@ export type TDocumentAsset = {
   type: 'image' | 'video' | 'audio' | 'file'
   url: string // remote url
   filePath: string // local path
+  sourceType?: 'pdf_page' | 'docx_embedded_image' | 'image_file'
+  page?: number
+  order?: number
+  altText?: string
 }
 
 export interface IDocChunkMetadata {
@@ -40,13 +44,11 @@ export interface IDocChunkMetadata {
   [key: string]: any
 }
 
-
 /**
  * Segmented chunk of a knowledge document
  */
 export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = any>
-  extends DocumentInterface<Metadata>,
-    IBasePerTenantAndOrganizationEntityModel {
+  extends DocumentInterface<Metadata>, IBasePerTenantAndOrganizationEntityModel {
   contentHash?: string | null
   version?: number
 
@@ -59,10 +61,9 @@ export interface IKnowledgeDocumentChunk<Metadata extends IDocChunkMetadata = an
   children?: IKnowledgeDocumentChunk<Metadata>[]
 }
 
-
 /**
  * Build a hierarchical tree structure from a flat list of DocumentInterface objects,
- * and 
+ * preserving explicit chunkIndex order whenever it is available.
  *
  * @template Metadata - Type of metadata, defaults to IDocChunkMetadata
  * @param documents - A flat array of DocumentInterface objects
@@ -72,15 +73,18 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
   documents: DocumentInterface<Metadata>[]
 ): DocumentInterface<Metadata>[] {
   if (!documents || documents.length === 0) return []
-  
+
   // Step 1. Build a lookup map for quick access by chunkId
   const map = new Map<string, DocumentInterface<Metadata>>()
-  for (const doc of documents) {
+  // Keep the original retrieval/insertion order as a deterministic fallback.
+  const inputOrder = new Map<string, number>()
+  documents.forEach((doc, index) => {
     const chunkId = getChunkNodeId(doc)
     if (chunkId) {
       map.set(chunkId, { ...doc, metadata: { ...doc.metadata, chunkId, children: [] } })
+      inputOrder.set(chunkId, index)
     }
-  }
+  })
 
   // Step 2. Organize nodes into tree
   const roots: DocumentInterface<Metadata>[] = []
@@ -95,13 +99,12 @@ export function buildChunkTree<Metadata extends IDocChunkMetadata = IDocChunkMet
       roots.push(doc)
     }
   }
-  
+
+  sortChunkNodes(roots, inputOrder)
   return roots
 }
 
-function getChunkNodeId<Metadata extends IDocChunkMetadata>(
-  document: DocumentInterface<Metadata>
-): string | undefined {
+function getChunkNodeId<Metadata extends IDocChunkMetadata>(document: DocumentInterface<Metadata>): string | undefined {
   if (document.metadata?.chunkId) {
     return document.metadata.chunkId
   }
@@ -113,11 +116,49 @@ function getChunkNodeId<Metadata extends IDocChunkMetadata>(
   return undefined
 }
 
+function sortChunkNodes<Metadata extends IDocChunkMetadata>(
+  nodes: DocumentInterface<Metadata>[],
+  inputOrder: Map<string, number>
+) {
+  // Sort every sibling group, including nested children, so the rendered tree matches document flow.
+  nodes.sort((left, right) => compareChunkNodes(left, right, inputOrder))
+
+  for (const node of nodes) {
+    if (node.metadata.children?.length) {
+      sortChunkNodes(node.metadata.children as DocumentInterface<Metadata>[], inputOrder)
+    }
+  }
+}
+
+function compareChunkNodes<Metadata extends IDocChunkMetadata>(
+  left: DocumentInterface<Metadata>,
+  right: DocumentInterface<Metadata>,
+  inputOrder: Map<string, number>
+) {
+  // chunkIndex is the canonical document-order signal; input order is only a fallback.
+  const leftIndex = getFiniteNumber(left.metadata.chunkIndex)
+  const rightIndex = getFiniteNumber(right.metadata.chunkIndex)
+  if (leftIndex !== undefined && rightIndex !== undefined && leftIndex !== rightIndex) {
+    return leftIndex - rightIndex
+  }
+  if (leftIndex !== undefined || rightIndex !== undefined) {
+    return leftIndex !== undefined ? -1 : 1
+  }
+
+  const leftOrder = inputOrder.get(left.metadata.chunkId) ?? 0
+  const rightOrder = inputOrder.get(right.metadata.chunkId) ?? 0
+  return leftOrder - rightOrder
+}
+
+function getFiniteNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
 /**
  * Find all leaf nodes (nodes without children).
- * 
- * @param roots 
- * @returns 
+ *
+ * @param roots
+ * @returns
  */
 export function collectTreeLeaves(roots: IKnowledgeDocumentChunk[]) {
   const leaves: IKnowledgeDocumentChunk[] = []

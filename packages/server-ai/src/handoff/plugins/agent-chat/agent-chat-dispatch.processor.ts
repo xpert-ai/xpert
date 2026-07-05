@@ -1,4 +1,3 @@
-import { runWithRequestContext as _runWithRequestContext } from '@xpert-ai/server-core'
 import { Injectable, Logger, Optional } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
@@ -9,7 +8,6 @@ import {
     IHandoffProcessor,
     ProcessContext,
     ProcessResult,
-    runWithRequestContext,
     AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
     AgentChatCallbackEnvelopePayload,
     AgentChatCallbackTarget,
@@ -22,6 +20,7 @@ import { XpertPrincipalService, XpertPrincipalTarget } from '../../../xpert/xper
 import { HandoffQueueService } from '../../message-queue.service'
 import { AgentChatRealtimeService } from '../../agent-chat-realtime.service'
 import { normalizeChatSourceAuditOptions } from '../../../shared/agent/source-audit'
+import { captureRequestContext, runWithCapturedRequestContext } from '../../../shared/request-context'
 
 type RuntimeRequestContext = {
     user?: IApiPrincipal | { id: string; tenantId: string }
@@ -527,26 +526,14 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         context: RuntimeRequestContext,
         task: () => Promise<ProcessResult>
     ): Promise<ProcessResult> {
-        return new Promise<ProcessResult>((resolve, reject) => {
-            runWithRequestContext(
-                {
-                    user: context.user,
-                    headers: context.headers
-                },
-                {},
-                () => {
-                    _runWithRequestContext(
-                        {
-                            user: context.user,
-                            headers: context.headers
-                        },
-                        () => {
-                            task().then(resolve).catch(reject)
-                        }
-                    )
-                }
-            )
+        const requestContext = captureRequestContext({
+            user: context.user,
+            tenantId: context.headers['tenant-id'],
+            organizationId: context.headers['organization-id'],
+            language: context.headers.language,
+            headers: context.headers
         })
+        return runWithCapturedRequestContext(requestContext, task)
     }
 
     private toNonEmptyString(value: unknown): string | undefined {

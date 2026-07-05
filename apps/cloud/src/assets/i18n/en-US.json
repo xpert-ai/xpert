@@ -259,6 +259,8 @@
       "ConfirmPassword": "Confirm password",
       "None": "None",
       "Refresh": "Refresh",
+      "Columns": "Columns",
+      "Width": "Width",
       "Configured": "configured"
     },
     "Common": {
@@ -1374,6 +1376,9 @@
       "DownloadOriginalFile": "Download original file",
       "DownloadOriginalFiles": "Download originals",
       "NoOriginalFilesToDownload": "No downloadable original files are available.",
+      "TableColumns": "Table columns",
+      "TableColumnsHint": "Show, resize, and reorder columns.",
+      "ResizeColumn": "Resize column",
       "ModelConfiguration": "Model Configuration",
       "ChangeEmbeddingModelDraftNotice": "Changing the embedding model requires vector rebuild. Save to create a pending rebuild model.",
       "ModelConfigurationManagedInSettings": "Chat, embedding, vision, and rerank models are configured on the knowledgebase configuration page.",

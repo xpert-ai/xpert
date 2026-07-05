@@ -4,14 +4,28 @@ import remarkGfm from 'remark-gfm'
 import {
     Badge,
     Button,
+    TablerFileCodeIcon,
+    TablerFileDescriptionIcon,
+    TablerFileIcon,
+    TablerFileMusicIcon,
     TablerFileTypeDocxIcon,
+    TablerFileTypeCsvIcon,
+    TablerFileTypeHtmlIcon,
+    TablerFileTypeJpgIcon,
     TablerFileTypePdfIcon,
+    TablerFileTypePngIcon,
+    TablerFileTypePptIcon,
+    TablerFileTypeSvgIcon,
+    TablerFileTypeTxtIcon,
+    TablerFileTypeXlsIcon,
+    TablerFileTypeZipIcon,
     TablerFolderOpenFilledIcon,
+    TablerVideoIcon,
     cn
 } from '@xpert-ai/shadcn-ui'
-import { Check, FileText } from 'lucide-react'
+import { AlertCircle, Ban, Check, CheckCircle2, Clock, FileText, Info, Loader2, TriangleAlert } from 'lucide-react'
 import { getLocale, t } from './i18n'
-import type { DocumentRow } from './types'
+import type { DocumentRow, DocumentStatus } from './types'
 import { dateValue, formatItemCount, formatListTime, isCompletedStatus } from './utils'
 
 export function MarkdownPreview({ value }: { value: string }) {
@@ -121,11 +135,8 @@ export function DocumentListRow({
                                 <span className="truncate">{meta.secondary}</span>
                             </>
                         ) : null}
-                        {row.status && !isCompletedStatus(row.status) ? (
-                            <Badge variant="outline" className="rounded-md px-1">
-                                {row.status}
-                            </Badge>
-                        ) : null}
+                        <DocumentStatusBadge status={row.status} />
+                        <DocumentWarningBadge metadata={row.metadata} />
                     </span>
                 </span>
             </button>
@@ -147,6 +158,125 @@ export function DocumentListRow({
     )
 }
 
+type DocumentStatusInfo = {
+    labelKey: Parameters<typeof t>[0]
+    icon: React.ComponentType<{ className?: string }>
+    className?: string
+    loading?: boolean
+}
+
+type VisibleDocumentStatus = Exclude<DocumentStatus, 'finish'>
+
+// Mirror the server status enum exhaustively; adding a new visible status should fail type-checking here.
+const DOCUMENT_STATUS_INFO = {
+    waiting: {
+        labelKey: 'statusWaiting',
+        icon: Clock,
+        className: 'text-muted-foreground'
+    },
+    validate: {
+        labelKey: 'statusValidating',
+        icon: Info,
+        className: 'text-muted-foreground'
+    },
+    running: {
+        labelKey: 'statusRunning',
+        icon: Loader2,
+        className: 'border-primary/40 text-primary',
+        loading: true
+    },
+    transformed: {
+        labelKey: 'statusTransformed',
+        icon: FileText,
+        className: 'text-muted-foreground'
+    },
+    splitted: {
+        labelKey: 'statusSplitted',
+        icon: FileText,
+        className: 'text-muted-foreground'
+    },
+    understood: {
+        labelKey: 'statusUnderstood',
+        icon: CheckCircle2,
+        className: 'text-muted-foreground'
+    },
+    embedding: {
+        labelKey: 'statusEmbedding',
+        icon: Loader2,
+        className: 'border-primary/40 text-primary',
+        loading: true
+    },
+    cancel: {
+        labelKey: 'statusCancelled',
+        icon: Ban,
+        className: 'text-muted-foreground'
+    },
+    error: {
+        labelKey: 'statusError',
+        icon: AlertCircle,
+        className: 'border-destructive/40 text-destructive'
+    }
+} satisfies Record<VisibleDocumentStatus, DocumentStatusInfo>
+
+function DocumentStatusBadge({ status }: { status?: DocumentStatus | null }) {
+    if (!isVisibleDocumentStatus(status)) {
+        return null
+    }
+
+    const statusInfo = DOCUMENT_STATUS_INFO[status]
+    const StatusIcon = statusInfo.icon
+    return (
+        <Badge
+            variant="outline"
+            className={cn(
+                'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0 text-[11px] leading-5',
+                statusInfo.className
+            )}
+        >
+            <StatusIcon className={cn('size-3', statusInfo.loading ? 'animate-spin' : '')} />
+            <span>{t(statusInfo.labelKey)}</span>
+        </Badge>
+    )
+}
+
+function DocumentWarningBadge({ metadata }: { metadata?: unknown }) {
+    const warning = getImageUnderstandingWarning(metadata)
+    if (!warning) {
+        return null
+    }
+
+    return (
+        <Badge
+            variant="outline"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border-text-warning/40 px-1.5 py-0 text-[11px] leading-5 text-text-warning"
+            title={warning.message}
+        >
+            <TriangleAlert className="size-3" />
+            <span>{t('imageUnderstandingWarning')}</span>
+        </Badge>
+    )
+}
+
+function isVisibleDocumentStatus(status?: DocumentStatus | null): status is VisibleDocumentStatus {
+    return Boolean(status) && !isCompletedStatus(status)
+}
+
+function getImageUnderstandingWarning(metadata?: unknown) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+        return null
+    }
+
+    const warnings = (metadata as Record<string, unknown>).imageUnderstandingWarnings
+    if (!Array.isArray(warnings)) {
+        return null
+    }
+    const first = warnings.find((warning) => warning && typeof warning === 'object') as
+        | Record<string, unknown>
+        | undefined
+    const message = typeof first?.message === 'string' ? first.message : ''
+    return first ? { message } : null
+}
+
 function DocumentVisual({ row, kind }: { row: DocumentRow; kind: DocumentKind }) {
     if (row.isFolder) {
         return <TablerFolderOpenFilledIcon className="h-8 w-8 text-emerald-400" />
@@ -157,61 +287,84 @@ function DocumentVisual({ row, kind }: { row: DocumentRow; kind: DocumentKind })
     if (kind.key === 'pdf') {
         return <TablerFileTypePdfIcon className="h-9 w-9 text-red-500" strokeWidth={1.8} />
     }
+    if (kind.key === 'sheet') {
+        return <TablerFileTypeXlsIcon className="h-9 w-9 text-emerald-600" strokeWidth={1.8} />
+    }
+    if (kind.key === 'csv') {
+        return <TablerFileTypeCsvIcon className="h-9 w-9 text-emerald-600" strokeWidth={1.8} />
+    }
+    if (kind.key === 'slide') {
+        return <TablerFileTypePptIcon className="h-9 w-9 text-orange-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'image') {
+        return <TablerFileTypeJpgIcon className="h-9 w-9 text-violet-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'png') {
+        return <TablerFileTypePngIcon className="h-9 w-9 text-violet-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'svg') {
+        return <TablerFileTypeSvgIcon className="h-9 w-9 text-violet-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'html') {
+        return <TablerFileTypeHtmlIcon className="h-9 w-9 text-orange-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'markdown') {
+        return <TablerFileDescriptionIcon className="h-9 w-9 text-slate-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'text') {
+        return <TablerFileTypeTxtIcon className="h-9 w-9 text-slate-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'code') {
+        return <TablerFileCodeIcon className="h-9 w-9 text-slate-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'audio') {
+        return <TablerFileMusicIcon className="h-9 w-9 text-violet-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'video') {
+        return <TablerVideoIcon className="h-9 w-9 text-violet-500" strokeWidth={1.8} />
+    }
+    if (kind.key === 'archive') {
+        return <TablerFileTypeZipIcon className="h-9 w-9 text-muted-foreground" strokeWidth={1.8} />
+    }
 
-    return (
-        <span
-            className={cn(
-                'relative flex h-10 w-8 items-center justify-center rounded-md border bg-card shadow-sm',
-                'border-border'
-            )}
-            aria-hidden="true"
-        >
-            <FileText className="absolute left-1.5 top-1.5 size-3.5 text-muted-foreground/25" />
-            <span className="absolute left-1.5 right-1.5 top-6 h-px bg-muted-foreground/15" />
-            <span className="absolute left-1.5 right-3 top-8 h-px bg-muted-foreground/15" />
-            <span className={cn('absolute bottom-1 left-1 rounded-sm px-0.5 font-bold text-white', kind.badgeClass)}>
-                {kind.short}
-            </span>
-        </span>
-    )
+    return <TablerFileIcon className="h-9 w-9 text-muted-foreground" strokeWidth={1.8} />
 }
 
 type DocumentKind = {
-    key: 'folder' | 'pdf' | 'word' | 'sheet' | 'slide' | 'image' | 'text' | 'file'
+    key:
+        | 'folder'
+        | 'pdf'
+        | 'word'
+        | 'sheet'
+        | 'csv'
+        | 'slide'
+        | 'image'
+        | 'png'
+        | 'svg'
+        | 'video'
+        | 'audio'
+        | 'html'
+        | 'markdown'
+        | 'text'
+        | 'code'
+        | 'archive'
+        | 'file'
     label: string
-    short: string
-    badgeClass: string
 }
 
 function getDocumentKind(row: DocumentRow): DocumentKind {
     if (row.isFolder) {
-        return { key: 'folder', label: t('folder'), short: '', badgeClass: '' }
+        return { key: 'folder', label: t('folder') }
     }
-    const raw = `${row.type ?? ''} ${row.mimeType ?? ''} ${row.name ?? ''}`.toLowerCase()
-    if (raw.includes('pdf')) {
-        return { key: 'pdf', label: 'PDF', short: 'PDF', badgeClass: 'bg-red-500' }
-    }
-    if (raw.includes('doc') || raw.includes('word')) {
-        return { key: 'word', label: 'WORD', short: 'W', badgeClass: 'bg-blue-600' }
-    }
-    if (raw.includes('xls') || raw.includes('sheet') || raw.includes('excel')) {
-        return { key: 'sheet', label: 'SHEET', short: 'X', badgeClass: 'bg-emerald-600' }
-    }
-    if (raw.includes('ppt') || raw.includes('presentation')) {
-        return { key: 'slide', label: 'PPT', short: 'P', badgeClass: 'bg-orange-500' }
-    }
-    if (raw.includes('png') || raw.includes('jpg') || raw.includes('jpeg') || raw.includes('image')) {
-        return { key: 'image', label: 'IMAGE', short: 'IMG', badgeClass: 'bg-violet-500' }
-    }
-    if (raw.includes('txt') || raw.includes('md') || raw.includes('markdown')) {
-        return { key: 'text', label: 'TEXT', short: 'T', badgeClass: 'bg-slate-500' }
-    }
-    return {
-        key: 'file',
-        label: (row.type || t('document')).toUpperCase(),
-        short: 'F',
-        badgeClass: 'bg-muted-foreground'
-    }
+    // Prefer extension evidence over MIME/category/type because some uploads keep generic backend labels.
+    const kindKey =
+        resolveKindFromExtension(row.name, row.filePath, row.fileUrl) ??
+        resolveKindFromMime(row.mimeType) ??
+        resolveKindFromCategory(row.category) ??
+        resolveKindFromType(row.type) ??
+        'file'
+
+    return getDocumentKindDefinition(kindKey, row.type)
 }
 
 function getDocumentMeta(row: DocumentRow, kind: DocumentKind) {
@@ -241,4 +394,190 @@ export function sortDocumentRows(rows: DocumentRow[], sortMode: 'updated' | 'nam
         }
         return dateValue(right.updatedAt) - dateValue(left.updatedAt)
     })
+}
+
+type DocumentKindKey = Exclude<DocumentKind['key'], 'folder'>
+
+// Keep extension-specific keys where the UI has a dedicated file-type icon.
+const EXTENSION_KIND: Record<string, DocumentKindKey> = {
+    doc: 'word',
+    docx: 'word',
+    dot: 'word',
+    dotx: 'word',
+    pdf: 'pdf',
+    xls: 'sheet',
+    xlsx: 'sheet',
+    xlsm: 'sheet',
+    xlsb: 'sheet',
+    csv: 'csv',
+    ods: 'sheet',
+    ppt: 'slide',
+    pptx: 'slide',
+    pps: 'slide',
+    ppsx: 'slide',
+    odp: 'slide',
+    png: 'png',
+    jpg: 'image',
+    jpeg: 'image',
+    gif: 'image',
+    webp: 'image',
+    svg: 'svg',
+    bmp: 'image',
+    mp4: 'video',
+    mov: 'video',
+    avi: 'video',
+    webm: 'video',
+    mp3: 'audio',
+    wav: 'audio',
+    m4a: 'audio',
+    flac: 'audio',
+    html: 'html',
+    htm: 'html',
+    md: 'markdown',
+    mdx: 'markdown',
+    markdown: 'markdown',
+    txt: 'text',
+    json: 'code',
+    yaml: 'code',
+    yml: 'code',
+    xml: 'code',
+    zip: 'archive',
+    rar: 'archive',
+    '7z': 'archive',
+    tar: 'archive',
+    gz: 'archive'
+}
+
+function resolveKindFromExtension(...values: Array<string | null | undefined>): DocumentKindKey | undefined {
+    for (const value of values) {
+        const extension = getExtension(value)
+        if (extension && EXTENSION_KIND[extension]) {
+            return EXTENSION_KIND[extension]
+        }
+    }
+    return undefined
+}
+
+function getExtension(value: string | null | undefined) {
+    if (!value?.trim()) {
+        return undefined
+    }
+    const normalized = value.trim().split(/[?#]/)[0]
+    const fileName = normalized.split(/[\\/]/).pop() ?? normalized
+    const dotIndex = fileName.lastIndexOf('.')
+    if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+        return undefined
+    }
+    return fileName.slice(dotIndex + 1).toLowerCase()
+}
+
+function resolveKindFromMime(mimeType: string | null | undefined): DocumentKindKey | undefined {
+    const mime = mimeType?.toLowerCase() ?? ''
+    if (!mime) {
+        return undefined
+    }
+    if (mime.includes('pdf')) {
+        return 'pdf'
+    }
+    if (mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('csv')) {
+        return mime.includes('csv') ? 'csv' : 'sheet'
+    }
+    if (mime.includes('presentation') || mime.includes('powerpoint')) {
+        return 'slide'
+    }
+    if (mime.includes('word') || mime.includes('document')) {
+        return 'word'
+    }
+    if (mime.startsWith('image/')) {
+        return 'image'
+    }
+    if (mime.startsWith('video/')) {
+        return 'video'
+    }
+    if (mime.startsWith('audio/')) {
+        return 'audio'
+    }
+    if (mime.includes('html')) {
+        return 'html'
+    }
+    if (mime.includes('markdown')) {
+        return 'markdown'
+    }
+    if (mime.includes('json') || mime.includes('xml') || mime.includes('yaml')) {
+        return 'code'
+    }
+    if (mime.includes('zip') || mime.includes('compressed') || mime.includes('archive')) {
+        return 'archive'
+    }
+    if (mime.startsWith('text/')) {
+        return 'text'
+    }
+    return undefined
+}
+
+function resolveKindFromCategory(category: string | null | undefined): DocumentKindKey | undefined {
+    if (category === 'sheet') {
+        return 'sheet'
+    }
+    if (category === 'image') {
+        return 'image'
+    }
+    if (category === 'video') {
+        return 'video'
+    }
+    if (category === 'audio') {
+        return 'audio'
+    }
+    if (category === 'text') {
+        return 'text'
+    }
+    return undefined
+}
+
+function resolveKindFromType(type: string | null | undefined): DocumentKindKey | undefined {
+    const normalized = type?.trim().toLowerCase()
+    if (!normalized) {
+        return undefined
+    }
+    return EXTENSION_KIND[normalized] ?? resolveKindFromMime(normalized)
+}
+
+function getDocumentKindDefinition(kind: DocumentKindKey, fallbackType?: string | null): DocumentKind {
+    switch (kind) {
+        case 'pdf':
+            return { key: 'pdf', label: 'PDF' }
+        case 'word':
+            return { key: 'word', label: 'WORD' }
+        case 'sheet':
+            return { key: 'sheet', label: 'SHEET' }
+        case 'csv':
+            return { key: 'csv', label: 'CSV' }
+        case 'slide':
+            return { key: 'slide', label: 'PPT' }
+        case 'image':
+            return { key: 'image', label: 'IMAGE' }
+        case 'png':
+            return { key: 'png', label: 'PNG' }
+        case 'svg':
+            return { key: 'svg', label: 'SVG' }
+        case 'video':
+            return { key: 'video', label: 'VIDEO' }
+        case 'audio':
+            return { key: 'audio', label: 'AUDIO' }
+        case 'html':
+            return { key: 'html', label: 'HTML' }
+        case 'markdown':
+            return { key: 'markdown', label: 'MARKDOWN' }
+        case 'text':
+            return { key: 'text', label: 'TEXT' }
+        case 'code':
+            return { key: 'code', label: 'CODE' }
+        case 'archive':
+            return { key: 'archive', label: 'ARCHIVE' }
+        default:
+            return {
+                key: 'file',
+                label: (fallbackType || t('document')).toUpperCase()
+            }
+    }
 }
