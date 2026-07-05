@@ -10,6 +10,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeor
 import { MembershipPlan } from './membership-plan.entity'
 import { UserMembership } from './user-membership.entity'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('membership_point_ledger')
 @Index('IDX_membership_ledger_tenant_user_hour', ['tenantId', 'userId', 'usageHour'])
 @Index('IDX_membership_ledger_tenant_model_hour', ['tenantId', 'provider', 'model', 'usageHour'])
@@ -62,11 +67,11 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     source: MembershipLedgerSourceEnum
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsDelta: number
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', nullable: true })
+    @Column({ type: 'bigint', nullable: true, transformer: bigintNumberTransformer })
     tokenUsed?: number
 
     @ApiPropertyOptional({ type: () => String })

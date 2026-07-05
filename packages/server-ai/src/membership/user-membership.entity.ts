@@ -4,6 +4,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { MembershipPlan } from './membership-plan.entity'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('user_membership')
 @Index('IDX_user_membership_tenant_user_status', ['tenantId', 'userId', 'status'])
 @Index('IDX_user_membership_tenant_plan', ['tenantId', 'planId'])
@@ -49,15 +54,15 @@ export class UserMembership extends TenantBaseEntity implements IUserMembership 
     currentPeriodEnd: Date
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsGranted: number
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsUsed: number
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     pointsTotalUsed: number
 
     @ApiProperty({ type: () => User })

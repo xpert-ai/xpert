@@ -2,6 +2,11 @@ import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index } from 'typeorm'
 import { FileAssetPurpose, FileAssetStatus, FileCapability, FileParseMode } from '../domain/types'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 /**
  * Platform-level file handle for agent understanding. StorageFile owns object
  * storage; FileAsset owns parser status, capabilities, context links, and
@@ -40,7 +45,7 @@ export class FileAsset extends TenantOrganizationBaseEntity {
     @Column({ nullable: true })
     mimeType?: string
 
-    @Column({ default: 0, nullable: true })
+    @Column({ type: 'bigint', default: 0, nullable: true, transformer: bigintNumberTransformer })
     size?: number
 
     @Column({ nullable: true })

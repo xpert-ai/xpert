@@ -5,6 +5,11 @@ import { IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { ChatConversation } from '../conversation.entity'
 
+const bigintNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('chat_conversation_goal')
 @Index(['conversationId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'conversationId'])
@@ -44,7 +49,7 @@ export class ChatConversationGoal extends TenantOrganizationBaseEntity implement
 
     @ApiProperty({ type: () => Number })
     @IsNumber()
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
     tokensUsed: number
 
     @ApiProperty({ type: () => Number })
