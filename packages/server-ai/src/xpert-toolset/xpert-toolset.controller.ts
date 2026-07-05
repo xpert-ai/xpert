@@ -61,7 +61,7 @@ import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
 import { ToolsetGuard } from './guards/toolset.guard'
-import { WorkspaceGuard } from '../xpert-workspace'
+import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 
 @ApiTags('XpertToolset')
 @ApiBearerAuth()
@@ -109,7 +109,7 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
         return tenantId ? tenantId : null
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('by-workspace/:workspaceId')
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,

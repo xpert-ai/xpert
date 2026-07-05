@@ -244,7 +244,7 @@ syncPluginSkillBundle(workspaceId, {
 - 绑定到 Xpert 时，将 SkillPackage id 写入目标 agent 的 `SkillsMiddleware` 配置。
 - 如果目标 agent 没有 `SkillsMiddleware`，安装服务自动创建 middleware node 并连接到 agent graph。
 - Skills runtime 的 workspace 权限校验调整为 `assertCanRun(workspaceId)`。
-- `resources/state` 查询 workspace target 时会用 `sharedSkillId` 反查已有 plugin skill package；即使安装记录缺失，也能把既有 skill 识别为已安装，避免重复显示为可安装。
+- `resources/state` 查询 workspace target 时要求 workspace authoring access，并用 `sharedSkillId` 反查已有 plugin skill package；即使安装记录缺失，也能把既有 skill 识别为已安装，避免重复显示为可安装。
 
 ### 5. MCP 实例化
 
@@ -517,8 +517,9 @@ Content-Type: application/json
 
 已采用的权限边界：
 
-- template/workspace install 需要 workspace write 权限。
-- existing Xpert install 根据 Xpert 所属 workspace 校验 write 权限。
+- template/workspace install 需要 workspace authoring/write 权限；组织 scope 下不能安装到 tenant-shared workspace。
+- existing Xpert install 根据 Xpert 所属 workspace 校验 authoring/write 权限。
+- plugin resource state 查询如果带 workspace target，也按 authoring 语义校验目标 workspace。
 - agent runtime 的 skill 选择使用 workspace run 权限。
 - plugin component selector 必须匹配当前已加载 plugin bundle 中的真实资源定义。
 - hooks 只有被显式绑定到 agent 的 `PluginHooksMiddleware` 后才会在该 agent runtime 中执行。

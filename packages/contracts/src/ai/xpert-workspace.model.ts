@@ -36,6 +36,7 @@ export type TXpertWorkspaceSettings = {
 }
 export type TXpertWorkspaceStatus = 'active' | 'deprecated' | 'archived'
 export type TXpertWorkspaceVisibility = 'private' | 'tenant-shared'
+export type TXpertWorkspaceAccessPurpose = 'runtime' | 'authoring'
 
 export type TXpertWorkspaceCapabilities = {
   canRead: boolean
@@ -47,14 +48,10 @@ export type TXpertWorkspaceCapabilities = {
 export function getXpertWorkspaceVisibility(
   workspace?: Pick<IXpertWorkspace, 'settings'> | null
 ): TXpertWorkspaceVisibility {
-  return workspace?.settings?.access?.visibility === 'tenant-shared'
-    ? 'tenant-shared'
-    : 'private'
+  return workspace?.settings?.access?.visibility === 'tenant-shared' ? 'tenant-shared' : 'private'
 }
 
-export function isTenantSharedXpertWorkspace(
-  workspace?: Pick<IXpertWorkspace, 'settings'> | null
-): boolean {
+export function isTenantSharedXpertWorkspace(workspace?: Pick<IXpertWorkspace, 'settings'> | null): boolean {
   return getXpertWorkspaceVisibility(workspace) === 'tenant-shared'
 }
 

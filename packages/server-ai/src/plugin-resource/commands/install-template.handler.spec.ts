@@ -241,7 +241,7 @@ function createHandler(options?: { toolsets?: any[] }) {
         )
     }
     const workspaceAccess = {
-        assertCanWrite: jest.fn(() => Promise.resolve(null))
+        assertCanAuthor: jest.fn(() => Promise.resolve(null))
     }
     const templateService = {
         getTemplateDetail: jest.fn(() =>

@@ -257,6 +257,29 @@ userDefault:
 
 它只负责“如果不存在则加入”，不重写整份成员列表。
 
+## Workspace 访问语义
+
+Xpert workspace 现在明确区分两种访问语义：
+
+- **Runtime / 使用语义**：用于聊天、ClawXpert、assistant binding、已发布 Xpert 的读取和运行。组织 scope 用户可以读取和运行 tenant-shared workspace 中已发布的 Xpert。
+- **Authoring / 编辑语义**：用于 `/xpert/w` 工作空间首页、workspace 下拉、创建 Xpert、安装 skill / plugin resource、编辑 workspace 资源和设置默认 workspace。组织 scope 用户只能看到和操作当前组织内 owner/member workspace，不会看到 tenant-shared workspace。
+
+后端接口约定：
+
+- `GET /api/xpert-workspace/my` 默认按 `purpose=runtime` 返回，保持向后兼容。
+- `GET /api/xpert-workspace/my?purpose=authoring` 只返回当前用户可作为编辑/写入目标的 workspace。
+- `GET /api/xpert-workspace/my/default?purpose=authoring` 会忽略不可编辑的 tenant-shared 默认 workspace，并回退到可编辑 workspace。
+- `POST /api/xpert-workspace/:id/default` 要求 authoring/write access；组织 scope 用户不能把 tenant-shared workspace 设为默认。
+- workspace 下的资源列表和安装类接口，例如 xperts、toolsets、knowledgebases、skills、prompt workflows、plugin resources、template install，按 authoring 语义校验目标 workspace。
+
+权限结果保持分层：
+
+- 组织 scope 用户访问 tenant-shared workspace 时仍然是 `canRead=true`、`canRun=true`。
+- 同一用户在组织 scope 下对 tenant-shared workspace 的 `canWrite=false`、`canManage=false`。
+- tenant scope 的 owner/admin 仍可管理 tenant-shared workspace。
+
+因此 `/api/assistant-binding/xperts`、published Xpert runtime access、`assertCanRun` 等使用链路不受 workspace authoring 收紧影响。将来如果需要让组织用户浏览 tenant-shared 公共资源，应新增独立入口，不复用 `/xpert/w` 这种 workspace 编辑页。
+
 ## 模板 xpert 导入
 
 组织默认 xpert 导入由环境变量控制：

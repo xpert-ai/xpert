@@ -1,9 +1,14 @@
+import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_WORKSPACE } from '../constants/app.constants'
-import { IUser, IXpertWorkspace, TXpertWorkspaceVisibility } from '../types'
+import { IUser, IXpertWorkspace, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '../types'
+
+export type XpertWorkspaceRequestOptions = {
+  purpose?: TXpertWorkspaceAccessPurpose
+}
 
 @Injectable({ providedIn: 'root' })
 export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWorkspace> {
@@ -15,21 +20,27 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
     super(API_XPERT_WORKSPACE)
   }
 
-  getAllMy(params?: PaginationParams<IXpertWorkspace>) {
+  getAllMy(params?: PaginationParams<IXpertWorkspace>, options?: XpertWorkspaceRequestOptions) {
     return this.selectOrganizationId().pipe(
       switchMap(() =>
         this.#refresh.pipe(
           switchMap(() =>
-            this.httpClient.get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + `/my`, { params: toHttpParams(params) })
+            this.httpClient.get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + `/my`, {
+              params: appendWorkspaceRequestOptions(toHttpParams(params), options)
+            })
           )
         )
       )
     )
   }
 
-  getMyDefault() {
+  getMyDefault(options?: XpertWorkspaceRequestOptions) {
     return this.selectOrganizationId().pipe(
-      switchMap(() => this.httpClient.get<IXpertWorkspace | null>(this.apiBaseUrl + `/my/default`))
+      switchMap(() =>
+        this.httpClient.get<IXpertWorkspace | null>(this.apiBaseUrl + `/my/default`, {
+          params: appendWorkspaceRequestOptions(null, options)
+        })
+      )
     )
   }
 
@@ -92,4 +103,15 @@ export class XpertWorkspaceBaseCrudService<T> extends OrganizationBaseCrudServic
 
 export function injectWorkspaceService() {
   return inject(XpertWorkspaceService)
+}
+
+function appendWorkspaceRequestOptions(
+  params: ReturnType<typeof toHttpParams>,
+  options?: XpertWorkspaceRequestOptions
+) {
+  let nextParams = params ?? new HttpParams()
+  if (options?.purpose) {
+    nextParams = nextParams.append('purpose', options.purpose)
+  }
+  return nextParams
 }

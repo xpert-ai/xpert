@@ -8,10 +8,10 @@ import { NGXLogger } from 'ngx-logger'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { Store } from '@xpert-ai/cloud/state'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
-import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 import {
   TagService,
   ToastrService,
+  OrderTypeEnum,
   XpertAPIService,
   XpertToolsetService,
   XpertWorkspaceService
@@ -20,10 +20,27 @@ import { XpertWorkspaceHomeComponent } from './home.component'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'workspace-1' })
 
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
+
 jest.mock('@xpert-ai/cloud/state', () => ({
+  ...jest.requireActual('@xpert-ai/cloud/state'),
   Store: class Store {},
   injectWorkspace: () => selectedWorkspace
 }))
+
+jest.mock('../welcome/welcome.component', () => {
+  const { Component } = require('@angular/core')
+  class XpertWorkspaceWelcomeComponent {}
+  Component({
+    standalone: true,
+    selector: 'xpert-workspace-welcome',
+    template: ''
+  })(XpertWorkspaceWelcomeComponent)
+
+  return { XpertWorkspaceWelcomeComponent }
+})
 
 @Component({
   standalone: true,
@@ -36,13 +53,6 @@ class MockTagFilterComponent {
   @Output() readonly tagsChange = new EventEmitter<unknown[]>()
 }
 
-@Component({
-  standalone: true,
-  selector: 'xpert-workspace-welcome',
-  template: ''
-})
-class MockXpertWorkspaceWelcomeComponent {}
-
 describe('XpertWorkspaceHomeComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
@@ -53,13 +63,26 @@ describe('XpertWorkspaceHomeComponent', () => {
   it('sets the default workspace without switching the selected workspace', async () => {
     const setWorkspace = jest.fn()
     const success = jest.fn()
+    const workspaceService = {
+      getAllMy: jest.fn(() =>
+        of({
+          items: [{ id: 'workspace-1', name: 'Workspace 1', ownerId: 'user-1' }]
+        })
+      ),
+      getMyDefault: jest.fn(() => of(null)),
+      setMyDefault: jest.fn(() => of({ id: 'workspace-1', name: 'Workspace 1' })),
+      isTenantShared: jest.fn(() => false),
+      canWrite: jest.fn(() => true),
+      canManage: jest.fn(() => true),
+      refresh: jest.fn()
+    }
 
     TestBed.overrideComponent(XpertWorkspaceHomeComponent, {
       remove: {
-        imports: [TagFilterComponent, XpertWorkspaceWelcomeComponent]
+        imports: [TagFilterComponent]
       },
       add: {
-        imports: [MockTagFilterComponent, MockXpertWorkspaceWelcomeComponent]
+        imports: [MockTagFilterComponent]
       }
     })
 
@@ -107,16 +130,7 @@ describe('XpertWorkspaceHomeComponent', () => {
         TranslateService,
         {
           provide: XpertWorkspaceService,
-          useValue: {
-            getAllMy: jest.fn(() =>
-              of({
-                items: [{ id: 'workspace-1', name: 'Workspace 1', ownerId: 'user-1' }]
-              })
-            ),
-            getMyDefault: jest.fn(() => of(null)),
-            setMyDefault: jest.fn(() => of({ id: 'workspace-1', name: 'Workspace 1' })),
-            refresh: jest.fn()
-          }
+          useValue: workspaceService
         },
         {
           provide: XpertAPIService,
@@ -148,6 +162,11 @@ describe('XpertWorkspaceHomeComponent', () => {
     )
 
     expect(stopPropagation).toHaveBeenCalled()
+    expect(workspaceService.getAllMy).toHaveBeenCalledWith(
+      { order: { updatedAt: OrderTypeEnum.DESC } },
+      { purpose: 'authoring' }
+    )
+    expect(workspaceService.getMyDefault).toHaveBeenCalledWith({ purpose: 'authoring' })
     expect(fixture.componentInstance.defaultWorkspaceId()).toBe('workspace-1')
     expect(setWorkspace).not.toHaveBeenCalled()
     expect(success).toHaveBeenCalled()

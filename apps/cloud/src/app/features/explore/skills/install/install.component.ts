@@ -24,7 +24,8 @@ import { map } from 'rxjs/operators'
   templateUrl: './install.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
+    class:
+      'flex w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
   }
 })
 export class ExploreSkillInstallComponent {
@@ -38,12 +39,16 @@ export class ExploreSkillInstallComponent {
 
   readonly item = this.#data
   readonly #workspaceTouched = signal(false)
-  readonly defaultWorkspace = toSignal(this.#workspaceService.getMyDefault(), { initialValue: null })
+  readonly defaultWorkspace = toSignal(this.#workspaceService.getMyDefault({ purpose: 'authoring' }), {
+    initialValue: null
+  })
   readonly workspace = model<string>('')
   readonly loading = signal(false)
 
   readonly workspaces = toSignal(
-    this.#workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)),
+    this.#workspaceService
+      .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' })
+      .pipe(map(({ items }) => items)),
     { initialValue: [] }
   )
 
@@ -59,7 +64,9 @@ export class ExploreSkillInstallComponent {
       () => {
         const workspaces = this.workspaces()
         const preferredWorkspaceId =
-          this.defaultWorkspace()?.id ?? this.#selectedWorkspace()?.id ?? workspaces?.[0]?.id ?? ''
+          [this.defaultWorkspace()?.id, this.#selectedWorkspace()?.id, workspaces?.[0]?.id].find(
+            (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
+          ) ?? ''
 
         if (!preferredWorkspaceId) {
           return

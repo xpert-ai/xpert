@@ -91,7 +91,7 @@ import {
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
-import { WorkspaceGuard } from '../xpert-workspace/'
+import { WorkspaceAuthoringGuard } from '../xpert-workspace/'
 import {
     SearchXpertMemoryQuery,
     StatisticsXpertConversationsQuery,
@@ -174,7 +174,7 @@ export class XpertController extends CrudController<Xpert> {
         }
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('by-workspace/:workspaceId')
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,

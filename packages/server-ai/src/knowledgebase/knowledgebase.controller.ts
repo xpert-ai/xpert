@@ -42,7 +42,7 @@ import { In, Not } from 'typeorm'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from './queries'
-import { WorkspaceGuard } from '../xpert-workspace'
+import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 import { KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
 import path from 'node:path'
@@ -104,7 +104,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         })
     }
 
-    @UseGuards(WorkspaceGuard)
+    @UseGuards(WorkspaceAuthoringGuard)
     @Get('by-workspace/:workspaceId')
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,

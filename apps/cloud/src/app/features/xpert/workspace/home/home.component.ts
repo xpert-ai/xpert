@@ -109,7 +109,7 @@ export class XpertWorkspaceHomeComponent {
   readonly loading = signal(true)
   readonly loadingDefaultWorkspace = signal(true)
   readonly workspaces = toSignal(
-    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
+    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' }).pipe(
       map(({ items }) => items),
       tap(() => this.loading.set(false))
     ),
@@ -213,10 +213,10 @@ export class XpertWorkspaceHomeComponent {
       }
 
       const routedWorkspace = routeWorkspaceId
-        ? workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null
+        ? (workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null)
         : null
       const matchedSelectedWorkspace = selectedWorkspace
-        ? workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null
+        ? (workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null)
         : null
 
       if (routedWorkspace) {
@@ -281,7 +281,7 @@ export class XpertWorkspaceHomeComponent {
     this.loadingDefaultWorkspace.set(true)
 
     try {
-      const workspace = await firstValueFrom(this.workspaceService.getMyDefault())
+      const workspace = await firstValueFrom(this.workspaceService.getMyDefault({ purpose: 'authoring' }))
       if (version !== this.#defaultWorkspaceQueryVersion) {
         return
       }
@@ -303,7 +303,11 @@ export class XpertWorkspaceHomeComponent {
   async setDefaultWorkspace(event: Event, workspace: IXpertWorkspace) {
     event.stopPropagation()
 
-    if (!workspace?.id || this.defaultWorkspaceId() === workspace.id || this.settingDefaultWorkspaceId() === workspace.id) {
+    if (
+      !workspace?.id ||
+      this.defaultWorkspaceId() === workspace.id ||
+      this.settingDefaultWorkspaceId() === workspace.id
+    ) {
       return
     }
 

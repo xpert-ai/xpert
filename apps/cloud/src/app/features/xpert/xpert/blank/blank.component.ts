@@ -419,7 +419,9 @@ export class XpertNewBlankComponent {
   readonly workspaces = toSignal(
     this.#refreshWorkspaces$.pipe(
       switchMap(() =>
-        this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items))
+        this.workspaceService
+          .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' })
+          .pipe(map(({ items }) => items))
       )
     ),
     { initialValue: [] as IXpertWorkspace[] }

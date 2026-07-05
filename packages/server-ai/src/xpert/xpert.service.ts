@@ -110,7 +110,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
                 createdById: user.id
             }
         } else {
-            await this.assertWorkspaceReadAccess(workspaceId)
+            await this.assertWorkspaceAuthoringAccess(workspaceId)
             where = {
                 ...(<FindOptionsWhere<Xpert>>where),
                 workspaceId: workspaceId

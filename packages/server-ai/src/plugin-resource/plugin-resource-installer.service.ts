@@ -107,7 +107,7 @@ export class PluginResourceInstallerService {
         workspaceId: string,
         components?: PluginResourceInstallComponent[]
     ): Promise<PluginResourceInstallResult> {
-        await this.workspaceAccess.assertCanWrite(workspaceId)
+        await this.workspaceAccess.assertCanAuthor(workspaceId)
         const runtimeComponents = await this.resolveRuntimeComponents(pluginName, components, 'workspace')
         const installations: PluginResourceInstallation[] = []
         const pendingAuth: PluginResourceInstallation[] = []
@@ -136,7 +136,7 @@ export class PluginResourceInstallerService {
         if (!xpert?.workspaceId) {
             throw new BadRequestException('Xpert workspaceId is required')
         }
-        await this.workspaceAccess.assertCanWrite(xpert.workspaceId)
+        await this.workspaceAccess.assertCanAuthor(xpert.workspaceId)
 
         const runtimeComponents = await this.resolveRuntimeComponents(pluginName, components, 'xpert')
         return this.installComponentsForXpert(xpert, runtimeComponents, agentKey)

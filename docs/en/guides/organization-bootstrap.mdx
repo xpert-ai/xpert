@@ -261,6 +261,29 @@ To avoid that, the implementation uses an incremental helper:
 
 It only ensures presence and does not rewrite the whole member list.
 
+## Workspace Access Semantics
+
+Xpert workspace access is split into two purposes:
+
+- **Runtime / usage access**: used by chat, ClawXpert, assistant binding, and published Xpert read/run flows. Organization-scope users can still read and run published Xperts from tenant-shared workspaces.
+- **Authoring / editing access**: used by `/xpert/w`, workspace selectors, Xpert creation, skill or plugin resource installation, workspace resource editing, and default-workspace selection. Organization-scope users only see and operate on owner/member workspaces in the current organization; tenant-shared workspaces are excluded.
+
+Backend API contract:
+
+- `GET /api/xpert-workspace/my` defaults to `purpose=runtime` for backward compatibility.
+- `GET /api/xpert-workspace/my?purpose=authoring` returns only workspaces that can be used as editing/write targets.
+- `GET /api/xpert-workspace/my/default?purpose=authoring` ignores an existing tenant-shared default workspace and falls back to an editable workspace.
+- `POST /api/xpert-workspace/:id/default` requires authoring/write access; organization-scope users cannot set a tenant-shared workspace as their default.
+- Workspace resource list and install endpoints, including xperts, toolsets, knowledgebases, skills, prompt workflows, plugin resources, and template install, validate the target workspace with authoring semantics.
+
+Capability results stay split:
+
+- Organization-scope users still get `canRead=true` and `canRun=true` for tenant-shared workspaces.
+- The same users get `canWrite=false` and `canManage=false` for tenant-shared workspaces in organization scope.
+- Tenant-scope owners/admins can still manage tenant-shared workspaces.
+
+Because of this split, `/api/assistant-binding/xperts`, published Xpert runtime access, and `assertCanRun` flows are not affected by workspace authoring restrictions. If organization users need a browsing surface for tenant-shared public resources later, that should be a separate entry point instead of reusing the `/xpert/w` authoring pages.
+
 ## Template xpert import
 
 Default organization xperts are configured through:
