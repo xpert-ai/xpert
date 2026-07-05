@@ -43,7 +43,8 @@ describe('CopilotCheckLimitHandler', () => {
 
         expect(membershipService.assertCanUse).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            organizationId: 'copilot-org-1',
+            organizationId: 'org-1',
+            copilotOrganizationId: 'copilot-org-1',
             userId: 'assistant-tech-user',
             xpertId: 'xpert-1',
             provider: 'tongyi',

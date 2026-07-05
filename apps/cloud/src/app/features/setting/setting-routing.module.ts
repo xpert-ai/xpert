@@ -103,7 +103,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/membership',
-          scopeContext: 'tenant-only',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AIPermissionsEnum.MEMBERSHIP_EDIT],
             redirectTo

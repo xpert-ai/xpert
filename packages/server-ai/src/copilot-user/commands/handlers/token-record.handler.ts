@@ -57,7 +57,8 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 
             await this.membershipService.recordUsage({
                 tenantId: input.tenantId,
-                organizationId: copilot.organizationId ?? null,
+                organizationId,
+                copilotOrganizationId: copilot.organizationId ?? null,
                 userId,
                 provider: copilot.modelProvider.providerName,
                 model,

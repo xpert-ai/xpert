@@ -133,7 +133,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'membership',
       label: 'Membership',
       icon: 'credit-card',
-      scopeContext: 'tenant-only',
+      scopeContext: 'dual-scope',
       data: {
         permissionKeys: [AIPermissionsEnum.MEMBERSHIP_EDIT]
       }

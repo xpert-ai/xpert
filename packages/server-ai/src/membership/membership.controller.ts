@@ -56,6 +56,20 @@ export class MembershipController {
         return this.service.findMyUsage(query, { take: 200, skip: 0 })
     }
 
+    @Get('scope/status')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
+    async getScopeStatus() {
+        return this.service.getScopeStatus()
+    }
+
+    @Post('scope/initialize')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
+    async initializeScope() {
+        return this.service.ensureScopeInitialized()
+    }
+
     @Get('plans')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)

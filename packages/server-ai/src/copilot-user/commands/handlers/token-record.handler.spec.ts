@@ -3,7 +3,7 @@ import { CopilotTokenRecordCommand } from '../token-record.command'
 import { CopilotTokenRecordHandler } from './token-record.handler'
 
 describe('CopilotTokenRecordHandler', () => {
-    it('records membership usage in the copilot source scope, not the runtime organization scope', async () => {
+    it('records membership usage with both runtime and copilot source scopes', async () => {
         const copilot = {
             id: 'copilot-1',
             organizationId: 'copilot-org-1',
@@ -66,7 +66,8 @@ describe('CopilotTokenRecordHandler', () => {
         expect(membershipService.recordUsage).toHaveBeenCalledWith(
             expect.objectContaining({
                 tenantId: 'tenant-1',
-                organizationId: 'copilot-org-1',
+                organizationId: 'runtime-org-1',
+                copilotOrganizationId: 'copilot-org-1',
                 userId: 'assistant-tech-user',
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',

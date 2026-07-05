@@ -72,7 +72,14 @@ export class PACAccountBillingComponent implements OnInit {
   }
 
   remainingPercent() {
+    if (this.isUnlimited()) {
+      return 100
+    }
     return Math.max(0, 100 - this.usedPercent())
+  }
+
+  isUnlimited() {
+    return this.me()?.pointsGranted === null
   }
 
   summaryKey(summary: IMembershipUsageSummary) {

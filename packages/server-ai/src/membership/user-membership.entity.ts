@@ -54,8 +54,8 @@ export class UserMembership extends TenantOrganizationBaseEntity implements IUse
     currentPeriodEnd: Date
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
-    pointsGranted: number
+    @Column({ type: 'bigint', nullable: true, default: 0, transformer: bigintNumberTransformer })
+    pointsGranted: number | null
 
     @ApiPropertyOptional({ type: () => Number })
     @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })

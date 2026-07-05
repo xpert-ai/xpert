@@ -43,8 +43,8 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     period: MembershipPeriodEnum
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'bigint', default: 1000, transformer: bigintNumberTransformer })
-    includedPoints: number
+    @Column({ type: 'bigint', nullable: true, default: 1000, transformer: bigintNumberTransformer })
+    includedPoints: number | null
 
     @ApiPropertyOptional({ type: () => Number })
     @Column({ type: 'bigint', default: 1000, transformer: bigintNumberTransformer })
