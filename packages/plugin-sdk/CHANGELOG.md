@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.5
+
+### Patch Changes
+
+- 0473ce2: upgrade kb
+- Updated dependencies [0473ce2]
+  - @xpert-ai/contracts@3.15.6
+
 ## 3.15.4
 
 ### Patch Changes

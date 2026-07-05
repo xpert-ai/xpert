@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-vlm-default
 
+## 8.0.5
+
+### Patch Changes
+
+- Updated dependencies [0473ce2]
+  - @xpert-ai/plugin-sdk@3.15.5
+
 ## 8.0.4
 
 ### Patch Changes
