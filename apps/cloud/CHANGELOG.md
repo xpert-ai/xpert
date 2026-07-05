@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.6
+
+### Patch Changes
+
+- 0473ce2: upgrade kb
+
 ## 3.15.5
 
 ### Patch Changes
