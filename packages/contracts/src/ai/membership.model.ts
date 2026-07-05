@@ -1,4 +1,4 @@
-import { IBasePerTenantEntityModel } from '../base-entity.model'
+import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
 
 export enum MembershipPlanStatusEnum {
@@ -39,7 +39,7 @@ export interface IMembershipRateLimit {
   pointLimit: number
 }
 
-export interface IMembershipPlan extends IBasePerTenantEntityModel {
+export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityModel {
   code: string
   name: string
   description?: string | null
@@ -54,7 +54,7 @@ export interface IMembershipPlan extends IBasePerTenantEntityModel {
   rateLimits?: IMembershipRateLimit[]
 }
 
-export interface IUserMembership extends IBasePerTenantEntityModel {
+export interface IUserMembership extends IBasePerTenantAndOrganizationEntityModel {
   userId: string
   user?: IUser
   planId: string

@@ -5,7 +5,7 @@ import {
     MembershipPeriodEnum,
     MembershipPlanStatusEnum
 } from '@xpert-ai/contracts'
-import { TenantBaseEntity } from '@xpert-ai/server-core'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity, Index } from 'typeorm'
 
@@ -15,9 +15,9 @@ const bigintNumberTransformer = {
 }
 
 @Entity('membership_plan')
-@Index('IDX_membership_plan_tenant_code', ['tenantId', 'code'], { unique: true })
-@Index('IDX_membership_plan_tenant_default', ['tenantId', 'isDefault'])
-export class MembershipPlan extends TenantBaseEntity implements IMembershipPlan {
+@Index('IDX_membership_plan_scope_code', ['tenantId', 'organizationId', 'code'], { unique: true })
+@Index('IDX_membership_plan_scope_default', ['tenantId', 'organizationId', 'isDefault'])
+export class MembershipPlan extends TenantOrganizationBaseEntity implements IMembershipPlan {
     @ApiPropertyOptional({ type: () => String })
     @Column({ length: 100 })
     code: string

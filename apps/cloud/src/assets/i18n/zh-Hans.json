@@ -3292,7 +3292,7 @@
     },
     "Membership": {
       "AdminTitle": "会员套餐",
-      "AdminDescription": "配置租户级会员套餐、点数额度和模型使用规则。",
+      "AdminDescription": "配置当前范围的会员套餐、点数额度和模型使用规则。",
       "NewPlan": "新建套餐",
       "TotalPlans": "套餐总数",
       "ActivePlans": "启用套餐",

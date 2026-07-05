@@ -1378,7 +1378,7 @@
     },
     "Membership": {
       "AdminTitle": "Membership Plans",
-      "AdminDescription": "Configure tenant-level membership plans, point allowances, and model usage rules.",
+      "AdminDescription": "Configure current-scope membership plans, point allowances, and model usage rules.",
       "NewPlan": "New plan",
       "TotalPlans": "Total plans",
       "ActivePlans": "Active plans",

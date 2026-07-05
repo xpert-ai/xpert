@@ -23,6 +23,7 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
 
         await this.membershipService.assertCanUse({
             tenantId,
+            organizationId: copilot.organizationId ?? null,
             userId,
             xpertId,
             provider: copilot.modelProvider.providerName,

@@ -6,6 +6,7 @@ import { MembershipService } from './membership.service'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
+import { RequestContext } from '@xpert-ai/server-core'
 
 describe('MembershipService', () => {
     afterEach(() => {
@@ -74,7 +75,7 @@ describe('MembershipService', () => {
 
         await (
             service as unknown as { findActiveMembershipForUpdate: (...args: unknown[]) => Promise<unknown> }
-        ).findActiveMembershipForUpdate('tenant-1', 'user-1', manager)
+        ).findActiveMembershipForUpdate('tenant-1', null, 'user-1', manager)
 
         expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('membership.plan', 'plan')
         expect(queryBuilder.where).toHaveBeenCalledWith('membership.tenantId = :tenantId', { tenantId: 'tenant-1' })
@@ -82,6 +83,7 @@ describe('MembershipService', () => {
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.status = :status', {
             status: 'active'
         })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.organizationId IS NULL')
         expect(queryBuilder.setLock).toHaveBeenCalledTimes(1)
         expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write', undefined, ['membership'])
     })
@@ -165,6 +167,32 @@ describe('MembershipService', () => {
         expect(queryBuilder.orderBy).toHaveBeenCalledWith('MAX(ledger.createdAt)', 'DESC')
     })
 
+    it('lists plans in the current scope without creating a default plan', async () => {
+        const planRepository = {
+            find: jest.fn().mockResolvedValue([])
+        }
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const service = new MembershipService(
+            {} as never,
+            planRepository as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+
+        const plans = await service.findPlans()
+
+        expect(plans).toEqual([])
+        expect(planRepository.find).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            },
+            order: { isDefault: 'DESC', createdAt: 'ASC' }
+        })
+    })
+
     it('records xpert usage against the xpert creator membership', async () => {
         const xpertRepository = {
             findOne: jest.fn().mockResolvedValue({
@@ -191,7 +219,7 @@ describe('MembershipService', () => {
         }
         const service = new MembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
         const membership = createMembership()
-        jest.spyOn(service as any, 'ensureActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
         const createLedger = jest
             .spyOn(service as any, 'createLedger')
             .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
@@ -218,7 +246,13 @@ describe('MembershipService', () => {
                 createdById: true
             }
         })
-        expect((service as any).ensureActiveMembership).toHaveBeenCalledWith('tenant-1', 'owner-user', manager, true)
+        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-1',
+            'owner-user',
+            manager,
+            true
+        )
         expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 5 }))
         expect(createLedger).toHaveBeenCalledWith(
             manager,
@@ -259,7 +293,7 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ pointsUsed: 0 })
-        jest.spyOn(service as any, 'ensureActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',
@@ -269,7 +303,7 @@ describe('MembershipService', () => {
             model: 'qwen3.6-plus'
         })
 
-        expect((service as any).ensureActiveMembership).toHaveBeenCalledWith('tenant-1', 'owner-user')
+        expect((service as any).findUsableMembership).toHaveBeenCalledWith('tenant-1', null, 'owner-user')
     })
 
     it('falls back to the runtime user when xpert has no creator', async () => {
@@ -287,7 +321,7 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ userId: 'assistant-tech-user', pointsUsed: 0 })
-        jest.spyOn(service as any, 'ensureActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',
@@ -295,7 +329,7 @@ describe('MembershipService', () => {
             xpertId: 'xpert-1'
         })
 
-        expect((service as any).ensureActiveMembership).toHaveBeenCalledWith('tenant-1', 'assistant-tech-user')
+        expect((service as any).findUsableMembership).toHaveBeenCalledWith('tenant-1', null, 'assistant-tech-user')
     })
 
     it('keeps non-xpert usage on the runtime user', async () => {
@@ -324,7 +358,7 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ userId: 'assistant-tech-user' })
-        jest.spyOn(service as any, 'ensureActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
         const createLedger = jest
             .spyOn(service as any, 'createLedger')
             .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
@@ -338,8 +372,9 @@ describe('MembershipService', () => {
         })
 
         expect(xpertRepository.findOne).not.toHaveBeenCalled()
-        expect((service as any).ensureActiveMembership).toHaveBeenCalledWith(
+        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
+            null,
             'assistant-tech-user',
             manager,
             true
@@ -350,6 +385,60 @@ describe('MembershipService', () => {
                 userId: 'assistant-tech-user',
                 tokenUsed: 1000
             })
+        )
+    })
+
+    it('allows usage without recording membership ledger when no membership is assigned', async () => {
+        const membershipRepository = {
+            save: jest.fn()
+        }
+        const manager = {
+            getRepository: jest.fn((entity) => {
+                if (entity === UserMembership) {
+                    return membershipRepository
+                }
+                return {}
+            })
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = new MembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
+        const createLedger = jest.spyOn(service as any, 'createLedger')
+
+        const ledger = await service.recordUsage({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: 'assistant-tech-user',
+            provider: 'tongyi',
+            model: 'qwen3.6-plus',
+            tokenUsed: 1000
+        })
+
+        expect(ledger).toBeNull()
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(createLedger).not.toHaveBeenCalled()
+    })
+
+    it('allows membership checks when no membership is assigned in the copilot scope', async () => {
+        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: 'org-copilot',
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus'
+            })
+        ).resolves.toBeUndefined()
+
+        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+            'tenant-1',
+            'org-copilot',
+            'assistant-tech-user'
         )
     })
 })

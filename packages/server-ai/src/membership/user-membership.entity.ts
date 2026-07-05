@@ -1,5 +1,5 @@
 import { IMembershipPlan, IUser, IUserMembership, MembershipStatusEnum } from '@xpert-ai/contracts'
-import { TenantBaseEntity, User } from '@xpert-ai/server-core'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { MembershipPlan } from './membership-plan.entity'
@@ -10,9 +10,9 @@ const bigintNumberTransformer = {
 }
 
 @Entity('user_membership')
-@Index('IDX_user_membership_tenant_user_status', ['tenantId', 'userId', 'status'])
-@Index('IDX_user_membership_tenant_plan', ['tenantId', 'planId'])
-export class UserMembership extends TenantBaseEntity implements IUserMembership {
+@Index('IDX_user_membership_scope_user_status', ['tenantId', 'organizationId', 'userId', 'status'])
+@Index('IDX_user_membership_scope_plan', ['tenantId', 'organizationId', 'planId'])
+export class UserMembership extends TenantOrganizationBaseEntity implements IUserMembership {
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
         nullable: false,
