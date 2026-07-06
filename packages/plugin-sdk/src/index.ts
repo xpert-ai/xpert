@@ -1,6 +1,7 @@
 export * from './lib/plugin'
 export * from './lib/plugin.interface'
 export * from './lib/plugin-metadata'
+export * from './lib/artifact-namespace'
 export * from './lib/types'
 export * from './lib/logger'
 export * from './lib/integration/index'

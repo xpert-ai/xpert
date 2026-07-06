@@ -7,6 +7,17 @@ import { PluginMarketplaceService } from './plugin-marketplace.service'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
+	derivePluginArtifactNamespace: jest.fn((packageName: string) =>
+		packageName
+			.trim()
+			.replace(/^@[^/]+\//, '')
+			.replace(/^plugin[-_]/, '')
+			.replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+			.replace(/[^A-Za-z0-9]+/g, '_')
+			.replace(/_+/g, '_')
+			.replace(/^_+|_+$/g, '')
+			.toLowerCase()
+	),
 	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
 		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
 	),
@@ -393,6 +404,15 @@ describe('PluginMarketplaceService marketplace trial shortcuts', () => {
 			}
 		])
 	})
+
+	it('derives artifact namespace from package names for marketplace items', () => {
+		const item = toMarketplaceItem({
+			name: '@xpert-ai/plugin-docx-editor',
+			version: '0.1.0'
+		})
+
+		expect(item.artifactNamespace).toBe('docx_editor')
+	})
 })
 
 describe('PluginMarketplaceService npm bundle manifest hydration', () => {
@@ -404,6 +424,7 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 		const { tempRoot, tarballBytes } = createNpmPluginTarball({
 			name: DOCUMENTS_PACKAGE,
 			version: DOCUMENTS_VERSION,
+			artifactNamespace: 'documents_bundle',
 			description: 'Bundle package description',
 			interface: {
 				displayName: 'Bundle Documents',
@@ -460,6 +481,7 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 					name: DOCUMENTS_PACKAGE,
 					displayName: 'Registry Documents',
 					description: 'Registry curated description',
+					artifactNamespace: 'documents_bundle',
 					targetApps: ['xpert'],
 					defaultPrompt: [
 						'Draft a project memo as a document',

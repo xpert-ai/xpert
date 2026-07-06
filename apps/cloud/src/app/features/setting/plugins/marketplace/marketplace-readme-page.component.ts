@@ -198,6 +198,7 @@ function toPluginWithDownloads(item: IPluginMarketplaceDetailItem): TPluginWithD
     displayName: item.displayName ?? name,
     description: item.description ?? name,
     version: item.version ?? '',
+    artifactNamespace: item.artifactNamespace ?? null,
     level: item.level,
     deprecated: item.deprecated,
     deprecationMessage: item.deprecationMessage ?? undefined,

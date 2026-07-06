@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Entity } from 'typeorm'
 import type { PluginInstanceService } from './plugin-instance.service'
 
 jest.mock('@xpert-ai/contracts', () => ({
@@ -23,6 +24,14 @@ jest.mock('@xpert-ai/contracts', () => ({
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+	derivePluginArtifactNamespace: jest.fn((packageName: string) =>
+		packageName
+			.replace(/^@[^/]+\//, '')
+			.replace(/^plugin-/, '')
+			.replace(/[^a-zA-Z0-9]+/g, '_')
+			.replace(/^_+|_+$/g, '')
+			.toLowerCase()
+	),
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
@@ -119,7 +128,13 @@ jest.mock('./plugin-instance.entity', () => ({
 	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
 }))
 
-const { RequestContext, resolveTenantGlobalScopeKey } = require('@xpert-ai/plugin-sdk')
+const {
+	RequestContext,
+	derivePluginArtifactNamespace,
+	getErrorMessage,
+	resolveTenantGlobalScopeKey
+} = require('@xpert-ai/plugin-sdk')
+const { t } = require('i18next')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
@@ -187,6 +202,21 @@ describe('PluginManagementService', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		loadedPlugins.length = 0
+		;(derivePluginArtifactNamespace as jest.Mock).mockImplementation((packageName: string) =>
+			packageName
+				.replace(/^@[^/]+\//, '')
+				.replace(/^plugin-/, '')
+				.replace(/[^a-zA-Z0-9]+/g, '_')
+				.replace(/^_+|_+$/g, '')
+				.toLowerCase()
+		)
+		;(t as jest.Mock).mockImplementation(
+			(_: string, options?: Record<string, any>) => options?.errorMessage ?? options?.pluginName ?? ''
+		)
+		;(getErrorMessage as jest.Mock).mockImplementation((error: unknown) =>
+			error instanceof Error ? error.message : String(error)
+		)
 		;(resolvePluginLevel as jest.Mock).mockImplementation((level?: string) =>
 			level === 'system' ? 'system' : 'organization'
 		)
@@ -289,7 +319,124 @@ describe('PluginManagementService', () => {
 		})
 	})
 
+	it('rejects installing a different plugin with an occupied artifact namespace', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-other',
+			scopeKey: 'org-other',
+			name: '@xpert-ai/plugin-office-editor',
+			packageName: '@xpert-ai/plugin-office-editor',
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-office-editor',
+					artifactNamespace: 'office_editor'
+				}
+			},
+			ctx: {}
+		})
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-office-reports',
+				version: '1.0.0',
+				level: 'organization',
+				artifactNamespace: 'office_editor'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-office-reports'
+			})
+		).rejects.toThrow('artifactNamespace="office_editor"')
+
+		expect(dataSource.setOptions).not.toHaveBeenCalled()
+		expect(lazyLoader.load).not.toHaveBeenCalled()
+	})
+
+	it('rejects installing a plugin when the namespace is occupied by a loaded bundle manifest', async () => {
+		const bundleRoot = mkdtempSync(join(tmpdir(), 'xpert-loaded-plugin-bundle-'))
+		try {
+			mkdirSync(join(bundleRoot, '.xpertai-plugin'), { recursive: true })
+			writeFileSync(
+				join(bundleRoot, '.xpertai-plugin', 'plugin.json'),
+				JSON.stringify(
+					{
+						name: '@xpert-ai/plugin-bundle-owner',
+						version: '0.1.0',
+						artifactNamespace: 'bundle_tools'
+					},
+					null,
+					2
+				)
+			)
+			loadedPlugins.push({
+				organizationId: 'org-other',
+				scopeKey: 'org-other',
+				name: '@xpert-ai/plugin-bundle-owner',
+				packageName: '@xpert-ai/plugin-bundle-owner',
+				baseDir: bundleRoot,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-bundle-owner'
+					}
+				},
+				ctx: {}
+			})
+			;(loadPlugin as jest.Mock).mockResolvedValue({
+				meta: {
+					name: '@xpert-ai/plugin-bundle-candidate',
+					version: '1.0.0',
+					level: 'organization',
+					artifactNamespace: 'bundle_tools'
+				}
+			})
+
+			await expect(
+				service.installPlugin({
+					pluginName: '@xpert-ai/plugin-bundle-candidate'
+				})
+			).rejects.toThrow('artifactNamespace="bundle_tools"')
+		} finally {
+			rmSync(bundleRoot, { recursive: true, force: true })
+		}
+	})
+
+	it('allows reinstalling the same plugin with its existing artifact namespace', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			scopeKey: 'org-1',
+			name: '@xpert-ai/plugin-office-editor',
+			packageName: '@xpert-ai/plugin-office-editor',
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-office-editor',
+					artifactNamespace: 'office_editor'
+				}
+			},
+			ctx: {}
+		})
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-office-editor',
+				version: '1.0.1',
+				level: 'organization',
+				artifactNamespace: 'office_editor'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-office-editor'
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-office-editor'
+			})
+		)
+	})
+
 	it('registers plugin orm metadata before lazy-loading plugin modules', async () => {
+		@Entity('plugin_runtime_demo_runtime')
 		class RuntimeEntity {}
 		class RuntimeSubscriber {}
 

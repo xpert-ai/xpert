@@ -164,6 +164,11 @@ export interface XpertPluginMcpServerPolicy {
 export interface XpertPluginBundleManifest {
   name: string
   version?: string
+  /**
+   * Stable namespace claimed by bundle artifacts before install.
+   * Marketplace indexing uses this value to display and review artifact ownership.
+   */
+  artifactNamespace?: string
   description?: string
   author?: string
   homepage?: string
@@ -322,6 +327,11 @@ export interface PluginMeta {
   name: PluginName
   version: string
   /**
+   * Stable namespace used for plugin-owned artifacts such as database tables.
+   * Table artifacts must use names like `plugin_<artifactNamespace>_<tableKey>`.
+   */
+  artifactNamespace?: string
+  /**
    * Declares the plugin's operational level used for visibility and install/uninstall guardrails.
    */
   level?: PluginLevel
@@ -406,6 +416,11 @@ export interface PluginMarketplaceRegistryItem {
   id: string
   packageName: string
   version?: string | null
+  /**
+   * Optional artifact namespace declared by the registry for plugins that are not installed yet.
+   * When omitted, marketplace views may derive a default from the package name.
+   */
+  artifactNamespace?: string | null
   displayName: string
   description: string
   category: string
@@ -432,6 +447,11 @@ export type PluginMarketplaceRegistryItemResponse = PluginMarketplaceRegistryIte
 export interface PluginMarketplaceRegistryItemInput {
   packageName?: string
   version?: string | null
+  /**
+   * Explicit artifact namespace used during manual marketplace registration or review.
+   * Keep it aligned with the plugin manifest/meta when the plugin declares one.
+   */
+  artifactNamespace?: string | null
   displayName?: string
   description?: string
   category?: string
@@ -482,6 +502,11 @@ export interface PluginMarketplaceItem {
   displayName?: I18nObject | string
   description?: I18nObject | string
   version?: string | null
+  /**
+   * Namespace shown to users/reviewers for plugin-owned artifacts such as tables.
+   * This may come from registry data, bundle manifest, runtime meta, or package-name derivation.
+   */
+  artifactNamespace?: string | null
   level?: PluginLevel
   deprecated?: boolean
   deprecationMessage?: I18nObject | string | null

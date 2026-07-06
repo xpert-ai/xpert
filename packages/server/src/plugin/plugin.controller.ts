@@ -31,6 +31,7 @@ import {
 	PluginScopeRelation
 } from '@xpert-ai/contracts'
 import {
+	derivePluginArtifactNamespace,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
 	SYSTEM_GLOBAL_SCOPE,
@@ -466,12 +467,18 @@ export class PluginController {
 		const componentSummary = summarizePluginComponents(
 			this.pluginManagementService.readLoadedPluginBundleComponents(plugin)
 		)
+		const meta = plugin.instance.meta
 
 		return {
 			organizationId: scope,
 			scopeKey,
 			name: plugin.name,
-			meta: plugin.instance.meta,
+			meta: {
+				...meta,
+				artifactNamespace:
+					meta.artifactNamespace ??
+					resolvePluginArtifactNamespace(plugin.packageName ?? meta.name ?? plugin.name)
+			},
 			packageName,
 			source: plugin.source,
 			currentVersion: plugin.instance.meta?.version,
@@ -527,6 +534,7 @@ export class PluginController {
 			meta: {
 				name: plugin.packageName ?? plugin.pluginName,
 				version: plugin.version ?? '',
+				artifactNamespace: resolvePluginArtifactNamespace(plugin.packageName ?? plugin.pluginName),
 				level: plugin.level,
 				category: 'integration',
 				displayName: plugin.pluginName,
@@ -736,6 +744,21 @@ function summarizePluginComponents(components: Array<{ componentType: PluginComp
 	}
 	summary.total = summary.skills + summary.mcpServers + summary.apps + summary.hooks
 	return summary
+}
+
+/**
+ * Derive the descriptor fallback namespace for installed-plugin responses.
+ * Runtime meta wins earlier; this keeps older installed plugins visible without forcing a hard declaration.
+ */
+function resolvePluginArtifactNamespace(packageName?: string | null) {
+	if (!packageName) {
+		return undefined
+	}
+	try {
+		return derivePluginArtifactNamespace(packageName)
+	} catch {
+		return undefined
+	}
 }
 
 function parseOptionalObject(value: unknown, fieldName: string): ParsedJsonObject | undefined {

@@ -64,11 +64,124 @@ jest.mock('@cloud/app/@shared/avatar/icon/icon.component', () => {
   return { IconComponent }
 })
 
+jest.mock('@xpert-ai/cloud/state', () => {
+  const { inject } = jest.requireActual('@angular/core')
+
+  class PluginAPIService {}
+  const PLUGIN_COMPONENT_TYPE = {
+    APP: 'app',
+    HOOK: 'hook',
+    MCP_SERVER: 'mcp_server',
+    SKILL: 'skill'
+  }
+
+  return {
+    PLUGIN_COMPONENT_TYPE,
+    PluginAPIService,
+    injectPluginAPI: () => inject(PluginAPIService)
+  }
+})
+
+jest.mock('@xpert-ai/headless-ui', () => {
+  const { Component, Directive, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'z-badge',
+    template: '<ng-content />'
+  })
+  class ZardBadgeComponent {
+    @Input() zType?: string
+  }
+
+  @Directive({
+    standalone: true,
+    selector: '[z-button]'
+  })
+  class ZardButtonComponent {
+    @Input() zType?: string
+    @Input() zSize?: string
+    @Input() zShape?: string
+    @Input() zDisabled?: boolean
+  }
+
+  return { ZardBadgeComponent, ZardButtonComponent }
+})
+
+jest.mock('@xpert-ai/ocap-angular/common', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'ngm-spin',
+    template: ''
+  })
+  class NgmSpinComponent {
+    @Input() small?: boolean
+  }
+
+  return { NgmSpinComponent }
+})
+
+jest.mock('@xpert-ai/ocap-angular/core', () => {
+  const { Pipe, signal } = jest.requireActual('@angular/core')
+
+  @Pipe({
+    name: 'i18n',
+    standalone: true
+  })
+  class NgmI18nPipe {
+    transform(value: unknown): string {
+      if (typeof value === 'string') {
+        return value
+      }
+      if (value && typeof value === 'object') {
+        return (
+          readI18nProperty(value, 'zh_Hans') ?? readI18nProperty(value, 'en_US') ?? readI18nProperty(value, 'en') ?? ''
+        )
+      }
+      return ''
+    }
+  }
+
+  function myRxResource<TRequest, TValue>(config: {
+    request: () => TRequest | null
+    loader: (options: { request: TRequest }) => { subscribe: (observer: { next: (value: TValue) => void }) => void }
+  }) {
+    const value = signal<TValue | undefined>(undefined)
+    const request = config.request()
+    if (request) {
+      config.loader({ request }).subscribe({
+        next: (result: TValue) => value.set(result)
+      })
+    }
+    return {
+      value,
+      status: signal('idle'),
+      error: signal(null),
+      reload: jest.fn()
+    }
+  }
+
+  function readI18nProperty(value: object, key: string) {
+    const property = Reflect.get(value, key)
+    return typeof property === 'string' ? property : null
+  }
+
+  return { myRxResource, NgmI18nPipe }
+})
+
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { Router } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
+import {
+  MissingTranslationHandler,
+  MissingTranslationHandlerParams,
+  TranslateFakeLoader,
+  TranslateLoader,
+  TranslateModule
+} from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
 import { IPluginComponentDefinition, PLUGIN_COMPONENT_TYPE, PluginAPIService } from '@xpert-ai/cloud/state'
@@ -78,6 +191,19 @@ import { PluginResourcesComponent } from '../resources/resources.component'
 import { PluginMarketplaceDetailComponent } from './marketplace-detail.component'
 import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
 import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
+
+class TestMissingTranslationHandler implements MissingTranslationHandler {
+  handle(params: MissingTranslationHandlerParams) {
+    const interpolateParams = params.interpolateParams
+    if (interpolateParams && typeof interpolateParams === 'object') {
+      const defaultValue = Reflect.get(interpolateParams, 'Default')
+      if (typeof defaultValue === 'string') {
+        return defaultValue
+      }
+    }
+    return params.key
+  }
+}
 
 function createPlugin(overrides: Partial<TPluginWithDownloads> = {}): TPluginWithDownloads {
   return {
@@ -149,7 +275,19 @@ async function createComponent(
   }
 
   await TestBed.configureTestingModule({
-    imports: [TranslateModule.forRoot(), PluginMarketplaceDetailComponent],
+    imports: [
+      TranslateModule.forRoot({
+        loader: {
+          provide: TranslateLoader,
+          useClass: TranslateFakeLoader
+        },
+        missingTranslationHandler: {
+          provide: MissingTranslationHandler,
+          useClass: TestMissingTranslationHandler
+        }
+      }),
+      PluginMarketplaceDetailComponent
+    ],
     providers: [
       {
         provide: DIALOG_DATA,
@@ -233,6 +371,38 @@ describe('PluginMarketplaceDetailComponent', () => {
     const badges = Array.from(fixture.nativeElement.querySelectorAll<HTMLElement>('z-badge'))
 
     expect(badges.some((badge) => badge.className.includes('bg-state-success-hover/20'))).toBe(true)
+  })
+
+  it('renders declared resource contents before the plugin is installed', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        installed: false,
+        contributions: [
+          {
+            type: 'skill',
+            name: 'product-design',
+            displayName: 'Product Design'
+          }
+        ]
+      }),
+      []
+    )
+
+    expect(component.contents().map((content) => content.name)).toEqual(['product-design'])
+    expect(component.resourceContribution(component.contents()[0])?.componentType).toBe(PLUGIN_COMPONENT_TYPE.SKILL)
+    expect(fixture.nativeElement.textContent).toContain('Product Design')
+    expect(fixture.nativeElement.textContent).not.toContain('No assistant templates or installable resources')
+  })
+
+  it('renders artifact namespace when provided by marketplace metadata', async () => {
+    const { fixture } = await createComponent(
+      createPlugin({
+        artifactNamespace: 'office_editor'
+      })
+    )
+
+    expect(fixture.nativeElement.textContent).toContain('Artifact namespace')
+    expect(fixture.nativeElement.textContent).toContain('office_editor')
   })
 
   it('does not initialize assistant templates before the plugin is installed', async () => {
@@ -408,7 +578,7 @@ describe('PluginMarketplaceDetailComponent', () => {
     dialog.open.mockClear()
     const installButton = fixture.debugElement
       .queryAll(By.css('button'))
-      .find((button) => button.nativeElement.textContent?.includes('PAC.Plugin.InstallResource'))
+      .find((button) => button.nativeElement.textContent?.includes('Install'))
     expect(installButton).toBeTruthy()
 
     installButton?.nativeElement.dispatchEvent(new MouseEvent('click', { bubbles: true }))

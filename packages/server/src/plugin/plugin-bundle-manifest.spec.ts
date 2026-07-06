@@ -66,6 +66,7 @@ describe('plugin bundle manifest', () => {
 			name: 'xpertai-helper',
 			version: '1.0.0',
 			description: 'Reusable workflow',
+			artifactNamespace: 'xpertai_helper',
 			skills: './skills',
 			mcpServers: './mcp.json',
 			apps: './.app.json',
@@ -103,6 +104,7 @@ describe('plugin bundle manifest', () => {
 			throw new Error('Expected manifest')
 		}
 		expect(manifest?.manifest.name).toBe('xpertai-helper')
+		expect(manifest?.manifest.artifactNamespace).toBe('xpertai_helper')
 		expect(manifest?.manifest.interface?.displayName).toBe('XpertAI Helper')
 
 		const components = collectPluginBundleComponents(root, manifest.manifest)
