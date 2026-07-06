@@ -18,6 +18,20 @@ import type { Observable } from 'rxjs'
 import { TPlugin } from '@cloud/app/@shared/plugins'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import {
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardCheckboxComponent,
+  ZardDialogService,
+  ZardEmptyComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardLoaderComponent,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
+import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
+import {
   PluginMarketplaceCategory,
   PluginMarketplaceItem,
   PluginTargetAppMarketplaceMetadata,
@@ -50,7 +64,25 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
 
 @Component({
   standalone: true,
-  imports: [CdkMenuModule, TranslateModule, FormsModule, NgmSelectComponent, NgmSpinComponent, SettingsPluginComponent],
+  imports: [
+    CdkMenuModule,
+    TranslateModule,
+    FormsModule,
+    NgmSelectComponent,
+    NgmSpinComponent,
+    SettingsPluginComponent,
+    ZardAlertComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ...ZardCardImports,
+    ZardCheckboxComponent,
+    ZardEmptyComponent,
+    ...ZardFormImports,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardLoaderComponent,
+    ...ZardSelectImports
+  ],
   selector: 'xp-plugins-marketplace',
   templateUrl: './marketplace.component.html',
   styleUrls: ['./marketplace.component.scss'],
@@ -60,6 +92,7 @@ export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
   readonly #activeScope = injectActiveScope()
   readonly #dialog = inject(Dialog)
+  readonly #zardDialog = inject(ZardDialogService)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = inject(I18nService)
@@ -302,10 +335,12 @@ export class PluginsMarketplaceComponent {
 
     this.resetRegistryForm()
     this.loadRegistryItems()
-    this.#dialog.open(template, {
+    this.#zardDialog.open(template, {
       backdropClass: 'backdrop-blur-sm-black',
+      panelClass: 'border-0 bg-transparent p-0 shadow-none sm:max-w-none',
       minWidth: '960px',
-      maxWidth: 'calc(100vw - 48px)'
+      maxWidth: 'calc(100vw - 48px)',
+      width: 'calc(100vw - 48px)'
     })
   }
 
