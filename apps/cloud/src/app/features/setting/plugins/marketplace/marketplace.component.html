@@ -271,9 +271,13 @@
               />
             </div>
           }
-          <div class="mt-2 grid grid-cols-4 gap-3">
+          <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
             @for (plugin of group.plugins; track plugin.name) {
-              <xp-settings-plugin class="group relative rounded-xl hover:bg-hover-bg" [plugin]="plugin" />
+              <xp-settings-plugin
+                class="group relative rounded-xl hover:bg-hover-bg"
+                [plugin]="plugin"
+                (pluginInstalled)="markPluginInstalled($event)"
+              />
             }
           </div>
         </section>

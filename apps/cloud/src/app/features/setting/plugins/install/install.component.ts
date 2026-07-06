@@ -10,6 +10,18 @@ import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
+export type PluginInstallResult = {
+  action: 'installed'
+  pluginName?: string
+  packageName?: string | null
+}
+
+type PluginInstallDialogData = {
+  plugin: TPlugin
+  reload: () => void
+  refreshStrategies?: () => void
+}
+
 @Component({
   standalone: true,
   imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
@@ -18,8 +30,8 @@ import { TranslateModule } from '@ngx-translate/core'
   styleUrls: ['./install.component.scss']
 })
 export class PluginInstallComponent {
-  readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ plugin: TPlugin; reload: () => void; refreshStrategies?: () => void }>(DIALOG_DATA)
+  readonly #dialogRef = inject<DialogRef<PluginInstallResult | undefined>>(DialogRef)
+  readonly #data = inject<PluginInstallDialogData>(DIALOG_DATA)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
   readonly pluginAPI = injectPluginAPI()
   readonly #activeScope = injectActiveScope()
@@ -80,7 +92,7 @@ export class PluginInstallComponent {
   }
 
   close() {
-    this.#dialogRef.close()
+    this.#dialogRef.close(this.hasInstalledPlugin() ? this.createInstallResult() : undefined)
   }
 
   install() {
@@ -107,5 +119,18 @@ export class PluginInstallComponent {
           this.status.set('error')
         }
       })
+  }
+
+  private hasInstalledPlugin() {
+    return this.status() === 'installed' || !!this.installed()
+  }
+
+  private createInstallResult(): PluginInstallResult {
+    const plugin = this.plugin() as (TPlugin & { packageName?: string | null }) | undefined
+    return {
+      action: 'installed',
+      pluginName: this.pluginName(),
+      packageName: plugin?.packageName ?? plugin?.name ?? null
+    }
   }
 }

@@ -250,6 +250,13 @@ export class PluginsMarketplaceComponent {
     this.#marketplace.reload()
   }
 
+  markPluginInstalled(plugin: TPluginWithDownloads) {
+    this.pluginsWithDownloads.update((plugins) =>
+      plugins.map((item) => (isSameMarketplacePlugin(item, plugin) ? { ...item, installed: true } : item))
+    )
+    this.reload()
+  }
+
   sourceI18nKey(sourceId?: string | null, sourceName?: string | null) {
     return getPluginMarketplaceSourceI18nKey(sourceId, sourceName)
   }
@@ -576,6 +583,18 @@ function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDow
     operationSummary: item.operationSummary,
     targetAppMeta: item.targetAppMeta ?? null
   }
+}
+
+function isSameMarketplacePlugin(left: TPluginWithDownloads, right: TPluginWithDownloads) {
+  const leftKeys = marketplacePluginIdentityKeys(left)
+  const rightKeys = marketplacePluginIdentityKeys(right)
+  return leftKeys.some((key) => rightKeys.includes(key))
+}
+
+function marketplacePluginIdentityKeys(plugin: TPluginWithDownloads) {
+  return [plugin.packageName, plugin.name, plugin.artifactNamespace]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
 }
 
 function isPluginTargetAppMetaInput(value: unknown): value is PluginTargetAppMeta {

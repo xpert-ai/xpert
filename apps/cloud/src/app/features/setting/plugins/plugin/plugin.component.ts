@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
 import { OverlayAnimations } from '@xpert-ai/core'
@@ -9,7 +9,7 @@ import { Router } from '@angular/router'
 import { PluginComponent } from '@cloud/app/@shared/plugins'
 import { injectScopeLevel } from '@xpert-ai/cloud/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
-import { PluginInstallComponent } from '../install/install.component'
+import { PluginInstallComponent, PluginInstallResult } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
 import { PluginsComponent } from '../plugins.component'
 import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
@@ -31,6 +31,7 @@ export class SettingsPluginComponent {
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
   readonly plugin = input<TPluginWithDownloads>()
+  readonly pluginInstalled = output<TPluginWithDownloads>()
   readonly installed = computed(() => this.plugin()?.installed === true)
   readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
   readonly isSystemPlugin = computed(() => this.plugin()?.level === PLUGIN_LEVEL.SYSTEM)
@@ -58,9 +59,18 @@ export class SettingsPluginComponent {
       })
       .closed.subscribe({
         next: (result) => {
-          console.log('The dialog was closed', result)
+          if (isPluginInstallResult(result)) {
+            this.emitPluginInstalled(plugin)
+          }
         }
       })
+  }
+
+  private emitPluginInstalled(plugin: TPluginWithDownloads) {
+    this.pluginInstalled.emit({
+      ...plugin,
+      installed: true
+    })
   }
 
   openPluginPage(event?: MouseEvent) {
@@ -88,4 +98,8 @@ export class SettingsPluginComponent {
       backdropClass: 'backdrop-blur-sm-black'
     })
   }
+}
+
+function isPluginInstallResult(result: unknown): result is PluginInstallResult {
+  return !!result && typeof result === 'object' && Reflect.get(result, 'action') === 'installed'
 }
