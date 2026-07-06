@@ -16,6 +16,7 @@ import {
   XpertNewBlankComponent
 } from '../../xpert/xpert'
 import { ClawXpertFacade } from './clawxpert.facade'
+import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
 
 @Component({
   standalone: true,
@@ -304,6 +305,9 @@ export class ClawXpertBindingWizardComponent {
       allowedModes: [XpertTypeEnum.Agent],
       category: BLANK_XPERT_DIALOG_CATEGORY.CLAW,
       completionMode: 'publish',
+      initialStartMode: 'template',
+      initialTemplateId: CLAWXPERT_TEMPLATE_ID,
+      lockStartMode: true,
       type: XpertTypeEnum.Agent
     } satisfies BlankXpertDialogData
 

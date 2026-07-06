@@ -14,12 +14,11 @@ import {
 import { RequestScopeLevel } from '../@core/types'
 
 describe('createFeatureEntryOnboardingSteps', () => {
-  it('keeps the entry guide focused on the four approved navigation points', () => {
+  it('keeps the entry guide focused on the approved organization-level navigation points', () => {
     const steps = createFeatureEntryOnboardingSteps()
 
     expect(steps.map((step) => step.title)).toEqual([
       'PAC.Chat.ClawXpert.EntryGuideScopeTitle',
-      'PAC.Chat.ClawXpert.EntryGuidePluginsTitle',
       'PAC.Chat.ClawXpert.EntryGuideModelProvidersTitle',
       'PAC.Chat.ClawXpert.EntryGuideWorkspaceTitle'
     ])
@@ -38,7 +37,6 @@ describe('createFeatureEntryOnboardingSteps', () => {
 
     expect(targets.map((target) => target?.getAttribute('data-onboarding-target'))).toEqual([
       'scope-switcher',
-      'plugins-marketplace',
       'model-providers',
       'workspace'
     ])
@@ -62,7 +60,7 @@ describe('createFeatureEntryOnboardingSteps', () => {
   })
 
   it('advances after the user switches from tenant scope to organization scope on the scope step', () => {
-    const [scopeStep, pluginsStep] = createFeatureEntryOnboardingSteps()
+    const [scopeStep, modelProvidersStep] = createFeatureEntryOnboardingSteps()
 
     expect(
       shouldAdvanceFeatureEntryOnboardingAfterScopeChange(
@@ -82,7 +80,7 @@ describe('createFeatureEntryOnboardingSteps', () => {
       shouldAdvanceFeatureEntryOnboardingAfterScopeChange(
         RequestScopeLevel.TENANT,
         RequestScopeLevel.ORGANIZATION,
-        pluginsStep
+        modelProvidersStep
       )
     ).toBe(false)
   })

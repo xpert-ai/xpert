@@ -412,6 +412,7 @@ describe('ClawXpertFacade', () => {
   let conversationService: {
     findAllByXpert: jest.Mock
     getByThreadId: jest.Mock
+    update: jest.Mock
   }
   let environmentService: {
     getDefaultByWorkspace: jest.Mock
@@ -456,7 +457,8 @@ describe('ClawXpertFacade', () => {
     }
     conversationService = {
       findAllByXpert: jest.fn(() => of({ items: [], total: 0 })),
-      getByThreadId: jest.fn(() => of(null))
+      getByThreadId: jest.fn(() => of(null)),
+      update: jest.fn((id: string, input: Partial<IChatConversation>) => of(createConversation(id, input)))
     }
     environmentService = {
       getDefaultByWorkspace: jest.fn(() => of(null))
@@ -541,15 +543,64 @@ describe('ClawXpertFacade', () => {
     const facade = TestBed.inject(ClawXpertFacade)
     await flushPromises()
 
-    await (facade.bindPublishedXpert as (xpert: IXpert, options?: { navigateToChat?: boolean }) => Promise<void>)(
-      createXpert('xpert-new', 'New ClawXpert'),
-      {
-        navigateToChat: true
-      }
-    )
+    await facade.bindPublishedXpert(createXpert('xpert-new', 'New ClawXpert'), {
+      navigateToChat: true
+    })
     await flushPromises()
 
     expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
+  })
+
+  it('binds the next wizard-created conversation to the newly created ClawXpert', async () => {
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-created')))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.bindPublishedXpert(createXpert('xpert-created', 'Created ClawXpert'), {
+      bindNextConversationToXpert: true
+    })
+    facade.setActiveConversation(createConversation('conversation-created', { threadId: 'thread-created' }))
+    await flushPromises()
+
+    expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
+      xpertId: 'xpert-created'
+    })
+    expect(facade.activeConversation()?.xpertId).toBe('xpert-created')
+  })
+
+  it('binds the next wizard-created conversation when chatkit reports the thread before detail load', async () => {
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-created')))
+    conversationService.getByThreadId.mockReturnValue(
+      of(createConversation('conversation-created', { threadId: 'thread-created' }))
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.bindPublishedXpert(createXpert('xpert-created', 'Created ClawXpert'), {
+      bindNextConversationToXpert: true
+    })
+    facade.onChatThreadChange('thread-created')
+    await flushPromises()
+
+    expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-created')
+    expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
+      xpertId: 'xpert-created'
+    })
+  })
+
+  it('does not bind ordinary published xpert conversations without the wizard-created flag', async () => {
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-created')))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.bindPublishedXpert(createXpert('xpert-created', 'Created ClawXpert'))
+    facade.setActiveConversation(createConversation('conversation-created', { threadId: 'thread-created' }))
+    await flushPromises()
+
+    expect(conversationService.update).not.toHaveBeenCalled()
   })
 
   it('rebinds to the newly published xpert even when an older binding already exists', async () => {
