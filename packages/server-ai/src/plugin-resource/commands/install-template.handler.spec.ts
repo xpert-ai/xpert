@@ -36,7 +36,8 @@ jest.mock('../plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class PluginResourceInstallerService {}
 }))
 
-import { LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
 
@@ -155,6 +156,37 @@ describe('PluginTemplateInstallHandler', () => {
 
         expect(xpertService.delete).toHaveBeenCalledWith('xpert-1')
     })
+
+    it('uses an explicitly selected LLM model instead of requiring primary copilot fallback', async () => {
+        const { handler, commandBus } = createHandler({
+            toolsets: [createSeedreamToolset()]
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand('@xpert-ai/plugin-canvas:canvas-assistant', 'workspace-1', LanguagesEnum.English, {
+                name: 'clawxpert-abc123',
+                title: 'clawxpert-abc123',
+                copilotModel: {
+                    copilotId: 'copilot-deepseek',
+                    model: 'deepseek-v4-flash',
+                    modelType: AiModelTypeEnum.LLM
+                }
+            })
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0]?.[0]
+        if (!(importCommand instanceof XpertImportCommand)) {
+            throw new Error('Expected template install to import the normalized draft.')
+        }
+        expect(importCommand.options).toMatchObject({
+            normalizeCopilotModels: false
+        })
+        expect(importCommand.draft.team?.copilotModel).toEqual({
+            copilotId: 'copilot-deepseek',
+            model: 'deepseek-v4-flash',
+            modelType: AiModelTypeEnum.LLM
+        })
+    })
 })
 
 function createHandler(options?: { toolsets?: any[] }) {
@@ -264,7 +296,7 @@ function createHandler(options?: { toolsets?: any[] }) {
         )
     }
     const commandBus = {
-        execute: jest.fn(() => Promise.resolve(importedXpert))
+        execute: jest.fn((_command: unknown) => Promise.resolve(importedXpert))
     }
     const xpertService = {
         getTeam: jest.fn(() => Promise.resolve(xpertWithDraft)),

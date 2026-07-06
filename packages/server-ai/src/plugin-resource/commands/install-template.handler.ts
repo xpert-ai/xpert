@@ -1,8 +1,10 @@
 import {
+    AiModelTypeEnum,
     IXpert,
     IXpertTool,
     IXpertToolset,
     PLUGIN_COMPONENT_TYPE,
+    TCopilotModel,
     TXpertTeamConnection,
     TXpertTeamDraft,
     TXpertTeamNode,
@@ -57,7 +59,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic)
         const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
             new XpertImportCommand(draft, {
-                normalizeCopilotModels: true,
+                normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
                 templateId: command.templateId,
                 sourceTemplateId: template.id
             })
@@ -525,6 +527,14 @@ function isObjectValue(value: unknown): value is object {
 
 function normalizeNonEmptyString(value: unknown): string | null {
     return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function hasExplicitLlmCopilotModel(copilotModel: TCopilotModel | undefined) {
+    const copilotId = normalizeNonEmptyString(copilotModel?.copilotId)
+    const model = normalizeNonEmptyString(copilotModel?.model)
+    const modelType = copilotModel?.modelType ?? AiModelTypeEnum.LLM
+
+    return !!copilotId && !!model && modelType === AiModelTypeEnum.LLM
 }
 
 function uniqueStrings(values: Array<string | null | undefined>) {
