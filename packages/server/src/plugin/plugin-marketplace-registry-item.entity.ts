@@ -23,6 +23,16 @@ export class PluginMarketplaceRegistryItem extends TenantBaseEntity {
 	@Column({ nullable: true })
 	version?: string | null
 
+	/**
+	 * Artifact namespace declared for marketplace display and manual review before install.
+	 * Runtime install still validates explicit namespace ownership against loaded plugins.
+	 */
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	artifactNamespace?: string | null
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column()

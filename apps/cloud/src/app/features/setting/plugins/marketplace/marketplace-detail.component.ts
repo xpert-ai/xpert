@@ -150,46 +150,19 @@ export class PluginMarketplaceDetailComponent {
   }
 
   resourceContribution(content: TPluginMarketplaceContribution): TPluginResourceContribution | null {
-    const componentType = marketplaceComponentType(content.type)
-    if (!componentType) {
+    const declaredResource = this.declaredResourceContribution(content)
+    if (!declaredResource) {
       return null
     }
 
-    const component = this.componentDefinitionMap().get(this.componentDefinitionKey(componentType, content.name))
+    const component = this.componentDefinitionMap().get(
+      this.componentDefinitionKey(declaredResource.componentType, content.name)
+    )
     if (!component) {
-      return null
+      return this.canShowDeclaredResourceWithoutComponent(declaredResource) ? declaredResource : null
     }
 
-    if (content.type === 'skill' && component.componentType === PLUGIN_COMPONENT_TYPE.SKILL) {
-      return {
-        ...content,
-        type: 'skill',
-        componentType: component.componentType
-      }
-    }
-    if (content.type === 'tool' && component.componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER) {
-      return {
-        ...content,
-        type: 'tool',
-        componentType: component.componentType
-      }
-    }
-    if (content.type === 'app' && component.componentType === PLUGIN_COMPONENT_TYPE.APP) {
-      return {
-        ...content,
-        type: 'app',
-        componentType: component.componentType
-      }
-    }
-    if (content.type === 'hook' && component.componentType === PLUGIN_COMPONENT_TYPE.HOOK) {
-      return {
-        ...content,
-        type: 'hook',
-        componentType: component.componentType
-      }
-    }
-
-    return null
+    return component.componentType === declaredResource.componentType ? declaredResource : null
   }
 
   initializeResource(content: TPluginResourceContribution, event?: MouseEvent) {
@@ -460,7 +433,53 @@ export class PluginMarketplaceDetailComponent {
     if (content.type === 'app') {
       return false
     }
-    return content.type === 'assistant-template' || !!this.resourceContribution(content)
+    if (content.type === 'assistant-template') {
+      return true
+    }
+    if (content.type === 'skill') {
+      return !!this.declaredResourceContribution(content)
+    }
+    return !!this.resourceContribution(content)
+  }
+
+  private declaredResourceContribution(content: TPluginMarketplaceContribution): TPluginResourceContribution | null {
+    const componentType = marketplaceComponentType(content.type)
+    if (!componentType) {
+      return null
+    }
+
+    switch (content.type) {
+      case 'skill':
+        return {
+          ...content,
+          type: 'skill',
+          componentType
+        }
+      case 'tool':
+        return {
+          ...content,
+          type: 'tool',
+          componentType
+        }
+      case 'app':
+        return {
+          ...content,
+          type: 'app',
+          componentType
+        }
+      case 'hook':
+        return {
+          ...content,
+          type: 'hook',
+          componentType
+        }
+      default:
+        return null
+    }
+  }
+
+  private canShowDeclaredResourceWithoutComponent(resource: TPluginResourceContribution) {
+    return !this.plugin()?.installed && resource.type === 'skill'
   }
 
   private resolveTrialShortcuts(): TTrialShortcutView[] {

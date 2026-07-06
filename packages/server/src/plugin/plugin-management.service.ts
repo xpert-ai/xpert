@@ -10,6 +10,7 @@ import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
 import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL, type PluginLevel } from '@xpert-ai/contracts'
 import {
+	derivePluginArtifactNamespace,
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
@@ -56,7 +57,11 @@ import {
 } from './types'
 import { resolvePluginScope } from './plugin-scope'
 import { DataSource } from 'typeorm'
-import { collectPluginOrmMetadata, registerPluginOrmMetadataInDataSource } from './plugin-orm-metadata'
+import {
+	collectPluginOrmMetadata,
+	registerPluginOrmMetadataInDataSource,
+	validatePluginEntityTableNames
+} from './plugin-orm-metadata'
 import { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } from './plugin-http-routes'
 import {
 	collectPluginBundleComponents,
@@ -381,10 +386,46 @@ export class PluginManagementService {
 					`Plugin "${plugin.meta?.name ?? packageName}" was routed to ${SYSTEM_GLOBAL_SCOPE} but does not declare level=system`
 				)
 			}
+			const pluginName = plugin.meta?.name ?? packageName
+			const manifestArtifactNamespace = readPluginBundleManifest(pluginBaseDir)?.manifest.artifactNamespace
+			if (
+				plugin.meta?.artifactNamespace &&
+				manifestArtifactNamespace &&
+				plugin.meta.artifactNamespace !== manifestArtifactNamespace
+			) {
+				throw new BadRequestException(
+					`Plugin "${pluginName}" declares artifactNamespace="${plugin.meta.artifactNamespace}" but bundle manifest declares "${manifestArtifactNamespace}"`
+				)
+			}
+			const explicitArtifactNamespace = plugin.meta?.artifactNamespace ?? manifestArtifactNamespace ?? null
+			const artifactNamespace = explicitArtifactNamespace ?? derivePluginArtifactNamespace(pluginName)
+			if (explicitArtifactNamespace && !isPluginArtifactNamespace(explicitArtifactNamespace)) {
+				throw new BadRequestException(
+					`Plugin "${pluginName}" artifactNamespace must contain only lowercase letters, numbers, and underscores`
+				)
+			}
+			if (explicitArtifactNamespace) {
+				this.assertPluginArtifactNamespaceAvailable({
+					artifactNamespace: explicitArtifactNamespace,
+					pluginName,
+					packageName
+				})
+			}
 
 			for await (const dynamicModule of modules) {
 				this.logger.debug(`Loading plugin module for ${runtimePluginName} into scope ${scope.scopeKey}`)
 				const ormMetadata = collectPluginOrmMetadata([dynamicModule])
+				if (ormMetadata.entities.length && !explicitArtifactNamespace) {
+					this.logger.warn(
+						`Plugin "${pluginName}" declares TypeORM entities but does not declare artifactNamespace; using derived namespace "${artifactNamespace}" for v1 compatibility.`
+					)
+				}
+				validatePluginEntityTableNames({
+					pluginName,
+					entities: ormMetadata.entities,
+					artifactNamespace,
+					requireNamespaceMatch: Boolean(explicitArtifactNamespace)
+				})
 				const metadataRegistration = await registerPluginOrmMetadataInDataSource(this.dataSource, ormMetadata)
 				if (metadataRegistration.changed) {
 					this.logger.debug(
@@ -473,7 +514,6 @@ export class PluginManagementService {
 				}
 			}
 
-			const pluginName = plugin.meta?.name ?? packageName
 			const configInspection = inspectConfig(pluginName, body.config ?? {}, plugin.config)
 			if (configInspection.error) {
 				this.logger.warn(
@@ -644,6 +684,42 @@ export class PluginManagementService {
 		}
 	}
 
+	/**
+	 * Fail fast when a newly installed plugin explicitly claims a namespace already owned by another loaded plugin.
+	 * Reinstalling/upgrading the same plugin is allowed so a stable namespace does not block normal refresh flows.
+	 */
+	private assertPluginArtifactNamespaceAvailable(input: {
+		artifactNamespace: string
+		pluginName: string
+		packageName: string
+	}) {
+		const targetNames = new Set(
+			[input.pluginName, input.packageName]
+				.map((value) => normalizeOptionalPluginName(value))
+				.filter((value): value is string => Boolean(value))
+		)
+		const conflict = this.loadedPlugins.find((plugin) => {
+			const loadedNamespace = resolveLoadedPluginExplicitArtifactNamespace(plugin)
+			if (loadedNamespace !== input.artifactNamespace) {
+				return false
+			}
+
+			const loadedNames = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]
+				.map((value) => normalizeOptionalPluginName(value))
+				.filter((value): value is string => Boolean(value))
+			return !loadedNames.some((value) => targetNames.has(value))
+		})
+
+		if (!conflict) {
+			return
+		}
+
+		const conflictScope = conflict.scopeKey ?? conflict.organizationId
+		throw new BadRequestException(
+			`Plugin "${input.pluginName}" declares artifactNamespace="${input.artifactNamespace}", but it is already used by installed plugin "${getLoadedPluginDisplayName(conflict)}" in scope "${conflictScope}".`
+		)
+	}
+
 	private assertSystemInstallTenant(
 		tenantId: string | null | undefined,
 		defaultTenantId: string | null | undefined,
@@ -671,4 +747,47 @@ export class PluginManagementService {
 			scopeKey: resolvedScopeKey
 		})
 	}
+}
+
+function isPluginArtifactNamespace(value: string) {
+	return /^[a-z0-9_]+$/.test(value)
+}
+
+function normalizeOptionalString(value: unknown) {
+	if (typeof value !== 'string') {
+		return null
+	}
+	const normalized = value.trim()
+	return normalized || null
+}
+
+function normalizeOptionalPluginName(value: unknown) {
+	const normalized = normalizeOptionalString(value)
+	return normalized ? normalizePluginName(normalized) : null
+}
+
+/**
+ * Read only explicit namespace declarations from loaded plugins.
+ * Derived namespaces remain compatibility-only in v1 and are not used as hard install blockers.
+ */
+function resolveLoadedPluginExplicitArtifactNamespace(plugin: LoadedPluginRecord) {
+	const metaNamespace = normalizeOptionalString(plugin.instance?.meta?.artifactNamespace)
+	if (metaNamespace) {
+		return metaNamespace
+	}
+
+	const packageRoot = resolveLoadedPluginBundleRoot(plugin)
+	if (!packageRoot) {
+		return null
+	}
+
+	return normalizeOptionalString(readPluginBundleManifest(packageRoot)?.manifest.artifactNamespace)
+}
+
+function getLoadedPluginDisplayName(plugin: LoadedPluginRecord) {
+	return (
+		normalizeOptionalString(plugin.instance?.meta?.name) ??
+		normalizeOptionalString(plugin.packageName) ??
+		plugin.name
+	)
 }

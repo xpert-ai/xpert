@@ -272,6 +272,7 @@ export function normalizePluginBundleManifest(value: unknown): XpertPluginBundle
 	return removeUndefinedFields({
 		name,
 		version: readStringField(value, 'version'),
+		artifactNamespace: readStringField(value, 'artifactNamespace'),
 		description: readStringField(value, 'description'),
 		author: readStringField(value, 'author'),
 		homepage: readStringField(value, 'homepage'),

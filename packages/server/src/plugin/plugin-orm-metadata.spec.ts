@@ -1,4 +1,5 @@
-import { ConflictException } from '@nestjs/common'
+import { BadRequestException, ConflictException } from '@nestjs/common'
+import { Entity } from 'typeorm'
 
 jest.mock('./plugin.helper', () => ({
 	getEntitiesFromPlugins: jest.fn(() => []),
@@ -6,15 +7,23 @@ jest.mock('./plugin.helper', () => ({
 }))
 
 import {
+	getEntityTableName,
 	mergeEntityClasses,
 	mergeSubscriberClasses,
-	registerPluginOrmMetadataInDataSource
+	registerPluginOrmMetadataInDataSource,
+	validatePluginEntityTableNames
 } from './plugin-orm-metadata'
 
 class CoreEntity {}
 class PluginEntity {}
 class CoreSubscriber {}
 class PluginSubscriber {}
+
+@Entity('plugin_office_editor_document')
+class OfficeDocumentEntity {}
+
+@Entity('plugin_other_document')
+class OtherDocumentEntity {}
 
 describe('plugin orm metadata helpers', () => {
 	it('merges plugin entities into the registered entity list', () => {
@@ -34,6 +43,41 @@ describe('plugin orm metadata helpers', () => {
 			CoreSubscriber,
 			PluginSubscriber
 		])
+	})
+
+	it('reads TypeORM entity table names from decorators', () => {
+		expect(getEntityTableName(OfficeDocumentEntity)).toBe('plugin_office_editor_document')
+	})
+
+	it('validates plugin entity table names against the declared namespace', () => {
+		expect(() =>
+			validatePluginEntityTableNames({
+				pluginName: '@xpert-ai/plugin-office-editor',
+				entities: [OfficeDocumentEntity],
+				artifactNamespace: 'office_editor',
+				requireNamespaceMatch: true
+			})
+		).not.toThrow()
+
+		expect(() =>
+			validatePluginEntityTableNames({
+				pluginName: '@xpert-ai/plugin-office-editor',
+				entities: [OtherDocumentEntity],
+				artifactNamespace: 'office_editor',
+				requireNamespaceMatch: true
+			})
+		).toThrow(BadRequestException)
+	})
+
+	it('allows legacy v1 entity table names when no namespace is explicitly declared', () => {
+		expect(() =>
+			validatePluginEntityTableNames({
+				pluginName: '@xpert-ai/plugin-other',
+				entities: [OtherDocumentEntity],
+				artifactNamespace: 'other',
+				requireNamespaceMatch: false
+			})
+		).not.toThrow()
 	})
 
 	it('refreshes an initialized data source and synchronizes new plugin entities', async () => {

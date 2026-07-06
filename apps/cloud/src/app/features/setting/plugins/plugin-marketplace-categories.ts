@@ -1,13 +1,20 @@
 import { PluginMarketplaceCategory, PluginTargetAppMarketplaceMetadata, PluginTargetAppMeta } from '@xpert-ai/contracts'
 
+/** Target-app key used by the Xpert plugin marketplace UI. */
 export const PLUGIN_MARKETPLACE_TARGET_APP = 'xpert'
+
+/** Target-app metadata lookup order; keep data-xpert as a legacy fallback while xpert is the primary app. */
 export const PLUGIN_MARKETPLACE_TARGET_APPS = [PLUGIN_MARKETPLACE_TARGET_APP, 'data-xpert'] as const
 
+/** Minimal shape required to classify a marketplace or installed plugin into a visible marketplace group. */
 export type PluginMarketplaceCategorizedItem = {
+  /** Legacy technical plugin category, such as tools, model, middleware, or integration. */
   category?: string | null
+  /** App-specific marketplace metadata, preferred over the legacy technical category. */
   targetAppMeta?: PluginTargetAppMeta | null
 }
 
+/** UI definition for one top-level marketplace category tab and group heading. */
 export type PluginMarketplaceCategoryDefinition = {
   value: PluginMarketplaceCategory
   labelKey: string
@@ -16,25 +23,30 @@ export type PluginMarketplaceCategoryDefinition = {
   defaultDescription: string
 }
 
+/** A visible marketplace category plus the plugins resolved into that category. */
 export type PluginMarketplaceCategoryGroup<T> = PluginMarketplaceCategoryDefinition & {
   plugins: T[]
 }
 
+/** Option shown in the Developer Tools subcategory filter. */
 export type PluginDeveloperToolSubcategoryOption = {
   value: string
   labelKey: string
   defaultLabel: string
 }
 
+/** Normalized marketplace grouping result used by filters, grouping, and subcategory pickers. */
 export type PluginMarketplaceGrouping = {
   category: PluginMarketplaceCategory
   subcategory?: string
 }
 
+/** Normalized holder for app-specific marketplace metadata entries. */
 type PluginMarketplaceMetadataEntry = {
   marketplace: PluginTargetAppMarketplaceMetadata
 }
 
+/** Ordered list of marketplace groups; this order controls both tabs and rendered category sections. */
 export const PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS: readonly PluginMarketplaceCategoryDefinition[] = [
   {
     value: 'featured',
@@ -136,6 +148,10 @@ export const PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS: readonly PluginMarketplace
   }
 ]
 
+/**
+ * Legacy plugin meta.category values describe technical plugin type.
+ * The marketplace maps them under Developer Tools unless explicit app marketplace metadata overrides them.
+ */
 export const LEGACY_DEVELOPER_TOOL_CATEGORIES = [
   'set',
   'doc-source',
@@ -152,6 +168,7 @@ export const LEGACY_DEVELOPER_TOOL_CATEGORIES = [
 
 const LEGACY_DEVELOPER_TOOL_CATEGORY_SET = new Set<string>(LEGACY_DEVELOPER_TOOL_CATEGORIES)
 
+/** Stable display order for legacy technical categories inside the Developer Tools group. */
 export const DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS: readonly PluginDeveloperToolSubcategoryOption[] = [
   { value: 'middleware', labelKey: 'PAC.Plugin.Category_middleware', defaultLabel: 'Middleware' },
   { value: 'integration', labelKey: 'PAC.Plugin.Category_integration', defaultLabel: 'System Integration' },
@@ -166,11 +183,15 @@ export const DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS: readonly PluginDeveloperToo
   { value: 'set', labelKey: 'PAC.Plugin.Category_set', defaultLabel: 'Bundle' }
 ]
 
+/**
+ * Accepted marketplace category aliases.
+ * Keep aliases narrow and explicit so old registry values can be migrated without guessing from display text.
+ */
 const CATEGORY_ALIASES: ReadonlyArray<readonly [PluginMarketplaceCategory, readonly string[]]> = [
   ['featured', ['featured']],
   ['business-operations', ['business-operations', 'business-and-operations']],
   ['communication', ['communication']],
-  ['creativity', ['creativity']],
+  ['creativity', ['creativity', 'design', 'creative-design']],
   ['data-analytics', ['data-analytics', 'data-and-analytics']],
   ['developer-tools', ['developer-tools']],
   ['education-research', ['education-research', 'education-and-research']],
@@ -201,6 +222,7 @@ export function groupPluginsByMarketplaceCategory<T extends PluginMarketplaceCat
   })).filter((group) => group.plugins.length > 0)
 }
 
+/** Builds select/tab options from the canonical marketplace category definitions. */
 export function marketplaceCategoryOptions() {
   return PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS.map((definition) => ({
     labelKey: definition.labelKey,
@@ -209,6 +231,7 @@ export function marketplaceCategoryOptions() {
   }))
 }
 
+/** Returns only Developer Tools subcategories that are present in the current plugin list. */
 export function developerToolSubcategoryOptionsFor(
   plugins: readonly PluginMarketplaceCategorizedItem[]
 ): PluginDeveloperToolSubcategoryOption[] {
@@ -223,6 +246,7 @@ export function developerToolSubcategoryOptionsFor(
   return DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS.filter((option) => available.has(option.value))
 }
 
+/** Applies top-level marketplace category filters plus optional Developer Tools subcategory filters. */
 export function matchesPluginMarketplaceCategoryFilters(
   plugin: PluginMarketplaceCategorizedItem,
   selectedCategories: readonly PluginMarketplaceCategory[],
@@ -241,6 +265,10 @@ export function matchesPluginMarketplaceCategoryFilters(
   return true
 }
 
+/**
+ * Resolves the visible marketplace grouping for one plugin.
+ * App marketplace metadata wins; featured is next; legacy technical category falls back to Developer Tools.
+ */
 export function resolvePluginMarketplaceGrouping(plugin: PluginMarketplaceCategorizedItem): PluginMarketplaceGrouping {
   const marketplaceEntries = getPluginMarketplaceMetadataEntries(plugin.targetAppMeta)
   const explicitEntry = findExplicitMarketplaceCategoryEntry(marketplaceEntries)
@@ -279,6 +307,7 @@ export function resolvePluginMarketplaceGrouping(plugin: PluginMarketplaceCatego
   }
 }
 
+/** Normalizes external category strings into the contract-defined marketplace category union. */
 export function normalizePluginMarketplaceCategory(value: unknown): PluginMarketplaceCategory | null {
   if (typeof value !== 'string') {
     return null
@@ -294,6 +323,7 @@ export function normalizePluginMarketplaceCategory(value: unknown): PluginMarket
   return null
 }
 
+/** Converts a legacy technical plugin category into a Developer Tools subcategory when recognized. */
 function normalizeLegacyDeveloperToolCategory(value: unknown) {
   if (typeof value !== 'string') {
     return null
@@ -302,6 +332,7 @@ function normalizeLegacyDeveloperToolCategory(value: unknown) {
   return LEGACY_DEVELOPER_TOOL_CATEGORY_SET.has(normalized) ? normalized : null
 }
 
+/** Converts marketplace subcategory metadata into a recognized Developer Tools subcategory. */
 function normalizeDeveloperToolSubcategory(value: unknown) {
   if (typeof value !== 'string') {
     return null
@@ -310,6 +341,7 @@ function normalizeDeveloperToolSubcategory(value: unknown) {
   return LEGACY_DEVELOPER_TOOL_CATEGORY_SET.has(normalized) ? normalized : null
 }
 
+/** Collects marketplace metadata entries in target-app priority order. */
 function getPluginMarketplaceMetadataEntries(
   targetAppMeta?: PluginTargetAppMeta | null
 ): PluginMarketplaceMetadataEntry[] {
@@ -323,6 +355,7 @@ function getPluginMarketplaceMetadataEntries(
   return entries
 }
 
+/** Finds the first explicit marketplace category declared by target-app metadata. */
 function findExplicitMarketplaceCategoryEntry(entries: readonly PluginMarketplaceMetadataEntry[]) {
   for (const entry of entries) {
     const category = normalizePluginMarketplaceCategory(entry.marketplace.category)
@@ -336,6 +369,7 @@ function findExplicitMarketplaceCategoryEntry(entries: readonly PluginMarketplac
   return null
 }
 
+/** Finds the first valid Developer Tools subcategory declared by target-app marketplace metadata. */
 function findDeveloperToolSubcategory(entries: readonly PluginMarketplaceMetadataEntry[]) {
   for (const entry of entries) {
     const subcategory = normalizeDeveloperToolSubcategory(entry.marketplace.subcategory)
@@ -346,6 +380,7 @@ function findDeveloperToolSubcategory(entries: readonly PluginMarketplaceMetadat
   return null
 }
 
+/** Makes category matching tolerant of case, underscores, spaces, and ampersands. */
 function normalizeCategoryToken(value: string) {
   return value.trim().toLowerCase().replace(/&/g, 'and').replace(/_/g, '-').replace(/\s+/g, '-')
 }

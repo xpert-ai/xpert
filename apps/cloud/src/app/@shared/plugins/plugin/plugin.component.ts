@@ -12,6 +12,7 @@ export type TPlugin = {
   displayName: I18nObject | string
   description: I18nObject | string
   version: string
+  artifactNamespace?: string | null
   level?: PluginLevel
   deprecated?: boolean
   deprecationMessage?: I18nObject | string

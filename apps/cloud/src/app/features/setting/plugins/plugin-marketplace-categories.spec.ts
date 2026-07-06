@@ -3,6 +3,7 @@ import {
   groupPluginsByMarketplaceCategory,
   LEGACY_DEVELOPER_TOOL_CATEGORIES,
   matchesPluginMarketplaceCategoryFilters,
+  normalizePluginMarketplaceCategory,
   PluginMarketplaceCategorizedItem,
   resolvePluginMarketplaceGrouping
 } from './plugin-marketplace-categories'
@@ -119,6 +120,11 @@ describe('plugin marketplace categories', () => {
 
     expect(matchesPluginMarketplaceCategoryFilters(plugin, ['communication'], [])).toBe(true)
     expect(matchesPluginMarketplaceCategoryFilters(plugin, ['developer-tools'], [])).toBe(false)
+  })
+
+  it('normalizes legacy design marketplace category to Creativity', () => {
+    expect(normalizePluginMarketplaceCategory('design')).toBe('creativity')
+    expect(normalizePluginMarketplaceCategory('creative design')).toBe('creativity')
   })
 
   it('groups filtered plugins by visible marketplace category', () => {

@@ -20,6 +20,7 @@ import {
 	type XpertPluginBundleManifest
 } from '@xpert-ai/contracts'
 import {
+	derivePluginArtifactNamespace,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
 	SYSTEM_GLOBAL_SCOPE,
@@ -77,6 +78,7 @@ interface MarketplaceSourceRecord {
 
 interface MarketplaceRegistryPlugin extends JsonRecord {
 	name: string
+	artifactNamespace?: string | null
 	level?: PluginLevel
 	sourceId?: string
 	sourceName?: string
@@ -267,6 +269,9 @@ export class PluginMarketplaceService {
 			name: packageName,
 			packageName,
 			version: meta.version,
+			artifactNamespace:
+				this.normalizeOptionalString(meta.artifactNamespace) ??
+				this.resolveMarketplaceArtifactNamespace({ name: meta.name, packageName }),
 			level: plugin.level ?? meta.level,
 			category: meta.category,
 			author: meta.author,
@@ -291,6 +296,9 @@ export class PluginMarketplaceService {
 			displayName: meta.displayName ?? packageName,
 			description: meta.description ?? packageName,
 			version: meta.version,
+			artifactNamespace:
+				this.normalizeOptionalString(meta.artifactNamespace) ??
+				this.resolveMarketplaceArtifactNamespace({ name: meta.name, packageName }),
 			level: plugin.level ?? meta.level,
 			category: meta.category,
 			icon: meta.icon ?? null,
@@ -871,6 +879,7 @@ export class PluginMarketplaceService {
 			name: item.packageName,
 			packageName: item.packageName,
 			version: item.version ?? null,
+			artifactNamespace: this.normalizeOptionalString(item.artifactNamespace) ?? null,
 			displayName: item.displayName,
 			description: item.description,
 			category: item.category,
@@ -1028,6 +1037,7 @@ export class PluginMarketplaceService {
 			PluginMarketplaceRegistryItem,
 			| 'packageName'
 			| 'version'
+			| 'artifactNamespace'
 			| 'displayName'
 			| 'description'
 			| 'category'
@@ -1050,6 +1060,9 @@ export class PluginMarketplaceService {
 		const author = this.normalizeOptionalString(this.inputOrExisting(input.author, existing?.author))
 		const targetApps = this.uniqueStrings(this.inputOrExisting(input.targetApps, existing?.targetApps ?? []))
 		const section = this.inputOrExisting(input.section, existing?.section ?? 'marketplace')
+		const artifactNamespace =
+			this.normalizeOptionalString(this.inputOrExisting(input.artifactNamespace, existing?.artifactNamespace)) ??
+			null
 
 		if (!packageName) {
 			throw new BadRequestException('packageName is required')
@@ -1075,6 +1088,11 @@ export class PluginMarketplaceService {
 		if (!PLUGIN_MARKETPLACE_REGISTRY_SECTIONS.includes(section as PluginMarketplaceRegistrySection)) {
 			throw new BadRequestException('Unsupported registry section')
 		}
+		if (artifactNamespace && !isArtifactNamespace(artifactNamespace)) {
+			throw new BadRequestException(
+				'artifactNamespace must contain only lowercase letters, numbers, and underscores'
+			)
+		}
 
 		const priority = Number.isFinite(Number(this.inputOrExisting(input.priority, existing?.priority)))
 			? Number(this.inputOrExisting(input.priority, existing?.priority))
@@ -1083,6 +1101,7 @@ export class PluginMarketplaceService {
 		return {
 			packageName: normalizePluginName(packageName),
 			version: this.normalizeOptionalString(this.inputOrExisting(input.version, existing?.version)) ?? null,
+			artifactNamespace,
 			displayName,
 			description,
 			category,
@@ -1144,6 +1163,9 @@ export class PluginMarketplaceService {
 			id: item.id,
 			packageName: item.packageName,
 			version: item.version,
+			artifactNamespace:
+				this.normalizeOptionalString(item.artifactNamespace) ??
+				this.resolveMarketplaceArtifactNamespace({ name: item.packageName, packageName: item.packageName }),
 			displayName: item.displayName,
 			description: item.description,
 			category: item.category,
@@ -1568,6 +1590,7 @@ export class PluginMarketplaceService {
 		return {
 			name: plugin.name ?? packageJson.name,
 			version: plugin.version ?? packageJson.version,
+			artifactNamespace: plugin.artifactNamespace ?? packageJson.artifactNamespace,
 			displayName:
 				plugin.displayName ??
 				plugin.title ??
@@ -1606,6 +1629,7 @@ export class PluginMarketplaceService {
 			name,
 			packageName: this.normalizeOptionalString(input.packageName) ?? name,
 			version: this.normalizeOptionalString(input.version) ?? null,
+			artifactNamespace: this.normalizeOptionalString(input.artifactNamespace) ?? null,
 			displayName: input.displayName ?? input.title ?? pluginInterface.displayName ?? name,
 			description: input.description ?? pluginInterface.shortDescription ?? pluginInterface.longDescription ?? '',
 			level: this.readMarketplacePluginLevel(input),
@@ -1794,6 +1818,10 @@ export class PluginMarketplaceService {
 			...plugin,
 			packageName,
 			version: this.normalizeOptionalString(plugin.version) ?? manifest.version ?? null,
+			artifactNamespace:
+				this.normalizeOptionalString(plugin.artifactNamespace) ??
+				this.normalizeOptionalString(manifest.artifactNamespace) ??
+				this.resolveMarketplaceArtifactNamespace({ name: manifest.name, packageName }),
 			displayName: this.hasPresentValue(plugin.displayName)
 				? plugin.displayName
 				: (this.normalizeOptionalString(mergedInterface.displayName) ?? manifest.name),
@@ -2060,6 +2088,10 @@ export class PluginMarketplaceService {
 			...plugin,
 			displayName: plugin.displayName ?? loadedMeta.displayName,
 			description: plugin.description ?? loadedMeta.description,
+			artifactNamespace:
+				this.normalizeOptionalString(plugin.artifactNamespace) ??
+				this.normalizeOptionalString(loadedMeta.artifactNamespace) ??
+				this.resolveMarketplaceArtifactNamespace({ name: loadedMeta.name, packageName: plugin.packageName }),
 			level: this.normalizePluginLevel(plugin.level) ?? loadedMeta.level,
 			icon: plugin.icon ?? loadedMeta.icon,
 			keywords: plugin.keywords?.length ? plugin.keywords : (loadedMeta.keywords ?? []),
@@ -2156,6 +2188,7 @@ export class PluginMarketplaceService {
 
 		return {
 			...plugin,
+			artifactNamespace: this.resolveMarketplaceArtifactNamespace(plugin),
 			sourceId: plugin.sourceId,
 			sourceName: plugin.sourceName,
 			installed,
@@ -2616,6 +2649,33 @@ export class PluginMarketplaceService {
 		return typeof value === 'string' && value.trim() ? value.trim() : null
 	}
 
+	/**
+	 * Resolve the namespace displayed in marketplace responses.
+	 * Invalid explicit values are ignored here; install-time validation remains the authoritative blocker.
+	 */
+	private resolveMarketplaceArtifactNamespace(plugin: {
+		artifactNamespace?: unknown
+		name?: unknown
+		packageName?: unknown
+	}) {
+		const explicit = this.normalizeOptionalString(plugin.artifactNamespace)
+		if (explicit && isArtifactNamespace(explicit)) {
+			return explicit
+		}
+
+		const packageName =
+			this.normalizeOptionalString(plugin.packageName) ?? this.normalizeOptionalString(plugin.name)
+		if (!packageName) {
+			return null
+		}
+
+		try {
+			return derivePluginArtifactNamespace(packageName)
+		} catch {
+			return null
+		}
+	}
+
 	private hasPresentValue(value: unknown) {
 		return typeof value === 'string' ? value.trim().length > 0 : value !== undefined && value !== null
 	}
@@ -2642,6 +2702,10 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function readRecord(value: unknown): JsonRecord | null {
 	return isRecord(value) ? value : null
+}
+
+function isArtifactNamespace(value: string) {
+	return /^[a-z0-9_]+$/.test(value)
 }
 
 function parsePositiveInteger(value: unknown, fallback: number) {

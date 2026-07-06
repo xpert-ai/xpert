@@ -4,8 +4,8 @@
  * Without merging and rebuilding metadata first, repository access can fail with `EntityMetadataNotFoundError`.
  * Keep registration deterministic, reject entity name conflicts, and only call `synchronize()` when the DataSource is configured for it.
  */
-import { ConflictException, DynamicModule, Type } from '@nestjs/common'
-import { DataSource, EntitySubscriberInterface, MixedList } from 'typeorm'
+import { BadRequestException, ConflictException, DynamicModule, Type } from '@nestjs/common'
+import { DataSource, EntitySubscriberInterface, MixedList, getMetadataArgsStorage } from 'typeorm'
 import { getEntitiesFromPlugins, getSubscribersFromPlugins } from './plugin.helper'
 
 type PluginOrmMetadata = {
@@ -40,10 +40,7 @@ export function collectPluginOrmMetadata(plugins?: Array<Type<any> | DynamicModu
 	}
 }
 
-export function mergeEntityClasses(
-	coreEntities: Array<Type<any>>,
-	pluginEntities: Array<Type<any>>
-): Array<Type<any>> {
+export function mergeEntityClasses(coreEntities: Array<Type<any>>, pluginEntities: Array<Type<any>>): Array<Type<any>> {
 	const registeredEntities = [...coreEntities]
 
 	for (const pluginEntity of pluginEntities) {
@@ -68,6 +65,48 @@ export function mergeSubscriberClasses(
 	pluginSubscribers: Array<Type<EntitySubscriberInterface>>
 ): Array<Type<EntitySubscriberInterface>> {
 	return Array.from(new Set([...coreSubscribers, ...pluginSubscribers]))
+}
+
+/**
+ * Resolve the physical TypeORM table name declared by an entity class.
+ * Namespace validation uses the decorator value instead of the class name.
+ */
+export function getEntityTableName(entity: Type<any>) {
+	const table = getMetadataArgsStorage().tables.find((item) => item.target === entity)
+	return typeof table?.name === 'string' && table.name.trim() ? table.name.trim() : null
+}
+
+/**
+ * Guard plugin entity tables before they are merged into the live DataSource.
+ * Explicit namespaces require `plugin_<namespace>_`; legacy plugins still accept the base `plugin_` prefix.
+ */
+export function validatePluginEntityTableNames(input: {
+	pluginName: string
+	entities: Array<Type<any>>
+	artifactNamespace?: string | null
+	requireNamespaceMatch?: boolean
+}) {
+	if (!input.entities.length) {
+		return
+	}
+
+	const prefix =
+		input.artifactNamespace && input.requireNamespaceMatch ? `plugin_${input.artifactNamespace}_` : 'plugin_'
+	const failures = input.entities
+		.map((entity) => ({
+			entityName: entity.name,
+			tableName: getEntityTableName(entity)
+		}))
+		.filter((item) => !item.tableName?.startsWith(prefix))
+
+	if (!failures.length) {
+		return
+	}
+
+	throw new BadRequestException({
+		message: `Plugin "${input.pluginName}" declares entity table names that do not match required artifact namespace prefix "${prefix}".`,
+		failures
+	})
 }
 
 export async function registerPluginOrmMetadataInDataSource(
