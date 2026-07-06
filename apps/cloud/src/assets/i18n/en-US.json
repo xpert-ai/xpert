@@ -263,6 +263,12 @@
       "Width": "Width",
       "Configured": "configured"
     },
+    "Skills": {
+      "Selected": "selected",
+      "Available": "available",
+      "UseAllDefault": "Use all skills by default",
+      "SelectAllDefault": "Select all skills as default."
+    },
     "Common": {
       "Tools": "Tools",
       "Loading": "Loading...",
@@ -778,6 +784,10 @@
       "SelectToolsetInstance": "Select a toolset instance",
       "NoMatchingToolsetConfigured": "No matching built-in toolset is configured in this workspace. Configure one to continue.",
       "NoTemplateToolsetsRequired": "No toolsets required",
+      "NoSkillsYet": "No skills have been added to this workflow yet.",
+      "UnavailableSelectedSkills": "{{count}} historically configured skills are not available in this workspace.",
+      "RemoveUnavailableSkills": "Remove unavailable",
+      "ResetDefaultSkills": "Reset to default skills",
       "TemplateToolsetToolsCount": "tools",
       "TemplateToolsetMissingNamed": "Required template toolset '{{instanceName}}' ({{provider}}) is not configured in this workspace.",
       "TemplateToolsetMissingProvider": "Required template toolset '{{provider}}' is not configured in this workspace.",

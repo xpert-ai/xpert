@@ -546,6 +546,12 @@
       "Uploading": "上傳中",
       "Yes": "是"
     },
+    "Skills": {
+      "Selected": "已選",
+      "Available": "可用",
+      "UseAllDefault": "默認使用全部技能",
+      "SelectAllDefault": "默認選擇全部技能。"
+    },
     "Common": {
       "Tools": "工具",
       "Loading": "加載中",
@@ -3825,6 +3831,10 @@
       "SelectToolsetInstance": "選擇工具集實例",
       "NoMatchingToolsetConfigured": "當前工作區沒有配置匹配的內置工具集。請先配置一個再繼續。",
       "NoTemplateToolsetsRequired": "沒有必需工具集",
+      "NoSkillsYet": "還沒有為此工作流添加技能。",
+      "UnavailableSelectedSkills": "有 {{count}} 個歷史配置技能在當前工作區不可用。",
+      "RemoveUnavailableSkills": "移除不可用項",
+      "ResetDefaultSkills": "恢復默認技能",
       "TemplateToolsetToolsCount": "個工具",
       "TemplateToolsetMissingNamed": "必需的模板工具集「{{instanceName}}」（{{provider}}）尚未在此工作區配置。",
       "TemplateToolsetMissingProvider": "必需的模板工具集「{{provider}}」尚未在此工作區配置。",
