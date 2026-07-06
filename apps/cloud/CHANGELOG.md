@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.7
+
+### Patch Changes
+
+- 3249145: plugin artifact namespace
+
 ## 3.15.6
 
 ### Patch Changes
