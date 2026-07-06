@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.6
+
+### Patch Changes
+
+- 3249145: plugin artifact namespace
+- Updated dependencies [3249145]
+  - @xpert-ai/contracts@3.15.7
+
 ## 3.15.5
 
 ### Patch Changes
