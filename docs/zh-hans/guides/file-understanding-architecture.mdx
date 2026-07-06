@@ -500,7 +500,7 @@ packages/server-ai/src/shared/agent/message.ts
   - 摘要
   - 可用 capability
   - 可用 anchors / chunk 引用提示
-- 不在 prompt 中直接注入 chunk 正文；需要正文时让 Agent 使用 `file_search` / `file_read`。
+- 不在 prompt 中直接注入 chunk 正文；需要正文时让 Agent 使用 `parsed_file_search` / `parsed_file_read`。
 - 大文件不全文进入 prompt。
 - 解析失败或旧消息 fallback 到 `LoadFileCommand`。
 
@@ -566,26 +566,27 @@ packages/server-ai/src/file-understanding/middlewares/file-understanding.middlew
 packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts
 ```
 
-这表示 `file_search` 等工具不再是 subgraph 手动追加的裸工具，而是 `FileUnderstandingMiddleware` 产出的内置 middleware tools。Agent 画布上不需要手动连接该 middleware；ChatKit 会话附件默认可用，同时后续可以复用 middleware 的 tool wrapping、hook、工具描述覆盖和运行时治理能力。
+这表示 `parsed_file_search` 等工具不再是 subgraph 手动追加的裸工具，而是 `FileUnderstandingMiddleware` 产出的内置 middleware tools。Agent 画布上不需要手动连接该 middleware；ChatKit 会话附件默认可用，同时后续可以复用 middleware 的 tool wrapping、hook、工具描述覆盖和运行时治理能力。
 
 工具列表：
 
-- `file_search(fileIds, query, limit)`
-- `file_read(fileId, chunkId, orderNo)`
-- `file_table_query(fileId, query, limit)`
-- `file_preview(fileId)`
-- `workspace_list()`
-- `workspace_read(fileId | path, chunkId, orderNo)`
-- `workspace_search(query, limit)`
+- `parsed_file_search(fileIds, query, limit)`
+- `parsed_file_read(fileId, chunkId, orderNo)`
+- `parsed_file_table_query(fileId, query, limit)`
+- `parsed_file_preview(fileId)`
+- `parsed_file_page_images(fileId, pageStart, pageEnd)`
+- `parsed_file_list()`
+- `parsed_file_read_by_path(fileId | path, chunkId, orderNo)`
+- `parsed_file_search_all(query, limit)`
 
 使用原则：
 
-- 回答文件问题时先 `file_search` 或 `workspace_search`。
-- 需要上下文时再 `file_read`。
-- `file_preview` 返回轻量 preview，只包含文件业务字段、短摘要、artifact 索引和 chunk anchor，不返回租户/组织/审计字段、artifact 全文、chunk 全文或底层 parser metadata。
-- 如果 file card 或 `workspace_list` 返回了 `workspacePath`，并且 Agent 有 `sandbox_file` 或 shell 工具，可以按该路径读取原文件。
-- `workspace_read` 支持通过 `fileId` 或 `workspacePath` 解析到文件索引，但它读取的是解析后的 chunk，不直接读取二进制原文。
-- 表格和 CSV 优先用 `file_table_query`。
+- 回答文件问题时先 `parsed_file_search` 或 `parsed_file_search_all`。
+- 需要上下文时再 `parsed_file_read`。
+- `parsed_file_preview` 返回轻量 preview，只包含文件业务字段、短摘要、artifact 索引和 chunk anchor，不返回租户/组织/审计字段、artifact 全文、chunk 全文或底层 parser metadata。
+- 如果 file card 或 `parsed_file_list` 返回了 `workspacePath`，并且 Agent 有 `sandbox_file` 或 shell 工具，可以按该路径读取原文件。
+- `parsed_file_read_by_path` 支持通过 `fileId` 或 `workspacePath` 解析到文件索引，但它读取的是解析后的 chunk，不直接读取二进制原文。
+- 表格和 CSV 优先用 `parsed_file_table_query`。
 - 引用来源使用 chunk 返回的 `anchor`。
 - 不让 Agent 直接构造对象存储路径读取原文件。
 
@@ -595,20 +596,20 @@ packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts
 
 推荐 Agent 行为：
 
-- 普通文字问题先调用 `file_search`。
-- 检索到相关 chunk 后，如需更完整上下文，再调用 `file_read`。
-- 当用户问题涉及图表、截图、流程图、figure、视觉布局、OCR 或指定页面图片细节时，调用 `file_page_images(fileId, pageStart, pageEnd)`。
-- 如果用户没有指定页码，先用用户问题和视觉标记词一起检索，例如 `figure`、`chart`、`diagram`、`screenshot`、`图`、`见下图`、`流程图`，再根据返回 chunk 的 page anchor 调用 `file_page_images` 查看相关页面。
+- 普通文字问题先调用 `parsed_file_search`。
+- 检索到相关 chunk 后，如需更完整上下文，再调用 `parsed_file_read`。
+- 当用户问题涉及图表、截图、流程图、figure、视觉布局、OCR 或指定页面图片细节时，调用 `parsed_file_page_images(fileId, pageStart, pageEnd)`。
+- 如果用户没有指定页码，先用用户问题和视觉标记词一起检索，例如 `figure`、`chart`、`diagram`、`screenshot`、`图`、`见下图`、`流程图`，再根据返回 chunk 的 page anchor 调用 `parsed_file_page_images` 查看相关页面。
 
 可加入 Agent 提示词的策略片段：
 
 ```text
 回答上传 PDF 的问题时，优先使用解析出的文本。
-先用 file_search 定位相关 page_text chunk，再用 file_read 读取精确文本。
+先用 parsed_file_search 定位相关 page_text chunk，再用 parsed_file_read 读取精确文本。
 普通文字问题不要查看 PDF 页面图片。
 只有当用户询问视觉内容、页面布局、图表、截图、流程图、figure、OCR，
 或者文本检索结果指向 "figure"、"chart"、"diagram"、"screenshot"、
-"图"、"见下图"、"流程图" 等附近视觉材料时，才使用 file_page_images。
+"图"、"见下图"、"流程图" 等附近视觉材料时，才使用 parsed_file_page_images。
 如果用户没有提供页码，先检索用户问题和这些视觉标记词，
 用 chunk anchor 判断页码，然后只查看这些相关页面。
 回答时引用返回的 page、sheet、slide、path 或 chunk anchor。
@@ -701,9 +702,9 @@ chatkit-js/packages/chatkit-ui/src/components/chat.tsx
 3. 将外部向量 id 写入 `file_embedding.vectorId`。
 4. collection 按 `xpertId + embeddingFingerprint` 隔离；没有 `xpertId` 时依次 fallback 到 `projectId` 和 `tenantId`。
 5. query handler 先走 vector store，再按权限和 fileId 回表读取 chunk；失败或无命中时降级到数据库文本匹配。
-6. `FileUnderstandingMiddleware` 的 tool schema 保持不变，尤其是 `file_search`。
+6. `FileUnderstandingMiddleware` 的 parsed-file tool schema 保持不变，尤其是 `parsed_file_search`。
 
-这样可以不改 ChatKit 和 Agent tool 调用方式。
+这样可以不改 ChatKit 和 parsed-file tool 的参数/返回结构。
 
 ### 接入真正异步队列
 
@@ -722,7 +723,7 @@ chatkit-js/packages/chatkit-ui/src/components/chat.tsx
 
 1. 解压到 conversation/project volume。
 2. 写入 `workspacePath`。
-3. `workspace_list/read/search` 支持 path 级别读取，而不仅是 chunk 读取。
+3. `parsed_file_list` / `parsed_file_read_by_path` / `parsed_file_search_all` 暴露 archive 内部 path anchor 和 path 级 parsed chunk，而不是直接承担 workspace volume 原文件操作。
 4. 对大仓库增加 ignore 规则、文件大小限制、二进制过滤和语言识别。
 5. 在 citation anchor 中保留 `path` 和 chunk 序号。
 
@@ -771,9 +772,9 @@ pnpm --filter @xpert-ai/chatkit-ui types
 
 - 上传 txt/md/json，状态变为 `ready`，Agent 可搜索和读取。
 - 上传 PDF，chunk anchor 带页码。
-- 上传 xlsx/csv，`file_table_query` 可返回 sheet/table chunk。
+- 上传 xlsx/csv，`parsed_file_table_query` 可返回 sheet/table chunk。
 - 上传图片，状态可为 `partial`，capabilities 包含 `vision` / `ocr`。
-- 上传 zip，`workspace_list` 可看到文件，`workspace_search` 可搜到文本文件内容。
+- 上传 zip，`parsed_file_list` 可看到文件，`parsed_file_search_all` 可搜到文本文件内容。
 - 大文件不会全文进入 prompt。
 - 旧 `StorageFile` 附件仍可 fallback 读取。
 - 删除 `/contexts/file/:storageFileId` 后，`FileAsset` 和 `StorageFile` 都被清理。

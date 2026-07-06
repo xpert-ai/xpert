@@ -1,13 +1,11 @@
 jest.mock('@xpert-ai/plugin-sdk', () => {
-    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
     return {
-        ...actual,
         AgentMiddlewareStrategy: () => (target: unknown) => target
     }
 })
 
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { ListConversationFilesQuery } from '../queries'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME, FileUnderstandingMiddleware } from './file-understanding.middleware'
 
@@ -38,15 +36,27 @@ describe('FileUnderstandingMiddleware', () => {
         expect(strategy.meta.builtin).toBe(true)
         expect(middleware.name).toBe(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
         expect(middleware.tools?.map((item) => item.name)).toEqual([
-            'file_search',
-            'file_read',
-            'file_table_query',
-            'file_preview',
-            'file_page_images',
-            'workspace_list',
-            'workspace_read',
-            'workspace_search'
+            'parsed_file_search',
+            'parsed_file_read',
+            'parsed_file_table_query',
+            'parsed_file_preview',
+            'parsed_file_page_images',
+            'parsed_file_list',
+            'parsed_file_read_by_path',
+            'parsed_file_search_all'
         ])
+        expect(middleware.tools?.map((item) => item.name)).not.toEqual(
+            expect.arrayContaining([
+                'file_search',
+                'file_read',
+                'file_table_query',
+                'file_preview',
+                'file_page_images',
+                'workspace_list',
+                'workspace_read',
+                'workspace_search'
+            ])
+        )
     })
 
     it('uses middleware options as the conversation scope when provided', async () => {
@@ -59,9 +69,9 @@ describe('FileUnderstandingMiddleware', () => {
                 createContext('conversation-context')
             )
         )
-        const workspaceListTool = middleware.tools?.find((item) => item.name === 'workspace_list')
+        const parsedFileListTool = middleware.tools?.find((item) => item.name === 'parsed_file_list')
 
-        await workspaceListTool?.invoke({})
+        await parsedFileListTool?.invoke({})
 
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListConversationFilesQuery))
         expect(queryBus.execute.mock.calls[0][0].conversationId).toBe('conversation-option')

@@ -1,5 +1,5 @@
 import { Query } from '@nestjs/cqrs'
-import { FileChunk } from '../entities'
+import type { FileChunk } from '../entities'
 
 export class SearchFileChunksQuery extends Query<FileChunk[]> {
     static readonly type = '[File Understanding] Search file chunks'
