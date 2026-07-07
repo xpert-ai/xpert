@@ -1,6 +1,5 @@
 import { Runnable, RunnableToolLike } from '@langchain/core/runnables'
-import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
-import { ToolInputSchemaBase } from '@langchain/core/dist/tools/types'
+import { DynamicStructuredTool, StructuredToolInterface, type ToolSchemaBase } from '@langchain/core/tools'
 import { InteropZodType } from '@langchain/core/utils/types'
 import { BaseChannel } from '@langchain/langgraph'
 import {
@@ -38,8 +37,8 @@ export type TWorkflowNodeResult = {
     id?: string
   }
   tool?:
-    | DynamicStructuredTool<ToolInputSchemaBase, any, any>
-    | StructuredToolInterface<ToolInputSchemaBase, any, any>
+    | DynamicStructuredTool<ToolSchemaBase, any, any>
+    | StructuredToolInterface<ToolSchemaBase, any, any>
     | RunnableToolLike<InteropZodType, unknown>
   variables?: TVariableAssigner[]
 }
