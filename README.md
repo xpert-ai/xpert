@@ -17,8 +17,9 @@ English | [中文](./README_zh.md)
 </p>
 
 <p align="center">
-  <em>Open-Source AI Platform for Enterprise Data Analysis, Indicator Management and Agents Orchestration</em>
+  <em>Open-source enterprise Agent platform for multi-agent orchestration, Agentic BI, governed data execution, and plugin-based Agentic Apps.</em>
 </p>
+
 <p align="center">
   <a href="https://github.com/xpert-ai/xpert/" target="_blank">
     <img src="https://visitor-badge.laobi.icu/badge?page_id=meta-d.ocap" alt="Visitors">
@@ -34,39 +35,115 @@ English | [中文](./README_zh.md)
   </a>
 </p>
 
-**Xpert AI** is an open-source enterprise-level AI system that perfectly integrates two major platforms: agent orchestration and data analysis.
+**Xpert AI** is an open-source platform for building enterprise-grade AI systems. It brings together digital experts, multi-agent collaboration, workflow orchestration, knowledge retrieval, tool execution, Agentic BI, Data Xpert/UOSE governed data access, plugin-delivered Agentic Apps, and embeddable ChatKit experiences in one stack.
 
-## 💡 What's New
+Instead of exposing raw databases, APIs, files, and dashboards directly to models, Xpert turns enterprise resources into governed tools, semantic objects, reviewable workbench views, and auditable execution flows. Teams can build assistants that reason freely where useful, follow deterministic workflows where required, and keep humans in the loop for business-critical decisions.
 
-**🚀 3.10 Agentic Apps & File Understanding!**
+## Latest Capability Highlights
 
-XpertAI 3.10 turns plugins into first-class `Agentic Apps`, combining plugin-provided Xpert templates, Workbench views, runtime middleware capabilities, and file-aware agent execution into a more extensible assistant platform.
+Recent Xpert 3.x work has focused on making the platform a fuller enterprise Agent operating layer:
 
-- Build business apps with plugin `targetApps` and `targetAppMeta`, plugin-contributed Xpert templates, deprecation controls, and richer manifest metadata for app-specific plugin centers.
-- Render plugin-owned Workbench experiences with fixed views, remote component iframe entries, host theme propagation, host events, task status updates, and client commands.
-- Open tool-triggered remote components in the Assistant Workbench, including the built-in Data X metric management plugin for project and semantic model metric operations.
-- Use the new File Understanding layer to parse uploads into `FileAsset` records, artifacts, chunks, page images, citation anchors, and workspace paths that agents can search and read on demand.
-- Give middleware safer runtime capabilities for files, knowledgebases, assistant tasks, organization context, chat events, and the new Office Automation middleware flow.
-- Monitor Copilot operations with user-level usage details, usage summaries, filters, checkpoint retention cleanup, Prometheus metrics, and conversation goals.
+- **Agentic Apps**: plugins can contribute Assistant templates, Agent middleware tools, Workbench views, Remote Components, target app metadata, and business data models.
+- **File Understanding**: uploaded files can become searchable assets with chunks, page images, citation anchors, artifacts, and workspace paths that agents can reference.
+- **Workbench-driven execution**: Assistant tool calls can open or refresh plugin-owned workbench views so users can inspect, correct, approve, or submit results.
+- **Plugin and MCP extensibility**: plugins can deliver system integrations, model providers, middleware, Skills, MCP tools, MCP Apps, and managed runtime resources.
+- **Operational visibility**: Copilot and Agent execution continue to gain usage summaries, task status updates, Prometheus metrics, conversation goals, and retention cleanup.
 
-## Agent-Workflow Hybrid Architecture
+## Core Capabilities
 
-In today’s rapidly evolving AI landscape, enterprises face a key challenge: **How to balance the creativity of LLMs with the stability of workflows**? Pure agent architectures are flexible but hard to control; traditional workflows are reliable but lack adaptability. Xpert AI’s **Agent-Workflow Hybrid Architecture** is designed to resolve this conflict, enabling AI to have “free will” while adhering to “rule-based order.”
+### Agent Platform
+
+Xpert provides a visual platform for creating **digital experts** that can coordinate multiple specialized agents, tools, workflows, and knowledge bases.
+
+- Build supervisor, hierarchical, swarm, or custom multi-agent systems.
+- Combine autonomous Agent nodes with deterministic Workflow nodes in the same process.
+- Attach toolsets, knowledge bases, Skills, and Agent Middleware to each agent node.
+- Use middleware to transform prompts, control tool selection, add retry/fallback logic, enforce guardrails, or expose business tools.
+- Track conversations, tool calls, intermediate steps, context usage, task status, and execution events.
+
+### Agentic BI
+
+Xpert includes an agent-driven BI layer for semantic modeling, metrics, and natural-language business analysis.
+
+- Manage semantic models, cubes, dimensions, measures, formulas, and business domains.
+- Define and operate business indicators with lineage, formulas, hierarchy, and reusable metric logic.
+- Let agents use semantic model, indicator management, and ChatBI toolsets for modeling, querying, explanation, and follow-up analysis.
+- Support multi-turn analytical conversations where the assistant can plan, query, refine, explain, and suggest next steps.
+
+### Data Xpert / UOSE
+
+The Data Xpert ontology system, also described as **UOSE** (Unified Object-Semantic Execution), turns enterprise resources into a governed object-semantic execution space for agents.
+
+- Register external resources such as semantic models, SAP OData services, knowledge graphs, databases, and business APIs.
+- Normalize metadata into ontology snapshots, entity graphs, relationships, properties, actions, and evidence.
+- Let agents discover objects and actions through stable tools instead of guessing SQL or backend APIs.
+- Simulate actions before execution, apply policies, require approvals for high-risk operations, and record audit traces.
+- Use Data Xpert workbench pages for resource access, ontology browsing, policy management, approval queues, execution audit, and resource chat.
+
+### Agentic Apps & Plugins
+
+Xpert's plugin system lets teams ship business capabilities as installable, configurable, reviewable applications rather than one-off prompts.
+
+- Package plugins with metadata, configuration schemas, lifecycle hooks, server modules, entities, services, and strategy providers.
+- Declare `targetApps` and `targetAppMeta` so the host can understand plugin surfaces such as Workbench views, Assistant tools, business apps, templates, MCP servers, and resources.
+- Add custom Workbench views or React iframe Remote Components for human review, upload, correction, approval, and operational workflows.
+- Expose narrow Agent middleware tools with structured schemas and ordered call flows.
+- Deliver Assistant templates so users can create business assistants with the right prompts, tools, plugins, and starter tasks in one step.
+- Extend the ecosystem through the official and community plugin repositories.
+
+### File & Knowledge Understanding
+
+Xpert gives agents controlled access to documents, files, and enterprise knowledge.
+
+- Maintain knowledge bases with document parsing, chunking, embeddings, retrieval testing, and dynamic updates.
+- Use File Understanding to represent uploads as `FileAsset` records, artifacts, chunks, page images, citation anchors, and workspace file paths.
+- Combine knowledge retrieval, GraphRAG-style entity evidence, and file-aware tools for document-heavy workflows.
+- Use workspace files and knowledge resources as auditable context instead of relying on unstructured prompt stuffing.
+
+### ChatKit & Embedding
+
+ChatKit is the embeddable conversation framework for Xpert-powered assistants.
+
+- Use React, Vue, Vue 2, Angular, SAP UI5, Web Component, or vanilla JavaScript packages.
+- Support streaming responses, tool call visualization, file uploads, threads, i18n, theming, and host automation.
+- Embed Xpert agents into product surfaces while keeping the backend workflow, tool, and governance logic on the Xpert platform.
+- Render richer tool results through widgets, MCP Apps, and workbench visualizations where appropriate.
+
+## Architecture
+
+Xpert follows an **Agent-Workflow Hybrid Architecture**: agents provide flexible reasoning and tool choice, while workflows provide stable, inspectable control paths. This lets teams combine natural-language problem solving with enterprise requirements for repeatability, review, and governance.
+
 ![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
 
 [Blog - Agent-Workflow Hybrid Architecture](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
-### [Agent Orchestration Platform](https://docs.xpertai.cn/en/ai/)
+## Repository Guide
 
-By coordinating the collaboration of multiple intelligent agents, Xpert can handle complex tasks. Xpert integrates different types of AI agents through efficient management mechanisms, leveraging their capabilities to address multidimensional problems.
+This repository is an Nx monorepo. Important areas include:
 
-[Xpert Agent](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
+| Path                                               | Purpose                                                                                                     |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/api`                                         | Main NestJS API application and platform bootstrap.                                                         |
+| `apps/cloud`                                       | Angular web application for the Xpert Cloud UI, Agent Studio, workspaces, settings, and workbench surfaces. |
+| `packages/server-ai`                               | Agent execution, chat, model providers, toolsets, MCP, knowledge, handoff, and AI runtime services.         |
+| `packages/server`                                  | Core server modules shared by the platform.                                                                 |
+| `packages/contracts`                               | Shared TypeScript contracts used by frontend, backend, SDKs, and plugins.                                   |
+| `packages/plugin-sdk`                              | SDK for building Xpert plugins, view extensions, configuration forms, permissions, and remote components.   |
+| `packages/plugins`                                 | Built-in plugin packages shipped with the host.                                                             |
+| `packages/core`, `packages/angular`, `packages/ui` | Core data/analytics libraries and reusable UI packages.                                                     |
+| `docker`                                           | Docker Compose deployment files and environment templates.                                                  |
 
-### [Data Analysis Platform](https://docs.xpertai.cn/en/bi/)
+Related repositories:
 
-A cloud-based agile data analysis platform supporting multidimensional modeling, metrics management, and BI visualization. The platform connects to various data sources, enabling efficient and flexible data analysis and visualization, and offers multiple intelligent analysis tools to help enterprises quickly and accurately uncover business value and make operational decisions.
+| Repository                                                   | What it contains                                                                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) | Official and community plugins, including integrations, models, middleware, tools, Skills, and Agentic Apps.       |
+| [`chatkit-js`](https://github.com/xpert-ai/chatkit-js)       | Embeddable ChatKit packages for React, Vue, Angular, UI5, Web Component, browser extension, widgets, and examples. |
+| [`xpert-sdk-js`](https://github.com/xpert-ai/xpert-sdk-js)   | TypeScript SDK packages and examples for calling Xpert APIs.                                                       |
+| [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)   | Public Skill examples, templates, and the Agent Skills specification.                                              |
+| [`docs`](https://github.com/xpert-ai/docs)                   | Product, AI, plugin, data, BI, and tutorial documentation.                                                         |
 
-## 🚀 Quick Start
+## Quick Start
 
 > Before installing Xpert, make sure your machine meets the following minimum system requirements:
 >
@@ -74,9 +151,7 @@ A cloud-based agile data analysis platform supporting multidimensional modeling,
 > - RAM >= 4 GiB
 > - Node.js (ESM and CommonJS) - 20.x, 22.x
 
-</br>
-
-The easiest way to start the Xpert server is through [docker compose](docker/docker-compose.yaml). Before running Xpert with the following commands, make sure that [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed on your machine:
+The easiest way to start the Xpert server is through [docker compose](docker/docker-compose.yml). Before running Xpert with the following commands, make sure that [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed on your machine:
 
 ```bash
 cd xpert
@@ -89,84 +164,70 @@ After running, you can access the Xpert dashboard in your browser at [http://loc
 
 Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.
 
-## 💻 Demo, Downloads, Testing and Production
+## Demo, Cloud, and Production
 
 ### Demo
 
-Xpert AI Platform Demo at <https://app.xpertai.cn>.
+Xpert AI Platform Demo is available at <https://app.xpertai.cn>.
 
 Notes:
 
-- You can generate samples data in the home dashbaord page.
+- You can generate sample data from the home dashboard page.
 
 ### Production (SaaS)
 
 Xpert AI Platform SaaS is available at <https://app.xpertai.cn>.
 
-Note: it's currently in Alpha version / in testing mode, please use it with caution!
+Note: it is currently in Alpha/testing mode, so please use it with caution.
 
-## 🧱 Technology Stack and Requirements
+## Technology Stack and Requirements
 
-- [TypeScript](https://www.typescriptlang.org) language
-- [NodeJs](https://nodejs.org) / [NestJs](https://github.com/nestjs/nest)
+- [TypeScript](https://www.typescriptlang.org)
+- [Node.js](https://nodejs.org) / [NestJS](https://github.com/nestjs/nest)
 - [Nx](https://nx.dev)
 - [Angular](https://angular.dev)
 - [RxJS](http://reactivex.io/rxjs)
 - [TypeORM](https://github.com/typeorm/typeorm)
-- [Langchain](https://js.langchain.com/)
+- [LangChain](https://js.langchain.com/)
 - [ECharts](https://echarts.apache.org/)
 - [Java](https://www.java.com/)
 - [Mondrian](https://github.com/pentaho/mondrian)
 
-For Production, we recommend:
+For production, we recommend:
 
 - [PostgreSQL](https://www.postgresql.org)
 - [PM2](https://github.com/Unitech/pm2)
 
-## 🗺️ Roadmap
+## Ecosystem & Status
 
-- [ ] **SDK** – streamlines access api of the XpertAI platform.
-  - [ ] [SDK (TypeScript)](https://github.com/xpert-ai/xpert-sdk-js)
-    - [x] digital experts
-    - [x] long-term memory storage
-    - [x] contextual files
-    - [x] Conversation management
-    - [ ] knowledge bases
-  - [ ] [SDK (Python)](https://github.com/xpert-ai/xpert-sdk-py)
-- [x] **Plugins** – extensible plugin system.
-  - [x] Plugins system
-  - [x] Marketplace to showcase the plugins ecosystem.
-  - [x] Hot-swappable plugin system.
-- [ ] **Chatkit** – front-end component library for embedding digital expert chat dialog.
-  - [x] ChatKit javascript version.
-- [x] **Widgets** – UI widgets that let large-model responses drive richer interface experiences.
-- [x] **Agent Middlewares** Plugin-based Agent Middleware.
-- [x] **Agent Skills** – lightweight agent skills for rapid custom capability integration, offering a quicker alternative to MCP tools.
-- [ ] **Project Management** – AI-driven project execution workspace for planning, coordinating, and running multi-agent work.
-  - [ ] Project workspaces with overview, Kanban board, files, teams, and tabbed project layout.
-  - [ ] Project, sprint, task, backlog, and swimlane models with APIs for planning and execution strategy.
-  - [ ] Bind published Xperts as project assistants and project teams, with team role and environment settings.
-  - [ ] Project assistant tools for backlog management, sprint planning, task updates, team binding, and runnable task dispatch.
-  - [ ] Task assistant ChatKit conversations with execution artifacts and project-context handoff.
-  - [ ] Project event stream for real-time board updates and agent execution feedback.
-- [ ] **Audit, Security, Compliance** – Enterprise-grade features to ensure data privacy and compliance.
-  - [ ] Audit logs
-  - [ ] Role-based access control
-  - [ ] Data encryption
-- [x] **Sandbox** – Secure testing environment, isolating experiments from production.
-- [ ] **Trace**, **Evaluation** – Observability and evaluation tools for agents and workflows.
-  - [ ] Trace system
-  - [ ] Evaluation framework
-- [ ] System monitoring and alerting
-  - [ ] Sentry integration
-  - [x] Prometheus integration
+| Area                              | Status                                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Agent orchestration and workflows | Core platform capability, including multi-agent systems, workflow nodes, toolsets, knowledge bases, and middleware.           |
+| Agentic BI                        | Active product capability around semantic models, indicators, ChatBI, and natural-language analysis.                          |
+| Data Xpert / UOSE                 | Active data and ontology capability for governed resource discovery, action execution, approvals, and audit.                  |
+| Plugins and Agentic Apps          | Active ecosystem with plugin marketplace, SDK, Workbench views, Remote Components, middleware tools, MCP tools, and MCP Apps. |
+| ChatKit                           | Available as a multi-framework embeddable chat framework with streaming, tools, uploads, threads, widgets, and i18n.          |
+| Skills                            | Available as reusable instruction/resource packages that can be installed into workspaces and loaded by agents.               |
+| SDKs                              | TypeScript SDK is available; Python SDK is planned.                                                                           |
+| Observability and operations      | Ongoing work across usage reporting, Prometheus metrics, conversation goals, runtime operations, trace, and evaluation.       |
 
-## 💌 Contact Us
+## Roadmap
 
-- For business inquiries: <mailto:service@xpertai.cn>
+Near-term development is focused on a few platform-level directions:
+
+- [ ] **Project workspaces**: AI-assisted planning, files, teams, Kanban-style task execution, and project-scoped agent collaboration.
+- [ ] **Governance and compliance**: stronger audit logs, role-based access control, approval flows, policy coverage, and enterprise deployment controls.
+- [ ] **Trace and evaluation**: deeper observability for agent runs, workflow paths, tool calls, context usage, and evaluation feedback loops.
+- [x] **Plugin and Agentic App ecosystem**: richer marketplace metadata, easier local development, more official business apps, and safer plugin-managed MCP runtimes.
+- [x] **SDK and embedding surfaces**: broader SDK coverage, ChatKit improvements, and smoother integration paths for existing enterprise products.
+- [ ] **Operations and reliability**: monitoring, alerting, retention policies, runtime controls, and production hardening for self-hosted deployments.
+
+## Contact Us
+
+- Business inquiries: <mailto:service@xpertai.cn>
 - [Xpert AI Platform @ Twitter](https://x.com/xpertai_cloud)
 
-## 🛡️ License
+## License
 
 We support the open-source community.
 
@@ -176,9 +237,9 @@ This software is available under the following licenses:
 - [Xpert AI Platform Enterprise Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-small-business-license)
 - [Xpert AI Platform Enterprise Pro Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSES.md#xpert-ai-platform-enterprise-license)
 
-#### Please see [LICENSE](LICENSES.md) for more information on licenses.
+Please see [LICENSE](LICENSES.md) for more information on licenses.
 
-## 💪 Thanks to our Contributors
+## Thanks to Our Contributors
 
 **Contributors**
 
@@ -186,6 +247,6 @@ This software is available under the following licenses:
   <img src="https://contributors-img.web.app/image?repo=xpert-ai/xpert" />
 </a>
 
-- Please give us :star: on Github, it **helps**!
-- You are more than welcome to submit feature requests in the [Xpert AI repo](https://github.com/xpert-ai/xpert/issues)
-- Pull requests are always welcome! Please base pull requests against the _develop_ branch and follow the [contributing guide](.github/CONTRIBUTING.md).
+- Please give us a star on GitHub. It helps!
+- You are welcome to submit feature requests in the [Xpert AI repo](https://github.com/xpert-ai/xpert/issues).
+- Pull requests are always welcome. Please base pull requests against the _develop_ branch and follow the [contributing guide](.github/CONTRIBUTING.md).
