@@ -65,6 +65,9 @@ describe('ChatConversationService workspace files', () => {
     let readStateRepository: {
         create: jest.Mock
         findOne: jest.Mock
+        manager: {
+            transaction: jest.Mock
+        }
         save: jest.Mock
         query: jest.Mock
     }
@@ -96,9 +99,27 @@ describe('ChatConversationService workspace files', () => {
         readStateRepository = {
             create: jest.fn((entity) => entity),
             findOne: jest.fn().mockResolvedValue(null),
+            manager: {
+                transaction: jest.fn()
+            },
             save: jest.fn(async (entity) => entity),
-            query: jest.fn()
+            query: jest.fn().mockResolvedValue([
+                {
+                    id: 'read-state-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    conversationId: 'conversation-1',
+                    userId: 'user-1',
+                    lastReadAt: new Date('2026-06-21T00:10:00.000Z'),
+                    lastReadMessageId: 'message-1'
+                }
+            ])
         }
+        readStateRepository.manager.transaction.mockImplementation((callback) =>
+            callback({
+                query: readStateRepository.query
+            })
+        )
         messageService = {
             findAll: jest.fn().mockResolvedValue({ items: [] }),
             findOneByOptions: jest.fn()
@@ -160,20 +181,24 @@ describe('ChatConversationService workspace files', () => {
             'org-1',
             'xpert-1'
         ])
-        expect(repository.query.mock.calls[0][0]).toContain('c."createdById" = $2')
-        expect(repository.query.mock.calls[0][0]).toContain('LEFT JOIN LATERAL')
-        expect(repository.query.mock.calls[0][0]).toContain('rs."tenantId" = c."tenantId"')
-        expect(repository.query.mock.calls[0][0]).toContain(
-            'rs."organizationId" IS NOT DISTINCT FROM c."organizationId"'
-        )
-        expect(repository.query.mock.calls[0][0]).toContain('rs."lastReadMessageId"')
-        expect(repository.query.mock.calls[0][0]).toContain('LEFT JOIN chat_message read_cursor')
-        expect(repository.query.mock.calls[0][0]).toContain('read_cursor.id::text = rs."lastReadMessageId"')
-        expect(repository.query.mock.calls[0][0]).toContain(
-            'm."createdAt" > COALESCE(read_cursor."createdAt", rs."lastReadAt", c."createdAt")'
-        )
-        expect(repository.query.mock.calls[0][0]).toContain('AS "latestUnreadConversationId"')
-        expect(repository.query.mock.calls[0][0]).toContain('AS "latestUnreadThreadId"')
+        const sql = repository.query.mock.calls[0][0]
+        expect(sql).toContain('WITH scoped_conversations AS')
+        expect(sql).toContain('latest_read_state AS')
+        expect(sql).toContain('conversation_cursors AS')
+        expect(sql).toContain('c."createdById" = $2')
+        expect(sql).toContain('c."organizationId" = $3')
+        expect(sql).toContain('rs."organizationId" = $3')
+        expect(sql).toContain('SELECT DISTINCT ON (rs."conversationId")')
+        expect(sql).toContain('SELECT DISTINCT ON ("xpertId")')
+        expect(sql).toContain('CROSS JOIN LATERAL')
+        expect(sql).not.toContain('LEFT JOIN LATERAL')
+        expect(sql).not.toContain('array_agg')
+        expect(sql).not.toContain('IS NOT DISTINCT FROM')
+        expect(sql).toContain('read_cursor.id::text = rs."lastReadMessageId"')
+        expect(sql).toContain('COALESCE(read_cursor."createdAt", rs."lastReadAt", c."updatedAt", c."createdAt")')
+        expect(sql).toContain('m."createdAt" > c."cursorAt"')
+        expect(sql).toContain('AS "latestUnreadConversationId"')
+        expect(sql).toContain('AS "latestUnreadThreadId"')
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
@@ -184,6 +209,26 @@ describe('ChatConversationService workspace files', () => {
                 latestUnreadThreadId: 'thread-unread'
             }
         ])
+    })
+
+    it('skips unread aggregation when there is no valid xpert id', async () => {
+        const result = await service.getUnreadByXperts(['', '   '])
+
+        expect(result).toEqual([])
+        expect(repository.query).not.toHaveBeenCalled()
+    })
+
+    it('uses tenant scoped unread SQL when there is no current organization', async () => {
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+        repository.query.mockResolvedValue([])
+
+        await service.getUnreadByXperts(['xpert-1'])
+
+        expect(repository.query).toHaveBeenCalledWith(expect.any(String), ['tenant-1', 'user-1', 'xpert-1'])
+        const sql = repository.query.mock.calls[0][0]
+        expect(sql).toContain('c."organizationId" IS NULL')
+        expect(sql).toContain('rs."organizationId" IS NULL')
+        expect(sql).not.toContain('IS NOT DISTINCT FROM')
     })
 
     it('marks a conversation read at the provided message cursor', async () => {
@@ -207,15 +252,9 @@ describe('ChatConversationService workspace files', () => {
                 conversationId: 'conversation-1'
             }
         })
-        expect(readStateRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                conversationId: 'conversation-1',
-                userId: 'user-1',
-                lastReadMessageId: 'message-1',
-                lastReadAt: new Date('2026-06-21T00:10:00.000Z')
-            })
+        expect(readStateRepository.query).toHaveBeenCalledWith(
+            expect.stringContaining('ON CONFLICT ("tenantId", "organizationId", "conversationId", "userId")'),
+            ['tenant-1', 'org-1', 'conversation-1', 'user-1', new Date('2026-06-21T00:10:00.000Z'), 'message-1']
         )
     })
 
@@ -245,12 +284,37 @@ describe('ChatConversationService workspace files', () => {
                 take: 1
             })
         )
-        expect(readStateRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                lastReadMessageId: 'latest-message',
-                lastReadAt: new Date('2026-06-21T00:12:00.000Z')
-            })
+        expect(readStateRepository.query).toHaveBeenCalledWith(
+            expect.stringContaining('ON CONFLICT ("tenantId", "organizationId", "conversationId", "userId")'),
+            ['tenant-1', 'org-1', 'conversation-1', 'user-1', new Date('2026-06-21T00:12:00.000Z'), 'latest-message']
         )
+    })
+
+    it('updates tenant scoped read states without requiring a partial unique index', async () => {
+        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+            ...conversation,
+            organizationId: null,
+            createdAt: new Date('2026-06-21T00:00:00.000Z')
+        } as ChatConversation)
+
+        await service.markRead('conversation-1')
+
+        expect(readStateRepository.manager.transaction).toHaveBeenCalledTimes(1)
+        expect(readStateRepository.query).toHaveBeenNthCalledWith(1, expect.stringContaining('pg_advisory_xact_lock'), [
+            'tenant-1',
+            'conversation-1:user-1'
+        ])
+        expect(readStateRepository.query).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining('UPDATE chat_conversation_read_state rs'),
+            ['tenant-1', null, 'conversation-1', 'user-1', new Date('2026-06-21T00:00:00.000Z'), null]
+        )
+        const sql = readStateRepository.query.mock.calls[1][0]
+        expect(sql).toContain('WHERE')
+        expect(sql).toContain('rs."organizationId" IS NULL')
+        expect(sql).toContain('UPDATE chat_conversation_read_state rs')
+        expect(sql).toContain('INSERT INTO chat_conversation_read_state')
+        expect(sql).not.toContain('ON CONFLICT ("tenantId", "conversationId", "userId")')
     })
 
     it('uses the sandbox environment workspace when the conversation has a sandbox environment id', async () => {

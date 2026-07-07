@@ -14,7 +14,7 @@ type CreateFileUnderstandingToolsOptions = {
     conversationId?: string
 }
 
-const WORKSPACE_LIST_PAGE_IMAGE_LIMIT = 12
+const PARSED_FILE_LIST_PAGE_IMAGE_LIMIT = 12
 
 export function createFileUnderstandingTools(queryBus: QueryBus, options?: CreateFileUnderstandingToolsOptions) {
     const listConversationFiles = async () => {
@@ -69,9 +69,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             return JSON.stringify(results)
         },
         {
-            name: 'file_search',
+            name: 'parsed_file_search',
             description:
-                'Search parsed user-uploaded files by query. Returns matching chunks with page, sheet, slide, path, or chunk anchors for citation.',
+                'Search parsed files linked to this conversation by query. Returns matching parsed chunks with page, sheet, slide, path, or chunk anchors for citation.',
             schema: z.object({
                 fileIds: z.array(z.string()).optional(),
                 query: z.string().describe('Search query. Use the user question or a focused keyword query.'),
@@ -96,9 +96,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             )
         },
         {
-            name: 'file_read',
+            name: 'parsed_file_read',
             description:
-                'Read a parsed file chunk by chunkId or orderNo. Use after file_search when exact surrounding text is needed.',
+                'Read a parsed file chunk by chunkId or orderNo. Use after parsed_file_search when exact surrounding text is needed.',
             schema: z.object({
                 fileId: z.string(),
                 chunkId: z.string().optional(),
@@ -113,9 +113,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             return JSON.stringify(preview)
         },
         {
-            name: 'file_preview',
+            name: 'parsed_file_preview',
             description:
-                'Preview parsed file metadata, summary, artifacts, and first chunks. PDF page_image artifacts include workspace image paths that can be inspected with view-image tools.',
+                'Preview parsed file metadata, summary, artifacts, and first parsed chunks. PDF page_image artifacts include workspace image paths that can be inspected with view-image tools.',
             schema: z.object({
                 fileId: z.string()
             })
@@ -137,9 +137,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             })
         },
         {
-            name: 'file_page_images',
+            name: 'parsed_file_page_images',
             description:
-                'List rendered PDF page images for a parsed file. Use this before view-image when a PDF page must be inspected visually.',
+                'List rendered PDF page images for a parsed file. Use this before view-image when a parsed PDF page must be inspected visually.',
             schema: z.object({
                 fileId: z.string(),
                 pageStart: z.number().int().positive().optional(),
@@ -161,9 +161,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             )
         },
         {
-            name: 'file_table_query',
+            name: 'parsed_file_table_query',
             description:
-                'Query parsed spreadsheet or CSV table artifacts. Returns sheet/table chunks and anchors that can be cited.',
+                'Query parsed spreadsheet or CSV table artifacts. Returns parsed sheet/table chunks and anchors that can be cited.',
             schema: z.object({
                 fileId: z.string(),
                 query: z.string(),
@@ -191,9 +191,9 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             )
         },
         {
-            name: 'workspace_list',
+            name: 'parsed_file_list',
             description:
-                'List uploaded files currently linked to this conversation workspace. PDF files with rendered page images include initial pageImages paths or URLs; use file_page_images for a complete or page-specific list.',
+                'List parsed files currently linked to this conversation. This does not list Xpert workspace volume files. PDF files with rendered page images include initial pageImages paths or URLs; use parsed_file_page_images for a complete or page-specific list.',
             schema: z.object({})
         }
     )
@@ -211,12 +211,12 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             return JSON.stringify(chunk)
         },
         {
-            name: 'workspace_read',
+            name: 'parsed_file_read_by_path',
             description:
-                'Read a parsed file chunk from the conversation workspace file index by fileId or workspacePath. For raw file bytes, use sandbox_file or shell with the returned workspacePath.',
+                'Read a parsed chunk from the conversation-linked parsed file index by fileId or workspacePath. This does not read raw file bytes; use sandbox_file or shell with the returned workspacePath for original files.',
             schema: z.object({
                 fileId: z.string().optional(),
-                path: z.string().optional().describe('workspacePath returned by workspace_list or the file card.'),
+                path: z.string().optional().describe('workspacePath returned by parsed_file_list or the file card.'),
                 chunkId: z.string().optional(),
                 orderNo: z.number().int().nonnegative().optional()
             })
@@ -241,8 +241,8 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
             return JSON.stringify(results)
         },
         {
-            name: 'workspace_search',
-            description: 'Search every parsed file linked to this conversation workspace.',
+            name: 'parsed_file_search_all',
+            description: 'Search every parsed file linked to this conversation.',
             schema: z.object({
                 query: z.string(),
                 limit: z.number().int().positive().max(20).optional()
@@ -258,7 +258,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
                 }
                 const pageImages = await queryBus.execute<ListFilePageImagesQuery, FilePageImageResult[]>(
                     new ListFilePageImagesQuery(file.id, {
-                        limit: WORKSPACE_LIST_PAGE_IMAGE_LIMIT
+                        limit: PARSED_FILE_LIST_PAGE_IMAGE_LIMIT
                     })
                 )
                 const pageImageFiles = toPageImageToolFiles(pageImages)

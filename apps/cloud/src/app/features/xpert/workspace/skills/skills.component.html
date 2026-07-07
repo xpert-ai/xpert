@@ -1,3 +1,7 @@
+<ng-template #skillSearchIcon>
+  <z-icon zType="search" zSize="sm" />
+</ng-template>
+
 <div class="h-full flex flex-col gap-4 py-4 overflow-hidden">
   <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
     <div>
@@ -79,53 +83,56 @@
 
   <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
     <section
-      class="relative min-h-[320px] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-gradient-to-br from-background-default-subtle via-components-panel-bg to-background-default-subtle lg:flex"
+      class="relative min-h-[320px] flex-col overflow-hidden rounded-lg bg-card lg:flex"
       [class.hidden]="mobilePane() !== 'skills'"
     >
       <div class="flex items-start justify-between gap-3 px-4 pt-4">
-        <div>
-          <div class="text-sm font-semibold text-text-primary">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-foreground">
             {{ 'PAC.Skill.SkillLibrary' | translate: { Default: 'Skill Library' } }}
           </div>
-          <div class="text-xs text-text-tertiary">
+          <div class="text-xs text-muted-foreground">
             {{ filteredSkills().length }}
             {{ 'PAC.Skill.SkillsInstalledCount' | translate: { Default: 'installed skills' } }}
           </div>
         </div>
 
-        <label
-          class="inline-flex items-center gap-2 rounded-lg border border-divider-regular bg-background-default-subtle px-2 py-1 text-xs text-text-secondary"
+        <z-checkbox
+          displayDensity="compact"
+          class="shrink-0 rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground"
+          [ngModel]="allSelected()"
+          [indeterminate]="partialSelected()"
+          (ngModelChange)="setAllSkillSelection($event)"
         >
-          <input
-            type="checkbox"
-            class="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-            [checked]="allSelected()"
-            [indeterminate]="partialSelected()"
-            (change)="toggleSelectAll($event)"
-          />
           {{ 'PAC.Skill.SelectAll' | translate: { Default: 'Select all' } }}
-        </label>
+        </z-checkbox>
       </div>
 
       <div class="px-4 pb-4">
         <div class="relative">
-          <input
-            type="text"
-            class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-2.5 pr-10 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-            [placeholder]="
-              'PAC.Skill.SearchInstalledSkillPlaceholder'
-                | translate: { Default: 'Search by name, summary, author, provider or tag' }
-            "
-            [ngModel]="search()"
-            (ngModelChange)="search.set($event)"
-          />
+          <z-input-group [zAddonBefore]="skillSearchIcon">
+            <input
+              z-input
+              class="pr-10"
+              [placeholder]="
+                'PAC.Skill.SearchInstalledSkillPlaceholder'
+                  | translate: { Default: 'Search by name, summary, author, provider or tag' }
+              "
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+            />
+          </z-input-group>
           @if (search()) {
             <button
+              z-button
+              zType="ghost"
+              zShape="circle"
+              zSize="sm"
               type="button"
-              class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-tertiary hover:bg-hover-bg"
+              class="absolute right-1 top-1/2 size-8 -translate-y-1/2 text-muted-foreground"
               (click)="search.set('')"
             >
-              <i class="ri-close-line"></i>
+              <z-icon zType="x" zSize="sm" />
             </button>
           }
         </div>
@@ -135,105 +142,83 @@
         @if (filteredSkills().length) {
           <div class="flex flex-col gap-3">
             @for (skill of filteredSkills(); track skill.id) {
-              <article
-                class="group/skill relative overflow-hidden rounded-2xl border bg-background-default px-4 py-4 transition"
-                [class]="
-                  activeSkillId() === skill.id
-                    ? 'border-components-input-border-active bg-hover-bg shadow-sm'
-                    : 'border-divider-regular hover:border-components-input-border-hover hover:bg-background-default-subtle/60'
-                "
+              <z-card
+                class="group/skill relative cursor-pointer overflow-hidden rounded-lg border border-border py-0 shadow-none transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm"
+                [class.shadow-sm]="activeSkillId() === skill.id"
+                [style.--skill-color]="skillAccentColor(skill)"
+                [style.background]="skillCardBackground(activeSkillId() === skill.id)"
+                role="button"
+                tabindex="0"
+                [attr.aria-current]="activeSkillId() === skill.id ? 'true' : null"
+                (click)="activateSkill(skill)"
+                (keydown.enter)="activateSkill(skill)"
+                (keydown.space)="$event.preventDefault(); activateSkill(skill)"
               >
-                <div
-                  class="pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-components-list-option-active-bg transition-opacity duration-200 group-hover/skill:opacity-100"
-                  [class.opacity-0]="activeSkillId() !== skill.id"
-                  [class.opacity-100]="activeSkillId() === skill.id"
-                ></div>
+                <z-checkbox
+                  displayDensity="compact"
+                  class="absolute left-3 top-3 z-10"
+                  [ngModel]="!!skill.id && selectedSkillIds().has(skill.id)"
+                  (click)="$event.stopPropagation()"
+                  (ngModelChange)="setSkillSelection(skill.id, $event)"
+                />
 
-                <div class="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    class="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
-                    [checked]="!!skill.id && selectedSkillIds().has(skill.id)"
-                    (click)="$event.stopPropagation()"
-                    (change)="toggleSkillSelection(skill.id, $event)"
-                  />
-
-                  <button
-                    type="button"
-                    class="min-w-0 flex-1 rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    [attr.aria-current]="activeSkillId() === skill.id ? 'true' : null"
-                    (click)="activateSkill(skill)"
+                <div class="flex min-h-40 gap-3 p-4 pl-10">
+                  <div
+                    class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[var(--skill-color)]"
+                    [style.background]="skillIconBackground(activeSkillId() === skill.id)"
                   >
-                    <div class="flex items-start gap-3">
+                    <xp-icon [icon]="getSkillIcon(skill)" [size]="26" />
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex min-w-0 items-start gap-2">
                       <div
-                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 group-hover/skill:border-ring group-hover/skill:bg-components-list-option-active-bg group-hover/skill:text-text-primary"
-                        [class]="
-                          activeSkillId() === skill.id
-                            ? 'border-components-input-border-active bg-components-list-option-active-bg text-text-primary'
-                            : 'border-divider-regular bg-components-panel-bg text-text-secondary'
-                        "
+                        class="min-w-0 flex-1 truncate text-sm font-semibold"
+                        [style.color]="skillAccentColor(skill)"
                       >
-                        <xp-icon [icon]="getSkillIcon(skill)" [size]="24" />
+                        {{ displayName(skill) }}
                       </div>
 
-                      <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-2">
-                          <div class="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
-                            {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
-                          </div>
-                          @if (activeSkillId() === skill.id) {
-                            <span
-                              class="inline-flex items-center gap-1 rounded-full border border-ring bg-components-list-option-active-bg px-2 py-0.5 text-[11px] font-medium text-text-primary"
-                            >
-                              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-text-accent"></span>
-                              {{ 'PAC.Skill.Previewing' | translate: { Default: 'Previewing' } }}
-                            </span>
-                          }
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-secondary"
-                          >
-                            <i class="ri-star-line"></i>
-                            {{ formatStat(skill.skillIndex?.stats?.stars) }}
-                          </span>
-                        </div>
-
-                        <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
-                          {{ (skill.metadata?.summary | i18n) || (skill.metadata?.description | i18n) || '-' }}
-                        </div>
-
-                        <div class="mt-3 flex flex-wrap gap-2 text-[11px]">
-                          <span
-                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
-                          >
-                            {{ providerLabel(skill) }}
-                          </span>
-                          <span
-                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
-                          >
-                            {{ publisherLabel(skill) }}
-                          </span>
-                          <span
-                            class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-text-secondary"
-                          >
-                            {{
-                              skill.visibility || ('PAC.Skill.PrivateVisibility' | translate: { Default: 'private' })
-                            }}
-                          </span>
-                        </div>
-
-                        <div class="mt-2 truncate font-mono text-[11px] text-text-tertiary">
-                          {{ repositoryLabel(skill) }}
-                        </div>
+                      <div class="flex shrink-0 items-center gap-1">
+                        @if (activeSkillId() === skill.id) {
+                          <z-badge zType="secondary" class="gap-1">
+                            <span class="size-1.5 rounded-full bg-primary"></span>
+                            {{ 'PAC.Skill.Previewing' | translate: { Default: 'Previewing' } }}
+                          </z-badge>
+                        }
+                        <z-badge zType="outline" class="gap-1">
+                          <z-icon zType="star" zSize="sm" />
+                          {{ formatStat(skill.skillIndex?.stats?.stars) }}
+                        </z-badge>
                       </div>
                     </div>
-                  </button>
+
+                    <div class="mt-2 line-clamp-2 min-h-9 text-xs leading-5 text-muted-foreground">
+                      {{ skillSummary(skill) }}
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                      <z-badge zType="secondary">{{ providerLabel(skill) }}</z-badge>
+                      <z-badge zType="outline">{{ publisherLabel(skill) }}</z-badge>
+                      <z-badge zType="outline">
+                        {{ skill.visibility || ('PAC.Skill.PrivateVisibility' | translate: { Default: 'private' }) }}
+                      </z-badge>
+                    </div>
+
+                    <div class="mt-3 truncate font-mono text-xs text-muted-foreground">
+                      {{ repositoryLabel(skill) }}
+                    </div>
+                  </div>
 
                   <div
-                    class="absolute right-2 top-2 flex p-1 rounded-xl opacity-0 transition-opacity duration-200 group-hover/skill:opacity-100 bg-components-panel-bg"
+                    class="absolute right-2 top-2 flex rounded-lg bg-card/90 p-0.5 opacity-0 shadow-sm transition-opacity duration-200 group-hover/skill:opacity-100 group-focus-within/skill:opacity-100"
                   >
                     <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
                       type="button"
-                      class="btn btn-ghost h-7 w-7 shrink-0 rounded-lg"
+                      class="size-7 rounded-lg"
                       [disabled]="isDownloadingSkill(skill.id)"
                       [attr.aria-label]="
                         'PAC.Skill.DownloadSkillPackage' | translate: { Default: 'Download skill package' }
@@ -242,32 +227,38 @@
                       (click)="downloadSkillPackage(skill, $event)"
                     >
                       @if (isDownloadingSkill(skill.id)) {
-                        <i class="ri-loader-4-line animate-spin"></i>
+                        <z-icon zType="refresh-cw" zSize="sm" class="animate-spin" />
                       } @else {
-                        <i class="ri-download-2-line"></i>
+                        <z-icon zType="file_download" zSize="sm" />
                       }
                     </button>
 
                     <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
                       type="button"
-                      class="btn btn-ghost h-7 w-7 shrink-0 rounded-lg hover:text-text-destructive"
-                      (click)="deleteSkill(skill)"
+                      class="size-7 rounded-lg text-muted-foreground hover:text-destructive"
+                      [attr.aria-label]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      [title]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      (click)="$event.stopPropagation(); deleteSkill(skill)"
                     >
-                      <i class="ri-delete-bin-line"></i>
+                      <z-icon zType="trash" zSize="sm" />
                     </button>
                   </div>
                 </div>
-              </article>
+              </z-card>
             }
           </div>
         } @else {
           <div
-            class="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center"
+            class="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-6 py-8 text-center"
           >
-            <div class="text-lg font-semibold text-text-primary">
+            <z-icon zType="search" class="size-8 text-muted-foreground" />
+            <div class="text-base font-semibold text-foreground">
               {{ 'PAC.Skill.NoSkills' | translate: { Default: 'No skills installed yet.' } }}
             </div>
-            <div class="text-sm text-text-tertiary">
+            <div class="text-sm text-muted-foreground">
               {{
                 'PAC.Skill.NoSkillsWorkbenchHint'
                   | translate
@@ -334,7 +325,7 @@
 </ng-template>
 
 <ng-template #githubInstallDialog>
-  <div class="relative flex w-full max-w-[44rem] flex-col overflow-hidden">
+  <div class="relative flex w-[36rem] min-w-[32rem] max-w-[calc(100vw-2rem)] max-sm:min-w-0 flex-col overflow-hidden">
     <div class="flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
       <div class="text-lg font-semibold text-text-primary">
         {{ 'PAC.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
@@ -347,8 +338,12 @@
         <i class="ri-close-line"></i>
       </button>
     </div>
-    <div class="px-6 py-4">
-      <xp-github-skill-install [workspaceId]="workspace()?.id ?? null" (installed)="onGithubSkillsInstalled($event)" />
+    <div class="px-6 pb-6 pt-4">
+      <xp-github-skill-install
+        [workspaceId]="workspace()?.id ?? null"
+        [showTitle]="false"
+        (installed)="onGithubSkillsInstalled($event)"
+      />
     </div>
   </div>
 </ng-template>

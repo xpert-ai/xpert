@@ -1,4 +1,4 @@
-import { IUserGroup, PermissionsEnum } from '@xpert-ai/contracts'
+import { PermissionsEnum } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'
@@ -168,7 +168,9 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 			throw new NotFoundException('The requested user group was not found in the current tenant.')
 		}
 
-		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(organizationId ?? group.organizationId)
+		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(
+			organizationId ?? group.organizationId
+		)
 		if (group.organizationId !== resolvedOrganizationId) {
 			throw new ForbiddenException('Cross-organization access requires tenant scope.')
 		}
@@ -204,6 +206,15 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		)
 	}
 
+	private stripManagedMetadata(entity: DeepPartial<UserGroup>): DeepPartial<UserGroup> {
+		const sanitized = { ...entity }
+		delete sanitized.managedBy
+		delete sanitized.managedEntityType
+		delete sanitized.managedEntityId
+
+		return sanitized
+	}
+
 	public async findAll(filter?: FindManyOptions<UserGroup>) {
 		this.requireOrganizationScope()
 		return super.findAll(filter)
@@ -219,16 +230,16 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 
 	public async create(entity: DeepPartial<UserGroup>, ...options: any[]): Promise<UserGroup> {
 		this.requireOrganizationScope()
-		return super.create(entity, ...options)
+		return super.create(this.stripManagedMetadata(entity), ...options)
 	}
 
 	public async update(
 		id: string | number | FindOptionsWhere<UserGroup>,
-		partialEntity: Partial<IUserGroup>,
+		partialEntity: DeepPartial<UserGroup>,
 		...options: any[]
 	) {
 		this.requireOrganizationScope()
-		return super.update(id, partialEntity as Partial<UserGroup>, ...options)
+		return super.update(id, this.stripManagedMetadata(partialEntity), ...options)
 	}
 
 	public async delete(criteria: string | FindOptionsWhere<UserGroup>, options?: FindOneOptions<UserGroup>) {

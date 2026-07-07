@@ -15,26 +15,28 @@
     disableRipple
     [tabPanel]="tabPanel"
   >
-    <span
-      z-tab-link
-      [routerLink]="['usage']"
-      routerLinkActive
-      #rla="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla.isActive"
-    >
-      {{ 'PAC.Membership.UsageOverview' | translate: { Default: 'Usage Overview' } }}
-    </span>
-    <span
-      z-tab-link
-      [routerLink]="['billing']"
-      routerLinkActive
-      #rla2="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla2.isActive"
-    >
-      {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
-    </span>
+    @if (membershipPlanEnabled()) {
+      <span
+        z-tab-link
+        [routerLink]="['usage']"
+        routerLinkActive
+        #rla="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rla.isActive"
+      >
+        {{ 'PAC.Membership.UsageOverview' | translate: { Default: 'Usage Overview' } }}
+      </span>
+      <span
+        z-tab-link
+        [routerLink]="['billing']"
+        routerLinkActive
+        #rla2="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rla2.isActive"
+      >
+        {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
+      </span>
+    }
     <span
       z-tab-link
       [routerLink]="['profile']"

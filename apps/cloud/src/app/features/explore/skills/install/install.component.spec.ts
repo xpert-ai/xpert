@@ -4,6 +4,25 @@ import { provideRouter } from '@angular/router'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of, Subject } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+
+jest.mock('@cloud/app/@core', () => {
+  class SkillPackageService {}
+  class XpertWorkspaceService {}
+
+  return {
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : `${error}`),
+    injectToastr: () => ({
+      error: jest.fn(),
+      success: jest.fn()
+    }),
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    SkillPackageService,
+    XpertWorkspaceService
+  }
+})
+
 import { SkillPackageService, XpertWorkspaceService } from '@cloud/app/@core'
 import { ExploreSkillInstallComponent } from './install.component'
 
@@ -21,7 +40,7 @@ describe('ExploreSkillInstallComponent', () => {
   })
 
   it('prefers the default workspace over the selected workspace when it becomes available', async () => {
-    const defaultWorkspace$ = new Subject<any>()
+    const defaultWorkspace$ = new Subject<{ id: string; name: string }>()
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ExploreSkillInstallComponent],

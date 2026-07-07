@@ -13,7 +13,6 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { IconComponent } from '@cloud/app/@shared/avatar'
 import {
   FileWorkbenchComponent,
   FileWorkbenchDownloadPayload,
@@ -29,24 +28,27 @@ import {
   XpertSkillIndexesComponent,
   XpertSkillRepositoriesComponent
 } from '@cloud/app/@shared/skills'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { OverlayAnimation1 } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
 import {
-  getErrorMessage,
-  IconDefinition,
-  injectSkillPackageAPI,
-  injectToastr,
-  ISkillPackage,
-  ISkillRepository,
-  ISkillRepositoryIndex
-} from '../../../../@core'
+  cx,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardInputGroupComponent
+} from '@xpert-ai/headless-ui'
+import { getErrorMessage, injectSkillPackageAPI, injectToastr } from '../../../../@core'
+import type { IconDefinition, ISkillPackage, ISkillRepository, ISkillRepositoryIndex } from '../../../../@core'
 import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component'
-import { cx } from '@xpert-ai/headless-ui'
 
 type MobilePane = 'skills' | 'tree' | 'file'
 
@@ -60,11 +62,18 @@ type MobilePane = 'skills' | 'tree' | 'file'
     CdkMenuModule,
     NgmI18nPipe,
     NgmSpinComponent,
-    IconComponent,
     FileWorkbenchComponent,
     XpertGithubSkillInstallComponent,
     XpertSkillRepositoriesComponent,
-    XpertSkillIndexesComponent
+    XpertSkillIndexesComponent,
+    IconComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardInputGroupComponent,
+    ...ZardCardImports
   ],
   selector: 'xp-workspace-skills',
   templateUrl: './skills.component.html',
@@ -161,45 +170,39 @@ export class XpertWorkspaceSkillsComponent {
   #githubInstallDialogRef: DialogRef<unknown, unknown> | null = null
   #lastAssistantSkillRefreshKey: string | null = null
 
-  readonly #refreshFromAssistantTool = effect(
-    () => {
-      const refreshEvent = this.#assistantFacade?.workspaceSkillRefresh()
-      const workspaceId = this.workspace()?.id
-      if (!refreshEvent || !workspaceId || refreshEvent.workspaceId !== workspaceId) {
-        return
-      }
-      const refreshKey = `${workspaceId}:${refreshEvent.nonce}`
-      if (refreshKey === this.#lastAssistantSkillRefreshKey) {
-        return
-      }
+  readonly #refreshFromAssistantTool = effect(() => {
+    const refreshEvent = this.#assistantFacade?.workspaceSkillRefresh()
+    const workspaceId = this.workspace()?.id
+    if (!refreshEvent || !workspaceId || refreshEvent.workspaceId !== workspaceId) {
+      return
+    }
+    const refreshKey = `${workspaceId}:${refreshEvent.nonce}`
+    if (refreshKey === this.#lastAssistantSkillRefreshKey) {
+      return
+    }
 
-      this.#lastAssistantSkillRefreshKey = refreshKey
-      if (refreshEvent.skillId && refreshEvent.operation !== 'deleted') {
-        this.#pendingAssistantSkillId.set(refreshEvent.skillId)
-      }
-      this.#skillsResource.reload()
-    },
-    { allowSignalWrites: true }
-  )
+    this.#lastAssistantSkillRefreshKey = refreshKey
+    if (refreshEvent.skillId && refreshEvent.operation !== 'deleted') {
+      this.#pendingAssistantSkillId.set(refreshEvent.skillId)
+    }
+    this.#skillsResource.reload()
+  })
 
-  readonly #selectAssistantToolSkill = effect(
-    () => {
-      const pendingSkillId = this.#pendingAssistantSkillId()
-      if (!pendingSkillId) {
-        return
-      }
+  readonly #selectAssistantToolSkill = effect(() => {
+    const pendingSkillId = this.#pendingAssistantSkillId()
+    if (!pendingSkillId) {
+      return
+    }
 
-      const skill = this.skills().find((item) => item.id === pendingSkillId)
-      if (!skill) {
-        return
-      }
+    const skill = this.skills().find((item) => item.id === pendingSkillId)
+    if (!skill) {
+      return
+    }
 
-      this.activeSkillId.set(pendingSkillId)
-      this.mobilePane.set('tree')
-      this.#pendingAssistantSkillId.set(null)
-    },
-    { allowSignalWrites: true }
-  )
+    this.activeSkillId.set(pendingSkillId)
+    this.mobilePane.set('tree')
+    this.#pendingAssistantSkillId.set(null)
+  })
 
   readonly loadActiveSkillFiles: FileWorkbenchFilesLoader = (path?: string) => {
     const workspaceId = this.workspace()?.id
@@ -263,48 +266,68 @@ export class XpertWorkspaceSkillsComponent {
     } satisfies FileWorkbenchDownloadPayload
   }
 
-  readonly #syncSelectionWithData = effect(
-    () => {
-      const ids = new Set(
-        this.skills()
-          .map((skill) => skill.id)
-          .filter((id): id is string => !!id)
-      )
-      this.selectedSkillIds.update((selected) => {
-        const next = new Set<string>()
-        selected.forEach((id) => {
-          if (ids.has(id)) {
-            next.add(id)
-          }
-        })
-        if (next.size === selected.size) {
-          return selected
+  readonly #syncSelectionWithData = effect(() => {
+    const ids = new Set(
+      this.skills()
+        .map((skill) => skill.id)
+        .filter((id): id is string => !!id)
+    )
+    this.selectedSkillIds.update((selected) => {
+      const next = new Set<string>()
+      selected.forEach((id) => {
+        if (ids.has(id)) {
+          next.add(id)
         }
-        return next
       })
-    },
-    { allowSignalWrites: true }
-  )
-
-  readonly #syncActiveSkillWithData = effect(
-    () => {
-      const skills = this.skills()
-      const activeId = this.activeSkillId()
-
-      if (!skills.length) {
-        this.activeSkillId.set(null)
-        return
+      if (next.size === selected.size) {
+        return selected
       }
+      return next
+    })
+  })
 
-      if (!activeId || !skills.some((skill) => skill.id === activeId)) {
-        this.activeSkillId.set(skills[0]?.id ?? null)
-      }
-    },
-    { allowSignalWrites: true }
-  )
+  readonly #syncActiveSkillWithData = effect(() => {
+    const skills = this.skills()
+    const activeId = this.activeSkillId()
+
+    if (!skills.length) {
+      this.activeSkillId.set(null)
+      return
+    }
+
+    if (!activeId || !skills.some((skill) => skill.id === activeId)) {
+      this.activeSkillId.set(skills[0]?.id ?? null)
+    }
+  })
 
   getSkillIcon(skill: ISkillPackage | null | undefined): IconDefinition {
-    return skill?.metadata?.icon ?? this.defaultSkillIcon
+    const icon =
+      normalizeSkillIcon(skill?.metadata?.icon) ??
+      normalizeSkillIcon(skill?.metadata?.commands?.find((command) => normalizeSkillIcon(command.icon))?.icon) ??
+      this.defaultSkillIcon
+
+    if (icon.color || icon.type === 'image') {
+      return icon
+    }
+
+    return {
+      ...icon,
+      color: this.skillAccentColor(skill)
+    }
+  }
+
+  skillAccentColor(skill: ISkillPackage | null | undefined): string {
+    return readSkillMetadataColor(skill?.metadata) || 'var(--primary)'
+  }
+
+  skillCardBackground(active: boolean): string {
+    return active ? 'var(--muted)' : 'var(--card)'
+  }
+
+  skillIconBackground(active: boolean): string {
+    return active
+      ? 'color-mix(in oklab, var(--skill-color) 22%, var(--card))'
+      : 'color-mix(in oklab, var(--skill-color) 14%, var(--card))'
   }
 
   displayName(skill: ISkillPackage | null | undefined): string {
@@ -399,7 +422,9 @@ export class XpertWorkspaceSkillsComponent {
     }
 
     this.#githubInstallDialogRef = this.#dialog.open(dialogTemplate, {
-      maxWidth: 'min(92vw, 44rem)',
+      width: '36rem',
+      minWidth: 'min(32rem, calc(100vw - 2rem))',
+      maxWidth: 'calc(100vw - 2rem)',
       disableClose: true,
       backdropClass: 'xp-overlay-share-sheet',
       panelClass: 'xp-overlay-pane-share-sheet'
@@ -531,6 +556,10 @@ export class XpertWorkspaceSkillsComponent {
 
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked
+    this.setAllSkillSelection(checked)
+  }
+
+  setAllSkillSelection(checked: boolean) {
     this.selectedSkillIds.set(
       checked
         ? new Set(
@@ -548,6 +577,14 @@ export class XpertWorkspaceSkillsComponent {
     }
 
     const checked = (event.target as HTMLInputElement).checked
+    this.setSkillSelection(skillId, checked)
+  }
+
+  setSkillSelection(skillId: string | null | undefined, checked: boolean) {
+    if (!skillId) {
+      return
+    }
+
     this.selectedSkillIds.update((selected) => {
       const next = new Set(selected)
       if (checked) {
@@ -667,6 +704,37 @@ function readGithubProvenanceText(metadata: ISkillPackage['metadata'] | null | u
   }
 
   return readStringProperty(provenance, key)
+}
+
+function readSkillMetadataColor(metadata: ISkillPackage['metadata'] | null | undefined): string {
+  const color = metadata?.color?.trim()
+  if (color) {
+    return color
+  }
+
+  if (metadata && typeof Reflect.get(metadata, 'brandColor') === 'string') {
+    return Reflect.get(metadata, 'brandColor').trim()
+  }
+
+  return ''
+}
+
+function normalizeSkillIcon(value: unknown): IconDefinition | null {
+  if (!isObjectValue(value)) {
+    return null
+  }
+
+  const type = readStringProperty(value, 'type') as IconDefinition['type']
+  const iconValue = readStringProperty(value, 'value')
+  if (!type || !iconValue) {
+    return null
+  }
+
+  return {
+    ...(value as IconDefinition),
+    type,
+    value: iconValue
+  }
 }
 
 function readStringProperty(value: object, key: string): string {

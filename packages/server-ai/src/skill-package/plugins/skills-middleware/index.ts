@@ -50,8 +50,9 @@ import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-wo
 
 export interface ISkillsMiddlewareOptions {
     /**
-     * Skill package IDs that are loaded by default when the caller does not provide
-     * an explicit runtime skill allow-list.
+     * Optional manual allow-list for default skills. When omitted or empty, all
+     * workspace skills are loaded by default and can be filtered by runtime
+     * disabledSkillIds.
      */
     skills?: string[]
     systemPrompt?: string
@@ -78,7 +79,9 @@ export interface ISkillsMiddlewareOptions {
  * - `skillSelectionMode`: Optional explicit runtime override for how workspace skills are resolved.
  *
  * Merge behavior with config:
- * - `options.skills` are the default skills for the current context workspace.
+ * - Omitted or empty `options.skills` means all skills in the current context
+ *   workspace are default-enabled.
+ * - Non-empty `options.skills` is a manual allow-list for the current context workspace.
  * - Runtime `selectedSkillIds` are an explicit allow-list for the effective workspace
  *   (`selectedSkillWorkspaceId` after access check / fallback), replacing configured defaults.
  * - When `skillSelectionMode` is `workspace_blacklist`, the middleware ignores configured and
@@ -1099,8 +1102,10 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 const state = (request.state ?? {}) as Record<string, unknown>
                 const disabledSkillIds = this.resolveDisabledSkillIds(state)
                 const runtimeSkillSelectionMode = this.resolveRuntimeSkillSelectionMode(state)
-                const configuredSkillIds =
-                    runtimeSkillSelectionMode === 'workspace_blacklist' ? [] : this.sanitizeSkillIds(options?.skills)
+                const sanitizedConfiguredSkillIds = this.sanitizeSkillIds(options?.skills)
+                const hasConfiguredSkillOverride =
+                    runtimeSkillSelectionMode !== 'workspace_blacklist' && sanitizedConfiguredSkillIds.length > 0
+                const configuredSkillIds = hasConfiguredSkillOverride ? sanitizedConfiguredSkillIds : []
                 const configuredRepositoryDefault =
                     runtimeSkillSelectionMode === 'workspace_blacklist'
                         ? null
@@ -1121,7 +1126,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 lastEffectiveWorkspaceId = runtimeWorkspaceId
 
                 const workspaceSkillSelections = new Map<string, Set<string>>()
-                if (shouldUseConfiguredDefaults) {
+                if (shouldUseConfiguredDefaults && hasConfiguredSkillOverride) {
                     this.appendWorkspaceSkills(
                         workspaceSkillSelections,
                         normalizedContextWorkspaceId,
@@ -1162,12 +1167,31 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     skills.push(
                         ...this.filterSkillMetadata(workspaceSkills, configuredRepositoryDefault.disabledSkillIds)
                     )
+                } else if (shouldUseConfiguredDefaults && !hasConfiguredSkillOverride) {
+                    const workspaceSkills = await this.loadWorkspaceSkillMetadata(
+                        runtimeSkillsRootInContainer,
+                        normalizedContextWorkspaceId
+                    )
+                    skills.push(...workspaceSkills)
                 }
                 for (const [workspaceId, ids] of workspaceSkillSelections.entries()) {
                     const workspaceSkills = await this.loadSkillMetadata(
                         runtimeSkillsRootInContainer,
                         Array.from(ids),
                         workspaceId
+                    )
+                    skills.push(...workspaceSkills)
+                }
+                if (
+                    shouldUseConfiguredDefaults &&
+                    hasConfiguredSkillOverride &&
+                    configuredSkillIds.length > 0 &&
+                    !configuredRepositoryDefault &&
+                    !skills.length
+                ) {
+                    const workspaceSkills = await this.loadWorkspaceSkillMetadata(
+                        runtimeSkillsRootInContainer,
+                        normalizedContextWorkspaceId
                     )
                     skills.push(...workspaceSkills)
                 }

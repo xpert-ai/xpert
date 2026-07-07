@@ -3,7 +3,37 @@ import { ListConversationFilesQuery, ListFilePageImagesQuery } from '../queries'
 import { createFileUnderstandingTools } from './file-understanding.tools'
 
 describe('createFileUnderstandingTools', () => {
-    it('includes projected PDF page image paths in workspace_list results', async () => {
+    it('exposes only parsed-file tool names', () => {
+        const queryBus = {
+            execute: jest.fn()
+        }
+        const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus)
+
+        expect(tools.map((item) => item.name)).toEqual([
+            'parsed_file_search',
+            'parsed_file_read',
+            'parsed_file_table_query',
+            'parsed_file_preview',
+            'parsed_file_page_images',
+            'parsed_file_list',
+            'parsed_file_read_by_path',
+            'parsed_file_search_all'
+        ])
+        expect(tools.map((item) => item.name)).not.toEqual(
+            expect.arrayContaining([
+                'file_search',
+                'file_read',
+                'file_table_query',
+                'file_preview',
+                'file_page_images',
+                'workspace_list',
+                'workspace_read',
+                'workspace_search'
+            ])
+        )
+    })
+
+    it('includes projected PDF page image paths in parsed_file_list results', async () => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query: unknown) => {
                 if (query instanceof ListConversationFilesQuery) {
@@ -40,12 +70,12 @@ describe('createFileUnderstandingTools', () => {
         const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus, {
             conversationId: 'conversation-1'
         })
-        const workspaceListTool = tools.find((item) => item.name === 'workspace_list')
-        if (!workspaceListTool) {
-            throw new Error('workspace_list tool not found')
+        const parsedFileListTool = tools.find((item) => item.name === 'parsed_file_list')
+        if (!parsedFileListTool) {
+            throw new Error('parsed_file_list tool not found')
         }
 
-        const result = await workspaceListTool.invoke({})
+        const result = await parsedFileListTool.invoke({})
 
         expect(JSON.parse(String(result))).toEqual([
             {
@@ -91,9 +121,9 @@ describe('createFileUnderstandingTools', () => {
         const tools = createFileUnderstandingTools(queryBus as unknown as QueryBus, {
             conversationId: 'conversation-1'
         })
-        const pageImagesTool = tools.find((item) => item.name === 'file_page_images')
+        const pageImagesTool = tools.find((item) => item.name === 'parsed_file_page_images')
         if (!pageImagesTool) {
-            throw new Error('file_page_images tool not found')
+            throw new Error('parsed_file_page_images tool not found')
         }
 
         const result = await pageImagesTool.invoke({

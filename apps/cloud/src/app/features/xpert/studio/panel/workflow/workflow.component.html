@@ -62,17 +62,13 @@
       </div>
     </div>
   </div>
-  <div class="p-2">
-    <div
-      class="group flex pl-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0"
-    >
-      <textarea
-        rows="3"
-        class="xp-input w-full text-sm text-text-primary leading-[18px] resize-none"
-        placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
-        [(ngModel)]="description"
-      ></textarea>
-    </div>
+  <div class="px-4 pt-1 pb-3">
+    <textarea
+      rows="3"
+      class="w-full min-h-[70px] resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm leading-[18px] text-text-primary outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 hover:bg-hover-bg"
+      placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
+      [(ngModel)]="description"
+    ></textarea>
   </div>
 </div>
 

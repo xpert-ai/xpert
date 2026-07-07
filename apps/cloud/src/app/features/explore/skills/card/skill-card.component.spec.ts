@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+import type { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
 import { ExploreSkillCardComponent } from './skill-card.component'
 
 function createSkillIndex(overrides: Partial<ISkillRepositoryIndex> = {}): ISkillRepositoryIndex {
@@ -67,7 +67,9 @@ describe('ExploreSkillCardComponent', () => {
     fixture.componentRef.setInput('item', item)
     fixture.detectChanges()
 
-    const avatarImage = fixture.nativeElement.querySelector('[data-testid="skill-card-avatar-image"]') as HTMLImageElement
+    const avatarImage = fixture.nativeElement.querySelector(
+      '[data-testid="skill-card-avatar-image"]'
+    ) as HTMLImageElement
 
     expect(avatarImage).not.toBeNull()
     expect(avatarImage.getAttribute('src')).toBe('https://example.com/creator.png')

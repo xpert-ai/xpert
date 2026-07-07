@@ -1,0 +1,20 @@
+<nav z-tab-nav-bar class="m-0 border-0" zSize="lg" stretchTabs="false" alignTabs="start" disableRipple>
+  <button z-tab-link type="button" [active]="active() === 'featured'" (click)="setActive('featured')">
+    {{ 'PAC.Explore.OfficialFeatured' | translate: { Default: 'Official Picks' } }}
+    @if (featuredCount()) {
+      <span class="ml-1 text-xs text-muted-foreground">{{ featuredCount() }}</span>
+    }
+  </button>
+  <button z-tab-link type="button" [active]="active() === 'enterprise'" (click)="setActive('enterprise')">
+    {{ 'PAC.Explore.EnterpriseArea' | translate: { Default: 'Enterprise Area' } }}
+    @if (enterpriseCount()) {
+      <span class="ml-1 text-xs text-muted-foreground">{{ enterpriseCount() }}</span>
+    }
+  </button>
+  <button z-tab-link type="button" [active]="active() === 'favorites'" (click)="setActive('favorites')">
+    {{ 'PAC.Explore.MyFavorites' | translate: { Default: 'My Favorites' } }}
+    @if (favoritesCount()) {
+      <span class="ml-1 text-xs text-muted-foreground">{{ favoritesCount() }}</span>
+    }
+  </button>
+</nav>

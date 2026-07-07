@@ -1,5 +1,5 @@
 import { Query } from '@nestjs/cqrs'
-import { FileAsset } from '../entities'
+import type { FileAsset } from '../entities'
 
 export class ListConversationFilesQuery extends Query<FileAsset[]> {
     static readonly type = '[File Understanding] List conversation files'

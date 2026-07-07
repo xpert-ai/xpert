@@ -321,20 +321,23 @@ describe('FeatureToggleComponent', () => {
       getFeatureOrganizations: jest.fn(() => of({ items: [], total: 0 })),
       featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
-    const store = new MockStore([], [
-      {
-        id: 'tenant-xpert',
-        featureId: xpertLeafFeature.id,
-        feature: xpertLeafFeature,
-        isEnabled: true
-      },
-      {
-        id: 'tenant-chatbi',
-        featureId: xpertChatbiFeature.id,
-        feature: xpertChatbiFeature,
-        isEnabled: false
-      }
-    ])
+    const store = new MockStore(
+      [],
+      [
+        {
+          id: 'tenant-xpert',
+          featureId: xpertLeafFeature.id,
+          feature: xpertLeafFeature,
+          isEnabled: true
+        },
+        {
+          id: 'tenant-chatbi',
+          featureId: xpertChatbiFeature.id,
+          feature: xpertChatbiFeature,
+          isEnabled: false
+        }
+      ]
+    )
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -412,20 +415,23 @@ describe('FeatureToggleComponent', () => {
       featuresToggle: jest.fn(() => NEVER),
       featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
-    const store = new MockStore([], [
-      {
-        id: 'tenant-xpert',
-        featureId: xpertLeafFeature.id,
-        feature: xpertLeafFeature,
-        isEnabled: true
-      },
-      {
-        id: 'tenant-chatbi',
-        featureId: xpertChatbiFeature.id,
-        feature: xpertChatbiFeature,
-        isEnabled: true
-      }
-    ])
+    const store = new MockStore(
+      [],
+      [
+        {
+          id: 'tenant-xpert',
+          featureId: xpertLeafFeature.id,
+          feature: xpertLeafFeature,
+          isEnabled: true
+        },
+        {
+          id: 'tenant-chatbi',
+          featureId: xpertChatbiFeature.id,
+          feature: xpertChatbiFeature,
+          isEnabled: true
+        }
+      ]
+    )
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -479,26 +485,29 @@ describe('FeatureToggleComponent', () => {
       featuresToggle: jest.fn(() => NEVER),
       featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
-    const store = new MockStore([], [
-      {
-        id: 'tenant-legacy-xpert',
-        featureId: legacyTopLevelXpertFeature.id,
-        feature: legacyTopLevelXpertFeature,
-        isEnabled: true
-      },
-      {
-        id: 'tenant-xpert',
-        featureId: xpertLeafFeature.id,
-        feature: xpertLeafFeature,
-        isEnabled: false
-      },
-      {
-        id: 'tenant-chatbi',
-        featureId: xpertChatbiFeature.id,
-        feature: xpertChatbiFeature,
-        isEnabled: false
-      }
-    ])
+    const store = new MockStore(
+      [],
+      [
+        {
+          id: 'tenant-legacy-xpert',
+          featureId: legacyTopLevelXpertFeature.id,
+          feature: legacyTopLevelXpertFeature,
+          isEnabled: true
+        },
+        {
+          id: 'tenant-xpert',
+          featureId: xpertLeafFeature.id,
+          feature: xpertLeafFeature,
+          isEnabled: false
+        },
+        {
+          id: 'tenant-chatbi',
+          featureId: xpertChatbiFeature.id,
+          feature: xpertChatbiFeature,
+          isEnabled: false
+        }
+      ]
+    )
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -536,20 +545,23 @@ describe('FeatureToggleComponent', () => {
       featuresToggle: jest.fn(() => of([true])),
       featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
-    const store = new MockStore([], [
-      {
-        id: 'tenant-xpert',
-        featureId: xpertLeafFeature.id,
-        feature: xpertLeafFeature,
-        isEnabled: true
-      },
-      {
-        id: 'tenant-chatbi',
-        featureId: xpertChatbiFeature.id,
-        feature: xpertChatbiFeature,
-        isEnabled: true
-      }
-    ])
+    const store = new MockStore(
+      [],
+      [
+        {
+          id: 'tenant-xpert',
+          featureId: xpertLeafFeature.id,
+          feature: xpertLeafFeature,
+          isEnabled: true
+        },
+        {
+          id: 'tenant-chatbi',
+          featureId: xpertChatbiFeature.id,
+          feature: xpertChatbiFeature,
+          isEnabled: true
+        }
+      ]
+    )
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -596,20 +608,23 @@ describe('FeatureToggleComponent', () => {
       featuresToggle: jest.fn(() => NEVER),
       featureDefinitionsRefreshed$: new Subject<void>().asObservable()
     }
-    const store = new MockStore([], [
-      {
-        id: 'tenant-xpert',
-        featureId: xpertLeafFeature.id,
-        feature: xpertLeafFeature,
-        isEnabled: true
-      },
-      {
-        id: 'tenant-chatbi',
-        featureId: xpertChatbiFeature.id,
-        feature: xpertChatbiFeature,
-        isEnabled: false
-      }
-    ])
+    const store = new MockStore(
+      [],
+      [
+        {
+          id: 'tenant-xpert',
+          featureId: xpertLeafFeature.id,
+          feature: xpertLeafFeature,
+          isEnabled: true
+        },
+        {
+          id: 'tenant-chatbi',
+          featureId: xpertChatbiFeature.id,
+          feature: xpertChatbiFeature,
+          isEnabled: false
+        }
+      ]
+    )
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -744,6 +759,23 @@ describe('FeatureToggleComponent', () => {
       const features = messages.PAC?.Feature?.Features ?? messages.Feature?.Features
 
       expect(features[AiFeatureEnum.FEATURE_XPERT_CLAWXPERT].Description).toBe(expected)
+    })
+  })
+
+  it('ships translations for the agent marketplace feature toggle description', () => {
+    const locales = [
+      ['en', 'Show the agent marketplace and access approval entry points.'],
+      ['en-US', 'Show the agent marketplace and access approval entry points.'],
+      ['zh-Hans', '显示智能体广场及访问审批入口。'],
+      ['zh-Hant', '顯示智能體廣場及訪問審批入口。'],
+      ['zh-CN', '显示智能体广场及访问审批入口。']
+    ]
+
+    locales.forEach(([locale, expected]) => {
+      const messages = JSON.parse(readFileSync(join(__dirname, '../../../../assets/i18n', `${locale}.json`), 'utf8'))
+      const features = messages.PAC?.Feature?.Features ?? messages.Feature?.Features
+
+      expect(features[AiFeatureEnum.FEATURE_XPERT_MARKETPLACE].Description).toBe(expected)
     })
   })
 
@@ -966,6 +998,8 @@ describe('FeatureToggleComponent', () => {
     expect(element.querySelector('[data-feature-group-id="FEATURE_HOME"]')).not.toBeNull()
     expect(element.querySelector('[data-feature-group-id="FEATURE_ORGANIZATION"] z-card-content')).toBeNull()
     expect(element.querySelector('[data-feature-group-card]')?.className).toContain('break-inside-avoid')
+    expect(element.querySelector('[data-feature-group-card]')?.className).toContain('shadow-none')
+    expect(element.querySelector('[data-feature-group-card]')?.className).not.toContain('shadow-sm')
     expect(element.querySelector('[data-feature-parent-checkbox][data-feature-code="FEATURE_XPERT"]')).not.toBeNull()
     expect(element.querySelector('[data-feature-parent-status="enabled"]')?.className).toContain('text-text-success')
     expect(element.querySelectorAll('[data-feature-group-card]').length).toBeGreaterThanOrEqual(4)
@@ -1039,6 +1073,12 @@ describe('FeatureToggleComponent', () => {
         code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
         name: 'ChatBI',
         description: 'ChatBI feature'
+      },
+      {
+        id: 'feature-xpert-marketplace',
+        code: AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
+        name: 'Agent Marketplace',
+        description: 'Agent marketplace feature'
       },
       {
         id: 'feature-model',

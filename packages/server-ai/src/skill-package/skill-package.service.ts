@@ -7,12 +7,14 @@ import {
     ISkillRepositoryIndex,
     ISkillRepositoryIndexPublisher,
     IUser,
+    parseGithubSkillInstallCommand,
     SkillMetadata,
     TFile,
     TFileDirectory,
     uuid,
     WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@xpert-ai/contracts'
+import type { InstallGithubSkillPackagesInput } from '@xpert-ai/contracts'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
@@ -154,17 +156,12 @@ type CreateWorkspaceSkillPackageResult = {
     files: WorkspaceSkillPackageFileResult[]
 }
 
-export type InstallGithubSkillPackagesInput = {
-    url?: string
-    path?: string
-    branch?: string
-    token?: string
-}
-
 type NormalizedGithubSkillInstallInput = {
     repositoryUrl: string
     repositoryPath: string
     branch: string
+    skills: string[]
+    installAll: boolean
     token?: string
 }
 
@@ -476,10 +473,11 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
         if (!indexes.length) {
             throw new BadRequestException('No skills found in the GitHub repository')
         }
+        const selectedIndexes = selectGithubSkillIndexes(indexes, normalizedInput.skills, normalizedInput.installAll)
 
         const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
         const packages: SkillPackage[] = []
-        for (const index of indexes) {
+        for (const index of selectedIndexes) {
             const hydratedIndex: ISkillRepositoryIndex = {
                 ...index,
                 repositoryId: repository.id ?? buildDirectGithubRepositoryId(normalizedInput),
@@ -2024,17 +2022,104 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 }
 
 function normalizeGithubSkillInstallInput(input: InstallGithubSkillPackagesInput): NormalizedGithubSkillInstallInput {
+    const command = normalizeOptionalString(input?.command)
+    if (command) {
+        try {
+            const parsed = parseGithubSkillInstallCommand(command)
+            const token = normalizeOptionalString(input?.token)
+            return {
+                ...parsed,
+                ...(token ? { token } : {})
+            }
+        } catch (error) {
+            throw new BadRequestException(getErrorMessage(error))
+        }
+    }
+
     const repositoryUrl = normalizeGithubRepositoryUrl(input?.url)
     const repositoryPath = normalizeGithubRepositoryPath(input?.path)
     const branch = normalizeOptionalString(input?.branch)
     const token = normalizeOptionalString(input?.token)
+    const skills = normalizeSkillSelectors(input?.skills)
 
     return {
         repositoryUrl,
         repositoryPath,
         branch,
+        skills,
+        installAll: false,
         ...(token ? { token } : {})
     }
+}
+
+function selectGithubSkillIndexes(
+    indexes: ISkillRepositoryIndex[],
+    selectors: string[] = [],
+    installAll = false
+): ISkillRepositoryIndex[] {
+    const normalizedSelectors = normalizeSkillSelectors(selectors)
+    if (installAll && normalizedSelectors.length) {
+        throw new BadRequestException('--all cannot be used with --skill')
+    }
+
+    if (installAll || !normalizedSelectors.length) {
+        return indexes
+    }
+
+    const selected: ISkillRepositoryIndex[] = []
+    const selectedKeys = new Set<string>()
+    for (const selector of normalizedSelectors) {
+        const matches = indexes.filter((index) => matchesGithubSkillSelector(index, selector))
+        if (!matches.length) {
+            throw new BadRequestException(`Skill selector "${selector}" was not found in the GitHub repository`)
+        }
+        if (matches.length > 1) {
+            throw new BadRequestException(
+                `Skill selector "${selector}" matched multiple skills. Use a more specific skill id or path.`
+            )
+        }
+
+        const match = matches[0]
+        const key = buildGithubSkillIndexKey(match)
+        if (!selectedKeys.has(key)) {
+            selected.push(match)
+            selectedKeys.add(key)
+        }
+    }
+
+    return selected
+}
+
+function normalizeSkillSelectors(values?: string[]) {
+    if (!Array.isArray(values)) {
+        return []
+    }
+
+    return values.map((value) => normalizeOptionalString(value)).filter(Boolean)
+}
+
+function matchesGithubSkillSelector(index: ISkillRepositoryIndex, selector: string) {
+    const normalizedSelector = normalizeGithubSkillSelectorValue(selector)
+    if (!normalizedSelector) {
+        return false
+    }
+
+    return [index.skillId, index.skillPath, index.name, getGithubSkillPathBasename(index.skillPath)].some(
+        (value) => normalizeGithubSkillSelectorValue(value) === normalizedSelector
+    )
+}
+
+function normalizeGithubSkillSelectorValue(value?: string) {
+    return normalizeOptionalString(value).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
+function getGithubSkillPathBasename(value?: string) {
+    const normalized = normalizeOptionalString(value).replace(/\\/g, '/').replace(/\/+$/, '')
+    return normalized.split('/').filter(Boolean).pop() ?? ''
+}
+
+function buildGithubSkillIndexKey(index: ISkillRepositoryIndex) {
+    return [index.skillId, index.skillPath].map((value) => normalizeOptionalString(value)).join(':')
 }
 
 function normalizeGithubRepositoryUrl(value?: string) {

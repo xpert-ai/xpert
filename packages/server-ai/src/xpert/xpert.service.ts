@@ -12,6 +12,7 @@ import {
     TFileDirectory,
     TMemoryQA,
     TMemoryUserProfile,
+    TXpertPublishMarketplaceInput,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -354,8 +355,14 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return results
     }
 
-    async publish(id: string, newVersion: boolean, environmentId: string, notes: string) {
-        return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, environmentId, notes))
+    async publish(
+        id: string,
+        newVersion: boolean,
+        environmentId: string,
+        notes: string,
+        marketplace?: TXpertPublishMarketplaceInput
+    ) {
+        return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, environmentId, notes, marketplace))
     }
 
     async allVersions(id: string) {

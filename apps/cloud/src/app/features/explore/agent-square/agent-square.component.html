@@ -1,0 +1,490 @@
+<section class="space-y-8">
+  <div
+    class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div>
+      <div class="text-sm font-semibold text-foreground">
+        {{ 'PAC.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
+      </div>
+      <div class="mt-1 text-sm text-muted-foreground">
+        {{
+          'PAC.Explore.AgentSquare.ReviewSubtitle'
+            | translate: { Default: 'Approve or reject pending agent access requests.' }
+        }}
+      </div>
+    </div>
+    <button z-button zSize="sm" zType="outline" type="button" class="w-fit" (click)="openReviewDialog()">
+      <z-icon zType="inbox" zSize="sm" />
+      {{ 'PAC.Explore.AgentSquare.ReviewEntry' | translate: { Default: 'Review' } }}
+      <span class="ml-1 rounded-md bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">{{
+        reviewableCount()
+      }}</span>
+    </button>
+  </div>
+
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section
+      class="relative min-h-[320px] overflow-hidden rounded-lg border border-border bg-card px-6 py-8 md:px-8 md:py-10"
+    >
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-0 opacity-90"
+        style="
+          background-image:
+            linear-gradient(115deg, color-mix(in oklab, var(--primary) 10%, transparent) 0%, transparent 42%),
+            linear-gradient(160deg, transparent 0%, color-mix(in oklab, var(--muted) 80%, transparent) 100%),
+            repeating-linear-gradient(
+              90deg,
+              color-mix(in oklab, var(--border) 40%, transparent) 0,
+              color-mix(in oklab, var(--border) 40%, transparent) 1px,
+              transparent 1px,
+              transparent 56px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              color-mix(in oklab, var(--border) 28%, transparent) 0,
+              color-mix(in oklab, var(--border) 28%, transparent) 1px,
+              transparent 1px,
+              transparent 56px
+            );
+        "
+      ></div>
+
+      <svg
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[62%] text-primary/30 lg:block"
+        viewBox="0 0 720 320"
+        preserveAspectRatio="none"
+      >
+        <path d="M60 236 C190 140 260 260 390 150 S560 82 690 138" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M160 78 C260 130 306 66 420 106 S594 190 702 96"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          opacity=".55"
+        />
+        <path
+          d="M220 288 C310 220 410 252 506 184 S622 120 704 176"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          opacity=".42"
+        />
+      </svg>
+
+      <div aria-hidden="true" class="pointer-events-none absolute bottom-8 right-8 hidden h-48 w-[460px] lg:block">
+        <div
+          class="absolute left-8 top-20 h-12 w-24 rounded-lg border border-border/80 bg-background/85 shadow-sm backdrop-blur"
+        >
+          <div class="m-3 h-2 w-12 rounded-full bg-muted-foreground/25"></div>
+          <div class="mx-3 mt-2 h-2 w-16 rounded-full bg-primary/25"></div>
+        </div>
+
+        <div
+          class="absolute left-[162px] top-6 flex h-28 w-32 flex-col justify-between rounded-xl border border-foreground/10 bg-foreground p-4 text-background shadow-2xl"
+        >
+          <div class="h-2.5 w-16 rounded-full bg-background/45"></div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <span class="h-8 rounded-md bg-background/15"></span>
+            <span class="h-8 rounded-md bg-background/30"></span>
+            <span class="h-8 rounded-md bg-background/15"></span>
+          </div>
+          <div class="h-2 w-20 rounded-full bg-background/35"></div>
+        </div>
+
+        <div
+          class="absolute right-10 top-24 h-14 w-28 rounded-lg border border-border/80 bg-background/90 shadow-sm backdrop-blur"
+        >
+          <div class="m-3 flex gap-1.5">
+            <span class="h-3 w-3 rounded-sm bg-primary/55"></span>
+            <span class="h-3 w-3 rounded-sm bg-muted-foreground/25"></span>
+            <span class="h-3 w-3 rounded-sm bg-primary/30"></span>
+          </div>
+          <div class="mx-3 h-2 w-16 rounded-full bg-muted-foreground/25"></div>
+        </div>
+
+        <div
+          class="absolute bottom-0 left-[112px] h-10 w-20 rounded-lg border border-primary/20 bg-primary/10 shadow-sm backdrop-blur"
+        ></div>
+        <div
+          class="absolute right-0 top-2 h-9 w-16 rounded-lg border border-border/80 bg-background/80 shadow-sm backdrop-blur"
+        ></div>
+      </div>
+
+      <div class="relative z-10 max-w-3xl">
+        <h2 class="text-3xl font-semibold leading-tight text-foreground md:text-4xl">
+          {{
+            'PAC.Explore.AgentSquare.HeroTitle' | translate: { Default: 'Find the right agent for the current task' }
+          }}
+        </h2>
+        <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+          {{
+            'PAC.Explore.AgentSquare.HeroSubtitle'
+              | translate
+                : {
+                    Default:
+                      'Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.'
+                  }
+          }}
+        </p>
+      </div>
+    </section>
+
+    <aside class="rounded-lg border border-border bg-card p-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-semibold text-foreground">
+          {{ 'PAC.Explore.AgentSquare.WeeklyRecommended' | translate: { Default: 'Weekly picks' } }}
+        </h3>
+      </div>
+      <div class="mt-4 space-y-3">
+        @for (item of items().slice(0, 3); track item.xpert.id) {
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary/60"
+            (click)="selectItem(item)"
+          >
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+            >
+              {{ matchScore(item) }}
+            </div>
+            <div class="min-w-0">
+              <div class="truncate text-sm font-semibold text-foreground">{{ title(item) }}</div>
+              <div class="truncate text-xs text-muted-foreground">{{ summary(item) }}</div>
+            </div>
+          </button>
+        }
+        @if (!items().length && !loading()) {
+          <div class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+            {{ 'PAC.Explore.AgentSquare.NoRecommendations' | translate: { Default: 'No recommendations yet.' } }}
+          </div>
+        }
+      </div>
+    </aside>
+  </div>
+
+  <div class="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+    <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-semibold text-foreground">
+          {{ 'PAC.Explore.AgentSquare.FilterTitle' | translate: { Default: 'Filter agents' } }}
+        </h3>
+        @if (activeFilterCount()) {
+          <button z-button zType="ghost" zSize="sm" type="button" (click)="resetFilters()">
+            {{ 'PAC.Explore.AgentSquare.ResetFilters' | translate: { Default: 'Reset' } }}
+          </button>
+        }
+      </div>
+
+      <div class="mt-5 space-y-6">
+        <section>
+          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
+            {{ 'PAC.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Business scenario' } }}
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            @for (category of businessCategories; track category) {
+              <button
+                type="button"
+                [class]="
+                  selectedBusinessCategories().includes(category)
+                    ? 'rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary'
+                    : 'rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/60 hover:text-foreground'
+                "
+                (click)="toggleBusinessCategory(category)"
+              >
+                {{ businessLabelKey(category) | translate }}
+              </button>
+            }
+          </div>
+        </section>
+
+        <section>
+          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
+            {{ 'PAC.Explore.AgentSquare.CollaborationMode' | translate: { Default: 'Collaboration' } }}
+          </h4>
+          <div class="space-y-2">
+            @for (mode of collaborationModes; track mode) {
+              <label class="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-border accent-primary"
+                  [checked]="selectedCollaborationModes().includes(mode)"
+                  (change)="toggleCollaborationMode(mode)"
+                />
+                {{ collaborationLabelKey(mode) | translate }}
+              </label>
+            }
+          </div>
+        </section>
+
+        <section>
+          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
+            {{ 'PAC.Explore.AgentSquare.TechnicalCapability' | translate: { Default: 'Technical capability' } }}
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            @for (category of technicalCategories; track category) {
+              <button
+                type="button"
+                [class]="
+                  selectedTechnicalCategories().includes(category)
+                    ? 'rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary'
+                    : 'rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/60 hover:text-foreground'
+                "
+                (click)="toggleTechnicalCategory(category)"
+              >
+                {{ technicalLabelKey(category) | translate }}
+              </button>
+            }
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="min-w-0">
+      <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <h3 class="text-xl font-semibold text-foreground">
+          {{ 'PAC.Explore.AgentSquare.RecommendedAgents' | translate: { Default: 'Recommended agents' } }}
+          <span class="text-muted-foreground">{{ total() }}</span>
+        </h3>
+        <div class="inline-flex w-fit rounded-lg border border-border bg-card p-1">
+          @for (option of sortOptions; track option) {
+            <button
+              type="button"
+              [class]="
+                sort() === option
+                  ? 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground'
+                  : 'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground'
+              "
+              (click)="setSort(option)"
+            >
+              {{ 'PAC.Explore.AgentSquare.Sort.' + option | translate }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+          @for (placeholder of [1, 2, 3, 4]; track placeholder) {
+            <div class="h-52 animate-pulse rounded-lg border border-border bg-card"></div>
+          }
+        </div>
+      } @else if (!items().length) {
+        <div
+          class="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 text-center"
+        >
+          <div>
+            <z-icon zType="bot" class="text-4xl text-muted-foreground" />
+            <h4 class="mt-4 text-lg font-semibold text-foreground">
+              {{ 'PAC.Explore.AgentSquare.EmptyTitle' | translate: { Default: 'No matching agents' } }}
+            </h4>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {{
+                'PAC.Explore.AgentSquare.EmptyHint'
+                  | translate: { Default: 'Try a different search or filter combination.' }
+              }}
+            </p>
+          </div>
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+          @for (item of items(); track item.xpert.id) {
+            <article
+              role="button"
+              tabindex="0"
+              [class]="
+                selectedItem()?.xpert.id === item.xpert.id
+                  ? 'rounded-lg border border-primary bg-card p-5 shadow-sm outline-none'
+                  : 'rounded-lg border border-border bg-card p-5 shadow-sm outline-none transition hover:border-primary/60'
+              "
+              (click)="selectItem(item)"
+              (keydown.enter)="selectItem(item)"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex min-w-0 gap-4">
+                  <div
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
+                  >
+                    {{ initials(item) }}
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="truncate text-lg font-semibold text-foreground">{{ title(item) }}</h4>
+                    <p class="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
+                  </div>
+                </div>
+                <span class="shrink-0 text-sm font-semibold text-primary">
+                  {{ 'PAC.Explore.AgentSquare.MatchScore' | translate: { Default: 'Match' } }} {{ matchScore(item) }}%
+                </span>
+              </div>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                @for (tag of item.marketplace.capabilityTags?.slice(0, 4) ?? []; track tag) {
+                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
+                }
+                @for (category of item.marketplace.technical?.categories?.slice(0, 3) ?? []; track category) {
+                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {{ technicalLabelKey(category) | translate }}
+                  </span>
+                }
+              </div>
+
+              <div class="mt-5">
+                <button
+                  z-button
+                  zSize="sm"
+                  type="button"
+                  [disabled]="isPending(item)"
+                  [class]="
+                    canUse(item)
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60'
+                  "
+                  (click)="handlePrimaryAction(item, $event)"
+                >
+                  @if (canUse(item)) {
+                    {{ 'PAC.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
+                  } @else if (isPending(item)) {
+                    {{ 'PAC.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
+                  } @else {
+                    {{ 'PAC.Explore.AgentSquare.RequestAccess' | translate: { Default: 'Request access' } }}
+                  }
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
+      @if (selectedItem(); as item) {
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
+        >
+          {{ initials(item) }}
+        </div>
+        <h3 class="mt-5 text-xl font-semibold text-foreground">{{ title(item) }}</h3>
+        <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
+
+        <div class="mt-5 flex flex-wrap gap-2">
+          @for (tag of item.marketplace.capabilityTags ?? []; track tag) {
+            <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
+          }
+        </div>
+
+        <div class="my-5 border-t border-border"></div>
+
+        <section>
+          <h4 class="text-sm font-semibold text-foreground">
+            {{ 'PAC.Explore.AgentSquare.CoreCapabilities' | translate: { Default: 'Core capabilities' } }}
+          </h4>
+          <div class="mt-4 space-y-3">
+            <div>
+              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>{{
+                  'PAC.Explore.AgentSquare.KnowledgeUnderstanding' | translate: { Default: 'Knowledge understanding' }
+                }}</span>
+              </div>
+              <div class="h-2 rounded-full bg-muted">
+                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'knowledge')"></div>
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>{{ 'PAC.Explore.AgentSquare.ToolCalling' | translate: { Default: 'Tool calling' } }}</span>
+              </div>
+              <div class="h-2 rounded-full bg-muted">
+                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'tools')"></div>
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>{{ 'PAC.Explore.AgentSquare.TaskExecution' | translate: { Default: 'Task execution' } }}</span>
+              </div>
+              <div class="h-2 rounded-full bg-muted">
+                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'execution')"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mt-6">
+          <h4 class="text-sm font-semibold text-foreground">
+            {{ 'PAC.Explore.AgentSquare.ExecutionProfile' | translate: { Default: 'Execution profile' } }}
+          </h4>
+          <ol class="mt-3 space-y-2 text-sm text-muted-foreground">
+            <li class="flex gap-2">
+              <span
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
+                >1</span
+              >
+              {{ 'PAC.Explore.AgentSquare.ProfileAgents' | translate: { Default: 'Agents' } }}:
+              {{ item.marketplace.technical?.agentCount ?? 0 }}
+            </li>
+            <li class="flex gap-2">
+              <span
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
+                >2</span
+              >
+              {{ 'PAC.Explore.AgentSquare.ProfileTools' | translate: { Default: 'Toolsets' } }}:
+              {{ item.marketplace.technical?.toolsetCount ?? 0 }}
+            </li>
+            <li class="flex gap-2">
+              <span
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
+                >3</span
+              >
+              {{ 'PAC.Explore.AgentSquare.ProfileWorkflow' | translate: { Default: 'Workflow nodes' } }}:
+              {{ item.marketplace.technical?.workflowNodeCount ?? 0 }}
+            </li>
+          </ol>
+        </section>
+
+        <div class="mt-6 grid grid-cols-1 gap-2">
+          <button
+            z-button
+            type="button"
+            class="bg-primary text-primary-foreground hover:bg-primary/90"
+            [disabled]="isPending(item)"
+            (click)="handlePrimaryAction(item)"
+          >
+            @if (canUse(item)) {
+              {{ 'PAC.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
+            } @else if (isPending(item)) {
+              {{ 'PAC.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
+            } @else {
+              {{ 'PAC.Explore.AgentSquare.RequestAccess' | translate: { Default: 'Request access' } }}
+            }
+          </button>
+        </div>
+      } @else {
+        <div class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
+          {{ 'PAC.Explore.AgentSquare.SelectAgentHint' | translate: { Default: 'Select an agent to view details.' } }}
+        </div>
+      }
+    </aside>
+  </div>
+
+  <section class="space-y-4">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h3 class="text-xl font-semibold text-foreground">
+          {{ 'PAC.Explore.AgentSquare.TemplateAgents' | translate: { Default: 'Agent templates' } }}
+        </h3>
+        <p class="mt-1 text-sm text-muted-foreground">
+          {{
+            'PAC.Explore.AgentSquare.TemplateAgentsHint'
+              | translate
+                : {
+                    Default:
+                      'Reusable agent and project templates live here now. Install a template first, then publish it when it is ready for governed access.'
+                  }
+          }}
+        </p>
+      </div>
+    </div>
+
+    <xp-explore-agents mode="square" [search]="search()" [workspace]="workspace()" />
+  </section>
+</section>

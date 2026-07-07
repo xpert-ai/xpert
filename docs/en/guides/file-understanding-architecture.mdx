@@ -359,7 +359,7 @@ Behavior:
 - Fall back to legacy `StorageFile` only when needed.
 - Inject compact file cards and available anchors, not raw chunk bodies.
 - Avoid injecting large full text.
-- Let Agents use `file_search` / `file_read` when exact content is needed.
+- Let Agents use `parsed_file_search` / `parsed_file_read` when exact content is needed.
 - Fall back to `LoadFileCommand` for failed parsing or legacy-only files.
 
 `LoadFileCommand` must distinguish two path kinds when it reads original bytes:
@@ -396,19 +396,20 @@ packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts
 packages/server-ai/src/file-understanding/middlewares/file-understanding.middleware.ts
 ```
 
-The tools are produced by `FileUnderstandingMiddleware`. At runtime the subgraph creates a hidden required middleware entry, so conversation files are available without manually connecting a middleware node on the Agent canvas. The tool names stay stable while execution goes through the standard middleware tool path.
+The tools are produced by `FileUnderstandingMiddleware`. At runtime the subgraph creates a hidden required middleware entry, so conversation files are available without manually connecting a middleware node on the Agent canvas. Tool execution goes through the standard middleware tool path.
 
 Tools:
 
-- `file_search(fileIds, query, limit)`
-- `file_read(fileId, chunkId, orderNo)`
-- `file_table_query(fileId, query, limit)`
-- `file_preview(fileId)`
-- `workspace_list()`
-- `workspace_read(fileId | path, chunkId, orderNo)`
-- `workspace_search(query, limit)`
+- `parsed_file_search(fileIds, query, limit)`
+- `parsed_file_read(fileId, chunkId, orderNo)`
+- `parsed_file_table_query(fileId, query, limit)`
+- `parsed_file_preview(fileId)`
+- `parsed_file_page_images(fileId, pageStart, pageEnd)`
+- `parsed_file_list()`
+- `parsed_file_read_by_path(fileId | path, chunkId, orderNo)`
+- `parsed_file_search_all(query, limit)`
 
-Agents should search first, then read exact chunks when more context is needed. `file_preview` returns a compact preview with business file fields, a short summary, artifact indexes, and chunk anchors; it does not return tenant, organization, audit fields, artifact full text, chunk full text, or raw parser metadata. If a file card or `workspace_list` includes `workspacePath`, Agents with `sandbox_file` or shell tools may read the original file by that path. `workspace_read` resolves by `fileId` or `workspacePath`, but reads parsed chunks rather than binary file bytes. Citations should use the returned anchors.
+Agents should search first, then read exact chunks when more context is needed. `parsed_file_preview` returns a compact preview with business file fields, a short summary, artifact indexes, and chunk anchors; it does not return tenant, organization, audit fields, artifact full text, chunk full text, or raw parser metadata. If a file card or `parsed_file_list` includes `workspacePath`, Agents with `sandbox_file` or shell tools may read the original file by that path. `parsed_file_read_by_path` resolves by `fileId` or `workspacePath`, but reads parsed chunks rather than binary file bytes. Citations should use the returned anchors.
 
 ### PDF text-first and image-on-demand best practice
 
@@ -416,24 +417,24 @@ For PDFs that are mostly text with a small number of illustrations, use parsed `
 
 Recommended Agent behavior:
 
-- Use `file_search` first for normal text questions.
-- Use `file_read` after search when exact surrounding text is needed.
-- Use `file_page_images(fileId, pageStart, pageEnd)` when the user asks about charts, screenshots, diagrams, figures, visual layout, OCR, or page-specific image details.
-- If the user does not specify a page, search for the user query plus visual-marker terms such as `figure`, `chart`, `diagram`, `screenshot`, `图`, `见下图`, and `流程图`; then inspect the returned page anchors with `file_page_images`.
+- Use `parsed_file_search` first for normal text questions.
+- Use `parsed_file_read` after search when exact surrounding text is needed.
+- Use `parsed_file_page_images(fileId, pageStart, pageEnd)` when the user asks about charts, screenshots, diagrams, figures, visual layout, OCR, or page-specific image details.
+- If the user does not specify a page, search for the user query plus visual-marker terms such as `figure`, `chart`, `diagram`, `screenshot`, `图`, `见下图`, and `流程图`; then inspect the returned page anchors with `parsed_file_page_images`.
 
 Prompt snippet for Agents:
 
 ```text
 When answering questions about uploaded PDFs, prefer parsed text first.
-Use file_search to locate relevant page_text chunks, then file_read for exact text.
+Use parsed_file_search to locate relevant page_text chunks, then parsed_file_read for exact text.
 Do not inspect PDF page images for ordinary text questions.
-Use file_page_images only when the user asks about visual content, page layout,
+Use parsed_file_page_images only when the user asks about visual content, page layout,
 charts, screenshots, diagrams, figures, OCR, or when text search returns a page
 that references nearby visual material such as "figure", "chart", "diagram",
 "screenshot", "图", "见下图", or "流程图".
 When the user does not provide a page number, search for the question and these
 visual-marker terms, use the chunk anchors to identify pages, then inspect only
-those pages with file_page_images.
+those pages with parsed_file_page_images.
 Always cite the returned page, sheet, slide, path, or chunk anchors.
 ```
 
@@ -487,7 +488,7 @@ Store results as artifacts, not only as summary text. Keep page or path anchors.
 3. Store vector ids in `file_embedding.vectorId`.
 4. Scope collections by `xpertId + embeddingFingerprint`, falling back to `projectId` and then `tenantId`.
 5. Query the vector store first, then hydrate chunks by id and file permissions; fall back to database text matching when needed.
-6. Keep Agent tool schemas unchanged.
+6. Keep parsed-file Agent tool schemas unchanged.
 
 ### Add production migrations
 
@@ -530,9 +531,9 @@ Functional checks:
 
 - Text files become `ready` and searchable.
 - PDF chunks include page anchors.
-- XLSX/CSV can be queried through `file_table_query`.
+- XLSX/CSV can be queried through `parsed_file_table_query`.
 - Images can be `partial` with `vision` and `ocr` capabilities.
-- ZIP files expose manifest/code tree search.
+- ZIP files expose manifest/code tree search through `parsed_file_list` and `parsed_file_search_all`.
 - Large files are not injected into prompts as full text.
 - Legacy `StorageFile` attachments still work.
 - Deleted files cannot be read through the new APIs.

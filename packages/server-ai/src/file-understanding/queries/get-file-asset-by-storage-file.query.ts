@@ -1,5 +1,5 @@
 import { Query } from '@nestjs/cqrs'
-import { FileAsset } from '../entities'
+import type { FileAsset } from '../entities'
 
 export class GetFileAssetByStorageFileQuery extends Query<FileAsset | null> {
     static readonly type = '[File Understanding] Get file asset by storage file'

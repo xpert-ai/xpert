@@ -129,7 +129,7 @@
 
     <div data-feature-summary class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       @for (summary of summaryCards(features); track $index) {
-        <z-card class="border border-divider-regular bg-components-panel-bg shadow-sm">
+        <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
           <z-card-content class="flex items-center gap-3 p-4">
             <span
               class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
@@ -152,7 +152,7 @@
         <z-card
           data-feature-group-card
           [attr.data-feature-group-id]="group.id"
-          class="mb-4 inline-block w-full break-inside-avoid overflow-hidden border border-divider-regular bg-components-panel-bg shadow-sm"
+          class="mb-4 inline-block w-full break-inside-avoid overflow-hidden border border-divider-regular bg-components-panel-bg shadow-none"
         >
           <z-card-header
             class="flex flex-row items-start justify-between gap-3 border-b border-divider-regular px-4 py-3"
@@ -243,7 +243,7 @@
     </div>
 
     @if (filteredFeatureCount(features) === 0) {
-      <z-card class="border border-divider-regular bg-components-panel-bg shadow-sm">
+      <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
         <z-card-content class="flex min-h-[180px] flex-col items-center justify-center gap-2 p-8 text-center">
           <z-icon zType="search_off" class="text-3xl text-text-tertiary" />
           <div class="text-sm font-medium text-text-primary">

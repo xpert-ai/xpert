@@ -51,8 +51,9 @@ const collectTransformPackages = (seedPackages: string[]) => {
 const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
 const transformAllowList = [...staticTransformAllowList, ...transformPackages]
+const transformAllowListPattern = transformAllowList.map(escapeRegex).join('|')
 const transformIgnorePattern = transformAllowList.length
-  ? `node_modules/(?!(${transformAllowList.map(escapeRegex).join('|')})(/|$)|.*\\.mjs$)`
+  ? `node_modules/(?!((?:\\.pnpm/[^/]+/node_modules/)?(${transformAllowListPattern})(/|$))|.*\\.mjs$)`
   : 'node_modules/'
 
 module.exports = {
@@ -72,6 +73,7 @@ module.exports = {
   },
   transformIgnorePatterns: [transformIgnorePattern],
   moduleNameMapper: {
+    '^@xpert-ai/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
     '^@cloud/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
     '^apps/cloud/src/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
     '^(?:\\.{1,2}/)+environments/environment$': '<rootDir>/src/environments/environment.jest.ts'

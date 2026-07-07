@@ -1,11 +1,15 @@
 import { TestBed } from '@angular/core/testing'
-import { ActivatedRoute, Router } from '@angular/router'
-import { Subject, of } from 'rxjs'
-import { FeatureService, RequestScopeLevel, Store, ToastrService } from '../../../@core'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
+import { of } from 'rxjs'
+import { FeatureService, Store, ToastrService } from '../../../@core/services'
 import { PACFeaturesComponent } from './features.component'
 
 class MockStore {
-  readonly activeScope = { level: RequestScopeLevel.ORGANIZATION, organizationId: 'org-1' }
+  readonly activeScope: { level: RequestScopeLevel; organizationId?: string }
+
+  constructor(level: RequestScopeLevel = RequestScopeLevel.ORGANIZATION) {
+    this.activeScope = level === RequestScopeLevel.TENANT ? { level } : { level, organizationId: 'org-1' }
+  }
 
   selectActiveScope() {
     return of(this.activeScope)
@@ -14,7 +18,6 @@ class MockStore {
 
 describe('PACFeaturesComponent', () => {
   it('publishes the feature definition refresh event after feature definitions are upgraded', () => {
-    const routerEvents = new Subject()
     const featureService = {
       upgrade: jest.fn(() => of({})),
       notifyFeatureDefinitionsRefreshed: jest.fn()
@@ -32,26 +35,7 @@ describe('PACFeaturesComponent', () => {
         },
         {
           provide: Store,
-          useClass: MockStore
-        },
-        {
-          provide: Router,
-          useValue: {
-            events: routerEvents.asObservable(),
-            navigate: jest.fn()
-          }
-        },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              firstChild: {
-                routeConfig: {
-                  path: 'organization'
-                }
-              }
-            }
-          }
+          useValue: new MockStore(RequestScopeLevel.TENANT)
         },
         {
           provide: ToastrService,
@@ -67,5 +51,42 @@ describe('PACFeaturesComponent', () => {
     expect(featureService.upgrade).toHaveBeenCalled()
     expect(featureService.notifyFeatureDefinitionsRefreshed).toHaveBeenCalled()
     expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('does not upgrade feature definitions in organization scope', () => {
+    const featureService = {
+      upgrade: jest.fn(() => of({})),
+      notifyFeatureDefinitionsRefreshed: jest.fn()
+    }
+    const toastr = {
+      success: jest.fn(),
+      error: jest.fn()
+    }
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: FeatureService,
+          useValue: featureService
+        },
+        {
+          provide: Store,
+          useValue: new MockStore(RequestScopeLevel.ORGANIZATION)
+        },
+        {
+          provide: ToastrService,
+          useValue: toastr
+        }
+      ]
+    })
+
+    const component = TestBed.runInInjectionContext(() => new PACFeaturesComponent())
+
+    expect(component.canUpgrade()).toBe(false)
+
+    component.upgrade()
+
+    expect(featureService.upgrade).not.toHaveBeenCalled()
+    expect(featureService.notifyFeatureDefinitionsRefreshed).not.toHaveBeenCalled()
   })
 })

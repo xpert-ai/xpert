@@ -1,8 +1,35 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
-import { Router } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { of } from 'rxjs'
 import { TranslateModule } from '@ngx-translate/core'
+
+jest.mock('@cloud/app/@core', () => {
+  class SkillPackageService {}
+  class SkillRepositoryIndexService {}
+  class SkillRepositoryService {}
+  class ToastrService {}
+  class XpertTemplateService {}
+  class XpertWorkspaceService {}
+
+  return {
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : `${error}`),
+    injectToastr: () => ({
+      error: jest.fn(),
+      success: jest.fn()
+    }),
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    SkillPackageService,
+    SkillRepositoryIndexService,
+    SkillRepositoryService,
+    ToastrService,
+    XpertTemplateService,
+    XpertWorkspaceService
+  }
+})
+
 import {
   SkillPackageService,
   SkillRepositoryIndexService,
@@ -69,25 +96,18 @@ describe('ExploreSkillsComponent', () => {
         closed: of(null)
       }))
     }
-    const router = {
-      navigate: jest.fn()
-    }
-
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ExploreSkillsComponent],
       providers: [
+        provideRouter([]),
         {
           provide: Dialog,
           useValue: dialog
         },
         {
-          provide: Router,
-          useValue: router
-        },
-        {
           provide: SkillRepositoryService,
           useValue: {
-            getAvailables: jest.fn(() => of({ items: [] }))
+            getAvailables: jest.fn(() => of({ items: [{ id: 'repo-1', name: 'Default Repository' }] }))
           }
         },
         {
@@ -122,6 +142,7 @@ describe('ExploreSkillsComponent', () => {
       ]
     }).compileComponents()
 
+    const routerNavigate = jest.spyOn(TestBed.inject(Router), 'navigate')
     const fixture = TestBed.createComponent(ExploreSkillsComponent)
     fixture.componentRef.setInput('mode', 'mine')
     fixture.componentRef.setInput('workspace', {
@@ -132,9 +153,12 @@ describe('ExploreSkillsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const shareButtons = Array.from(
-      fixture.nativeElement.querySelectorAll('button.btn.btn-primary.btn-small')
-    ) as HTMLButtonElement[]
+    const shareButtons = Array.from(fixture.nativeElement.querySelectorAll('button')).filter(
+      (button): button is HTMLButtonElement =>
+        button.textContent?.includes('PAC.Explore.ShareSkill') ||
+        button.textContent?.includes('PAC.Explore.RepublishSkill') ||
+        false
+    )
 
     expect(shareButtons).toHaveLength(1)
 
@@ -142,6 +166,63 @@ describe('ExploreSkillsComponent', () => {
     fixture.detectChanges()
 
     expect(dialog.open).toHaveBeenCalledTimes(1)
-    expect(router.navigate).not.toHaveBeenCalled()
+    expect(routerNavigate).not.toHaveBeenCalled()
+  })
+
+  it('switches to repository install tab when the create menu requests it', async () => {
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ExploreSkillsComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: Dialog,
+          useValue: {
+            open: jest.fn(() => ({
+              closed: of(null)
+            }))
+          }
+        },
+        {
+          provide: SkillRepositoryService,
+          useValue: {
+            getAvailables: jest.fn(() => of({ items: [{ id: 'repo-1', name: 'Default Repository' }] }))
+          }
+        },
+        {
+          provide: SkillRepositoryIndexService,
+          useValue: {
+            getMarketplace: jest.fn(() => of({ items: [], total: 0 }))
+          }
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: {
+            getSkillsMarket: jest.fn(() => of(null))
+          }
+        },
+        {
+          provide: SkillPackageService,
+          useValue: {
+            getAllByWorkspace: jest.fn(() => of({ items: [] }))
+          }
+        },
+        {
+          provide: ToastrService,
+          useValue: {
+            error: jest.fn(),
+            success: jest.fn()
+          }
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ExploreSkillsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    fixture.componentRef.setInput('installFromRepositoryNonce', 1)
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activePlazaTab()).toBe('enterprise')
   })
 })

@@ -1,107 +1,92 @@
-import { Connection } from 'typeorm';
-import path from 'path';
-import { copyFileSync, mkdirSync } from 'fs';
-import chalk from 'chalk';
-import { rimraf } from 'rimraf';
-import { ConfigService, environment as env } from '@xpert-ai/server-config';
-import {
-	IFeature,
-	IFeatureCreateInput,
-	IFeatureOrganization,
-	ITenant
-} from '@xpert-ai/contracts';
-import { IPluginConfig } from '@xpert-ai/server-common';
-import { DEFAULT_FEATURES } from './default-features';
-import { Feature } from './feature.entity';
-import { FeatureOrganization } from './feature-organization.entity';
+import { Connection } from 'typeorm'
+import path from 'path'
+import { copyFileSync, mkdirSync } from 'fs'
+import chalk from 'chalk'
+import { rimraf } from 'rimraf'
+import { ConfigService, environment as env } from '@xpert-ai/server-config'
+import { IFeature, IFeatureCreateInput, IFeatureOrganization, ITenant } from '@xpert-ai/contracts'
+import { IPluginConfig } from '@xpert-ai/server-common'
+import { DEFAULT_FEATURES } from './default-features'
+import { Feature } from './feature.entity'
+import { FeatureOrganization } from './feature-organization.entity'
 
 /**
  * 创建全局 Features
- * @param connection 
+ * @param connection
  */
-export const createFeatures = async (
-	connection: Connection,
-) => {
+export const createFeatures = async (connection: Connection) => {
 	DEFAULT_FEATURES.forEach(async (item: IFeatureCreateInput) => {
-		const feature: IFeature = createFeature(item);
-		const parent = await connection.manager.save(feature);
+		const feature: IFeature = createFeature(item)
+		const parent = await connection.manager.save(feature)
 
-		const { children = [] } = item;
+		const { children = [] } = item
 		if (children.length > 0) {
-			const featureChildren: IFeature[] = [];
+			const featureChildren: IFeature[] = []
 			children.forEach((child: IFeature) => {
-				const childFeature: IFeature = createFeature(child);
-				childFeature.parent = parent;
-				featureChildren.push(childFeature);
-			});
+				const childFeature: IFeature = createFeature(child)
+				childFeature.parent = parent
+				featureChildren.push(childFeature)
+			})
 
-			await connection.manager.save(featureChildren);
+			await connection.manager.save(featureChildren)
 		}
 	})
 }
 
 /**
  * 为 Tenant 创建 Feature Toggle
- * 
- * @param connection 
- * @param config 
- * @param tenant 
- * @returns 
+ *
+ * @param connection
+ * @param config
+ * @param tenant
+ * @returns
  */
-export const createDefaultFeatureToggle = async (
-	connection: Connection,
-	config: IPluginConfig,
-	tenant: ITenant
-) => {
-
+export const createDefaultFeatureToggle = async (connection: Connection, config: IPluginConfig, tenant: ITenant) => {
 	for (const item of DEFAULT_FEATURES) {
 		const { children = [] } = item
 		const toggleFeatures = children.length > 0 ? children : [item]
 
 		for (const child of toggleFeatures) {
 			const feature: IFeature = await connection.manager.findOne(Feature, {
-				where: {code: child.code},
+				where: { code: child.code },
 				relations: ['featureOrganizations']
 			})
 
-			await connection.manager.save(new FeatureOrganization({
-				isEnabled: feature.isEnabled,
-				tenant,
-				featureId: feature.id
-			}))
+			await connection.manager.save(
+				new FeatureOrganization({
+					isEnabled: child.isEnabled === true,
+					tenant,
+					featureId: feature.id
+				})
+			)
 		}
 	}
 }
 
-export const createRandomFeatureToggle = async (
-	connection: Connection,
-	tenants: ITenant[]
-) => {
+export const createRandomFeatureToggle = async (connection: Connection, tenants: ITenant[]) => {
 	const features: IFeature[] = await connection.getRepository(Feature).find({
 		relations: ['children']
-	});
-	const toggleFeatures = features.filter((feature) => !feature.children?.length);
+	})
+	const toggleFeatures = features.filter((feature) => !feature.children?.length)
 
-	const featureOrganizations: IFeatureOrganization[] = [];
+	const featureOrganizations: IFeatureOrganization[] = []
 	toggleFeatures.forEach(async (feature: IFeature) => {
 		tenants.forEach((tenant: ITenant) => {
-			const { isEnabled } = feature;
-			const featureOrganization: IFeatureOrganization = new FeatureOrganization(
-				{
-					isEnabled,
-					tenant,
-					feature
-				}
-			);
-			featureOrganizations.push(featureOrganization);
-		});
-	});
+			const { isEnabled } = feature
+			const featureOrganization: IFeatureOrganization = new FeatureOrganization({
+				isEnabled: isEnabled === true,
+				tenant,
+				feature
+			})
+			featureOrganizations.push(featureOrganization)
+		})
+	})
 
-	await connection.manager.save(featureOrganizations);
-	return features;
-};
+	await connection.manager.save(featureOrganizations)
+	return features
+}
 
-export function createFeature(item: IFeature,) {
+export function createFeature(item: IFeature) {
 	const {
 		name,
 		code,
@@ -111,7 +96,7 @@ export function createFeature(item: IFeature,) {
 		isEnabled,
 		status,
 		icon
-	} = item;
+	} = item
 	const feature: IFeature = new Feature().instanceOf({
 		name,
 		code,
@@ -119,7 +104,7 @@ export function createFeature(item: IFeature,) {
 		// image: copyImage(image, config),
 		link,
 		status,
-		icon,
+		icon
 		// featureOrganizations: [
 		// 	new FeatureOrganization({
 		// 		isEnabled,
@@ -128,7 +113,7 @@ export function createFeature(item: IFeature,) {
 		// ]
 	})
 
-	return feature;
+	return feature
 }
 
 export function createFeatureToggle(item: IFeature, tenant: ITenant) {
@@ -136,32 +121,30 @@ export function createFeatureToggle(item: IFeature, tenant: ITenant) {
 	if (item.id === null) {
 		console.error(`feature id is null`)
 	}
-	item.featureOrganizations.push(new FeatureOrganization({
-		isEnabled: item.isEnabled,
-		tenant,
-		featureId: item.id
-	}))
+	item.featureOrganizations.push(
+		new FeatureOrganization({
+			isEnabled: item.isEnabled === true,
+			tenant,
+			featureId: item.id
+		})
+	)
 	return item
 }
 
 async function cleanFeature(connection, config) {
 	if (config.dbConnectionOptions.type === 'sqlite') {
-		await connection.query('DELETE FROM feature');
-		await connection.query('DELETE FROM feature_organization');
+		await connection.query('DELETE FROM feature')
+		await connection.query('DELETE FROM feature_organization')
 	} else {
-		await connection.query(
-			'TRUNCATE TABLE feature RESTART IDENTITY CASCADE'
-		);
-		await connection.query(
-			'TRUNCATE TABLE feature_organization RESTART IDENTITY CASCADE'
-		);
+		await connection.query('TRUNCATE TABLE feature RESTART IDENTITY CASCADE')
+		await connection.query('TRUNCATE TABLE feature_organization RESTART IDENTITY CASCADE')
 	}
 
-	console.log(chalk.green(`CLEANING UP FEATURE IMAGES...`));
+	console.log(chalk.green(`CLEANING UP FEATURE IMAGES...`))
 
 	await new Promise((resolve, reject) => {
-		const destDir = 'features';
-		const configService = new ConfigService();
+		const destDir = 'features'
+		const configService = new ConfigService()
 
 		// console.log('FEATURE SEED -> IS ELECTRON: ' + env.isElectron);
 
@@ -176,29 +159,28 @@ async function cleanFeature(connection, config) {
 		console.log('FEATURE SEED -> __dirname: ' + __dirname);
 		*/
 
-		let dir: string;
+		let dir: string
 
-		dir = path.join(
-			configService.assetOptions.assetPublicPath,
-			destDir
-		);
+		dir = path.join(configService.assetOptions.assetPublicPath, destDir)
 
 		// delete old generated feature image
-		rimraf(`${dir}/!(rimraf|.gitkeep)`).then(() => {
-			console.log(chalk.green(`CLEANED UP FEATURE IMAGES`));
-			resolve(null);
-		}).catch(() => {
-			reject(null);
-		})
-	});
+		rimraf(`${dir}/!(rimraf|.gitkeep)`)
+			.then(() => {
+				console.log(chalk.green(`CLEANED UP FEATURE IMAGES`))
+				resolve(null)
+			})
+			.catch(() => {
+				reject(null)
+			})
+	})
 }
 
 function copyImage(fileName: string, config: IPluginConfig) {
 	try {
-		const destDir = 'features';
+		const destDir = 'features'
 
-		let dir: string;
-		let baseDir: string;
+		let dir: string
+		let baseDir: string
 
 		// if (env.isElectron) {
 		// 	dir = path.resolve(
@@ -206,48 +188,34 @@ function copyImage(fileName: string, config: IPluginConfig) {
 		// 	);
 
 		// } else {
-			if (config.assetOptions.assetPath) {
-				dir = path.join(
-					config.assetOptions.assetPath,
-					...['seed', destDir]
-				);
-			} else {
-				dir = path.resolve(
-					__dirname,
-					'../../../',
-					...['apps', 'api', 'src', 'assets', 'seed', destDir]
-				);
-			}
+		if (config.assetOptions.assetPath) {
+			dir = path.join(config.assetOptions.assetPath, ...['seed', destDir])
+		} else {
+			dir = path.resolve(__dirname, '../../../', ...['apps', 'api', 'src', 'assets', 'seed', destDir])
+		}
 
-			if (config.assetOptions.assetPublicPath) {
-				baseDir = config.assetOptions.assetPublicPath;
-			} else {
-				baseDir = path.resolve(
-					__dirname,
-					'../../../',
-					...['apps', 'api', 'public']
-				);
-			}
+		if (config.assetOptions.assetPublicPath) {
+			baseDir = config.assetOptions.assetPublicPath
+		} else {
+			baseDir = path.resolve(__dirname, '../../../', ...['apps', 'api', 'public'])
+		}
 		// }
 
 		// console.log('FEATURE SEED -> dir: ' + dir);
 		// console.log('FEATURE SEED -> baseDir: ' + baseDir);
 
-		const finalDir = path.join(baseDir, destDir);
+		const finalDir = path.join(baseDir, destDir)
 
 		// console.log('FEATURE SEED -> finalDir: ' + finalDir);
 
-		mkdirSync(finalDir, { recursive: true });
+		mkdirSync(finalDir, { recursive: true })
 
-		const destFilePath = path.join(destDir, fileName);
+		const destFilePath = path.join(destDir, fileName)
 
-		copyFileSync(
-			path.join(dir, fileName),
-			path.join(baseDir, destFilePath)
-		);
+		copyFileSync(path.join(dir, fileName), path.join(baseDir, destFilePath))
 
-		return destFilePath;
+		return destFilePath
 	} catch (err) {
-		console.log(err);
+		console.log(err)
 	}
 }

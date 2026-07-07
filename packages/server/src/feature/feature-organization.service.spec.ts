@@ -20,6 +20,31 @@ jest.mock('./feature.service', () => ({
 	FeatureService: class FeatureService {}
 }))
 
+jest.mock('./default-features', () => ({
+	DEFAULT_FEATURES: [
+		{
+			code: 'FEATURE_COPILOT',
+			isEnabled: true,
+			children: [
+				{
+					code: 'FEATURE_MEMBERSHIP_PLAN',
+					isEnabled: false
+				}
+			]
+		},
+		{
+			code: 'GROUP_XPERT',
+			isEnabled: false,
+			children: [
+				{
+					code: 'FEATURE_XPERT',
+					isEnabled: true
+				}
+			]
+		}
+	]
+}))
+
 jest.mock('./../core/crud', () => ({
 	TenantAwareCrudService: class TenantAwareCrudService<T> {
 		protected repository: unknown
@@ -152,6 +177,7 @@ describe('FeatureOrganizationService', () => {
 		})
 		expect(repo.save).toHaveBeenCalledWith([
 			expect.objectContaining({
+				isEnabled: true,
 				feature: expect.objectContaining({
 					id: 'feature-xpert'
 				}),
@@ -163,6 +189,51 @@ describe('FeatureOrganizationService', () => {
 				expect.objectContaining({
 					feature: expect.objectContaining({
 						id: 'feature-group'
+					})
+				})
+			])
+		)
+	})
+
+	it('initializes new tenant toggles from default feature definitions', async () => {
+		const tenant = { id: 'tenant-1' }
+		const featureService = {
+			findAll: jest.fn().mockResolvedValue({
+				items: [
+					{
+						id: 'feature-membership-plan',
+						code: 'FEATURE_MEMBERSHIP_PLAN',
+						isEnabled: true,
+						children: []
+					},
+					{
+						id: 'feature-xpert',
+						code: 'FEATURE_XPERT',
+						isEnabled: false,
+						children: []
+					}
+				]
+			})
+		}
+		service = new FeatureOrganizationService(repo, featureService, cacheManager)
+		repo.save.mockResolvedValue([])
+
+		await service.updateTenantFeatureOrganizations([tenant])
+
+		expect(repo.save).toHaveBeenCalledWith(
+			expect.arrayContaining([
+				expect.objectContaining({
+					isEnabled: false,
+					feature: expect.objectContaining({
+						code: 'FEATURE_MEMBERSHIP_PLAN',
+						isEnabled: true
+					})
+				}),
+				expect.objectContaining({
+					isEnabled: true,
+					feature: expect.objectContaining({
+						code: 'FEATURE_XPERT',
+						isEnabled: false
 					})
 				})
 			])

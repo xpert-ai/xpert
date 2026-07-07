@@ -33,6 +33,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 isEnabled: features.FEATURE_COPILOT_MONITORING,
                 icon: 'browse_activity',
                 status: 'info'
+            },
+            {
+                name: 'Membership Plans',
+                code: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+                description: 'Enable membership plan quotas and point-based model usage rules',
+                link: 'settings/membership',
+                isEnabled: features.FEATURE_MEMBERSHIP_PLAN,
+                icon: 'credit_card',
+                status: 'info'
             }
         ]
     },
@@ -98,6 +107,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 link: 'https://data.xpertai.cn/',
                 isEnabled: features.FEATURE_XPERT_DATA_ONTOLOGY,
                 icon: 'schema',
+                status: 'info'
+            },
+            {
+                name: 'Agent Marketplace',
+                code: AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
+                description: 'Show the agent marketplace and access approval entry points',
+                link: 'explore?tab=agent-square',
+                isEnabled: features.FEATURE_XPERT_MARKETPLACE === true,
+                icon: 'robot_2',
                 status: 'info'
             }
         ]

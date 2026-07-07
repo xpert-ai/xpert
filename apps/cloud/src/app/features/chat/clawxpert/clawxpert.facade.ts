@@ -73,6 +73,11 @@ export type ClawXpertToolPreferenceSourceType = AssistantBindingToolPreferenceSo
 
 export type ClawXpertToolPreferenceSourceMetadata = AssistantBindingToolPreferenceSourceMetadata
 
+type ClawXpertBindPublishedXpertOptions = {
+  navigateToChat?: boolean
+  bindNextConversationToXpert?: boolean
+}
+
 type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
 
 const HEATMAP_DAY_COUNT = 84
@@ -98,6 +103,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   #conversationEntryRequestId = 0
   #lastConversationEntryKey: string | null = null
   #lastPersistedThreadKey: string | null = null
+  #pendingWizardConversationXpertId: string | null = null
   #nullThreadChangeGuard: { threadId: string | null; expiresAt: number } = {
     threadId: null,
     expiresAt: 0
@@ -347,6 +353,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         this.savingTriggerDraft.set(false)
         this.publishingXpert.set(false)
         this.suppressAutoResume.set(false)
+        this.#pendingWizardConversationXpertId = null
         this.activeConversation.set(null)
         this.triggerDraftErrorMessage.set(null)
         this.triggerDraftSource.set(null)
@@ -448,19 +455,28 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     await this.persistPreference(assistantId)
   }
 
-  async bindPublishedXpert(xpert: IXpert, options?: { navigateToChat?: boolean }) {
+  async bindPublishedXpert(xpert: IXpert, options?: ClawXpertBindPublishedXpertOptions) {
     if (!xpert?.id) {
       return
     }
 
     this.mergeAvailableXpert(xpert)
+    if (options?.bindNextConversationToXpert) {
+      this.#pendingWizardConversationXpertId = xpert.id
+    }
     await this.persistPreference(xpert.id, {
       forceAssistantId: true,
       navigateToChat: options?.navigateToChat
     })
+    if (options?.bindNextConversationToXpert && this.resolvedPreference()?.assistantId !== xpert.id) {
+      this.#pendingWizardConversationXpertId = null
+    }
   }
 
-  private async persistPreference(assistantId: string, options?: { forceAssistantId?: boolean; navigateToChat?: boolean }) {
+  private async persistPreference(
+    assistantId: string,
+    options?: { forceAssistantId?: boolean; navigateToChat?: boolean }
+  ) {
     this.saving.set(true)
     const currentPreference = this.preference()
     const previousAssistantId = currentPreference?.assistantId?.trim() || null
@@ -955,7 +971,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   }
 
   setActiveConversation(conversation: IChatConversation | null) {
-    this.activeConversation.set(conversation ? ({ ...conversation } as IChatConversation) : null)
+    const nextConversation = conversation ? ({ ...conversation } as IChatConversation) : null
+    this.activeConversation.set(nextConversation)
+    this.bindPendingWizardConversation(nextConversation)
   }
 
   patchActiveConversationStatus(status: 'busy' | 'idle') {
@@ -1009,7 +1027,61 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   }
 
   onChatThreadChange(threadId: string | null) {
+    if (threadId) {
+      void this.bindPendingWizardConversationByThread(threadId)
+    }
     this.handleThreadChange(threadId)
+  }
+
+  private async bindPendingWizardConversationByThread(threadId: string) {
+    const pendingXpertId = this.#pendingWizardConversationXpertId
+    if (!pendingXpertId) {
+      return
+    }
+
+    const conversation = (await firstValueFrom(
+      this.#conversationService.getByThreadId(threadId).pipe(catchError(() => of(null)))
+    )) as IChatConversation | null
+    if (this.#pendingWizardConversationXpertId !== pendingXpertId) {
+      return
+    }
+
+    this.bindPendingWizardConversation(conversation)
+  }
+
+  private bindPendingWizardConversation(conversation: IChatConversation | null) {
+    const pendingXpertId = this.#pendingWizardConversationXpertId
+    if (!pendingXpertId || !conversation?.id) {
+      return
+    }
+
+    if (this.xpertId() !== pendingXpertId) {
+      this.#pendingWizardConversationXpertId = null
+      return
+    }
+
+    const resolvedXpertId = conversation.xpertId ?? conversation.xpert?.id ?? null
+    if (resolvedXpertId) {
+      this.#pendingWizardConversationXpertId = null
+      return
+    }
+
+    this.#pendingWizardConversationXpertId = null
+    this.activeConversation.update((current) =>
+      current?.id === conversation.id ? ({ ...current, xpertId: pendingXpertId } as IChatConversation) : current
+    )
+    void this.persistPendingWizardConversationBinding(conversation.id, pendingXpertId)
+  }
+
+  private async persistPendingWizardConversationBinding(conversationId: string, xpertId: string) {
+    try {
+      await firstValueFrom(this.#conversationService.update(conversationId, { xpertId }))
+    } catch (error) {
+      const message = getErrorMessage(error)
+      if (message) {
+        this.#toastr.error(message)
+      }
+    }
   }
 
   private handleThreadChange(threadId: string | null) {

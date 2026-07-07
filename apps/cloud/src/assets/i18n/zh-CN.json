@@ -204,6 +204,22 @@
       "SkillPackageDeleted": "技能包已删除",
       "SelectedSkillPackages": "已选择 {{count}} 个",
       "SkillPackagesDeleted": "所选技能包已删除",
+      "AddSkill": "新增 Skill",
+      "AddSkillFromGithubTitle": "从 GitHub 新增 Skill",
+      "GithubRepositoryUrl": "GitHub 仓库地址",
+      "GithubRepositoryUrlPlaceholder": "https://github.com/op7418/guizang-ppt-skill",
+      "GithubRepositoryUrlRequired": "请输入仓库地址。",
+      "GithubRepositoryUrlInvalid": "请输入有效的 github.com 仓库地址。",
+      "GithubSkillInstallInput": "GitHub 命令或仓库",
+      "GithubSkillInstallInputPlaceholder": "npx skills add Leonxlnx/taste-skill --skill \"design-taste-frontend\"",
+      "GithubSkillInstallInputRequired": "请输入 GitHub 来源。",
+      "GithubSkillInstallInputInvalid": "请输入有效的 GitHub 仓库或 npx skills add 命令。",
+      "GithubSkillInstallCaption": "从 GitHub 仓库安装全部 Skill，或通过命令指定某一个 Skill。",
+      "InstallGithubSkills": "安装 Skill",
+      "InstallingGithubSkills": "正在安装...",
+      "GithubSkillInstallSuccess": "已从 GitHub 安装 {{count}} 个 Skill。",
+      "WorkspaceRequiredForGithubInstall": "需要先加载工作区，才能安装 GitHub Skill。",
+      "SelectSkillSource": "选择技能来源",
       "RegisterFromRepository": "从仓库注册",
       "BulkImport": "批量导入",
       "NoSkills": "暂无已安装技能。",
@@ -460,6 +476,12 @@
       "All": "所有",
       "Configured": "已配置"
     },
+    "Skills": {
+      "Selected": "已选",
+      "Available": "可用",
+      "UseAllDefault": "默认使用全部技能",
+      "SelectAllDefault": "默认选择全部技能。"
+    },
     "Common": {
       "Tools": "工具",
       "Loading": "加载中",
@@ -510,12 +532,10 @@
         "OrganizationRequiredDesc": "ClawXpert 会按用户和组织维度保存一份助手绑定。",
         "LoadFailed": "ClawXpert 加载失败。",
         "Onboarding": "新手引导",
-        "OnboardingTitle": "先准备插件和模型，再创建 ClawXpert",
-        "OnboardingDesc": "只需要确认两件事：需要的插件可以从插件市场安装，模型提供商配置好后就能创建第一个 ClawXpert。",
+        "OnboardingTitle": "先准备模型，再创建 ClawXpert",
+        "OnboardingDesc": "默认只从已安装的模型提供商里选择模型。没有初始化的模型插件，可点更多后再安装初始化。",
         "EntryGuideScopeTitle": "组织 / 租户切换",
         "EntryGuideScopeDesc": "这里切换组织和租户。当前在租户时，请先选择一个组织，切换后会自动进入下一步。",
-        "EntryGuidePluginsTitle": "插件市场",
-        "EntryGuidePluginsDesc": "插件可以在这里查找和下载，用来增强数字专家能力。",
         "EntryGuideModelProvidersTitle": "模型提供商",
         "EntryGuideModelProvidersDesc": "数字专家需要可用模型。没有模型时，从这里配置模型提供商。",
         "EntryGuideWorkspaceTitle": "工作空间",
@@ -523,21 +543,10 @@
         "EntryGuideSwitchScopeHint": "选择组织后自动继续",
         "EntryGuideSwitchScope": "切换组织",
         "EntryGuideCreate": "去创建",
-        "StepOne": "Step 1 / 2",
-        "StepTwo": "Step 2 / 2",
-        "PluginStepTitle": "插件",
-        "PluginStepDesc": "插件用于扩展 ClawXpert 能力。你可以在这里查看并安装需要的插件，也可以创建后再按需安装。",
-        "OpenPluginMarketplace": "插件市场",
-        "PluginWeCom": "企业微信",
-        "PluginDingTalk": "钉钉",
-        "PluginLark": "飞书",
-        "PluginBrowser": "浏览器工具",
-        "OptionalPlugin": "可按需安装",
         "LoadingPlugins": "正在加载插件市场…",
         "InstallPlugin": "安装",
         "PluginInstalled": "已安装",
-        "NoMarketplacePlugins": "暂未找到插件市场插件。",
-        "PluginStepFooter": "可以现在安装插件，也可以继续准备模型。",
+        "MoreModelPlugins": "更多模型插件",
         "ModelProviderStepTitle": "模型提供商",
         "ModelProviderStepDesc": "当前还没有可用的 LLM 模型。请先在这里配置模型提供商，保存后再创建 ClawXpert。",
         "ModelProviderStepReadyDesc": "已检测到可用 LLM 模型，可以继续创建 ClawXpert。",
@@ -553,7 +562,6 @@
         "CopilotFeatureDisabledDesc": "当前组织或租户未开启 Copilot 功能，暂时不能创建 ClawXpert。",
         "ModelProviderRequiredBeforeCreate": "配置可用模型后才能创建。",
         "SelectModelBeforeCreate": "请选择一个模型后再创建。",
-        "ModelPluginSetupDesc": "当前没有可用模型。先确认语言模型插件是否已初始化；未初始化的插件安装后会加入已初始化列表，再继续配置默认模型。",
         "InitializedModelPlugins": "已初始化的语言模型插件",
         "UninitializedModelPlugins": "未初始化的语言模型插件",
         "NoInitializedModelPlugins": "还没有已初始化的语言模型插件。",
@@ -2187,6 +2195,10 @@
       "SelectToolsetInstance": "选择工具集实例",
       "NoMatchingToolsetConfigured": "当前工作区没有配置匹配的内置工具集。请先配置一个再继续。",
       "NoTemplateToolsetsRequired": "没有必需工具集",
+      "NoSkillsYet": "还没有为此工作流添加技能。",
+      "UnavailableSelectedSkills": "有 {{count}} 个历史配置技能在当前工作区不可用。",
+      "RemoveUnavailableSkills": "移除不可用项",
+      "ResetDefaultSkills": "恢复默认技能",
       "TemplateToolsetToolsCount": "个工具",
       "TemplateToolsetMissingNamed": "必需的模板工具集“{{instanceName}}”（{{provider}}）尚未在此工作区配置。",
       "TemplateToolsetMissingProvider": "必需的模板工具集“{{provider}}”尚未在此工作区配置。",
@@ -2295,7 +2307,7 @@
           "Description": "维护系统角色和权限"
         },
         "GROUP_COPILOT": {
-          "Name": "Copilot 功能",
+          "Name": "模型",
           "Description": "管理模型提供商和监测模块"
         },
         "FEATURE_COPILOT": {
@@ -2381,6 +2393,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "在主导航中显示 Data & Ontology 入口。"
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "智能体市场",
+          "Description": "显示智能体广场及访问审批入口。"
         }
       }
     },

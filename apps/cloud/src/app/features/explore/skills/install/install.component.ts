@@ -10,11 +10,11 @@ import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   injectToastr,
-  ISkillRepositoryIndex,
   OrderTypeEnum,
   SkillPackageService,
   XpertWorkspaceService
 } from '@cloud/app/@core'
+import type { ISkillRepositoryIndex } from '@cloud/app/@core'
 import { map } from 'rxjs/operators'
 
 @Component({
@@ -60,28 +60,25 @@ export class ExploreSkillInstallComponent {
   )
 
   constructor() {
-    effect(
-      () => {
-        const workspaces = this.workspaces()
-        const preferredWorkspaceId =
-          [this.defaultWorkspace()?.id, this.#selectedWorkspace()?.id, workspaces?.[0]?.id].find(
-            (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
-          ) ?? ''
+    effect(() => {
+      const workspaces = this.workspaces()
+      const preferredWorkspaceId =
+        [this.defaultWorkspace()?.id, this.#selectedWorkspace()?.id, workspaces?.[0]?.id].find(
+          (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
+        ) ?? ''
 
-        if (!preferredWorkspaceId) {
-          return
-        }
+      if (!preferredWorkspaceId) {
+        return
+      }
 
-        if (this.#workspaceTouched() && this.workspace()) {
-          return
-        }
+      if (this.#workspaceTouched() && this.workspace()) {
+        return
+      }
 
-        if (this.workspace() !== preferredWorkspaceId) {
-          this.workspace.set(preferredWorkspaceId)
-        }
-      },
-      { allowSignalWrites: true }
-    )
+      if (this.workspace() !== preferredWorkspaceId) {
+        this.workspace.set(preferredWorkspaceId)
+      }
+    })
   }
 
   close() {

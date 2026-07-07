@@ -5,17 +5,18 @@ import { DEFAULT_FEATURES as ANALYTICS_DEFAULT_FEATURES } from './features'
 
 type FeatureTree = {
 	code?: string
+	isEnabled?: boolean
 	children?: FeatureTree[]
 }
 
 const collectFeatureCodes = (features: readonly FeatureTree[]): string[] =>
-	features.flatMap((feature) => [
-		feature.code,
-		...collectFeatureCodes(feature.children ?? [])
-	]).filter((code): code is string => Boolean(code))
+	features
+		.flatMap((feature) => [feature.code, ...collectFeatureCodes(feature.children ?? [])])
+		.filter((code): code is string => Boolean(code))
 
 const cloneFeature = (feature: FeatureTree): FeatureTree => ({
 	code: feature.code,
+	isEnabled: feature.isEnabled,
 	children: feature.children?.map(cloneFeature)
 })
 
@@ -64,9 +65,11 @@ describe('prepare default feature definitions', () => {
 				AiFeatureEnum.FEATURE_XPERT_CHATBI,
 				AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
 				AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
-				AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY
+				AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY,
+				AiFeatureEnum.FEATURE_XPERT_MARKETPLACE
 			])
 		)
+		expect(findFeature(features, AiFeatureEnum.FEATURE_XPERT_MARKETPLACE)?.isEnabled).toBe(false)
 	})
 
 	it('nests Copilot feature toggles under a pure Copilot feature group', () => {
@@ -76,10 +79,7 @@ describe('prepare default feature definitions', () => {
 
 		expect(topLevelCodes).not.toContain(AiFeatureEnum.FEATURE_COPILOT)
 		expect(copilotGroup?.children?.map((feature) => feature.code)).toEqual(
-			expect.arrayContaining([
-				AiFeatureEnum.FEATURE_COPILOT,
-				AiFeatureEnum.FEATURE_COPILOT_MONITORING
-			])
+			expect.arrayContaining([AiFeatureEnum.FEATURE_COPILOT, AiFeatureEnum.FEATURE_COPILOT_MONITORING])
 		)
 	})
 

@@ -23,7 +23,13 @@ describe('CopilotService', () => {
     let queryBus: jest.Mocked<Pick<QueryBus, 'execute'>>
     let copilotProviderService: jest.Mocked<Pick<CopilotProviderService, 'findVisibleByCopilotIds'>>
     let membershipService: jest.Mocked<
-        Pick<MembershipService, 'findModelAccess' | 'countEnabledOrganizationCopilots' | 'ensureScopeInitialized'>
+        Pick<
+            MembershipService,
+            | 'findModelAccess'
+            | 'countEnabledOrganizationCopilots'
+            | 'ensureScopeInitialized'
+            | 'isMembershipPlanEnabled'
+        >
     >
     let configService: jest.Mocked<Pick<ConfigService, 'get'>>
     let service: CopilotService
@@ -41,6 +47,7 @@ describe('CopilotService', () => {
         membershipService = {
             countEnabledOrganizationCopilots: jest.fn().mockResolvedValue(0),
             ensureScopeInitialized: jest.fn().mockResolvedValue({} as never),
+            isMembershipPlanEnabled: jest.fn().mockResolvedValue(true),
             findModelAccess: jest.fn().mockResolvedValue({
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
@@ -240,6 +247,88 @@ describe('CopilotService', () => {
         expect(result).toEqual([])
         expect(repository.find).not.toHaveBeenCalled()
         expect(copilotProviderService.findVisibleByCopilotIds).not.toHaveBeenCalled()
+    })
+
+    it('lists organization and tenant enabled copilots without membership access when membership plans are disabled', async () => {
+        membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'org-copilot',
+                organizationId: 'org-1'
+            }),
+            createCopilot({
+                id: 'tenant-copilot',
+                organizationId: null
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(new Map())
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1', {
+            role: AiProviderRole.Primary
+        })
+
+        expect(membershipService.countEnabledOrganizationCopilots).not.toHaveBeenCalled()
+        expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
+        expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+        expect(repository.find).toHaveBeenCalledTimes(1)
+        const where = repository.find.mock.calls[0][0].where
+        expect(Array.isArray(where)).toBe(true)
+        if (!Array.isArray(where)) {
+            throw new Error('Expected organization-scope copilot query to use inherited where objects')
+        }
+        expect(where[0]).toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            enabled: true,
+            role: AiProviderRole.Primary
+        })
+        expect(where[1]).toMatchObject({
+            tenantId: 'tenant-1',
+            enabled: true,
+            role: AiProviderRole.Primary
+        })
+        expect(where[1].organizationId).toBeDefined()
+        expect(copilotProviderService.findVisibleByCopilotIds).toHaveBeenCalledWith(['org-copilot', 'tenant-copilot'], {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        expect(result).toHaveLength(2)
+    })
+
+    it('lists only tenant enabled copilots without membership access in tenant scope when membership plans are disabled', async () => {
+        membershipService.isMembershipPlanEnabled.mockResolvedValue(false)
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'tenant-copilot',
+                organizationId: null
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(new Map())
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', null, {
+            role: AiProviderRole.Secondary
+        })
+
+        expect(membershipService.countEnabledOrganizationCopilots).not.toHaveBeenCalled()
+        expect(membershipService.ensureScopeInitialized).not.toHaveBeenCalled()
+        expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+        expect(repository.find).toHaveBeenCalledTimes(1)
+        const where = repository.find.mock.calls[0][0].where
+        expect(Array.isArray(where)).toBe(false)
+        if (Array.isArray(where)) {
+            throw new Error('Expected tenant-scope copilot query to use a single where object')
+        }
+        expect(where).toMatchObject({
+            tenantId: 'tenant-1',
+            enabled: true,
+            role: AiProviderRole.Secondary
+        })
+        expect(where.organizationId).toBeDefined()
+        expect(copilotProviderService.findVisibleByCopilotIds).toHaveBeenCalledWith(['tenant-copilot'], {
+            tenantId: 'tenant-1',
+            organizationId: null
+        })
+        expect(result).toHaveLength(1)
     })
 
     it('initializes organization membership before listing local copilots', async () => {

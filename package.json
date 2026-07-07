@@ -199,7 +199,7 @@
     "xmldom": "^0.6.0",
     "yaml": "^2.6.1",
     "zod": "3.25.67",
-    "zone.js": "~0.16.0"
+    "zone.js": "~0.16.2"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "21.1.4",

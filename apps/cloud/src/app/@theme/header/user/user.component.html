@@ -92,16 +92,18 @@
           <i class="ri-user-settings-line"></i>
         </div>
 
-        <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
-          cdkMenuItem
-          (click)="onUsageBilling()"
-        >
-          <div class="font-normal text-text-primary">
-            {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
+        @if (membershipPlanEnabled()) {
+          <div
+            class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+            cdkMenuItem
+            (click)="onUsageBilling()"
+          >
+            <div class="font-normal text-text-primary">
+              {{ 'PAC.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
+            </div>
+            <i class="ri-bank-card-line"></i>
           </div>
-          <i class="ri-bank-card-line"></i>
-        </div>
+        }
 
         <div
           class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"

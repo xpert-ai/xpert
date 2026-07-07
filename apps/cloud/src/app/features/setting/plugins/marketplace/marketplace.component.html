@@ -271,9 +271,13 @@
               />
             </div>
           }
-          <div class="mt-2 grid grid-cols-4 gap-3">
+          <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
             @for (plugin of group.plugins; track plugin.name) {
-              <xp-settings-plugin class="group relative rounded-xl hover:bg-hover-bg" [plugin]="plugin" />
+              <xp-settings-plugin
+                class="group relative rounded-xl hover:bg-hover-bg"
+                [plugin]="plugin"
+                (pluginInstalled)="markPluginInstalled($event)"
+              />
             }
           </div>
         </section>
@@ -423,67 +427,74 @@
       </div>
       <button
         type="button"
-        class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center"
+        z-button
+        zType="ghost"
+        zSize="icon"
+        [attr.aria-label]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
         (click)="dialogRef.close()"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="x" />
       </button>
     </div>
 
     <div class="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4 overflow-hidden">
-      <div class="flex min-h-0 flex-col rounded-xl border border-divider-regular bg-components-panel-bg">
-        <div
+      <z-card class="min-h-0 gap-0 overflow-hidden border-divider-regular bg-components-panel-bg p-0 py-0 shadow-none">
+        <z-card-header
           class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-divider-regular bg-components-panel-bg px-3 py-2"
         >
           <div class="system-sm-semibold text-text-secondary">
             {{ 'PAC.Plugin.RegisteredPlugins' | translate: { Default: 'Registered plugins' } }}
           </div>
-          <button type="button" class="btn btn-ghost btn-small" (click)="resetRegistryForm()">
-            <i class="ri-add-line"></i>
+          <button type="button" z-button zType="ghost" zSize="sm" (click)="resetRegistryForm()">
+            <z-icon zType="plus" />
             <span class="pl-1">{{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}</span>
           </button>
-        </div>
+        </z-card-header>
 
-        <div class="min-h-0 grow overflow-auto p-2">
+        <z-card-content class="min-h-0 grow overflow-auto p-2">
           @if (registryLoading()) {
             <div class="flex h-40 items-center justify-center">
-              <ngm-spin />
+              <z-loader diameter="30" />
             </div>
           } @else if (!registryItems().length) {
-            <div class="flex h-40 flex-col items-center justify-center gap-2 text-center text-sm text-text-tertiary">
-              <i class="ri-inbox-line text-xl"></i>
-              <div>{{ 'PAC.Plugin.NoRegisteredPlugins' | translate: { Default: 'No registered plugins' } }}</div>
-            </div>
+            <z-empty
+              class="h-40 border-0 p-0 md:p-0"
+              zIcon="inbox"
+              [zTitle]="'PAC.Plugin.NoRegisteredPlugins' | translate: { Default: 'No registered plugins' }"
+            />
           } @else {
             <div class="flex flex-col gap-1">
               @for (item of registryItems(); track item.id) {
                 <button
                   type="button"
-                  class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left hover:bg-hover-bg"
+                  z-button
+                  zType="ghost"
+                  zFull
+                  class="h-auto items-start justify-start gap-2 rounded-lg px-2 py-2 text-left hover:bg-hover-bg"
                   [class.bg-hover-bg]="registryEditingId() === item.id"
                   (click)="editRegistryItem(item)"
                 >
-                  <i class="ri-puzzle-2-line mt-0.5 text-base text-text-tertiary"></i>
+                  <z-icon zType="puzzle" class="mt-0.5 shrink-0 text-text-tertiary" />
                   <span class="min-w-0 grow">
                     <span class="block truncate system-sm-semibold text-text-primary">{{ item.displayName }}</span>
                     <span class="block truncate text-xs text-text-tertiary">{{ item.packageName }}</span>
                   </span>
                   @if (item.enabled === false) {
-                    <span class="rounded-full bg-background-default-subtle px-2 py-0.5 text-[11px] text-text-tertiary">
+                    <z-badge zType="secondary" class="shrink-0 px-2 py-0.5 text-[11px]">
                       {{ 'PAC.Plugin.Disabled' | translate: { Default: 'Disabled' } }}
-                    </span>
+                    </z-badge>
                   }
                 </button>
               }
             </div>
           }
-        </div>
-      </div>
+        </z-card-content>
+      </z-card>
 
-      <div
-        class="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-divider-regular bg-components-panel-bg p-4"
+      <z-card
+        class="relative min-h-0 gap-0 overflow-hidden border-divider-regular bg-components-panel-bg px-4 pb-4 pt-6 shadow-none"
       >
-        <div class="mb-4 flex shrink-0 items-center justify-between">
+        <z-card-header class="mb-5 flex shrink-0 items-center justify-between gap-3 p-0">
           <div>
             <div class="system-md-semibold text-text-primary">
               @if (registryEditingId()) {
@@ -500,221 +511,237 @@
             @if (registryEditingId()) {
               <button
                 type="button"
-                class="btn disabled:btn-disabled btn-danger btn-small"
-                [disabled]="registryDeleting() === registryEditingId() || !selectedRegistryItem()"
+                z-button
+                zType="destructive"
+                zSize="sm"
+                [zLoading]="registryDeleting() === registryEditingId()"
+                [zDisabled]="registryDeleting() === registryEditingId() || !selectedRegistryItem()"
                 (click)="selectedRegistryItem() && deleteRegistryItem(selectedRegistryItem()!)"
               >
-                @if (registryDeleting() === registryEditingId()) {
-                  <ngm-spin small />
-                } @else {
-                  <i class="ri-delete-bin-line"></i>
+                @if (registryDeleting() !== registryEditingId()) {
+                  <z-icon zType="trash" />
                 }
-                <span class="pl-1">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+                <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
               </button>
             }
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-secondary btn-small"
-              (click)="resetRegistryForm()"
-            >
+            <button type="button" z-button zType="secondary" zSize="sm" (click)="resetRegistryForm()">
               {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
             </button>
             <button
               type="button"
-              class="btn disabled:btn-disabled btn-primary btn-small flex items-center gap-1"
-              [disabled]="registrySaveDisabled()"
+              z-button
+              zType="default"
+              zSize="sm"
+              [zLoading]="registrySaving()"
+              [zDisabled]="registrySaveDisabled()"
               (click)="saveRegistryItem()"
             >
-              @if (registrySaving()) {
-                <ngm-spin small class="!text-primary-200" />
-              } @else {
-                <i class="ri-save-line"></i>
+              @if (!registrySaving()) {
+                <z-icon zType="save" />
               }
               <span>{{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
             </button>
           </div>
-        </div>
+        </z-card-header>
 
-        <div class="min-h-0 grow overflow-auto pr-1">
-          <div class="grid grid-cols-2 gap-3">
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+        <z-card-content class="min-h-0 grow overflow-auto p-1 pb-6 pr-2">
+          <div class="grid grid-cols-2 gap-x-3 gap-y-5">
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.PackageName' | translate: { Default: 'Package name' } }}
-              </span>
-              <input
-                class="xp-input w-full text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && !registryPackageName().trim())"
-                [class.border-text-destructive]="registryFormSubmitted() && !registryPackageName().trim()"
-                aria-required="true"
-                placeholder="@xpert-ai/plugin-example"
-                [(ngModel)]="registryPackageName"
-              />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input
+                  z-input
+                  [zStatus]="registryFormSubmitted() && !registryPackageName().trim() ? 'error' : undefined"
+                  aria-required="true"
+                  placeholder="@xpert-ai/plugin-example"
+                  [(ngModel)]="registryPackageName"
+                />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version' } }}
-              </span>
-              <input class="xp-input w-full text-sm" placeholder="latest" [(ngModel)]="registryVersion" />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input placeholder="latest" [(ngModel)]="registryVersion" />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }}
-              </span>
-              <input
-                class="xp-input w-full text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && !registryDisplayName().trim())"
-                [class.border-text-destructive]="registryFormSubmitted() && !registryDisplayName().trim()"
-                aria-required="true"
-                [(ngModel)]="registryDisplayName"
-              />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input
+                  z-input
+                  [zStatus]="registryFormSubmitted() && !registryDisplayName().trim() ? 'error' : undefined"
+                  aria-required="true"
+                  [(ngModel)]="registryDisplayName"
+                />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.Author' | translate: { Default: 'Author' } }}
-              </span>
-              <input
-                class="xp-input w-full text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && !registryAuthor().trim())"
-                [class.border-text-destructive]="registryFormSubmitted() && !registryAuthor().trim()"
-                aria-required="true"
-                [(ngModel)]="registryAuthor"
-              />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input
+                  z-input
+                  [zStatus]="registryFormSubmitted() && !registryAuthor().trim() ? 'error' : undefined"
+                  aria-required="true"
+                  [(ngModel)]="registryAuthor"
+                />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.Category' | translate: { Default: 'Category' } }}
-              </span>
-              <select
-                class="xp-input w-full text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && !registryCategory())"
-                [class.border-text-destructive]="registryFormSubmitted() && !registryCategory()"
-                aria-required="true"
-                [(ngModel)]="registryCategory"
-              >
-                @for (category of registryCategoryOptions; track category) {
-                  <option [value]="category">
-                    {{ 'PAC.Plugin.Category_' + category | translate: { Default: category } }}
-                  </option>
-                }
-              </select>
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <z-select aria-required="true" [(ngModel)]="registryCategory">
+                  @for (category of registryCategoryOptions; track category) {
+                    <z-select-item [zValue]="category">
+                      {{ 'PAC.Plugin.Category_' + category | translate: { Default: category } }}
+                    </z-select-item>
+                  }
+                </z-select>
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.RegistrySection' | translate: { Default: 'Section' } }}
-              </span>
-              <select class="xp-input w-full text-sm" [(ngModel)]="registrySection">
-                @for (section of registrySectionOptions; track section) {
-                  <option [value]="section">
-                    {{ 'PAC.Plugin.RegistrySection_' + section | translate: { Default: section } }}
-                  </option>
-                }
-              </select>
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <z-select [(ngModel)]="registrySection">
+                  @for (section of registrySectionOptions; track section) {
+                    <z-select-item [zValue]="section">
+                      {{ 'PAC.Plugin.RegistrySection_' + section | translate: { Default: section } }}
+                    </z-select-item>
+                  }
+                </z-select>
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.TargetApps' | translate: { Default: 'Target apps' } }}
-              </span>
-              <input
-                class="xp-input w-full text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppsMissing())"
-                [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppsMissing()"
-                aria-required="true"
-                [(ngModel)]="registryTargetApps"
-              />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input
+                  z-input
+                  [zStatus]="registryFormSubmitted() && registryTargetAppsMissing() ? 'error' : undefined"
+                  aria-required="true"
+                  [(ngModel)]="registryTargetApps"
+                />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.Keywords' | translate: { Default: 'Keywords' } }}
-              </span>
-              <input class="xp-input w-full text-sm" [(ngModel)]="registryKeywords" />
-            </label>
-            <label class="col-span-2 flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
-                <span class="mr-0.5 text-text-destructive">*</span>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input [(ngModel)]="registryKeywords" />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label zRequired>
                 {{ 'PAC.Plugin.Description' | translate: { Default: 'Description' } }}
-              </span>
-              <textarea
-                rows="2"
-                class="xp-input w-full resize-none text-sm"
-                [class.border-transparent]="!(registryFormSubmitted() && !registryDescription().trim())"
-                [class.border-text-destructive]="registryFormSubmitted() && !registryDescription().trim()"
-                aria-required="true"
-                [(ngModel)]="registryDescription"
-              ></textarea>
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <textarea
+                  z-input
+                  rows="2"
+                  class="resize-none"
+                  [zStatus]="registryFormSubmitted() && !registryDescription().trim() ? 'error' : undefined"
+                  aria-required="true"
+                  [(ngModel)]="registryDescription"
+                ></textarea>
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
-              </span>
-              <input class="xp-input w-full text-sm" [(ngModel)]="registryHomepage" />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input [(ngModel)]="registryHomepage" />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.Repository' | translate: { Default: 'Repository' } }}
-              </span>
-              <input class="xp-input w-full text-sm" [(ngModel)]="registryRepositoryUrl" />
-            </label>
-            <label class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input [(ngModel)]="registryRepositoryUrl" />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.Priority' | translate: { Default: 'Priority' } }}
-              </span>
-              <input type="number" class="xp-input w-full text-sm" [(ngModel)]="registryPriority" />
-            </label>
-            <label class="flex items-center gap-2 pt-7 text-sm text-text-secondary">
-              <input type="checkbox" class="h-4 w-4" [(ngModel)]="registryEnabled" />
-              <span>{{ 'PAC.Plugin.Enabled' | translate: { Default: 'Enabled' } }}</span>
-            </label>
-            <label class="col-span-2 flex flex-col gap-2">
-              <span class="text-sm font-medium text-text-tertiary">
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input type="number" [(ngModel)]="registryPriority" />
+              </z-form-control>
+            </z-form-field>
+            <div class="flex items-end pb-1">
+              <z-checkbox [(ngModel)]="registryEnabled">
+                {{ 'PAC.Plugin.Enabled' | translate: { Default: 'Enabled' } }}
+              </z-checkbox>
+            </div>
+            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
                 {{ 'PAC.Plugin.AdvancedJson' | translate: { Default: 'Advanced JSON' } }}
-              </span>
-              <textarea
-                rows="10"
-                class="xp-input w-full resize-y font-mono text-xs"
-                [class.border-transparent]="!(registryFormSubmitted() && registryTargetAppMetaInvalid())"
-                [class.border-text-destructive]="registryFormSubmitted() && registryTargetAppMetaInvalid()"
-                [(ngModel)]="registryTargetAppMetaJson"
-                spellcheck="false"
-              ></textarea>
-            </label>
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <textarea
+                  z-input
+                  rows="10"
+                  class="resize-y font-mono text-xs"
+                  [zStatus]="registryFormSubmitted() && registryTargetAppMetaInvalid() ? 'error' : undefined"
+                  [(ngModel)]="registryTargetAppMetaJson"
+                  spellcheck="false"
+                ></textarea>
+              </z-form-control>
+            </z-form-field>
           </div>
 
           @if (registryFormError()) {
-            <div class="mt-3 max-h-28 overflow-auto whitespace-break-spaces text-sm text-text-destructive">
-              {{ registryFormError() }}
-            </div>
+            <z-alert
+              zType="destructive"
+              class="mt-5 max-h-28 overflow-auto whitespace-break-spaces"
+              [zDescription]="registryFormError() ?? ''"
+            />
           } @else if (registryFormInvalid()) {
-            <div
-              class="mt-3 flex items-start gap-2 rounded-lg bg-status-error-bg/40 px-3 py-2 text-sm text-text-destructive"
-            >
-              <i class="ri-error-warning-line mt-0.5"></i>
-              <span>
-                @if (registryRequiredFieldsMissing()) {
-                  {{
-                    'PAC.Plugin.RegisteredPluginRequiredFields'
-                      | translate
-                        : { Default: 'Package, name, description, category, author, and target apps are required.' }
-                  }}
-                } @else {
-                  {{
-                    'PAC.Plugin.RegisteredPluginJsonInvalid'
-                      | translate: { Default: 'Advanced JSON must be a valid object.' }
-                  }}
-                }
-              </span>
-            </div>
+            @if (registryRequiredFieldsMissing()) {
+              <z-alert
+                zType="destructive"
+                class="mt-5"
+                [zDescription]="
+                  'PAC.Plugin.RegisteredPluginRequiredFields'
+                    | translate
+                      : { Default: 'Package, name, description, category, author, and target apps are required.' }
+                "
+              />
+            } @else {
+              <z-alert
+                zType="destructive"
+                class="mt-5"
+                [zDescription]="
+                  'PAC.Plugin.RegisteredPluginJsonInvalid'
+                    | translate: { Default: 'Advanced JSON must be a valid object.' }
+                "
+              />
+            }
           }
-        </div>
+        </z-card-content>
 
         @if (registrySaving()) {
-          <ngm-spin class="absolute left-0 top-0 h-full w-full rounded-xl bg-components-card-bg/20 backdrop-blur-sm" />
+          <div
+            class="absolute inset-0 flex items-center justify-center rounded-xl bg-components-card-bg/20 backdrop-blur-sm"
+          >
+            <z-loader diameter="30" />
+          </div>
         }
-      </div>
+      </z-card>
     </div>
   </div>
 </ng-template>

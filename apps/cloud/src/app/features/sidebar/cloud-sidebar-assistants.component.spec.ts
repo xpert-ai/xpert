@@ -1,5 +1,5 @@
 import { Component, signal, type WritableSignal } from '@angular/core'
-import { TestBed } from '@angular/core/testing'
+import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
@@ -212,6 +212,7 @@ describe('cloud sidebar assistants helpers', () => {
 class DummyComponent {}
 
 describe('CloudSidebarAssistantsComponent', () => {
+  let documentVisibilityState: DocumentVisibilityState
   let assistantBindingService: {
     changes$: ReturnType<Subject<{ code: string; scope: string }>['asObservable']>
     get: jest.Mock
@@ -237,6 +238,11 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
 
   beforeEach(async () => {
+    documentVisibilityState = 'visible'
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => documentVisibilityState
+    })
     assistantBindingChanges$ = new Subject<{ code: string; scope: string }>()
     assistantBindingService = {
       changes$: assistantBindingChanges$.asObservable(),
@@ -323,6 +329,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   afterEach(() => {
+    jest.useRealTimers()
     TestBed.resetTestingModule()
     jest.restoreAllMocks()
   })
@@ -866,6 +873,74 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
   })
+
+  it('polls unread summaries every 120 seconds while the page is visible', fakeAsync(() => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    tick()
+
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
+
+    tick(119_999)
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
+
+    tick(1)
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
+
+    fixture.destroy()
+    discardPeriodicTasks()
+  }))
+
+  it('pauses unread polling while hidden and refreshes immediately when visible again', fakeAsync(() => {
+    documentVisibilityState = 'hidden'
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    tick()
+
+    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
+
+    tick(120_000)
+    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
+
+    documentVisibilityState = 'visible'
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
+
+    tick(120_000)
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
+
+    fixture.destroy()
+    discardPeriodicTasks()
+  }))
+
+  it('does not overlap unread summary requests when a prior request is still pending', fakeAsync(() => {
+    const pendingUnread = new Subject<unknown>()
+    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread.asObservable())
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    tick()
+
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
+
+    tick(120_000)
+    conversationService.unreadRefresh$.next()
+
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
+
+    pendingUnread.next([])
+    pendingUnread.complete()
+    conversationService.getUnreadByXperts.mockReturnValue(of([]))
+    conversationService.unreadRefresh$.next()
+
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
+
+    fixture.destroy()
+    discardPeriodicTasks()
+  }))
 
   it('normalizes wrapped unread responses and ignores invalid unread payloads', async () => {
     conversationService.getUnreadByXperts.mockReturnValueOnce(

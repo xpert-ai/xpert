@@ -1,22 +1,28 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { IXpertWorkspace, XpertWorkspaceService } from '@cloud/app/@core'
+import { ActivatedRoute, Router } from '@angular/router'
+import { AiFeatureEnum, IXpertWorkspace, Store, XpertWorkspaceService } from '@cloud/app/@core'
 import { linkedModel } from '@xpert-ai/ocap-angular/core'
-import { ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardInputGroupComponent,
+  ZardMenuImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
-import { ExploreAgentsComponent } from './agents/agents.component'
-import { ExploreInspirationsComponent } from './inspirations/inspirations.component'
+import { ExploreAgentSquareComponent } from './agent-square/agent-square.component'
 import { ExploreSkillsComponent } from './skills/skills.component'
 
 type ExploreMode = 'square' | 'mine'
-type ExploreTab = 'skills' | 'agents' | 'inspirations'
+type ExploreTab = 'skills' | 'agent-square'
 
 const DEFAULT_MODE: ExploreMode = 'square'
-const DEFAULT_TAB: ExploreTab = 'agents'
+const DEFAULT_TAB: ExploreTab = 'skills'
 
 @Component({
   standalone: true,
@@ -24,12 +30,14 @@ const DEFAULT_TAB: ExploreTab = 'agents'
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule,
     TranslateModule,
-    ...ZardTabsImports,
-    ExploreAgentsComponent,
-    ExploreSkillsComponent,
-    ExploreInspirationsComponent
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardInputGroupComponent,
+    ...ZardMenuImports,
+    ExploreAgentSquareComponent,
+    ExploreSkillsComponent
   ],
   templateUrl: './explore.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,14 +48,22 @@ const DEFAULT_TAB: ExploreTab = 'agents'
 export class ExploreComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
+  readonly #store = inject(Store)
   readonly #workspaceService = inject(XpertWorkspaceService)
 
   readonly #queryMode = injectQueryParams<string>('mode')
   readonly #queryTab = injectQueryParams<string>('tab')
   readonly #querySearch = injectQueryParams('search')
 
-  readonly loadingDefaultWorkspace = signal(false)
   readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly installFromRepositoryNonce = signal(0)
+  readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
+    initialValue: this.#store.featureContextHydrated
+  })
+  readonly agentMarketplaceEnabled = computed(
+    () =>
+      this.featureContextHydrated() === true && this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_MARKETPLACE)
+  )
 
   readonly mode = linkedModel<ExploreMode>({
     initialValue: DEFAULT_MODE,
@@ -61,7 +77,7 @@ export class ExploreComponent {
 
   readonly tab = linkedModel<ExploreTab>({
     initialValue: DEFAULT_TAB,
-    compute: () => normalizeTab(this.#queryTab()),
+    compute: () => normalizeTab(this.#queryTab(), this.agentMarketplaceEnabled()),
     update: (tab) => {
       this.navigate({
         tab: tab === DEFAULT_TAB ? null : tab
@@ -84,11 +100,11 @@ export class ExploreComponent {
     void this.loadDefaultWorkspace()
   }
 
-  setMode(mode: ExploreMode) {
-    this.mode.set(mode)
-  }
-
   setTab(tab: ExploreTab) {
+    if (tab === 'agent-square' && !this.agentMarketplaceEnabled()) {
+      return
+    }
+
     this.tab.set(tab)
   }
 
@@ -96,19 +112,26 @@ export class ExploreComponent {
     this.search.set('')
   }
 
-  resetToSquare() {
+  openSkillManagement() {
+    const workspaceId = this.defaultWorkspace()?.id
+    this.#router.navigate(workspaceId ? ['/xpert/w', workspaceId, 'skills'] : ['/xpert/w'])
+  }
+
+  openSkillSquare() {
     this.mode.set(DEFAULT_MODE)
+    this.tab.set('skills')
+  }
+
+  openInstallFromRepository() {
+    this.openSkillSquare()
+    this.installFromRepositoryNonce.update((value) => value + 1)
   }
 
   async loadDefaultWorkspace() {
-    this.loadingDefaultWorkspace.set(true)
-
     try {
       this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' })))
-    } catch (error) {
+    } catch {
       this.defaultWorkspace.set(null)
-    } finally {
-      this.loadingDefaultWorkspace.set(false)
     }
   }
 
@@ -126,6 +149,9 @@ function normalizeMode(value: string | null | undefined): ExploreMode {
   return value === 'mine' ? 'mine' : DEFAULT_MODE
 }
 
-function normalizeTab(value: string | null | undefined): ExploreTab {
-  return value === 'skills' || value === 'inspirations' || value === 'agents' ? value : DEFAULT_TAB
+function normalizeTab(value: string | null | undefined, agentMarketplaceEnabled: boolean): ExploreTab {
+  if (agentMarketplaceEnabled && (value === 'agent-square' || value === 'agents')) {
+    return 'agent-square'
+  }
+  return DEFAULT_TAB
 }

@@ -52,8 +52,10 @@ const collectTransformPackages = (seedPackages: string[]) => {
 
 const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
+const transformPackagePattern = transformPackages.map(escapeRegex).join('|')
+const pnpmTransformPackagePattern = transformPackages.map((name) => escapeRegex(name.replace('/', '+'))).join('|')
 const transformPattern = transformPackages.length
-    ? `/node_modules/(?!(${transformPackages.map(escapeRegex).join('|')})(/|$))`
+    ? `/node_modules/(?!(${transformPackagePattern})(/|$)|\\.pnpm/(${pnpmTransformPackagePattern})@)`
     : '/node_modules/'
 
 export default {
@@ -77,5 +79,8 @@ export default {
     },
     moduleFileExtensions: ['ts', 'js', 'html'],
     coverageDirectory: '../../coverage/packages/server-ai',
+    moduleNameMapper: {
+        '^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts'
+    },
     transformIgnorePatterns: [transformPattern]
 }

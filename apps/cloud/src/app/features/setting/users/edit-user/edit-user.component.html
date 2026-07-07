@@ -47,7 +47,10 @@
 
         @if (isTechnicalUser(currentUser)) {
           <div class="text-sm text-text-tertiary">
-            {{ 'PAC.Users.TechnicalUserReadonlyHint' | translate: { Default: 'Basic account fields are read-only for technical users.' } }}
+            {{
+              'PAC.Users.TechnicalUserReadonlyHint'
+                | translate: { Default: 'Basic account fields are read-only for technical users.' }
+            }}
           </div>
         }
       </div>
@@ -73,11 +76,13 @@
         />
       </z-tab>
 
-      <z-tab [label]="'PAC.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
-        @if (currentUser.id; as userId) {
-          <pac-user-membership class="block" [userId]="userId" />
-        }
-      </z-tab>
+      @if (membershipPlanEnabled()) {
+        <z-tab [label]="'PAC.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
+          @if (currentUser.id; as userId) {
+            <pac-user-membership class="block" [userId]="userId" />
+          }
+        </z-tab>
+      }
 
       @if (!isTechnicalUser(currentUser)) {
         <z-tab [label]="'PAC.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
@@ -112,7 +117,10 @@
                   {{ 'PAC.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
                 </div>
                 <div class="text-sm text-text-tertiary">
-                  {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' } }}.
+                  {{
+                    'PAC.USERS_PAGE.DeleteUserDesc'
+                      | translate: { Default: 'Delete this user and its associated data' }
+                  }}.
                 </div>
               </div>
 

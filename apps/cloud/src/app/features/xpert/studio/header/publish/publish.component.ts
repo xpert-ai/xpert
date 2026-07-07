@@ -2,11 +2,25 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { nonBlank, SlideUpAnimation } from '@xpert-ai/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertAPIService } from '@cloud/app/@core'
+import {
+  AiFeatureEnum,
+  deriveXpertMarketplaceTechnicalProfile,
+  getErrorMessage,
+  IXpert,
+  Store,
+  ToastrService,
+  TSelectOption,
+  TXpertMarketplaceBusinessCategory,
+  TXpertMarketplaceTechnicalCategory,
+  TXpertPublishMarketplaceInput,
+  XpertAPIService,
+  XpertMarketplaceBusinessCategories
+} from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -36,6 +50,7 @@ export class XpertPublishVersionComponent {
   readonly studioService = inject(XpertStudioApiService)
   readonly xpertAPI = inject(XpertAPIService)
   readonly xpertService = inject(XpertService)
+  readonly #store = inject(Store)
   readonly confirmDelete = injectConfirmDelete()
   readonly confirm = injectConfirm()
   readonly #translate = inject(TranslateService)
@@ -44,6 +59,13 @@ export class XpertPublishVersionComponent {
   readonly xpert = this.studioService.team
   readonly latest = computed(() => this.xpert()?.latest)
   readonly version = computed(() => this.xpert()?.version)
+  readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
+    initialValue: this.#store.featureContextHydrated
+  })
+  readonly agentMarketplaceEnabled = computed(
+    () =>
+      this.featureContextHydrated() === true && this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_MARKETPLACE)
+  )
   readonly versions = computed(() => {
     const versions = this.studioService.versions()?.filter(nonBlank)
     return versions?.sort((a, b) => Number(b.version) - Number(a.version))
@@ -51,6 +73,25 @@ export class XpertPublishVersionComponent {
 
   readonly newVersion = model(false)
   readonly releaseNotes = model('')
+  readonly marketplaceSummary = model(this.xpert().marketplace?.summary ?? '')
+  readonly capabilityTagsText = model((this.xpert().marketplace?.capabilityTags ?? []).join(', '))
+  readonly selectedBusinessCategories = signal<TXpertMarketplaceBusinessCategory[]>([
+    ...(this.xpert().marketplace?.businessCategories ?? [])
+  ])
+  readonly businessCategories = XpertMarketplaceBusinessCategories
+  readonly technicalPreview = computed(() => {
+    const xpert = this.xpert()
+    if (xpert.draft) {
+      return deriveXpertMarketplaceTechnicalProfile(xpert.draft)
+    }
+    if (xpert.graph) {
+      return deriveXpertMarketplaceTechnicalProfile({
+        ...xpert.graph,
+        team: xpert
+      })
+    }
+    return deriveXpertMarketplaceTechnicalProfile(null)
+  })
   readonly releaseNotesError = computed(() => {
     if (!this.releaseNotes()) {
       return this.#translate.instant('PAC.Xpert.AddReleaseNotes', { Default: 'Add release notes' })
@@ -139,7 +180,8 @@ export class XpertPublishVersionComponent {
         switchMap(() =>
           this.xpertAPI.publish(this.xpert().id, this.newVersion(), {
             environmentId: this.environmentId(),
-            releaseNotes: this.releaseNotes()
+            releaseNotes: this.releaseNotes(),
+            ...(this.agentMarketplaceEnabled() ? { marketplace: this.marketplacePayload() } : {})
           })
         )
       )
@@ -160,5 +202,31 @@ export class XpertPublishVersionComponent {
           this.loading.set(false)
         }
       })
+  }
+
+  toggleBusinessCategory(category: TXpertMarketplaceBusinessCategory) {
+    this.selectedBusinessCategories.update((items) =>
+      items.includes(category) ? items.filter((item) => item !== category) : [...items, category]
+    )
+  }
+
+  businessLabelKey(category: TXpertMarketplaceBusinessCategory) {
+    return `PAC.Explore.AgentSquare.Business.${category}`
+  }
+
+  technicalLabelKey(category: TXpertMarketplaceTechnicalCategory) {
+    return `PAC.Explore.AgentSquare.Technical.${category}`
+  }
+
+  private marketplacePayload(): TXpertPublishMarketplaceInput {
+    return {
+      summary: this.marketplaceSummary().trim() || null,
+      businessCategories: this.selectedBusinessCategories(),
+      capabilityTags: this.capabilityTagsText()
+        .split(/[,\n]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 12)
+    }
   }
 }

@@ -263,6 +263,12 @@
       "Width": "Width",
       "Configured": "configured"
     },
+    "Skills": {
+      "Selected": "selected",
+      "Available": "available",
+      "UseAllDefault": "Use all skills by default",
+      "SelectAllDefault": "Select all skills as default."
+    },
     "Common": {
       "Tools": "Tools",
       "Loading": "Loading...",
@@ -313,9 +319,17 @@
           "Name": "Copilot features",
           "Description": "Manage model provider and monitoring modules."
         },
+        "FEATURE_MEMBERSHIP_PLAN": {
+          "Name": "Membership Plans",
+          "Description": "Enable membership plan quotas, point deduction, and usage statistics."
+        },
         "GROUP_XPERT": {
           "Name": "Xpert features",
           "Description": "Manage digital expert and related entry points."
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "Agent Marketplace",
+          "Description": "Show the agent marketplace and access approval entry points."
         }
       }
     },
@@ -362,12 +376,10 @@
         "OrganizationRequiredDesc": "ClawXpert stores one assistant binding per user and per organization.",
         "LoadFailed": "Failed to load ClawXpert.",
         "Onboarding": "Onboarding",
-        "OnboardingTitle": "Prepare plugins and a model before creating ClawXpert",
-        "OnboardingDesc": "Confirm two things first: plugins can be installed from the plugin marketplace, and a configured model provider is required before creating your first ClawXpert.",
+        "OnboardingTitle": "Prepare a model before creating ClawXpert",
+        "OnboardingDesc": "Choose a default model from installed model providers. Use More only when another model plugin still needs initialization.",
         "EntryGuideScopeTitle": "Organization / tenant switcher",
         "EntryGuideScopeDesc": "Switch organizations and tenants here. When you are in the tenant scope, select an organization first and the guide will continue automatically.",
-        "EntryGuidePluginsTitle": "Plugin marketplace",
-        "EntryGuidePluginsDesc": "Find and install plugins here to extend digital expert capabilities.",
         "EntryGuideModelProvidersTitle": "Model providers",
         "EntryGuideModelProvidersDesc": "Digital experts need an available model. Configure model providers here when no model is available.",
         "EntryGuideWorkspaceTitle": "Workspace",
@@ -375,21 +387,10 @@
         "EntryGuideSwitchScopeHint": "Continue automatically after selecting an organization",
         "EntryGuideSwitchScope": "Switch organization",
         "EntryGuideCreate": "Create",
-        "StepOne": "Step 1 / 2",
-        "StepTwo": "Step 2 / 2",
-        "PluginStepTitle": "Plugins",
-        "PluginStepDesc": "Plugins extend ClawXpert capabilities. You can review and install needed plugins here, or install more later.",
-        "OpenPluginMarketplace": "Plugin marketplace",
-        "PluginWeCom": "WeCom",
-        "PluginDingTalk": "DingTalk",
-        "PluginLark": "Feishu",
-        "PluginBrowser": "Browser tools",
-        "OptionalPlugin": "Optional",
         "LoadingPlugins": "Loading marketplace plugins...",
         "InstallPlugin": "Install",
         "PluginInstalled": "Installed",
-        "NoMarketplacePlugins": "No marketplace plugins found.",
-        "PluginStepFooter": "Install plugins now or continue to prepare the model.",
+        "MoreModelPlugins": "More model plugins",
         "ModelProviderStepTitle": "Model provider",
         "ModelProviderStepDesc": "No available LLM model was found. Configure a model provider here before creating ClawXpert.",
         "ModelProviderStepReadyDesc": "Available LLM models were found. You can continue creating ClawXpert.",
@@ -405,7 +406,6 @@
         "CopilotFeatureDisabledDesc": "Copilot is not enabled for the current tenant or organization, so ClawXpert cannot be created yet.",
         "ModelProviderRequiredBeforeCreate": "Configure an available model before creating.",
         "SelectModelBeforeCreate": "Select a model before creating.",
-        "ModelPluginSetupDesc": "No available model yet. Check whether language model plugins are initialized; install missing providers, then configure a default model.",
         "InitializedModelPlugins": "Initialized language model plugins",
         "UninitializedModelPlugins": "Uninitialized language model plugins",
         "NoInitializedModelPlugins": "No initialized model plugins yet.",
@@ -792,6 +792,10 @@
       "SelectToolsetInstance": "Select a toolset instance",
       "NoMatchingToolsetConfigured": "No matching built-in toolset is configured in this workspace. Configure one to continue.",
       "NoTemplateToolsetsRequired": "No toolsets required",
+      "NoSkillsYet": "No skills have been added to this workflow yet.",
+      "UnavailableSelectedSkills": "{{count}} historically configured skills are not available in this workspace.",
+      "RemoveUnavailableSkills": "Remove unavailable",
+      "ResetDefaultSkills": "Reset to default skills",
       "TemplateToolsetToolsCount": "tools",
       "TemplateToolsetMissingNamed": "Required template toolset '{{instanceName}}' ({{provider}}) is not configured in this workspace.",
       "TemplateToolsetMissingProvider": "Required template toolset '{{provider}}' is not configured in this workspace.",

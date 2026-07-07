@@ -1,16 +1,10 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, ISkillPackage } from '@xpert-ai/cloud/state'
+import type { InstallGithubSkillPackagesInput } from '@xpert-ai/contracts'
 import { NGXLogger } from 'ngx-logger'
 import { toParams } from '@xpert-ai/core'
 import { IShareSkillPackageInput, TFile, TFileDirectory } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
-
-export type InstallGithubSkillPackagesInput = {
-  url: string
-  path?: string
-  branch?: string
-  token?: string
-}
 
 @Injectable({ providedIn: 'root' })
 export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPackage> {

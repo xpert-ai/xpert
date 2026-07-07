@@ -99,6 +99,9 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
+        if (!(await this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId }))) {
+            return this.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId, where, relations)
+        }
         if (
             organizationId &&
             (await this.membershipService.countEnabledOrganizationCopilots(tenantId, organizationId)) > 0
@@ -126,6 +129,27 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         })
 
         return this.hydrateVisibleModelProviders(items, tenantId, copilotOrganizationId)
+    }
+
+    private async findAllEnabledCopilotsWithoutMembership(
+        tenantId: string,
+        organizationId?: string | null,
+        where?: FindOptionsWhere<Copilot>,
+        relations?: string[]
+    ) {
+        const resolvedRelations = this.mergeCopilotRelations(relations)
+        const baseWhere = { ...(where ?? {}), tenantId, enabled: true }
+        const items = await this.repository.find({
+            where: organizationId
+                ? [
+                      { ...baseWhere, organizationId },
+                      { ...baseWhere, organizationId: IsNull() }
+                  ]
+                : { ...baseWhere, organizationId: IsNull() },
+            relations: resolvedRelations
+        })
+
+        return this.hydrateVisibleModelProviders(items, tenantId, organizationId ?? null)
     }
 
     private mergeCopilotRelations(relations?: string[]) {

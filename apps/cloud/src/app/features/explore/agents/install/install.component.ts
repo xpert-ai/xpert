@@ -10,14 +10,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
-  ICopilotModel,
   injectToastr,
   OrderTypeEnum,
-  TAvatar,
-  TXpertTemplate,
   XpertTemplateService,
   XpertWorkspaceService
 } from '@cloud/app/@core'
+import type { ICopilotModel, TAvatar, TXpertTemplate } from '@cloud/app/@core'
 import { XpertBasicFormComponent } from '@cloud/app/@shared/xpert'
 import { map } from 'rxjs/operators'
 
@@ -79,28 +77,25 @@ export class ExploreAgentInstallComponent {
   readonly loading = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        const workspaces = this.workspaces()
-        const preferredWorkspaceId =
-          [this.defaultWorkspace()?.id, this.selectedWorkspace()?.id, workspaces?.[0]?.id].find(
-            (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
-          ) ?? ''
+    effect(() => {
+      const workspaces = this.workspaces()
+      const preferredWorkspaceId =
+        [this.defaultWorkspace()?.id, this.selectedWorkspace()?.id, workspaces?.[0]?.id].find(
+          (id) => !!id && workspaces?.some((workspace) => workspace.id === id)
+        ) ?? ''
 
-        if (!preferredWorkspaceId) {
-          return
-        }
+      if (!preferredWorkspaceId) {
+        return
+      }
 
-        if (this.#workspaceTouched() && this.workspace()) {
-          return
-        }
+      if (this.#workspaceTouched() && this.workspace()) {
+        return
+      }
 
-        if (this.workspace() !== preferredWorkspaceId) {
-          this.workspace.set(preferredWorkspaceId)
-        }
-      },
-      { allowSignalWrites: true }
-    )
+      if (this.workspace() !== preferredWorkspaceId) {
+        this.workspace.set(preferredWorkspaceId)
+      }
+    })
   }
 
   close() {

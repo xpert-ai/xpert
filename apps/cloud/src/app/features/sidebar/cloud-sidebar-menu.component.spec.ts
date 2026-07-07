@@ -28,6 +28,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       menu({ title: 'MCP Monitor', link: '/operations' }),
       menu({ title: 'Plugins', link: '/plugins' }),
       menu({ title: 'Model Providers', link: '/copilot/basic', admin: true }),
+      menu({ title: 'Xpert Access Requests', link: '/settings/xpert-access-requests', admin: true }),
       menu({ title: 'Explore', link: '/explore' })
     ])
 
@@ -41,6 +42,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       '/plugins',
       '/operations',
       '/copilot/basic',
+      '/settings/xpert-access-requests',
       '/settings'
     ])
   })

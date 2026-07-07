@@ -4,7 +4,7 @@ import { USER_ORGANIZATION_ENTRY_GUIDE_CLAWXPERT } from '@xpert-ai/contracts'
 import type { ZardHighlightStep, ZardHighlightTarget } from '@xpert-ai/headless-ui'
 import { RequestScopeLevel } from '../@core/types'
 
-export type FeatureEntryOnboardingStepKey = 'scope-switcher' | 'plugins-marketplace' | 'model-providers' | 'workspace'
+export type FeatureEntryOnboardingStepKey = 'scope-switcher' | 'model-providers' | 'workspace'
 export const FEATURE_ENTRY_ONBOARDING_GUIDE_KEY = USER_ORGANIZATION_ENTRY_GUIDE_CLAWXPERT
 export const FEATURE_ENTRY_ONBOARDING_SIDEBAR_EXPAND_DELAY_MS = 320
 
@@ -22,14 +22,6 @@ export function createFeatureEntryOnboardingSteps(translate = (key: string) => k
       target: onboardingTarget('scope-switcher'),
       title: translate('PAC.Chat.ClawXpert.EntryGuideScopeTitle'),
       description: translate('PAC.Chat.ClawXpert.EntryGuideScopeDesc'),
-      placement: 'rightTop',
-      type: 'primary'
-    },
-    {
-      key: 'plugins-marketplace',
-      target: onboardingTarget('plugins-marketplace'),
-      title: translate('PAC.Chat.ClawXpert.EntryGuidePluginsTitle'),
-      description: translate('PAC.Chat.ClawXpert.EntryGuidePluginsDesc'),
       placement: 'rightTop',
       type: 'primary'
     },

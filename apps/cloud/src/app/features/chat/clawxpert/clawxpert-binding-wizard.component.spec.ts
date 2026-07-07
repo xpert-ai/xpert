@@ -101,6 +101,7 @@ import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpert } from '../../../@core'
+import { XpertNewBlankComponent } from '../../xpert/xpert'
 import { ClawXpertBindingWizardComponent } from './clawxpert-binding-wizard.component'
 import { ClawXpertFacade } from './clawxpert.facade'
 
@@ -123,6 +124,13 @@ function createFacadeMock(options?: {
 
 async function setup(options?: Parameters<typeof createFacadeMock>[0]) {
   const facade = createFacadeMock(options)
+  const dialog = {
+    open: jest.fn(() => ({
+      closed: {
+        subscribe: jest.fn()
+      }
+    }))
+  }
 
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), ClawXpertBindingWizardComponent],
@@ -134,9 +142,7 @@ async function setup(options?: Parameters<typeof createFacadeMock>[0]) {
       },
       {
         provide: Dialog,
-        useValue: {
-          open: jest.fn()
-        }
+        useValue: dialog
       }
     ]
   }).compileComponents()
@@ -145,6 +151,7 @@ async function setup(options?: Parameters<typeof createFacadeMock>[0]) {
   fixture.detectChanges()
 
   return {
+    dialog,
     facade,
     fixture
   }
@@ -184,5 +191,26 @@ describe('ClawXpertBindingWizardComponent', () => {
     await fixture.componentInstance.savePreference()
 
     expect(facade.savePreference).toHaveBeenCalledWith('xpert-1')
+  })
+
+  it('opens new ClawXpert creation with the ClawXpert template locked', async () => {
+    const { dialog, fixture } = await setup()
+
+    fixture.componentInstance.openCreateWizard()
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      XpertNewBlankComponent,
+      expect.objectContaining({
+        disableClose: true,
+        data: expect.objectContaining({
+          category: 'claw',
+          completionMode: 'publish',
+          initialStartMode: 'template',
+          initialTemplateId: 'xpert-my-claw-xpert',
+          lockStartMode: true,
+          type: 'agent'
+        })
+      })
+    )
   })
 })

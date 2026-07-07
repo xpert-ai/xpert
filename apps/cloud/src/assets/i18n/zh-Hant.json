@@ -122,6 +122,11 @@
       "GithubRepositoryUrlPlaceholder": "https://github.com/op7418/guizang-ppt-skill",
       "GithubRepositoryUrlRequired": "請輸入倉庫地址。",
       "GithubRepositoryUrlInvalid": "請輸入有效的 github.com 倉庫地址。",
+      "GithubSkillInstallInput": "GitHub 命令或倉庫",
+      "GithubSkillInstallInputPlaceholder": "npx skills add Leonxlnx/taste-skill --skill \"design-taste-frontend\"",
+      "GithubSkillInstallInputRequired": "請輸入 GitHub 來源。",
+      "GithubSkillInstallInputInvalid": "請輸入有效的 GitHub 倉庫或 npx skills add 命令。",
+      "GithubSkillInstallCaption": "從 GitHub 倉庫安裝全部 Skill，或透過命令指定某一個 Skill。",
       "InstallGithubSkills": "安裝 Skill",
       "InstallingGithubSkills": "正在安裝...",
       "GithubSkillInstallSuccess": "已從 GitHub 安裝 {{count}} 個 Skill。",
@@ -545,6 +550,12 @@
       "Saving": "保存中",
       "Uploading": "上傳中",
       "Yes": "是"
+    },
+    "Skills": {
+      "Selected": "已選",
+      "Available": "可用",
+      "UseAllDefault": "默認使用全部技能",
+      "SelectAllDefault": "默認選擇全部技能。"
     },
     "Common": {
       "Tools": "工具",
@@ -2751,12 +2762,10 @@
         "OrganizationRequiredDesc": "ClawXpert 會按用戶和組織維度保存一份助手綁定。",
         "LoadFailed": "ClawXpert 載入失敗。",
         "Onboarding": "新手引導",
-        "OnboardingTitle": "先準備插件和模型，再創建 ClawXpert",
-        "OnboardingDesc": "只需要確認兩件事：需要的插件可以從插件市場安裝，模型提供商配置好後就能創建第一個 ClawXpert。",
+        "OnboardingTitle": "先準備模型，再創建 ClawXpert",
+        "OnboardingDesc": "預設只從已安裝的模型提供商裡選擇模型。沒有初始化的模型插件，可點更多後再安裝初始化。",
         "EntryGuideScopeTitle": "組織 / 租戶切換",
         "EntryGuideScopeDesc": "這裡切換組織和租戶。當前在租戶時，請先選擇一個組織，切換後會自動進入下一步。",
-        "EntryGuidePluginsTitle": "插件市場",
-        "EntryGuidePluginsDesc": "插件可以在這裡查找和下載，用來增強數字專家能力。",
         "EntryGuideModelProvidersTitle": "模型提供商",
         "EntryGuideModelProvidersDesc": "數字專家需要可用模型。沒有模型時，從這裡配置模型提供商。",
         "EntryGuideWorkspaceTitle": "工作空間",
@@ -2764,21 +2773,10 @@
         "EntryGuideSwitchScopeHint": "選擇組織後自動繼續",
         "EntryGuideSwitchScope": "切換組織",
         "EntryGuideCreate": "去創建",
-        "StepOne": "Step 1 / 2",
-        "StepTwo": "Step 2 / 2",
-        "PluginStepTitle": "插件",
-        "PluginStepDesc": "插件用於擴展 ClawXpert 能力。你可以在這裡查看並安裝需要的插件，也可以創建後再按需安裝。",
-        "OpenPluginMarketplace": "插件市場",
-        "PluginWeCom": "企業微信",
-        "PluginDingTalk": "釘釘",
-        "PluginLark": "飛書",
-        "PluginBrowser": "瀏覽器工具",
-        "OptionalPlugin": "可按需安裝",
         "LoadingPlugins": "正在載入插件市場…",
         "InstallPlugin": "安裝",
         "PluginInstalled": "已安裝",
-        "NoMarketplacePlugins": "暫未找到插件市場插件。",
-        "PluginStepFooter": "可以現在安裝插件，也可以繼續準備模型。",
+        "MoreModelPlugins": "更多模型插件",
         "ModelProviderStepTitle": "模型提供商",
         "ModelProviderStepDesc": "當前還沒有可用的 LLM 模型。請先在這裡配置模型提供商，保存後再創建 ClawXpert。",
         "ModelProviderStepReadyDesc": "已檢測到可用 LLM 模型，可以繼續創建 ClawXpert。",
@@ -2794,7 +2792,6 @@
         "CopilotFeatureDisabledDesc": "當前組織或租戶未開啟 Copilot 功能，暫時不能創建 ClawXpert。",
         "ModelProviderRequiredBeforeCreate": "配置可用模型後才能創建。",
         "SelectModelBeforeCreate": "請選擇一個模型後再創建。",
-        "ModelPluginSetupDesc": "當前沒有可用模型。先確認語言模型插件是否已初始化；未初始化的插件安裝後會加入已初始化列表，再繼續配置默認模型。",
         "InitializedModelPlugins": "已初始化的語言模型插件",
         "UninitializedModelPlugins": "未初始化的語言模型插件",
         "NoInitializedModelPlugins": "還沒有已初始化的語言模型插件。",
@@ -3148,7 +3145,7 @@
           "Description": "維護系統角色和權限"
         },
         "GROUP_COPILOT": {
-          "Name": "Copilot 功能",
+          "Name": "模型",
           "Description": "管理模型提供商和監測模塊"
         },
         "FEATURE_COPILOT": {
@@ -3158,6 +3155,10 @@
         "FEATURE_COPILOT_MONITORING": {
           "Name": "監測",
           "Description": "查看模型提供商的用戶使用量和監測信息"
+        },
+        "FEATURE_MEMBERSHIP_PLAN": {
+          "Name": "會員套餐",
+          "Description": "啟用會員套餐配額、點數扣減和用量統計規則"
         },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知識庫",
@@ -3278,6 +3279,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "在主導航中顯示 Data & Ontology 入口。"
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "智能體市場",
+          "Description": "顯示智能體廣場及訪問審批入口。"
         }
       }
     },
@@ -3839,6 +3844,10 @@
       "SelectToolsetInstance": "選擇工具集實例",
       "NoMatchingToolsetConfigured": "當前工作區沒有配置匹配的內置工具集。請先配置一個再繼續。",
       "NoTemplateToolsetsRequired": "沒有必需工具集",
+      "NoSkillsYet": "還沒有為此工作流添加技能。",
+      "UnavailableSelectedSkills": "有 {{count}} 個歷史配置技能在當前工作區不可用。",
+      "RemoveUnavailableSkills": "移除不可用項",
+      "ResetDefaultSkills": "恢復默認技能",
       "TemplateToolsetToolsCount": "個工具",
       "TemplateToolsetMissingNamed": "必需的模板工具集「{{instanceName}}」（{{provider}}）尚未在此工作區配置。",
       "TemplateToolsetMissingProvider": "必需的模板工具集「{{provider}}」尚未在此工作區配置。",

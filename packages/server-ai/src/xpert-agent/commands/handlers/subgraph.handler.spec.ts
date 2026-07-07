@@ -1,3 +1,10 @@
+jest.mock('yargs', () => ({
+    __esModule: true,
+    default: () => ({
+        argv: {}
+    })
+}))
+
 import { AIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
@@ -17,7 +24,7 @@ import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
-import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared'
+import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
@@ -336,7 +343,7 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
                         name: 'ClientToolMiddleware',
                         tools: [
                             tool(async () => '', {
-                                name: 'file_search',
+                                name: 'parsed_file_search',
                                 description: 'Search files.',
                                 schema: z.object({
                                     query: z.string()
@@ -466,7 +473,7 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
                         name: 'ClientToolMiddleware',
                         tools: [
                             tool(async () => '', {
-                                name: 'file_search',
+                                name: 'parsed_file_search',
                                 description: 'Search files.',
                                 schema: z.object({
                                     query: z.string()
@@ -649,7 +656,7 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             name: FILE_UNDERSTANDING_MIDDLEWARE_NAME,
             tools: [
                 tool(async () => '', {
-                    name: 'file_search',
+                    name: 'parsed_file_search',
                     description: 'Search files.',
                     schema: z.object({
                         query: z.string()

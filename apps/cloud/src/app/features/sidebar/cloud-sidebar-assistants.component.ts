@@ -5,7 +5,7 @@ import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
-import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
   AIPermissionsEnum,
   AiFeatureEnum,
@@ -46,6 +46,7 @@ const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
 }
 
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
+const UNREAD_POLL_INTERVAL_MS = 2_000
 const ALL_ASSISTANT_CATEGORY = 'all'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
@@ -75,12 +76,46 @@ export class CloudSidebarAssistantsComponent {
   readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
-  readonly #unreadPoll$ = new Observable<number>((subscriber) =>
+  readonly #unreadPoll$ = new Observable<void>((subscriber) =>
     this.#ngZone.runOutsideAngular(() => {
-      subscriber.next(0)
-      const intervalId = setInterval(() => subscriber.next(Date.now()), 30_000)
+      const documentRef = globalThis.document
+      let intervalId: ReturnType<typeof setInterval> | null = null
+      const emit = () => subscriber.next()
+      const stop = () => {
+        if (intervalId) {
+          clearInterval(intervalId)
+          intervalId = null
+        }
+      }
+      const start = () => {
+        if (!intervalId) {
+          intervalId = setInterval(emit, UNREAD_POLL_INTERVAL_MS)
+        }
+      }
 
-      return () => clearInterval(intervalId)
+      if (!documentRef) {
+        emit()
+        start()
+        return stop
+      }
+
+      const handleVisibilityChange = () => {
+        if (documentRef.visibilityState === 'visible') {
+          emit()
+          start()
+          return
+        }
+
+        stop()
+      }
+
+      handleVisibilityChange()
+      documentRef.addEventListener('visibilitychange', handleVisibilityChange)
+
+      return () => {
+        stop()
+        documentRef.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
     })
   )
 
@@ -255,18 +290,16 @@ export class CloudSidebarAssistantsComponent {
     return Array.from(new Set(ids.map((id) => id.trim()))).join('\n')
   })
   readonly unreadSummaries = toSignal(
-    combineLatest([
-      toObservable(this.request),
-      toObservable(this.unreadXpertIdsRequest),
-      merge(this.#unreadPoll$, this.#conversationService.unreadRefresh$)
-    ]).pipe(
+    combineLatest([toObservable(this.request), toObservable(this.unreadXpertIdsRequest)]).pipe(
       switchMap(([request, xpertIdsRequest]) => {
         const xpertIds = xpertIdsRequest ? xpertIdsRequest.split('\n') : []
         if (!request.enabled || xpertIds.length === 0) {
           return of([])
         }
 
-        return this.#conversationService.getUnreadByXperts(xpertIds).pipe(catchError(() => of([])))
+        return merge(this.#unreadPoll$, this.#conversationService.unreadRefresh$).pipe(
+          exhaustMap(() => this.#conversationService.getUnreadByXperts(xpertIds).pipe(catchError(() => of([]))))
+        )
       })
     ),
     { initialValue: [] }

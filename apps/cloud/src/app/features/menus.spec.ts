@@ -3,6 +3,7 @@ import {
   AIPermissionsEnum,
   AnalyticsFeatures,
   FeatureEnum,
+  PermissionsEnum,
   RequestScopeLevel,
   RolesEnum
 } from '../@core/types'
@@ -30,6 +31,12 @@ describe('getSettingsMenuItems', () => {
     expect(menus.find((item) => item.path === 'copilot')).toBeUndefined()
   })
 
+  it('removes xpert access requests from the settings menu after management promotion', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+
+    expect(menus.find((item) => item.path === 'xpert-access-requests')).toBeUndefined()
+  })
+
   it('gates the organization settings menu with the organization feature', () => {
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
     const organizations = menus.find((item) => item.path === 'organizations')
@@ -51,6 +58,14 @@ describe('getSettingsMenuItems', () => {
     const dataSources = menus.find((item) => item.path === 'data-sources')
 
     expect(dataSources?.data?.featureKey).toBe(AnalyticsFeatures.FEATURE_DATA_SOURCE)
+  })
+
+  it('gates membership settings with the membership plan feature', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+    const membership = menus.find((item) => item.path === 'membership')
+
+    expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
   })
 })
 
@@ -118,6 +133,27 @@ describe('getFeatureMenus', () => {
     expect(modelProviders?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
     expect(modelProviders?.data?.activePathPrefixes).toEqual(['/copilot'])
     expect(modelProviders?.data?.onboardingTarget).toBe('model-providers')
+  })
+
+  it('promotes xpert access requests to the management menu with approval gates', () => {
+    const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
+    const settings = menus.find((item) => item.link === '/settings')
+    const requests = menus.find((item) => item.link === '/settings/xpert-access-requests')
+
+    expect(settings?.data?.inactivePathPrefixes).toEqual(['/settings/xpert-access-requests'])
+    expect(requests).toMatchObject({
+      title: 'Xpert Access Requests',
+      icon: 'approval',
+      admin: true,
+      scopeContext: 'organization-only'
+    })
+    expect(requests?.data?.translationKey).toBe('Xpert Access Requests')
+    expect(requests?.data?.featureKey).toEqual([
+      AiFeatureEnum.FEATURE_XPERT,
+      AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
+      FeatureEnum.FEATURE_USER_GROUPS
+    ])
+    expect(requests?.data?.permissionKeys).toEqual([PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT])
   })
 
   it('marks the workspace menu as an onboarding target', () => {

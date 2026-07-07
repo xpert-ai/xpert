@@ -2,7 +2,7 @@ import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+import type { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
 import {
   skillDisplayDescription,
   skillDisplayTitle,

@@ -1,17 +1,18 @@
 <div class="pac-page-header">
   <div class="w-full flex justify-between items-center">
-    <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_FEATURES' | translate: {Default: "Manage Features"} }}</div>
-    <div class="flex justify-end items-center p-2">
-      <button type="menu" class="btn btn-large btn-secondary"
-      (click)="upgrade()"
-      ><i class="ri-loop-left-line mr-1"></i>{{ 'PAC.KEY_WORDS.Upgrade' | translate: {Default: 'Upgrade'} }}</button>
-    </div>
+    <div class="pac-page-title">{{ 'PAC.MENU.MANAGE_FEATURES' | translate: { Default: 'Manage Features' } }}</div>
+    @if (canUpgrade()) {
+      <div class="flex justify-end items-center p-2">
+        <button type="button" class="btn btn-large btn-secondary" (click)="upgrade()">
+          <i class="ri-loop-left-line mr-1"></i>{{ 'PAC.KEY_WORDS.Upgrade' | translate: { Default: 'Upgrade' } }}
+        </button>
+      </div>
+    }
   </div>
 </div>
 
-<div class="pac-page-body flex flex-col items-center p-4"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
-  <router-outlet #o="outlet"></router-outlet>
+<div class="pac-page-body flex flex-col items-center p-4">
+  <router-outlet></router-outlet>
 </div>
 
 @if (loading()) {

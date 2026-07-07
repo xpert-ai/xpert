@@ -110,6 +110,10 @@ jest.mock('../xpert-workspace', () => ({
             return null
         }
 
+        async findAll() {
+            return { items: [] }
+        }
+
         async update() {
             return null
         }
@@ -184,6 +188,7 @@ describe('SkillPackageService', () => {
         update: jest.Mock
     }
     let strategy: {
+        listSkills: jest.Mock
         installSkillPackage: jest.Mock
         uninstallSkillPackage: jest.Mock
     }
@@ -219,6 +224,7 @@ describe('SkillPackageService', () => {
             getTemplateSkillBundles: jest.fn().mockResolvedValue([])
         }
         strategy = {
+            listSkills: jest.fn().mockResolvedValue([]),
             installSkillPackage: jest.fn().mockResolvedValue('clawhub/weather'),
             uninstallSkillPackage: jest.fn().mockResolvedValue(undefined)
         }
@@ -560,6 +566,164 @@ describe('SkillPackageService', () => {
         expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(1, 'workspace-1', 'index-1')
         expect(ensureInstalledSkillPackage).toHaveBeenNthCalledWith(2, 'workspace-1', 'index-2')
         expect(result).toEqual([{ id: 'package-1' }, { id: 'package-2' }])
+    })
+
+    it('installs every scanned GitHub skill when command has no skill selector', async () => {
+        const indexes = [
+            {
+                id: 'github-index-1',
+                skillId: 'design-taste-frontend',
+                skillPath: 'skills/design-taste-frontend',
+                name: 'Design Taste Frontend'
+            },
+            {
+                id: 'github-index-2',
+                skillId: 'taste-docs',
+                skillPath: 'skills/taste-docs',
+                name: 'Taste Docs'
+            }
+        ]
+        strategy.listSkills.mockResolvedValue(indexes)
+        strategy.installSkillPackage.mockImplementation(async (index: any) => index.skillPath)
+
+        const result = await service.installGithubSkillPackages('workspace-1', {
+            command: 'npx skills add Leonxlnx/taste-skill'
+        })
+
+        expect(strategy.listSkills).toHaveBeenCalledWith(
+            expect.objectContaining({
+                provider: 'github',
+                options: {
+                    url: 'https://github.com/Leonxlnx/taste-skill'
+                }
+            })
+        )
+        expect(strategy.installSkillPackage).toHaveBeenCalledTimes(2)
+        expect(strategy.installSkillPackage).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({ skillId: 'design-taste-frontend' }),
+            '/tmp/workspace-skills'
+        )
+        expect(strategy.installSkillPackage).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ skillId: 'taste-docs' }),
+            '/tmp/workspace-skills'
+        )
+        expect(result).toHaveLength(2)
+    })
+
+    it('installs only the GitHub skill matched by --skill', async () => {
+        strategy.listSkills.mockResolvedValue([
+            {
+                id: 'github-index-1',
+                skillId: 'design-taste-frontend',
+                skillPath: 'skills/design-taste-frontend',
+                name: 'Design Taste Frontend'
+            },
+            {
+                id: 'github-index-2',
+                skillId: 'taste-docs',
+                skillPath: 'skills/taste-docs',
+                name: 'Taste Docs'
+            }
+        ])
+        strategy.installSkillPackage.mockImplementation(async (index: any) => index.skillPath)
+
+        const result = await service.installGithubSkillPackages('workspace-1', {
+            command: 'npx skills add https://github.com/Leonxlnx/taste-skill --skill "design-taste-frontend"'
+        })
+
+        expect(strategy.installSkillPackage).toHaveBeenCalledTimes(1)
+        expect(strategy.installSkillPackage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                skillId: 'design-taste-frontend',
+                skillPath: 'skills/design-taste-frontend'
+            }),
+            '/tmp/workspace-skills'
+        )
+        expect(result).toHaveLength(1)
+    })
+
+    it('rejects GitHub skill selectors that do not match scanned skills', async () => {
+        strategy.listSkills.mockResolvedValue([
+            {
+                id: 'github-index-1',
+                skillId: 'design-taste-frontend',
+                skillPath: 'skills/design-taste-frontend',
+                name: 'Design Taste Frontend'
+            }
+        ])
+
+        await expect(
+            service.installGithubSkillPackages('workspace-1', {
+                command: 'npx skills add Leonxlnx/taste-skill --skill missing-skill'
+            })
+        ).rejects.toThrow('missing-skill')
+        expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+    })
+
+    it('rejects GitHub skill selectors that match multiple scanned skills', async () => {
+        strategy.listSkills.mockResolvedValue([
+            {
+                id: 'github-index-1',
+                skillId: 'design-frontend',
+                skillPath: 'skills/frontend',
+                name: 'Design'
+            },
+            {
+                id: 'github-index-2',
+                skillId: 'design-backend',
+                skillPath: 'skills/backend',
+                name: 'Design'
+            }
+        ])
+
+        await expect(
+            service.installGithubSkillPackages('workspace-1', {
+                command: 'npx skills add Leonxlnx/taste-skill --skill Design'
+            })
+        ).rejects.toThrow('matched multiple skills')
+        expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+    })
+
+    it('rejects --all mixed with --skill before scanning GitHub', async () => {
+        await expect(
+            service.installGithubSkillPackages('workspace-1', {
+                command: 'npx skills add Leonxlnx/taste-skill --all --skill design'
+            })
+        ).rejects.toThrow('--all cannot be used with --skill')
+        expect(strategy.listSkills).not.toHaveBeenCalled()
+        expect(strategy.installSkillPackage).not.toHaveBeenCalled()
+    })
+
+    it('keeps legacy GitHub url, path, and branch installs working', async () => {
+        strategy.listSkills.mockResolvedValue([
+            {
+                id: 'github-index-1',
+                skillId: 'design-taste-frontend',
+                skillPath: 'design-taste-frontend',
+                name: 'Design Taste Frontend'
+            }
+        ])
+        strategy.installSkillPackage.mockImplementation(async (index: any) => index.skillPath)
+
+        const result = await service.installGithubSkillPackages('workspace-1', {
+            url: 'https://github.com/Leonxlnx/taste-skill',
+            path: 'skills',
+            branch: 'dev'
+        })
+
+        expect(strategy.listSkills).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: {
+                    url: 'https://github.com/Leonxlnx/taste-skill',
+                    path: 'skills',
+                    branch: 'dev'
+                }
+            })
+        )
+        expect(strategy.installSkillPackage).toHaveBeenCalledTimes(1)
+        expect(result).toHaveLength(1)
     })
 
     it('uploads zip packages only to the workspace public repository and publishes them from the org default workspace', async () => {

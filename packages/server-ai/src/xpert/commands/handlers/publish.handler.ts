@@ -5,6 +5,7 @@ import {
     IXpert,
     IXpertAgent,
     IXpertToolset,
+    buildXpertMarketplaceProfileSnapshot,
     mapTranslationLanguage,
     TXpertGraph,
     TXpertTeamDraft,
@@ -43,7 +44,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
     ) {}
 
     public async execute(command: XpertPublishCommand): Promise<Xpert> {
-        const { id, newVersion, environmentId, notes } = command
+        const { id, newVersion, environmentId, notes, marketplace } = command
         const xpert = await this.xpertService.findOne(id, {
             relations: [
                 'agent',
@@ -105,7 +106,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
-                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(xpert.workspaceId, commandProfile)
+                draft.team.commandProfile = await this.promptWorkflowService.snapshotCommandProfile(
+                    xpert.workspaceId,
+                    commandProfile
+                )
             }
         }
         this.check(draft)
@@ -125,7 +129,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         // Env
         xpert.environmentId = environmentId
 
-        return await this.publish(xpert, version, draft)
+        return await this.publish(xpert, version, draft, marketplace)
     }
 
     /**
@@ -172,7 +176,12 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
      * @param version New version
      * @param draft Xpert draft
      */
-    async publish(xpert: Xpert, version: string, draft: TXpertTeamDraft) {
+    async publish(
+        xpert: Xpert,
+        version: string,
+        draft: TXpertTeamDraft,
+        marketplace?: XpertPublishCommand['marketplace']
+    ) {
         this.#logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
         const previousGraph = xpert.graph
 
@@ -338,6 +347,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             xpert.commandProfile = draft.team.commandProfile
             xpert.options = xpertOptions
         }
+
+        xpert.marketplace = buildXpertMarketplaceProfileSnapshot(marketplace ?? xpert.marketplace, draft)
 
         // Update new version
         xpert.version = version
