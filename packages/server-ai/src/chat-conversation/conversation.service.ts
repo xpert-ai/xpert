@@ -9,11 +9,11 @@ import {
 } from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, IsNull, Repository } from 'typeorm'
+import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
@@ -23,10 +23,7 @@ import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 
 @Injectable()
-export class ChatConversationService
-    extends TenantOrganizationAwareCrudService<ChatConversation>
-    implements OnModuleInit
-{
+export class ChatConversationService extends TenantOrganizationAwareCrudService<ChatConversation> {
     private readonly logger = new Logger(ChatConversationService.name)
 
     constructor(
@@ -42,12 +39,6 @@ export class ChatConversationService
         private readonly volumeClient: VolumeClient
     ) {
         super(repository)
-    }
-
-    async onModuleInit() {
-        await this.backfillConversationReadStates().catch((error) => {
-            this.logger.warn(`Unable to backfill chat conversation read states: ${error?.message ?? error}`)
-        })
     }
 
     override async create(entity: DeepPartial<ChatConversation>, ...options: any[]): Promise<ChatConversation> {
@@ -89,12 +80,14 @@ export class ChatConversationService
         }
 
         const params: unknown[] = [tenantId, userId]
-        const organizationClause = organizationId
-            ? (() => {
-                  params.push(organizationId)
-                  return `c."organizationId" = $${params.length}`
-              })()
-            : `c."organizationId" IS NULL`
+        let conversationOrganizationClause = `c."organizationId" IS NULL`
+        let readStateOrganizationClause = `rs."organizationId" IS NULL`
+        if (organizationId) {
+            params.push(organizationId)
+            const organizationParam = `$${params.length}`
+            conversationOrganizationClause = `c."organizationId" = ${organizationParam}`
+            readStateOrganizationClause = `rs."organizationId" = ${organizationParam}`
+        }
         const xpertPlaceholders = normalizedXpertIds.map((id) => {
             params.push(id)
             return `$${params.length}`
@@ -102,42 +95,99 @@ export class ChatConversationService
 
         const rows = (await this.repository.query(
             `
-                SELECT
-                    c."xpertId" AS "xpertId",
-                    COUNT(m.id)::int AS "unreadMessages",
-                    COUNT(DISTINCT c.id)::int AS "unreadConversations",
-                    MAX(m."createdAt") AS "latestUnreadAt",
-                    (array_agg(c.id ORDER BY m."createdAt" DESC, m.id DESC))[1] AS "latestUnreadConversationId",
-                    (array_agg(c."threadId" ORDER BY m."createdAt" DESC, m.id DESC))[1] AS "latestUnreadThreadId"
-                FROM chat_conversation c
-                INNER JOIN chat_message m
-                    ON m."conversationId" = c.id
-                    AND m.role = 'ai'
-                    AND m."deletedAt" IS NULL
-                LEFT JOIN LATERAL (
+                WITH scoped_conversations AS (
                     SELECT
+                        c.id,
+                        c."threadId",
+                        c."xpertId",
+                        c."createdAt",
+                        c."updatedAt"
+                    FROM chat_conversation c
+                    WHERE
+                        c."tenantId" = $1
+                        AND ${conversationOrganizationClause}
+                        AND c."createdById" = $2
+                        AND c."xpertId" IN (${xpertPlaceholders.join(', ')})
+                ),
+                latest_read_state AS (
+                    SELECT DISTINCT ON (rs."conversationId")
+                        rs."conversationId",
                         rs."lastReadAt",
                         rs."lastReadMessageId"
                     FROM chat_conversation_read_state rs
+                    INNER JOIN scoped_conversations c
+                        ON c.id = rs."conversationId"
                     WHERE
-                        rs."tenantId" = c."tenantId"
-                        AND rs."organizationId" IS NOT DISTINCT FROM c."organizationId"
-                        AND rs."conversationId" = c.id
+                        rs."tenantId" = $1
+                        AND ${readStateOrganizationClause}
                         AND rs."userId" = $2
-                    ORDER BY rs."lastReadAt" DESC NULLS LAST, rs."updatedAt" DESC NULLS LAST, rs.id DESC
-                    LIMIT 1
-                ) rs ON TRUE
-                LEFT JOIN chat_message read_cursor
-                    ON read_cursor.id::text = rs."lastReadMessageId"
-                    AND read_cursor."conversationId" = c.id
-                    AND read_cursor."deletedAt" IS NULL
-                WHERE
-                    c."tenantId" = $1
-                    AND ${organizationClause}
-                    AND c."createdById" = $2
-                    AND c."xpertId" IN (${xpertPlaceholders.join(', ')})
-                    AND m."createdAt" > COALESCE(read_cursor."createdAt", rs."lastReadAt", c."createdAt")
-                GROUP BY c."xpertId"
+                    ORDER BY
+                        rs."conversationId",
+                        rs."lastReadAt" DESC NULLS LAST,
+                        rs."updatedAt" DESC NULLS LAST,
+                        rs.id DESC
+                ),
+                conversation_cursors AS (
+                    SELECT
+                        c.id,
+                        c."threadId",
+                        c."xpertId",
+                        COALESCE(read_cursor."createdAt", rs."lastReadAt", c."updatedAt", c."createdAt") AS "cursorAt"
+                    FROM scoped_conversations c
+                    LEFT JOIN latest_read_state rs
+                        ON rs."conversationId" = c.id
+                    LEFT JOIN chat_message read_cursor
+                        ON read_cursor.id::text = rs."lastReadMessageId"
+                        AND read_cursor."conversationId" = c.id
+                        AND read_cursor."deletedAt" IS NULL
+                ),
+                unread_messages AS (
+                    SELECT
+                        c."xpertId",
+                        c.id AS "conversationId",
+                        c."threadId",
+                        m.id AS "messageId",
+                        m."createdAt"
+                    FROM conversation_cursors c
+                    CROSS JOIN LATERAL (
+                        SELECT
+                            m.id,
+                            m."createdAt"
+                        FROM chat_message m
+                        WHERE
+                            m."conversationId" = c.id
+                            AND m.role = 'ai'
+                            AND m."deletedAt" IS NULL
+                            AND m."createdAt" > c."cursorAt"
+                    ) m
+                ),
+                counts AS (
+                    SELECT
+                        "xpertId",
+                        COUNT("messageId")::int AS "unreadMessages",
+                        COUNT(DISTINCT "conversationId")::int AS "unreadConversations"
+                    FROM unread_messages
+                    GROUP BY "xpertId"
+                ),
+                latest AS (
+                    SELECT DISTINCT ON ("xpertId")
+                        "xpertId",
+                        "createdAt" AS "latestUnreadAt",
+                        "conversationId" AS "latestUnreadConversationId",
+                        "threadId" AS "latestUnreadThreadId"
+                    FROM unread_messages
+                    ORDER BY "xpertId", "createdAt" DESC, "messageId" DESC
+                )
+                SELECT
+                    counts."xpertId" AS "xpertId",
+                    counts."unreadMessages" AS "unreadMessages",
+                    counts."unreadConversations" AS "unreadConversations",
+                    latest."latestUnreadAt" AS "latestUnreadAt",
+                    latest."latestUnreadConversationId" AS "latestUnreadConversationId",
+                    latest."latestUnreadThreadId" AS "latestUnreadThreadId"
+                FROM counts
+                INNER JOIN latest
+                    ON latest."xpertId" = counts."xpertId"
             `,
             params
         )) as Array<{
@@ -433,26 +483,154 @@ export class ChatConversationService
         const conversationId = conversation.id
         const tenantId = conversation.tenantId ?? RequestContext.currentTenantId()
         const organizationId = conversation.organizationId ?? null
-        const existing = await this.readStateRepository.findOne({
-            where: {
-                tenantId,
-                organizationId: organizationId ? organizationId : IsNull(),
-                conversationId,
-                userId
-            } as any
-        })
-
-        const readState = this.readStateRepository.create({
-            ...(existing ?? {}),
+        const rows = await this.upsertConversationReadState(
             tenantId,
             organizationId,
             conversationId,
             userId,
             lastReadAt,
             lastReadMessageId
-        } as DeepPartial<ChatConversationReadState>)
+        )
+        const row = rows[0]
 
-        return this.readStateRepository.save(readState)
+        if (!row) {
+            throw new BadRequestException('Conversation read state could not be updated')
+        }
+
+        return this.readStateRepository.create({
+            ...row,
+            lastReadAt: this.normalizeReadAt(row.lastReadAt)
+        })
+    }
+
+    private upsertConversationReadState(
+        tenantId: string,
+        organizationId: string | null,
+        conversationId: string,
+        userId: string,
+        lastReadAt: Date,
+        lastReadMessageId: string | null
+    ): Promise<
+        Array<{
+            id?: string
+            tenantId?: string | null
+            organizationId?: string | null
+            conversationId: string
+            userId: string
+            lastReadAt: Date | string
+            lastReadMessageId?: string | null
+            createdAt?: Date | string
+            updatedAt?: Date | string
+        }>
+    > {
+        const params = [tenantId, organizationId, conversationId, userId, lastReadAt, lastReadMessageId]
+        if (!organizationId) {
+            return this.readStateRepository.manager.transaction(async (manager) => {
+                await manager.query(`SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))`, [
+                    tenantId,
+                    `${conversationId}:${userId}`
+                ])
+
+                return manager.query(
+                    `
+                        WITH latest AS (
+                            SELECT rs.id
+                            FROM chat_conversation_read_state rs
+                            WHERE
+                                rs."tenantId" = $1
+                                AND rs."organizationId" IS NULL
+                                AND rs."conversationId" = $3
+                                AND rs."userId" = $4
+                            ORDER BY
+                                rs."lastReadAt" DESC NULLS LAST,
+                                rs."updatedAt" DESC NULLS LAST,
+                                rs.id DESC
+                            LIMIT 1
+                        ),
+                        updated AS (
+                            UPDATE chat_conversation_read_state rs
+                            SET
+                                "lastReadAt" = $5,
+                                "lastReadMessageId" = $6,
+                                "updatedAt" = NOW()
+                            FROM latest
+                            WHERE rs.id = latest.id
+                            RETURNING
+                                rs.id,
+                                rs."tenantId",
+                                rs."organizationId",
+                                rs."conversationId",
+                                rs."userId",
+                                rs."lastReadAt",
+                                rs."lastReadMessageId",
+                                rs."createdAt",
+                                rs."updatedAt"
+                        ),
+                        inserted AS (
+                            INSERT INTO chat_conversation_read_state (
+                                "tenantId",
+                                "organizationId",
+                                "conversationId",
+                                "userId",
+                                "lastReadAt",
+                                "lastReadMessageId",
+                                "createdAt",
+                                "updatedAt"
+                            )
+                            SELECT $1, NULL, $3, $4, $5, $6, NOW(), NOW()
+                            WHERE NOT EXISTS (SELECT 1 FROM updated)
+                            RETURNING
+                                id,
+                                "tenantId",
+                                "organizationId",
+                                "conversationId",
+                                "userId",
+                                "lastReadAt",
+                                "lastReadMessageId",
+                                "createdAt",
+                                "updatedAt"
+                        )
+                        SELECT * FROM updated
+                        UNION ALL
+                        SELECT * FROM inserted
+                        LIMIT 1
+                    `,
+                    params
+                )
+            })
+        }
+
+        return this.readStateRepository.query(
+            `
+                INSERT INTO chat_conversation_read_state (
+                    "tenantId",
+                    "organizationId",
+                    "conversationId",
+                    "userId",
+                    "lastReadAt",
+                    "lastReadMessageId",
+                    "createdAt",
+                    "updatedAt"
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                ON CONFLICT ("tenantId", "organizationId", "conversationId", "userId")
+                DO UPDATE SET
+                    "lastReadAt" = EXCLUDED."lastReadAt",
+                    "lastReadMessageId" = EXCLUDED."lastReadMessageId",
+                    "updatedAt" = NOW()
+                RETURNING
+                    id,
+                    "tenantId",
+                    "organizationId",
+                    "conversationId",
+                    "userId",
+                    "lastReadAt",
+                    "lastReadMessageId",
+                    "createdAt",
+                    "updatedAt"
+            `,
+            params
+        )
     }
 
     private normalizeReadAt(value: Date | string | null | undefined) {
@@ -461,51 +639,6 @@ export class ChatConversationService
         }
 
         return value instanceof Date ? value : new Date(value)
-    }
-
-    private async backfillConversationReadStates() {
-        if (!(await this.tableExists('chat_conversation_read_state'))) {
-            return
-        }
-
-        await this.readStateRepository.query(`
-            INSERT INTO chat_conversation_read_state (
-                "tenantId",
-                "organizationId",
-                "conversationId",
-                "userId",
-                "lastReadAt",
-                "lastReadMessageId",
-                "createdAt",
-                "updatedAt"
-            )
-            SELECT
-                c."tenantId",
-                c."organizationId",
-                c.id,
-                c."createdById",
-                COALESCE(MAX(m."createdAt"), c."updatedAt", c."createdAt"),
-                (array_agg(m.id ORDER BY m."createdAt" DESC NULLS LAST, m.id DESC) FILTER (WHERE m.id IS NOT NULL))[1],
-                NOW(),
-                NOW()
-            FROM chat_conversation c
-            LEFT JOIN chat_message m
-                ON m."conversationId" = c.id
-                AND m."deletedAt" IS NULL
-            WHERE c."createdById" IS NOT NULL
-            GROUP BY c."tenantId", c."organizationId", c.id, c."createdById", c."updatedAt", c."createdAt"
-            ON CONFLICT ("tenantId", "organizationId", "conversationId", "userId") DO NOTHING
-        `)
-    }
-
-    private async tableExists(tableName: string) {
-        const result = (await this.readStateRepository.query(`SELECT to_regclass($1) as "name"`, [
-            tableName
-        ])) as Array<{
-            name?: string | null
-        }>
-
-        return !!result?.[0]?.name
     }
 
     private createEnvironmentVolumeHandle(conversation: ChatConversation, sandboxEnvironmentId: string) {
