@@ -16,31 +16,30 @@
   <header class="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-xl">
     <div class="flex flex-col gap-3 px-6 py-3 xl:px-10">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex min-w-0 items-center gap-4">
-          <h1 class="truncate text-xl font-semibold text-foreground">
+        <div class="flex min-w-0 items-end gap-6">
+          <button
+            type="button"
+            [class]="
+              tab() === 'skills'
+                ? 'origin-bottom truncate text-3xl font-semibold leading-none text-foreground transition-[font-size,transform,color] duration-200 hover:scale-[1.03]'
+                : 'origin-bottom truncate text-lg font-semibold leading-none text-muted-foreground transition-[font-size,transform,color] duration-200 hover:scale-110 hover:text-foreground md:hover:text-xl'
+            "
+            (click)="setTab('skills')"
+          >
             {{ 'PAC.Explore.SkillPlaza' | translate: { Default: 'Skill Plaza' } }}
-          </h1>
-
-          @if (tab() !== 'skills' || mode() !== 'square') {
-            <nav
-              z-tab-nav-bar
-              class="m-0 border-0"
-              zSize="sm"
-              [tabPanel]="tabPanel"
-              stretchTabs="false"
-              alignTabs="start"
-              disableRipple
+          </button>
+          @if (agentMarketplaceEnabled()) {
+            <button
+              type="button"
+              [class]="
+                tab() === 'agent-square'
+                  ? 'origin-bottom truncate text-3xl font-semibold leading-none text-foreground transition-[font-size,transform,color] duration-200 hover:scale-[1.03]'
+                  : 'origin-bottom truncate text-lg font-semibold leading-none text-muted-foreground transition-[font-size,transform,color] duration-200 hover:scale-110 hover:text-foreground md:hover:text-xl'
+              "
+              (click)="setTab('agent-square')"
             >
-              <button z-tab-link type="button" [active]="tab() === 'skills'" (click)="setTab('skills')">
-                {{ 'PAC.Explore.Skills' | translate: { Default: 'Skills' } }}
-              </button>
-              <button z-tab-link type="button" [active]="tab() === 'agents'" (click)="setTab('agents')">
-                {{ 'PAC.Explore.Agents' | translate: { Default: 'Agents' } }}
-              </button>
-              <button z-tab-link type="button" [active]="tab() === 'inspirations'" (click)="setTab('inspirations')">
-                {{ 'PAC.Explore.Inspirations' | translate: { Default: 'Inspirations' } }}
-              </button>
-            </nav>
+              {{ 'PAC.Explore.AgentSquare.Tab' | translate: { Default: 'Agent Square' } }}
+            </button>
           }
         </div>
 
@@ -51,7 +50,11 @@
               zSize="sm"
               class="pr-8"
               [placeholder]="
-                'PAC.Explore.SkillSearchPlaceholder' | translate: { Default: 'Search skill name, description, or tags' }
+                tab() === 'skills'
+                  ? ('PAC.Explore.SkillSearchPlaceholder'
+                    | translate: { Default: 'Search skill name, description, or tags' })
+                  : ('PAC.Explore.AgentSquare.SearchPlaceholder'
+                    | translate: { Default: 'Search agents, scenarios, capabilities, or templates' })
               "
               [(ngModel)]="search"
             />
@@ -63,24 +66,26 @@
             </button>
           }
 
-          <button
-            z-button
-            zSize="sm"
-            type="button"
-            z-menu
-            zPlacement="bottomRight"
-            [zMenuTriggerFor]="createMenu"
-            class="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <z-icon zType="plus" zSize="sm" />
-            {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
-            <z-icon zType="chevron-down" zSize="sm" />
-          </button>
+          @if (tab() === 'skills') {
+            <button
+              z-button
+              zSize="sm"
+              type="button"
+              z-menu
+              zPlacement="bottomRight"
+              [zMenuTriggerFor]="createMenu"
+              class="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <z-icon zType="plus" zSize="sm" />
+              {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
+              <z-icon zType="chevron-down" zSize="sm" />
+            </button>
 
-          <button z-button zType="outline" zSize="sm" type="button" (click)="openSkillManagement()">
-            <z-icon zType="settings" zSize="sm" />
-            {{ 'PAC.Explore.ManageSkills' | translate: { Default: 'Manage Skills' } }}
-          </button>
+            <button z-button zType="outline" zSize="sm" type="button" (click)="openSkillManagement()">
+              <z-icon zType="settings" zSize="sm" />
+              {{ 'PAC.Explore.ManageSkills' | translate: { Default: 'Manage Skills' } }}
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -103,77 +108,22 @@
     </div>
   </ng-template>
 
-  <z-tab-nav-panel #tabPanel class="block px-6 pb-8 pt-5 xl:px-10">
-    @if (mode() === 'mine' && tab() !== 'skills') {
-      @if (loadingDefaultWorkspace()) {
-        <section
-          class="flex min-h-[420px] items-center justify-center rounded-lg border border-border bg-card px-6 py-10"
-        >
-          <div class="text-sm text-muted-foreground">
-            {{ 'PAC.Explore.LoadingMineWorkspace' | translate: { Default: 'Loading your default workspace...' } }}
-          </div>
-        </section>
-      } @else if (!defaultWorkspace()) {
-        <section
-          class="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 py-10"
-        >
-          <div class="max-w-xl text-center">
-            <div
-              class="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-3xl text-muted-foreground"
-            >
-              <z-icon zType="business_center" />
-            </div>
-            <h2 class="mt-6 text-2xl font-semibold text-foreground">
-              {{ 'PAC.Explore.NoDefaultWorkspaceTitle' | translate: { Default: 'No Default Workspace Found Yet' } }}
-            </h2>
-            <p class="mt-3 text-base leading-7 text-muted-foreground">
-              {{
-                'PAC.Explore.NoDefaultWorkspaceDescription'
-                  | translate
-                    : {
-                        Default:
-                          'Content under "Mine" is loaded from the current user default workspace. Open a workspace and finish initialization first.'
-                      }
-              }}
-            </p>
-            <div class="mt-6 flex flex-wrap justify-center gap-3">
-              <a z-button routerLink="/xpert/w">
-                {{ 'PAC.Explore.OpenWorkspace' | translate: { Default: 'Open Workspace' } }}
-              </a>
-              <button z-button zType="outline" type="button" (click)="resetToSquare()">
-                {{ 'PAC.Explore.BackToSquare' | translate: { Default: 'Back to Square' } }}
-              </button>
-            </div>
-          </div>
-        </section>
-      } @else {
-        @switch (tab()) {
-          @case ('inspirations') {
-            <xp-explore-inspirations mode="mine" [search]="search()" [workspace]="defaultWorkspace()" />
-          }
-          @default {
-            <xp-explore-agents mode="mine" [search]="search()" [workspace]="defaultWorkspace()" />
-          }
+  <main class="block px-6 pb-8 pt-5 xl:px-10">
+    @switch (tab()) {
+      @case ('agent-square') {
+        @if (agentMarketplaceEnabled()) {
+          <xp-explore-agent-square [search]="search()" [workspace]="defaultWorkspace()" />
         }
       }
-    } @else {
-      @switch (tab()) {
-        @case ('skills') {
-          <xp-explore-skills
-            [mode]="mode()"
-            [search]="search()"
-            [workspace]="defaultWorkspace()"
-            [installFromRepositoryNonce]="installFromRepositoryNonce()"
-            (searchChange)="search.set($event)"
-          />
-        }
-        @case ('inspirations') {
-          <xp-explore-inspirations [search]="search()" [workspace]="defaultWorkspace()" />
-        }
-        @default {
-          <xp-explore-agents [search]="search()" [workspace]="defaultWorkspace()" />
-        }
+      @default {
+        <xp-explore-skills
+          [mode]="mode()"
+          [search]="search()"
+          [workspace]="defaultWorkspace()"
+          [installFromRepositoryNonce]="installFromRepositoryNonce()"
+          (searchChange)="search.set($event)"
+        />
       }
     }
-  </z-tab-nav-panel>
+  </main>
 </div>

@@ -428,6 +428,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "Show the Data & Ontology entry in the main navigation."
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "Agent Marketplace",
+          "Description": "Show the agent marketplace and access approval entry points."
         }
       }
     },
@@ -471,6 +475,7 @@
       },
       "USERS": "Users",
       "Membership": "Membership",
+      "Xpert Access Requests": "Xpert Access Requests",
       "FEATURES": "Features",
       "Data": "Data",
       "ChatBI Assistant": "ChatBI Assistant",
@@ -668,7 +673,10 @@
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
       "CONFIRM_DELETE": "Confirm delete?",
-      "Test": "Test"
+      "Test": "Test",
+      "Approve": "Approve",
+      "Reject": "Reject",
+      "Loading": "Loading..."
     },
     "Skill": {
       "AddSkill": "Add Skill",
@@ -915,7 +923,101 @@
       "NoWorkspaceFound": "No workspace is available as an installation target yet. Please create a workspace first.",
       "InstallingSkill": "Installing skill...",
       "InstallNow": "Install Now",
-      "InstallOrUpdate": "Install or Update"
+      "InstallOrUpdate": "Install or Update",
+      "AgentSquare": {
+        "Tab": "Agent Square",
+        "SearchPlaceholder": "Search agents, scenarios, capabilities, or templates",
+        "HeroTitle": "Find the right agent for the current task",
+        "HeroSubtitle": "Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.",
+        "TemplateAgents": "Agent templates",
+        "TemplateAgentsHint": "Reusable agent and project templates live here now. Install a template first, then publish it when it is ready for governed access.",
+        "WeeklyRecommended": "Weekly picks",
+        "ReviewEntry": "Review",
+        "ReviewTitle": "Requests to review",
+        "ReviewSubtitle": "Approve or reject pending agent access requests.",
+        "NoReviewRequests": "No pending requests.",
+        "ApprovedResponse": "Approved.",
+        "RejectedResponse": "Rejected.",
+        "NoRecommendations": "No recommendations yet.",
+        "FilterTitle": "Filter agents",
+        "ResetFilters": "Reset",
+        "BusinessScenario": "Business scenario",
+        "CollaborationMode": "Collaboration",
+        "TechnicalCapability": "Technical capability",
+        "RecommendedAgents": "Recommended agents",
+        "EmptyTitle": "No matching agents",
+        "EmptyHint": "Try a different search or filter combination.",
+        "MatchScore": "Match",
+        "UseNow": "Use now",
+        "Pending": "Pending approval",
+        "RequestAccess": "Request access",
+        "RequestAccessTitle": "Request access",
+        "RequestReason": "Reason",
+        "RequestReasonPlaceholder": "Tell the owner what you plan to use this agent for.",
+        "SubmitRequest": "Submit request",
+        "CoreCapabilities": "Core capabilities",
+        "KnowledgeUnderstanding": "Knowledge understanding",
+        "ToolCalling": "Tool calling",
+        "TaskExecution": "Task execution",
+        "ExecutionProfile": "Execution profile",
+        "ProfileAgents": "Agents",
+        "ProfileTools": "Toolsets",
+        "ProfileWorkflow": "Workflow nodes",
+        "SelectAgentHint": "Select an agent to view details.",
+        "Sort": {
+          "match": "Match",
+          "hot": "Hot",
+          "updated": "Updated"
+        },
+        "Business": {
+          "knowledge-management": "Knowledge management",
+          "sales-growth": "Sales growth",
+          "data-analysis": "Data analysis",
+          "workflow-automation": "Workflow automation",
+          "legal-compliance": "Legal compliance",
+          "content-creation": "Content creation",
+          "customer-service": "Customer service"
+        },
+        "Collaboration": {
+          "single-agent": "Single agent",
+          "multi-agent": "Multi-agent collaboration",
+          "human-in-loop": "Human approval"
+        },
+        "Technical": {
+          "knowledge-retrieval": "Knowledge retrieval",
+          "tool-calling": "Tool calling",
+          "workflow": "Workflow",
+          "external-xpert": "External agents",
+          "file-understanding": "File understanding",
+          "sandbox": "Sandbox",
+          "trigger": "Trigger",
+          "http": "HTTP",
+          "code": "Code",
+          "database": "Database",
+          "structured-output": "Structured output"
+        }
+      }
+    },
+    "XpertAccessRequests": {
+      "Title": "Xpert access approvals",
+      "Subtitle": "Review pending requests for published xperts in the current organization.",
+      "PendingBadge": "Pending review",
+      "ReviewScope": "Only requests you can approve are shown",
+      "PendingRequests": "pending requests",
+      "VisibleRequests": "visible now",
+      "SearchPlaceholder": "Search assistant, requester, or reason",
+      "FilteredSummary": "{{visible}} / {{total}} visible",
+      "Assistant": "Assistant",
+      "RequestedAt": "Requested",
+      "Requester": "Requester",
+      "Reason": "Reason",
+      "Pending": "Pending",
+      "Actions": "Actions",
+      "NoReason": "No reason provided.",
+      "EmptyTitle": "No pending requests",
+      "EmptyHint": "Requests that you can review will appear here.",
+      "NoSearchResultsTitle": "No matching requests",
+      "NoSearchResultsHint": "Try another assistant name, requester, or reason."
     },
     "NOTES": {
       "ORGANIZATIONS": {
@@ -2006,7 +2108,15 @@
       "AgentToolReturnTemplateTooltip": "Write a Mustache template for the tool result. Use the variable picker to insert workflow values.",
       "End": "End",
       "EndTool": "End point tool. The conversation ends when the tool completes.",
-      "XpertUserGroups": "Xpert User Groups"
+      "XpertUserGroups": "Xpert User Groups",
+      "MarketplaceInfo": "Marketplace information",
+      "MarketplaceSummary": "Display summary",
+      "MarketplaceSummaryPlaceholder": "Briefly describe the tasks this agent is best suited for.",
+      "MarketplaceBusinessCategories": "Business scenarios",
+      "MarketplaceCapabilityTags": "Capability tags",
+      "MarketplaceCapabilityTagsPlaceholder": "knowledge, citation, workflow",
+      "MarketplaceTechnicalPreview": "Technical categories preview",
+      "MarketplaceNoTechnicalPreview": "No technical category detected yet"
     },
     "DataSources": {
       "PageDescription": "Manage database and service connections for analytics.",
@@ -2363,6 +2473,10 @@
       "FEATURE_XPERT_DATA_ONTOLOGY": {
         "Name": "Data & Ontology",
         "Description": "Show the Data & Ontology entry in the main navigation."
+      },
+      "FEATURE_XPERT_MARKETPLACE": {
+        "Name": "Agent Marketplace",
+        "Description": "Show the agent marketplace and access approval entry points."
       }
     },
     "Workspace": {

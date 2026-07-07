@@ -3279,6 +3279,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "在主導航中顯示 Data & Ontology 入口。"
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "智能體市場",
+          "Description": "顯示智能體廣場及訪問審批入口。"
         }
       }
     },

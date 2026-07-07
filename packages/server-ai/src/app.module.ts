@@ -26,6 +26,7 @@ import { XpertModule } from './xpert'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { XpertAgentModule } from './xpert-agent/index'
 import { XpertMiddlewareModule } from './xpert-middleware'
+import { XpertMarketplaceModule } from './xpert-marketplace'
 import { XpertProjectModule } from './xpert-project/project.module'
 import { XpertTaskModule } from './xpert-task'
 import { XpertTemplateModule } from './xpert-template/xpert-template.module'
@@ -84,6 +85,7 @@ import { MembershipModule } from './membership'
         XpertModule,
         XpertAgentModule,
         XpertMiddlewareModule,
+        XpertMarketplaceModule,
         XpertAgentExecutionModule,
         XpertToolModule,
         XpertToolsetModule,

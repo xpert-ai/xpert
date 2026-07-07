@@ -593,7 +593,101 @@
       "NoWorkspaceFound": "当前没有可安装目标，请先创建工作区。",
       "InstallingSkill": "正在安装技能...",
       "InstallNow": "立即安装",
-      "InstallOrUpdate": "安装或更新"
+      "InstallOrUpdate": "安装或更新",
+      "AgentSquare": {
+        "Tab": "智能体广场",
+        "SearchPlaceholder": "搜索智能体、场景、能力或模板",
+        "HeroTitle": "找到最适合当前任务的智能体",
+        "HeroSubtitle": "按业务场景、协作方式和技术能力浏览已发布智能体。受保护智能体需要申请并审批后才能使用。",
+        "TemplateAgents": "智能体模板",
+        "TemplateAgentsHint": "可复用的智能体与项目模板现在归入这里。先安装模板，调试成熟后再发布为需要审批访问的智能体。",
+        "WeeklyRecommended": "本周推荐",
+        "ReviewEntry": "待审批",
+        "ReviewTitle": "待我审批",
+        "ReviewSubtitle": "审批当前组织内的智能体访问申请。",
+        "NoReviewRequests": "暂无待审批申请。",
+        "ApprovedResponse": "已通过。",
+        "RejectedResponse": "已拒绝。",
+        "NoRecommendations": "暂无推荐。",
+        "FilterTitle": "筛选智能体",
+        "ResetFilters": "重置",
+        "BusinessScenario": "业务场景",
+        "CollaborationMode": "协作方式",
+        "TechnicalCapability": "技术能力",
+        "RecommendedAgents": "推荐智能体",
+        "EmptyTitle": "未找到匹配智能体",
+        "EmptyHint": "可以尝试调整搜索或筛选条件。",
+        "MatchScore": "匹配度",
+        "UseNow": "立即使用",
+        "Pending": "审批中",
+        "RequestAccess": "申请使用",
+        "RequestAccessTitle": "申请使用",
+        "RequestReason": "申请理由",
+        "RequestReasonPlaceholder": "说明你计划如何使用此智能体，便于拥有者审批。",
+        "SubmitRequest": "提交申请",
+        "CoreCapabilities": "核心能力",
+        "KnowledgeUnderstanding": "知识理解",
+        "ToolCalling": "工具调用",
+        "TaskExecution": "任务执行",
+        "ExecutionProfile": "执行画像",
+        "ProfileAgents": "智能体数",
+        "ProfileTools": "工具集数",
+        "ProfileWorkflow": "流程节点数",
+        "SelectAgentHint": "选择一个智能体查看详情。",
+        "Sort": {
+          "match": "匹配度",
+          "hot": "热度",
+          "updated": "最近更新"
+        },
+        "Business": {
+          "knowledge-management": "知识管理",
+          "sales-growth": "销售增长",
+          "data-analysis": "数据分析",
+          "workflow-automation": "自动化流程",
+          "legal-compliance": "法务合规",
+          "content-creation": "内容生产",
+          "customer-service": "客户服务"
+        },
+        "Collaboration": {
+          "single-agent": "单体执行",
+          "multi-agent": "多智能体协作",
+          "human-in-loop": "人工确认"
+        },
+        "Technical": {
+          "knowledge-retrieval": "知识检索",
+          "tool-calling": "工具调用",
+          "workflow": "工作流",
+          "external-xpert": "外部智能体",
+          "file-understanding": "文件理解",
+          "sandbox": "沙盒",
+          "trigger": "触发器",
+          "http": "HTTP",
+          "code": "代码",
+          "database": "数据库",
+          "structured-output": "结构化输出"
+        }
+      }
+    },
+    "XpertAccessRequests": {
+      "Title": "智能体访问审批",
+      "Subtitle": "审批当前组织内已发布智能体的访问申请。",
+      "PendingBadge": "待审批",
+      "ReviewScope": "仅展示你有权限审批的申请",
+      "PendingRequests": "个待审批申请",
+      "VisibleRequests": "当前可见",
+      "SearchPlaceholder": "搜索智能体、申请人或申请理由",
+      "FilteredSummary": "{{visible}} / {{total}} 可见",
+      "Assistant": "智能体",
+      "RequestedAt": "申请时间",
+      "Requester": "申请人",
+      "Reason": "申请理由",
+      "Pending": "待审批",
+      "Actions": "操作",
+      "NoReason": "未填写申请理由。",
+      "EmptyTitle": "暂无待审批申请",
+      "EmptyHint": "你有权限审批的智能体访问申请会显示在这里。",
+      "NoSearchResultsTitle": "没有匹配的申请",
+      "NoSearchResultsHint": "换一个智能体名称、申请人或申请理由试试。"
     },
     "Files": {
       "InstalledSkills": "已安装技能",
@@ -1693,6 +1787,7 @@
       "Account": "账号",
       "User": "用户",
       "Groups": "用户组",
+      "Xpert Access Requests": "智能体访问审批",
       "Datasource": "数据源",
       "Business Area": "业务域",
       "Role & Permission": "角色 & 权限",
@@ -1973,8 +2068,9 @@
       "PasteHere": "粘贴到这里",
       "OpenInNewTab": "在新标签页中打开",
       "SyncDataSourceTypes": "同步数据源类型",
-      "Approve": "批准",
-      "Reject": "拒绝"
+      "Approve": "通过",
+      "Reject": "拒绝",
+      "Loading": "加载中..."
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -2358,7 +2454,6 @@
       "PinToSide": "固定到侧边",
       "Tables": "表",
       "AddTable": "添加表",
-
       "QUERY": {
         "TITLE": "查询实验室",
         "SaveAsModel": "另存为模型",
@@ -3630,10 +3725,10 @@
         "OrganizationRequiredDesc": "ClawXpert 会按用户和组织维度保存一份助手绑定。",
         "LoadFailed": "ClawXpert 加载失败。",
         "LoadFailedDesc": "请检查助手访问权限后重试。",
-        "ReferenceUnavailable": "聊天输入框还未准备好，请稍后重试。",
+        "ReferenceUnavailable": "聊天输入框尚未就绪，请稍后再试。",
         "ChatkitUnavailable": "聊天还未准备好。",
         "TaskHistoryThreadMissing": "这条任务历史记录没有关联会话线程。",
-        "ReferenceAttachFailed": "附加所选引用失败。",
+        "ReferenceAttachFailed": "附加所选文件引用失败。",
         "ServiceRestartFailed": "重启沙箱服务失败。",
         "ServiceStopFailed": "停止沙箱服务失败。",
         "ServiceLogsFailed": "加载沙箱服务日志失败。",
@@ -3917,8 +4012,6 @@
         "ThreadArtifactsDesc": "线程关联文件、生成产物和结构化输出会在线程检查器扩展后接入这里。",
         "ThreadNotesTitle": "备注占位区",
         "ThreadNotesDesc": "线程摘要、操作备注和额外上下文片段暂时先以占位形式保留。",
-        "ReferenceUnavailable": "聊天输入框尚未就绪，请稍后再试。",
-        "ReferenceAttachFailed": "附加所选文件引用失败。",
         "ConversationPreferenceSaveFailed": "保存 ClawXpert 会话偏好失败。"
       }
     },
@@ -4313,6 +4406,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "在主导航中显示 Data & Ontology 入口。"
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "智能体市场",
+          "Description": "显示智能体广场及访问审批入口。"
         }
       }
     },
@@ -5672,7 +5769,15 @@
       "MetadataFilterConditions": "元数据过滤条件",
       "SelectFieldsAsMetadataFilter": "选择用作元数据过滤条件的字段",
       "Conditions": "条件",
-      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素"
+      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
+      "MarketplaceInfo": "广场信息",
+      "MarketplaceSummary": "展示摘要",
+      "MarketplaceSummaryPlaceholder": "简要说明此智能体最适合处理哪些任务。",
+      "MarketplaceBusinessCategories": "业务场景",
+      "MarketplaceCapabilityTags": "能力标签",
+      "MarketplaceCapabilityTagsPlaceholder": "知识库, 引用溯源, 工作流",
+      "MarketplaceTechnicalPreview": "技术分类预览",
+      "MarketplaceNoTechnicalPreview": "暂未识别到技术分类"
     },
     "UserGroup": {
       "Title": "用户组",
@@ -6148,7 +6253,6 @@
         "Indicators": "明细指标",
         "LookBack": "回顾期间数"
       },
-
       "IFrame": {
         "SRC": "src"
       },
@@ -6245,11 +6349,9 @@
           "FontFamily_Song": "宋体"
         }
       },
-
       "CANVAS": {
         "TITLE": "画布"
       },
-
       "STORY_PAGE": {
         "PAGE_SIZE": "页面大小",
         "DefaultBackground": "预设背景",
@@ -6259,7 +6361,6 @@
         "PresetBackground": "预设背景",
         "PageType": "类型"
       },
-
       "ECHARTS": {
         "Common": {
           "Align": "对齐",
@@ -6621,7 +6722,6 @@
             "TITLE": "单个体样式",
             "OPACITY": "不透明度"
           },
-
           "LABEL": {
             "TITLE": "标签"
           },
@@ -6969,7 +7069,6 @@
     "ENTITY": {},
     "PROPERTY": {},
     "CALCULATION": {},
-
     "VALUE_HELP": {},
     "SELECTION": {},
     "COUNTDOWN_CONFIRMATION": {
@@ -6994,7 +7093,6 @@
     "EDITOR": {
       "EDIT": "编辑"
     },
-
     "Table": {}
   },
   "FORMLY": {
@@ -7160,7 +7258,6 @@
       "ROLE": "选择角色"
     }
   },
-
   "EMAIL_TEMPLATES_PAGE": {
     "TEMPLATE_NAMES": {
       "password": "密码重置",

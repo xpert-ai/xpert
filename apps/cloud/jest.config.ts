@@ -73,6 +73,7 @@ module.exports = {
   },
   transformIgnorePatterns: [transformIgnorePattern],
   moduleNameMapper: {
+    '^@xpert-ai/contracts$': '<rootDir>/../../packages/contracts/src/index.ts',
     '^@cloud/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
     '^apps/cloud/src/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
     '^(?:\\.{1,2}/)+environments/environment$': '<rootDir>/src/environments/environment.jest.ts'

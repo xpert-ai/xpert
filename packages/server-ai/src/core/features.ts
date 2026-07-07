@@ -108,6 +108,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 isEnabled: features.FEATURE_XPERT_DATA_ONTOLOGY,
                 icon: 'schema',
                 status: 'info'
+            },
+            {
+                name: 'Agent Marketplace',
+                code: AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
+                description: 'Show the agent marketplace and access approval entry points',
+                link: 'explore?tab=agent-square',
+                isEnabled: features.FEATURE_XPERT_MARKETPLACE === true,
+                icon: 'robot_2',
+                status: 'info'
             }
         ]
     }

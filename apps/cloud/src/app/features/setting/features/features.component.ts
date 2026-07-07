@@ -1,24 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router'
-import { FeatureService, RequestScopeLevel, Store, getErrorMessage, injectToastr, routeAnimations } from '../../../@core'
-import { SharedModule } from '../../../@shared/shared.module'
+import { RouterOutlet } from '@angular/router'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
+import { TranslateModule } from '@ngx-translate/core'
+import { FeatureService, Store, injectToastr } from '../../../@core/services'
+import { getErrorMessage } from '../../../@core/types'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 
 @Component({
   standalone: true,
-  imports: [SharedModule, NgmSpinComponent],
+  imports: [RouterOutlet, TranslateModule, NgmSpinComponent],
   providers: [FeatureService],
   selector: 'pac-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [routeAnimations]
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PACFeaturesComponent {
-  private readonly route = inject(ActivatedRoute)
-  private readonly router = inject(Router)
   readonly #store = inject(Store)
   readonly #featureService = inject(FeatureService)
   readonly #toastr = injectToastr()
@@ -27,50 +25,19 @@ export class PACFeaturesComponent {
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
     initialValue: this.#store.activeScope
   })
-  readonly activeChildPath = toSignal(
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(null),
-      map(() => this.getActiveChildPath()),
-      distinctUntilChanged()
-    ),
-    {
-      initialValue: null
-    }
-  )
-  readonly targetChildPath = computed(() =>
-    this.activeScope().level === RequestScopeLevel.TENANT ? 'tenant' : 'organization'
-  )
-
-  constructor() {
-    effect(() => {
-      const activeChildPath = this.activeChildPath()
-      const targetChildPath = this.targetChildPath()
-
-      if (activeChildPath === targetChildPath) {
-        return
-      }
-
-      queueMicrotask(() => {
-        void this.router.navigate([targetChildPath], {
-          relativeTo: this.route,
-          replaceUrl: true
-        })
-      })
-    })
-  }
-
-  private getActiveChildPath() {
-    return this.route.snapshot.firstChild?.routeConfig?.path ?? null
-  }
+  readonly canUpgrade = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
 
   upgrade() {
+    if (!this.canUpgrade()) {
+      return
+    }
+
     this.loading.set(true)
     this.#featureService.upgrade().subscribe({
       next: () => {
         this.#featureService.notifyFeatureDefinitionsRefreshed()
         this.loading.set(false)
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
       },
       error: (err) => {
         this.loading.set(false)

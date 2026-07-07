@@ -37,6 +37,7 @@ import {
   TDeleteResult,
   TXpertExportedTemplate,
   TXpertCommandProfile,
+  TXpertPublishMarketplaceInput,
   TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
@@ -169,7 +170,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string, newVersion: boolean, body: { environmentId?: string | null; releaseNotes: string }) {
+  publish(
+    id: string,
+    newVersion: boolean,
+    body: { environmentId?: string | null; releaseNotes: string; marketplace?: TXpertPublishMarketplaceInput }
+  ) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
       params: new HttpParams().append('newVersion', newVersion)
     })

@@ -2393,6 +2393,10 @@
         "FEATURE_XPERT_DATA_ONTOLOGY": {
           "Name": "Data & Ontology",
           "Description": "在主导航中显示 Data & Ontology 入口。"
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "智能体市场",
+          "Description": "显示智能体广场及访问审批入口。"
         }
       }
     },

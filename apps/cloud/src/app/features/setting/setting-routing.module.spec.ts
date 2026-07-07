@@ -1,6 +1,8 @@
 jest.mock('../../@core', () => ({
   AiFeatureEnum: {
-    FEATURE_MEMBERSHIP_PLAN: 'FEATURE_MEMBERSHIP_PLAN'
+    FEATURE_MEMBERSHIP_PLAN: 'FEATURE_MEMBERSHIP_PLAN',
+    FEATURE_XPERT: 'FEATURE_XPERT',
+    FEATURE_XPERT_MARKETPLACE: 'FEATURE_XPERT_MARKETPLACE'
   },
   AIPermissionsEnum: {
     MEMBERSHIP_EDIT: 'MEMBERSHIP_EDIT'
@@ -46,7 +48,12 @@ jest.mock('./settings.component', () => ({
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { membershipPlanAccountGate, membershipPlanSettingsGate, routes } from './setting-routing.module'
+import {
+  membershipPlanAccountGate,
+  membershipPlanSettingsGate,
+  routes,
+  xpertMarketplaceSettingsGate
+} from './setting-routing.module'
 
 describe('setting routes', () => {
   const settingChildren = routes[0].children ?? []
@@ -64,5 +71,11 @@ describe('setting routes', () => {
 
     expect(usageRoute?.canActivate).toEqual([membershipPlanAccountGate])
     expect(billingRoute?.canActivate).toEqual([membershipPlanAccountGate])
+  })
+
+  it('guards xpert access request approvals with the marketplace feature gate', () => {
+    const accessRequestsRoute = settingChildren.find((route) => route.path === 'xpert-access-requests')
+
+    expect(accessRequestsRoute?.canActivate).toEqual([NgxPermissionsGuard, xpertMarketplaceSettingsGate])
   })
 })

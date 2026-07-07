@@ -379,7 +379,24 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings'
+        translationKey: 'Settings',
+        inactivePathPrefixes: ['/settings/xpert-access-requests']
+      }
+    },
+    {
+      title: 'Xpert Access Requests',
+      icon: 'approval',
+      link: '/settings/xpert-access-requests',
+      admin: true,
+      scopeContext: 'organization-only',
+      data: {
+        translationKey: 'Xpert Access Requests',
+        featureKey: [
+          AiFeatureEnum.FEATURE_XPERT,
+          AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
+          FeatureEnum.FEATURE_USER_GROUPS
+        ],
+        permissionKeys: [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT]
       }
     },
     {

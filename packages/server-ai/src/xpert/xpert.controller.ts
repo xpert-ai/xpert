@@ -129,6 +129,7 @@ import { PromptWorkflowService } from '../prompt-workflow'
 import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import { XpertPrincipalService } from './xpert-principal.service'
+import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -388,9 +389,10 @@ export class XpertController extends CrudController<Xpert> {
     async publish(
         @Param('id') id: string,
         @Query('newVersion') newVersion: string,
-        @Body() body: { environmentId: string; releaseNotes: string }
+        @Body() body: { environmentId: string; releaseNotes: string; marketplace?: unknown }
     ) {
-        return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes)
+        const marketplace = parseXpertPublishMarketplaceInput(body.marketplace)
+        return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes, marketplace)
     }
 
     /**

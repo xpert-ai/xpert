@@ -326,6 +326,10 @@
         "GROUP_XPERT": {
           "Name": "Xpert features",
           "Description": "Manage digital expert and related entry points."
+        },
+        "FEATURE_XPERT_MARKETPLACE": {
+          "Name": "Agent Marketplace",
+          "Description": "Show the agent marketplace and access approval entry points."
         }
       }
     },

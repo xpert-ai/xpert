@@ -253,15 +253,22 @@ export class FeatureToggleComponent {
     return isChecked
   }
 
-  emitFeatureToggle({ feature, isEnabled }: { feature: IFeature; isEnabled: boolean }): Observable<boolean | boolean[]> {
+  emitFeatureToggle({
+    feature,
+    isEnabled
+  }: {
+    feature: IFeature
+    isEnabled: boolean
+  }): Observable<boolean | boolean[]> {
     const requests = this.featureToggleRequests(feature, isEnabled)
     if (!requests.length) {
       return of(false)
     }
 
-    const toggle: Observable<boolean | boolean[]> = requests.length === 1
-      ? this._featureStoreService.changedFeature(requests[0])
-      : this._featureStoreService.changedFeatures(requests)
+    const toggle: Observable<boolean | boolean[]> =
+      requests.length === 1
+        ? this._featureStoreService.changedFeature(requests[0])
+        : this._featureStoreService.changedFeatures(requests)
 
     return toggle.pipe(
       map((result) => {
@@ -278,11 +285,9 @@ export class FeatureToggleComponent {
       ? this.childFeaturesForParent(feature).filter((childFeature) => this.matchesCurrentFeatureScope(childFeature))
       : [feature]
 
-    return features.map((item) => this.featureToggleRequest(
-      item,
-      isEnabled,
-      organization && isOrganization ? organization.id : undefined
-    ))
+    return features.map((item) =>
+      this.featureToggleRequest(item, isEnabled, organization && isOrganization ? organization.id : undefined)
+    )
   }
 
   private featureToggleRequest(feature: IFeature, isEnabled: boolean, organizationId?: string): FeatureToggleRequest {
@@ -518,6 +523,8 @@ export class FeatureToggleComponent {
       case AiFeatureEnum.FEATURE_XPERT:
       case 'GROUP_XPERT':
         return 'sparkles'
+      case AiFeatureEnum.FEATURE_XPERT_MARKETPLACE:
+        return 'robot_2'
       case AiFeatureEnum.FEATURE_XPERT_CHATBI:
         return 'query_stats'
       case AnalyticsFeatures.FEATURE_MODEL:
