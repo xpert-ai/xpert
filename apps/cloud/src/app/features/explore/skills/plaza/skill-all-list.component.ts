@@ -19,6 +19,9 @@ import { skillDisplayDescription, skillDisplayTitle } from '../skill.utils'
     ...ZardCardImports
   ],
   templateUrl: './skill-all-list.component.html',
+  host: {
+    class: 'block'
+  },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SkillAllListComponent {

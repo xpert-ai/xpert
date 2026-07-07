@@ -51,8 +51,9 @@ const collectTransformPackages = (seedPackages: string[]) => {
 const escapeRegex = (value: string) => value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 const transformPackages = collectTransformPackages(transformSeedPackages)
 const transformAllowList = [...staticTransformAllowList, ...transformPackages]
+const transformAllowListPattern = transformAllowList.map(escapeRegex).join('|')
 const transformIgnorePattern = transformAllowList.length
-  ? `node_modules/(?!(${transformAllowList.map(escapeRegex).join('|')})(/|$)|.*\\.mjs$)`
+  ? `node_modules/(?!((?:\\.pnpm/[^/]+/node_modules/)?(${transformAllowListPattern})(/|$))|.*\\.mjs$)`
   : 'node_modules/'
 
 module.exports = {

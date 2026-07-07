@@ -92,7 +92,7 @@
         <z-icon zType="upload" zSize="sm" />
         {{ 'PAC.Explore.UploadSkillPackage' | translate: { Default: 'Upload skill package' } }}
       </button>
-      <button type="button" z-menu-item (click)="openSkillSquare()">
+      <button type="button" z-menu-item (click)="openInstallFromRepository()">
         <z-icon zType="search" zSize="sm" />
         {{ 'PAC.Explore.InstallFromRepository' | translate: { Default: 'Install from repository' } }}
       </button>
@@ -163,6 +163,7 @@
             [mode]="mode()"
             [search]="search()"
             [workspace]="defaultWorkspace()"
+            [installFromRepositoryNonce]="installFromRepositoryNonce()"
             (searchChange)="search.set($event)"
           />
         }

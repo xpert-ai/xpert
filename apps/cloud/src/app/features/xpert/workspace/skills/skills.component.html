@@ -325,7 +325,7 @@
 </ng-template>
 
 <ng-template #githubInstallDialog>
-  <div class="relative flex w-full max-w-[44rem] flex-col overflow-hidden">
+  <div class="relative flex w-[36rem] min-w-[32rem] max-w-[calc(100vw-2rem)] max-sm:min-w-0 flex-col overflow-hidden">
     <div class="flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
       <div class="text-lg font-semibold text-text-primary">
         {{ 'PAC.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
@@ -338,8 +338,12 @@
         <i class="ri-close-line"></i>
       </button>
     </div>
-    <div class="px-6 py-4">
-      <xp-github-skill-install [workspaceId]="workspace()?.id ?? null" (installed)="onGithubSkillsInstalled($event)" />
+    <div class="px-6 pb-6 pt-4">
+      <xp-github-skill-install
+        [workspaceId]="workspace()?.id ?? null"
+        [showTitle]="false"
+        (installed)="onGithubSkillsInstalled($event)"
+      />
     </div>
   </div>
 </ng-template>

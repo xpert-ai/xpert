@@ -69,6 +69,7 @@ export class ExploreSkillsComponent {
   readonly search = input('')
   readonly mode = input<ExploreViewMode>('square')
   readonly workspace = input<IXpertWorkspace | null>(null)
+  readonly installFromRepositoryNonce = input(0)
   readonly searchChange = output<string>()
 
   readonly #dialog = inject(Dialog)
@@ -213,6 +214,7 @@ export class ExploreSkillsComponent {
   #queryVersion = 0
   #mineQueryVersion = 0
   readonly #squareInitialized = signal(false)
+  #lastInstallFromRepositoryNonce = 0
 
   constructor() {
     effect(() => {
@@ -242,6 +244,16 @@ export class ExploreSkillsComponent {
       if (this.mode() === 'mine') {
         this.activePlazaTab.set('favorites')
       }
+    })
+
+    effect(() => {
+      const nonce = this.installFromRepositoryNonce()
+      if (nonce <= 0 || nonce === this.#lastInstallFromRepositoryNonce) {
+        return
+      }
+
+      this.#lastInstallFromRepositoryNonce = nonce
+      this.activePlazaTab.set('enterprise')
     })
   }
 

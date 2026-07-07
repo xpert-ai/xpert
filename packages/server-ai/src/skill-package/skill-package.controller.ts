@@ -1,4 +1,4 @@
-import { IShareSkillPackageInput } from '@xpert-ai/contracts'
+import { IShareSkillPackageInput, InstallGithubSkillPackagesInput } from '@xpert-ai/contracts'
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -23,7 +23,7 @@ import { createReadStream } from 'fs'
 import type { Response } from 'express'
 import archiver from 'archiver'
 import { SkillPackage } from './skill-package.entity'
-import { InstallGithubSkillPackagesInput, SkillPackageService } from './skill-package.service'
+import { SkillPackageService } from './skill-package.service'
 import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 import { SimpleSkillPackageDTO } from './dto'
 

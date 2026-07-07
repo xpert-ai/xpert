@@ -422,7 +422,9 @@ export class XpertWorkspaceSkillsComponent {
     }
 
     this.#githubInstallDialogRef = this.#dialog.open(dialogTemplate, {
-      maxWidth: 'min(92vw, 44rem)',
+      width: '36rem',
+      minWidth: 'min(32rem, calc(100vw - 2rem))',
+      maxWidth: 'calc(100vw - 2rem)',
       disableClose: true,
       backdropClass: 'xp-overlay-share-sheet',
       panelClass: 'xp-overlay-pane-share-sheet'

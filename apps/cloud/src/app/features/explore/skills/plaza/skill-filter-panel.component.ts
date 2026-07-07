@@ -14,6 +14,9 @@ const EMPTY_FILTER_GROUP: ISkillMarketFilterGroup = {
   selector: 'xp-skill-filter-panel',
   imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardIconComponent, ...ZardSelectImports],
   templateUrl: './skill-filter-panel.component.html',
+  host: {
+    class: 'block'
+  },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SkillFilterPanelComponent {

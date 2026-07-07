@@ -44,10 +44,13 @@
                     }
             }}
           </p>
-          <div class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
+          <a
+            class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+            [routerLink]="workspaceSkillsLink()"
+          >
             {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
             <z-icon zType="arrow-right" zSize="sm" />
-          </div>
+          </a>
         </div>
 
         <div class="flex items-center justify-center">
@@ -79,10 +82,13 @@
                     }
             }}
           </p>
-          <div class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
+          <a
+            class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+            routerLink="/settings/tenant/skills"
+          >
             {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
             <z-icon zType="arrow-right" zSize="sm" />
-          </div>
+          </a>
         </div>
 
         <div class="flex items-center justify-center">

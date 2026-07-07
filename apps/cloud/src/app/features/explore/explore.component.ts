@@ -60,6 +60,7 @@ export class ExploreComponent {
 
   readonly loadingDefaultWorkspace = signal(false)
   readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly installFromRepositoryNonce = signal(0)
 
   readonly mode = linkedModel<ExploreMode>({
     initialValue: DEFAULT_MODE,
@@ -116,6 +117,11 @@ export class ExploreComponent {
   openSkillSquare() {
     this.mode.set(DEFAULT_MODE)
     this.tab.set('skills')
+  }
+
+  openInstallFromRepository() {
+    this.openSkillSquare()
+    this.installFromRepositoryNonce.update((value) => value + 1)
   }
 
   resetToSquare() {

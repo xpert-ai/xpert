@@ -56,6 +56,7 @@
         "cronstrue": "2.53.0",
         "cytoscape": "3.33.1",
         "epub2": "^3.0.2",
+        "eventsource": "^3.0.7",
         "handlebars": "^4.7.8",
         "html-to-text": "^7.1.2",
         "i18next": "~23.14.0",

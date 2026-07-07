@@ -53,6 +53,7 @@ jest.mock('@cloud/app/@shared/skills', () => {
 
   class XpertGithubSkillInstallComponent {
     workspaceId: string | null = null
+    showTitle = true
     readonly installed = new EventEmitter()
   }
 
@@ -71,7 +72,7 @@ jest.mock('@cloud/app/@shared/skills', () => {
     standalone: true,
     selector: 'xp-github-skill-install',
     template: '',
-    inputs: ['workspaceId'],
+    inputs: ['workspaceId', 'showTitle'],
     outputs: ['installed']
   })(XpertGithubSkillInstallComponent)
 
