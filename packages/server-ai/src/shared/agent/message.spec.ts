@@ -1,5 +1,24 @@
+jest.mock('@xpert-ai/server-core', () => {
+    class GetStorageFileQuery {
+        constructor(public readonly ids: string[]) {}
+    }
+
+    return {
+        FileStorage: class FileStorage {
+            getProvider() {
+                return {
+                    path: (file: string) => file,
+                    url: (file: string) => file
+                }
+            }
+        },
+        GetStorageFileQuery
+    }
+})
+
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { GetFileAssetQuery, GetFilePreviewQuery } from '../../file-understanding'
+import { GetFileAssetQuery } from '../../file-understanding/queries/get-file-asset.query'
+import { GetFilePreviewQuery } from '../../file-understanding/queries/get-file-preview.query'
 import { LoadFileCommand } from '../commands'
 import { createHumanMessage } from './message'
 import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-workflow-invocation.query'
@@ -340,7 +359,12 @@ describe('createHumanMessage', () => {
         expect(fileCard).toContain('availableAnchors: page 1')
         expect(fileCard).toContain('pageImages:')
         expect(fileCard).toContain('/workspace/sessions/conversation-1/files/file-asset-1/pages/page-0001.png')
-        expect(fileCard).toContain('file_page_images')
+        expect(fileCard).toContain('parsed_file_search')
+        expect(fileCard).toContain('parsed_file_read')
+        expect(fileCard).toContain('parsed_file_page_images')
+        expect(fileCard).not.toMatch(/(^|[^A-Za-z0-9_])file_search([^A-Za-z0-9_]|$)/)
+        expect(fileCard).not.toMatch(/(^|[^A-Za-z0-9_])file_read([^A-Za-z0-9_]|$)/)
+        expect(fileCard).not.toMatch(/(^|[^A-Za-z0-9_])file_page_images([^A-Za-z0-9_]|$)/)
         expect(fileCard).toContain('view-image')
         expect(fileCard).not.toContain('FULL_FILE_TEXT_SHOULD_NOT_BE_IN_PROMPT')
         expect(fileCard).not.toContain('<preview_chunks>')
