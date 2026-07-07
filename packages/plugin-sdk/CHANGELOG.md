@@ -1,5 +1,53 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.6
+
+### Patch Changes
+
+- 3249145: plugin artifact namespace
+- Updated dependencies [3249145]
+  - @xpert-ai/contracts@3.15.7
+
+## 3.15.5
+
+### Patch Changes
+
+- 0473ce2: upgrade kb
+- Updated dependencies [0473ce2]
+  - @xpert-ai/contracts@3.15.6
+
+## 3.15.4
+
+### Patch Changes
+
+- 693806f: workspace files
+- Updated dependencies [693806f]
+  - @xpert-ai/contracts@3.15.5
+
+## 3.15.3
+
+### Patch Changes
+
+- bdcb73b: handoff messages
+- Updated dependencies [bdcb73b]
+  - @xpert-ai/contracts@3.15.4
+
+## 3.15.2
+
+### Patch Changes
+
+- 481ffba: file understanding & vector store
+- Updated dependencies [481ffba]
+  - @xpert-ai/contracts@3.15.3
+
+## 3.15.1
+
+### Patch Changes
+
+- 8fded17: plugin scope for tenant
+- Updated dependencies [8fded17]
+  - @xpert-ai/contracts@3.15.2
+
 ## 3.15.0
 
 ### Minor Changes

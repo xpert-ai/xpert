@@ -1,5 +1,47 @@
 # @xpert-ai/copilot
 
+## 3.9.22
+
+### Patch Changes
+
+- Updated dependencies [3249145]
+  - @xpert-ai/contracts@3.15.7
+
+## 3.9.21
+
+### Patch Changes
+
+- Updated dependencies [0473ce2]
+  - @xpert-ai/contracts@3.15.6
+
+## 3.9.20
+
+### Patch Changes
+
+- Updated dependencies [693806f]
+  - @xpert-ai/contracts@3.15.5
+
+## 3.9.19
+
+### Patch Changes
+
+- Updated dependencies [bdcb73b]
+  - @xpert-ai/contracts@3.15.4
+
+## 3.9.18
+
+### Patch Changes
+
+- Updated dependencies [481ffba]
+  - @xpert-ai/contracts@3.15.3
+
+## 3.9.17
+
+### Patch Changes
+
+- Updated dependencies [8fded17]
+  - @xpert-ai/contracts@3.15.2
+
 ## 3.9.16
 
 ### Patch Changes

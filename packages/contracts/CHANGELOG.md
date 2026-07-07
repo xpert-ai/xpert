@@ -1,5 +1,41 @@
 # @xpert-ai/contracts
 
+## 3.15.7
+
+### Patch Changes
+
+- 3249145: plugin artifact namespace
+
+## 3.15.6
+
+### Patch Changes
+
+- 0473ce2: upgrade kb
+
+## 3.15.5
+
+### Patch Changes
+
+- 693806f: workspace files
+
+## 3.15.4
+
+### Patch Changes
+
+- bdcb73b: handoff messages
+
+## 3.15.3
+
+### Patch Changes
+
+- 481ffba: file understanding & vector store
+
+## 3.15.2
+
+### Patch Changes
+
+- 8fded17: plugin scope for tenant
+
 ## 3.15.1
 
 ### Patch Changes
