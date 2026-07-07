@@ -1,6 +1,7 @@
 export * from './browser-automation.middleware'
 export * from './client-effect.middleware'
 export * from './client-tool.middleware'
+export * from './connector.middleware'
 export * from './context-compression.middleware'
 export * from './human-in-the-loop.middleware'
 export * from './llm-tool-selector.middleware'
