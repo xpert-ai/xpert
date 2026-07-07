@@ -1,5 +1,12 @@
 # @xpert-ai/plugin-draft
 
+## 9.0.7
+
+### Patch Changes
+
+- Updated dependencies [5e553ae]
+  - @xpert-ai/plugin-sdk@3.15.7
+
 ## 9.0.6
 
 ### Patch Changes
