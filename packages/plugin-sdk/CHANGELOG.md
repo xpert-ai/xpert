@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.7
+
+### Patch Changes
+
+- 5e553ae: Add connector strategy contracts and runtime capability helpers for workspace connector plugins.
+
 ## 3.15.6
 
 ### Patch Changes
