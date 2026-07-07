@@ -8,7 +8,7 @@ import { CopilotModel } from './copilot-model.entity'
 import { CopilotModelService } from './copilot-model.service'
 import { QueryHandlers } from './queries/handlers'
 import { CommandHandlers } from './commands'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 
 @Module({
 	imports: [
@@ -16,10 +16,11 @@ import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtim
 		TypeOrmModule.forFeature([CopilotModel]),
 		TenantModule,
 		CqrsModule,
-		UserModule
+		UserModule,
+		AgentMiddlewareRuntimeModule
 	],
 	controllers: [CopilotModelController,],
-	providers: [CopilotModelService, AgentMiddlewareRuntimeService, ...QueryHandlers, ...CommandHandlers],
+	providers: [CopilotModelService, ...QueryHandlers, ...CommandHandlers],
 	exports: [CopilotModelService]
 })
 export class CopilotModelModule {}

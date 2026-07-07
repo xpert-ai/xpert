@@ -1,11 +1,15 @@
 /**
  * Why this exists:
  * Shared form changes for `context.model` are easy to regress because the visible behavior only shows up in remote-select params.
- * This test guards the contract that sibling-driven depends resolve from the current model and stay flattened for query serialization.
+ * This test guards the contract that sibling/context-driven depends resolve from the current form context and stay flattened for query serialization.
  */
 import { fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaPropertyComponent } from './property.component'
+
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
 
 describe('JSONSchemaPropertyComponent', () => {
   beforeEach(async () => {
@@ -50,6 +54,65 @@ describe('JSONSchemaPropertyComponent', () => {
     expect(fixture.componentInstance.depends()).toEqual({
       integration: 'integration-1'
     })
+  })
+
+  it('resolves depends values from explicit context source', () => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+
+    fixture.componentRef.setInput('schema', {
+      type: 'string',
+      'x-ui': {
+        depends: [
+          {
+            source: 'context',
+            name: 'workspaceId',
+            alias: 'workspace'
+          }
+        ]
+      }
+    })
+    fixture.componentRef.setInput('context', {
+      workspaceId: 'workspace-1',
+      model: {
+        workspaceId: 'model-workspace'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.depends()).toEqual({
+      workspace: 'workspace-1'
+    })
+  })
+
+  it('evaluates visibleWhen values from sibling model context', () => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+
+    fixture.componentRef.setInput('schema', {
+      type: 'string',
+      'x-ui': {
+        visibleWhen: {
+          name: 'authMode',
+          value: 'connector'
+        }
+      }
+    })
+    fixture.componentRef.setInput('context', {
+      model: {
+        authMode: 'user'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.visible()).toBe(false)
+
+    fixture.componentRef.setInput('context', {
+      model: {
+        authMode: 'connector'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.visible()).toBe(true)
   })
 
   it('collapses complex object schema fields by default', () => {

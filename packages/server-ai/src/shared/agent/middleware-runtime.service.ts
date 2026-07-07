@@ -49,6 +49,7 @@ import {
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     AssistantTaskRuntimeCapability,
+    ConnectorRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
@@ -81,6 +82,7 @@ import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../kn
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { XpertWorkspaceConnectorService } from '../../xpert-workspace/connectors/workspace-connector.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
@@ -438,6 +440,7 @@ export class AgentMiddlewareRuntimeService {
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
+        private readonly workspaceConnectors: XpertWorkspaceConnectorService,
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     ) {
         this.api = this.createScopedApi()
@@ -486,6 +489,12 @@ export class AgentMiddlewareRuntimeService {
                 FileRuntimeCapability,
                 {
                     resolveFile: (input) => this.resolveFile(input)
+                }
+            ],
+            [
+                ConnectorRuntimeCapability,
+                {
+                    getConnector: (input) => this.workspaceConnectors.getRuntimeConnector(input)
                 }
             ],
             [WorkspaceFilesRuntimeCapability, workspaceFilesApi]

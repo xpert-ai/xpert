@@ -4,6 +4,7 @@ import {
     STATE_VARIABLE_HUMAN,
     TChatOptions,
     TXpertAgentChatRequest,
+    isUserAddableAgentMiddleware,
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
@@ -74,11 +75,14 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
     }
 
     getMiddlewareStrategies() {
-        return this.agentMiddlewareRegistry.list().map((strategy) => {
-            return {
-                meta: strategy.meta
-            }
-        })
+        return this.agentMiddlewareRegistry
+            .list()
+            .filter((strategy) => isUserAddableAgentMiddleware(strategy.meta))
+            .map((strategy) => {
+                return {
+                    meta: strategy.meta
+                }
+            })
     }
 
     private createMiddlewareNode(provider: string, options: any): IWFNMiddleware {
@@ -105,26 +109,33 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         }
     }
 
-    private async getDraftXpertFeatures(xpertId?: string) {
+    private async getDraftXpertMiddlewareContext(xpertId?: string) {
         if (!xpertId) {
-            return null
+            return {
+                xpertFeatures: null,
+                workspaceId: undefined
+            }
         }
 
-        const xpert = await this.queryBus.execute<FindXpertQuery, Pick<IXpert, 'features'> | null>(
+        const xpert = await this.queryBus.execute<FindXpertQuery, Pick<IXpert, 'features' | 'workspaceId'> | null>(
             new FindXpertQuery({ id: xpertId }, { isDraft: true })
         )
 
-        return xpert?.features ?? null
+        return {
+            xpertFeatures: xpert?.features ?? null,
+            workspaceId: xpert?.workspaceId
+        }
     }
 
     async getMiddlewareTools(provider: string, body: { xpertId?: string; options?: any }) {
         const strategy = this.agentMiddlewareRegistry.get(provider)
-        const xpertFeatures = await this.getDraftXpertFeatures(body?.xpertId)
+        const draftContext = await this.getDraftXpertMiddlewareContext(body?.xpertId)
         const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
             userId: RequestContext.currentUserId(),
             xpertId: body?.xpertId,
-            xpertFeatures,
+            workspaceId: draftContext.workspaceId,
+            xpertFeatures: draftContext.xpertFeatures,
             node: this.createMiddlewareNode(provider, body?.options),
             tools: new Map(),
             runtime: this.agentMiddlewareRuntimeService.api
@@ -146,12 +157,13 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         body: { xpertId?: string; options?: any; parameters?: Record<string, any> }
     ) {
         const strategy = this.agentMiddlewareRegistry.get(provider)
-        const xpertFeatures = await this.getDraftXpertFeatures(body?.xpertId)
+        const draftContext = await this.getDraftXpertMiddlewareContext(body?.xpertId)
         const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
             userId: RequestContext.currentUserId(),
             xpertId: body?.xpertId,
-            xpertFeatures,
+            workspaceId: draftContext.workspaceId,
+            xpertFeatures: draftContext.xpertFeatures,
             node: this.createMiddlewareNode(provider, body?.options),
             tools: new Map(),
             runtime: this.agentMiddlewareRuntimeService.api

@@ -8,7 +8,7 @@ import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
@@ -17,10 +17,11 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
 		TypeOrmModule.forFeature([XpertAgentExecution]),
 		TenantModule,
 		CqrsModule,
+		AgentMiddlewareRuntimeModule,
 		SuperAdminOrganizationScopeModule
 	],
 	controllers: [XpertAgentExecutionController],
-	providers: [XpertAgentExecutionService, AgentMiddlewareRuntimeService, ...CommandHandlers, ...QueryHandlers],
+	providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
 	exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

@@ -4,10 +4,11 @@ import { XPERT_RUNTIME_CAPABILITIES_TOKEN } from '@xpert-ai/plugin-sdk'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 import { VolumeModule } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
+import { XpertWorkspaceModule } from '../../xpert-workspace/workspace.module'
 
 @Global()
 @Module({
-    imports: [CqrsModule, VolumeModule],
+    imports: [CqrsModule, VolumeModule, XpertWorkspaceModule],
     providers: [
         WorkspaceFilesRuntimeCapabilityService,
         AgentMiddlewareRuntimeService,

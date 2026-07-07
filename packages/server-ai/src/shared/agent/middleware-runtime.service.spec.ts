@@ -71,6 +71,7 @@ import {
     RequestContext,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
+import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { GetStorageFileQuery, UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
@@ -122,6 +123,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
+            {
+                getRuntimeConnector: jest.fn().mockResolvedValue(undefined)
+            } as any,
             workspaceFiles
         )
 
@@ -164,6 +168,18 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         )
         expect((dispatchCustomEvent as jest.Mock).mock.calls[0][1]).not.toHaveProperty('agentKey')
+    })
+
+    it('registers the workspace connector runtime capability', async () => {
+        const connectorApi = service.api.capabilities?.require(ConnectorRuntimeCapability)
+
+        await expect(
+            connectorApi?.getConnector({
+                workspaceId: 'workspace-1',
+                provider: 'lark',
+                connectorId: 'connector-1'
+            })
+        ).resolves.toBeUndefined()
     })
 
     function mockCreateModelClientDependencies(options?: { tokenRecordError?: Error }) {
