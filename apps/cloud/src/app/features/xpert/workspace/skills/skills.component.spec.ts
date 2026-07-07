@@ -1,60 +1,162 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, EventEmitter, forwardRef, Input, Output, signal } from '@angular/core'
+import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
-import { FileWorkbenchComponent } from '@cloud/app/@shared/files'
-import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cloud/app/@shared/skills'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { ISkillPackage, SkillPackageService, ToastrService } from '../../../../@core'
+
+jest.mock('@cloud/app/@shared/files', () => {
+  const { Component, EventEmitter } = require('@angular/core')
+
+  class FileWorkbenchComponent {
+    rootId: string | null = null
+    rootLabel: string | null = null
+    filesLoader?: unknown
+    fileLoader?: unknown
+    fileSaver?: unknown
+    fileUploader?: unknown
+    fileDeleter?: unknown
+    fileDownloader?: unknown
+    mobilePane: 'tree' | 'file' = 'tree'
+    readonly mobilePaneChange = new EventEmitter()
+    readonly guardDirtyBefore = jest.fn(async (action: () => Promise<void> | void) => {
+      await action()
+      return true
+    })
+  }
+
+  Component({
+    standalone: true,
+    selector: 'pac-file-workbench',
+    template: '',
+    inputs: [
+      'rootId',
+      'rootLabel',
+      'filesLoader',
+      'fileLoader',
+      'fileSaver',
+      'fileUploader',
+      'fileDeleter',
+      'fileDownloader',
+      'mobilePane'
+    ],
+    outputs: ['mobilePaneChange']
+  })(FileWorkbenchComponent)
+
+  return {
+    FileWorkbenchComponent
+  }
+})
+
+jest.mock('@cloud/app/@shared/skills', () => {
+  const { Component, EventEmitter } = require('@angular/core')
+
+  class XpertGithubSkillInstallComponent {
+    workspaceId: string | null = null
+    readonly installed = new EventEmitter()
+  }
+
+  class XpertSkillRepositoriesComponent {
+    readonly = false
+    selectedRepository?: unknown
+    readonly selectedRepositoryChange = new EventEmitter()
+  }
+
+  class XpertSkillIndexesComponent {
+    selectedRepository?: unknown
+    readonly installing = new EventEmitter()
+  }
+
+  Component({
+    standalone: true,
+    selector: 'xp-github-skill-install',
+    template: '',
+    inputs: ['workspaceId'],
+    outputs: ['installed']
+  })(XpertGithubSkillInstallComponent)
+
+  Component({
+    standalone: true,
+    selector: 'xp-skill-repositories',
+    template: '',
+    inputs: ['readonly', 'selectedRepository'],
+    outputs: ['selectedRepositoryChange']
+  })(XpertSkillRepositoriesComponent)
+
+  Component({
+    standalone: true,
+    selector: 'xp-skill-indexes',
+    template: '',
+    inputs: ['selectedRepository'],
+    outputs: ['installing']
+  })(XpertSkillIndexesComponent)
+
+  return {
+    XpertGithubSkillInstallComponent,
+    XpertSkillIndexesComponent,
+    XpertSkillRepositoriesComponent
+  }
+})
+
+jest.mock('@cloud/app/@shared/avatar', () => {
+  const { Component } = require('@angular/core')
+
+  class IconComponent {
+    icon?: unknown
+    size?: number | string | null
+  }
+
+  Component({
+    standalone: true,
+    selector: 'xp-icon',
+    template: '',
+    inputs: ['icon', 'size']
+  })(IconComponent)
+
+  return {
+    IconComponent
+  }
+})
+
+jest.mock('../../../../@core', () => {
+  const { inject } = require('@angular/core')
+
+  class SkillPackageService {}
+  class ToastrService {}
+
+  return {
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : `${error}`),
+    injectSkillPackageAPI: () => inject(SkillPackageService),
+    injectToastr: () => inject(ToastrService),
+    SkillPackageService,
+    ToastrService
+  }
+})
+
+jest.mock('../../assistant-shell/assistant.facade', () => {
+  class XpertAssistantFacade {
+    workspaceSkillRefresh = () => null
+  }
+
+  return {
+    XpertAssistantFacade
+  }
+})
+
+jest.mock('../home/home.component', () => {
+  class XpertWorkspaceHomeComponent {}
+
+  return {
+    XpertWorkspaceHomeComponent
+  }
+})
+
+import { FileWorkbenchComponent } from '@cloud/app/@shared/files'
+import { SkillPackageService, ToastrService } from '../../../../@core'
+import type { ISkillPackage } from '../../../../@core'
 import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertWorkspaceSkillsComponent } from './skills.component'
-
-@Component({
-  standalone: true,
-  selector: 'pac-file-workbench',
-  template: '',
-  providers: [{ provide: FileWorkbenchComponent, useExisting: forwardRef(() => MockFileWorkbenchComponent) }]
-})
-class MockFileWorkbenchComponent {
-  @Input() rootId: string | null = null
-  @Input() rootLabel: string | null = null
-  @Input() filesLoader?: unknown
-  @Input() fileLoader?: unknown
-  @Input() fileSaver?: unknown
-  @Input() fileUploader?: unknown
-  @Input() fileDeleter?: unknown
-  @Input() fileDownloader?: unknown
-  @Input() mobilePane: 'tree' | 'file' = 'tree'
-  @Output() readonly mobilePaneChange = new EventEmitter<'tree' | 'file'>()
-
-  readonly guardDirtyBefore = jest.fn(async (action: () => Promise<void> | void) => {
-    await action()
-    return true
-  })
-}
-
-@Component({
-  standalone: true,
-  selector: 'xp-skill-repositories',
-  template: ''
-})
-class MockSkillRepositoriesComponent {
-  @Input() readonly?: boolean
-  @Input() selectedRepository?: unknown
-  @Output() readonly selectedRepositoryChange = new EventEmitter<unknown>()
-}
-
-@Component({
-  standalone: true,
-  selector: 'xp-skill-indexes',
-  template: ''
-})
-class MockSkillIndexesComponent {
-  @Input() selectedRepository?: unknown
-  @Output() readonly installing = new EventEmitter<unknown>()
-}
 
 function createRepositorySkill(id = 'skill-1'): ISkillPackage {
   return {
@@ -149,14 +251,6 @@ async function setup(
   }
 
   TestBed.resetTestingModule()
-  TestBed.overrideComponent(XpertWorkspaceSkillsComponent, {
-    remove: {
-      imports: [FileWorkbenchComponent, XpertSkillRepositoriesComponent, XpertSkillIndexesComponent]
-    },
-    add: {
-      imports: [MockFileWorkbenchComponent, MockSkillRepositoriesComponent, MockSkillIndexesComponent]
-    }
-  })
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), XpertWorkspaceSkillsComponent],
     providers: [
@@ -194,8 +288,8 @@ async function setup(
   await fixture.whenStable()
   fixture.detectChanges()
 
-  const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent))
-    .componentInstance as MockFileWorkbenchComponent
+  const workbench = fixture.debugElement.query(By.directive(FileWorkbenchComponent))
+    .componentInstance as FileWorkbenchComponent
 
   return {
     fixture,

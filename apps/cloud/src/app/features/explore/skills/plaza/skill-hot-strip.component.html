@@ -1,0 +1,58 @@
+<section class="space-y-3">
+  <div class="flex items-center justify-between gap-3">
+    <h3 class="text-lg font-semibold text-foreground">
+      {{ 'PAC.Explore.HotSkillsTitle' | translate: { Default: 'Trending Skills' } }}
+    </h3>
+    <button z-button zType="ghost" zSize="sm" type="button" (click)="viewMore.emit()">
+      {{ 'PAC.KEY_WORDS.More' | translate: { Default: 'View more' } }}
+      <z-icon zType="arrow-right" zSize="sm" />
+    </button>
+  </div>
+
+  @if (items().length) {
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+      @for (hot of items(); track hot.item.id) {
+        <z-card
+          class="cursor-pointer overflow-hidden rounded-lg border-border py-0 shadow-none transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+          role="button"
+          tabindex="0"
+          (click)="open(hot)"
+          (keydown.enter)="open(hot)"
+          (keydown.space)="open(hot)"
+        >
+          <div class="grid min-h-36 grid-cols-[minmax(0,1fr)_64px] gap-4 p-4">
+            <div class="min-w-0">
+              <h4 class="line-clamp-1 font-semibold text-foreground">
+                {{ hot.title }}
+              </h4>
+              <p class="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                {{ hot.description }}
+              </p>
+              <div class="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
+                <span class="inline-flex items-center gap-1">
+                  <z-icon zType="file_download" zSize="sm" />
+                  {{ hot.downloads ?? '--' }}
+                </span>
+                <span class="inline-flex items-center gap-1">
+                  <z-icon zType="star" zSize="sm" />
+                  {{ hot.stars ?? '--' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-end justify-end">
+              <button
+                z-button
+                zShape="circle"
+                type="button"
+                class="size-9 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <z-icon zType="chevron-right" zSize="sm" />
+              </button>
+            </div>
+          </div>
+        </z-card>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,81 @@
+<div class="space-y-3">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="flex min-w-0 flex-wrap gap-2">
+      <button
+        z-button
+        zSize="sm"
+        type="button"
+        [zType]="selectedRepositoryId() === '__all__' ? 'secondary' : 'outline'"
+        (click)="selectRepository('__all__')"
+      >
+        {{ 'PAC.Explore.AllRepositories' | translate: { Default: 'All repositories' } }}
+      </button>
+
+      @for (repository of repositories().slice(0, 5); track repository.id) {
+        <button
+          z-button
+          zSize="sm"
+          type="button"
+          [zType]="selectedRepositoryId() === repository.id ? 'secondary' : 'outline'"
+          (click)="selectRepository(repository.id)"
+        >
+          <span class="max-w-36 truncate">{{ repository.name }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="flex items-center justify-between gap-3 md:justify-end">
+      <div class="text-sm text-muted-foreground">
+        {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: 'repositories' } }}
+      </div>
+
+      <button z-button zType="ghost" zSize="sm" type="button" (click)="toggleOpen()">
+        <z-icon zType="filter_alt" zSize="sm" />
+        {{ 'PAC.KEY_WORDS.Filter' | translate: { Default: 'Filter' } }}
+      </button>
+    </div>
+  </div>
+
+  @if (open()) {
+    <div class="grid gap-3 rounded-lg border border-border bg-card/90 p-3 lg:grid-cols-3">
+      <div class="space-y-2">
+        <div class="text-xs font-medium text-muted-foreground">
+          {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' }) }}
+        </div>
+        <z-select class="w-full" [zValue]="selectedRole()" (zSelectionChange)="selectRole($event)">
+          @for (option of roleOptions(); track option.value) {
+            <z-select-item [zValue]="option.value">
+              <span>{{ option.label }}</span>
+            </z-select-item>
+          }
+        </z-select>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-medium text-muted-foreground">
+          {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App type' }) }}
+        </div>
+        <z-select class="w-full" [zValue]="selectedAppType()" (zSelectionChange)="selectAppType($event)">
+          @for (option of appTypeOptions(); track option.value) {
+            <z-select-item [zValue]="option.value">
+              <span>{{ option.label }}</span>
+            </z-select-item>
+          }
+        </z-select>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-medium text-muted-foreground">
+          {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Hot' }) }}
+        </div>
+        <z-select class="w-full" [zValue]="selectedHot()" (zSelectionChange)="selectHot($event)">
+          @for (option of hotOptions(); track option.value) {
+            <z-select-item [zValue]="option.value">
+              <span>{{ option.label }}</span>
+            </z-select-item>
+          }
+        </z-select>
+      </div>
+    </div>
+  }
+</div>

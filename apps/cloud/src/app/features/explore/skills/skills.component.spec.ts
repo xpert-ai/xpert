@@ -3,6 +3,33 @@ import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { of } from 'rxjs'
 import { TranslateModule } from '@ngx-translate/core'
+
+jest.mock('@cloud/app/@core', () => {
+  class SkillPackageService {}
+  class SkillRepositoryIndexService {}
+  class SkillRepositoryService {}
+  class ToastrService {}
+  class XpertTemplateService {}
+  class XpertWorkspaceService {}
+
+  return {
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : `${error}`),
+    injectToastr: () => ({
+      error: jest.fn(),
+      success: jest.fn()
+    }),
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    SkillPackageService,
+    SkillRepositoryIndexService,
+    SkillRepositoryService,
+    ToastrService,
+    XpertTemplateService,
+    XpertWorkspaceService
+  }
+})
+
 import {
   SkillPackageService,
   SkillRepositoryIndexService,
@@ -87,7 +114,7 @@ describe('ExploreSkillsComponent', () => {
         {
           provide: SkillRepositoryService,
           useValue: {
-            getAvailables: jest.fn(() => of({ items: [] }))
+            getAvailables: jest.fn(() => of({ items: [{ id: 'repo-1', name: 'Default Repository' }] }))
           }
         },
         {
@@ -132,9 +159,12 @@ describe('ExploreSkillsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const shareButtons = Array.from(
-      fixture.nativeElement.querySelectorAll('button.btn.btn-primary.btn-small')
-    ) as HTMLButtonElement[]
+    const shareButtons = Array.from(fixture.nativeElement.querySelectorAll('button')).filter(
+      (button): button is HTMLButtonElement =>
+        button.textContent?.includes('PAC.Explore.ShareSkill') ||
+        button.textContent?.includes('PAC.Explore.RepublishSkill') ||
+        false
+    )
 
     expect(shareButtons).toHaveLength(1)
 

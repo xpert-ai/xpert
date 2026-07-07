@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+import type { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { IconComponent } from '../../../../@shared/avatar'
 import {
   skillDisplayDescription,
   skillDisplayTitle,
@@ -14,18 +13,17 @@ import {
   skillPublisherHandle
 } from '../skill.utils'
 
-
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-card',
-  imports: [CommonModule, TranslateModule, IconComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardIconComponent],
   templateUrl: './skill-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExploreSkillCardComponent {
   readonly item = input.required<ISkillRepositoryIndex>()
   readonly featured = input<ISkillMarketFeaturedSkill | null>(null)
-  readonly variant = input<'featured' | 'grid'>('grid')
+  readonly variant = input<'featured' | 'grid' | 'compact' | 'list'>('grid')
 
   readonly view = output<void>()
   readonly install = output<void>()
@@ -45,12 +43,16 @@ export class ExploreSkillCardComponent {
   readonly description = computed(() => skillDisplayDescription(this.item(), this.featured()))
   readonly badge = computed(() => this.featured()?.badge?.trim() || null)
   readonly featuredAvatar = computed(() => skillFeaturedAvatar(this.featured()))
-  readonly publisherAvatarImage = computed(() => (!this.featuredAvatar() ? skillPublisherAvatarImage(this.item()) : null))
+  readonly publisherAvatarImage = computed(() =>
+    !this.featuredAvatar() ? skillPublisherAvatarImage(this.item()) : null
+  )
   readonly publisherAvatarFallback = computed(() => skillPublisherAvatarFallback(this.item()))
   readonly publisherName = computed(() => skillPublisherDisplayName(this.item()))
   readonly publisherHandle = computed(() => skillPublisherHandle(this.item()))
   readonly repositoryName = computed(() => this.item().repository?.name || null)
-  readonly visibleTags = computed(() => (this.item().tags ?? []).slice(0, this.variant() === 'featured' ? 4 : 3))
+  readonly visibleTags = computed(() =>
+    (this.item().tags ?? []).slice(0, this.variant() === 'featured' ? 4 : this.variant() === 'compact' ? 2 : 3)
+  )
   readonly hiddenTagCount = computed(() => Math.max((this.item().tags?.length ?? 0) - this.visibleTags().length, 0))
   readonly avatarIconSize = computed(() => {
     const avatar = this.featuredAvatar()
@@ -58,7 +60,7 @@ export class ExploreSkillCardComponent {
       return 24
     }
 
-    return avatar.type === 'image' ? 44 : avatar.size ?? 22
+    return avatar.type === 'image' ? 44 : (avatar.size ?? 22)
   })
   readonly actionsClass = computed(() =>
     this.alwaysShowActions()

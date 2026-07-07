@@ -1,0 +1,98 @@
+<ng-template #heroSearchIcon>
+  <z-icon zType="search" zSize="sm" />
+</ng-template>
+
+<section class="mx-auto flex w-full max-w-7xl flex-col gap-5">
+  <div class="flex flex-col items-center text-center">
+    <h2 class="text-3xl font-semibold tracking-normal text-foreground md:text-4xl">
+      {{ 'PAC.Explore.SkillPlazaHeroTitlePrefix' | translate: { Default: 'Discover and manage your' } }}
+      <span class="text-primary">xpert</span>
+      {{ 'PAC.Explore.SkillPlazaHeroTitleSuffix' | translate: { Default: 'skills' } }}
+    </h2>
+
+    <div class="mt-5 w-full max-w-xl">
+      <z-input-group zSize="lg" [zAddonBefore]="heroSearchIcon">
+        <input
+          z-input
+          zSize="lg"
+          [ngModel]="search()"
+          [placeholder]="
+            'PAC.Explore.SkillSearchPlaceholder' | translate: { Default: 'Search skill name, description, or tags' }
+          "
+          (ngModelChange)="updateSearch($event)"
+        />
+      </z-input-group>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <z-card class="overflow-hidden rounded-lg border-border/70 bg-primary/5 py-0 shadow-none">
+      <div class="grid min-h-44 grid-cols-[minmax(0,1fr)_140px] gap-4 p-6 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div class="flex flex-col justify-center">
+          <h3 class="text-xl font-semibold text-foreground">
+            {{
+              'PAC.Explore.SkillPlazaHeroBusinessTitle'
+                | translate: { Default: 'Turn business know-how into reusable skills' }
+            }}
+          </h3>
+          <p class="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            {{
+              'PAC.Explore.SkillPlazaHeroBusinessDesc'
+                | translate
+                  : {
+                      Default: 'Package workflows, knowledge, and tools as xpert skills for one-click team use.'
+                    }
+            }}
+          </p>
+          <div class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
+            {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
+            <z-icon zType="arrow-right" zSize="sm" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center">
+          <div
+            class="flex size-24 rotate-3 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+          >
+            <z-icon zType="sparkles" class="size-10" />
+          </div>
+        </div>
+      </div>
+    </z-card>
+
+    <z-card class="overflow-hidden rounded-lg border-border/70 bg-accent/70 py-0 shadow-none">
+      <div class="grid min-h-44 grid-cols-[minmax(0,1fr)_140px] gap-4 p-6 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div class="flex flex-col justify-center">
+          <h3 class="text-xl font-semibold text-foreground">
+            {{
+              'PAC.Explore.SkillPlazaHeroConnectTitle'
+                | translate: { Default: 'Connect models, tools, and business systems' }
+            }}
+          </h3>
+          <p class="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+            {{
+              'PAC.Explore.SkillPlazaHeroConnectDesc'
+                | translate
+                  : {
+                      Default:
+                        'Combine plugins, knowledge bases, and workflows to quickly build dedicated agent capabilities.'
+                    }
+            }}
+          </p>
+          <div class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
+            {{ 'PAC.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' } }}
+            <z-icon zType="arrow-right" zSize="sm" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center">
+          <div
+            class="flex size-24 -rotate-6 items-center justify-center rounded-lg bg-card text-primary shadow-lg shadow-primary/10"
+          >
+            <z-icon zType="hub" class="size-10" />
+          </div>
+        </div>
+      </div>
+    </z-card>
+  </div>
+</section>

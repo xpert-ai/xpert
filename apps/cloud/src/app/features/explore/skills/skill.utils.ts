@@ -1,4 +1,4 @@
-import { IconDefinition, ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+import type { IconDefinition, ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
 
 const FEATURED_AVATAR_TYPES: IconDefinition['type'][] = ['image', 'svg', 'font', 'emoji']
 

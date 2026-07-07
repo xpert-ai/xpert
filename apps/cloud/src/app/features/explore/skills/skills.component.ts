@@ -1,31 +1,39 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
-import { ZardSelectImports } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   injectToastr,
-  ISkillMarketConfig,
-  ISkillMarketFeaturedSkill,
-  ISkillPackage,
-  ISkillRepository,
-  ISkillRepositoryIndex,
-  ISkillMarketFilterGroup,
-  IXpertWorkspace,
   OrderTypeEnum,
   SkillPackageService,
   SkillRepositoryIndexService,
   SkillRepositoryService,
   XpertTemplateService
 } from '@cloud/app/@core'
-import { ExploreSkillCardComponent } from './card/skill-card.component'
+import type {
+  ISkillMarketConfig,
+  ISkillMarketFeaturedSkill,
+  ISkillMarketFilterGroup,
+  ISkillPackage,
+  ISkillRepository,
+  ISkillRepositoryIndex,
+  IXpertWorkspace
+} from '@cloud/app/@core'
 import { ExploreSkillDetailDialogComponent } from './detail/detail-dialog.component'
 import { ExploreSkillInstallComponent } from './install/install.component'
+import { SkillAllListComponent } from './plaza/skill-all-list.component'
+import { SkillFeaturedGridComponent } from './plaza/skill-featured-grid.component'
+import { SkillFilterPanelComponent } from './plaza/skill-filter-panel.component'
+import { SkillHotStripComponent } from './plaza/skill-hot-strip.component'
+import { SkillPlazaHeroComponent } from './plaza/skill-plaza-hero.component'
+import { SkillHotCardViewModel, SkillPlazaTab } from './plaza/skill-plaza.models'
+import { SkillPlazaTabsComponent } from './plaza/skill-plaza-tabs.component'
 import { ExploreSkillShareDialogComponent } from './share/share-dialog.component'
+import { skillDisplayDescription, skillDisplayTitle } from './skill.utils'
 
 const ALL_REPOSITORIES = '__all__'
 const PAGE_SIZE = 20
@@ -43,9 +51,16 @@ const EMPTY_FILTER_GROUP: ISkillMarketFilterGroup = {
     CommonModule,
     RouterModule,
     TranslateModule,
-    WaIntersectionObserver,
-    ...ZardSelectImports,
-    ExploreSkillCardComponent
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardCardImports,
+    SkillPlazaHeroComponent,
+    SkillPlazaTabsComponent,
+    SkillFeaturedGridComponent,
+    SkillHotStripComponent,
+    SkillAllListComponent,
+    SkillFilterPanelComponent
   ],
   templateUrl: './skills.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -54,6 +69,7 @@ export class ExploreSkillsComponent {
   readonly search = input('')
   readonly mode = input<ExploreViewMode>('square')
   readonly workspace = input<IXpertWorkspace | null>(null)
+  readonly searchChange = output<string>()
 
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
@@ -71,6 +87,7 @@ export class ExploreSkillsComponent {
   readonly selectedRole = signal('all')
   readonly selectedAppType = signal('all')
   readonly selectedHot = signal('all')
+  readonly activePlazaTab = signal<SkillPlazaTab>('featured')
   readonly skills = signal<ISkillRepositoryIndex[]>([])
   readonly total = signal(0)
   readonly loadingRepositories = signal(true)
@@ -81,11 +98,61 @@ export class ExploreSkillsComponent {
   readonly installingSkillId = signal<string | null>(null)
 
   readonly featuredSkills = computed(() => this.market()?.featured ?? [])
-  readonly selectedRepository = computed(() =>
-    this.repositories().find((repository) => repository.id === this.selectedRepositoryId()) ?? null
+  readonly filteredFeaturedSkills = computed(() => {
+    const term = this.search().trim().toLowerCase()
+    const items = this.featuredSkills()
+
+    if (!term) {
+      return items
+    }
+
+    return items.filter((featured) =>
+      [
+        skillDisplayTitle(featured.skill, featured),
+        skillDisplayDescription(featured.skill, featured),
+        ...(featured.skill.tags ?? []),
+        featured.skill.skillId,
+        featured.skill.repository?.name,
+        featured.badge
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(term)
+    )
+  })
+  readonly selectedRepository = computed(
+    () => this.repositories().find((repository) => repository.id === this.selectedRepositoryId()) ?? null
   )
   readonly repositoryCount = computed(() => this.repositories().length)
   readonly hasMore = computed(() => this.skills().length < this.total())
+  readonly hotSkillCards = computed<SkillHotCardViewModel[]>(() => {
+    const byId = new Map<string, ISkillRepositoryIndex>()
+
+    for (const item of [...this.skills(), ...this.featuredSkills().map((featured) => featured.skill)]) {
+      const key = item.id || item.skillId || item.skillPath
+      if (!key || byId.has(key)) {
+        continue
+      }
+      byId.set(key, item)
+    }
+
+    return [...byId.values()]
+      .sort((left, right) => skillHotScore(right) - skillHotScore(left))
+      .slice(0, 3)
+      .map((item) => ({
+        item,
+        title: skillDisplayTitle(item),
+        description:
+          skillDisplayDescription(item) ||
+          this.#translate.instant('PAC.Explore.SkillDescriptionFallback', {
+            Default: 'This skill does not include additional details yet.'
+          }),
+        tags: (item.tags ?? []).slice(0, 2),
+        downloads: item.stats?.downloads,
+        stars: item.stats?.stars
+      }))
+  })
   readonly mineSkills = computed(() => {
     const term = this.search().trim().toLowerCase()
     const items = this.installedSkills()
@@ -112,6 +179,10 @@ export class ExploreSkillsComponent {
         .includes(term)
     )
   })
+
+  readonly featuredCount = computed(() => this.filteredFeaturedSkills().length)
+  readonly enterpriseCount = computed(() => this.total())
+  readonly favoritesCount = computed(() => this.mineSkills().length)
 
   readonly roleFilterGroup = computed(() => this.market()?.filters.roles ?? EMPTY_FILTER_GROUP)
   readonly appTypeFilterGroup = computed(() => this.market()?.filters.appTypes ?? EMPTY_FILTER_GROUP)
@@ -144,41 +215,34 @@ export class ExploreSkillsComponent {
   readonly #squareInitialized = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        if (this.mode() !== 'square') {
-          return
-        }
+    effect(() => {
+      if (this.mode() !== 'square') {
+        return
+      }
 
-        const repositoryId = this.selectedRepositoryId()
-        const search = this.search().trim()
-        void this.resetAndLoad(repositoryId, search)
-      },
-      { allowSignalWrites: true }
-    )
+      const repositoryId = this.selectedRepositoryId()
+      const search = this.search().trim()
+      void this.resetAndLoad(repositoryId, search)
+    })
 
-    effect(
-      () => {
-        if (this.mode() !== 'square' || this.#squareInitialized()) {
-          return
-        }
+    effect(() => {
+      if (this.mode() !== 'square' || this.#squareInitialized()) {
+        return
+      }
 
-        this.#squareInitialized.set(true)
-        void this.initializeSquare()
-      },
-      { allowSignalWrites: true }
-    )
+      this.#squareInitialized.set(true)
+      void this.initializeSquare()
+    })
 
-    effect(
-      () => {
-        if (this.mode() !== 'mine') {
-          return
-        }
+    effect(() => {
+      void this.loadInstalledSkills(this.workspace()?.id ?? null)
+    })
 
-        void this.loadInstalledSkills(this.workspace()?.id ?? null)
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      if (this.mode() === 'mine') {
+        this.activePlazaTab.set('favorites')
+      }
+    })
   }
 
   async initializeSquare() {
@@ -256,11 +320,16 @@ export class ExploreSkillsComponent {
     this.loadingSkills.set(true)
 
     try {
-      const { items, total } = await firstValueFrom(this.#indexService.getMarketplace({
-        where: repositoryId === ALL_REPOSITORIES ? undefined : { repositoryId },
-        take: PAGE_SIZE,
-        skip: 0
-      }, search))
+      const { items, total } = await firstValueFrom(
+        this.#indexService.getMarketplace(
+          {
+            where: repositoryId === ALL_REPOSITORIES ? undefined : { repositoryId },
+            take: PAGE_SIZE,
+            skip: 0
+          },
+          search
+        )
+      )
 
       if (version !== this.#queryVersion) {
         return
@@ -290,11 +359,19 @@ export class ExploreSkillsComponent {
     this.loadingMore.set(true)
 
     try {
-      const { items, total } = await firstValueFrom(this.#indexService.getMarketplace({
-        where: this.selectedRepositoryId() === ALL_REPOSITORIES ? undefined : { repositoryId: this.selectedRepositoryId() },
-        take: PAGE_SIZE,
-        skip: this.skills().length
-      }, this.search().trim()))
+      const { items, total } = await firstValueFrom(
+        this.#indexService.getMarketplace(
+          {
+            where:
+              this.selectedRepositoryId() === ALL_REPOSITORIES
+                ? undefined
+                : { repositoryId: this.selectedRepositoryId() },
+            take: PAGE_SIZE,
+            skip: this.skills().length
+          },
+          this.search().trim()
+        )
+      )
 
       if (version !== this.#queryVersion) {
         return
@@ -347,6 +424,22 @@ export class ExploreSkillsComponent {
     this.selectedHot.set(normalizeSingleSelectValue(value) ?? 'all')
   }
 
+  updateSearch(value: string) {
+    this.searchChange.emit(value)
+  }
+
+  setActivePlazaTab(tab: SkillPlazaTab) {
+    this.activePlazaTab.set(tab)
+  }
+
+  openHotSkill(card: SkillHotCardViewModel) {
+    this.openSkillDetail(card.item)
+  }
+
+  showEnterpriseSkills() {
+    this.activePlazaTab.set('enterprise')
+  }
+
   openSkillDetail(item: ISkillRepositoryIndex, featured: ISkillMarketFeaturedSkill | null = null) {
     const dialogRef = this.#dialog.open(ExploreSkillDetailDialogComponent, {
       data: {
@@ -368,8 +461,9 @@ export class ExploreSkillsComponent {
       return
     }
 
-    if (this.workspace()?.id) {
-      await this.installToWorkspace(this.workspace()!.id, item)
+    const workspaceId = this.workspace()?.id
+    if (workspaceId) {
+      await this.installToWorkspace(workspaceId, item)
       return
     }
 
@@ -470,6 +564,7 @@ export class ExploreSkillsComponent {
 
     const workspaceId = this.workspace()?.id
     if (!workspaceId) {
+      this.#router.navigate(['/xpert/w'])
       return
     }
 
@@ -509,6 +604,10 @@ function normalizeSingleSelectValue(value: string | number | Array<string | numb
     return `${normalized}`
   }
   return typeof normalized === 'string' && normalized ? normalized : null
+}
+
+function skillHotScore(item: ISkillRepositoryIndex): number {
+  return (item.stats?.downloads ?? 0) * 2 + (item.stats?.stars ?? 0) + (item.stats?.versions ?? 0)
 }
 
 function readI18nText(

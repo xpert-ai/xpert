@@ -1,33 +1,68 @@
 import { signal } from '@angular/core'
-import { Component, model } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of, Subject } from 'rxjs'
 import { TranslateModule } from '@ngx-translate/core'
+
+jest.mock('@cloud/app/@core', () => {
+  class XpertAPIService {}
+  class XpertTemplateService {}
+  class XpertWorkspaceService {}
+
+  return {
+    getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : `${error}`),
+    injectToastr: () => ({
+      error: jest.fn(),
+      success: jest.fn()
+    }),
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    XpertAPIService,
+    XpertTemplateService,
+    XpertWorkspaceService
+  }
+})
+
+jest.mock('@cloud/app/@shared/xpert', () => {
+  const { Component, EventEmitter, signal } = require('@angular/core')
+
+  class XpertBasicFormComponent {
+    readonly invalid = signal(false)
+    name = ''
+    avatar = null
+    description = ''
+    title = ''
+    copilotModel = null
+    readonly nameChange = new EventEmitter()
+    readonly avatarChange = new EventEmitter()
+    readonly descriptionChange = new EventEmitter()
+    readonly titleChange = new EventEmitter()
+    readonly copilotModelChange = new EventEmitter()
+  }
+
+  Component({
+    standalone: true,
+    selector: 'xpert-basic-form',
+    template: '',
+    inputs: ['name', 'avatar', 'description', 'title', 'copilotModel'],
+    outputs: ['nameChange', 'avatarChange', 'descriptionChange', 'titleChange', 'copilotModelChange']
+  })(XpertBasicFormComponent)
+
+  return {
+    XpertBasicFormComponent
+  }
+})
+
 import { XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { ExploreAgentInstallComponent } from './install.component'
-import { XpertBasicFormComponent } from '@cloud/app/@shared/xpert'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'selected-workspace' })
 
 jest.mock('@xpert-ai/cloud/state', () => ({
   injectWorkspace: () => selectedWorkspace
 }))
-
-@Component({
-  standalone: true,
-  selector: 'xpert-basic-form',
-  template: ''
-})
-class MockXpertBasicFormComponent {
-  readonly invalid = signal(false)
-  readonly name = model<string>('')
-  readonly avatar = model<any>(null)
-  readonly description = model<string>('')
-  readonly title = model<string>('')
-  readonly copilotModel = model<any>(null)
-}
 
 describe('ExploreAgentInstallComponent', () => {
   afterEach(() => {
@@ -37,16 +72,7 @@ describe('ExploreAgentInstallComponent', () => {
   })
 
   it('prefers the default workspace over the selected workspace when it becomes available', async () => {
-    const defaultWorkspace$ = new Subject<any>()
-
-    TestBed.overrideComponent(ExploreAgentInstallComponent, {
-      remove: {
-        imports: [XpertBasicFormComponent]
-      },
-      add: {
-        imports: [MockXpertBasicFormComponent]
-      }
-    })
+    const defaultWorkspace$ = new Subject<{ id: string; name: string }>()
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ExploreAgentInstallComponent],

@@ -1,0 +1,102 @@
+@if (loading()) {
+  <div class="flex min-h-48 items-center justify-center rounded-lg border border-border bg-card">
+    <span class="text-sm text-muted-foreground">
+      {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: 'Loading official picks...' } }}
+    </span>
+  </div>
+} @else if (!visibleItems().length) {
+  <div
+    class="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 text-center"
+  >
+    <div>
+      <z-icon zType="military_tech" class="mx-auto size-8 text-muted-foreground" />
+      <div class="mt-3 text-base font-medium text-foreground">
+        {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: 'No official picks to display yet' } }}
+      </div>
+      <p class="mt-2 max-w-lg text-sm text-muted-foreground">
+        {{
+          'PAC.Explore.NoFeaturedSkillsHint'
+            | translate
+              : {
+                  Default:
+                    'You can continue configuring featured skills in skills-market.yaml. If configured items do not match the current repository index, this section stays empty automatically.'
+                }
+        }}
+      </p>
+    </div>
+  </div>
+} @else {
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+    @for (featured of visibleItems(); track featured.skill.id) {
+      <z-card
+        class="group cursor-pointer rounded-lg border-border bg-card/95 py-0 shadow-none transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+        role="button"
+        tabindex="0"
+        (click)="open(featured)"
+        (keydown.enter)="open(featured)"
+        (keydown.space)="open(featured)"
+      >
+        <div class="flex min-h-36 gap-4 p-4">
+          <div
+            class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-primary"
+          >
+            @if (avatar(featured); as icon) {
+              @switch (icon.type) {
+                @case ('image') {
+                  <img class="size-6 rounded object-cover" [src]="icon.value" [alt]="icon.alt || title(featured)" />
+                }
+                @case ('svg') {
+                  <span class="flex size-6 items-center justify-center" [innerHTML]="icon.value"></span>
+                }
+                @case ('emoji') {
+                  <span class="text-xl leading-none">{{ icon.value }}</span>
+                }
+                @default {
+                  <z-icon [zType]="icon.value" class="size-5" [style.color]="icon.color || null" />
+                }
+              }
+            } @else {
+              <z-icon zType="sparkles" class="size-5" />
+            }
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-start justify-between gap-3">
+              <h3 class="line-clamp-1 text-base font-semibold text-foreground">
+                {{ title(featured) }}
+              </h3>
+              @if (featured.badge) {
+                <z-badge zType="secondary" class="shrink-0">{{ featured.badge }}</z-badge>
+              }
+            </div>
+
+            <p class="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+              {{
+                description(featured) ||
+                  ('PAC.Explore.SkillDescriptionFallback'
+                    | translate: { Default: 'This skill does not include additional details yet.' })
+              }}
+            </p>
+
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              @for (tag of tags(featured); track tag) {
+                <z-badge zType="outline">{{ tag }}</z-badge>
+              }
+            </div>
+
+            <div class="mt-4 flex items-center justify-between gap-3">
+              <span class="text-sm text-muted-foreground">
+                {{ featured.skill.stats?.downloads ?? '--' }}
+                {{ 'PAC.Explore.AddedTimes' | translate: { Default: 'adds' } }}
+              </span>
+              <button z-button zSize="sm" type="button" (click)="add(featured, $event)">
+                <z-icon zType="plus" zSize="sm" />
+                {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </z-card>
+    }
+  </div>
+}

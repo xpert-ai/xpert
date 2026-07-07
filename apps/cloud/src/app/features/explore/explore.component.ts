@@ -4,7 +4,14 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IXpertWorkspace, XpertWorkspaceService } from '@cloud/app/@core'
 import { linkedModel } from '@xpert-ai/ocap-angular/core'
-import { ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardInputGroupComponent,
+  ZardMenuImports,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
@@ -16,7 +23,7 @@ type ExploreMode = 'square' | 'mine'
 type ExploreTab = 'skills' | 'agents' | 'inspirations'
 
 const DEFAULT_MODE: ExploreMode = 'square'
-const DEFAULT_TAB: ExploreTab = 'agents'
+const DEFAULT_TAB: ExploreTab = 'skills'
 
 @Component({
   standalone: true,
@@ -26,6 +33,11 @@ const DEFAULT_TAB: ExploreTab = 'agents'
     FormsModule,
     RouterModule,
     TranslateModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardInputDirective,
+    ZardInputGroupComponent,
+    ...ZardMenuImports,
     ...ZardTabsImports,
     ExploreAgentsComponent,
     ExploreSkillsComponent,
@@ -96,6 +108,16 @@ export class ExploreComponent {
     this.search.set('')
   }
 
+  openSkillManagement() {
+    const workspaceId = this.defaultWorkspace()?.id
+    this.#router.navigate(workspaceId ? ['/xpert/w', workspaceId, 'skills'] : ['/xpert/w'])
+  }
+
+  openSkillSquare() {
+    this.mode.set(DEFAULT_MODE)
+    this.tab.set('skills')
+  }
+
   resetToSquare() {
     this.mode.set(DEFAULT_MODE)
   }
@@ -105,7 +127,7 @@ export class ExploreComponent {
 
     try {
       this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' })))
-    } catch (error) {
+    } catch {
       this.defaultWorkspace.set(null)
     } finally {
       this.loadingDefaultWorkspace.set(false)
