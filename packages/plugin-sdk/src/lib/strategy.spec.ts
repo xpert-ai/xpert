@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import { Reflector } from '@nestjs/core'
 import { BaseStrategyRegistry } from './strategy'
+import { StrategyBus } from './core/strategy-bus'
 import {
   GLOBAL_ORGANIZATION_SCOPE,
   SYSTEM_GLOBAL_SCOPE,
@@ -14,8 +15,8 @@ import { RequestContext } from './core/context'
 const TEST_STRATEGY_KEY = 'TEST_STRATEGY_KEY'
 
 class TestStrategyRegistry<T> extends BaseStrategyRegistry<T> {
-  constructor() {
-    super(TEST_STRATEGY_KEY, {} as any, new Reflector())
+  constructor(discoveryService = { getProviders: () => [] }) {
+    super(TEST_STRATEGY_KEY, discoveryService as any, new Reflector())
   }
 }
 
@@ -254,5 +255,31 @@ describe('BaseStrategyRegistry', () => {
     expect(registry.get('shared', GLOBAL_ORGANIZATION_SCOPE)).toBe(tenantShared)
     expect(registry.get('system-only', 'org-other')).toBe(systemOnly)
     expect(registry.list('org-other')).toEqual([organizationShared, tenantOnly, systemOnly, builtinOnly])
+  })
+
+  it('registers strategies emitted after module initialization through the strategy bus', () => {
+    class DynamicPluginStrategy {
+      readonly id = 'dynamic-plugin'
+    }
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'dynamic', DynamicPluginStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/dynamic-plugin', DynamicPluginStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'org-1', DynamicPluginStrategy)
+
+    const bus = new StrategyBus()
+    const registry = new TestStrategyRegistry<{
+      readonly id: string
+    }>()
+    ;(registry as any).bus = bus
+    registry.onModuleInit()
+
+    const strategy = new DynamicPluginStrategy()
+    bus.upsert(TEST_STRATEGY_KEY, {
+      instance: strategy,
+      sourceId: '@xpert/dynamic-plugin',
+      sourceKind: 'plugin'
+    })
+
+    expect(registry.get('dynamic', 'org-1')).toBe(strategy)
+    expect(registry.list('org-1')).toEqual([strategy])
   })
 })
