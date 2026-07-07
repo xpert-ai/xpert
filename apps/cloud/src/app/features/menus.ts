@@ -135,6 +135,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       icon: 'credit-card',
       scopeContext: 'dual-scope',
       data: {
+        featureKey: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
         permissionKeys: [AIPermissionsEnum.MEMBERSHIP_EDIT]
       }
     },

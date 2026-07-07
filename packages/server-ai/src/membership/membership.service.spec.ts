@@ -7,7 +7,7 @@ import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
-import { RequestContext } from '@xpert-ai/server-core'
+import { FeatureOrganization, RequestContext } from '@xpert-ai/server-core'
 import { MembershipPeriodEnum, MembershipPlanStatusEnum, MembershipStatusEnum } from '@xpert-ai/contracts'
 import i18next from 'i18next'
 
@@ -15,6 +15,13 @@ describe('MembershipService', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
+
+    type FeatureToggleFixture = {
+        isEnabled: boolean
+        feature?: {
+            parentId?: string | null
+        }
+    }
 
     function createQueryBuilder(rawRows: Array<Record<string, unknown>>) {
         return {
@@ -62,10 +69,69 @@ describe('MembershipService', () => {
         } as UserMembership & { plan: NonNullable<UserMembership['plan']> }
     }
 
+    function createMembershipFeatureRepository(
+        resolveRows: (
+            organizationId: string | null
+        ) => FeatureToggleFixture[] | Promise<FeatureToggleFixture[]> = () => [{ isEnabled: true }]
+    ) {
+        const queryBuilders: Array<{
+            leftJoinAndSelect: jest.Mock
+            where: jest.Mock
+            andWhere: jest.Mock
+            getMany: jest.Mock
+        }> = []
+        const repository = {
+            createQueryBuilder: jest.fn(() => {
+                let scopeOrganizationId: string | null = null
+                const queryBuilder = {
+                    leftJoinAndSelect: jest.fn().mockReturnThis(),
+                    where: jest.fn().mockReturnThis(),
+                    andWhere: jest.fn((where: string, parameters?: { organizationId?: string }) => {
+                        if (where.includes('organizationId = :organizationId')) {
+                            scopeOrganizationId = parameters?.organizationId ?? null
+                        }
+                        if (where.includes('organizationId IS NULL')) {
+                            scopeOrganizationId = null
+                        }
+                        return queryBuilder
+                    }),
+                    getMany: jest.fn(() => Promise.resolve(resolveRows(scopeOrganizationId)))
+                }
+                queryBuilders.push(queryBuilder)
+                return queryBuilder
+            })
+        }
+
+        return { repository, queryBuilders }
+    }
+
+    function createMembershipService(
+        dataSource: never = {} as never,
+        planRepository: never = {} as never,
+        membershipRepository: never = {} as never,
+        ledgerRepository: never = {} as never,
+        xpertRepository: never = {} as never,
+        userOrganizationRepository: never | undefined = undefined,
+        copilotRepository: never | undefined = undefined,
+        featureOrganizationRepository: never = createMembershipFeatureRepository().repository as never
+    ) {
+        return new MembershipService(
+            dataSource,
+            planRepository,
+            membershipRepository,
+            ledgerRepository,
+            xpertRepository,
+            userOrganizationRepository,
+            copilotRepository,
+            featureOrganizationRepository
+        )
+    }
+
     function createScopeInitializationHarness() {
         const plans: MembershipPlan[] = []
         const memberships: UserMembership[] = []
         const ledgers: MembershipPointLedger[] = []
+        const featureOrganizationRepository = createMembershipFeatureRepository().repository
         const updateBuilder = {
             update: jest.fn().mockReturnThis(),
             set: jest.fn().mockReturnThis(),
@@ -136,6 +202,9 @@ describe('MembershipService', () => {
                 if (entity === MembershipPointLedger) {
                     return ledgerRepository
                 }
+                if (entity === FeatureOrganization) {
+                    return featureOrganizationRepository
+                }
                 return userOrganizationRepository
             })
         }
@@ -150,13 +219,15 @@ describe('MembershipService', () => {
             membershipRepository,
             planRepository,
             plans,
-            service: new MembershipService(
+            service: createMembershipService(
                 dataSource as never,
                 planRepository as never,
                 membershipRepository as never,
                 ledgerRepository as never,
                 {} as never,
-                userOrganizationRepository as never
+                userOrganizationRepository as never,
+                undefined,
+                featureOrganizationRepository as never
             )
         }
     }
@@ -175,7 +246,7 @@ describe('MembershipService', () => {
         const manager = {
             getRepository: jest.fn().mockReturnValue(repository)
         }
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
 
         await (
             service as unknown as { findActiveMembershipForUpdate: (...args: unknown[]) => Promise<unknown> }
@@ -217,7 +288,7 @@ describe('MembershipService', () => {
         const ledgerRepository = {
             createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
         }
-        const service = new MembershipService(
+        const service = createMembershipService(
             {} as never,
             {} as never,
             {} as never,
@@ -277,7 +348,7 @@ describe('MembershipService', () => {
         }
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
-        const service = new MembershipService(
+        const service = createMembershipService(
             {} as never,
             planRepository as never,
             {} as never,
@@ -297,8 +368,211 @@ describe('MembershipService', () => {
         })
     })
 
+    it('treats missing membership plan feature toggles as disabled', async () => {
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => []).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.isMembershipPlanEnabled({
+                tenantId: 'tenant-1',
+                organizationId: null
+            })
+        ).resolves.toBe(false)
+    })
+
+    it('uses organization membership plan feature toggles before tenant toggles', async () => {
+        const requestedScopes: Array<string | null> = []
+        const featureOrganizationRepository = createMembershipFeatureRepository((organizationId) => {
+            requestedScopes.push(organizationId)
+            return organizationId === 'org-1' ? [{ isEnabled: false }] : [{ isEnabled: true }]
+        }).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.isMembershipPlanEnabled({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+        ).resolves.toBe(false)
+        expect(requestedScopes).toEqual(['org-1'])
+    })
+
+    it('falls back to the tenant membership plan feature toggle when organization toggle is missing', async () => {
+        const requestedScopes: Array<string | null> = []
+        const featureOrganizationRepository = createMembershipFeatureRepository((organizationId) => {
+            requestedScopes.push(organizationId)
+            return organizationId === 'org-1' ? [] : [{ isEnabled: true }]
+        }).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.isMembershipPlanEnabled({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+        ).resolves.toBe(true)
+        expect(requestedScopes).toEqual(['org-1', null])
+    })
+
+    it('rejects membership admin reads when membership plan feature is disabled', async () => {
+        const planRepository = {
+            find: jest.fn()
+        }
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const service = createMembershipService(
+            {} as never,
+            planRepository as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(service.findPlans()).rejects.toThrow('Membership plan feature is disabled.')
+        expect(planRepository.find).not.toHaveBeenCalled()
+    })
+
+    it('allows model usage checks without membership access when membership plan feature is disabled', async () => {
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+        const findModelAccess = jest.spyOn(service, 'findModelAccess')
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus'
+            })
+        ).resolves.toBeUndefined()
+        expect(findModelAccess).not.toHaveBeenCalled()
+    })
+
+    it('does not record membership usage when membership plan feature is disabled', async () => {
+        const dataSource = {
+            transaction: jest.fn()
+        }
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.recordUsage({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus',
+                tokenUsed: 1000
+            })
+        ).resolves.toBeNull()
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+    })
+
+    it('returns no model access without resolving billable xpert users when membership plan feature is disabled', async () => {
+        const xpertRepository = {
+            findOne: jest.fn()
+        }
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            xpertRepository as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+
+        await expect(
+            service.findModelAccess({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'assistant-tech-user',
+                xpertId: 'xpert-1'
+            })
+        ).resolves.toBeNull()
+        expect(xpertRepository.findOne).not.toHaveBeenCalled()
+    })
+
+    it('does not auto-assign organization users when membership plan feature is disabled', async () => {
+        const featureOrganizationRepository = createMembershipFeatureRepository(() => [{ isEnabled: false }]).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+        const ensureScopeInitialized = jest.spyOn(service, 'ensureScopeInitialized')
+
+        await expect(
+            service.ensureUserAssignedIfScopeInitialized({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'assistant-tech-user'
+            })
+        ).resolves.toBeNull()
+        expect(ensureScopeInitialized).not.toHaveBeenCalled()
+    })
+
     it('uses organization membership before tenant membership for model access', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const organizationMembership = createMembership({ organizationId: 'org-1' })
         const findUsableMembership = jest
             .spyOn(service as any, 'findUsableMembership')
@@ -320,7 +594,7 @@ describe('MembershipService', () => {
     })
 
     it('falls back to tenant membership for model access when organization membership is missing', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const tenantMembership = createMembership({ organizationId: null })
         const findUsableMembership = jest
             .spyOn(service as any, 'findUsableMembership')
@@ -357,7 +631,7 @@ describe('MembershipService', () => {
     })
 
     it('does not fall back to tenant membership when organization has an active plan', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const findUsableMembership = jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
         jest.spyOn(service as any, 'hasActivePlan').mockResolvedValue(true)
 
@@ -439,7 +713,7 @@ describe('MembershipService', () => {
         const dataSource = {
             transaction: jest.fn((callback) => callback(manager))
         }
-        const service = new MembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
         const membership = createMembership()
         jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
         const createLedger = jest
@@ -509,7 +783,7 @@ describe('MembershipService', () => {
                 createdById: 'owner-user'
             })
         }
-        const service = new MembershipService(
+        const service = createMembershipService(
             {} as never,
             {} as never,
             {} as never,
@@ -543,7 +817,7 @@ describe('MembershipService', () => {
                 createdById: null
             })
         }
-        const service = new MembershipService(
+        const service = createMembershipService(
             {} as never,
             {} as never,
             {} as never,
@@ -586,7 +860,7 @@ describe('MembershipService', () => {
         const dataSource = {
             transaction: jest.fn((callback) => callback(manager))
         }
-        const service = new MembershipService(
+        const service = createMembershipService(
             dataSource as never,
             {} as never,
             {} as never,
@@ -639,7 +913,7 @@ describe('MembershipService', () => {
         const dataSource = {
             transaction: jest.fn((callback) => callback(manager))
         }
-        const service = new MembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
         jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
         const createLedger = jest.spyOn(service as any, 'createLedger')
 
@@ -659,7 +933,7 @@ describe('MembershipService', () => {
     })
 
     it('rejects membership checks when no membership is assigned', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
 
         await expect(
@@ -683,7 +957,7 @@ describe('MembershipService', () => {
     })
 
     it('self-heals organization membership when checking a local copilot without an organization plan', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const organizationMembership = createMembership({ organizationId: 'org-1', pointsUsed: 0 })
         jest.spyOn(service, 'findModelAccess')
             .mockResolvedValueOnce({
@@ -728,7 +1002,7 @@ describe('MembershipService', () => {
     })
 
     it('rejects copilot models outside the active membership scope', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         jest.spyOn(service, 'findModelAccess').mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -780,7 +1054,7 @@ describe('MembershipService', () => {
             await i18next.changeLanguage('zh-Hans')
         }
 
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         jest.spyOn(service, 'findModelAccess').mockResolvedValue({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -818,7 +1092,7 @@ describe('MembershipService', () => {
         const dataSource = {
             transaction: jest.fn((callback) => callback(manager))
         }
-        const service = new MembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
         const membership = createMembership({
             organizationId: 'org-1',
             pointsGranted: null,
@@ -860,7 +1134,7 @@ describe('MembershipService', () => {
     })
 
     it('still evaluates rate limits for unlimited memberships', async () => {
-        const service = new MembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const membership = createMembership({ pointsGranted: null, pointsUsed: 999 })
         jest.spyOn(service, 'findModelAccess').mockResolvedValue({
             tenantId: 'tenant-1',

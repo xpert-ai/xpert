@@ -11,7 +11,15 @@ import { LanguagesEnum, UsersService } from '@xpert-ai/cloud/state'
 import { OverlayAnimation1 } from '@xpert-ai/core'
 import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { getErrorMessage, injectHelpWebsite, injectToastr, IUser, LANGUAGES, Store } from '../../../@core'
+import {
+  AiFeatureEnum,
+  getErrorMessage,
+  injectHelpWebsite,
+  injectToastr,
+  IUser,
+  LANGUAGES,
+  Store
+} from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
@@ -69,6 +77,9 @@ export class HeaderUserComponent {
 
   readonly userSignal = toSignal(this.store.user$)
   readonly language$ = toSignal(this.appService.preferredLanguage$)
+  readonly membershipPlanEnabled = toSignal(this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN), {
+    initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+  })
 
   readonly themesT$ = toSignal(this.#i18n.stream('PAC.Themes'))
 

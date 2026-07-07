@@ -4175,7 +4175,7 @@
           "Description": "维护系统角色和权限"
         },
         "GROUP_COPILOT": {
-          "Name": "Copilot 功能",
+          "Name": "模型",
           "Description": "管理模型提供商和监测模块"
         },
         "FEATURE_COPILOT": {
@@ -4185,6 +4185,10 @@
         "FEATURE_COPILOT_MONITORING": {
           "Name": "监测",
           "Description": "查看模型提供商的用户使用量和监测信息"
+        },
+        "FEATURE_MEMBERSHIP_PLAN": {
+          "Name": "会员套餐",
+          "Description": "启用会员套餐配额、点数扣减和用量统计规则"
         },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知识库",

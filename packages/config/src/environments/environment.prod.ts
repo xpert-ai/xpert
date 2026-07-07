@@ -243,6 +243,7 @@ export const prodToggleFeatures: IPACFeatures = {
   FEATURE_COPILOT_CHAT: process.env.FEATURE_COPILOT_CHAT === 'false' ? false : true,
   FEATURE_COPILOT_KNOWLEDGEBASE: process.env.FEATURE_COPILOT_KNOWLEDGEBASE === 'false' ? false : true,
   FEATURE_COPILOT_MONITORING: process.env.FEATURE_COPILOT_MONITORING === 'false' ? false : true,
+  FEATURE_MEMBERSHIP_PLAN: process.env.FEATURE_MEMBERSHIP_PLAN === 'true',
   FEATURE_COPILOT_CHATBI: process.env.FEATURE_COPILOT_CHATBI === 'false' ? false : true,
   FEATURE_XPERT: process.env.FEATURE_XPERT === 'false' ? false : true,
   FEATURE_XPERT_DATA_ONTOLOGY: process.env.FEATURE_XPERT_DATA_ONTOLOGY === 'false' ? false : true

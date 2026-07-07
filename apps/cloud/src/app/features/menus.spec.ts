@@ -52,6 +52,14 @@ describe('getSettingsMenuItems', () => {
 
     expect(dataSources?.data?.featureKey).toBe(AnalyticsFeatures.FEATURE_DATA_SOURCE)
   })
+
+  it('gates membership settings with the membership plan feature', () => {
+    const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
+    const membership = menus.find((item) => item.path === 'membership')
+
+    expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
+  })
 })
 
 describe('getFeatureMenus', () => {

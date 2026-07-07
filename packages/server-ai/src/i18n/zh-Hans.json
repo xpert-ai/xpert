@@ -14,6 +14,7 @@
         "HandleLLMTokensNoModel": "提供商 ‘{{provider}}’ 处理 LLM 令牌回调时未提供模型",
         "MembershipPlanRequired": "当前会员计划不可用，请先配置会员计划后再使用 Copilot 模型。",
         "MembershipPointsLimitExceeded": "会员点数额度已用尽。",
+        "MembershipPlanFeatureDisabled": "会员套餐功能未启用。",
         "CopilotModelUnavailableForMembershipPlan": "当前会员计划无法使用该 Copilot 模型。",
         "ManagedImportRequiresPrimaryLlmModel": "托管 Xpert 导入需要为{{scope}}配置并启用 Primary LLM Copilot 模型。",
         "CurrentOrganizationScope": "当前组织",

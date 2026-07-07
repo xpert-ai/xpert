@@ -33,6 +33,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 isEnabled: features.FEATURE_COPILOT_MONITORING,
                 icon: 'browse_activity',
                 status: 'info'
+            },
+            {
+                name: 'Membership Plans',
+                code: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
+                description: 'Enable membership plan quotas and point-based model usage rules',
+                link: 'settings/membership',
+                isEnabled: features.FEATURE_MEMBERSHIP_PLAN,
+                icon: 'credit_card',
+                status: 'info'
             }
         ]
     },

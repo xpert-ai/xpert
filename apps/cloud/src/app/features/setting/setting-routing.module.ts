@@ -1,14 +1,21 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
 import { PACAccountComponent } from './account/account.component'
 import { PACAccountPasswordComponent } from './account/password.component'
 import { PACAccountProfileComponent } from './account/profile.component'
 import { PACSettingComponent } from './settings.component'
 
-const routes: Routes = [
+export const membershipPlanSettingsGate = featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings'])
+export const membershipPlanAccountGate = featureGate(
+  [AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN],
+  ['/settings/account/profile']
+)
+
+export const routes: Routes = [
   {
     path: '',
     component: PACSettingComponent,
@@ -35,6 +42,7 @@ const routes: Routes = [
           {
             path: 'usage',
             loadComponent: () => import('./account/usage.component').then((m) => m.PACAccountUsageComponent),
+            canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/usage',
               scopeContext: 'dual-scope'
@@ -43,6 +51,7 @@ const routes: Routes = [
           {
             path: 'billing',
             loadComponent: () => import('./account/billing.component').then((m) => m.PACAccountBillingComponent),
+            canActivate: [membershipPlanAccountGate],
             data: {
               title: 'settings/account/billing',
               scopeContext: 'dual-scope'
@@ -100,7 +109,7 @@ const routes: Routes = [
       {
         path: 'membership',
         loadComponent: () => import('./membership/membership.component').then((m) => m.MembershipAdminComponent),
-        canActivate: [NgxPermissionsGuard],
+        canActivate: [NgxPermissionsGuard, membershipPlanSettingsGate],
         data: {
           title: 'settings/membership',
           scopeContext: 'dual-scope',

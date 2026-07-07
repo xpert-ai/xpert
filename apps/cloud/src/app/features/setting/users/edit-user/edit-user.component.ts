@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@xpert-ai/cloud/state'
-import { IUser, UserType } from '@xpert-ai/contracts'
+import { AiFeatureEnum, IUser, UserType } from '@xpert-ai/contracts'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
@@ -69,6 +69,9 @@ export class PACEditUserComponent {
   public readonly user = toSignal(this.userId$.pipe(switchMap((userId) => this.userService.getUserById(userId))))
 
   readonly loading = signal(false)
+  readonly membershipPlanEnabled = toSignal(this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN), {
+    initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
+  })
 
   readonly newPassword = model<{ password: string; confirmPassword: string }>()
   readonly activeTab = signal<UserDetailTab>('basic')
@@ -82,7 +85,11 @@ export class PACEditUserComponent {
     }
   )
   readonly availableTabs = computed(() =>
-    USER_DETAIL_TABS.filter((tab) => !tab.regularOnly || !this.isTechnicalUser(this.user()))
+    USER_DETAIL_TABS.filter(
+      (tab) =>
+        (tab.id !== 'membership' || this.membershipPlanEnabled()) &&
+        (!tab.regularOnly || !this.isTechnicalUser(this.user()))
+    )
   )
   readonly activeTabIndex = computed(() => {
     const index = this.availableTabs().findIndex((tab) => tab.id === this.activeTab())
@@ -147,6 +154,9 @@ export class PACEditUserComponent {
   }
 
   private isTabAvailable(tab: UserDetailTab, user?: IUser | null) {
+    if (tab === 'membership' && !this.membershipPlanEnabled()) {
+      return false
+    }
     if (!user) {
       return true
     }

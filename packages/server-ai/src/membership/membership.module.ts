@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CqrsModule } from '@nestjs/cqrs'
-import { TenantModule, UserOrganization } from '@xpert-ai/server-core'
+import { FeatureOrganization, TenantModule, UserOrganization } from '@xpert-ai/server-core'
 import { MembershipController } from './membership.controller'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
@@ -20,7 +20,8 @@ import { Copilot } from '../copilot/copilot.entity'
             MembershipPointLedger,
             Xpert,
             UserOrganization,
-            Copilot
+            Copilot,
+            FeatureOrganization
         ]),
         TenantModule,
         CqrsModule

@@ -1,4 +1,5 @@
 import {
+    AiFeatureEnum,
     IMembershipMe,
     IMembershipPlan,
     IMembershipScopeStatus,
@@ -15,7 +16,7 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { RequestContext, UserOrganization } from '@xpert-ai/server-core'
+import { FeatureOrganization, RequestContext, UserOrganization } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
 import { ExceedingLimitException } from '../core/errors'
@@ -133,11 +134,20 @@ export class MembershipService {
         private readonly userOrganizationRepository?: Repository<UserOrganization>,
         @Optional()
         @InjectRepository(Copilot)
-        private readonly copilotRepository?: Repository<Copilot>
+        private readonly copilotRepository?: Repository<Copilot>,
+        @Optional()
+        @InjectRepository(FeatureOrganization)
+        private readonly featureOrganizationRepository?: Repository<FeatureOrganization>
     ) {}
 
+    async isMembershipPlanEnabled(input?: ResolveScopeInput, manager?: EntityManager): Promise<boolean> {
+        return this.isMembershipPlanEnabledForScope(this.resolveScope(input), manager)
+    }
+
     async findPlans(): Promise<MembershipPlan[]> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         return this.planRepository.find({
             where: this.scopeWhere(tenantId, organizationId),
             order: { isDefault: 'DESC', createdAt: 'ASC' }
@@ -145,7 +155,9 @@ export class MembershipService {
     }
 
     async createPlan(input: Partial<MembershipPlan>): Promise<MembershipPlan> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         const plan = this.planRepository.create({
             tenantId,
             organizationId,
@@ -178,7 +190,9 @@ export class MembershipService {
     }
 
     async updatePlan(id: string, input: Partial<MembershipPlan>): Promise<MembershipPlan> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         return this.dataSource.transaction(async (manager) => {
             const repository = manager.getRepository(MembershipPlan)
             const plan = await repository.findOne({ where: { ...this.scopeWhere(tenantId, organizationId), id } })
@@ -238,6 +252,7 @@ export class MembershipService {
 
     async getScopeStatus(input?: ResolveScopeInput, manager?: EntityManager): Promise<IMembershipScopeStatus> {
         const scope = this.resolveScope(input)
+        await this.assertMembershipPlanFeatureEnabled(scope, manager)
         return this.buildScopeStatus(scope, manager)
     }
 
@@ -246,6 +261,12 @@ export class MembershipService {
         manager?: EntityManager
     ): Promise<IMembershipScopeStatus> {
         const scope = this.resolveScope(input)
+        if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
+            if (!input) {
+                await this.assertMembershipPlanFeatureEnabled(scope, manager)
+            }
+            return this.buildScopeStatus(scope, manager)
+        }
         if (!scope.organizationId) {
             return this.buildScopeStatus(scope, manager)
         }
@@ -261,6 +282,9 @@ export class MembershipService {
 
     async ensureUserAssignedIfScopeInitialized(input: EnsureScopeInitializedInput & { userId: string }) {
         const scope = this.resolveScope(input)
+        if (!(await this.isMembershipPlanEnabledForScope(scope))) {
+            return null
+        }
         if (!scope.organizationId) {
             return null
         }
@@ -277,7 +301,9 @@ export class MembershipService {
         take?: number
         skip?: number
     }): Promise<IPagination<UserMembership>> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
 
         const take = Number(options?.take ?? 20)
         const skip = Number(options?.skip ?? 0)
@@ -302,7 +328,9 @@ export class MembershipService {
     }
 
     async assignUser(userId: string, input: TMembershipAssignInput): Promise<UserMembership> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         const assignedById = RequestContext.currentUserId()
 
         return this.dataSource.transaction(async (manager) => {
@@ -361,7 +389,9 @@ export class MembershipService {
     }
 
     async adjustUserPoints(userId: string, input: TMembershipPointAdjustInput): Promise<UserMembership> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         if (!Number.isFinite(input.pointDelta) || input.pointDelta === 0) {
             throw new BadRequestException('pointDelta must be a non-zero number.')
         }
@@ -388,7 +418,9 @@ export class MembershipService {
     }
 
     async renewUser(userId: string): Promise<UserMembership> {
-        const { tenantId, organizationId } = this.requireCurrentScope()
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        const { tenantId, organizationId } = scope
         return this.dataSource.transaction(async (manager) => {
             const membership = await this.requireActiveMembership(tenantId, organizationId, userId, manager, true)
             const renewed = await this.renewMembership(membership, manager)
@@ -588,6 +620,14 @@ export class MembershipService {
             'tenantId' | 'organizationId' | 'copilotOrganizationId' | 'userId' | 'xpertId' | 'provider' | 'model'
         >
     ): Promise<void> {
+        if (
+            !(await this.isMembershipPlanEnabled({
+                tenantId: input.tenantId,
+                organizationId: input.organizationId
+            }))
+        ) {
+            return
+        }
         const access = await this.findModelAccessWithOrganizationSelfHeal({
             tenantId: input.tenantId,
             organizationId: input.organizationId,
@@ -620,6 +660,14 @@ export class MembershipService {
     async recordUsage(input: RecordUsageInput): Promise<MembershipPointLedger | null> {
         const tokenUsed = Math.max(0, Math.trunc(input.tokenUsed ?? 0))
         if (!tokenUsed) {
+            return null
+        }
+        if (
+            !(await this.isMembershipPlanEnabled({
+                tenantId: input.tenantId,
+                organizationId: input.organizationId
+            }))
+        ) {
             return null
         }
 
@@ -726,6 +774,9 @@ export class MembershipService {
     ): Promise<MembershipModelAccess | null> {
         const tenantId = input?.tenantId ?? this.requireTenant()
         const organizationId = this.normalizeScopeOrganizationId(input?.organizationId)
+        if (!(await this.isMembershipPlanEnabledForScope({ tenantId, organizationId }, manager))) {
+            return null
+        }
         const userId = input?.userId ?? this.requireUser()
         const billableUserId = await this.resolveBillableUserId(
             {
@@ -1051,6 +1102,56 @@ export class MembershipService {
                 enabled: true
             }
         })
+    }
+
+    private async isMembershipPlanEnabledForScope(scope: MembershipScope, manager?: EntityManager): Promise<boolean> {
+        const organizationToggle = scope.organizationId
+            ? await this.findMembershipPlanFeatureToggle(scope, scope.organizationId, manager)
+            : null
+        if (organizationToggle) {
+            return organizationToggle.isEnabled === true
+        }
+
+        const tenantToggle = await this.findMembershipPlanFeatureToggle(scope, null, manager)
+        return tenantToggle?.isEnabled === true
+    }
+
+    private async findMembershipPlanFeatureToggle(
+        scope: MembershipScope,
+        organizationId: string | null,
+        manager?: EntityManager
+    ): Promise<FeatureOrganization | null> {
+        const managerRepository = manager?.getRepository(FeatureOrganization)
+        const repository = managerRepository?.createQueryBuilder
+            ? managerRepository
+            : this.featureOrganizationRepository
+        if (!repository?.createQueryBuilder) {
+            return null
+        }
+
+        const qb = repository
+            .createQueryBuilder('featureOrganization')
+            .leftJoinAndSelect('featureOrganization.feature', 'feature')
+            .where('featureOrganization.tenantId = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('feature.code = :code', { code: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN })
+
+        this.applyScopeFilter(qb, 'featureOrganization.organizationId', organizationId)
+
+        const toggles = await qb.getMany()
+        return toggles.find((toggle) => !!toggle.feature?.parentId) ?? toggles[0] ?? null
+    }
+
+    private async assertMembershipPlanFeatureEnabled(scope: MembershipScope, manager?: EntityManager) {
+        if (await this.isMembershipPlanEnabledForScope(scope, manager)) {
+            return
+        }
+
+        throw new ForbiddenException(
+            this.translateMembershipError(
+                'server-ai:Error.MembershipPlanFeatureDisabled',
+                'Membership plan feature is disabled.'
+            )
+        )
     }
 
     private async requireActiveMembership(

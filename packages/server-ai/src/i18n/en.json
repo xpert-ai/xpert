@@ -13,6 +13,7 @@
         "HandleLLMTokensNoModel": "Provider '{{provider}}' did not provide a model when handling LLM tokens",
         "MembershipPlanRequired": "Membership plan is required to use Copilot models.",
         "MembershipPointsLimitExceeded": "Membership points limit exceeded.",
+        "MembershipPlanFeatureDisabled": "Membership plan feature is disabled.",
         "CopilotModelUnavailableForMembershipPlan": "Copilot model is not available for the current membership plan.",
         "ManagedImportRequiresPrimaryLlmModel": "Managed xpert import requires an enabled primary LLM copilot model for {{scope}}.",
         "CurrentOrganizationScope": "the current organization",

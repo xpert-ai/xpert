@@ -397,6 +397,10 @@
           "Name": "Monitoring",
           "Description": "Show model provider user usage and monitoring."
         },
+        "FEATURE_MEMBERSHIP_PLAN": {
+          "Name": "Membership Plans",
+          "Description": "Enable membership plan quotas, point deduction, and usage statistics."
+        },
         "GROUP_XPERT": {
           "Name": "Xpert features",
           "Description": "Manage digital expert and related entry points."
