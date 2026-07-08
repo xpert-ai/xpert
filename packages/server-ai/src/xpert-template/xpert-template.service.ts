@@ -373,20 +373,76 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
         const templatesData = await this.readTemplatesFile()
         let details = templatesData.details[id]
-        if (details) {
-            return this.withTemplateExportData(id, details)
-        }
-
-        const recommendedApps = templatesData.templates[language]?.recommendedApps?.length
-            ? templatesData.templates[language].recommendedApps
-            : templatesData.templates[fallbackLanguage].recommendedApps
-        details = recommendedApps.find((_) => _.id === id)
+        details = this.mergeTemplateDescriptorDependencies(
+            details ?? this.findTemplateDescriptorById(templatesData, id, language),
+            await this.findBuiltinTemplateDescriptorById(id, language)
+        )
 
         if (!details) {
             throw new Error(`Unable to find template for ${id}`)
         }
 
         return this.withTemplateExportData(id, details)
+    }
+
+    private async findBuiltinTemplateDescriptorById(
+        id: string,
+        language: LanguagesEnum
+    ): Promise<TXpertTemplateDescriptor | null> {
+        try {
+            const templatesFilePath = path.join(this.getBuiltinTemplateRoot(), 'templates.json')
+            const templatesData = await this.readJsonFromFile<TXpertTemplatesCatalog>(templatesFilePath)
+            return templatesData.details[id] ?? this.findTemplateDescriptorById(templatesData, id, language)
+        } catch {
+            return null
+        }
+    }
+
+    private mergeTemplateDescriptorDependencies(
+        descriptor: TXpertTemplateDescriptor | null | undefined,
+        fallbackDescriptor: TXpertTemplateDescriptor | null | undefined
+    ): TXpertTemplateDescriptor | null {
+        if (!descriptor) {
+            return fallbackDescriptor ?? null
+        }
+
+        if (this.hasTemplatePluginDependencies(descriptor.dependencies) || !fallbackDescriptor?.dependencies) {
+            return descriptor
+        }
+
+        return {
+            ...descriptor,
+            dependencies: fallbackDescriptor.dependencies
+        }
+    }
+
+    private hasTemplatePluginDependencies(dependencies?: XpertTemplatePluginDependencies) {
+        return !!dependencies?.plugins?.some((pluginName) => !!pluginName.trim())
+    }
+
+    private findTemplateDescriptorById(
+        templatesData: TXpertTemplatesCatalog,
+        id: string,
+        language: LanguagesEnum
+    ): TXpertTemplateDescriptor | null {
+        const checkedLanguages = new Set<string>()
+        const languages = [language, fallbackLanguage, ...Object.keys(templatesData.templates ?? {}).sort()]
+
+        for (const currentLanguage of languages) {
+            if (checkedLanguages.has(currentLanguage)) {
+                continue
+            }
+
+            checkedLanguages.add(currentLanguage)
+            const details = templatesData.templates[currentLanguage]?.recommendedApps?.find(
+                (template) => template.id === id
+            )
+            if (details) {
+                return details
+            }
+        }
+
+        return null
     }
 
     async readTemplates<T>(fileName: string, cacheKey: string): Promise<TLocalizedTemplates<T>> {

@@ -123,6 +123,7 @@ describe('createFeatureEntryOnboardingSteps', () => {
 
   it('uses a completion action after the account already has an available xpert', () => {
     expect(getFeatureEntryOnboardingFinishText(0)).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
+    expect(getFeatureEntryOnboardingFinishText(0, true, true)).toBe('PAC.Chat.ClawXpert.GoToChat')
     expect(getFeatureEntryOnboardingFinishText(1)).toBe('PAC.ACTIONS.Done')
   })
 

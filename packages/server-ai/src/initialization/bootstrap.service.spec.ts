@@ -5,6 +5,16 @@ jest.mock('../environment', () => ({
 jest.mock('@xpert-ai/server-core', () => ({
     OrganizationCreatedEvent: class OrganizationCreatedEvent {},
     OrganizationService: class OrganizationService {},
+    PluginManagementService: class PluginManagementService {},
+    normalizePluginName: (pluginName: string) => {
+        if (!pluginName.includes('@')) return pluginName
+        const lastAt = pluginName.lastIndexOf('@')
+        return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName
+    },
+    RequestContext: {
+        currentTenantId: jest.fn(() => 'tenant-1'),
+        currentUser: jest.fn(() => null)
+    },
     TenantCreatedEvent: class TenantCreatedEvent {},
     UserOrganizationCreatedEvent: class UserOrganizationCreatedEvent {},
     UserOrganizationService: class UserOrganizationService {},
@@ -66,6 +76,21 @@ jest.mock('../membership', () => ({
 
 import { ServerAIBootstrapService } from './bootstrap.service'
 import { XpertImportCommand } from '../xpert'
+import type { OrganizationCreatedEvent, PluginManagementService } from '@xpert-ai/server-core'
+
+type PluginManagementServiceMock = jest.Mocked<Pick<PluginManagementService, 'findLoadedPlugin' | 'installPlugin'>>
+
+function toPluginManagementService(mock: PluginManagementServiceMock): PluginManagementService {
+    return mock as unknown as PluginManagementService
+}
+
+function createOrganizationCreatedEvent(): OrganizationCreatedEvent {
+    return {
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        ownerUserId: 'owner-1'
+    }
+}
 
 describe('ServerAIBootstrapService', () => {
     const defaultRepositories = {
@@ -172,7 +197,14 @@ describe('ServerAIBootstrapService', () => {
             validateName: jest.fn().mockResolvedValue(true)
         }
         const xpertTemplateService = {
-            getTemplateDetail: jest.fn(),
+            getTemplateDetail: jest.fn().mockResolvedValue({
+                id: 'xpert-my-claw-xpert',
+                name: 'ClawXpert',
+                dependencies: {
+                    plugins: []
+                },
+                export_data: 'team:\n  name: ClawXpert\n'
+            }),
             readSkillRepositories: jest.fn().mockResolvedValue(defaultRepositories),
             getTemplateSkillBundles: jest.fn().mockResolvedValue([]),
             getBootstrapDefaultSkillRefs: jest.fn().mockResolvedValue([]),
@@ -201,6 +233,15 @@ describe('ServerAIBootstrapService', () => {
         const membershipService = {
             ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null)
         }
+        const pluginManagementService: PluginManagementServiceMock = {
+            findLoadedPlugin: jest.fn().mockReturnValue(undefined),
+            installPlugin: jest.fn().mockResolvedValue({
+                success: true,
+                name: '@xpert-ai/plugin-file-memory',
+                packageName: '@xpert-ai/plugin-file-memory',
+                organizationId: 'org-1'
+            })
+        }
 
         const service = new ServerAIBootstrapService(
             configService as any,
@@ -216,6 +257,7 @@ describe('ServerAIBootstrapService', () => {
             xpertService as any,
             xpertTemplateService as any,
             templateSkillSyncService as any,
+            toPluginManagementService(pluginManagementService),
             membershipService as any
         )
 
@@ -234,6 +276,7 @@ describe('ServerAIBootstrapService', () => {
             skillPackageService,
             skillRepositoryService,
             membershipService,
+            pluginManagementService,
             templateSkillSyncService,
             userOrganizationService,
             userService,
@@ -273,6 +316,50 @@ describe('ServerAIBootstrapService', () => {
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
         expect(result).toEqual({
             repositoryIds: []
+        })
+    })
+
+    it('preinstalls ClawXpert template plugins for newly created organizations', async () => {
+        const { pluginManagementService, service, xpertTemplateService } = createService()
+        xpertTemplateService.getTemplateDetail.mockResolvedValue({
+            id: 'xpert-my-claw-xpert',
+            name: 'ClawXpert',
+            dependencies: {
+                plugins: ['@xpert-ai/plugin-file-memory', '@xpert-ai/plugin-file-memory']
+            },
+            export_data: 'team:\n  name: ClawXpert\n'
+        })
+
+        await service.bootstrapOrganization(createOrganizationCreatedEvent())
+
+        expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('xpert-my-claw-xpert', 'en_US')
+        expect(pluginManagementService.findLoadedPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-file-memory', 'org-1')
+        expect(pluginManagementService.installPlugin).toHaveBeenCalledTimes(1)
+        expect(pluginManagementService.installPlugin).toHaveBeenCalledWith({
+            pluginName: '@xpert-ai/plugin-file-memory'
+        })
+    })
+
+    it('does not fail organization bootstrap when ClawXpert plugin preinstall fails', async () => {
+        const { pluginManagementService, service, xpertTemplateService } = createService()
+        xpertTemplateService.getTemplateDetail.mockResolvedValue({
+            id: 'xpert-my-claw-xpert',
+            name: 'ClawXpert',
+            dependencies: {
+                plugins: ['@xpert-ai/plugin-file-memory']
+            },
+            export_data: 'team:\n  name: ClawXpert\n'
+        })
+        pluginManagementService.installPlugin.mockRejectedValue(new Error('install failed'))
+
+        await expect(
+            service.bootstrapOrganization(createOrganizationCreatedEvent())
+        ).resolves.toEqual({
+            repositoryIds: []
+        })
+
+        expect(pluginManagementService.installPlugin).toHaveBeenCalledWith({
+            pluginName: '@xpert-ai/plugin-file-memory'
         })
     })
 
