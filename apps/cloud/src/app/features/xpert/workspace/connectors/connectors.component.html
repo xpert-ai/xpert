@@ -1,0 +1,140 @@
+<div class="relative px-12 py-4">
+  @if (definitions().length) {
+    <div class="grid max-w-7xl grid-cols-1 gap-3 xl:grid-cols-2">
+      @for (definition of definitions(); track definition.provider) {
+        @let connector = connectorFor(definition);
+        @let status = statusLabelFor(connector);
+
+        <div
+          class="relative flex w-full items-start gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3 shadow-sm"
+        >
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-divider-regular bg-background-default-subtle"
+          >
+            @if (iconImageUrl(definition); as iconUrl) {
+              <img class="h-6 w-6 rounded-md object-contain" [src]="iconUrl" [alt]="definition.provider" />
+            } @else {
+              <z-icon zType="activity" class="text-text-primary"></z-icon>
+            }
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-center gap-2">
+              <div class="truncate font-semibold text-text-primary">
+                {{ definition.label | i18n }}
+              </div>
+              <span
+                class="h-2 w-2 shrink-0 rounded-full"
+                [class.bg-success-500]="connector?.status === 'active'"
+                [class.bg-warning-500]="connector?.status === 'pending' || connector?.status === 'expired'"
+                [class.bg-danger-500]="connector?.status === 'error'"
+                [class.bg-text-tertiary]="!connector || connector.status === 'disconnected'"
+              ></span>
+            </div>
+
+            @if (connector) {
+              <div class="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-tertiary">
+                <z-badge [zType]="statusBadgeType(connector)" zShape="pill">
+                  {{ status.key | translate: { Default: status.defaultLabel } }}
+                </z-badge>
+                @if (connector.lastError) {
+                  <span class="basis-full text-text-warning">
+                    {{ connector.lastError }}
+                  </span>
+                }
+              </div>
+            } @else {
+              <z-badge class="mt-1.5" [zType]="statusBadgeType(connector)" zShape="pill">
+                {{ status.key | translate: { Default: status.defaultLabel } }}
+              </z-badge>
+            }
+
+            @if (!canManageWorkspace()) {
+              <div class="mt-3 text-xs text-text-tertiary">
+                {{
+                  'PAC.Xpert.ConnectorsReadonly'
+                    | translate: { Default: 'Only workspace managers can connect or disconnect connectors.' }
+                }}
+              </div>
+            }
+
+            @if (connector?.status === 'pending' && canManageWorkspace()) {
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                @if (pendingAuthorizationUrl(connector)) {
+                  <button
+                    z-button
+                    type="button"
+                    zType="secondary"
+                    zSize="sm"
+                    (click)="openPendingAuthorizationUrl(connector)"
+                  >
+                    <z-icon zType="arrow-up-right"></z-icon>
+                    {{ 'PAC.Xpert.ConnectorOpenAuthorization' | translate: { Default: 'Continue authorization' } }}
+                  </button>
+                }
+                @if (isPolling(connector)) {
+                  <span class="inline-flex items-center gap-1 text-xs text-text-tertiary">
+                    <z-icon zType="loader-circle" class="animate-spin"></z-icon>
+                    {{
+                      'PAC.Xpert.ConnectorAuthorizationPending'
+                        | translate: { Default: 'Waiting for authorization to complete.' }
+                    }}
+                  </span>
+                }
+              </div>
+            }
+
+          </div>
+
+          @if (connector?.status === 'active') {
+            <button
+              z-button
+              type="button"
+              zType="outline"
+              zSize="icon"
+              zShape="circle"
+              class="shrink-0"
+              [zDisabled]="!canManageWorkspace() || loading() || isDisconnecting(connector)"
+              [attr.aria-label]="'PAC.ACTIONS.Disconnect' | translate: { Default: 'Disconnect' }"
+              (click)="disconnect(connector)"
+            >
+              @if (isDisconnecting(connector)) {
+                <z-icon zType="loader-circle" class="animate-spin"></z-icon>
+              } @else {
+                <z-icon [zType]="disconnectIcon"></z-icon>
+              }
+            </button>
+          } @else {
+            <button
+              z-button
+              type="button"
+              zType="outline"
+              zSize="icon"
+              zShape="circle"
+              class="shrink-0"
+              [zDisabled]="!canManageWorkspace() || loading() || isConnecting(definition)"
+              [attr.aria-label]="'PAC.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
+              (click)="connect(definition)"
+            >
+              @if (isConnecting(definition)) {
+                <z-icon zType="loader-circle" class="animate-spin"></z-icon>
+              } @else {
+                <z-icon zType="plus"></z-icon>
+              }
+            </button>
+          }
+
+          @if (loading()) {
+            <ngm-spin class="absolute top-0 left-0 h-full w-full"></ngm-spin>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div
+      class="max-w-5xl rounded-lg border border-divider-regular bg-background-default-subtle p-6 text-sm text-text-tertiary"
+    >
+      {{ 'PAC.Xpert.NoConnectorsAvailable' | translate: { Default: 'No connectors are available.' } }}
+    </div>
+  }
+</div>

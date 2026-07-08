@@ -83,6 +83,23 @@ export const Attachment_Type_Options: TSelectOption<string, TXpertAttachmentType
     }
   ]
 
+export type JsonSchemaUIDependency =
+  | string
+  | {
+      name: string
+      alias?: string
+      source?: 'model' | 'context'
+    }
+
+export type JsonSchemaUIVisibilityCondition = {
+  name: string
+  source?: 'model' | 'context'
+  value?: unknown
+  values?: unknown[]
+  exists?: boolean
+  not?: boolean
+}
+
 export type JsonSchemaUIExtensions = {
   /**
    * Field title used by generic JSON-schema forms.
@@ -123,7 +140,11 @@ export type JsonSchemaUIExtensions = {
   /**
    * Field dependencies
    */
-  depends?: (string | { name: string; alias?: string })[]
+  depends?: JsonSchemaUIDependency[]
+  /**
+   * Field visibility conditions evaluated against the current form model or explicit context.
+   */
+  visibleWhen?: JsonSchemaUIVisibilityCondition | JsonSchemaUIVisibilityCondition[]
   /**
    * Whether multiple values can be selected (for select component)
    */

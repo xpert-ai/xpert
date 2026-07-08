@@ -804,7 +804,24 @@
       "ChannelType": "Channel Type",
       "SourceMessageLogIds": "Source Message Logs",
       "End": "End",
-      "EndTool": "End point tool. The conversation ends when the tool completes."
+      "EndTool": "End point tool. The conversation ends when the tool completes.",
+      "Connectors": "Connectors",
+      "ConnectorIntegration": "App integration",
+      "NoConnectorIntegration": "No available app integration",
+      "NoConnectorsAvailable": "No connectors are available.",
+      "ConnectorsReadonly": "Only workspace managers can connect or disconnect connectors.",
+      "ConnectConnector": "Connect connector",
+      "ConnectorAppRequired": "Select an app integration",
+      "ConnectorAppCredentialsRequired": "Required connector credentials are missing",
+      "ConnectorOpenAuthorization": "Continue authorization",
+      "ConnectorAuthorizationPending": "Waiting for authorization to complete.",
+      "ConnectorAuthorizationPopupBlocked": "Authorization page was blocked. Allow pop-ups for this site and try again.",
+      "ConnectorStatusConnected": "Connected",
+      "ConnectorStatusPending": "Pending",
+      "ConnectorStatusExpired": "Expired",
+      "ConnectorStatusError": "Error",
+      "ConnectorStatusDisconnected": "Disconnected",
+      "ConnectorStatusNotConnected": "Not connected"
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
