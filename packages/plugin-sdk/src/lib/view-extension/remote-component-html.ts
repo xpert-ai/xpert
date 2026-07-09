@@ -7,6 +7,15 @@ export interface RenderRemoteReactIframeHtmlOptions {
   lang?: string
 }
 
+export interface RenderRemoteModuleIframeHtmlOptions {
+  title: string
+  appScript: string
+  appCss?: string
+  lang?: string
+}
+
+export interface RenderRemoteVueIframeHtmlOptions extends RenderRemoteModuleIframeHtmlOptions {}
+
 const XPERT_REMOTE_UI_CSS = `
 :root {
   color-scheme: light;
@@ -398,10 +407,10 @@ ${XPERT_REMOTE_UI_CSS}
 ${options.appCss ?? ''}
     </style>
     <script>
-${options.reactUmd}
+${escapeInlineScript(options.reactUmd)}
     </script>
     <script>
-${options.reactDomUmd}
+${escapeInlineScript(options.reactDomUmd)}
     </script>
     <script>
 ${XPERT_REMOTE_UI_BOOTSTRAP}
@@ -410,10 +419,38 @@ ${XPERT_REMOTE_UI_BOOTSTRAP}
   <body>
     <div id="root"></div>
     <script>
-${options.appScript}
+${escapeInlineScript(options.appScript)}
     </script>
   </body>
 </html>`
+}
+
+export function renderRemoteModuleIframeHtml(options: RenderRemoteModuleIframeHtmlOptions) {
+  return `<!doctype html>
+<html lang="${escapeHtmlAttribute(options.lang ?? 'en')}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(options.title)}</title>
+    <style>
+${XPERT_REMOTE_UI_CSS}
+${options.appCss ?? ''}
+    </style>
+    <script>
+${XPERT_REMOTE_UI_BOOTSTRAP}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+${escapeInlineScript(options.appScript)}
+    </script>
+  </body>
+</html>`
+}
+
+export function renderRemoteVueIframeHtml(options: RenderRemoteVueIframeHtmlOptions) {
+  return renderRemoteModuleIframeHtml(options)
 }
 
 function escapeHtml(value: string) {
@@ -427,4 +464,8 @@ function escapeHtml(value: string) {
 
 function escapeHtmlAttribute(value: string) {
   return escapeHtml(value).replace(/`/g, '&#96;')
+}
+
+function escapeInlineScript(value: string) {
+  return value.replace(/<\/script/gi, '<\\/script')
 }

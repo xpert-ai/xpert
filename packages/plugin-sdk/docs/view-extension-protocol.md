@@ -79,6 +79,19 @@ No other message type may perform backend I/O until it is added to this document
 The manifest is the capability whitelist. A remote component may only request operations that the manifest declares.
 
 ```ts
+type XpertRemoteComponentViewSchema = {
+  type: 'remote_component'
+  runtime: 'react' | 'vue' | 'esm'
+  protocolVersion: 1
+  component: {
+    isolation: 'iframe'
+    entry: string
+  }
+  dataSource: {
+    mode: 'platform'
+  }
+}
+
 type XpertViewActionDefinition = {
   key: string
   label: I18nObject
@@ -100,6 +113,8 @@ type XpertViewActionDefinition = {
 
 Rules:
 
+- `runtime: 'react'` is the legacy classic-script iframe runtime.
+- `runtime: 'vue'` and `runtime: 'esm'` use an ES module iframe entry. They keep the same postMessage protocol and may use top-level await inside the bundled `appScript`.
 - `transport: 'json'` maps to `executeViewAction`.
 - `transport: 'file'` maps to `executeViewFileAction`.
 - If `transport` is omitted, hosts must treat the action as `json` for backward compatibility.

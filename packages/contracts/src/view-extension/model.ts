@@ -7,6 +7,8 @@ export type XpertViewSlotMode = 'tabs' | 'sections' | 'widgets' | 'sidebar'
 
 export type XpertViewSchemaType = 'stats' | 'table' | 'list' | 'detail' | 'raw_json' | 'remote_component'
 
+export type XpertRemoteComponentRuntime = 'react' | 'vue' | 'esm'
+
 export type XpertViewValueType = 'text' | 'number' | 'status' | 'datetime' | 'json'
 
 export type XpertViewColumnDataType = 'text' | 'number' | 'date' | 'datetime' | 'status' | 'tag' | 'avatar' | 'link'
@@ -202,7 +204,7 @@ export interface XpertRawJsonViewSchema {
 
 export interface XpertRemoteComponentViewSchema {
   type: 'remote_component'
-  runtime: 'react'
+  runtime: XpertRemoteComponentRuntime
   protocolVersion: 1
   component: {
     isolation: 'iframe' | 'module_federation'
