@@ -30,8 +30,8 @@ jest.mock('../../../@core', () => ({
 
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import type { ICopilotModel, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
-import { XpertTypeEnum } from '@xpert-ai/contracts'
+import type { ICopilotModel, IPluginDescriptor, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { PLUGIN_LEVEL, XpertTypeEnum } from '@xpert-ai/contracts'
 import { of, throwError } from 'rxjs'
 import {
   AiModelTypeEnum,
@@ -166,8 +166,12 @@ describe('ClawXpertBootstrapService', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c'])
     expect(service.readPendingCreatedClawXpert('created-clawxpert')?.id).toBe('created-clawxpert')
     expect(service.consumePendingCreatedConversationXpertId('created-clawxpert')).toBe('created-clawxpert')
-    expect(service.readPendingCreatedClawXpert('created-clawxpert')).toBeNull()
     expect(service.consumePendingCreatedConversationXpertId('created-clawxpert')).toBeNull()
+    expect(service.readPendingCreatedClawXpert('created-clawxpert')?.id).toBe('created-clawxpert')
+
+    service.clearPendingCreatedClawXpert('created-clawxpert')
+
+    expect(service.readPendingCreatedClawXpert('created-clawxpert')).toBeNull()
   })
 
   it('clears the pending created conversation marker when binding fails', async () => {
@@ -214,6 +218,39 @@ describe('ClawXpertBootstrapService', () => {
     expect(mockPluginAPI.install.mock.invocationCallOrder[0]).toBeLessThan(
       xpertTemplateService.installTemplate.mock.invocationCallOrder[0]
     )
+    expect(xpertAgentService.refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes middleware providers when template plugins are already installed', async () => {
+    const { service, xpertAgentService, xpertTemplateService } = setup()
+    xpertTemplateService.getTemplate.mockReturnValue(
+      of({
+        dependencies: {
+          plugins: ['@xpert-ai/plugin-file-memory']
+        }
+      })
+    )
+    xpertTemplateService.installTemplate.mockReturnValue(of({ xpert: createXpert('created-clawxpert') }))
+    const installedPlugin: IPluginDescriptor = {
+      name: '@xpert-ai/plugin-file-memory@0.2.1',
+      packageName: '@xpert-ai/plugin-file-memory',
+      isGlobal: false,
+      level: PLUGIN_LEVEL.ORGANIZATION,
+      effectiveInCurrentScope: true,
+      meta: {
+        name: '@xpert-ai/plugin-file-memory',
+        version: '0.2.1',
+        category: 'middleware',
+        displayName: 'File memory',
+        description: 'File memory',
+        author: 'XpertAI'
+      }
+    }
+    mockPluginAPI.getPlugins.mockReturnValue(of([installedPlugin]))
+
+    await service.createClawXpert(createCopilotModel())
+
+    expect(mockPluginAPI.install).not.toHaveBeenCalled()
     expect(xpertAgentService.refresh).toHaveBeenCalledTimes(1)
   })
 

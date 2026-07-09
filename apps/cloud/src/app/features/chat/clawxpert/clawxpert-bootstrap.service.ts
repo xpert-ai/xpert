@@ -127,8 +127,16 @@ export class ClawXpertBootstrapService {
     }
 
     this.#pendingCreatedConversationXpertId = null
-    this.#pendingCreatedClawXpert.set(null)
     return pendingXpertId
+  }
+
+  clearPendingCreatedClawXpert(expectedXpertId?: string | null): void {
+    const pendingXpert = this.#pendingCreatedClawXpert()
+    if (!pendingXpert?.id || (expectedXpertId && pendingXpert.id !== expectedXpertId)) {
+      return
+    }
+
+    this.#pendingCreatedClawXpert.set(null)
   }
 
   private async ensureDefaultWorkspace(): Promise<IXpertWorkspace> {
@@ -185,9 +193,7 @@ export class ClawXpertBootstrapService {
       await firstValueFrom(this.#pluginAPI.install({ pluginName }))
       installedPluginNames.add(normalizePluginInstallName(pluginName))
     }
-    if (missingPluginNames.length) {
-      this.#xpertAgentService.refresh()
-    }
+    this.#xpertAgentService.refresh()
   }
 
   private async refreshDraftSnapshotBeforePublish(xpert: IXpert): Promise<void> {

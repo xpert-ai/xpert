@@ -404,6 +404,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       if (currentUrl !== '/chat/clawxpert/c') {
         this.#lastConversationEntryKey = null
+        this.#bootstrap.clearPendingCreatedClawXpert()
       }
 
       if (!this.threadId()) {
@@ -1316,8 +1317,10 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       ])
 
       let normalizedPreference = preference ?? null
-      let normalizedXperts = this.normalizeXperts(xperts)
+      const loadedXperts = this.normalizeXperts(xperts)
+      let normalizedXperts = loadedXperts
       const pendingXpert = this.currentUrl() === '/chat/clawxpert/c' ? this.#bootstrap.pendingCreatedClawXpert() : null
+      const pendingXpertLoaded = !!pendingXpert?.id && loadedXperts.some((item) => item.id === pendingXpert.id)
 
       if (pendingXpert?.id) {
         normalizedPreference = {
@@ -1326,7 +1329,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
           scope: AssistantBindingScope.USER,
           assistantId: pendingXpert.id
         }
-        normalizedXperts = this.normalizeXperts([pendingXpert, ...normalizedXperts])
+        normalizedXperts = pendingXpertLoaded
+          ? normalizedXperts
+          : this.normalizeXperts([pendingXpert, ...normalizedXperts])
       }
 
       const isCurrentBindingAvailable = normalizedPreference
@@ -1341,6 +1346,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       this.availableXperts.set(normalizedXperts)
       this.hasLoadedXperts.set(true)
       this.showWizard.set(!normalizedPreference || !isCurrentBindingAvailable)
+      if (pendingXpertLoaded) {
+        this.#bootstrap.clearPendingCreatedClawXpert(pendingXpert.id)
+      }
     } catch (error) {
       if (requestId !== this.#loadRequestId) {
         return
