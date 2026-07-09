@@ -270,6 +270,9 @@ export class MembershipService {
         if (!scope.organizationId) {
             return this.buildScopeStatus(scope, manager)
         }
+        if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId, manager))) {
+            return this.buildScopeStatus(scope, manager)
+        }
 
         const initialize = async (txManager: EntityManager) => {
             const plan = await this.ensureDefaultOrganizationPlan(scope, txManager)
@@ -880,7 +883,7 @@ export class MembershipService {
             : null
         const hasDefaultPlan = !!defaultPlan
         const initialized = isOrganizationScope
-            ? hasDefaultPlan && assignedMemberCount === activeUserIds.length
+            ? !activePlanCount || (hasDefaultPlan && assignedMemberCount === activeUserIds.length)
             : activePlanCount > 0
 
         return {
@@ -892,8 +895,7 @@ export class MembershipService {
             defaultPlan,
             initialized,
             needsRepair: isOrganizationScope
-                ? (!!activePlanCount && (!hasDefaultPlan || assignedMemberCount !== activeUserIds.length)) ||
-                  (!activePlanCount && !!localCopilotCount)
+                ? !!activePlanCount && (!hasDefaultPlan || assignedMemberCount !== activeUserIds.length)
                 : false,
             activeMemberCount: isOrganizationScope ? activeUserIds.length : null,
             assignedMemberCount,
