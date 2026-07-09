@@ -19,7 +19,7 @@ import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/c
 import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
 import { AggregationRole, CalculationType, nonNullable } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import ELK from 'elkjs'
+import ELK from 'elkjs/lib/elk.bundled'
 import { debounceTime } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { ModelDesignerType } from '../../types'

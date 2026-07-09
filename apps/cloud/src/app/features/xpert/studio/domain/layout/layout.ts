@@ -4,7 +4,7 @@
  */
 
 import { IPoint, TXpertGraph, TXpertTeamConnection, TXpertTeamNode } from '@cloud/app/@core'
-import ELK from 'elkjs'
+import ELK from 'elkjs/lib/elk.bundled'
 
 const NODE_WIDTH = 240
 
