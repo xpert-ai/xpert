@@ -2,7 +2,7 @@
 
 :host {
   display: block;
-  --pl: 1.5rem;
+  --pl: 1rem;
 }
 
 .cloud-sidebar-assistants {
@@ -508,12 +508,11 @@
 }
 
 .cloud-sidebar-assistants__description {
-  display: -webkit-box;
+  display: block;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.15rem;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
 }
 
 .cloud-sidebar-assistants__settings {
@@ -548,13 +547,13 @@
 }
 
 .cloud-sidebar-assistants__status {
-  top: 0;
-  right: 0;
+  top: 50%;
+  right: 10px;
   width: 0.5rem;
   height: 0.5rem;
   flex: 0 0 0.5rem;
   border-radius: 999px;
-  background: var(--color-primary);
+  background: var(--color-accent);
   transform: translate(50%, -50%);
 }
 

@@ -344,10 +344,39 @@ describe('CloudSidebarAssistantsComponent', () => {
     const names = Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
       item.textContent.trim()
     )
+    const descriptions = Array.from(
+      fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__description')
+    ).map((item) => item.textContent.trim())
 
     expect(names).toEqual(['Other Assistant'])
+    expect(descriptions).toEqual(['General workbench assistant'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
+  })
+
+  it('renders the latest conversation title in the assistant description row', async () => {
+    conversationService.getUnreadByXperts.mockReturnValue(
+      of([
+        {
+          xpertId: 'other-xpert',
+          unreadMessages: 0,
+          unreadConversations: 0,
+          latestConversationAt: '2026-06-21T00:05:00.000Z',
+          latestConversationId: 'conversation-latest',
+          latestConversationThreadId: 'thread-latest',
+          latestConversationTitle: 'Latest planning chat'
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__description').textContent.trim()).toBe(
+      'Latest planning chat'
+    )
   })
 
   it('renders the current bound ClawXpert card from the existing expert source', async () => {
@@ -874,7 +903,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
   })
 
-  it('polls unread summaries every 120 seconds while the page is visible', fakeAsync(() => {
+  it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
 
     fixture.detectChanges()
@@ -882,7 +911,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
-    tick(119_999)
+    tick(1_999)
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
     tick(1)
@@ -901,7 +930,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
 
-    tick(120_000)
+    tick(2_000)
     expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
 
     documentVisibilityState = 'visible'
@@ -909,7 +938,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
-    tick(120_000)
+    tick(2_000)
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
 
     fixture.destroy()

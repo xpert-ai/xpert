@@ -1,0 +1,74 @@
+@use 'sass:meta';
+@include meta.load-css('libs/formly/_formly');
+@include meta.load-css('libs/story-angular/src/lib/_index');
+@include meta.load-css('libs/apps/indicator-market/index');
+
+body.mobile {
+  .cdk-overlay-pane {
+    max-width: 100vw !important;
+  }
+}
+
+.ngm-smart-echarts__tooltip {
+  z-index: 100 !important;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow:
+    0 5px 5px -3px var(--color-elevation-drag-shadow-1),
+    0 8px 10px 1px var(--color-elevation-drag-shadow-2),
+    0 3px 14px 2px var(--color-elevation-drag-shadow-3);
+}
+
+formly-field,
+formly-form {
+  display: block;
+}
+
+// 会造成很多地方的样式问题如 table 内的 button
+[z-button][data-icon-only],
+z-button[data-icon-only] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+html.cdk-global-scrollblock {
+  overflow-y: auto;
+}
+
+[z-button][data-icon-only],
+z-button[data-icon-only] {
+  @apply flex justify-center items-center;
+}
+
+.metad-formly-tab-group {
+  display: flex;
+  .z-tab-group {
+    flex: 1;
+  }
+}
+
+.ngm-settings-panel__drawer-content {
+  .z-tab-group__nav {
+    min-height: 38px;
+  }
+}
+
+.metad-formly__panel-wrapper.metad-formly__nested-area.metad-formly__panel-padding {
+  @apply px-4 pb-2;
+}
+
+.ngm-dialog-container {
+  @apply flex-1 flex flex-col;
+}
+
+.z-tab-nav-panel {
+  @apply flex-1 flex flex-col;
+}
+
+.cdk-overlay-pane .mdc-tooltip {
+  @apply text-xs;
+}

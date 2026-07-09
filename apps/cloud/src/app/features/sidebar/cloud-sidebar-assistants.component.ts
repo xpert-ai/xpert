@@ -313,6 +313,11 @@ export class CloudSidebarAssistantsComponent {
           .map((summary) => summary.xpertId)
       )
   )
+  readonly conversationSummaryByXpertId = computed(() => {
+    const entries = this.unreadSummaryList().map((summary) => [summary.xpertId, summary] as const)
+
+    return new Map<string, IChatConversationUnreadXpertSummary>(entries)
+  })
   readonly unreadSummaryByXpertId = computed(() => {
     const entries = this.unreadSummaryList()
       .filter((summary) => summary.unreadMessages > 0)
@@ -446,7 +451,7 @@ export class CloudSidebarAssistantsComponent {
   }
 
   assistantDescription(xpert: IXpert) {
-    return getAssistantDescription(xpert)
+    return this.getLatestConversationTitle(xpert.id) || getAssistantDescription(xpert)
   }
 
   updateQuery(event: Event) {
@@ -482,6 +487,15 @@ export class CloudSidebarAssistantsComponent {
     const summary = this.unreadSummaryByXpertId().get(xpertId)
     const threadId = summary?.latestUnreadThreadId?.trim()
     return summary && summary.unreadMessages > 0 && threadId ? threadId : null
+  }
+
+  private getLatestConversationTitle(xpertId: string | null | undefined) {
+    if (typeof xpertId !== 'string' || !xpertId.trim()) {
+      return null
+    }
+
+    const title = this.conversationSummaryByXpertId().get(xpertId)?.latestConversationTitle?.trim()
+    return title || null
   }
 
   private hasXpertEditPermission() {
