@@ -73,6 +73,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     super(API_KNOWLEDGEBASE)
   }
 
+  getDetail(id: string) {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<IKnowledgebase>(this.apiBaseUrl + `/detail/${id}`))
+    )
+  }
+
   /**
    * Refresh cached strategy data (e.g., after plugin install/uninstall)
    */
