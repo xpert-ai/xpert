@@ -23,7 +23,6 @@ import {
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
-  type AssistantXpertLike,
   filterAssistantXperts,
   getAssistantDescription,
   getAssistantLabel,
@@ -229,7 +228,7 @@ export class CloudSidebarAssistantsComponent {
   readonly isClawXpertConfigured = computed(() => !!this.boundXpert())
   readonly listXperts = computed(() => {
     const boundId = this.boundXpert()?.id
-    return this.xperts().filter((xpert) => xpert.id !== boundId && !isClawXpertXpert(xpert))
+    return this.xperts().filter((xpert) => xpert.id !== boundId)
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
@@ -496,12 +495,6 @@ function normalizeChatPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
-}
-
-function isClawXpertXpert(xpert: AssistantXpertLike) {
-  return [xpert.slug, xpert.id].some(
-    (value) => typeof value === 'string' && value.trim().toLowerCase() === AssistantCode.CLAWXPERT
-  )
 }
 
 function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {
