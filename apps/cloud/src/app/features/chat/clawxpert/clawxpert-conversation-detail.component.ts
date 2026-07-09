@@ -836,13 +836,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     return this.showDetailPanel()
-      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[32rem] lg:justify-self-end py-4 px-2`
+      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[32rem] lg:justify-self-end`
       : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
   })
   readonly chatSurfaceClasses = computed(() =>
-    this.showDetailPanel() && !this.isChatMinimizedToPet()
-      ? 'rounded-2xl bg-components-card-bg shadow-sm border border-border'
-      : ''
+    this.showDetailPanel() && !this.isChatMinimizedToPet() ? 'bg-components-card-bg border-l border-border' : ''
   )
 
   constructor() {
