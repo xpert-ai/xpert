@@ -16,6 +16,7 @@ import {
     RequestContext,
     TransformInterceptor,
     UploadFileCommand,
+    UUIDValidationPipe,
     getFileAssetDestination,
     transformWhere
 } from '@xpert-ai/server-core'
@@ -43,7 +44,7 @@ import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from './queries'
 import { WorkspaceAuthoringGuard } from '../xpert-workspace'
-import { KnowledgebasePublicDTO } from './dto'
+import { KnowledgebaseDetailDTO, KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
 import path from 'node:path'
 import { KnowledgeDocumentService } from '../knowledge-document'
@@ -184,6 +185,11 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Post('external')
     async createExternal(@Body() body: Partial<IKnowledgebase>) {
         return this.service.createExternal(body)
+    }
+
+    @Get('detail/:id')
+    async findOneDetail(@Param('id', UUIDValidationPipe) id: string): Promise<KnowledgebaseDetailDTO> {
+        return this.service.findOneDetail(id)
     }
 
     @Get('text-splitter/strategies')
