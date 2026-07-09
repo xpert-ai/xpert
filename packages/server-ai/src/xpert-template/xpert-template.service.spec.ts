@@ -278,6 +278,106 @@ describe('XpertTemplateService', () => {
         expect(workspaceDefaults.userDefault.skills).toEqual([])
     })
 
+    it('resolves template details from another language group when the requested language catalog misses the template', async () => {
+        const workspaceRoot = createTempDir()
+        const dataRoot = createTempDir()
+        const builtinRoot = seedBuiltinTemplates(workspaceRoot, {
+            templatesJson: {
+                templates: {
+                    'en-US': {
+                        categories: ['builtin'],
+                        recommendedApps: [{ id: 'template-1', name: 'English Template' }]
+                    },
+                    'zh-Hans': {
+                        categories: ['builtin'],
+                        recommendedApps: [
+                            {
+                                id: 'xpert-my-claw-xpert',
+                                name: 'ClawXpert',
+                                dependencies: {
+                                    plugins: ['@xpert-ai/plugin-file-memory']
+                                }
+                            }
+                        ]
+                    }
+                },
+                details: {}
+            }
+        })
+        writeFileSync(join(builtinRoot, 'templates', 'xpert-my-claw-xpert.yaml'), 'team:\n  name: ClawXpert\n', 'utf8')
+        const { service } = createService({
+            serverRoot: workspaceRoot,
+            dataPath: dataRoot
+        })
+
+        await service.onModuleInit()
+
+        const detail = await service.getTemplateDetail('xpert-my-claw-xpert', LanguagesEnum.English)
+
+        expect(detail.dependencies?.plugins).toEqual(['@xpert-ai/plugin-file-memory'])
+        expect(detail.export_data).toBe('team:\n  name: ClawXpert\n')
+    })
+
+    it('enriches stale external template metadata with builtin plugin dependencies', async () => {
+        const workspaceRoot = createTempDir()
+        const dataRoot = createTempDir()
+        const externalRoot = join(dataRoot, 'external-templates')
+        seedBuiltinTemplates(workspaceRoot, {
+            templatesJson: {
+                templates: {
+                    'zh-Hans': {
+                        categories: ['builtin'],
+                        recommendedApps: [
+                            {
+                                id: 'xpert-my-claw-xpert',
+                                name: 'ClawXpert',
+                                dependencies: {
+                                    plugins: ['@xpert-ai/plugin-file-memory']
+                                }
+                            }
+                        ]
+                    }
+                },
+                details: {}
+            }
+        })
+        mkdirSync(join(externalRoot, 'templates'), { recursive: true })
+        writeJson(join(externalRoot, 'templates.json'), {
+            templates: {
+                'zh-Hans': {
+                    categories: ['stale'],
+                    recommendedApps: [{ id: 'xpert-my-claw-xpert', name: 'Old ClawXpert' }]
+                }
+            },
+            details: {
+                'xpert-my-claw-xpert': {
+                    id: 'xpert-my-claw-xpert',
+                    name: 'Old ClawXpert Detail'
+                }
+            }
+        })
+        writeFileSync(
+            join(externalRoot, 'templates', 'xpert-my-claw-xpert.yaml'),
+            'team:\n  name: Old ClawXpert\n',
+            'utf8'
+        )
+        const { service } = createService({
+            serverRoot: workspaceRoot,
+            dataPath: join(dataRoot, 'fallback-data'),
+            env: {
+                XPERT_TEMPLATE_DIR: externalRoot
+            }
+        })
+
+        await service.onModuleInit()
+
+        const detail = await service.getTemplateDetail('xpert-my-claw-xpert', LanguagesEnum.SimplifiedChinese)
+
+        expect(detail.name).toBe('Old ClawXpert Detail')
+        expect(detail.dependencies?.plugins).toEqual(['@xpert-ai/plugin-file-memory'])
+        expect(detail.export_data).toBe('team:\n  name: Old ClawXpert\n')
+    })
+
     it('saves an exported xpert template file and registers it in the template catalog', async () => {
         const workspaceRoot = createTempDir()
         const dataRoot = createTempDir()

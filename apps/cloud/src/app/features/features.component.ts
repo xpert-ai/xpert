@@ -40,6 +40,8 @@ import {
   AIPermissionsEnum,
   AiFeatureEnum,
   EmployeesService,
+  getErrorMessage,
+  ICopilotModel,
   IOrganization,
   IRolePermission,
   RequestScopeLevel,
@@ -47,6 +49,7 @@ import {
   IUser,
   MenuCatalog,
   Store,
+  ToastrService,
   UsersOrganizationsService,
   XpertAPIService,
   XpertTypeEnum,
@@ -67,6 +70,7 @@ import {
   shouldShowFeatureEntryOnboardingForXpertCount,
   shouldAdvanceFeatureEntryOnboardingAfterScopeChange
 } from './features-onboarding'
+import { ClawXpertBootstrapService } from './chat/clawxpert/clawxpert-bootstrap.service'
 import { getFeatureMenus, syncMenuParentStateFromChildren } from './menus'
 import { CloudMenuItem } from './sidebar/cloud-sidebar-menu.types'
 
@@ -100,9 +104,11 @@ export class FeaturesComponent implements OnInit {
   readonly #appService = inject(AppService)
   readonly #employeeService = inject(EmployeesService)
   readonly #store = inject(Store)
+  readonly #toastr = inject(ToastrService)
   readonly #scopeService = inject(ScopeService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #usersOrganizationsService = inject(UsersOrganizationsService)
+  readonly #clawXpertBootstrap = inject(ClawXpertBootstrapService)
   readonly appService = this.#appService
   readonly activeScope = this.#scopeService.activeScope
 
@@ -114,12 +120,18 @@ export class FeaturesComponent implements OnInit {
   readonly entryOnboardingSteps = signal(this.entryOnboardingAllSteps())
   readonly entryOnboardingBlocked = signal(false)
   readonly entryOnboardingXpertCount = signal<number | null>(null)
+  readonly entryOnboardingCreating = signal(false)
+  readonly entryOnboardingSelectedCopilotModel = signal<ICopilotModel | null>(null)
   readonly entryOnboardingManuallyRequested = signal(false)
   readonly entryOnboardingSidebarExpanded = signal(false)
   readonly entryOnboardingAutoRequestKey = signal<string | null>(null)
   readonly entryOnboardingAutoMarkKey = signal<string | null>(null)
   readonly entryOnboardingFinishText = computed(() =>
-    getFeatureEntryOnboardingFinishText(this.entryOnboardingXpertCount(), this.canCreateEntryOnboardingXpert())
+    getFeatureEntryOnboardingFinishText(
+      this.entryOnboardingXpertCount(),
+      this.canCreateEntryOnboardingXpert(),
+      !!this.entryOnboardingSelectedCopilotModel()
+    )
   )
   readonly entryOnboardingVisible = computed(
     () =>
@@ -352,6 +364,7 @@ export class FeaturesComponent implements OnInit {
     const userId = this.#store.userId
     if (!userId || !this.canCreateEntryOnboardingXpert()) {
       this.entryOnboardingXpertCount.set(null)
+      this.entryOnboardingSelectedCopilotModel.set(null)
       return null
     }
 
@@ -368,11 +381,28 @@ export class FeaturesComponent implements OnInit {
       )
       const xpertCount = result.total ?? result.items?.length ?? null
       this.entryOnboardingXpertCount.set(xpertCount)
+      await this.refreshEntryOnboardingChatAvailability(xpertCount)
       return xpertCount
     } catch (error) {
       this.#logger.warn('Failed to load feature entry onboarding eligibility', error)
       this.entryOnboardingXpertCount.set(null)
+      this.entryOnboardingSelectedCopilotModel.set(null)
       return null
+    }
+  }
+
+  private async refreshEntryOnboardingChatAvailability(xpertCount: number | null) {
+    if (!shouldCreateClawXpertAfterEntryOnboarding(xpertCount, true)) {
+      this.entryOnboardingSelectedCopilotModel.set(null)
+      return
+    }
+
+    try {
+      const model = await this.#clawXpertBootstrap.resolveFirstAvailableLlmModel()
+      this.entryOnboardingSelectedCopilotModel.set(model)
+    } catch (error) {
+      this.#logger.warn('Failed to load ClawXpert entry onboarding model availability', error)
+      this.entryOnboardingSelectedCopilotModel.set(null)
     }
   }
 
@@ -451,29 +481,62 @@ export class FeaturesComponent implements OnInit {
   }
 
   async onEntryOnboardingFinish() {
+    if (this.entryOnboardingCreating()) {
+      return
+    }
+
+    const couldCreateBeforeRefresh = shouldCreateClawXpertAfterEntryOnboarding(
+      this.entryOnboardingXpertCount(),
+      this.canCreateEntryOnboardingXpert()
+    )
+    if (couldCreateBeforeRefresh) {
+      this.entryOnboardingCreating.set(true)
+    }
+
     const shouldCreateClawXpert = shouldCreateClawXpertAfterEntryOnboarding(
       await this.loadEntryOnboardingEligibility(),
       this.canCreateEntryOnboardingXpert()
     )
 
-    this.entryOnboardingOpen.set(false)
-    this.entryOnboardingManuallyRequested.set(false)
-    this.entryOnboardingCurrent.set(0)
-
     if (!shouldCreateClawXpert) {
+      this.closeEntryOnboarding()
+      this.entryOnboardingCreating.set(false)
       return
     }
 
-    void this.#router.navigate(['/chat/clawxpert'], {
-      queryParams: {
-        onboarding: 'clawxpert'
-      }
-    })
+    const selectedCopilotModel = this.entryOnboardingSelectedCopilotModel()
+    if (!selectedCopilotModel) {
+      this.closeEntryOnboarding()
+      this.entryOnboardingCreating.set(false)
+      void this.#router.navigate(['/chat/clawxpert'], {
+        queryParams: {
+          onboarding: 'clawxpert'
+        }
+      })
+      return
+    }
+
+    this.entryOnboardingCreating.set(true)
+    try {
+      await this.#clawXpertBootstrap.createAndOpenClawXpert(selectedCopilotModel)
+      this.closeEntryOnboarding()
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.entryOnboardingCreating.set(false)
+    }
+  }
+
+  private closeEntryOnboarding() {
+    this.entryOnboardingOpen.set(false)
+    this.entryOnboardingManuallyRequested.set(false)
+    this.entryOnboardingCurrent.set(0)
   }
 
   openEntryOnboardingGuide() {
     this.entryOnboardingCurrent.set(0)
     this.entryOnboardingXpertCount.set(null)
+    this.entryOnboardingSelectedCopilotModel.set(null)
     this.entryOnboardingManuallyRequested.set(true)
     void this.loadEntryOnboardingEligibility()
     this.scheduleEntryOnboardingOpen()

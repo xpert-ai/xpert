@@ -11,6 +11,13 @@ jest.mock('../../../@core', () => {
     AIPermissionsEnum: {
       COPILOT_EDIT: 'COPILOT_EDIT'
     },
+    AssistantBindingScope: {
+      USER: 'user'
+    },
+    AssistantBindingService: class AssistantBindingService {},
+    AssistantCode: {
+      CLAWXPERT: 'clawxpert'
+    },
     CopilotServerService: class CopilotServerService {},
     EnvironmentService: class EnvironmentService {},
     getErrorMessage: (error: unknown) => String(error),
@@ -19,6 +26,7 @@ jest.mock('../../../@core', () => {
     ToastrService: class ToastrService {},
     uid10: jest.fn(() => 'abc123def0'),
     XpertAPIService: class XpertAPIService {},
+    XpertAgentService: class XpertAgentService {},
     XpertTemplateService: class XpertTemplateService {},
     XpertWorkspaceService: class XpertWorkspaceService {},
     XpertTypeEnum: contracts.XpertTypeEnum
@@ -29,6 +37,9 @@ let mockPluginAPI: {
   getPlugins: jest.Mock
   getMarketplace: jest.Mock
   install: jest.Mock
+}
+let xpertAgentService: {
+  refresh: jest.Mock
 }
 
 jest.mock('@xpert-ai/cloud/state', () => ({
@@ -156,10 +167,12 @@ import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
 import {
   CopilotServerService,
   EnvironmentService,
+  AssistantBindingService,
   IXpert,
   Store,
   ToastrService,
   XpertAPIService,
+  XpertAgentService,
   XpertTemplateService,
   XpertWorkspaceService,
   XpertTypeEnum
@@ -392,7 +405,10 @@ function createXpertAPIMock() {
   }
 }
 
-function createXpertTemplateServiceMock(options?: { installedXpert?: Partial<IXpert>; requiredPluginNames?: string[] }) {
+function createXpertTemplateServiceMock(options?: {
+  installedXpert?: Partial<IXpert>
+  requiredPluginNames?: string[]
+}) {
   const installedXpert = {
     id: 'created-xpert',
     name: 'clawxpert',
@@ -421,7 +437,7 @@ function createXpertTemplateServiceMock(options?: { installedXpert?: Partial<IXp
       of({
         id: 'xpert-my-claw-xpert',
         dependencies: {
-          plugins: options?.requiredPluginNames ?? []
+          plugins: options?.requiredPluginNames ?? ['@xpert-ai/plugin-file-memory']
         }
       })
     ),
@@ -452,9 +468,30 @@ function createEnvironmentMock() {
   }
 }
 
+function createXpertAgentServiceMock() {
+  return {
+    refresh: jest.fn()
+  }
+}
+
 describe('ClawXpertSetupWizardComponent', () => {
   beforeEach(() => {
     mockPluginAPI = createPluginAPIMock()
+    xpertAgentService = createXpertAgentServiceMock()
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AssistantBindingService,
+          useValue: {
+            upsert: jest.fn(() => of({}))
+          }
+        },
+        {
+          provide: XpertAgentService,
+          useValue: xpertAgentService
+        }
+      ]
+    })
   })
 
   afterEach(() => {
@@ -1075,6 +1112,56 @@ describe('ClawXpertSetupWizardComponent', () => {
     const templateService = createXpertTemplateServiceMock({
       requiredPluginNames: templateRequiredPlugins
     })
+    mockPluginAPI.getPlugins.mockReturnValue(
+      of([
+        {
+          name: 'openai-compatible',
+          packageName: '@xpert/openai-compatible',
+          currentVersion: '1.0.0',
+          isGlobal: false,
+          level: 'organization',
+          effectiveInCurrentScope: true,
+          meta: {
+            name: 'openai-compatible',
+            displayName: 'OpenAI Compatible',
+            description: 'Installed model plugin',
+            version: '1.0.0',
+            category: 'model'
+          }
+        },
+        {
+          name: '@xpert-ai/plugin-model-retry@0.0.5',
+          packageName: '@xpert-ai/plugin-model-retry',
+          currentVersion: '0.0.5',
+          isGlobal: false,
+          level: 'organization',
+          effectiveInCurrentScope: true,
+          meta: {
+            name: '@xpert-ai/plugin-model-retry',
+            displayName: 'Model Retry',
+            description: 'Installed middleware plugin',
+            version: '0.0.5',
+            category: 'middleware'
+          }
+        },
+        {
+          name: '@xpert-ai/plugin-template-required@0.0.1',
+          packageName: '@xpert-ai/plugin-template-required',
+          currentVersion: '0.0.1',
+          isGlobal: false,
+          level: 'organization',
+          effectiveInCurrentScope: false,
+          loadStatus: 'failed',
+          meta: {
+            name: '@xpert-ai/plugin-template-required',
+            displayName: 'Template Required',
+            description: 'Failed middleware plugin',
+            version: '0.0.1',
+            category: 'middleware'
+          }
+        }
+      ])
+    )
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
@@ -1137,6 +1224,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         pluginName
       }))
     )
+    expect(xpertAgentService.refresh).toHaveBeenCalledTimes(1)
     const installCallOrder = mockPluginAPI.install.mock.invocationCallOrder
     expect(installCallOrder[installCallOrder.length - 1]).toBeLessThan(
       templateService.installTemplate.mock.invocationCallOrder[0]

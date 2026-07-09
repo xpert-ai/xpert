@@ -211,9 +211,11 @@ jest.mock('../../xpert/draft/index', () => {
   }
 })
 
+import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
+import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import type { IAssistantBinding, IChatConversation, ICopilotModel, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import {
@@ -226,6 +228,7 @@ import {
   XpertTaskService
 } from '../../../@core'
 import type { WorkflowTriggerProviderOption } from '../../xpert/draft/workflow-trigger-provider-option'
+import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
 
 const WorkflowNodeTypeEnum = {
@@ -425,6 +428,12 @@ describe('ClawXpertFacade', () => {
     events: Subject<NavigationEnd>
     navigate: jest.Mock
   }
+  let bootstrap: {
+    clearPendingCreatedClawXpert: jest.Mock
+    consumePendingCreatedConversationXpertId: jest.Mock
+    pendingCreatedClawXpert: ReturnType<typeof signal<IXpert | null>>
+    readPendingCreatedClawXpert: jest.Mock
+  }
 
   beforeEach(() => {
     assistantBindingService = {
@@ -471,6 +480,12 @@ describe('ClawXpertFacade', () => {
       events: new Subject<NavigationEnd>(),
       navigate: jest.fn(() => Promise.resolve(true))
     }
+    bootstrap = {
+      clearPendingCreatedClawXpert: jest.fn(),
+      consumePendingCreatedConversationXpertId: jest.fn(() => null),
+      pendingCreatedClawXpert: signal<IXpert | null>(null),
+      readPendingCreatedClawXpert: jest.fn(() => null)
+    }
 
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
@@ -511,6 +526,10 @@ describe('ClawXpertFacade', () => {
         {
           provide: XpertTaskService,
           useValue: taskService
+        },
+        {
+          provide: ClawXpertBootstrapService,
+          useValue: bootstrap
         }
       ]
     })
@@ -588,6 +607,152 @@ describe('ClawXpertFacade', () => {
     expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
       xpertId: 'xpert-created'
     })
+  })
+
+  it('waits for the wizard-created conversation binding before opening the reported thread', async () => {
+    assistantBindingService.upsert.mockReturnValue(of(createBinding('xpert-created')))
+    conversationService.getByThreadId.mockReturnValue(
+      of(createConversation('conversation-created', { threadId: 'thread-created' }))
+    )
+    const updateResult = new Subject<IChatConversation>()
+    conversationService.update.mockReturnValue(updateResult.asObservable())
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.bindPublishedXpert(createXpert('xpert-created', 'Created ClawXpert'), {
+      bindNextConversationToXpert: true
+    })
+    router.navigate.mockClear()
+
+    facade.onChatThreadChange('thread-created')
+    await flushPromises()
+
+    expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-created')
+    expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
+      xpertId: 'xpert-created'
+    })
+    expect(router.navigate).not.toHaveBeenCalled()
+
+    updateResult.next(
+      createConversation('conversation-created', { threadId: 'thread-created', xpertId: 'xpert-created' })
+    )
+    await flushPromises()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-created'])
+  })
+
+  it('binds the next entry-created conversation from the bootstrap pending marker', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-created')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-created', 'Created ClawXpert')]))
+    bootstrap.consumePendingCreatedConversationXpertId.mockReturnValue('xpert-created')
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    facade.setActiveConversation(createConversation('conversation-created', { threadId: 'thread-created' }))
+    await flushPromises()
+
+    expect(bootstrap.consumePendingCreatedConversationXpertId).toHaveBeenCalledWith('xpert-created')
+    expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
+      xpertId: 'xpert-created'
+    })
+  })
+
+  it('uses the entry-created xpert while the available xpert list catches up', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-created')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([]))
+    bootstrap.readPendingCreatedClawXpert.mockReturnValue(createXpert('xpert-created', 'Created ClawXpert'))
+    bootstrap.consumePendingCreatedConversationXpertId.mockReturnValue('xpert-created')
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(bootstrap.readPendingCreatedClawXpert).toHaveBeenCalledWith('xpert-created')
+    expect(facade.currentXpert()?.id).toBe('xpert-created')
+    expect(facade.viewState()).toBe('ready')
+
+    facade.setActiveConversation(createConversation('conversation-created', { threadId: 'thread-created' }))
+    await flushPromises()
+
+    expect(conversationService.update).toHaveBeenCalledWith('conversation-created', {
+      xpertId: 'xpert-created'
+    })
+  })
+
+  it('keeps the entry-created xpert snapshot while the available xpert list is stale', async () => {
+    router.url = '/chat/clawxpert/c'
+    const createdXpert = createXpert('xpert-created', 'Created ClawXpert')
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-created')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([]))
+    bootstrap.pendingCreatedClawXpert.set(createdXpert)
+    bootstrap.readPendingCreatedClawXpert.mockReturnValue(createdXpert)
+    bootstrap.consumePendingCreatedConversationXpertId.mockReturnValue('xpert-created')
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.currentXpert()?.id).toBe('xpert-created')
+    expect(facade.viewState()).toBe('ready')
+    expect(bootstrap.clearPendingCreatedClawXpert).not.toHaveBeenCalled()
+  })
+
+  it('clears the entry-created xpert snapshot after leaving the entry conversation route', async () => {
+    router.url = '/chat/clawxpert/c'
+    const createdXpert = createXpert('xpert-created', 'Created ClawXpert')
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-created')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([]))
+    bootstrap.pendingCreatedClawXpert.set(createdXpert)
+    bootstrap.readPendingCreatedClawXpert.mockReturnValue(createdXpert)
+
+    TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+    bootstrap.clearPendingCreatedClawXpert.mockClear()
+
+    router.url = '/chat/clawxpert/c/thread-created'
+    router.events.next(new NavigationEnd(1, router.url, router.url))
+    await flushPromises()
+
+    expect(bootstrap.clearPendingCreatedClawXpert).toHaveBeenCalled()
+  })
+
+  it('clears the entry-created xpert snapshot after the available xpert list catches up', async () => {
+    router.url = '/chat/clawxpert/c'
+    const createdXpert = createXpert('xpert-created', 'Created ClawXpert')
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-created')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createdXpert]))
+    bootstrap.pendingCreatedClawXpert.set(createdXpert)
+    bootstrap.readPendingCreatedClawXpert.mockReturnValue(createdXpert)
+    bootstrap.consumePendingCreatedConversationXpertId.mockReturnValue('xpert-created')
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.currentXpert()?.id).toBe('xpert-created')
+    expect(bootstrap.clearPendingCreatedClawXpert).toHaveBeenCalledWith('xpert-created')
+  })
+
+  it('resolves the existing conversation route when entry bootstrap completes after the first load', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(null))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([]))
+    bootstrap.consumePendingCreatedConversationXpertId.mockReturnValue('xpert-created')
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.viewState()).toBe('wizard')
+
+    const createdXpert = createXpert('xpert-created', 'Created ClawXpert')
+    bootstrap.readPendingCreatedClawXpert.mockReturnValue(createdXpert)
+    bootstrap.pendingCreatedClawXpert.set(createdXpert)
+    await flushPromises()
+
+    expect(facade.preference()?.assistantId).toBe('xpert-created')
+    expect(facade.currentXpert()?.id).toBe('xpert-created')
+    expect(facade.viewState()).toBe('ready')
   })
 
   it('does not bind ordinary published xpert conversations without the wizard-created flag', async () => {
@@ -1441,6 +1606,40 @@ describe('ClawXpertFacade', () => {
     expect(focusComposer).toHaveBeenCalled()
     expect(conversationService.getByThreadId).not.toHaveBeenCalled()
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
+  })
+
+  it('clears stale runtime capabilities when starting an explicit new conversation', async () => {
+    router.url = '/chat/clawxpert/c'
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-threads')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-threads', 'Thread Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await facade.startConversation()
+    const startId = facade.pendingConversationStartId()
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    const setRuntimeCapabilities = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
+
+    const control = {
+      element: null,
+      setOptions: jest.fn(),
+      setThreadId,
+      setRuntimeCapabilities,
+      focusComposer,
+      sendUserMessage: jest.fn().mockResolvedValue(undefined),
+      setComposerValue: jest.fn().mockResolvedValue(undefined),
+      fetchUpdates: jest.fn().mockResolvedValue(undefined),
+      sendCustomAction: jest.fn().mockResolvedValue(undefined)
+    } satisfies ChatKitControl
+
+    await facade.beginPendingConversation(startId, control)
+
+    expect(setThreadId).toHaveBeenCalledWith(null)
+    expect(setRuntimeCapabilities).toHaveBeenCalledWith(null)
+    expect(focusComposer).toHaveBeenCalled()
+    expect(facade.pendingConversationStartId()).toBe(0)
   })
 
   it('suppresses auto resume when chatkit resets an active thread to start a new conversation', async () => {

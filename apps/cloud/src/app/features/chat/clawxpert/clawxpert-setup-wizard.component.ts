@@ -6,43 +6,26 @@ import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { IPluginDescriptor, injectPluginAPI } from '@xpert-ai/cloud/state'
-import {
-  AiProviderRole,
-  PluginMarketplaceItem,
-  replaceAgentInDraft,
-  type TXpertTeamDraft,
-  type XpertTemplatePluginDependencies
-} from '@xpert-ai/contracts'
+import { AiProviderRole, PluginMarketplaceItem } from '@xpert-ai/contracts'
 import { BehaviorSubject, Subject, catchError, firstValueFrom, map, of, switchMap } from 'rxjs'
 import {
   AiFeatureEnum,
   AiModelTypeEnum,
   CopilotServerService,
-  EnvironmentService,
   getErrorMessage,
   I18nObject,
   ICopilot,
   ICopilotModel,
   ICopilotWithProvider,
-  IXpert,
-  IXpertWorkspace,
   Store,
-  ToastrService,
-  uid10,
-  XpertAPIService,
-  XpertTemplateService,
-  XpertWorkspaceService
+  ToastrService
 } from '../../../@core'
 import { CopilotConfigFormComponent, CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { PluginInstallComponent } from '../../setting/plugins/install/install.component'
 import { PLUGIN_MARKETPLACE_TARGET_APP } from '../../setting/plugins/plugin-marketplace-categories'
 import { TPluginWithDownloads } from '../../setting/plugins/types'
+import { ClawXpertBootstrapService, resolveFirstClawXpertLlmModel } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade } from './clawxpert.facade'
-import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
-
-const CLAWXPERT_NAME = 'clawxpert'
-const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
-const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
 
 @Component({
   standalone: true,
@@ -311,17 +294,14 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
   `
 })
 export class ClawXpertSetupWizardComponent {
-  readonly facade = inject(ClawXpertFacade)
+  readonly #bootstrap = inject(ClawXpertBootstrapService)
+  readonly #facade = inject(ClawXpertFacade)
   readonly #dialog = inject(Dialog)
   readonly #dialogRef = inject<DialogRef<unknown> | null>(DialogRef, { optional: true })
   readonly #copilotServer = inject(CopilotServerService)
-  readonly #environmentService = inject(EnvironmentService)
   readonly #store = inject(Store)
   readonly #pluginAPI = injectPluginAPI()
   readonly #toastr = inject(ToastrService)
-  readonly #xpertService = inject(XpertAPIService)
-  readonly #xpertTemplateService = inject(XpertTemplateService)
-  readonly #workspaceService = inject(XpertWorkspaceService)
   readonly modelProviderForm = viewChild(CopilotConfigFormComponent)
   readonly #installedPluginsRefresh$ = new BehaviorSubject<void>(undefined)
   readonly #marketplaceRefresh$ = new Subject<void>()
@@ -523,27 +503,8 @@ export class ClawXpertSetupWizardComponent {
 
     this.creatingXpert.set(true)
     try {
-      const workspace = await this.ensureDefaultWorkspace()
-      await this.ensureClawXpertTemplatePlugins()
-      const installName = createClawXpertInstallName()
-      const installed = await firstValueFrom(
-        this.#xpertTemplateService.installTemplate(CLAWXPERT_TEMPLATE_ID, {
-          workspaceId: workspace.id,
-          basic: {
-            name: installName,
-            title: installName,
-            copilotModel: selectedCopilotModel
-          }
-        })
-      )
-      const createdXpert = installed.xpert
-      if (!createdXpert?.id) {
-        throw new Error('ClawXpert template installation did not return an xpert id.')
-      }
-      await this.refreshDraftSnapshotBeforePublish(createdXpert)
-      const bindableXpert = await this.publishCreatedXpertOrFallback(createdXpert)
-
-      await this.facade.bindPublishedXpert(bindableXpert, {
+      const bindableXpert = await this.#bootstrap.createClawXpert(selectedCopilotModel)
+      await this.#facade.bindPublishedXpert(bindableXpert, {
         navigateToChat: true,
         bindNextConversationToXpert: true
       })
@@ -616,122 +577,7 @@ export class ClawXpertSetupWizardComponent {
   }
 
   private resolveFirstCopilotModel(): ICopilotModel | null {
-    for (const copilot of this.llmCopilots() ?? []) {
-      const model = copilot.providerWithModels?.models?.[0]
-      if (copilot.id && model?.model) {
-        return {
-          copilotId: copilot.id,
-          model: model.model,
-          modelType: AiModelTypeEnum.LLM
-        }
-      }
-    }
-
-    return null
-  }
-
-  private async ensureDefaultWorkspace(): Promise<IXpertWorkspace> {
-    const defaultWorkspace = await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' }))
-    if (defaultWorkspace?.id) {
-      return defaultWorkspace
-    }
-
-    const createdWorkspace = await firstValueFrom(
-      this.#workspaceService.create({
-        name: CLAWXPERT_DEFAULT_WORKSPACE_NAME
-      })
-    )
-
-    if (!createdWorkspace?.id) {
-      throw new Error('Default workspace creation did not return an id.')
-    }
-
-    const workspace = await firstValueFrom(this.#workspaceService.setMyDefault(createdWorkspace.id))
-    this.#workspaceService.refresh()
-
-    return workspace?.id ? workspace : createdWorkspace
-  }
-
-  private async ensureClawXpertTemplatePlugins(): Promise<void> {
-    const template = await firstValueFrom(this.#xpertTemplateService.getTemplate(CLAWXPERT_TEMPLATE_ID))
-    const requiredPluginNames = readTemplateRequiredPluginNames(template.dependencies)
-    if (!requiredPluginNames.length) {
-      return
-    }
-
-    const installedPlugins = await firstValueFrom(this.#pluginAPI.getPlugins())
-    const installedPluginNames = new Set(
-      (installedPlugins ?? []).flatMap(readInstalledPluginNames).map(normalizePluginInstallName).filter(Boolean)
-    )
-    const missingPluginNames = requiredPluginNames.filter(
-      (pluginName) => !installedPluginNames.has(normalizePluginInstallName(pluginName))
-    )
-
-    for (const pluginName of missingPluginNames) {
-      await firstValueFrom(this.#pluginAPI.install({ pluginName }))
-      installedPluginNames.add(pluginName)
-    }
-
-    if (missingPluginNames.length) {
-      this.#installedPluginsRefresh$.next()
-    }
-  }
-
-  private async refreshDraftSnapshotBeforePublish(xpert: IXpert): Promise<void> {
-    const latestXpert = await firstValueFrom(
-      this.#xpertService.getTeam(xpert.id, {
-        relations: ['agent']
-      })
-    )
-    const draft = latestXpert.draft
-    const agent = latestXpert.agent
-    const sourceKey = draft?.team?.agent?.key
-
-    if (!draft) {
-      throw new Error('ClawXpert template installation did not return a draft to publish.')
-    }
-
-    if (!agent?.key) {
-      throw new Error('ClawXpert template installation did not return a primary agent to publish.')
-    }
-
-    if (!sourceKey) {
-      throw new Error('ClawXpert draft did not include a primary agent key.')
-    }
-
-    const syncedDraft: TXpertTeamDraft = replaceAgentInDraft(draft, sourceKey, agent)
-    await firstValueFrom(this.#xpertService.saveDraft(xpert.id, syncedDraft))
-  }
-
-  private async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
-    const workspaceId = xpert.workspaceId ?? null
-    let environmentId: string | null = null
-
-    if (workspaceId) {
-      try {
-        environmentId = (await firstValueFrom(this.#environmentService.getDefaultByWorkspace(workspaceId)))?.id ?? null
-      } catch {
-        environmentId = null
-      }
-    }
-
-    return firstValueFrom(
-      this.#xpertService.publish(xpert.id, false, {
-        environmentId,
-        releaseNotes: CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
-      })
-    )
-  }
-
-  private async publishCreatedXpertOrFallback(xpert: IXpert): Promise<IXpert> {
-    try {
-      return await this.publishCreatedXpert(xpert)
-    } catch (error) {
-      this.#toastr.warning('PAC.Xpert.AutoPublishFailed', {
-        Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-      })
-      return xpert
-    }
+    return resolveFirstClawXpertLlmModel(this.llmCopilots())
   }
 }
 
@@ -771,16 +617,6 @@ function toOnboardingPlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
   }
 }
 
-function createClawXpertInstallName() {
-  const suffix = uid10()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .slice(0, 6)
-    .padEnd(6, '0')
-
-  return `${CLAWXPERT_NAME}-${suffix}`
-}
-
 function toInstalledOnboardingPlugin(item: IPluginDescriptor): TPluginWithDownloads {
   const name = item.name || item.packageName || ''
   const meta = item.meta
@@ -807,33 +643,6 @@ function toInstalledOnboardingPlugin(item: IPluginDescriptor): TPluginWithDownlo
     installed: true,
     targetAppMeta: meta.targetAppMeta ?? null
   }
-}
-
-function readInstalledPluginNames(item: IPluginDescriptor): string[] {
-  return [item.name, item.packageName, item.meta?.name].filter((value): value is string => typeof value === 'string')
-}
-
-function readTemplateRequiredPluginNames(dependencies?: XpertTemplatePluginDependencies): string[] {
-  const requiredPlugins = new Map<string, string>()
-
-  for (const pluginName of dependencies?.plugins ?? []) {
-    const normalized = normalizePluginInstallName(pluginName)
-    if (normalized && !requiredPlugins.has(normalized)) {
-      requiredPlugins.set(normalized, pluginName.trim())
-    }
-  }
-
-  return Array.from(requiredPlugins.values())
-}
-
-function normalizePluginInstallName(pluginName: string) {
-  const normalized = pluginName.trim()
-  if (!normalized.includes('@')) {
-    return normalized
-  }
-
-  const lastAt = normalized.lastIndexOf('@')
-  return lastAt > 0 ? normalized.slice(0, lastAt) : normalized
 }
 
 function normalizeAuthor(author: PluginMarketplaceItem['author']): TPluginWithDownloads['author'] {

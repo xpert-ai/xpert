@@ -199,7 +199,8 @@ export class ClawXpertPreferencesEditorComponent {
   readonly activeTabMeta = computed(() => {
     return this.tabs.find((tab) => tab.key === this.activeTab()) ?? this.tabs[0]
   })
-  readonly isBlocked = computed(() => this.facade.viewState() !== 'ready' || !this.facade.preference()?.id)
+  readonly bindingReady = computed(() => !!this.facade.resolvedPreference())
+  readonly isBlocked = computed(() => this.facade.viewState() !== 'ready' || !this.bindingReady())
   readonly blockedState = computed(() => {
     if (!this.facade.organizationId()) {
       return {
@@ -210,7 +211,7 @@ export class ClawXpertPreferencesEditorComponent {
       }
     }
 
-    if (!this.facade.preference()?.id) {
+    if (!this.bindingReady()) {
       return {
         titleKey: 'PAC.Chat.ClawXpert.EditorBindingRequiredTitle',
         defaultTitle: 'Bind ClawXpert before editing',
@@ -229,14 +230,14 @@ export class ClawXpertPreferencesEditorComponent {
 
   constructor() {
     effect(() => {
-      const bindingId = this.facade.preference()?.id
+      const bindingReady = this.bindingReady()
       const preference = this.facade.userPreference()
 
       untracked(() => {
         this.form.reset(
           {
-            soul: bindingId ? preference?.soul ?? '' : '',
-            profile: bindingId ? preference?.profile ?? '' : ''
+            soul: bindingReady ? (preference?.soul ?? '') : '',
+            profile: bindingReady ? (preference?.profile ?? '') : ''
           },
           { emitEvent: false }
         )
