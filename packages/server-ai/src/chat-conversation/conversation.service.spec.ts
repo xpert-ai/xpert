@@ -169,7 +169,11 @@ describe('ChatConversationService workspace files', () => {
                 unreadConversations: '1',
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
                 latestUnreadConversationId: 'conversation-unread',
-                latestUnreadThreadId: 'thread-unread'
+                latestUnreadThreadId: 'thread-unread',
+                latestConversationAt: '2026-06-21T00:05:00.000Z',
+                latestConversationId: 'conversation-latest',
+                latestConversationThreadId: 'thread-latest',
+                latestConversationTitle: 'Latest planning chat'
             }
         ])
 
@@ -190,6 +194,7 @@ describe('ChatConversationService workspace files', () => {
         expect(sql).toContain('rs."organizationId" = $3')
         expect(sql).toContain('SELECT DISTINCT ON (rs."conversationId")')
         expect(sql).toContain('SELECT DISTINCT ON ("xpertId")')
+        expect(sql).toContain('latest_conversations AS')
         expect(sql).toContain('CROSS JOIN LATERAL')
         expect(sql).not.toContain('LEFT JOIN LATERAL')
         expect(sql).not.toContain('array_agg')
@@ -199,6 +204,10 @@ describe('ChatConversationService workspace files', () => {
         expect(sql).toContain('m."createdAt" > c."cursorAt"')
         expect(sql).toContain('AS "latestUnreadConversationId"')
         expect(sql).toContain('AS "latestUnreadThreadId"')
+        expect(sql).toContain('AS "latestConversationTitle"')
+        expect(sql).toContain('FROM latest_conversations')
+        expect(sql).toContain('LEFT JOIN counts')
+        expect(sql).toContain('LEFT JOIN latest')
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
@@ -206,7 +215,42 @@ describe('ChatConversationService workspace files', () => {
                 unreadConversations: 1,
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
                 latestUnreadConversationId: 'conversation-unread',
-                latestUnreadThreadId: 'thread-unread'
+                latestUnreadThreadId: 'thread-unread',
+                latestConversationAt: '2026-06-21T00:05:00.000Z',
+                latestConversationId: 'conversation-latest',
+                latestConversationThreadId: 'thread-latest',
+                latestConversationTitle: 'Latest planning chat'
+            }
+        ])
+    })
+
+    it('returns latest conversation titles when there are no unread messages', async () => {
+        repository.query.mockResolvedValue([
+            {
+                xpertId: 'xpert-1',
+                unreadMessages: '0',
+                unreadConversations: '0',
+                latestConversationAt: '2026-06-21T00:05:00.000Z',
+                latestConversationId: 'conversation-latest',
+                latestConversationThreadId: 'thread-latest',
+                latestConversationTitle: 'Latest planning chat'
+            }
+        ])
+
+        const result = await service.getUnreadByXperts(['xpert-1'])
+
+        expect(result).toEqual([
+            {
+                xpertId: 'xpert-1',
+                unreadMessages: 0,
+                unreadConversations: 0,
+                latestUnreadAt: null,
+                latestUnreadConversationId: null,
+                latestUnreadThreadId: null,
+                latestConversationAt: '2026-06-21T00:05:00.000Z',
+                latestConversationId: 'conversation-latest',
+                latestConversationThreadId: 'thread-latest',
+                latestConversationTitle: 'Latest planning chat'
             }
         ])
     })

@@ -181,6 +181,10 @@ export interface IChatConversationUnreadXpertSummary {
   latestUnreadAt?: Date | string | null
   latestUnreadConversationId?: string | null
   latestUnreadThreadId?: string | null
+  latestConversationAt?: Date | string | null
+  latestConversationId?: string | null
+  latestConversationThreadId?: string | null
+  latestConversationTitle?: string | null
 }
 
 // Types
