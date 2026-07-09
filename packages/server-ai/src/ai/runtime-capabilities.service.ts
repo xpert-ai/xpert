@@ -178,10 +178,8 @@ export class RuntimeCapabilitiesService {
             relations: ['skillIndex', 'skillIndex.repository'],
             order: {},
             where: {},
-            withDeleted: false,
-            take: 10,
-            skip: 0
-        }
+            withDeleted: false
+        } as PaginationParams<SkillPackage>
         const result = await this.skillPackageService.getAllByWorkspace(
             workspaceId,
             query,

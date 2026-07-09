@@ -694,7 +694,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__empty')).toBeNull()
   })
 
-  it('hides bound and builtin ClawXpert entries from the normal assistant list', async () => {
+  it('hides only the bound ClawXpert from the normal assistant list', async () => {
     assistantBindingService.getAvailableXperts.mockReturnValue(
       of([
         {
@@ -727,7 +727,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       item.textContent.trim()
     )
 
-    expect(names).toEqual(['Other Assistant'])
+    expect(names).toEqual(['Other Assistant', 'Claw Xpert'])
   })
 
   it('keeps normal assistant rows on the assistant chat route', async () => {
@@ -874,7 +874,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
   })
 
-  it('polls unread summaries every 120 seconds while the page is visible', fakeAsync(() => {
+  it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
 
     fixture.detectChanges()
@@ -882,7 +882,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
-    tick(119_999)
+    tick(1_999)
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
     tick(1)
@@ -901,7 +901,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
 
-    tick(120_000)
+    tick(2_000)
     expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
 
     documentVisibilityState = 'visible'
@@ -909,7 +909,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
 
-    tick(120_000)
+    tick(2_000)
     expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
 
     fixture.destroy()
