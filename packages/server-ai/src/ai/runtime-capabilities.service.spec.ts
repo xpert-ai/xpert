@@ -1,4 +1,4 @@
-import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 
 jest.mock('../assistant-binding', () => ({
     AssistantBindingService: class {}
@@ -87,5 +87,68 @@ describe('RuntimeCapabilitiesService', () => {
                 }
             }
         ])
+    })
+
+    it('does not page workspace skills when building runtime capabilities', async () => {
+        const skillPackages = Array.from({ length: 12 }, (_, index) => {
+            const id = `skill-${index + 1}`
+            return {
+                id,
+                workspaceId: 'workspace-1',
+                name: id,
+                skillIndex: {
+                    name: id
+                }
+            }
+        })
+        const getAllByWorkspace = jest.fn(async (_workspaceId: string, query: { take?: number }) => ({
+            items: skillPackages.slice(0, typeof query.take === 'number' ? query.take : skillPackages.length)
+        }))
+        const service = new RuntimeCapabilitiesService(
+            { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
+            { getAllByWorkspace } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+            new RuntimeCommandService(),
+            {
+                resolveRuntimeCommandProfile: jest.fn(async () => ({
+                    hasProfile: false,
+                    xpertCommands: [],
+                    workspaceCommands: [],
+                    preferredSkillEntries: [],
+                    skillEntries: []
+                }))
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
+            {
+                getUserPreferenceByAssistantId: jest.fn(async () => null)
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4]
+        )
+
+        const result = await service.getRuntimeCapabilities({
+            id: 'clawxpert',
+            slug: 'clawxpert',
+            name: 'ClawXpert',
+            type: XpertTypeEnum.Agent,
+            workspaceId: 'workspace-1',
+            agent: {
+                key: 'agent-1'
+            },
+            graph: {
+                nodes: [
+                    {
+                        key: 'skills-middleware',
+                        type: 'workflow',
+                        entity: {
+                            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                            provider: 'skillsMiddleware'
+                        }
+                    }
+                ],
+                connections: [{ type: 'workflow', from: 'agent-1', to: 'skills-middleware' }]
+            }
+        } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0])
+
+        expect(result.skills.map((skill) => skill.id)).toEqual(skillPackages.map((skill) => skill.id))
+        const query = getAllByWorkspace.mock.calls[0]?.[1]
+        expect(query).not.toHaveProperty('take')
+        expect(query).not.toHaveProperty('skip')
     })
 })
