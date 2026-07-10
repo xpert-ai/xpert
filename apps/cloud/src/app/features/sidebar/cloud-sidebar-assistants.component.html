@@ -117,29 +117,43 @@
             />
           </label>
 
-          <div class="cloud-sidebar-assistants__filters" role="list">
-            @for (categoryItem of categories(); track categoryItem.value) {
-              <button
-                type="button"
-                class="cloud-sidebar-assistants__filter"
-                [class.is-active]="activeCategory() === categoryItem.value"
-                (click)="selectCategory(categoryItem.value)"
-              >
-                @if (categoryItem.labelKey) {
-                  {{ categoryItem.labelKey | translate: { Default: categoryItem.labelDefault } }}
-                } @else {
-                  {{ categoryItem.labelDefault }}
-                }
-              </button>
-            }
-          </div>
+          @if (showCategoryFilters()) {
+            <div class="cloud-sidebar-assistants__filters" role="list">
+              @for (categoryItem of categories(); track categoryItem.value) {
+                <button
+                  type="button"
+                  class="cloud-sidebar-assistants__filter"
+                  [class.is-active]="activeCategory() === categoryItem.value"
+                  (click)="selectCategory(categoryItem.value)"
+                >
+                  @if (categoryItem.labelKey) {
+                    {{ categoryItem.labelKey | translate: { Default: categoryItem.labelDefault } }}
+                  } @else {
+                    {{ categoryItem.labelDefault }}
+                  }
+                </button>
+              }
+            </div>
+          }
         }
       }
 
       @if (collapsed() || expanded()) {
-        <ul class="cloud-sidebar-assistants__list">
+        <ul
+          class="cloud-sidebar-assistants__list"
+          cdkDropList
+          [cdkDropListData]="visibleXperts()"
+          [cdkDropListDisabled]="collapsed()"
+          (cdkDropListDropped)="dropAssistant($event)"
+        >
           @for (xpert of visibleXperts(); track trackAssistant($index, xpert)) {
-            <li>
+            <li
+              class="cloud-sidebar-assistants__drag-row"
+              cdkDrag
+              cdkDragLockAxis="y"
+              [cdkDragData]="xpert"
+              [cdkDragDisabled]="collapsed()"
+            >
               <div
                 class="cloud-sidebar-assistants__item relative"
                 [class.is-active]="isActive(xpert)"
@@ -147,6 +161,13 @@
                 zPosition="right"
                 [zDisabled]="!collapsed()"
               >
+                @if (!collapsed()) {
+                  <i
+                    class="ri-draggable w-3 shrink-0 cursor-grab touch-none text-text-tertiary opacity-50 transition-opacity hover:opacity-100 active:cursor-grabbing"
+                    cdkDragHandle
+                    aria-hidden="true"
+                  ></i>
+                }
                 <button
                   type="button"
                   class="cloud-sidebar-assistants__item-main"
