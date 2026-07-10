@@ -4,45 +4,60 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { IPluginDescriptor, injectPluginAPI } from '@xpert-ai/cloud/state'
-import {
-  AiProviderRole,
-  PluginMarketplaceItem,
-  replaceAgentInDraft,
-  type TXpertTeamDraft,
-  type XpertTemplatePluginDependencies
-} from '@xpert-ai/contracts'
-import { BehaviorSubject, Subject, catchError, firstValueFrom, map, of, switchMap } from 'rxjs'
+import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { injectPluginAPI, IPluginDescriptor } from '@xpert-ai/cloud/state'
+import { AiProviderRole } from '@xpert-ai/contracts'
+import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
 import {
   AiFeatureEnum,
   AiModelTypeEnum,
   CopilotServerService,
-  EnvironmentService,
   getErrorMessage,
-  I18nObject,
   ICopilot,
   ICopilotModel,
   ICopilotWithProvider,
-  IXpert,
-  IXpertWorkspace,
+  IXpertToolset,
+  OrderTypeEnum,
   Store,
   ToastrService,
-  uid10,
-  XpertAPIService,
+  TXpertTemplate,
   XpertTemplateService,
+  XpertToolsetCategoryEnum,
+  XpertToolsetService,
   XpertWorkspaceService
 } from '../../../@core'
-import { CopilotConfigFormComponent, CopilotModelSelectComponent } from '../../../@shared/copilot'
-import { PluginInstallComponent } from '../../setting/plugins/install/install.component'
-import { PLUGIN_MARKETPLACE_TARGET_APP } from '../../setting/plugins/plugin-marketplace-categories'
-import { TPluginWithDownloads } from '../../setting/plugins/types'
+import { CopilotConfigFormComponent } from '../../../@shared/copilot'
+import { toPluginMarketplaceDetails } from '../../setting/plugins/plugin-marketplace-details'
+import { PluginMarketplaceDetailComponent } from '../../setting/plugins/marketplace/marketplace-detail.component'
+import clawxpertRecommendedTemplates from './clawxpert-recommended-templates.json'
+import { ClawXpertBootstrapService, resolveFirstClawXpertLlmModel } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade } from './clawxpert.facade'
-import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
 
-const CLAWXPERT_NAME = 'clawxpert'
-const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
-const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
+const CLAWXPERT_RECOMMENDED_TEMPLATE_IDS = clawxpertRecommendedTemplates.templateIds
+const SUPPRESS_SETUP_WARNINGS = {
+  suppressAutoPublishWarning: true,
+  suppressPluginPrepareWarning: true
+}
+
+type InitializationStatus = {
+  key: string
+  params?: {
+    name?: string
+  }
+}
+
+type RecommendedTemplateItem = {
+  template: TXpertTemplate
+  unavailableReasonKey?: string
+  unavailableReasonParams?: {
+    name?: string
+  }
+}
+
+type RecommendedTemplateToolsetDependency = {
+  provider: string
+  instanceName?: string
+}
 
 @Component({
   standalone: true,
@@ -52,7 +67,7 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
     FormsModule,
     TranslateModule,
     ZardButtonComponent,
-    CopilotModelSelectComponent,
+    ZardCheckboxComponent,
     CopilotConfigFormComponent
   ],
   template: `
@@ -73,13 +88,13 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
         </div>
       </div>
 
-      <section data-onboarding-step="model-provider" class="min-h-0 flex-1 overflow-auto px-6 py-5">
+      <section data-onboarding-step="default-clawxpert" class="min-h-0 flex-1 overflow-auto px-6 py-5">
         <div class="min-w-0">
           <div class="text-base font-semibold text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.ModelProviderStepTitle' | translate }}
+            {{ 'PAC.Chat.ClawXpert.DefaultInstallTitle' | translate }}
           </div>
           <p class="mt-2 text-sm leading-6 text-text-secondary">
-            {{ modelProviderHelpText() | translate }}
+            {{ 'PAC.Chat.ClawXpert.DefaultInstallDesc' | translate }}
           </p>
         </div>
 
@@ -88,200 +103,199 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
             <i class="ri-loader-4-line animate-spin"></i>
             <span>{{ 'PAC.Chat.ClawXpert.CheckingModelProviders' | translate }}</span>
           </div>
-        } @else if (hasLlmModelProvider()) {
+        } @else {
           <div
-            data-model-provider-config-form
-            class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
+            data-clawxpert-default-install
+            class="mt-4 rounded-xl border border-divider-regular bg-background-default-subtle p-4"
           >
-            @if (enablingPrimaryCopilot()) {
+            <div class="flex items-start gap-3">
               <div
-                class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-6 text-sm text-text-secondary"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg text-lg text-text-secondary"
               >
-                <i class="ri-loader-4-line mr-2 animate-spin"></i>
-                {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
+                C
               </div>
-            } @else {
-              <div
-                data-model-provider-ready
-                class="rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-4"
-              >
-                <div class="text-sm font-medium leading-5 text-text-primary">
-                  <span class="text-text-destructive">*</span>
-                  {{ 'PAC.KEY_WORDS.Model' | translate: { Default: 'Model' } }}
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="text-sm font-semibold text-text-primary">ClawXpert</div>
+                  <span class="rounded-full bg-components-card-bg px-2 py-0.5 text-xs text-text-tertiary">
+                    {{ 'PAC.Chat.ClawXpert.DefaultInstallBadge' | translate }}
+                  </span>
                 </div>
-                <copilot-model-select
-                  class="mt-2 block w-full"
-                  hiddenLabel
-                  [modelType]="llmModelType"
-                  [ngModel]="selectedCopilotModel()"
-                  (ngModelChange)="onSelectedCopilotModelChange($event)"
-                />
-                <div class="mt-2 text-sm text-text-secondary">
-                  {{ 'PAC.Chat.ClawXpert.ModelProvidersReady' | translate: { count: availableModelCount() } }}
+                <div class="mt-1 text-sm leading-6 text-text-secondary">
+                  {{ 'PAC.Chat.ClawXpert.DefaultInstallCardDesc' | translate }}
                 </div>
-              </div>
-            }
-          </div>
-        } @else if (hasCopilotFeature()) {
-          <div
-            data-model-provider-config-form
-            class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
-          >
-            @if (enablingPrimaryCopilot() || !showModelProviderForm()) {
-              <div
-                class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-6 text-sm text-text-secondary"
-              >
-                <i class="ri-loader-4-line mr-2 animate-spin"></i>
-                {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
-              </div>
-            } @else {
-              <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Chat.ClawXpert.ConfigureModelProviderInline' | translate }}
-              </div>
-              <pac-copilot-config-form
-                #modelProviderForm
-                [copilot]="primaryCopilot()"
-                (saved)="onModelProviderSaved()"
-              />
-            }
-          </div>
-
-          <div
-            data-model-plugin-section="initialized"
-            class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
-          >
-            <div class="flex items-center justify-between gap-3">
-              <div class="text-sm font-semibold text-text-primary">
-                {{ 'PAC.Chat.ClawXpert.InitializedModelPlugins' | translate }}
-              </div>
-              <span class="rounded-full bg-background-default-subtle px-2 py-1 text-xs text-text-tertiary">
-                {{ installedModelPlugins().length }}
-              </span>
-            </div>
-
-            <div class="mt-3 space-y-3">
-              @for (plugin of installedModelPlugins(); track plugin.packageName || plugin.name) {
-                <div class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-3">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="truncate text-sm font-medium text-text-primary">
-                        {{ displayI18n(plugin.displayName, plugin.name) }}
-                      </div>
-                      <div class="mt-1 line-clamp-2 text-xs leading-5 text-text-secondary">
-                        {{ displayI18n(plugin.description, plugin.name) }}
-                      </div>
-                    </div>
-                    <span class="shrink-0 rounded-full bg-background-default px-2.5 py-1 text-xs text-text-tertiary">
-                      {{ 'PAC.Chat.ClawXpert.PluginInstalled' | translate }}
-                    </span>
+                @if (hasSelectedCopilotModel()) {
+                  <div class="mt-2 text-xs text-text-tertiary">
+                    {{ 'PAC.Chat.ClawXpert.DefaultModelReady' | translate: { model: defaultCopilotModelLabel() } }}
                   </div>
-                </div>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
-                >
-                  {{ 'PAC.Chat.ClawXpert.NoInitializedModelPlugins' | translate }}
-                </div>
-              }
+                } @else if (enablingPrimaryCopilot()) {
+                  <div class="mt-2 flex items-center gap-2 text-xs text-text-tertiary">
+                    <i class="ri-loader-4-line animate-spin"></i>
+                    {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
+                  </div>
+                } @else {
+                  <div class="mt-2 text-xs text-text-tertiary">
+                    {{ 'PAC.Chat.ClawXpert.DefaultModelUnavailable' | translate }}
+                  </div>
+                }
+              </div>
             </div>
           </div>
 
-          <button
-            z-button
-            zType="outline"
-            displayDensity="cosy"
-            type="button"
-            class="mt-4"
-            data-model-plugin-more
-            (click)="toggleMoreModelPlugins()"
-          >
-            {{ 'PAC.Chat.ClawXpert.MoreModelPlugins' | translate: { Default: 'More model plugins' } }}
-          </button>
-
-          @if (showMoreModelPlugins()) {
+          @if (!hasSelectedCopilotModel() && hasCopilotFeature()) {
             <div
-              data-model-plugin-section="uninitialized"
+              data-model-provider-config-form
               class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
             >
-              <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
                 <div class="text-sm font-semibold text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.UninitializedModelPlugins' | translate }}
+                  {{ 'PAC.Chat.ClawXpert.ModelProviderStepTitle' | translate }}
                 </div>
-                <span class="rounded-full bg-background-default-subtle px-2 py-1 text-xs text-text-tertiary">
-                  {{ uninitializedModelPlugins().length }}
-                </span>
+                <p class="mt-1 text-sm leading-6 text-text-secondary">
+                  {{ 'PAC.Chat.ClawXpert.ModelProviderStepDesc' | translate }}
+                </p>
               </div>
 
-              @if (marketplacePlugins() === null) {
-                <div
-                  class="mt-3 rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
-                >
-                  {{ 'PAC.Chat.ClawXpert.LoadingPlugins' | translate }}
+              @if (showModelProviderForm()) {
+                <pac-copilot-config-form
+                  class="mt-4 w-full"
+                  [copilot]="primaryCopilot()"
+                  (saved)="onModelProviderSaved()"
+                />
+              } @else if (enablingPrimaryCopilot()) {
+                <div class="mt-4 flex items-center gap-2 text-sm text-text-secondary">
+                  <i class="ri-loader-4-line animate-spin"></i>
+                  {{ 'PAC.Chat.ClawXpert.PreparingModelProvider' | translate }}
                 </div>
               } @else {
-                <div class="mt-3 space-y-3">
-                  @for (plugin of uninitializedModelPlugins(); track plugin.packageName || plugin.name) {
-                    <div class="rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-3 py-3">
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                          <div class="truncate text-sm font-medium text-text-primary">
-                            {{ displayI18n(plugin.displayName, plugin.name) }}
-                          </div>
-                          <div class="mt-1 line-clamp-2 text-xs leading-5 text-text-secondary">
-                            {{ displayI18n(plugin.description, plugin.name) }}
-                          </div>
-                        </div>
-                        <button
-                          z-button
-                          zType="default"
-                          zSize="sm"
-                          type="button"
-                          [attr.data-plugin-install-button]="plugin.name"
-                          (click)="openPluginInstall(plugin)"
-                        >
-                          {{ 'PAC.Chat.ClawXpert.InstallPlugin' | translate }}
-                        </button>
-                      </div>
-                    </div>
-                  } @empty {
-                    <div
-                      class="rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
-                    >
-                      {{ 'PAC.Chat.ClawXpert.NoUninitializedModelPlugins' | translate }}
-                    </div>
-                  }
+                <div class="mt-4 text-sm font-medium text-text-primary">
+                  {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProvider' | translate }}
+                </div>
+                <div class="mt-1 text-sm leading-6 text-text-secondary">
+                  {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProviderDesc' | translate }}
                 </div>
               }
             </div>
           }
-        } @else {
-          <div class="mt-4 text-sm font-medium text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProvider' | translate }}
-          </div>
-          <div class="mt-1 text-sm leading-6 text-text-secondary">
-            {{ 'PAC.Chat.ClawXpert.ContactAdminForModelProviderDesc' | translate }}
+
+          <div data-clawxpert-recommended-templates class="mt-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-text-primary">
+                  {{ 'PAC.Chat.ClawXpert.RecommendedTemplatesTitle' | translate }}
+                </div>
+                <p class="mt-1 text-sm leading-6 text-text-secondary">
+                  {{ 'PAC.Chat.ClawXpert.RecommendedTemplatesDesc' | translate }}
+                </p>
+              </div>
+            </div>
+
+            @if (recommendedTemplateItems(); as items) {
+              @if (items.length) {
+                <div class="mt-3 grid gap-3 lg:grid-cols-2">
+                  @for (item of items; track item.template.id) {
+                    <div
+                      [class]="recommendedTemplateCardClass(item)"
+                      [attr.data-recommended-template-unavailable]="item.unavailableReasonKey ? item.template.id : null"
+                    >
+                      <div class="flex min-w-0 items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                          <div class="truncate text-sm font-semibold text-text-primary">
+                            {{ item.template.title || item.template.name }}
+                          </div>
+                          <div class="mt-1 truncate text-xs text-text-tertiary">
+                            {{ item.template.pluginDisplayName || item.template.category }}
+                          </div>
+                        </div>
+                        <z-checkbox
+                          class="shrink-0"
+                          labelClass="sr-only"
+                          [attr.data-recommended-template-select]="item.template.id"
+                          [ngModel]="isRecommendedTemplateSelected(item.template)"
+                          [ngModelOptions]="{ standalone: true }"
+                          [zDisabled]="creatingXpert() || !canCreateXpert() || !!item.unavailableReasonKey"
+                          (ngModelChange)="setRecommendedTemplateSelected(item.template, $event)"
+                        >
+                          {{ 'PAC.Chat.ClawXpert.SelectRecommendedTemplate' | translate }}
+                        </z-checkbox>
+                      </div>
+                      <div class="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">
+                        {{ item.template.description || ('PAC.Xpert.NoTemplateDescription' | translate) }}
+                      </div>
+                      @if (item.unavailableReasonKey) {
+                        <div class="mt-3 text-xs leading-5 text-text-destructive">
+                          {{ item.unavailableReasonKey | translate: item.unavailableReasonParams }}
+                        </div>
+                      }
+                      @if (item.template.pluginName) {
+                        <button
+                          z-button
+                          type="button"
+                          zType="secondary"
+                          zSize="sm"
+                          class="pointer-events-none absolute inset-x-3 bottom-3 justify-center gap-1 opacity-0 shadow-sm transition-opacity !bg-components-card-bg hover:!bg-background-default-subtle group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:!bg-background-default-subtle"
+                          [attr.data-recommended-template-details]="item.template.id"
+                          (click)="openRecommendedTemplateDetails(item.template, $event)"
+                        >
+                          <i class="ri-list-check-3"></i>
+                          <span>{{ 'PAC.Plugin.Details' | translate: { Default: 'Details' } }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div
+                  class="mt-3 rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
+                >
+                  {{ 'PAC.Chat.ClawXpert.NoRecommendedTemplates' | translate }}
+                </div>
+              }
+            } @else {
+              <div
+                class="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-divider-regular px-3 py-6 text-sm text-text-secondary"
+              >
+                <i class="ri-loader-4-line animate-spin"></i>
+                {{ 'PAC.Chat.ClawXpert.LoadingRecommendedTemplates' | translate }}
+              </div>
+            }
           </div>
         }
       </section>
 
       <div class="flex items-center justify-between gap-3 border-t border-divider-regular px-6 py-4">
-        <div class="text-sm text-text-tertiary">
-          @if (!hasLoadedLlmModelProviders()) {
+        <div class="min-w-0 text-sm text-text-tertiary">
+          @if (initializationError(); as error) {
+            <div
+              data-clawxpert-initialization-error
+              class="max-w-xl rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-5 text-destructive"
+            >
+              {{ error }}
+            </div>
+          } @else if (initializationStatus(); as status) {
+            <div data-clawxpert-initialization-status class="flex items-center gap-2 text-text-secondary">
+              <i class="ri-loader-4-line animate-spin"></i>
+              <span>{{ status.key | translate: status.params }}</span>
+            </div>
+          } @else if (!hasLoadedLlmModelProviders()) {
             {{ 'PAC.Chat.ClawXpert.CheckingModelProviders' | translate }}
           } @else if (!hasCopilotFeature()) {
             {{ 'PAC.Chat.ClawXpert.CopilotFeatureDisabled' | translate }}
-          } @else if (!hasLlmModelProvider()) {
-            {{ 'PAC.Chat.ClawXpert.ModelProviderRequiredBeforeCreate' | translate }}
           } @else if (!hasSelectedCopilotModel()) {
-            {{ 'PAC.Chat.ClawXpert.SelectModelBeforeCreate' | translate }}
+            {{ 'PAC.Chat.ClawXpert.ModelProviderRequiredBeforeCreate' | translate }}
+          } @else if (selectedRecommendedTemplateCount()) {
+            {{
+              'PAC.Chat.ClawXpert.ReadyToInitializeWithRecommendations'
+                | translate: { count: selectedRecommendedTemplateCount() }
+            }}
           } @else {
-            {{ 'PAC.Chat.ClawXpert.ReadyToCreate' | translate }}
+            {{ 'PAC.Chat.ClawXpert.ReadyToInitialize' | translate }}
           }
         </div>
 
         <div class="flex shrink-0 items-center gap-2">
           @if (hasLoadedLlmModelProviders()) {
-            @if (!hasLlmModelProvider()) {
+            @if (!hasSelectedCopilotModel() && hasCopilotFeature()) {
               <button
                 z-button
                 zType="default"
@@ -290,6 +304,9 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
                 [disabled]="modelProviderSaveDisabled()"
                 (click)="saveModelProvider()"
               >
+                @if (savingModelProvider()) {
+                  <i class="ri-loader-4-line mr-1 animate-spin"></i>
+                }
                 {{ 'PAC.Chat.ClawXpert.SaveModelProvider' | translate }}
               </button>
             } @else {
@@ -299,9 +316,14 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
                 displayDensity="cosy"
                 type="button"
                 [disabled]="creatingXpert() || !canCreateXpert()"
-                (click)="createAndBindClawXpert()"
+                (click)="completeInitialization()"
               >
-                {{ 'PAC.Chat.ClawXpert.CreateFirst' | translate }}
+                @if (creatingXpert()) {
+                  <i class="ri-loader-4-line mr-1 animate-spin"></i>
+                  {{ 'PAC.Chat.ClawXpert.Initializing' | translate }}
+                } @else {
+                  {{ 'PAC.Chat.ClawXpert.CompleteInitialization' | translate }}
+                }
               </button>
             }
           }
@@ -311,59 +333,42 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
   `
 })
 export class ClawXpertSetupWizardComponent {
-  readonly facade = inject(ClawXpertFacade)
+  readonly #bootstrap = inject(ClawXpertBootstrapService)
+  readonly #facade = inject(ClawXpertFacade)
   readonly #dialog = inject(Dialog)
   readonly #dialogRef = inject<DialogRef<unknown> | null>(DialogRef, { optional: true })
-  readonly #copilotServer = inject(CopilotServerService)
-  readonly #environmentService = inject(EnvironmentService)
-  readonly #store = inject(Store)
   readonly #pluginAPI = injectPluginAPI()
+  readonly #copilotServer = inject(CopilotServerService)
+  readonly #store = inject(Store)
   readonly #toastr = inject(ToastrService)
-  readonly #xpertService = inject(XpertAPIService)
-  readonly #xpertTemplateService = inject(XpertTemplateService)
+  readonly #templateService = inject(XpertTemplateService)
+  readonly #toolsetService = inject(XpertToolsetService)
   readonly #workspaceService = inject(XpertWorkspaceService)
   readonly modelProviderForm = viewChild(CopilotConfigFormComponent)
-  readonly #installedPluginsRefresh$ = new BehaviorSubject<void>(undefined)
-  readonly #marketplaceRefresh$ = new Subject<void>()
-  readonly llmModelType = AiModelTypeEnum.LLM
   readonly creatingXpert = signal(false)
   readonly enablingPrimaryCopilot = signal(false)
   readonly savingModelProvider = signal(false)
-  readonly showMoreModelPlugins = signal(false)
   readonly selectedCopilotModel = signal<ICopilotModel | null>(null)
+  readonly selectedRecommendedTemplateIds = signal<string[]>([])
+  readonly initializationStatus = signal<InitializationStatus | null>(null)
+  readonly initializationError = signal<string | null>(null)
 
-  readonly installedPlugins = toSignal(
-    this.#installedPluginsRefresh$.pipe(
-      switchMap(() =>
-        this.#pluginAPI.getPlugins().pipe(
-          map((items) => (items ?? []).map(toInstalledOnboardingPlugin)),
-          catchError(() => of([] as TPluginWithDownloads[]))
-        )
-      )
+  readonly recommendedTemplateItems = toSignal(
+    this.#templateService.getAll().pipe(
+      switchMap(({ recommendedApps }) => from(this.buildRecommendedTemplateItems(recommendedApps ?? []))),
+      catchError(() => of([] as RecommendedTemplateItem[]))
     ),
     {
-      initialValue: [] as TPluginWithDownloads[]
+      initialValue: null as RecommendedTemplateItem[] | null
     }
   )
-  readonly marketplacePlugins = toSignal(
-    this.#marketplaceRefresh$.pipe(
-      switchMap(() =>
-        this.#pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP }).pipe(
-          map((manifest) => (manifest?.items ?? []).map(toOnboardingPlugin)),
-          catchError(() => of([] as TPluginWithDownloads[]))
-        )
-      )
-    ),
-    {
-      initialValue: null as TPluginWithDownloads[] | null
-    }
-  )
-  readonly installedModelPlugins = computed(() =>
-    this.installedPlugins().filter((plugin) => plugin.category === 'model')
-  )
-  readonly uninitializedModelPlugins = computed(() =>
-    (this.marketplacePlugins() ?? []).filter((plugin) => plugin.category === 'model' && !plugin.installed)
-  )
+  readonly selectedRecommendedTemplates = computed(() => {
+    const selectedTemplateIds = new Set(this.selectedRecommendedTemplateIds())
+    return (this.recommendedTemplateItems() ?? [])
+      .filter((item) => selectedTemplateIds.has(item.template.id) && !item.unavailableReasonKey)
+      .map((item) => item.template)
+  })
+  readonly selectedRecommendedTemplateCount = computed(() => this.selectedRecommendedTemplates().length)
   readonly orgCopilots = toSignal(
     this.#copilotServer.refresh$.pipe(
       switchMap(() => this.#copilotServer.getAllInOrg()),
@@ -392,9 +397,6 @@ export class ClawXpertSetupWizardComponent {
   readonly hasCopilotFeature = computed(() => {
     return !this.#store.featureContextHydrated || this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_COPILOT)
   })
-  readonly canConfigureModelProvider = computed(() => {
-    return this.hasCopilotFeature()
-  })
   readonly availableModelCount = computed(() => {
     return (this.llmCopilots() ?? []).reduce(
       (total, copilot) => total + (copilot.providerWithModels?.models?.length ?? 0),
@@ -406,7 +408,7 @@ export class ClawXpertSetupWizardComponent {
     const model = this.selectedCopilotModel()
     return !!model?.copilotId && !!model.model
   })
-  readonly canCreateXpert = computed(() => this.hasLlmModelProvider() && this.hasSelectedCopilotModel())
+  readonly canCreateXpert = computed(() => this.hasLoadedLlmModelProviders() && this.hasSelectedCopilotModel())
 
   constructor() {
     effect(() => {
@@ -427,40 +429,24 @@ export class ClawXpertSetupWizardComponent {
     })
 
     effect(() => {
-      const form = this.modelProviderForm()
-      const selectedCopilotModel = this.selectedCopilotModel()
-      if (!form || !selectedCopilotModel || this.readFormCopilotModel()) {
+      const items = this.recommendedTemplateItems()
+      if (!items) {
         return
       }
 
-      form.formGroup.patchValue({
-        copilotModel: selectedCopilotModel
-      })
+      const availableTemplateIds = new Set(
+        items.filter((item) => !item.unavailableReasonKey).map((item) => item.template.id)
+      )
+      this.selectedRecommendedTemplateIds.update((ids) => ids.filter((id) => availableTemplateIds.has(id)))
     })
   }
 
   onModelProviderSaved() {
-    const model = this.modelProviderForm()?.formGroup.value.copilotModel as ICopilotModel | null | undefined
-    if (model?.copilotId && model.model) {
+    const model = this.readFormCopilotModel()
+    if (model) {
       this.selectedCopilotModel.set(model)
     }
     this.#copilotServer.refresh()
-  }
-
-  onSelectedCopilotModelChange(copilotModel: Partial<ICopilotModel> | null) {
-    const copilotId = copilotModel?.copilotId
-    const model = copilotModel?.model
-    if (!copilotId || !model) {
-      this.selectedCopilotModel.set(null)
-      return
-    }
-
-    this.selectedCopilotModel.set({
-      ...copilotModel,
-      copilotId,
-      model,
-      modelType: copilotModel.modelType ?? AiModelTypeEnum.LLM
-    })
   }
 
   modelProviderSaveDisabled() {
@@ -491,106 +477,129 @@ export class ClawXpertSetupWizardComponent {
     }
   }
 
-  openPluginInstall(plugin: TPluginWithDownloads) {
-    if (!plugin || plugin.installed) {
+  completeInitialization() {
+    void this.initializeSelectedExperts()
+  }
+
+  isRecommendedTemplateSelected(template: TXpertTemplate) {
+    return this.selectedRecommendedTemplateIds().includes(template.id)
+  }
+
+  setRecommendedTemplateSelected(template: TXpertTemplate, selected: boolean) {
+    if (!template.id) {
       return
     }
 
-    this.#dialog
-      .open(PluginInstallComponent, {
-        data: {
-          plugin,
-          reload: () => this.reloadModelPlugins()
-        },
-        disableClose: true
-      })
-      .closed.subscribe(() => this.reloadModelPlugins())
-  }
-
-  toggleMoreModelPlugins() {
-    const next = !this.showMoreModelPlugins()
-    this.showMoreModelPlugins.set(next)
-    if (next && this.marketplacePlugins() === null) {
-      this.#marketplaceRefresh$.next()
+    if (selected && !this.isRecommendedTemplateAvailable(template)) {
+      this.selectedRecommendedTemplateIds.update((ids) => ids.filter((id) => id !== template.id))
+      return
     }
+
+    this.selectedRecommendedTemplateIds.update((ids) => {
+      const nextIds = new Set(ids)
+      if (selected) {
+        nextIds.add(template.id)
+      } else {
+        nextIds.delete(template.id)
+      }
+      return Array.from(nextIds)
+    })
   }
 
-  async createAndBindClawXpert() {
-    const selectedCopilotModel = this.modelProviderForm() ? this.readFormCopilotModel() : this.selectedCopilotModel()
+  openRecommendedTemplateDetails(template: TXpertTemplate, event?: MouseEvent) {
+    event?.stopPropagation()
+    void this.openRecommendedTemplateDetailsDialog(template)
+  }
+
+  private async initializeSelectedExperts() {
+    const selectedCopilotModel = this.selectedCopilotModel()
     if (this.creatingXpert() || !this.canCreateXpert() || !selectedCopilotModel) {
       return
     }
 
     this.creatingXpert.set(true)
+    this.initializationError.set(null)
+    this.initializationStatus.set({
+      key: 'PAC.Chat.ClawXpert.InitializingDefault'
+    })
     try {
-      const workspace = await this.ensureDefaultWorkspace()
-      await this.ensureClawXpertTemplatePlugins()
-      const installName = createClawXpertInstallName()
-      const installed = await firstValueFrom(
-        this.#xpertTemplateService.installTemplate(CLAWXPERT_TEMPLATE_ID, {
-          workspaceId: workspace.id,
-          basic: {
-            name: installName,
-            title: installName,
-            copilotModel: selectedCopilotModel
+      const selectedTemplates = this.selectedRecommendedTemplates()
+      const failedTemplateNames: string[] = []
+      const xpert = await this.#bootstrap.createClawXpert(selectedCopilotModel, SUPPRESS_SETUP_WARNINGS)
+      for (const template of selectedTemplates) {
+        const templateName = template.title || template.name || template.id
+        this.initializationStatus.set({
+          key: 'PAC.Chat.ClawXpert.InitializingRecommendedTemplate',
+          params: {
+            name: templateName
           }
         })
-      )
-      const createdXpert = installed.xpert
-      if (!createdXpert?.id) {
-        throw new Error('ClawXpert template installation did not return an xpert id.')
+        try {
+          await this.#bootstrap.createTemplateXpert(template, selectedCopilotModel, SUPPRESS_SETUP_WARNINGS)
+        } catch {
+          failedTemplateNames.push(templateName)
+        }
       }
-      await this.refreshDraftSnapshotBeforePublish(createdXpert)
-      const bindableXpert = await this.publishCreatedXpertOrFallback(createdXpert)
-
-      await this.facade.bindPublishedXpert(bindableXpert, {
-        navigateToChat: true,
-        bindNextConversationToXpert: true
+      this.initializationStatus.set({
+        key: 'PAC.Chat.ClawXpert.BindingInitialized'
       })
+      await this.#facade.bindPublishedXpert(xpert, {
+        bindNextConversationToXpert: true,
+        navigateToChat: true,
+        notifySuccess: false,
+        notifyError: false,
+        rethrowOnError: true
+      })
+      if (failedTemplateNames.length) {
+        this.showRecommendedTemplateInitializationError(failedTemplateNames)
+      }
       this.#dialogRef?.close()
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      this.initializationError.set(getErrorMessage(error))
     } finally {
+      this.initializationStatus.set(null)
       this.creatingXpert.set(false)
     }
   }
 
-  displayI18n(value: I18nObject | string | null | undefined, fallback = '') {
-    if (typeof value === 'string') {
-      return value
-    }
-
-    if (!value) {
-      return fallback
-    }
-
-    return value.zh_Hans || value.en_US || Object.values(value).find((item) => typeof item === 'string') || fallback
+  defaultCopilotModelLabel() {
+    const model = this.selectedCopilotModel()
+    return model?.model ?? ''
   }
 
-  modelProviderHelpText() {
-    if (!this.hasCopilotFeature()) {
-      return 'PAC.Chat.ClawXpert.CopilotFeatureDisabledDesc'
+  recommendedTemplateCardClass(item: RecommendedTemplateItem) {
+    if (item.unavailableReasonKey) {
+      return 'group relative rounded-xl border border-dashed border-divider-regular bg-background-default-subtle p-4 opacity-75'
     }
 
-    if (this.hasLlmModelProvider()) {
-      return 'PAC.Chat.ClawXpert.ModelProviderStepReadyDesc'
-    }
-
-    return this.canConfigureModelProvider()
-      ? 'PAC.Chat.ClawXpert.ModelProviderStepDesc'
-      : 'PAC.Chat.ClawXpert.ModelProviderStepAdminDesc'
+    return this.isRecommendedTemplateSelected(item.template)
+      ? 'group relative rounded-xl border border-primary-500 bg-background-default-subtle p-4'
+      : 'group relative rounded-xl border border-divider-regular bg-components-card-bg p-4'
   }
 
-  private reloadModelPlugins() {
-    this.#installedPluginsRefresh$.next()
-    if (this.marketplacePlugins() !== null) {
-      this.#marketplaceRefresh$.next()
+  private async openRecommendedTemplateDetailsDialog(template: TXpertTemplate) {
+    const pluginName = readNonEmptyString(template.pluginName)
+    if (!pluginName) {
+      return
     }
-  }
 
-  private readFormCopilotModel(): ICopilotModel | null {
-    const model = this.modelProviderForm()?.formGroup.value.copilotModel as ICopilotModel | null | undefined
-    return model?.copilotId && model.model ? model : null
+    try {
+      const plugins = await firstValueFrom(this.#pluginAPI.getPlugins())
+      const plugin = (plugins ?? []).find((item) => matchesInstalledPluginName(item, pluginName))
+      if (!plugin) {
+        return
+      }
+
+      this.#dialog.open(PluginMarketplaceDetailComponent, {
+        data: {
+          plugin: toPluginMarketplaceDetails(plugin),
+          showActions: false
+        },
+        backdropClass: 'backdrop-blur-sm-black'
+      })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
   }
 
   private async prepareModelProviderStep() {
@@ -616,214 +625,163 @@ export class ClawXpertSetupWizardComponent {
   }
 
   private resolveFirstCopilotModel(): ICopilotModel | null {
-    for (const copilot of this.llmCopilots() ?? []) {
-      const model = copilot.providerWithModels?.models?.[0]
-      if (copilot.id && model?.model) {
-        return {
-          copilotId: copilot.id,
-          model: model.model,
-          modelType: AiModelTypeEnum.LLM
-        }
-      }
+    return resolveFirstClawXpertLlmModel(this.llmCopilots())
+  }
+
+  private readFormCopilotModel(): ICopilotModel | null {
+    const value: unknown = this.modelProviderForm()?.formGroup.value.copilotModel
+    return normalizeCopilotModelSelection(value)
+  }
+
+  private showRecommendedTemplateInitializationError(failedTemplateNames: string[]) {
+    this.#toastr.error('PAC.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
+      Default: 'ClawXpert was initialized, but {{names}} could not be initialized.',
+      count: failedTemplateNames.length,
+      names: failedTemplateNames.join(', ')
+    })
+  }
+
+  private filterRecommendedTemplates(templates: TXpertTemplate[]) {
+    const recommendedOrder = new Map(CLAWXPERT_RECOMMENDED_TEMPLATE_IDS.map((id, index) => [id, index]))
+    return templates
+      .filter((template) => recommendedOrder.has(template.id))
+      .sort((a, b) => (recommendedOrder.get(a.id) ?? 0) - (recommendedOrder.get(b.id) ?? 0))
+  }
+
+  private async buildRecommendedTemplateItems(templates: TXpertTemplate[]): Promise<RecommendedTemplateItem[]> {
+    const recommendedTemplates = this.filterRecommendedTemplates(templates)
+    const requiredToolsetProviders = Array.from(
+      new Set(
+        recommendedTemplates.flatMap((template) =>
+          this.readTemplateToolsetDependencies(template).map(({ provider }) => provider)
+        )
+      )
+    )
+
+    if (!requiredToolsetProviders.length) {
+      return recommendedTemplates.map((template) => ({ template }))
     }
 
+    const workspace = await this.readDefaultWorkspace()
+    const toolsetsByProvider = workspace?.id
+      ? await this.loadTemplateToolsetsByProvider(workspace.id, requiredToolsetProviders)
+      : new Map<string, IXpertToolset[]>()
+
+    return recommendedTemplates.map((template) => {
+      const dependencies = this.readTemplateToolsetDependencies(template)
+      const unavailableDependency = dependencies.find(
+        (dependency) => !this.hasMatchingTemplateToolset(toolsetsByProvider.get(dependency.provider) ?? [], dependency)
+      )
+
+      if (!unavailableDependency) {
+        return { template }
+      }
+
+      return {
+        template,
+        unavailableReasonKey: 'PAC.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable',
+        unavailableReasonParams: {
+          name: unavailableDependency.instanceName || unavailableDependency.provider
+        }
+      }
+    })
+  }
+
+  private async readDefaultWorkspace() {
+    try {
+      return await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' }))
+    } catch {
+      return null
+    }
+  }
+
+  private async loadTemplateToolsetsByProvider(workspaceId: string, providers: string[]) {
+    const entries = await Promise.all(
+      providers.map(async (provider) => {
+        const response = await firstValueFrom(
+          this.#toolsetService
+            .getAllByWorkspace(workspaceId, {
+              where: {
+                type: provider,
+                category: XpertToolsetCategoryEnum.BUILTIN
+              },
+              relations: ['tools'],
+              order: {
+                updatedAt: OrderTypeEnum.DESC
+              }
+            })
+            .pipe(catchError(() => of({ items: [] as IXpertToolset[] })))
+        )
+        const toolsets = (response?.items ?? []).filter(
+          (toolset) =>
+            toolset.type === provider &&
+            (toolset.category ?? XpertToolsetCategoryEnum.BUILTIN) === XpertToolsetCategoryEnum.BUILTIN
+        )
+        return [provider, toolsets] as const
+      })
+    )
+
+    return new Map(entries)
+  }
+
+  private readTemplateToolsetDependencies(template: TXpertTemplate): RecommendedTemplateToolsetDependency[] {
+    return (template.dependencies?.toolsets ?? [])
+      .map((dependency) => {
+        const provider = readNonEmptyString(dependency.provider)
+        if (!provider) {
+          return null
+        }
+
+        const instanceName = readNonEmptyString(dependency.instanceName)
+        return {
+          provider,
+          ...(instanceName ? { instanceName } : {})
+        }
+      })
+      .filter((dependency): dependency is RecommendedTemplateToolsetDependency => !!dependency)
+  }
+
+  private hasMatchingTemplateToolset(toolsets: IXpertToolset[], dependency: RecommendedTemplateToolsetDependency) {
+    if (dependency.instanceName) {
+      return toolsets.some((toolset) => toolset.name === dependency.instanceName)
+    }
+
+    return toolsets.length === 1
+  }
+
+  private isRecommendedTemplateAvailable(template: TXpertTemplate) {
+    const item = this.recommendedTemplateItems()?.find((entry) => entry.template.id === template.id)
+    return !item?.unavailableReasonKey
+  }
+}
+
+function readNonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function normalizeCopilotModelSelection(value: unknown): ICopilotModel | null {
+  if (typeof value !== 'object' || value === null) {
     return null
   }
 
-  private async ensureDefaultWorkspace(): Promise<IXpertWorkspace> {
-    const defaultWorkspace = await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' }))
-    if (defaultWorkspace?.id) {
-      return defaultWorkspace
-    }
-
-    const createdWorkspace = await firstValueFrom(
-      this.#workspaceService.create({
-        name: CLAWXPERT_DEFAULT_WORKSPACE_NAME
-      })
-    )
-
-    if (!createdWorkspace?.id) {
-      throw new Error('Default workspace creation did not return an id.')
-    }
-
-    const workspace = await firstValueFrom(this.#workspaceService.setMyDefault(createdWorkspace.id))
-    this.#workspaceService.refresh()
-
-    return workspace?.id ? workspace : createdWorkspace
+  const copilotId = readNonEmptyString(Reflect.get(value, 'copilotId'))
+  const model = readNonEmptyString(Reflect.get(value, 'model'))
+  if (!copilotId || !model) {
+    return null
   }
-
-  private async ensureClawXpertTemplatePlugins(): Promise<void> {
-    const template = await firstValueFrom(this.#xpertTemplateService.getTemplate(CLAWXPERT_TEMPLATE_ID))
-    const requiredPluginNames = readTemplateRequiredPluginNames(template.dependencies)
-    if (!requiredPluginNames.length) {
-      return
-    }
-
-    const installedPlugins = await firstValueFrom(this.#pluginAPI.getPlugins())
-    const installedPluginNames = new Set(
-      (installedPlugins ?? []).flatMap(readInstalledPluginNames).map(normalizePluginInstallName).filter(Boolean)
-    )
-    const missingPluginNames = requiredPluginNames.filter(
-      (pluginName) => !installedPluginNames.has(normalizePluginInstallName(pluginName))
-    )
-
-    for (const pluginName of missingPluginNames) {
-      await firstValueFrom(this.#pluginAPI.install({ pluginName }))
-      installedPluginNames.add(pluginName)
-    }
-
-    if (missingPluginNames.length) {
-      this.#installedPluginsRefresh$.next()
-    }
-  }
-
-  private async refreshDraftSnapshotBeforePublish(xpert: IXpert): Promise<void> {
-    const latestXpert = await firstValueFrom(
-      this.#xpertService.getTeam(xpert.id, {
-        relations: ['agent']
-      })
-    )
-    const draft = latestXpert.draft
-    const agent = latestXpert.agent
-    const sourceKey = draft?.team?.agent?.key
-
-    if (!draft) {
-      throw new Error('ClawXpert template installation did not return a draft to publish.')
-    }
-
-    if (!agent?.key) {
-      throw new Error('ClawXpert template installation did not return a primary agent to publish.')
-    }
-
-    if (!sourceKey) {
-      throw new Error('ClawXpert draft did not include a primary agent key.')
-    }
-
-    const syncedDraft: TXpertTeamDraft = replaceAgentInDraft(draft, sourceKey, agent)
-    await firstValueFrom(this.#xpertService.saveDraft(xpert.id, syncedDraft))
-  }
-
-  private async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
-    const workspaceId = xpert.workspaceId ?? null
-    let environmentId: string | null = null
-
-    if (workspaceId) {
-      try {
-        environmentId = (await firstValueFrom(this.#environmentService.getDefaultByWorkspace(workspaceId)))?.id ?? null
-      } catch {
-        environmentId = null
-      }
-    }
-
-    return firstValueFrom(
-      this.#xpertService.publish(xpert.id, false, {
-        environmentId,
-        releaseNotes: CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
-      })
-    )
-  }
-
-  private async publishCreatedXpertOrFallback(xpert: IXpert): Promise<IXpert> {
-    try {
-      return await this.publishCreatedXpert(xpert)
-    } catch (error) {
-      this.#toastr.warning('PAC.Xpert.AutoPublishFailed', {
-        Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-      })
-      return xpert
-    }
-  }
-}
-
-function toOnboardingPlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
-  const name = item.name || item.packageName || ''
-  const packageName = item.packageName ?? name
 
   return {
-    name,
-    packageName,
-    displayName: item.displayName ?? name,
-    description: item.description ?? name,
-    version: item.version ?? '',
-    artifactNamespace: item.artifactNamespace ?? null,
-    level: item.level,
-    deprecated: item.deprecated,
-    deprecationMessage: item.deprecationMessage ?? undefined,
-    category: item.category ?? 'integration',
-    icon: item.icon ?? {
-      type: 'font',
-      value: 'ri-puzzle-2-line'
-    },
-    author: normalizeAuthor(item.author),
-    source: normalizeSource(item.source),
-    keywords: item.keywords,
-    downloads: item.downloads,
-    sourceId: item.sourceId ?? null,
-    sourceName: item.sourceName ?? null,
-    sourceNameI18nKey: item.sourceNameI18nKey ?? null,
-    installed: item.installed,
-    screenshots: item.screenshots,
-    contributions: item.contributions ?? [],
-    defaultPrompt: item.defaultPrompt,
-    trialShortcuts: item.trialShortcuts,
-    operationSummary: item.operationSummary,
-    targetAppMeta: item.targetAppMeta ?? null
+    copilotId,
+    model,
+    modelType: AiModelTypeEnum.LLM
   }
 }
 
-function createClawXpertInstallName() {
-  const suffix = uid10()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .slice(0, 6)
-    .padEnd(6, '0')
-
-  return `${CLAWXPERT_NAME}-${suffix}`
-}
-
-function toInstalledOnboardingPlugin(item: IPluginDescriptor): TPluginWithDownloads {
-  const name = item.name || item.packageName || ''
-  const meta = item.meta
-
-  return {
-    name,
-    packageName: item.packageName ?? name,
-    displayName: meta.displayName ?? meta.name ?? name,
-    description: meta.description ?? meta.name ?? name,
-    version: item.currentVersion ?? meta.version ?? '',
-    level: item.level ?? meta.level,
-    deprecated: meta.deprecated,
-    deprecationMessage: meta.deprecationMessage,
-    category: meta.category ?? 'integration',
-    icon: meta.icon ?? {
-      type: 'font',
-      value: 'ri-puzzle-2-line'
-    },
-    author: {
-      name: meta.author || 'XpertAI',
-      url: meta.homepage || ''
-    },
-    keywords: meta.keywords,
-    installed: true,
-    targetAppMeta: meta.targetAppMeta ?? null
-  }
-}
-
-function readInstalledPluginNames(item: IPluginDescriptor): string[] {
-  return [item.name, item.packageName, item.meta?.name].filter((value): value is string => typeof value === 'string')
-}
-
-function readTemplateRequiredPluginNames(dependencies?: XpertTemplatePluginDependencies): string[] {
-  const requiredPlugins = new Map<string, string>()
-
-  for (const pluginName of dependencies?.plugins ?? []) {
-    const normalized = normalizePluginInstallName(pluginName)
-    if (normalized && !requiredPlugins.has(normalized)) {
-      requiredPlugins.set(normalized, pluginName.trim())
-    }
-  }
-
-  return Array.from(requiredPlugins.values())
+function matchesInstalledPluginName(plugin: IPluginDescriptor, pluginName: string) {
+  const normalizedPluginName = normalizePluginInstallName(pluginName)
+  return [plugin.name, plugin.packageName, plugin.meta.name]
+    .filter((value): value is string => typeof value === 'string')
+    .some((value) => normalizePluginInstallName(value) === normalizedPluginName)
 }
 
 function normalizePluginInstallName(pluginName: string) {
@@ -834,44 +792,4 @@ function normalizePluginInstallName(pluginName: string) {
 
   const lastAt = normalized.lastIndexOf('@')
   return lastAt > 0 ? normalized.slice(0, lastAt) : normalized
-}
-
-function normalizeAuthor(author: PluginMarketplaceItem['author']): TPluginWithDownloads['author'] {
-  if (typeof author === 'string') {
-    return {
-      name: author,
-      url: ''
-    }
-  }
-
-  return {
-    name: author?.displayName || author?.name || 'XpertAI',
-    url: author?.url || author?.homepage || ''
-  }
-}
-
-function normalizeSource(source: PluginMarketplaceItem['source']): TPluginWithDownloads['source'] {
-  if (!source?.url) {
-    return undefined
-  }
-
-  return {
-    type: normalizeSourceType(source.type),
-    url: source.url
-  }
-}
-
-function normalizeSourceType(type: string | undefined): NonNullable<TPluginWithDownloads['source']>['type'] {
-  if (
-    type === 'marketplace' ||
-    type === 'github' ||
-    type === 'git' ||
-    type === 'url' ||
-    type === 'npm' ||
-    type === 'website'
-  ) {
-    return type
-  }
-
-  return 'other'
 }

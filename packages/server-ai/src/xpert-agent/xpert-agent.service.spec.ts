@@ -100,6 +100,15 @@ describe('XpertAgentService', () => {
                             en_US: 'Scheduler'
                         }
                     }
+                },
+                {
+                    meta: {
+                        name: 'ConnectorRuntime:lark',
+                        label: {
+                            en_US: 'Feishu connector runtime'
+                        },
+                        builtin: true
+                    }
                 }
             ])
         }
@@ -206,7 +215,7 @@ describe('XpertAgentService', () => {
         expect(command.options.resume).toBeUndefined()
     })
 
-    it('returns scheduler middleware from the middleware registry', () => {
+    it('returns user-addable middleware from the middleware registry', () => {
         expect(service.getMiddlewareStrategies()).toEqual([
             {
                 meta: {
@@ -237,6 +246,7 @@ describe('XpertAgentService', () => {
         }
         queryBus.execute.mockResolvedValueOnce({
             id: 'xpert-1',
+            workspaceId: 'workspace-1',
             features: {
                 sandbox: {
                     enabled: true
@@ -263,6 +273,7 @@ describe('XpertAgentService', () => {
             {},
             expect.objectContaining({
                 xpertId: 'xpert-1',
+                workspaceId: 'workspace-1',
                 xpertFeatures: {
                     sandbox: {
                         enabled: true
@@ -291,6 +302,7 @@ describe('XpertAgentService', () => {
         }
         queryBus.execute.mockResolvedValueOnce({
             id: 'xpert-1',
+            workspaceId: 'workspace-1',
             features: {
                 sandbox: {
                     enabled: true
@@ -310,6 +322,7 @@ describe('XpertAgentService', () => {
             {},
             expect.objectContaining({
                 xpertId: 'xpert-1',
+                workspaceId: 'workspace-1',
                 xpertFeatures: {
                     sandbox: {
                         enabled: true

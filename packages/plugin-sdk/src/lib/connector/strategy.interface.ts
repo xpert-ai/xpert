@@ -26,30 +26,12 @@ export type ConnectorAppCredentialField = {
 }
 
 export type ConnectorAppCredentialsConfig = {
-  integrationLabel?: RuntimeI18nText
-  noIntegrationLabel?: RuntimeI18nText
-  noIntegrationDescription?: RuntimeI18nText
   fields?: ConnectorAppCredentialField[]
   help?: {
     label: RuntimeI18nText
     url: string
   }
   defaultValues?: Record<string, string | number | boolean | null>
-  integrationName?: RuntimeI18nText
-}
-
-export type ConnectorAppIntegration = {
-  id?: string
-  provider: string
-  name?: string
-  description?: string | null
-  options?: unknown
-}
-
-export type ConnectorAppIntegrationSelectOption = {
-  value: string
-  label: string
-  description?: string | null
 }
 
 export type ConnectorPermissionDeclaration = {
@@ -70,8 +52,6 @@ export type ConnectorDefinition = {
   icon?: RuntimeCapabilityIcon
   auth: ConnectorOAuthConfig
   permissions?: ConnectorPermissionDeclaration[]
-  appIntegrationProvider?: string
-  appIntegrationOptional?: boolean
   appCredentials?: ConnectorAppCredentialsConfig
 }
 
@@ -90,7 +70,6 @@ export type ConnectorInstance = {
   workspaceId: string
   provider: string
   status: ConnectorStatus
-  appIntegrationId?: string | null
   profile?: ConnectorProfile | null
   scopes?: string[]
   expiresAt?: string | null
@@ -105,7 +84,6 @@ export type ConnectorInstance = {
 }
 
 export type ConnectorOAuthStartRequest = {
-  appIntegrationId?: string
   app?: ConnectorAppCredentialPayload
 }
 
@@ -231,7 +209,6 @@ export type ConnectorAuthorizationPollResult =
 
 export interface ConnectorStrategy {
   definition: ConnectorDefinition
-  isSelectableAppIntegration?(integration: ConnectorAppIntegration): boolean | Promise<boolean>
   buildAuthorizationUrl(input: ConnectorAuthorizationUrlInput): Promise<ConnectorAuthorizationUrlResult>
   exchangeOAuthCode(input: ConnectorOAuthCodeInput): Promise<ConnectorOAuthCredential>
   refreshCredential?(input: ConnectorRefreshInput): Promise<ConnectorOAuthCredential>

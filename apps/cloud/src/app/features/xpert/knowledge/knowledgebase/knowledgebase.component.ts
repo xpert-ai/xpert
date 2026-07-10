@@ -70,51 +70,7 @@ export class KnowledgebaseComponent {
     }),
     loader: ({ request }) => {
       return this.knowledgebaseAPI
-        .getOneById(request.id, {
-          relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            structure: true,
-            language: true,
-            avatar: true,
-            description: true,
-            permission: true,
-            copilotModelId: true,
-            chatModelId: true,
-            rerankModelId: true,
-            visionModelId: true,
-            documentNum: true,
-            tokenNum: true,
-            chunkNum: true,
-            recall: true,
-            parserConfig: true,
-            status: true,
-            embeddingRebuildError: true,
-            metadataSchema: true,
-            apiEnabled: true,
-            incrementalSyncEnabled: true,
-            graphRag: true,
-            graphStatus: true,
-            graphRevision: true,
-            graphIndexError: true,
-            workspaceId: true,
-            pipelineId: true,
-            integrationId: true,
-            xperts: {
-              id: true,
-              slug: true,
-              name: true,
-              description: true
-            },
-            pipeline: {
-              id: true,
-              publishAt: true,
-              version: true
-            }
-          } as any
-        })
+        .getDetail(request.id)
         .pipe(
           catchError((err) => {
             this._toastrService.danger(err)

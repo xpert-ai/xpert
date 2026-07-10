@@ -1,7 +1,7 @@
 /**
  * Invariants:
  * - Shared schema property rendering stays endpoint-agnostic.
- * - `depends` reads sibling values from `context.model` and emits flat key/value params for remote selects.
+ * - `depends` reads values from `context.model` or explicit context sources and emits flat key/value params for remote selects.
  * - Do not add integration-specific widgets or query-shape exceptions in this layer.
  */
 import { booleanAttribute, Component, OnInit, computed, inject, input, output, signal } from '@angular/core'
@@ -55,7 +55,8 @@ type JsonSchemaPropertyContext = {
   styleUrls: ['property.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`
+    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`,
+    '[class.hidden]': '!visible()'
   }
 })
 export class JSONSchemaPropertyComponent implements OnInit {
@@ -152,6 +153,15 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly xUiSpan = computed(() => this.xUi()?.span)
   readonly xUiCols = computed(() => this.xUi()?.cols)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
+  readonly visible = computed(() => {
+    const visibleWhen = this.xUi()?.visibleWhen
+    if (!visibleWhen) {
+      return true
+    }
+
+    const conditions = Array.isArray(visibleWhen) ? visibleWhen : [visibleWhen]
+    return conditions.every((condition) => evaluateVisibilityCondition(condition, this.context()))
+  })
   readonly textareaRows = computed(() => {
     const rows = this.xUi()?.inputs?.['rows']
     return typeof rows === 'number' && Number.isFinite(rows) && rows > 0 ? rows : 1
@@ -160,23 +170,24 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly collapsibleObject = computed(
     () => this.type() === 'object' && !this.hasCustomWidget() && Boolean(this.properties()?.length)
   )
-  readonly depends = computed(() =>
-    (this.xUi()?.depends ?? []).reduce((acc: { [key: string]: unknown }, _) => {
-      const model = this.context()?.model
+  readonly depends = computed(() => {
+    const context = this.context()
+    const model = context?.model
+    return (this.xUi()?.depends ?? []).reduce((acc: { [key: string]: unknown }, _) => {
       if (typeof _ === 'string') {
         const value = model?.[_] ?? this.value$()?.[_]
         if (value != null) {
           acc[_] = value
         }
       } else if (typeof _ === 'object' && 'name' in _) {
-        const value = model?.[_.name] ?? this.value$()?.[_.name]
+        const value = _.source === 'context' ? context?.[_.name] : (model?.[_.name] ?? this.value$()?.[_.name])
         if (value != null) {
           acc[_.alias || _.name] = value
         }
       }
       return acc
     }, {})
-  )
+  })
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized
@@ -239,4 +250,28 @@ export class JSONSchemaPropertyComponent implements OnInit {
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
   }
+}
+
+type JsonSchemaUIVisibilityCondition = NonNullable<JsonSchemaUIExtensions['visibleWhen']> extends infer Condition
+  ? Condition extends readonly (infer Item)[]
+    ? Item
+    : Condition
+  : never
+
+function evaluateVisibilityCondition(condition: JsonSchemaUIVisibilityCondition, context?: JsonSchemaPropertyContext) {
+  const value = condition.source === 'context' ? context?.[condition.name] : context?.model?.[condition.name]
+  const exists = value != null
+  let matched = true
+
+  if (condition.exists != null) {
+    matched = exists === condition.exists
+  } else if ('value' in condition) {
+    matched = Object.is(value, condition.value)
+  } else if (condition.values) {
+    matched = condition.values.some((item) => Object.is(item, value))
+  } else {
+    matched = exists
+  }
+
+  return condition.not ? !matched : matched
 }

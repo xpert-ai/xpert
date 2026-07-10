@@ -142,6 +142,21 @@
           {{ 'PAC.Xpert.APITool' | translate: { Default: 'API Tool' } }}
         </li>
         <li
+          [cdkOption]="'connectors'"
+          class="xpert-list-option"
+          [routerLink]="['connectors']"
+          routerLinkActive="active"
+          #rla9="routerLinkActive"
+        >
+          @if (rla9.isActive) {
+            <i class="ri-plug-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-plug-line text-lg mr-1"></i>
+          }
+
+          {{ 'PAC.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
+        </li>
+        <li
           [cdkOption]="'knowledgebase'"
           class="xpert-list-option"
           [routerLink]="['knowledges']"

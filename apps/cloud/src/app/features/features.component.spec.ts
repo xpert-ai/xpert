@@ -379,4 +379,25 @@ describe('FeaturesComponent entry onboarding', () => {
 
     expect(router.navigate).not.toHaveBeenCalled()
   })
+
+  it('opens the ClawXpert setup flow after entry onboarding instead of direct chat', async () => {
+    const { component, router } = await setup({
+      xpertCount: 0
+    })
+
+    component.entryOnboardingXpertCount.set(0)
+    component.entryOnboardingOpen.set(true)
+
+    expect(component.entryOnboardingFinishText()).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
+
+    await component.onEntryOnboardingFinish()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert'], {
+      queryParams: {
+        onboarding: 'clawxpert'
+      }
+    })
+    expect((component as { entryOnboardingCreating?: () => boolean }).entryOnboardingCreating?.()).toBe(false)
+    expect(component.entryOnboardingOpen()).toBe(false)
+  })
 })

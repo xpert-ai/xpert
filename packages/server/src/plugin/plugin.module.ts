@@ -47,6 +47,7 @@ import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens
 	exports: [
 		StrategyBus,
 		PluginConfigResolver,
+		PluginManagementService,
 		PLUGIN_CONFIG_RESOLVER_TOKEN,
 		PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN,
 		LOADED_PLUGINS

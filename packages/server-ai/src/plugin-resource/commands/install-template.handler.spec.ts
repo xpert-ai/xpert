@@ -187,9 +187,85 @@ describe('PluginTemplateInstallHandler', () => {
             modelType: AiModelTypeEnum.LLM
         })
     })
+
+    it('fills a missing sandbox provider with the first available provider', async () => {
+        const { handler, commandBus } = createHandler({
+            templateDsl: createSandboxTemplateDsl(),
+            sandboxProviders: [{ type: 'local-shell-sandbox' }]
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/community-sales:sales-assistant',
+                'workspace-1',
+                LanguagesEnum.English
+            )
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0]?.[0]
+        if (!(importCommand instanceof XpertImportCommand)) {
+            throw new Error('Expected template install to import the normalized draft.')
+        }
+        expect(importCommand.draft.team?.features?.sandbox).toEqual({
+            enabled: true,
+            provider: 'local-shell-sandbox'
+        })
+    })
+
+    it('replaces an unavailable template sandbox provider with the first available provider', async () => {
+        const { handler, commandBus } = createHandler({
+            templateDsl: createSandboxTemplateDsl('docker-sandbox'),
+            sandboxProviders: [{ type: 'local-shell-sandbox' }]
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-docx-editor:docx-editor-assistant',
+                'workspace-1',
+                LanguagesEnum.English
+            )
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0]?.[0]
+        if (!(importCommand instanceof XpertImportCommand)) {
+            throw new Error('Expected template install to import the normalized draft.')
+        }
+        expect(importCommand.draft.team?.features?.sandbox).toEqual({
+            enabled: true,
+            provider: 'local-shell-sandbox'
+        })
+    })
+
+    it('keeps an available template sandbox provider unchanged', async () => {
+        const { handler, commandBus } = createHandler({
+            templateDsl: createSandboxTemplateDsl('docker-sandbox'),
+            sandboxProviders: [{ type: 'docker-sandbox' }, { type: 'local-shell-sandbox' }]
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-docx-editor:docx-editor-assistant',
+                'workspace-1',
+                LanguagesEnum.English
+            )
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0]?.[0]
+        if (!(importCommand instanceof XpertImportCommand)) {
+            throw new Error('Expected template install to import the normalized draft.')
+        }
+        expect(importCommand.draft.team?.features?.sandbox).toEqual({
+            enabled: true,
+            provider: 'docker-sandbox'
+        })
+    })
 })
 
-function createHandler(options?: { toolsets?: any[] }) {
+function createHandler(options?: {
+    toolsets?: any[]
+    templateDsl?: string
+    sandboxProviders?: Array<{ type: string }>
+}) {
     const importedXpert = {
         id: 'xpert-1',
         workspaceId: 'workspace-1',
@@ -280,18 +356,22 @@ function createHandler(options?: { toolsets?: any[] }) {
             Promise.resolve({
                 id: '@xpert-ai/plugin-canvas:canvas-assistant',
                 pluginName: '@xpert-ai/plugin-canvas',
-                export_data: TEMPLATE_DSL,
-                dependencies: {
-                    toolsets: [
-                        {
-                            pluginName: '@xpert-ai/plugin-volcengine',
-                            provider: 'seedream_aigc',
-                            templateNodeKey: 'seedream-placeholder',
-                            targetAgentKey: 'Agent_primary',
-                            instanceName: 'Seedream AIGC'
-                        }
-                    ]
-                }
+                export_data: options?.templateDsl ?? TEMPLATE_DSL,
+                ...(options?.templateDsl
+                    ? {}
+                    : {
+                          dependencies: {
+                              toolsets: [
+                                  {
+                                      pluginName: '@xpert-ai/plugin-volcengine',
+                                      provider: 'seedream_aigc',
+                                      templateNodeKey: 'seedream-placeholder',
+                                      targetAgentKey: 'Agent_primary',
+                                      instanceName: 'Seedream AIGC'
+                                  }
+                              ]
+                          }
+                      })
             })
         )
     }
@@ -299,6 +379,9 @@ function createHandler(options?: { toolsets?: any[] }) {
         execute: jest.fn((_command: unknown) => Promise.resolve(importedXpert))
     }
     const xpertService = {
+        getSandboxProviders: jest.fn(() =>
+            Promise.resolve(options?.sandboxProviders ?? [{ type: 'local-shell-sandbox' }])
+        ),
         getTeam: jest.fn(() => Promise.resolve(xpertWithDraft)),
         updateDraft: jest.fn((_id: string, _draft: any) => Promise.resolve(null)),
         delete: jest.fn(() => Promise.resolve(null))
@@ -324,6 +407,23 @@ function createHandler(options?: { toolsets?: any[] }) {
         xpertService,
         toolsetRepo
     }
+}
+
+function createSandboxTemplateDsl(provider?: string) {
+    return JSON.stringify({
+        team: {
+            name: 'sandbox-template-agent',
+            type: 'agent',
+            features: {
+                sandbox: {
+                    enabled: true,
+                    ...(provider ? { provider } : {})
+                }
+            }
+        },
+        nodes: [],
+        connections: []
+    })
 }
 
 function createSeedreamToolset(overrides?: Record<string, any>) {

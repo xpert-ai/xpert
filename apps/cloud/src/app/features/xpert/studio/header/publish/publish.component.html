@@ -1,5 +1,5 @@
 <h3
-  class="text-xl font-semibold text-text-primary cursor-move"
+  class="shrink-0 text-xl font-semibold text-text-primary cursor-move"
   cdkDrag
   cdkDragRootElement=".cdk-overlay-pane"
   cdkDragHandle
@@ -14,7 +14,7 @@
   <i class="ri-close-line"></i>
 </div>
 
-<div class="relative flex flex-col p-4 gap-2">
+<div class="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
   <div class="my-2">
     {{ 'PAC.Xpert.CurrentVersion' | translate: { Default: 'Current Version' } }}:
     {{ version() ? 'v' + version() : ('PAC.Xpert.Draft' | translate: { Default: 'Draft' }) }}
@@ -196,7 +196,7 @@
   }
 </div>
 
-<div class="w-full flex justify-end p-2">
+<div class="w-full shrink-0 flex justify-end p-2">
   <button
     type="button"
     class="btn disabled:btn-disabled btn-medium flex flex-shrink-0 justify-center mt-4 btn-primary w-20 h-9 text-base"

@@ -723,7 +723,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__empty')).toBeNull()
   })
 
-  it('hides bound and builtin ClawXpert entries from the normal assistant list', async () => {
+  it('hides only the bound ClawXpert from the normal assistant list', async () => {
     assistantBindingService.getAvailableXperts.mockReturnValue(
       of([
         {
@@ -756,7 +756,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       item.textContent.trim()
     )
 
-    expect(names).toEqual(['Other Assistant'])
+    expect(names).toEqual(['Other Assistant', 'Claw Xpert'])
   })
 
   it('keeps normal assistant rows on the assistant chat route', async () => {

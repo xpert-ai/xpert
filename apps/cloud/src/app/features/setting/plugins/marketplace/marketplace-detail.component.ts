@@ -50,6 +50,11 @@ type TTrialShortcutView = {
   resource: TPluginResourceContribution
 }
 
+export type PluginMarketplaceDetailDialogData = {
+  plugin: TPluginWithDownloads
+  showActions?: boolean
+}
+
 @Component({
   standalone: true,
   imports: [
@@ -72,9 +77,10 @@ export class PluginMarketplaceDetailComponent {
   readonly #pluginAPI = injectPluginAPI()
   readonly #trialLauncher = inject(PluginSkillTrialLauncherService)
   readonly #toastr = injectToastr()
-  readonly #data = inject<{ plugin: TPluginWithDownloads }>(DIALOG_DATA)
+  readonly #data = inject<PluginMarketplaceDetailDialogData>(DIALOG_DATA)
 
   readonly plugin = signal(this.#data.plugin)
+  readonly showActions = this.#data.showActions !== false
   readonly marketplaceContents = computed(() => this.plugin()?.contributions ?? [])
   readonly appContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'app'))
   readonly assistantTemplateContents = computed(() =>

@@ -1,0 +1,13 @@
+{
+  "templateIds": [
+    "@xpert-ai/plugin-canvas:canvas-assistant",
+    "@xpert-ai/plugin-drawio:drawio-assistant",
+    "@xpert-ai/plugin-excalidraw:excalidraw-assistant",
+    "@xpert-ai/plugin-lucidchart:lucidchart-assistant",
+    "@xpert-ai/community-data-analytics:data-analytics-assistant",
+    "@xpert-ai/community-financial-markets:financial-markets-assistant",
+    "@xpert-ai/plugin-docx-editor:docx-editor-assistant",
+    "@xpert-ai/community-sales:sales-assistant",
+    "@xpert-ai/plugin-motion:motion-assistant"
+  ]
+}

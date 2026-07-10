@@ -7,6 +7,7 @@ import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
 import { ChatMessageModule } from './chat-message'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
+import { ConnectorModule } from './connector/connector.module'
 import { CopilotModule } from './copilot'
 import { CopilotCheckpointModule } from './copilot-checkpoint'
 import { CopilotKnowledgeModule } from './copilot-knowledge'
@@ -62,6 +63,7 @@ import { MembershipModule } from './membership'
         ChatConversationModule,
         ChatMessageModule,
         ChatMessageFeedbackModule,
+        ConnectorModule,
         CopilotCheckpointModule,
         AIModule,
         CopilotModule,

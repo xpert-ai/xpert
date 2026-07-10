@@ -52,6 +52,7 @@ import {
   XpertDraftTriggerEditorItem
 } from '../../xpert/draft/index'
 import { WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
+import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -76,6 +77,9 @@ export type ClawXpertToolPreferenceSourceMetadata = AssistantBindingToolPreferen
 type ClawXpertBindPublishedXpertOptions = {
   navigateToChat?: boolean
   bindNextConversationToXpert?: boolean
+  notifySuccess?: boolean
+  notifyError?: boolean
+  rethrowOnError?: boolean
 }
 
 type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
@@ -118,6 +122,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly #xpertService = inject(XpertAPIService)
   readonly #taskService = inject(XpertTaskService)
   readonly #conversationService = inject(ChatConversationService)
+  readonly #bootstrap = inject(ClawXpertBootstrapService)
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)!
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
@@ -402,10 +407,42 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       if (currentUrl !== '/chat/clawxpert/c') {
         this.#lastConversationEntryKey = null
+        this.#bootstrap.clearPendingCreatedClawXpert()
       }
 
       if (!this.threadId()) {
         this.#lastPersistedThreadKey = null
+      }
+    })
+
+    effect(() => {
+      const pendingCreatedXpert = this.#bootstrap.pendingCreatedClawXpert()
+      const currentPreference = this.preference()
+      const assistantId = pendingCreatedXpert?.id?.trim() || currentPreference?.assistantId?.trim() || null
+
+      if (this.currentUrl() !== '/chat/clawxpert/c' || !assistantId) {
+        return
+      }
+
+      const pendingXpert = this.#bootstrap.readPendingCreatedClawXpert(assistantId)
+      if (pendingXpert) {
+        this.mergeAvailableXpert(pendingXpert)
+        if (currentPreference?.assistantId !== assistantId) {
+          this.preference.set({
+            ...(currentPreference ?? {}),
+            code: AssistantCode.CLAWXPERT,
+            scope: AssistantBindingScope.USER,
+            assistantId
+          })
+        }
+        this.showWizard.set(false)
+      }
+
+      if (!this.#pendingWizardConversationXpertId) {
+        const pendingXpertId = this.#bootstrap.consumePendingCreatedConversationXpertId(assistantId)
+        if (pendingXpertId) {
+          this.#pendingWizardConversationXpertId = pendingXpertId
+        }
       }
     })
 
@@ -466,7 +503,10 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     }
     await this.persistPreference(xpert.id, {
       forceAssistantId: true,
-      navigateToChat: options?.navigateToChat
+      navigateToChat: options?.navigateToChat,
+      notifySuccess: options?.notifySuccess,
+      notifyError: options?.notifyError,
+      rethrowOnError: options?.rethrowOnError
     })
     if (options?.bindNextConversationToXpert && this.resolvedPreference()?.assistantId !== xpert.id) {
       this.#pendingWizardConversationXpertId = null
@@ -475,7 +515,13 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
   private async persistPreference(
     assistantId: string,
-    options?: { forceAssistantId?: boolean; navigateToChat?: boolean }
+    options?: {
+      forceAssistantId?: boolean
+      navigateToChat?: boolean
+      notifySuccess?: boolean
+      notifyError?: boolean
+      rethrowOnError?: boolean
+    }
   ) {
     this.saving.set(true)
     const currentPreference = this.preference()
@@ -509,17 +555,24 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         )
       }
       this.showWizard.set(false)
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      if (options?.notifySuccess !== false) {
+        this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      }
       if (options?.navigateToChat) {
         await this.navigateToChat()
       }
     } catch (error) {
-      this.#toastr.error(
-        getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.SaveFailed', {
-            Default: 'Failed to save the ClawXpert binding.'
-          })
-      )
+      if (options?.notifyError !== false) {
+        this.#toastr.error(
+          getErrorMessage(error) ||
+            this.#translate.instant('PAC.Chat.ClawXpert.SaveFailed', {
+              Default: 'Failed to save the ClawXpert binding.'
+            })
+        )
+      }
+      if (options?.rethrowOnError) {
+        throw error
+      }
     } finally {
       this.saving.set(false)
     }
@@ -921,6 +974,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
     try {
       await control.setThreadId(null)
+      await control.setRuntimeCapabilities(null)
       await control.focusComposer()
     } finally {
       if (this.pendingConversationStartId() === startId) {
@@ -973,7 +1027,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   setActiveConversation(conversation: IChatConversation | null) {
     const nextConversation = conversation ? ({ ...conversation } as IChatConversation) : null
     this.activeConversation.set(nextConversation)
-    this.bindPendingWizardConversation(nextConversation)
+    void this.bindPendingWizardConversation(nextConversation)
   }
 
   patchActiveConversationStatus(status: 'busy' | 'idle') {
@@ -1027,9 +1081,13 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   }
 
   onChatThreadChange(threadId: string | null) {
-    if (threadId) {
-      void this.bindPendingWizardConversationByThread(threadId)
+    if (threadId && this.#pendingWizardConversationXpertId) {
+      void this.bindPendingWizardConversationByThread(threadId).finally(() => {
+        this.handleThreadChange(threadId)
+      })
+      return
     }
+
     this.handleThreadChange(threadId)
   }
 
@@ -1046,10 +1104,10 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       return
     }
 
-    this.bindPendingWizardConversation(conversation)
+    await this.bindPendingWizardConversation(conversation)
   }
 
-  private bindPendingWizardConversation(conversation: IChatConversation | null) {
+  private async bindPendingWizardConversation(conversation: IChatConversation | null) {
     const pendingXpertId = this.#pendingWizardConversationXpertId
     if (!pendingXpertId || !conversation?.id) {
       return
@@ -1070,7 +1128,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     this.activeConversation.update((current) =>
       current?.id === conversation.id ? ({ ...current, xpertId: pendingXpertId } as IChatConversation) : current
     )
-    void this.persistPendingWizardConversationBinding(conversation.id, pendingXpertId)
+    await this.persistPendingWizardConversationBinding(conversation.id, pendingXpertId)
   }
 
   private async persistPendingWizardConversationBinding(conversationId: string, xpertId: string) {
@@ -1277,19 +1335,39 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         ) as Promise<XpertCollection>
       ])
 
-      const normalizedXperts = this.normalizeXperts(xperts)
-      const isCurrentBindingAvailable = preference
-        ? normalizedXperts.some((item) => item.id === preference.assistantId)
+      let normalizedPreference = preference ?? null
+      const loadedXperts = this.normalizeXperts(xperts)
+      let normalizedXperts = loadedXperts
+      const pendingXpert = this.currentUrl() === '/chat/clawxpert/c' ? this.#bootstrap.pendingCreatedClawXpert() : null
+      const pendingXpertLoaded = !!pendingXpert?.id && loadedXperts.some((item) => item.id === pendingXpert.id)
+
+      if (pendingXpert?.id) {
+        normalizedPreference = {
+          ...(normalizedPreference ?? {}),
+          code: AssistantCode.CLAWXPERT,
+          scope: AssistantBindingScope.USER,
+          assistantId: pendingXpert.id
+        }
+        normalizedXperts = pendingXpertLoaded
+          ? normalizedXperts
+          : this.normalizeXperts([pendingXpert, ...normalizedXperts])
+      }
+
+      const isCurrentBindingAvailable = normalizedPreference
+        ? normalizedXperts.some((item) => item.id === normalizedPreference.assistantId)
         : false
 
       if (requestId !== this.#loadRequestId) {
         return
       }
 
-      this.preference.set(preference ?? null)
+      this.preference.set(normalizedPreference)
       this.availableXperts.set(normalizedXperts)
       this.hasLoadedXperts.set(true)
-      this.showWizard.set(!preference || !isCurrentBindingAvailable)
+      this.showWizard.set(!normalizedPreference || !isCurrentBindingAvailable)
+      if (pendingXpertLoaded) {
+        this.#bootstrap.clearPendingCreatedClawXpert(pendingXpert.id)
+      }
     } catch (error) {
       if (requestId !== this.#loadRequestId) {
         return

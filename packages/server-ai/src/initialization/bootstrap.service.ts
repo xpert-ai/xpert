@@ -12,6 +12,8 @@ import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import {
     OrganizationCreatedEvent,
     OrganizationService,
+    PluginManagementService,
+    normalizePluginName,
     TenantCreatedEvent,
     UserOrganizationCreatedEvent,
     UserOrganizationDeletedEvent,
@@ -57,6 +59,7 @@ type WorkspaceWithId = {
 }
 
 const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
+const CLAWXPERT_TEMPLATE_KEY = 'xpert-my-claw-xpert'
 
 type BootstrapModelScanContext = {
     nodeType?: string
@@ -87,6 +90,7 @@ export class ServerAIBootstrapService {
         private readonly xpertService: XpertService,
         private readonly xpertTemplateService: XpertTemplateService,
         private readonly templateSkillSyncService: TemplateSkillSyncService,
+        private readonly pluginManagementService: PluginManagementService,
         private readonly membershipService: MembershipService
     ) {}
 
@@ -98,6 +102,7 @@ export class ServerAIBootstrapService {
         await this.runInOrganizationContext(owner, event.organizationId, async () => {
             const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
             await this.ensureDefaultEnvironment(workspace.id)
+            await this.preinstallClawXpertTemplatePlugins(event.organizationId, owner)
 
             for (const memberId of memberIds) {
                 await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -388,6 +393,51 @@ export class ServerAIBootstrapService {
             isDefault: true,
             variables: []
         })
+    }
+
+    private async preinstallClawXpertTemplatePlugins(organizationId: string, owner: IUser) {
+        try {
+            const template = await this.xpertTemplateService.getTemplateDetail(
+                CLAWXPERT_TEMPLATE_KEY,
+                (owner.preferredLanguage as LanguagesEnum) ?? LanguagesEnum.English
+            )
+            const pluginNames = this.readTemplateRequiredPluginNames(template.dependencies)
+            for (const pluginName of pluginNames) {
+                if (this.pluginManagementService.findLoadedPlugin(pluginName, organizationId)) {
+                    continue
+                }
+
+                try {
+                    await this.pluginManagementService.installPlugin({ pluginName })
+                } catch (error) {
+                    this.logger.error(
+                        `Failed preinstalling ClawXpert plugin '${pluginName}' for organization '${organizationId}': ${getErrorMessage(
+                            error
+                        )}`,
+                        error as Error
+                    )
+                }
+            }
+        } catch (error) {
+            this.logger.warn(
+                `Failed resolving ClawXpert template dependencies for organization '${organizationId}': ${getErrorMessage(
+                    error
+                )}`
+            )
+        }
+    }
+
+    private readTemplateRequiredPluginNames(dependencies?: { plugins?: string[] | null }): string[] {
+        const pluginNames = new Map<string, string>()
+
+        for (const pluginName of dependencies?.plugins ?? []) {
+            const normalized = normalizePluginName(pluginName.trim())
+            if (normalized && !pluginNames.has(normalized)) {
+                pluginNames.set(normalized, pluginName.trim())
+            }
+        }
+
+        return Array.from(pluginNames.values())
     }
 
     private async importDefaultTemplates({

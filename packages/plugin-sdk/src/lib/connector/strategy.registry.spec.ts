@@ -21,7 +21,14 @@ describe('ConnectorStrategyRegistry', () => {
         provider: 'example',
         label: 'Example Connector',
         auth: { type: 'oauth2' as const },
-        appIntegrationProvider: 'example_app'
+        appCredentials: {
+          fields: [
+            {
+              name: 'appId',
+              label: 'App ID'
+            }
+          ]
+        }
       }
 
       async buildAuthorizationUrl() {

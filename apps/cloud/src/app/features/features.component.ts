@@ -114,6 +114,7 @@ export class FeaturesComponent implements OnInit {
   readonly entryOnboardingSteps = signal(this.entryOnboardingAllSteps())
   readonly entryOnboardingBlocked = signal(false)
   readonly entryOnboardingXpertCount = signal<number | null>(null)
+  readonly entryOnboardingCreating = signal(false)
   readonly entryOnboardingManuallyRequested = signal(false)
   readonly entryOnboardingSidebarExpanded = signal(false)
   readonly entryOnboardingAutoRequestKey = signal<string | null>(null)
@@ -451,24 +452,42 @@ export class FeaturesComponent implements OnInit {
   }
 
   async onEntryOnboardingFinish() {
+    if (this.entryOnboardingCreating()) {
+      return
+    }
+
+    const couldCreateBeforeRefresh = shouldCreateClawXpertAfterEntryOnboarding(
+      this.entryOnboardingXpertCount(),
+      this.canCreateEntryOnboardingXpert()
+    )
+    if (couldCreateBeforeRefresh) {
+      this.entryOnboardingCreating.set(true)
+    }
+
     const shouldCreateClawXpert = shouldCreateClawXpertAfterEntryOnboarding(
       await this.loadEntryOnboardingEligibility(),
       this.canCreateEntryOnboardingXpert()
     )
 
-    this.entryOnboardingOpen.set(false)
-    this.entryOnboardingManuallyRequested.set(false)
-    this.entryOnboardingCurrent.set(0)
-
     if (!shouldCreateClawXpert) {
+      this.closeEntryOnboarding()
+      this.entryOnboardingCreating.set(false)
       return
     }
 
+    this.closeEntryOnboarding()
+    this.entryOnboardingCreating.set(false)
     void this.#router.navigate(['/chat/clawxpert'], {
       queryParams: {
         onboarding: 'clawxpert'
       }
     })
+  }
+
+  private closeEntryOnboarding() {
+    this.entryOnboardingOpen.set(false)
+    this.entryOnboardingManuallyRequested.set(false)
+    this.entryOnboardingCurrent.set(0)
   }
 
   openEntryOnboardingGuide() {
