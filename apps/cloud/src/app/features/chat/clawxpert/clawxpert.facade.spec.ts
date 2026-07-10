@@ -813,6 +813,29 @@ describe('ClawXpertFacade', () => {
     expect(toastr.error).toHaveBeenCalled()
   })
 
+  it('can suppress binding notifications and rethrow binding failures', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-old')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-old', 'Existing ClawXpert')]))
+    assistantBindingService.upsert.mockReturnValue(throwError(() => new Error('bind failed')))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await expect(
+      facade.bindPublishedXpert(createXpert('xpert-new', 'New ClawXpert'), {
+        notifySuccess: false,
+        notifyError: false,
+        rethrowOnError: true
+      })
+    ).rejects.toThrow('bind failed')
+    await flushPromises()
+
+    expect(facade.preference()?.assistantId).toBe('xpert-old')
+    expect(facade.resolvedPreference()?.assistantId).toBe('xpert-old')
+    expect(toastr.error).not.toHaveBeenCalled()
+    expect(toastr.success).not.toHaveBeenCalled()
+  })
+
   it('loads the bound xpert draft for trigger editing once the binding is ready', async () => {
     assistantBindingService.get.mockReturnValue(of(createBinding('xpert-ready')))
     assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-ready', 'Ready Xpert')]))
