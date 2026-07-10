@@ -865,6 +865,7 @@
     },
     "MENU": {
       "Tasks": "任務",
+      "Scheduled": "定時",
       "Plugins": "插件",
       "Operations": "MCP 監控",
       "MCP Monitor": "MCP 監控",

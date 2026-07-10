@@ -23,6 +23,7 @@ describe('buildCloudSidebarMenuGroups', () => {
   it('groups work, module and management menus with fixed management order', () => {
     const groups = buildCloudSidebarMenuGroups([
       menu({ title: 'Tasks', link: '/chat/clawxpert' }),
+      menu({ title: 'Scheduled', link: '/chat/tasks' }),
       menu({ title: 'Settings', link: '/settings', admin: true }),
       menu({ title: 'Data', link: '/data' }),
       menu({ title: 'MCP Monitor', link: '/operations' }),
@@ -33,7 +34,15 @@ describe('buildCloudSidebarMenuGroups', () => {
     ])
 
     expect(groups.map((group) => group.key)).toEqual(['work', 'modules', 'management'])
-    expect(groups.find((group) => group.key === 'work')?.items.map((item) => item.link)).toEqual(['/chat/clawxpert'])
+    expect(groups.find((group) => group.key === 'work')?.items.map((item) => item.link)).toEqual([
+      '/chat/clawxpert',
+      '/chat/tasks'
+    ])
+    expect(
+      groups
+        .find((group) => group.key === 'work')
+        ?.entries.map((entry) => (entry.item ? entry.item.link : 'assistants'))
+    ).toEqual(['/chat/clawxpert', 'assistants', '/chat/tasks'])
     expect(groups.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual([
       '/data',
       '/explore'
@@ -59,6 +68,17 @@ describe('buildCloudSidebarMenuGroups', () => {
       key: 'modules',
       items: [{ link: '/data' }]
     })
+  })
+
+  it('places the scheduled task menu below the assistant slot when it is the only work entry', () => {
+    const groups = buildCloudSidebarMenuGroups([menu({ title: 'Scheduled', link: '/chat/tasks' })])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].key).toBe('work')
+    expect(groups[0].entries.map((entry) => (entry.item ? entry.item.link : 'assistants'))).toEqual([
+      'assistants',
+      '/chat/tasks'
+    ])
   })
 })
 

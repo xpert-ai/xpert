@@ -233,7 +233,7 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
-      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: '全部' }
+      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: 'All' }
     ]
     const seen = new Set<string>([ALL_ASSISTANT_CATEGORY])
 

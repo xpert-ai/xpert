@@ -215,13 +215,13 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
-      title: 'Tasks',
+      title: 'Scheduled',
       icon: 'ri-list-check-3',
       link: '/chat/tasks',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Tasks',
+        translationKey: 'Scheduled',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
       }

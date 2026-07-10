@@ -653,6 +653,7 @@
     },
     "MENU": {
       "Tasks": "任务",
+      "Scheduled": "定时",
       "Plugins": "插件",
       "Operations": "MCP 监控",
       "MCP Monitor": "MCP 监控",

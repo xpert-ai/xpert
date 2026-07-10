@@ -1142,6 +1142,8 @@
       "EffectiveStatus": "生效状态",
       "ActiveOrganization": "当前组织",
       "ActiveAssistant": "当前助手",
+      "Search": "搜索",
+      "CategoryAll": "全部",
       "Online": "在线",
       "CurrentDigitalExpert": "当前数字专家",
       "NewConversation": "新建对话",
@@ -1200,6 +1202,11 @@
         "Label": "ClawXpert",
         "Description": "用于 ClawXpert 页面的嵌入式助手体验。"
       }
+    },
+    "MenuGroup": {
+      "WorkEntries": "工作",
+      "FeatureModules": "功能",
+      "Management": "管理"
     },
     "XProject": {
       "NoRecentFiles": "没有最近的文件",
@@ -1752,6 +1759,7 @@
     },
     "MENU": {
       "Tasks": "任务",
+      "Scheduled": "定时",
       "Plugins": "插件",
       "Operations": "MCP 监控",
       "MCP Monitor": "MCP 监控",
