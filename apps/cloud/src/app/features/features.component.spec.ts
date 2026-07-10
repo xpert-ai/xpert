@@ -24,7 +24,6 @@ jest.mock('../@core', () => ({
     FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
   },
   EmployeesService: class EmployeesService {},
-  getErrorMessage: (error: unknown) => String(error),
   MenuCatalog: {
     Project: 1,
     Stories: 2,
@@ -38,7 +37,6 @@ jest.mock('../@core', () => ({
   },
   ScopeService: class ScopeService {},
   Store: class Store {},
-  ToastrService: class ToastrService {},
   UsersOrganizationsService: class UsersOrganizationsService {},
   XpertAPIService: class XpertAPIService {},
   XpertTypeEnum: {
@@ -49,10 +47,6 @@ jest.mock('../@core', () => ({
 
 jest.mock('../app.service', () => ({
   AppService: class AppService {}
-}))
-
-jest.mock('./chat/clawxpert/clawxpert-bootstrap.service', () => ({
-  ClawXpertBootstrapService: class ClawXpertBootstrapService {}
 }))
 
 import { Renderer2, signal } from '@angular/core'
@@ -71,13 +65,11 @@ import {
   RequestScopeLevel,
   ScopeService,
   Store,
-  ToastrService,
   UsersOrganizationsService,
   XpertAPIService,
   XpertTypeEnum
 } from '../@core'
 import { AppService } from '../app.service'
-import { ClawXpertBootstrapService } from './chat/clawxpert/clawxpert-bootstrap.service'
 import { FEATURE_ENTRY_ONBOARDING_GUIDE_KEY } from './features-onboarding'
 import { FeaturesComponent } from './features.component'
 
@@ -86,7 +78,6 @@ type FeatureTestOptions = {
   hasClawXpertFeature?: boolean
   hasCreatePermission?: boolean
   hasXpertFeature?: boolean
-  hasAvailableLlmModel?: boolean
   xpertCount?: number
 }
 
@@ -225,19 +216,10 @@ async function setup(options: FeatureTestOptions = {}) {
   const usersOrganizationsService = {
     markEntryGuideAutoShown: jest.fn(() => Promise.resolve(updatedMembership))
   }
-  const bootstrap = {
-    resolveFirstAvailableLlmModel: jest.fn(() =>
-      Promise.resolve(options.hasAvailableLlmModel ? { copilotId: 'tenant-copilot', model: 'qwen-plus' } : null)
-    ),
-    createAndOpenClawXpert: jest.fn(() => Promise.resolve({ id: 'created-clawxpert' }))
-  }
   const router = {
     events: routerEvents$.asObservable(),
     navigate: jest.fn(),
     url: '/chat'
-  }
-  const toastr = {
-    error: jest.fn()
   }
 
   await TestBed.configureTestingModule({
@@ -304,10 +286,6 @@ async function setup(options: FeatureTestOptions = {}) {
         useValue: store
       },
       {
-        provide: ToastrService,
-        useValue: toastr
-      },
-      {
         provide: TranslateService,
         useValue: {
           instant: jest.fn((key: string) => key),
@@ -318,10 +296,6 @@ async function setup(options: FeatureTestOptions = {}) {
       {
         provide: UsersOrganizationsService,
         useValue: usersOrganizationsService
-      },
-      {
-        provide: ClawXpertBootstrapService,
-        useValue: bootstrap
       },
       {
         provide: UsersService,
@@ -342,9 +316,7 @@ async function setup(options: FeatureTestOptions = {}) {
 
   return {
     component,
-    bootstrap,
     store,
-    toastr,
     router,
     usersOrganizationsService,
     xpertService
@@ -408,36 +380,23 @@ describe('FeaturesComponent entry onboarding', () => {
     expect(router.navigate).not.toHaveBeenCalled()
   })
 
-  it('keeps the chat action loading while it creates and opens ClawXpert from an available LLM model', async () => {
-    const { bootstrap, component, router } = await setup({
-      hasAvailableLlmModel: true,
+  it('opens the ClawXpert setup flow after entry onboarding instead of direct chat', async () => {
+    const { component, router } = await setup({
       xpertCount: 0
     })
-    let resolveCreate: (value: unknown) => void
-    bootstrap.createAndOpenClawXpert.mockReturnValue(new Promise((resolve) => (resolveCreate = resolve)))
 
-    await component['loadEntryOnboardingEligibility']()
+    component.entryOnboardingXpertCount.set(0)
     component.entryOnboardingOpen.set(true)
 
-    expect(bootstrap.resolveFirstAvailableLlmModel).toHaveBeenCalledTimes(1)
-    expect(component.entryOnboardingFinishText()).toBe('PAC.Chat.ClawXpert.GoToChat')
+    expect(component.entryOnboardingFinishText()).toBe('PAC.Chat.ClawXpert.EntryGuideCreate')
 
-    const finishPromise = component.onEntryOnboardingFinish()
-    for (let index = 0; index < 3; index++) {
-      await Promise.resolve()
-    }
+    await component.onEntryOnboardingFinish()
 
-    expect(component.entryOnboardingOpen()).toBe(true)
-    expect((component as { entryOnboardingCreating?: () => boolean }).entryOnboardingCreating?.()).toBe(true)
-    expect(bootstrap.createAndOpenClawXpert).toHaveBeenCalledWith({
-      copilotId: 'tenant-copilot',
-      model: 'qwen-plus'
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert'], {
+      queryParams: {
+        onboarding: 'clawxpert'
+      }
     })
-    expect(router.navigate).not.toHaveBeenCalled()
-
-    resolveCreate!({ id: 'created-clawxpert' })
-    await finishPromise
-
     expect((component as { entryOnboardingCreating?: () => boolean }).entryOnboardingCreating?.()).toBe(false)
     expect(component.entryOnboardingOpen()).toBe(false)
   })
