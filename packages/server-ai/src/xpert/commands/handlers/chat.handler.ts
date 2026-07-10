@@ -52,6 +52,7 @@ import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
 import { hydrateHumanInput, hydrateSendRequestHumanInput, normalizeReferences } from '../../../shared/agent/human-input'
+import { filterChatKitReferences } from '../../../shared/agent/chatkit-reference'
 import { collectPendingFollowUpsByClientMessageId } from '../../../shared/agent/persisted-follow-up'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -397,12 +398,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 if (!userMessage) {
                     throw new BadRequestException('Retry source human message not found')
                 }
+                const retryReferences = filterChatKitReferences(userMessage.references)
                 const fallbackRetryState = {
                     ...(conversation.options?.parameters ?? {}),
                     input: stringifyMessageContent(userMessage.content),
-                    ...(userMessage.references?.length
+                    ...(retryReferences?.length
                         ? {
-                              references: userMessage.references
+                              references: retryReferences
                           }
                         : {}),
                     ...(userMessage.attachments?.length

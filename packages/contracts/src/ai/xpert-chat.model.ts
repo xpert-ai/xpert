@@ -1,5 +1,5 @@
 import type { TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
-import { STATE_VARIABLE_HUMAN } from '@xpert-ai/chatkit-types'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/chatkit-types/constants'
 
 export type TXpertFollowUpMode = 'queue' | 'steer'
 

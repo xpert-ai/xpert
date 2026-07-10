@@ -70,6 +70,7 @@ import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
+import { filterChatKitReferences } from '../../../shared/agent/chatkit-reference'
 import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
     assignExecutionUsage,
@@ -316,12 +317,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (!userMessage) {
                     throw new Error('Retry source human message not found')
                 }
+                const retryReferences = filterChatKitReferences(userMessage.references)
                 const fallbackRetryInput: TChatRequestHuman = {
                     ...(conversation.options?.parameters ?? {}),
                     input: stringifyMessageContent(userMessage.content),
-                    ...(userMessage.references?.length
+                    ...(retryReferences?.length
                         ? {
-                              references: userMessage.references
+                              references: retryReferences
                           }
                         : {}),
                     ...(userMessage.attachments?.length

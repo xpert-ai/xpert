@@ -12,9 +12,14 @@ export type {
   TChatRequestHuman,
   TChatEventMessage,
   TInterruptCommand,
-  TThreadContextUsageEvent,
+  TThreadContextUsageEvent
 } from '@xpert-ai/chatkit-types'
-export { STATE_VARIABLE_HUMAN, ChatMessageEventTypeEnum, ChatMessageTypeEnum, ChatMessageStepCategory } from '@xpert-ai/chatkit-types'
+export {
+  STATE_VARIABLE_HUMAN,
+  ChatMessageEventTypeEnum,
+  ChatMessageTypeEnum,
+  ChatMessageStepCategory
+} from '@xpert-ai/chatkit-types/constants'
 export type { TChatRequest } from './xpert-chat.model'
 export * from './assistant-binding.model'
 export * from './ai-model.model'

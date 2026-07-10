@@ -31,6 +31,7 @@
       "@xpert-ai/components": ["libs/component-angular/src/index.ts"],
       "@xpert-ai/components/*": ["libs/component-angular/*/index.ts", "libs/component-angular/*"],
       "@xpert-ai/contracts": ["packages/contracts/src/index.ts"],
+      "@xpert-ai/chatkit-types/constants": ["node_modules/@xpert-ai/chatkit-types/dist/constants.d.ts"],
       "@xpert-ai/copilot": ["legacies/copilot/src/index.ts"],
       "@xpert-ai/ds-core": ["packages/core/src/index.ts"],
       "@xpert-ai/core": ["libs/core-angular/src/index.ts"],

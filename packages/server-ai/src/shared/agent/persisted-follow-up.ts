@@ -1,4 +1,6 @@
+import type { ChatKitReference } from '@xpert-ai/chatkit-types'
 import { stringifyMessageContent, TChatRequestHuman } from '@xpert-ai/contracts'
+import { readChatKitReferences } from './chatkit-reference'
 
 type TFollowUpMessageLike = {
     id?: string | null
@@ -77,8 +79,9 @@ function sortPendingFollowUps<T extends TFollowUpMessageLike>(messages: T[] | nu
 }
 
 function mergeInputText(previousInput: unknown, nextInput: unknown): string | undefined {
-    const segments = [previousInput, nextInput]
-        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    const segments = [previousInput, nextInput].filter(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+    )
 
     return segments.length ? segments.join('\n\n') : undefined
 }
@@ -89,6 +92,11 @@ function mergeArrayValues<T>(previousValue: unknown, nextValue: unknown): T[] | 
         ...(Array.isArray(nextValue) ? (nextValue as T[]) : [])
     ]
 
+    return merged.length ? merged : undefined
+}
+
+function mergeChatKitReferences(previousValue: unknown, nextValue: unknown): ChatKitReference[] | undefined {
+    const merged = [...readChatKitReferences(previousValue), ...readChatKitReferences(nextValue)]
     return merged.length ? merged : undefined
 }
 
@@ -107,21 +115,20 @@ export function readPersistedFollowUpInput(message: TFollowUpMessageLike): TChat
 
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
         const inputText =
-            typeof raw.input === 'string' && raw.input.trim()
-                ? raw.input
-                : stringifyMessageContent(message.content)
+            typeof raw.input === 'string' && raw.input.trim() ? raw.input : stringifyMessageContent(message.content)
         const files =
             Array.isArray(raw.files) && raw.files.length
                 ? raw.files
                 : Array.isArray(message.attachments) && message.attachments.length
                   ? (message.attachments as TChatRequestHuman['files'])
                   : undefined
-        const references =
-            Array.isArray(raw.references) && raw.references.length
-                ? raw.references
-                : Array.isArray(message.references) && message.references.length
-                  ? (message.references as TChatRequestHuman['references'])
-                  : undefined
+        const rawReferences = readChatKitReferences(raw.references)
+        const messageReferences = readChatKitReferences(message.references)
+        const references = rawReferences.length
+            ? rawReferences
+            : messageReferences.length
+              ? messageReferences
+              : undefined
 
         return {
             ...raw,
@@ -132,6 +139,7 @@ export function readPersistedFollowUpInput(message: TFollowUpMessageLike): TChat
     }
 
     const content = stringifyMessageContent(message.content)
+    const references = readChatKitReferences(message.references)
     return {
         ...(content ? { input: content } : {}),
         ...(Array.isArray(message.attachments) && message.attachments.length
@@ -139,11 +147,7 @@ export function readPersistedFollowUpInput(message: TFollowUpMessageLike): TChat
                   files: message.attachments as TChatRequestHuman['files']
               }
             : {}),
-        ...(Array.isArray(message.references) && message.references.length
-            ? {
-                  references: message.references as TChatRequestHuman['references']
-              }
-            : {})
+        ...(references.length ? { references } : {})
     }
 }
 
@@ -157,7 +161,7 @@ export function mergeFollowUpHumanInputs(inputs: Array<TChatRequestHuman | null 
         }
         const mergedInput = mergeInputText(acc.input, input)
         const mergedFiles = mergeArrayValues(acc.files, files)
-        const mergedReferences = mergeArrayValues(acc.references, references)
+        const mergedReferences = mergeChatKitReferences(acc.references, references)
 
         if (mergedInput) {
             next.input = mergedInput

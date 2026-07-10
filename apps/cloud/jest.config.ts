@@ -82,7 +82,8 @@ module.exports = {
   moduleNameMapper: {
     '^@cloud/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
     '^apps/cloud/src/environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
-    '^(?:\\.{1,2}/)+environments/environment$': '<rootDir>/src/environments/environment.jest.ts'
+    '^(?:\\.{1,2}/)+environments/environment$': '<rootDir>/src/environments/environment.jest.ts',
+    '^mermaid$': '<rootDir>/src/testing/mermaid.mock.ts'
   },
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
