@@ -7,6 +7,7 @@ import { MembershipService } from '../../../membership'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
 import { ExceedingLimitException } from '../../../core/errors'
+import { usesOrganizationCredentials } from '../../../copilot/utils'
 
 @CommandHandler(CopilotCheckLimitCommand)
 export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLimitCommand> {
@@ -21,15 +22,17 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
         const { input } = command
         const { copilot, tenantId, organizationId, userId, xpertId } = input
 
-        await this.membershipService.assertCanUse({
-            tenantId,
-            organizationId,
-            copilotOrganizationId: copilot.organizationId ?? null,
-            userId,
-            xpertId,
-            provider: copilot.modelProvider.providerName,
-            model: input.model
-        })
+        if (!usesOrganizationCredentials(copilot, organizationId)) {
+            await this.membershipService.assertCanUse({
+                tenantId,
+                organizationId,
+                copilotOrganizationId: copilot.organizationId ?? null,
+                userId,
+                xpertId,
+                provider: copilot.modelProvider.providerName,
+                model: input.model
+            })
+        }
 
         const usage = await this.copilotUserService.getUsageSummary({
             tenantId,
