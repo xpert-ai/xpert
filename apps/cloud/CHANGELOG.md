@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.9
+
+### Patch Changes
+
+- 601438f: fix org membership plan
+
 ## 3.15.8
 
 ### Patch Changes
