@@ -1,5 +1,12 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.8
+
+### Patch Changes
+
+- 7ab7aa1: Add connector contracts, management UI, runtime APIs, and connector middleware support.
+- 121ced0: Final stable version
+
 ## 3.15.7
 
 ### Patch Changes
