@@ -229,6 +229,39 @@ describe('view extension utils', () => {
 		)
 	})
 
+	it('accepts module-capable remote component runtimes and rejects unknown runtimes', () => {
+		const remoteManifest: XpertExtensionViewManifest = {
+			...manifest,
+			key: 'design',
+			view: {
+				type: 'remote_component',
+				runtime: 'vue',
+				protocolVersion: 1,
+				component: {
+					isolation: 'iframe',
+					entry: 'pencil-workbench'
+				},
+				dataSource: {
+					mode: 'platform'
+				}
+			}
+		}
+
+		expect(() => normalizeManifest(remoteManifest, 'provider_a', context, 'detail.main_tabs')).not.toThrow()
+
+		const invalidRuntimeManifest = {
+			...remoteManifest,
+			view: {
+				...remoteManifest.view,
+				runtime: 'angular'
+			}
+		} as unknown as XpertExtensionViewManifest
+
+		expect(() => normalizeManifest(invalidRuntimeManifest, 'provider_a', context, 'detail.main_tabs')).toThrow(
+			"Remote component view 'provider_a:design' uses an unsupported runtime"
+		)
+	})
+
 	it('rejects non-i18n text declarations', () => {
 		const invalidTitleManifest = {
 			...manifest,

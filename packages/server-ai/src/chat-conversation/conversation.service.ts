@@ -100,6 +100,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         c.id,
                         c."threadId",
                         c."xpertId",
+                        c.title,
                         c."createdAt",
                         c."updatedAt"
                     FROM chat_conversation c
@@ -177,17 +178,37 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         "threadId" AS "latestUnreadThreadId"
                     FROM unread_messages
                     ORDER BY "xpertId", "createdAt" DESC, "messageId" DESC
+                ),
+                latest_conversations AS (
+                    SELECT DISTINCT ON ("xpertId")
+                        "xpertId",
+                        id AS "latestConversationId",
+                        "threadId" AS "latestConversationThreadId",
+                        NULLIF(BTRIM(title), '') AS "latestConversationTitle",
+                        COALESCE("updatedAt", "createdAt") AS "latestConversationAt"
+                    FROM scoped_conversations
+                    ORDER BY
+                        "xpertId",
+                        "updatedAt" DESC NULLS LAST,
+                        "createdAt" DESC NULLS LAST,
+                        id DESC
                 )
                 SELECT
-                    counts."xpertId" AS "xpertId",
-                    counts."unreadMessages" AS "unreadMessages",
-                    counts."unreadConversations" AS "unreadConversations",
+                    latest_conversations."xpertId" AS "xpertId",
+                    COALESCE(counts."unreadMessages", 0) AS "unreadMessages",
+                    COALESCE(counts."unreadConversations", 0) AS "unreadConversations",
                     latest."latestUnreadAt" AS "latestUnreadAt",
                     latest."latestUnreadConversationId" AS "latestUnreadConversationId",
-                    latest."latestUnreadThreadId" AS "latestUnreadThreadId"
-                FROM counts
-                INNER JOIN latest
-                    ON latest."xpertId" = counts."xpertId"
+                    latest."latestUnreadThreadId" AS "latestUnreadThreadId",
+                    latest_conversations."latestConversationAt" AS "latestConversationAt",
+                    latest_conversations."latestConversationId" AS "latestConversationId",
+                    latest_conversations."latestConversationThreadId" AS "latestConversationThreadId",
+                    latest_conversations."latestConversationTitle" AS "latestConversationTitle"
+                FROM latest_conversations
+                LEFT JOIN counts
+                    ON counts."xpertId" = latest_conversations."xpertId"
+                LEFT JOIN latest
+                    ON latest."xpertId" = latest_conversations."xpertId"
             `,
             params
         )) as Array<{
@@ -197,6 +218,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestUnreadAt?: Date | string | null
             latestUnreadConversationId?: string | null
             latestUnreadThreadId?: string | null
+            latestConversationAt?: Date | string | null
+            latestConversationId?: string | null
+            latestConversationThreadId?: string | null
+            latestConversationTitle?: string | null
         }>
 
         return rows.map((row) => ({
@@ -205,7 +230,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             unreadConversations: Number(row.unreadConversations) || 0,
             latestUnreadAt: row.latestUnreadAt ?? null,
             latestUnreadConversationId: row.latestUnreadConversationId ?? null,
-            latestUnreadThreadId: row.latestUnreadThreadId ?? null
+            latestUnreadThreadId: row.latestUnreadThreadId ?? null,
+            latestConversationAt: row.latestConversationAt ?? null,
+            latestConversationId: row.latestConversationId ?? null,
+            latestConversationThreadId: row.latestConversationThreadId ?? null,
+            latestConversationTitle: row.latestConversationTitle ?? null
         }))
     }
 

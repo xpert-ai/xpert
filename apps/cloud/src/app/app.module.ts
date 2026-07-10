@@ -1,4 +1,5 @@
 import { PlatformModule } from '@angular/cdk/platform'
+import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay'
 import { HTTP_INTERCEPTORS, HttpClientModule, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
@@ -72,6 +73,12 @@ function detectSubjectType(subject) {
     provideHttpClient(withInterceptorsFromDi()),
     provideAnimations(),
     provideZard(),
+    {
+      provide: OVERLAY_DEFAULT_CONFIG,
+      useValue: {
+        usePopover: false
+      }
+    },
     // UpdateService,
     {
       provide: LOCALE_ID,

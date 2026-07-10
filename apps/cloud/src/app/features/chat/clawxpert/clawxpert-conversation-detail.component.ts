@@ -68,11 +68,14 @@ import { createAssistantToolCompletedHostEvent } from './assistant-tool-host-eve
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
-const CLAWXPERT_CHATKIT_MAX_WIDTH = '960px'
+const CLAWXPERT_CHATKIT_MIN_WIDTH_PX = 384
+const CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX = 512
+const CLAWXPERT_CHATKIT_MAX_WIDTH_PX = 960
+const CLAWXPERT_CHATKIT_MAX_WIDTH = `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}px`
 const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
   'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
 const CHAT_SHELL_TRANSITION_CLASSES =
-  'transition-[width,max-width,padding,opacity,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none'
+  'transition-[padding,opacity,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none'
 const DETAIL_PANEL_SHELL_TRANSITION_CLASSES =
   'transition-[max-height,opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
 const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
@@ -151,7 +154,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
     ExtensionHostOutletComponent
   ],
   template: `
-    <div [class]="workspaceLayoutClasses()">
+    <div [class]="workspaceLayoutClasses()" [style.--clawxpert-chatkit-width]="chatkitWidthStyle()">
       <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
         <div [class]="detailPanelContentClasses()">
           <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-2 py-1.5">
@@ -171,14 +174,12 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                   type="button"
                   [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                   [attr.data-tab-id]="tab.id"
-                  class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-xl border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
+                  class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
                   [active]="activeTabId() === tab.id"
                   (click)="selectTab(tab.id)"
                 >
                   <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
-                    <span
-                      class="flex h-5 w-5 items-center justify-center text-text-primary transition-opacity group-hover/tab:opacity-0 group-focus-within/tab:opacity-0"
-                    >
+                    <span class="flex h-5 w-5 items-center justify-center text-text-primary">
                       @switch (tab.kind) {
                         @case ('files') {
                           <i class="ri-folder-3-line shrink-0 text-lg"></i>
@@ -200,17 +201,6 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                           />
                         }
                       }
-                    </span>
-                    <span
-                      role="button"
-                      tabindex="0"
-                      [attr.data-close-tab]="tab.id"
-                      class="absolute inset-0 flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg opacity-0 transition-[background-color,opacity] hover:bg-text-secondary group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-                      (click)="closeWorkspaceTab($event, tab.id)"
-                      (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                      (keydown.space)="closeWorkspaceTab($event, tab.id)"
-                    >
-                      <i class="ri-close-line text-sm"></i>
                     </span>
                   </span>
                   @switch (tab.kind) {
@@ -237,6 +227,25 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                     }
                   }
 
+                  <button
+                    z-button
+                    class="absolute right-0.5 flex w-6 h-6 shrink-0 items-center justify-center opacity-0 transition-[background-color,opacity] group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
+                    type="button"
+                    tabindex="0"
+                    [attr.data-close-tab]="tab.id"
+                    zType="secondary"
+                    zSize="icon"
+                    (click)="closeWorkspaceTab($event, tab.id)"
+                    (keydown.enter)="closeWorkspaceTab($event, tab.id)"
+                    (keydown.space)="closeWorkspaceTab($event, tab.id)"
+                  >
+                    <span
+                      class="flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg hover:bg-text-secondary"
+                    >
+                      <i class="ri-close-line text-sm"></i>
+                    </span>
+                  </button>
+
                   @if (!last) {
                     <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
                   }
@@ -250,7 +259,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
               zType="ghost"
               zSize="icon"
               data-add-workspace-tab
-              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl bg-hover-bg text-text-secondary transition-[background-color,color] hover:text-text-primary"
+              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:text-text-primary"
               [title]="'PAC.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
               z-menu
               [zMenuTriggerFor]="workspaceTabMenu"
@@ -347,6 +356,30 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
                 (click)="openTasksTab()"
               >
                 <i class="ri-calendar-line text-lg"></i>
+              </button>
+              <button
+                z-button
+                type="button"
+                zType="ghost"
+                zSize="icon"
+                data-toggle-workspace-maximized
+                [class]="workspaceMaximizeButtonClasses()"
+                [title]="
+                  workbenchMaximized()
+                    ? ('PAC.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                    : ('PAC.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                "
+                [zTooltip]="
+                  workbenchMaximized()
+                    ? ('PAC.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
+                    : ('PAC.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
+                "
+                zPosition="bottom"
+                (click)="toggleWorkspaceMaximized()"
+              >
+                <i
+                  [class]="workbenchMaximized() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
+                ></i>
               </button>
               @if (!isChatMinimizedToPet()) {
                 <button
@@ -566,7 +599,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
         </div>
       </section>
 
-      <section [class]="chatShellClasses()">
+      <section [class]="chatShellClasses()" [attr.aria-hidden]="chatkitHiddenFromWorkspace() ? 'true' : null">
         @if (!showDetailPanel() && !isChatMinimizedToPet()) {
           <button
             z-button
@@ -583,7 +616,28 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
             <i class="ri-side-bar-line text-lg"></i>
           </button>
         }
+        @if (showChatkitResizeHandle()) {
+          <div
+            role="separator"
+            tabindex="0"
+            aria-orientation="vertical"
+            data-chatkit-resize-handle
+            class="group/resize absolute left-0 top-0 z-30 hidden h-full w-3 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center lg:flex"
+            [attr.aria-valuemin]="chatkitMinWidth"
+            [attr.aria-valuemax]="chatkitMaxWidth"
+            [attr.aria-valuenow]="chatkitWidthPx()"
+            [title]="'PAC.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
+            [zTooltip]="'PAC.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
+            zPosition="left"
+            (pointerdown)="startChatkitResize($event)"
+            (keydown.arrowleft)="resizeChatkitFromKeyboard($event, 32)"
+            (keydown.arrowright)="resizeChatkitFromKeyboard($event, -32)"
+          >
+            <span [class]="chatkitResizeGripClasses()"></span>
+          </div>
+        }
         <div
+          data-chatkit-surface
           class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform] duration-500 ease-out motion-reduce:transition-none"
           [class]="chatSurfaceClasses()"
         >
@@ -683,6 +737,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
   #markReadRequestVersion = 0
+  #chatkitResizeCleanup: (() => void) | null = null
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -806,19 +861,46 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly isChatMinimizedToPet = signal(false)
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
+  readonly workspaceMaximized = signal(false)
+  readonly chatkitWidthPx = signal(CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX)
+  readonly isResizingChatkit = signal(false)
+  readonly chatkitMinWidth = CLAWXPERT_CHATKIT_MIN_WIDTH_PX
+  readonly chatkitMaxWidth = CLAWXPERT_CHATKIT_MAX_WIDTH_PX
+  readonly chatkitWidthStyle = computed(() => `${this.chatkitWidthPx()}px`)
+  readonly workbenchMaximized = computed(() => this.workspaceMaximized() || this.isChatMinimizedToPet())
+  readonly workspaceMaximizeButtonClasses = computed(() =>
+    this.workbenchMaximized()
+      ? 'flex !h-9 !w-9 items-center justify-center rounded-xl bg-hover-bg text-text-primary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary'
+      : 'flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary'
+  )
+  readonly chatkitResizeGripClasses = computed(() =>
+    this.isResizingChatkit()
+      ? 'h-14 w-1 rounded-full bg-border opacity-100 transition-opacity'
+      : 'h-14 w-1 rounded-full bg-border opacity-0 transition-opacity group-hover/resize:opacity-100'
+  )
   readonly showDetailPanel = computed(
     () => this.detailPanelVisible() && (this.workspaceTabs().length === 0 || !!this.activePanel())
   )
+  readonly chatkitHiddenFromWorkspace = computed(() => this.showDetailPanel() && this.workbenchMaximized())
+  readonly showChatkitResizeHandle = computed(
+    () => this.showDetailPanel() && !this.isChatMinimizedToPet() && !this.chatkitHiddenFromWorkspace()
+  )
   readonly workspaceLayoutClasses = computed(() => {
+    const transitionClasses = this.isResizingChatkit() ? 'transition-none' : WORKSPACE_LAYOUT_TRANSITION_CLASSES
+
     if (this.isChatMinimizedToPet()) {
       return this.showDetailPanel()
-        ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-        : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
+        ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
+        : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] ${transitionClasses} lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
+    }
+
+    if (this.chatkitHiddenFromWorkspace()) {
+      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
     }
 
     return this.showDetailPanel()
-      ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)] lg:grid-rows-1`
-      : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] ${WORKSPACE_LAYOUT_TRANSITION_CLASSES} lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
+      ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))] lg:grid-rows-1`
+      : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] ${transitionClasses} lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
   })
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
@@ -831,18 +913,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
   )
   readonly chatShellClasses = computed(() => {
-    if (this.isChatMinimizedToPet()) {
-      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
+    if (this.chatkitHiddenFromWorkspace()) {
+      if (this.isChatMinimizedToPet()) {
+        return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
+      }
+
+      return `pointer-events-none relative min-h-0 min-w-0 overflow-hidden p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
     }
 
     return this.showDetailPanel()
-      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[32rem] lg:justify-self-end py-4 px-2`
+      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[var(--clawxpert-chatkit-width)] lg:justify-self-end`
       : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
   })
   readonly chatSurfaceClasses = computed(() =>
-    this.showDetailPanel() && !this.isChatMinimizedToPet()
-      ? 'rounded-2xl bg-components-card-bg shadow-sm border border-border'
-      : ''
+    this.showChatkitResizeHandle() ? 'bg-components-card-bg border-l border-border' : ''
   )
 
   constructor() {
@@ -1054,6 +1138,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand?.()
     this.#unregisterNavigationOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
+    this.stopChatkitResize()
     this.#responseActive.set(false)
     this.isChatMinimizedToPet.set(false)
     this.facade.setActiveConversation(null)
@@ -1129,7 +1214,87 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   closeDetailPanel() {
+    this.workspaceMaximized.set(false)
     this.detailPanelVisible.set(false)
+  }
+
+  toggleWorkspaceMaximized() {
+    if (this.isChatMinimizedToPet()) {
+      this.workspaceMaximized.set(false)
+      this.restoreChatkitFromPet()
+      return
+    }
+
+    if (!this.showDetailPanel()) {
+      this.openDetailPanel()
+    }
+
+    this.workspaceMaximized.update((maximized) => !maximized)
+  }
+
+  private restoreChatkitFromPet() {
+    const chatkitHost = this.chatkitHost()?.nativeElement
+    if (!chatkitHost) {
+      return
+    }
+
+    const chatkitElement = resolveEmbeddedChatkitElement(chatkitHost)
+    const petElement = chatkitElement.shadowRoot?.querySelector<HTMLElement>('[data-chatkit-host-pet]')
+    petElement?.click()
+  }
+
+  startChatkitResize(event: PointerEvent) {
+    if (!this.showChatkitResizeHandle()) {
+      return
+    }
+
+    event.preventDefault()
+    this.stopChatkitResize()
+
+    const startX = event.clientX
+    const startWidth = this.chatkitWidthPx()
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    const target = event.currentTarget
+
+    if (target instanceof HTMLElement && typeof target.setPointerCapture === 'function') {
+      target.setPointerCapture(event.pointerId)
+    }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault()
+      this.chatkitWidthPx.set(clampChatkitWidth(startWidth + startX - moveEvent.clientX))
+    }
+
+    const handlePointerEnd = () => {
+      this.stopChatkitResize()
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    this.isResizingChatkit.set(true)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerEnd, { once: true })
+    window.addEventListener('pointercancel', handlePointerEnd, { once: true })
+
+    this.#chatkitResizeCleanup = () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerEnd)
+      window.removeEventListener('pointercancel', handlePointerEnd)
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      this.isResizingChatkit.set(false)
+    }
+  }
+
+  resizeChatkitFromKeyboard(event: Event, delta: number) {
+    event.preventDefault()
+    this.chatkitWidthPx.update((width) => clampChatkitWidth(width + delta))
+  }
+
+  private stopChatkitResize() {
+    this.#chatkitResizeCleanup?.()
+    this.#chatkitResizeCleanup = null
   }
 
   selectPanel(panel: ClawXpertStaticTabId | 'preview') {
@@ -1758,6 +1923,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 function resolveConversationId(metadata?: { id?: string }) {
   const conversationId = metadata?.id
   return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
+}
+
+function clampChatkitWidth(width: number) {
+  return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
 }
 
 function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {

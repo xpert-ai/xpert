@@ -129,7 +129,7 @@ export class XpertWorkspaceHomeComponent {
   #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
-  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow'>>(null)
+  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow' | 'connectors'>>(null)
   readonly type = computed(() => this.types()?.[0])
 
   // TagFilter's state

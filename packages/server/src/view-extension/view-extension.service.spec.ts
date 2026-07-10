@@ -48,7 +48,10 @@ describe('ViewExtensionService file actions', () => {
 			supports: jest.fn(async () => true),
 			getViewManifests: jest.fn(async () => [manifest]),
 			getViewData: jest.fn(),
-			executeViewFileAction: jest.fn(async () => ({ success: true, refresh: true }))
+			executeViewFileAction: jest.fn(async () => ({ success: true, refresh: true })),
+			getRemoteComponentEntry: jest.fn(async () => ({
+				html: '<!doctype html><html><body><div id="root"></div><script type="module"></script></body></html>'
+			}))
 		}
 		const providerRegistry = {
 			get: jest.fn(() => provider)
@@ -82,6 +85,42 @@ describe('ViewExtensionService file actions', () => {
 		)
 		return { service, provider, cacheService }
 	}
+
+	it('loads remote component entries for vue runtime views', async () => {
+		const { service, provider } = createService()
+		const remoteManifest = {
+			...manifest,
+			key: 'remote',
+			view: {
+				type: 'remote_component',
+				runtime: 'vue',
+				protocolVersion: 1,
+				component: {
+					isolation: 'iframe',
+					entry: 'pencil-workbench'
+				},
+				dataSource: {
+					mode: 'platform'
+				}
+			},
+			actions: []
+		}
+		provider.getViewManifests.mockResolvedValue([remoteManifest])
+
+		const result = await service.getRemoteComponentEntry('agent', 'assistant-1', 'provider__remote')
+
+		expect(result.contentType).toBe('text/html; charset=utf-8')
+		expect(result.html).toContain('type="module"')
+		expect(provider.getRemoteComponentEntry).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				hostId: 'assistant-1'
+			}),
+			'remote',
+			remoteManifest.view.component
+		)
+	})
 
 	it('routes file actions to the resolved provider and invalidates refreshed views', async () => {
 		const { service, provider, cacheService } = createService()

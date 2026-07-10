@@ -29,7 +29,7 @@ import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
 import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
-import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
+import { TInstalledPlugin } from './types'
 import { PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
 import { PluginResourcesComponent } from './resources/resources.component'
 import {
@@ -41,9 +41,9 @@ import {
 } from './plugin-marketplace-categories'
 import {
   buildMarketplacePluginMetadataLookup,
-  enrichInstalledPluginWithMarketplaceMetadata,
-  mergeMarketplaceContributions
+  enrichInstalledPluginWithMarketplaceMetadata
 } from './plugin-marketplace-metadata'
+import { getInstalledPluginMarketplaceContributions, toPluginMarketplaceDetails } from './plugin-marketplace-details'
 import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
 import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation'
 
@@ -746,63 +746,5 @@ export class PluginsComponent {
     this.#agentService.refresh()
     this.#knowledgebaseService.refresh()
     this.#toolsetService.refresh()
-  }
-}
-
-function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownloads {
-  const contributions = getInstalledPluginMarketplaceContributions(plugin)
-  return {
-    name: plugin.packageName ?? plugin.name,
-    packageName: plugin.packageName ?? plugin.name,
-    displayName: (plugin.meta.displayName ?? plugin.name) as unknown as TPluginWithDownloads['displayName'],
-    description: (plugin.meta.description ?? plugin.name) as unknown as TPluginWithDownloads['description'],
-    version: plugin.currentVersion ?? plugin.meta.version ?? '',
-    artifactNamespace: plugin.meta.artifactNamespace ?? null,
-    level: plugin.level ?? plugin.meta.level,
-    deprecated: plugin.meta.deprecated,
-    deprecationMessage: plugin.meta.deprecationMessage,
-    category: plugin.meta.category ?? 'integration',
-    icon: plugin.meta.icon ?? {
-      type: 'font',
-      value: 'ri-puzzle-2-line'
-    },
-    author: {
-      name: plugin.meta.author ?? 'XpertAI',
-      url: plugin.meta.homepage ?? ''
-    },
-    source: plugin.meta.homepage
-      ? {
-          type: 'website',
-          url: plugin.meta.homepage
-        }
-      : undefined,
-    keywords: plugin.meta.keywords,
-    installed: plugin.loadStatus !== 'failed',
-    contributions,
-    operationSummary: countMarketplaceOperations(contributions),
-    targetAppMeta: plugin.meta.targetAppMeta
-  }
-}
-
-function getInstalledPluginMarketplaceContributions(plugin: TInstalledPlugin): TPluginMarketplaceContribution[] {
-  const targetAppMeta = plugin.meta.targetAppMeta
-  if (!targetAppMeta) {
-    return []
-  }
-
-  return mergeMarketplaceContributions(
-    ...Object.values(targetAppMeta).map((metadata) => metadata?.marketplace?.contents)
-  ).filter((content): content is TPluginMarketplaceContribution => !!content?.name && !!content?.type)
-}
-
-function countMarketplaceOperations(
-  contributions: TPluginMarketplaceContribution[]
-): TPluginWithDownloads['operationSummary'] {
-  const operations = contributions.flatMap((content) => (Array.isArray(content.operations) ? content.operations : []))
-  return {
-    total: operations.length,
-    read: operations.filter((operation) => operation.access === 'read').length,
-    write: operations.filter((operation) => operation.access === 'write').length,
-    admin: operations.filter((operation) => operation.access === 'admin').length
   }
 }

@@ -1,4 +1,6 @@
-@reference "tailwindcss"; .cdk-menu-trigger[aria-expanded='true'],
+@reference "tailwindcss";
+
+.cdk-menu-trigger[aria-expanded='true'],
 [z-menu][data-state='open'] {
   @apply bg-components-list-option-active-bg text-text-secondary;
 }
@@ -9,16 +11,37 @@
   [z-menu-item],
   .ngm-cdk-menu-item {
     @apply relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-left text-sm
-      outline-none transition-colors hover:bg-accent hover:text-accent-foreground
-      focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50;
+      outline-none transition-colors hover:bg-hover-bg hover:text-text-primary
+      focus:bg-components-list-option-active-bg focus:text-text-primary data-disabled:pointer-events-none data-disabled:opacity-50;
 
     .z-icon {
       @apply shrink-0;
     }
 
+    &[aria-expanded='true'] {
+      @apply bg-components-list-option-active-bg text-text-primary;
+    }
+
     &.active,
     &[aria-checked='true'] {
-      @apply bg-accent text-accent-foreground;
+      @apply bg-components-list-option-active-bg text-text-primary font-medium;
+
+      &::before {
+        position: absolute;
+        top: 0.45rem;
+        bottom: 0.45rem;
+        left: 0.25rem;
+        width: 2px;
+        border-radius: 999px;
+        background: var(--color-components-accent-indicator-bg);
+        content: '';
+      }
+
+      > i,
+      > svg,
+      .z-icon {
+        color: var(--color-text-accent);
+      }
     }
 
     &.danger,

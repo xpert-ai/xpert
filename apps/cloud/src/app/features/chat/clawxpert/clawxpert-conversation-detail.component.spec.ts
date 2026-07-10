@@ -1128,7 +1128,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     component.addWorkspaceTab('terminal')
     await settle(fixture)
 
-    const chatShell = fixture.nativeElement.querySelectorAll('section')[1]?.querySelector('div') as HTMLElement | null
+    const chatSurface = fixture.nativeElement.querySelector('[data-chatkit-surface]') as HTMLElement | null
     const tabHeader = fixture.nativeElement.querySelector('[data-workspace-tab-header]') as HTMLElement | null
     const tabNav = fixture.nativeElement.querySelector('nav[z-tab-nav-bar]') as HTMLElement | null
     const addTabButton = fixture.nativeElement.querySelector('[data-add-workspace-tab]') as HTMLElement | null
@@ -1136,17 +1136,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     const closeButton = fixture.nativeElement.querySelector(
       `[data-close-tab="${component.activeTabId()}"]`
     ) as HTMLElement | null
+    const closeButtonIcon = closeButton?.querySelector('span') as HTMLElement | null
 
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)]'
     )
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-rows-1')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
-    expect(chatShell?.className).toContain('rounded-2xl')
+    expect(chatSurface?.className).toContain('border-l')
     expect(tabHeader?.className).toContain('py-1.5')
     expect(tabHeader?.className).toContain('items-center')
     expect(tabHeader?.className).not.toContain('pt-4')
@@ -1155,18 +1156,89 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(tabNav?.className).not.toContain('flex-1')
     expect(tabNav?.className).toContain('min-w-0')
     expect(tabNav?.contains(addTabButton)).toBe(false)
-    expect(tabButton?.className).toContain('rounded-xl')
+    expect(tabButton?.className).toContain('rounded-lg')
     expect(tabButton?.className).toContain('bg-hover-bg')
     expect(tabButton?.className).toContain('data-[active=true]:!border-transparent')
     expect(tabButton?.className).toContain('data-[active=true]:!bg-hover-bg')
     expect(closeButton?.className).toContain('opacity-0')
     expect(closeButton?.className).toContain('group-hover/tab:opacity-100')
-    expect(closeButton?.className).toContain('rounded-full')
+    expect(closeButtonIcon?.className).toContain('rounded-full')
     expect(tabButton?.className).toContain('h-9')
     expect(tabButton?.className).toContain('text-sm')
     expect(addTabButton?.className).toContain('!h-9')
     expect(addTabButton?.className).toContain('!w-9')
     expect(addTabButton?.className).toContain('rounded-xl')
+  })
+
+  it('maximizes the workspace by hiding ChatKit and restores it from the header button', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
+
+    const maximizeButton = fixture.nativeElement.querySelector(
+      '[data-toggle-workspace-maximized]'
+    ) as HTMLButtonElement | null
+    const resizeHandle = fixture.nativeElement.querySelector('[data-chatkit-resize-handle]') as HTMLElement | null
+
+    expect(maximizeButton).not.toBeNull()
+    expect(resizeHandle).not.toBeNull()
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+
+    maximizeButton?.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('pointer-events-none')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
+    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
+
+    maximizeButton?.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
+    )
+    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).not.toBeNull()
+  })
+
+  it('resizes the ChatKit panel from its left edge and clamps the width', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    fixture.componentInstance.openDetailPanel()
+    await settle(fixture)
+
+    const handle = fixture.nativeElement.querySelector('[data-chatkit-resize-handle]') as HTMLElement | null
+    expect(handle).not.toBeNull()
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(512)
+    expect(fixture.componentInstance.chatShellClasses()).not.toContain('transition-[width')
+
+    handle?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 800 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 700 }))
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isResizingChatkit()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('transition-none')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).not.toContain('transition-[grid-template-columns')
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(612)
+    expect(fixture.componentInstance.chatkitWidthStyle()).toBe('612px')
+
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: -1000 }))
+    await settle(fixture)
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(960)
+
+    window.dispatchEvent(new MouseEvent('pointerup'))
+    await settle(fixture)
+    expect(fixture.componentInstance.isResizingChatkit()).toBe(false)
+
+    fixture.componentInstance.resizeChatkitFromKeyboard(new KeyboardEvent('keydown'), -1000)
+    expect(fixture.componentInstance.chatkitWidthPx()).toBe(384)
   })
 
   it('opens the workspace panel and hides its close button when ChatKit minimizes into the pet overlay', async () => {
@@ -1181,6 +1253,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     if (!chatkit) {
       throw new Error('Expected xpert-chatkit to render')
     }
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    const petButton = document.createElement('button')
+    const activatePet = jest.fn(() => {
+      delete chatkit.dataset.chatMinimizedToPet
+    })
+    petButton.setAttribute('data-chatkit-host-pet', '')
+    petButton.addEventListener('click', activatePet)
+    shadowRoot.appendChild(petButton)
+
     expect(showDetailPanelButton).not.toBeNull()
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
@@ -1193,24 +1274,36 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workbenchMaximized()).toBe(true)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).toBeNull()
+    const petMaximizeButton = fixture.nativeElement.querySelector(
+      '[data-toggle-workspace-maximized]'
+    ) as HTMLElement | null
+    const petMaximizeButtonIcon = petMaximizeButton?.querySelector('i') as HTMLElement | null
+    expect(petMaximizeButton).not.toBeNull()
+    expect(petMaximizeButton?.className).toContain('bg-hover-bg')
+    expect(petMaximizeButtonIcon?.className).toContain('ri-fullscreen-exit-line')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
-    delete chatkit.dataset.chatMinimizedToPet
+    petMaximizeButton?.click()
     await settle(fixture)
 
+    expect(activatePet).toHaveBeenCalledTimes(1)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workbenchMaximized()).toBe(false)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
     expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).not.toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]'
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[32rem]')
-    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('rounded-2xl')
+    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
+    expect(fixture.componentInstance.chatSurfaceClasses()).toContain('border-l')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {

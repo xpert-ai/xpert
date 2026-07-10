@@ -10,6 +10,7 @@ import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.comp
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
   buildCloudSidebarMenuGroups,
+  type CloudSidebarMenuEntry,
   isCloudMenuRouteForcedActive,
   isCloudMenuRouteSuppressed,
   isExternalCloudMenuItem,
@@ -145,6 +146,10 @@ export class CloudSidebarMenuComponent {
 
   trackMenuItem(index: number, item: CloudMenuItem) {
     return item.link || item.title || index
+  }
+
+  trackMenuEntry(index: number, entry: CloudSidebarMenuEntry) {
+    return entry.item ? this.trackMenuItem(index, entry.item) : `assistants-${index}`
   }
 
   menuTitleKey(item: CloudMenuItem) {

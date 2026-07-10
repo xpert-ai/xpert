@@ -117,6 +117,10 @@ export class RemoteComponentRendererComponent {
 
   #entryRequestId = 0
   #entryObjectUrl: string | null = null
+  // Keep the fetched HTML so the renderer can reuse the exact same payload if a blob iframe stays blank.
+  #entryHtml: string | null = null
+  // Debounces the blank-frame check across both entry assignment and iframe load events.
+  #srcdocFallbackTimer: number | null = null
   #viewportUpdateFrame: number | null = null
   readonly #hostEventDebounces = new Map<string, number>()
 
@@ -184,15 +188,22 @@ export class RemoteComponentRendererComponent {
 
   private setEntryHtml(html: string) {
     this.clearEntryUrl()
+    this.#entryHtml = html
+    // Blob URLs remain the primary load path; srcdoc is only used later if this iframe renders blank.
     const objectUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
     this.#entryObjectUrl = objectUrl
     this.entryUrl.set(objectUrl)
+    this.scheduleSrcdocFallbackCheck()
   }
 
   private clearEntryUrl() {
+    this.cancelSrcdocFallbackCheck()
     const objectUrl = this.#entryObjectUrl
     this.#entryObjectUrl = null
+    this.#entryHtml = null
     this.entryUrl.set(null)
+    // Remove a previous fallback document before the next remote component entry is mounted.
+    this.frame()?.nativeElement.removeAttribute('srcdoc')
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl)
     }
@@ -418,6 +429,52 @@ export class RemoteComponentRendererComponent {
     this.updateViewportHeight()
     this.scheduleViewportHeightUpdate()
     this.sendInitToFrame()
+    this.scheduleSrcdocFallbackCheck()
+  }
+
+  private scheduleSrcdocFallbackCheck() {
+    if (typeof window === 'undefined') {
+      return
+    }
+    this.cancelSrcdocFallbackCheck()
+    // Give the blob document a short chance to render before treating the iframe as blank.
+    this.#srcdocFallbackTimer = window.setTimeout(() => {
+      this.#srcdocFallbackTimer = null
+      this.applySrcdocFallbackIfBlank()
+    }, 250)
+  }
+
+  private cancelSrcdocFallbackCheck() {
+    if (this.#srcdocFallbackTimer === null || typeof window === 'undefined') {
+      return
+    }
+    window.clearTimeout(this.#srcdocFallbackTimer)
+    this.#srcdocFallbackTimer = null
+  }
+
+  private applySrcdocFallbackIfBlank() {
+    const html = this.#entryHtml
+    const frame = this.frame()?.nativeElement
+    if (!html || !frame || frame.getAttribute('srcdoc')) {
+      return
+    }
+
+    try {
+      const doc = frame.contentDocument
+      // Either the remote root or any body content means the blob load succeeded.
+      const hasRemoteDocument = Boolean(doc?.getElementById('root')) || Boolean(doc?.body?.childElementCount)
+      if (hasRemoteDocument) {
+        return
+      }
+    } catch {
+      // If the blob document cannot be inspected, leave the original iframe source untouched.
+      return
+    }
+
+    // Some Chromium/WebView sessions can leave a blob-backed iframe at an empty about:blank
+    // document. srcdoc preserves the same iframe sandbox and postMessage bridge while ensuring
+    // the already-fetched remote component HTML is actually loaded.
+    frame.setAttribute('srcdoc', html)
   }
 
   private scheduleViewportHeightUpdate() {

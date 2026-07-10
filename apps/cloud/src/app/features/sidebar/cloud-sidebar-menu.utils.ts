@@ -2,13 +2,20 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
 
 export type CloudSidebarMenuGroupKey = 'work' | 'modules' | 'management'
 
+export interface CloudSidebarMenuEntry {
+  kind: 'menu' | 'assistants'
+  item: CloudMenuItem | null
+}
+
 export interface CloudSidebarMenuGroup {
   key: CloudSidebarMenuGroupKey
   titleKey: string
   titleDefault: string
   items: CloudMenuItem[]
+  entries: CloudSidebarMenuEntry[]
 }
 
+const CHAT_TASKS_MENU_PATH = '/chat/tasks'
 const MANAGEMENT_MENU_ORDER = [
   '/plugins',
   '/operations',
@@ -22,27 +29,35 @@ export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSideba
   const managementMenus = visibleMenus
     .filter(isManagementCloudMenuItem)
     .sort((a, b) => managementMenuRank(a) - managementMenuRank(b))
-  const workMenus = visibleMenus.filter(isWorkCloudMenuItem)
+  const assistantTrailingWorkMenus = visibleMenus.filter(isAssistantTrailingWorkMenuItem)
+  const workMenus = visibleMenus.filter((item) => isWorkCloudMenuItem(item) && !isAssistantTrailingWorkMenuItem(item))
   const moduleMenus = visibleMenus.filter((item) => !isWorkCloudMenuItem(item) && !isManagementCloudMenuItem(item))
 
   const groups: CloudSidebarMenuGroup[] = [
     {
       key: 'work',
       titleKey: 'PAC.MenuGroup.WorkEntries',
-      titleDefault: '工作入口',
-      items: workMenus
+      titleDefault: 'Work',
+      items: [...workMenus, ...assistantTrailingWorkMenus],
+      entries: [
+        ...workMenus.map(createMenuEntry),
+        { kind: 'assistants', item: null },
+        ...assistantTrailingWorkMenus.map(createMenuEntry)
+      ]
     },
     {
       key: 'modules',
       titleKey: 'PAC.MenuGroup.FeatureModules',
-      titleDefault: '功能模块',
-      items: moduleMenus
+      titleDefault: 'Features',
+      items: moduleMenus,
+      entries: moduleMenus.map(createMenuEntry)
     },
     {
       key: 'management',
       titleKey: 'PAC.MenuGroup.Management',
-      titleDefault: '管理',
-      items: managementMenus
+      titleDefault: 'Management',
+      items: managementMenus,
+      entries: managementMenus.map(createMenuEntry)
     }
   ]
 
@@ -77,7 +92,11 @@ export function isCloudMenuRouteForcedActive(currentUrl: string, item: CloudMenu
 
 function isWorkCloudMenuItem(item: CloudMenuItem) {
   const path = readMenuPath(item)
-  return path === '/chat' || path === '/chat/clawxpert' || path === '/chat/tasks'
+  return path === '/chat' || path === '/chat/clawxpert' || isAssistantTrailingWorkMenuItem(item)
+}
+
+function isAssistantTrailingWorkMenuItem(item: CloudMenuItem) {
+  return readMenuPath(item) === CHAT_TASKS_MENU_PATH
 }
 
 function isManagementCloudMenuItem(item: CloudMenuItem) {
@@ -103,4 +122,11 @@ export function normalizeMenuPath(path: string) {
   const normalized = (pathname || '').replace(/\/+$/, '')
 
   return normalized || pathname || ''
+}
+
+function createMenuEntry(item: CloudMenuItem): CloudSidebarMenuEntry {
+  return {
+    kind: 'menu',
+    item
+  }
 }

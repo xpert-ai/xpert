@@ -21,13 +21,27 @@
   } @else {
     <div class="flex items-center gap-2">
       @if (!isFirst) {
-        <button z-button zType="secondary" zSize="sm" type="button" (click)="prev()">
+        <button
+          z-button
+          zType="secondary"
+          zSize="sm"
+          type="button"
+          [zDisabled]="entryOnboardingCreating()"
+          (click)="prev()"
+        >
           {{ 'PAC.ACTIONS.Back' | translate }}
         </button>
       }
 
       @if (isLast) {
-        <button z-button zSize="sm" type="button" (click)="finish()">
+        <button
+          z-button
+          zSize="sm"
+          type="button"
+          [zDisabled]="entryOnboardingCreating()"
+          [zLoading]="entryOnboardingCreating()"
+          (click)="onEntryOnboardingFinish()"
+        >
           {{ entryOnboardingFinishText() | translate }}
         </button>
       } @else {

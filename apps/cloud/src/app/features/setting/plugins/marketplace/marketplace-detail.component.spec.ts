@@ -248,7 +248,8 @@ const defaultComponents: IPluginComponentDefinition[] = [
 
 async function createComponent(
   plugin: TPluginWithDownloads,
-  components: IPluginComponentDefinition[] = defaultComponents
+  components: IPluginComponentDefinition[] = defaultComponents,
+  data?: { showActions?: boolean }
 ) {
   const dialogRef = {
     close: jest.fn()
@@ -291,7 +292,7 @@ async function createComponent(
     providers: [
       {
         provide: DIALOG_DATA,
-        useValue: { plugin }
+        useValue: { plugin, ...data }
       },
       {
         provide: DialogRef,
@@ -403,6 +404,37 @@ describe('PluginMarketplaceDetailComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Artifact namespace')
     expect(fixture.nativeElement.textContent).toContain('office_editor')
+  })
+
+  it('hides setup actions in read-only detail mode', async () => {
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'skill',
+            name: 'browser-research',
+            displayName: 'Browser Research'
+          },
+          {
+            type: 'assistant-template',
+            name: 'salesclaw-business-assistant',
+            displayName: 'SalesClaw Business Assistant Template'
+          },
+          {
+            type: 'app',
+            name: 'salesclaw',
+            displayName: 'SalesClaw'
+          }
+        ]
+      }),
+      defaultComponents,
+      {
+        showActions: false
+      }
+    )
+
+    expect(component.showActions).toBe(false)
+    expect(fixture.nativeElement.querySelectorAll('button')).toHaveLength(1)
   })
 
   it('does not initialize assistant templates before the plugin is installed', async () => {

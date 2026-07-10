@@ -7,8 +7,8 @@ import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry 
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { ConversationTitleService } from '../shared/agent/conversation-title.service'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 import { ExecutionCancelModule } from '../shared/execution/execution-cancel.module'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { XpertModule } from '../xpert/xpert.module'
@@ -18,6 +18,7 @@ import { XpertAgentNodeValidator } from './agent-validator'
 import { XpertTitleMiddlewareService } from './title/xpert-title.middleware'
 import { Validators } from './workflow'
 import { WorkflowCommandHandlers } from './workflow/handlers'
+import { ConnectorMiddleware } from '../xpert-middleware/connector.middleware'
 import { XpertAgentController } from './xpert-agent.controller'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
@@ -36,6 +37,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
 
         CopilotCheckpointModule,
         XpertAgentExecutionModule,
+        AgentMiddlewareRuntimeModule,
         forwardRef(() => XpertModule),
         forwardRef(() => EnvironmentModule),
         ExecutionCancelModule,
@@ -45,12 +47,12 @@ import { PromptWorkflowModule } from '../prompt-workflow'
     controllers: [XpertAgentController],
     providers: [
         XpertAgentService,
-        AgentMiddlewareRuntimeService,
         ConversationTitleService,
         XpertTitleMiddlewareService,
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,
+        ConnectorMiddleware,
         XpertAgentNodeValidator,
         ...CommandHandlers,
         ...WorkflowCommandHandlers,

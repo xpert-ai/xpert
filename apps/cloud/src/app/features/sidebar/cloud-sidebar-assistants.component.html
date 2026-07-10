@@ -112,7 +112,7 @@
             <input
               type="search"
               [value]="query()"
-              [placeholder]="'PAC.Assistant.Search' | translate: { Default: '搜索助手' }"
+              [placeholder]="'PAC.Assistant.Search' | translate: { Default: 'Search' }"
               (input)="updateQuery($event)"
             />
           </label>
@@ -169,6 +169,9 @@
                 </button>
 
                 @if (!collapsed()) {
+                  @if (hasAssistantUnread(xpert)) {
+                    <span class="cloud-sidebar-assistants__status absolute"></span>
+                  }
                   @if (canEditAssistant(xpert)) {
                     <button
                       type="button"
@@ -178,9 +181,6 @@
                     >
                       <i class="ri-equalizer-2-line"></i>
                     </button>
-                  }
-                  @if (hasAssistantUnread(xpert)) {
-                    <span class="cloud-sidebar-assistants__status absolute"></span>
                   }
                 }
               </div>

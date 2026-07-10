@@ -17,6 +17,7 @@ import { ViewExtensionPermissionService } from './view-extension.permission.serv
 import { ViewExtensionCacheService } from './view-extension.cache.service'
 import {
 	buildBaseViewHostContext,
+	isSupportedRemoteComponentRuntime,
 	isManifestActiveForContext,
 	normalizeManifest,
 	splitPublicViewKey,
@@ -108,7 +109,7 @@ export class ViewExtensionService {
 		if (view.type !== 'remote_component') {
 			throw new BadRequestException(`View '${viewKey}' is not a remote component view`)
 		}
-		if (view.runtime !== 'react' || view.protocolVersion !== 1) {
+		if (!isSupportedRemoteComponentRuntime(view.runtime) || view.protocolVersion !== 1) {
 			throw new BadRequestException(`View '${viewKey}' uses an unsupported remote component runtime`)
 		}
 		if (view.component.isolation !== 'iframe') {

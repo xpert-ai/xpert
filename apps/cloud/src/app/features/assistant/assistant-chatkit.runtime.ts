@@ -244,11 +244,15 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     return {
       colorScheme,
       radius: 'soft',
+      density: 'compact',
       color: {
         surface: {
           background: resolveDocumentThemeColorHex(document, '--color-components-card-bg', surfaceFallback.background),
           foreground: resolveDocumentThemeColorHex(document, '--color-text-primary', surfaceFallback.foreground)
         }
+      },
+      typography: {
+        baseSize: 14
       }
     }
   })

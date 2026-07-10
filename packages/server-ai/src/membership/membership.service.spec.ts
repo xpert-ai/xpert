@@ -142,6 +142,14 @@ describe('MembershipService', () => {
         const planRepository = {
             createQueryBuilder: jest.fn().mockReturnValue(updateBuilder),
             create: jest.fn((input) => ({ id: 'plan-default', ...input })),
+            count: jest.fn(async ({ where }) => {
+                return plans.filter(
+                    (plan) =>
+                        plan.tenantId === where?.tenantId &&
+                        plan.organizationId === where?.organizationId &&
+                        plan.status === where?.status
+                ).length
+            }),
             find: jest.fn(async () => [...plans]),
             findOne: jest.fn(async ({ where }) => {
                 if (where?.status === MembershipPlanStatusEnum.Active && where?.isDefault === true) {
@@ -646,9 +654,92 @@ describe('MembershipService', () => {
         expect(findUsableMembership).toHaveBeenCalledWith('tenant-1', 'org-1', 'assistant-tech-user', undefined, false)
     })
 
-    it('initializes organization scope with a default unlimited plan and active member memberships idempotently', async () => {
+    it('keeps organization initialization on tenant fallback when no active organization plan exists', async () => {
+        const { dataSource, ledgerRepository, memberships, membershipRepository, planRepository, plans, service } =
+            createScopeInitializationHarness()
+
+        const status = await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            assignedById: 'admin-1'
+        })
+
+        expect(status).toMatchObject({
+            scope: 'organization',
+            initialized: true,
+            activeMemberCount: 2,
+            assignedMemberCount: 0,
+            activePlanCount: 0,
+            defaultPlan: null
+        })
+        expect(plans).toHaveLength(0)
+        expect(memberships).toHaveLength(0)
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+        expect(planRepository.save).not.toHaveBeenCalled()
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('does not reactivate an archived default organization plan during initialization', async () => {
+        const { dataSource, ledgerRepository, memberships, membershipRepository, planRepository, plans, service } =
+            createScopeInitializationHarness()
+        plans.push({
+            id: 'plan-archived',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            code: 'default-unlimited',
+            name: 'Default Unlimited',
+            status: MembershipPlanStatusEnum.Archived,
+            isDefault: false,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: null,
+            tokensPerPoint: 1000,
+            modelMultipliers: [],
+            rateLimits: []
+        } as MembershipPlan)
+
+        const status = await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            assignedById: 'admin-1'
+        })
+
+        expect(status).toMatchObject({
+            scope: 'organization',
+            initialized: true,
+            activePlanCount: 0,
+            defaultPlan: null
+        })
+        expect(plans).toHaveLength(1)
+        expect(plans[0]).toMatchObject({
+            code: 'default-unlimited',
+            status: MembershipPlanStatusEnum.Archived,
+            isDefault: false
+        })
+        expect(memberships).toHaveLength(0)
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+        expect(planRepository.save).not.toHaveBeenCalled()
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('initializes organization scope with an existing active plan and active member memberships idempotently', async () => {
         const { ledgerRepository, memberships, membershipRepository, planRepository, plans, service } =
             createScopeInitializationHarness()
+        plans.push({
+            id: 'plan-custom',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            code: 'custom',
+            name: 'Custom',
+            status: MembershipPlanStatusEnum.Active,
+            isDefault: false,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: 500,
+            tokensPerPoint: 1000,
+            modelMultipliers: [],
+            rateLimits: []
+        } as MembershipPlan)
 
         const firstStatus = await service.ensureScopeInitialized({
             tenantId: 'tenant-1',
@@ -675,9 +766,9 @@ describe('MembershipService', () => {
         })
         expect(plans).toHaveLength(1)
         expect(plans[0]).toMatchObject({
-            code: 'default-unlimited',
-            name: 'Default Unlimited',
-            includedPoints: null,
+            code: 'custom',
+            name: 'Custom',
+            includedPoints: 500,
             tokensPerPoint: 1000,
             isDefault: true,
             status: MembershipPlanStatusEnum.Active
@@ -685,7 +776,7 @@ describe('MembershipService', () => {
         expect(memberships).toHaveLength(2)
         expect(membershipRepository.save).toHaveBeenCalledTimes(2)
         expect(ledgerRepository.save).toHaveBeenCalledTimes(2)
-        expect(ledgerRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsDelta: 0 }))
+        expect(ledgerRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsDelta: 500 }))
         expect(planRepository.save).toHaveBeenCalledTimes(1)
     })
 

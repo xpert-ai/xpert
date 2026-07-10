@@ -86,9 +86,11 @@ export function shouldCreateClawXpertAfterEntryOnboarding(
 }
 
 export function getFeatureEntryOnboardingFinishText(xpertCount: number | null | undefined, canCreateXpert = true) {
-  return shouldCreateClawXpertAfterEntryOnboarding(xpertCount, canCreateXpert)
-    ? 'PAC.Chat.ClawXpert.EntryGuideCreate'
-    : 'PAC.ACTIONS.Done'
+  if (!shouldCreateClawXpertAfterEntryOnboarding(xpertCount, canCreateXpert)) {
+    return 'PAC.ACTIONS.Done'
+  }
+
+  return 'PAC.Chat.ClawXpert.EntryGuideCreate'
 }
 
 export function shouldExpandSidebarForEntryOnboarding(defaultCollapsed: boolean, entryOnboardingVisible: boolean) {

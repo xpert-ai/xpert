@@ -23,7 +23,6 @@ import {
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
-  type AssistantXpertLike,
   filterAssistantXperts,
   getAssistantDescription,
   getAssistantLabel,
@@ -229,11 +228,11 @@ export class CloudSidebarAssistantsComponent {
   readonly isClawXpertConfigured = computed(() => !!this.boundXpert())
   readonly listXperts = computed(() => {
     const boundId = this.boundXpert()?.id
-    return this.xperts().filter((xpert) => xpert.id !== boundId && !isClawXpertXpert(xpert))
+    return this.xperts().filter((xpert) => xpert.id !== boundId)
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
-      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: '全部' }
+      { value: ALL_ASSISTANT_CATEGORY, labelKey: 'PAC.Assistant.CategoryAll', labelDefault: 'All' }
     ]
     const seen = new Set<string>([ALL_ASSISTANT_CATEGORY])
 
@@ -313,6 +312,11 @@ export class CloudSidebarAssistantsComponent {
           .map((summary) => summary.xpertId)
       )
   )
+  readonly conversationSummaryByXpertId = computed(() => {
+    const entries = this.unreadSummaryList().map((summary) => [summary.xpertId, summary] as const)
+
+    return new Map<string, IChatConversationUnreadXpertSummary>(entries)
+  })
   readonly unreadSummaryByXpertId = computed(() => {
     const entries = this.unreadSummaryList()
       .filter((summary) => summary.unreadMessages > 0)
@@ -446,7 +450,7 @@ export class CloudSidebarAssistantsComponent {
   }
 
   assistantDescription(xpert: IXpert) {
-    return getAssistantDescription(xpert)
+    return this.getLatestConversationTitle(xpert.id) || getAssistantDescription(xpert)
   }
 
   updateQuery(event: Event) {
@@ -484,6 +488,15 @@ export class CloudSidebarAssistantsComponent {
     return summary && summary.unreadMessages > 0 && threadId ? threadId : null
   }
 
+  private getLatestConversationTitle(xpertId: string | null | undefined) {
+    if (typeof xpertId !== 'string' || !xpertId.trim()) {
+      return null
+    }
+
+    const title = this.conversationSummaryByXpertId().get(xpertId)?.latestConversationTitle?.trim()
+    return title || null
+  }
+
   private hasXpertEditPermission() {
     return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
   }
@@ -496,12 +509,6 @@ function normalizeChatPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
-}
-
-function isClawXpertXpert(xpert: AssistantXpertLike) {
-  return [xpert.slug, xpert.id].some(
-    (value) => typeof value === 'string' && value.trim().toLowerCase() === AssistantCode.CLAWXPERT
-  )
 }
 
 function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {

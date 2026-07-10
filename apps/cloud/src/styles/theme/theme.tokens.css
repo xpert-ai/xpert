@@ -20,23 +20,23 @@
 
 :root[data-theme='light'],
 [data-theme='light'] {
-  --sys-surface-page: #ffffff;
-  --sys-surface: #ffffff;
-  --sys-surface-elevated: #ffffff;
-  --sys-surface-overlay: #ffffff;
+  --sys-surface-page: var(--background);
+  --sys-surface: var(--background);
+  --sys-surface-elevated: var(--card);
+  --sys-surface-overlay: var(--popover);
   --sys-surface-subtle: var(--secondary);
   --sys-surface-field: var(--background);
-  --sys-text-primary: #212121;
-  --sys-text-secondary: #616161;
-  --sys-border: #d9d9dd;
+  --sys-text-primary: var(--foreground);
+  --sys-text-secondary: var(--muted-foreground);
+  --sys-border: var(--border);
   --sys-border-strong: color-mix(in oklab, var(--sys-border) 64%, var(--sys-text-secondary));
-  --sys-border-control: #e5e7eb;
-  --sys-accent: #ff7759;
-  --sys-success: #159f6a;
-  --sys-warning: #b7791f;
-  --sys-danger: #b30000;
-  --sys-info: #1863dc;
-  --sys-state-hover: oklch(0 0 0 / 0.04);
+  --sys-border-control: var(--input);
+  --sys-accent: var(--accent);
+  --sys-success: var(--success);
+  --sys-warning: var(--warning);
+  --sys-danger: var(--destructive);
+  --sys-info: var(--info);
+  --sys-state-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
   --mdc-theme-error: var(--sys-danger);
   --color-components-panel-bg-blur: color-mix(in oklab, var(--sys-surface-overlay) 92%, transparent);
   --color-components-panel-border: var(--sys-border);
@@ -73,7 +73,7 @@
   --color-text-warning: var(--sys-warning);
   --color-text-destructive: var(--sys-danger);
   --color-text-accent: var(--sys-accent);
-  --color-text-accent-secondary: #ffad9b;
+  --color-text-accent-secondary: color-mix(in oklab, var(--sys-accent) 72%, white);
   --color-status-neutral-bg: #f2f2f2;
   --color-status-neutral-fg: #616161;
   --color-status-neutral-indicator-bg: #93939f;
@@ -128,21 +128,21 @@
 :root[data-theme='dark'],
 [data-theme='dark'] {
   --sys-surface-page: var(--background);
-  --sys-surface: color-mix(in oklab, var(--card) 64%, var(--background));
+  --sys-surface: var(--background);
   --sys-surface-elevated: var(--card);
   --sys-surface-overlay: var(--popover);
   --sys-surface-subtle: var(--secondary);
   --sys-surface-field: var(--secondary);
   --sys-text-primary: var(--foreground);
-  --sys-text-secondary: color-mix(in oklab, var(--foreground) 78%, var(--background));
-  --sys-border: color-mix(in oklab, var(--foreground) 8%, transparent);
-  --sys-border-strong: color-mix(in oklab, var(--foreground) 18%, transparent);
-  --sys-border-control: color-mix(in oklab, var(--foreground) 12%, transparent);
-  --sys-accent: #ff7759;
-  --sys-success: #33b37c;
-  --sys-warning: #e2aa43;
-  --sys-danger: #ff7759;
-  --sys-info: #4c6ee6;
+  --sys-text-secondary: var(--muted-foreground);
+  --sys-border: var(--border);
+  --sys-border-strong: color-mix(in oklab, var(--sys-border) 64%, var(--sys-text-secondary));
+  --sys-border-control: var(--input);
+  --sys-accent: var(--accent);
+  --sys-success: var(--success);
+  --sys-warning: var(--warning);
+  --sys-danger: var(--destructive);
+  --sys-info: var(--info);
   --sys-state-hover: color-mix(in oklab, var(--foreground) 8%, transparent);
   --scrollbar-thumb-color: var(--sys-border-strong);
   --mdc-theme-error: var(--sys-danger);
@@ -181,7 +181,7 @@
   --color-text-warning: var(--sys-warning);
   --color-text-destructive: var(--sys-danger);
   --color-text-accent: var(--sys-accent);
-  --color-text-accent-secondary: #ffad9b;
+  --color-text-accent-secondary: color-mix(in oklab, var(--sys-accent) 72%, white);
   --color-status-neutral-bg: color-mix(in oklab, var(--foreground) 5%, transparent);
   --color-status-neutral-fg: var(--sys-text-secondary);
   --color-status-neutral-indicator-bg: var(--color-text-tertiary);
@@ -245,7 +245,7 @@
   --sys-accent-100-contrast: var(--sys-on-accent-subtle);
 
   --sys-warn-500: var(--sys-danger);
-  --sys-warn-500-contrast: white;
+  --sys-warn-500-contrast: var(--destructive-foreground);
 
   --sys-background-background: var(--sys-surface-page);
   --sys-background-hover: var(--sys-state-hover);

@@ -5,6 +5,7 @@ import {
     IXpertToolset,
     PLUGIN_COMPONENT_TYPE,
     TCopilotModel,
+    TXpertFeatures,
     TXpertTeamConnection,
     TXpertTeamDraft,
     TXpertTeamNode,
@@ -56,7 +57,8 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         await this.workspaceAccess.assertCanAuthor(command.workspaceId)
         const template = await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language)
         const parsed = yaml.parse(template.export_data) as unknown
-        const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic)
+        const sandboxProviders = await this.xpertService.getSandboxProviders()
+        const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic, sandboxProviders)
         const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
             new XpertImportCommand(draft, {
                 normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
@@ -84,7 +86,12 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         }
     }
 
-    private normalizeDraft(value: unknown, workspaceId: string, basic?: PluginTemplateInstallBasic): XpertDraftDslDTO {
+    private normalizeDraft(
+        value: unknown,
+        workspaceId: string,
+        basic: PluginTemplateInstallBasic | undefined,
+        sandboxProviders: Array<{ type: string }>
+    ): XpertDraftDslDTO {
         if (!isObjectValue(value) || !isObjectValue(Reflect.get(value, 'team'))) {
             throw new BadRequestException('Template export_data must be a valid Xpert draft')
         }
@@ -96,10 +103,12 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         }
 
         const team = teamValue as TXpertTeamDraft['team']
+        const features = normalizeTemplateSandboxFeatures(team.features, sandboxProviders)
         return new XpertDraftDslDTO({
             team: {
                 ...team,
                 ...basic,
+                ...(features ? { features } : {}),
                 workspaceId
             },
             nodes: nodesValue as TXpertTeamNode[],
@@ -527,6 +536,33 @@ function isObjectValue(value: unknown): value is object {
 
 function normalizeNonEmptyString(value: unknown): string | null {
     return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function normalizeTemplateSandboxFeatures(
+    features: TXpertFeatures | undefined,
+    sandboxProviders: Array<{ type: string }>
+): TXpertFeatures | undefined {
+    const sandbox = features?.sandbox
+    if (!sandbox?.enabled) {
+        return features
+    }
+
+    const providerTypes = uniqueStrings(sandboxProviders.map(({ type }) => type))
+    const provider = normalizeNonEmptyString(sandbox.provider)
+    if (provider && providerTypes.includes(provider)) {
+        return features
+    }
+
+    const fallbackProvider = providerTypes[0]
+    return fallbackProvider
+        ? {
+              ...features,
+              sandbox: {
+                  ...sandbox,
+                  provider: fallbackProvider
+              }
+          }
+        : features
 }
 
 function hasExplicitLlmCopilotModel(copilotModel: TCopilotModel | undefined) {

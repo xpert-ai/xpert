@@ -120,7 +120,7 @@ dependencies: {
 - `packages/server-ai/src/core/entities/index.ts`
 - `packages/server-ai/src/core/entities/internal.ts`
 
-`PluginInstance` 继续表示某个 plugin 已安装到组织/系统作用域，并承载插件级必要状态，例如 package、version、source、sourceConfig、config、configurationStatus。当前资源能力不需要新增独立组件实例表；如果后续需要记录 workspace connector 覆盖、组织默认策略等插件级运行态，优先放入 `PluginInstance.config`，并通过明确的 parser 读取。
+`PluginInstance` 继续表示某个 plugin 已安装到组织/系统作用域，并承载插件级必要状态，例如 package、version、source、sourceConfig、config、configurationStatus。当前资源能力不需要新增独立组件实例表；如果后续需要记录 connector 覆盖、组织默认策略等插件级运行态，优先放入 `PluginInstance.config`，并通过明确的 parser 读取。
 
 不会再新增或维护独立组件实例表。组件定义来自 bundle manifest，是 plugin 文件本身的事实来源，避免插件更新后数据库组件表和真实 bundle 内容不同步。
 
@@ -310,7 +310,7 @@ v1 处理范围：
 - `auth: 'on_first_use'` 保持 ready，运行时可返回认证需求。
 - 卸载或解绑 plugin resource 不删除用户已有外部授权。
 - 上游 `.app.json` 中的 `REPLACE_WITH_*` placeholder 不会伪装成可用 connector；安装状态写为 `blocked`，并在 `config.reason` 等字段中记录原因。
-- 必要的 workspace connector 覆盖信息放在 `PluginInstance.config` 中，通过显式边界 parser 读取，不新增表。
+- 必要的 connector 覆盖信息放在 `PluginInstance.config` 中，通过显式边界 parser 读取，不新增表。
 
 本轮没有实现新的第三方 connector runtime。apps 首期是 requirement/auth 状态和绑定模型。
 

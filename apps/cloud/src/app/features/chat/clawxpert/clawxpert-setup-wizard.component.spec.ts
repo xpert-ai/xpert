@@ -11,6 +11,13 @@ jest.mock('../../../@core', () => {
     AIPermissionsEnum: {
       COPILOT_EDIT: 'COPILOT_EDIT'
     },
+    AssistantBindingScope: {
+      USER: 'user'
+    },
+    AssistantBindingService: class AssistantBindingService {},
+    AssistantCode: {
+      CLAWXPERT: 'clawxpert'
+    },
     CopilotServerService: class CopilotServerService {},
     EnvironmentService: class EnvironmentService {},
     getErrorMessage: (error: unknown) => String(error),
@@ -19,8 +26,14 @@ jest.mock('../../../@core', () => {
     ToastrService: class ToastrService {},
     uid10: jest.fn(() => 'abc123def0'),
     XpertAPIService: class XpertAPIService {},
+    XpertAgentService: class XpertAgentService {},
     XpertTemplateService: class XpertTemplateService {},
+    XpertToolsetService: class XpertToolsetService {},
     XpertWorkspaceService: class XpertWorkspaceService {},
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
+    XpertToolsetCategoryEnum: contracts.XpertToolsetCategoryEnum,
     XpertTypeEnum: contracts.XpertTypeEnum
   }
 })
@@ -29,6 +42,13 @@ let mockPluginAPI: {
   getPlugins: jest.Mock
   getMarketplace: jest.Mock
   install: jest.Mock
+}
+let xpertAgentService: {
+  refresh: jest.Mock
+}
+let clawXpertBootstrap: {
+  createClawXpert: jest.Mock
+  createTemplateXpert: jest.Mock
 }
 
 jest.mock('@xpert-ai/cloud/state', () => ({
@@ -124,6 +144,10 @@ jest.mock('../../setting/plugins/install/install.component', () => ({
   PluginInstallComponent: class PluginInstallComponent {}
 }))
 
+jest.mock('../../setting/plugins/marketplace/marketplace-detail.component', () => ({
+  PluginMarketplaceDetailComponent: class PluginMarketplaceDetailComponent {}
+}))
+
 jest.mock('../../xpert/xpert', () => {
   const { Component } = jest.requireActual('@angular/core')
 
@@ -146,28 +170,39 @@ jest.mock('./clawxpert.facade', () => ({
   ClawXpertFacade: class ClawXpertFacade {}
 }))
 
-import { Dialog } from '@angular/cdk/dialog'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import type { TXpertTeamDraft } from '@xpert-ai/contracts'
-import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
+import { BehaviorSubject, of, Subject } from 'rxjs'
 import {
   CopilotServerService,
   EnvironmentService,
+  AssistantBindingService,
   IXpert,
+  IXpertToolset,
   Store,
   ToastrService,
   XpertAPIService,
+  XpertAgentService,
   XpertTemplateService,
+  XpertToolsetCategoryEnum,
+  XpertToolsetService,
   XpertWorkspaceService,
   XpertTypeEnum
 } from '../../../@core'
-import { PluginInstallComponent } from '../../setting/plugins/install/install.component'
-import { XpertNewBlankComponent } from '../../xpert/xpert'
+import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+import { PluginMarketplaceDetailComponent } from '../../setting/plugins/marketplace/marketplace-detail.component'
+
+async function flushPromises() {
+  for (let index = 0; index < 8; index++) {
+    await Promise.resolve()
+  }
+}
 
 function createFacadeMock(options?: {
   availableXperts?: Partial<IXpert>[]
@@ -178,6 +213,7 @@ function createFacadeMock(options?: {
     bindPublishedXpert: jest.fn().mockResolvedValue(undefined),
     cancelWizard: jest.fn(),
     getXpertLabel: jest.fn((xpert?: Partial<IXpert> | null) => xpert?.title || xpert?.name || xpert?.id || ''),
+    navigateToOverview: jest.fn(),
     organizationId: signal('org-1'),
     orphanedPreference: signal(false),
     resolvedPreference: signal(options?.resolvedPreference ?? null),
@@ -288,6 +324,24 @@ function createPluginAPIMock() {
             installed: false
           },
           {
+            name: '@xpert-ai/plugin-salesclaw',
+            packageName: '@xpert-ai/plugin-salesclaw',
+            displayName: 'SalesClaw',
+            description: 'SalesClaw plugin',
+            version: '1.0.0',
+            category: 'business-app',
+            installed: false
+          },
+          {
+            name: '@xpert-ai/plugin-bom-document-intake',
+            packageName: '@xpert-ai/plugin-bom-document-intake',
+            displayName: 'BOM Document Intake',
+            description: 'BOM document intake plugin',
+            version: '1.0.0',
+            category: 'business-app',
+            installed: false
+          },
+          {
             name: 'openai-compatible',
             packageName: '@xpert/openai-compatible',
             displayName: 'OpenAI Compatible',
@@ -311,6 +365,60 @@ function createPluginAPIMock() {
       })
     )
   }
+}
+
+type RecommendedTemplateMock = {
+  id: string
+  name: string
+  title: string
+  description: string
+  category: string
+  pluginDisplayName: string
+  pluginName: string
+  type: XpertTypeEnum
+  dependencies?: {
+    toolsets?: Array<{
+      provider: string
+      templateNodeKey: string
+      instanceName?: string
+      pluginName?: string
+      targetAgentKey?: string
+    }>
+  }
+  avatar: {
+    emoji: {
+      id: string
+    }
+  }
+}
+
+function createRecommendedTemplate(overrides?: Partial<RecommendedTemplateMock>): RecommendedTemplateMock {
+  return {
+    id: '@xpert-ai/plugin-canvas:canvas-assistant',
+    name: 'canvas-assistant',
+    title: 'Canvas Assistant',
+    description: 'Create structured canvas documents.',
+    category: 'Canvas',
+    pluginDisplayName: 'Canvas',
+    pluginName: '@xpert-ai/plugin-canvas',
+    type: XpertTypeEnum.Agent,
+    avatar: {
+      emoji: {
+        id: 'art'
+      }
+    },
+    ...overrides
+  }
+}
+
+function createToolset(overrides?: Partial<IXpertToolset>): IXpertToolset {
+  return {
+    id: 'seedream-runtime',
+    name: 'Seedream AIGC',
+    type: 'seedream_aigc',
+    category: XpertToolsetCategoryEnum.BUILTIN,
+    ...overrides
+  } as IXpertToolset
 }
 
 function createToastrMock() {
@@ -392,7 +500,11 @@ function createXpertAPIMock() {
   }
 }
 
-function createXpertTemplateServiceMock(options?: { installedXpert?: Partial<IXpert>; requiredPluginNames?: string[] }) {
+function createXpertTemplateServiceMock(options?: {
+  installedXpert?: Partial<IXpert>
+  recommendedApps?: Array<ReturnType<typeof createRecommendedTemplate>>
+  requiredPluginNames?: string[]
+}) {
   const installedXpert = {
     id: 'created-xpert',
     name: 'clawxpert',
@@ -417,11 +529,17 @@ function createXpertTemplateServiceMock(options?: { installedXpert?: Partial<IXp
   } as IXpert
 
   return {
+    getAll: jest.fn(() =>
+      of({
+        categories: ['Agent'],
+        recommendedApps: options?.recommendedApps ?? [createRecommendedTemplate()]
+      })
+    ),
     getTemplate: jest.fn(() =>
       of({
         id: 'xpert-my-claw-xpert',
         dependencies: {
-          plugins: options?.requiredPluginNames ?? []
+          plugins: options?.requiredPluginNames ?? ['@xpert-ai/plugin-file-memory']
         }
       })
     ),
@@ -446,15 +564,78 @@ function createWorkspaceServiceMock(options?: { defaultWorkspace?: { id: string;
   }
 }
 
+function createXpertToolsetServiceMock(options?: { toolsets?: IXpertToolset[] }) {
+  return {
+    getAllByWorkspace: jest.fn(() =>
+      of({
+        items: options?.toolsets ?? []
+      })
+    )
+  }
+}
+
 function createEnvironmentMock() {
   return {
     getDefaultByWorkspace: jest.fn(() => of(null))
   }
 }
 
+function createXpertAgentServiceMock() {
+  return {
+    refresh: jest.fn()
+  }
+}
+
+function createClawXpertBootstrapMock() {
+  return {
+    createClawXpert: jest.fn(() =>
+      Promise.resolve({
+        id: 'created-clawxpert',
+        name: 'clawxpert',
+        title: 'ClawXpert',
+        latest: true,
+        type: XpertTypeEnum.Agent
+      } as IXpert)
+    ),
+    createTemplateXpert: jest.fn(() =>
+      Promise.resolve({
+        id: 'created-template-xpert',
+        name: 'canvas-assistant',
+        title: 'Canvas Assistant',
+        latest: true,
+        type: XpertTypeEnum.Agent
+      } as IXpert)
+    )
+  }
+}
+
 describe('ClawXpertSetupWizardComponent', () => {
   beforeEach(() => {
     mockPluginAPI = createPluginAPIMock()
+    xpertAgentService = createXpertAgentServiceMock()
+    clawXpertBootstrap = createClawXpertBootstrapMock()
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: ClawXpertBootstrapService,
+          useValue: clawXpertBootstrap
+        },
+        {
+          provide: AssistantBindingService,
+          useValue: {
+            upsert: jest.fn(() => of({}))
+          }
+        },
+        {
+          provide: XpertAgentService,
+          useValue: xpertAgentService
+        },
+        {
+          provide: XpertToolsetService,
+          useValue: createXpertToolsetServiceMock()
+        }
+      ]
+    })
   })
 
   afterEach(() => {
@@ -462,7 +643,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('renders a single model-provider step without the plugin install step', async () => {
+  it('renders the default ClawXpert install step without exposing model selection', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
@@ -519,32 +700,34 @@ describe('ClawXpertSetupWizardComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('[data-onboarding-step="plugins"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-onboarding-step="model-provider"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-onboarding-step="default-clawxpert"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('z-stepper')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.ModelProviderStepTitle')
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultInstallTitle')
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultModelReady')
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CompleteInitialization')
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.CreateFirst')
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.ModelProviderStepTitle')
+    expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
+    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('PAC.ACTIONS.Next')
     expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
   })
 
-  it('does not block the model-provider step while marketplace plugins are loading', async () => {
+  it('does not block the default ClawXpert install step while recommended templates are loading', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
         closed: of(undefined)
       }))
     }
-    const marketplace$ = new Subject<unknown>()
-    mockPluginAPI = {
-      getPlugins: jest.fn(() => of([])),
-      getMarketplace: jest.fn(() => marketplace$),
-      install: jest.fn(({ pluginName }: { pluginName: string }) =>
-        of({
-          success: true,
-          name: pluginName,
-          packageName: pluginName,
-          organizationId: 'org-1'
-        })
-      )
+    const templateCatalog$ = new Subject<{
+      categories: string[]
+      recommendedApps: Array<ReturnType<typeof createRecommendedTemplate>>
+    }>()
+    const templateService = {
+      ...createXpertTemplateServiceMock(),
+      getAll: jest.fn(() => templateCatalog$)
     }
 
     await TestBed.configureTestingModule({
@@ -577,7 +760,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         },
         {
           provide: XpertTemplateService,
-          useValue: createXpertTemplateServiceMock()
+          useValue: templateService
         },
         {
           provide: EnvironmentService,
@@ -593,9 +776,10 @@ describe('ClawXpertSetupWizardComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
     fixture.detectChanges()
 
-    expect(fixture.componentInstance.marketplacePlugins()).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-clawxpert-setup-next]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-onboarding-step="model-provider"]')).not.toBeNull()
+    expect(fixture.componentInstance.recommendedTemplateItems()).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-onboarding-step="default-clawxpert"]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.LoadingRecommendedTemplates')
   })
 
   it('waits for the model provider lookup before preparing the primary copilot', async () => {
@@ -661,13 +845,120 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.componentInstance.llmCopilots()).toBeNull()
     expect(copilotServer.enableCopilot).not.toHaveBeenCalled()
     expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CheckingModelProviders')
-    expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).toBeNull()
 
     modelProviders$.next([])
     await fixture.whenStable()
     fixture.detectChanges()
 
     expect(copilotServer.enableCopilot).toHaveBeenCalledWith('primary')
+  })
+
+  it('shows model provider setup only when no usable model exists and initializes after saving', async () => {
+    const facade = createFacadeMock()
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+    const copilotServer = {
+      ...createCopilotServerMock(),
+      getCopilotModels: jest.fn(() => of([]))
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: copilotServer
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: createXpertTemplateServiceMock()
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(component.canCreateXpert()).toBe(false)
+    expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.SaveModelProvider')
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.CompleteInitialization')
+
+    await component.saveModelProvider()
+    await flushPromises()
+    fixture.detectChanges()
+
+    expect(component.selectedCopilotModel()).toEqual({
+      copilotId: 'copilot-primary',
+      model: 'gpt-4.1',
+      modelType: 'llm'
+    })
+    expect(component.canCreateXpert()).toBe(true)
+    expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.CompleteInitialization')
+
+    component.completeInitialization()
+    await flushPromises()
+    await flushPromises()
+
+    expect(clawXpertBootstrap.createClawXpert).toHaveBeenCalledWith(
+      {
+        copilotId: 'copilot-primary',
+        model: 'gpt-4.1',
+        modelType: 'llm'
+      },
+      {
+        suppressAutoPublishWarning: true,
+        suppressPluginPrepareWarning: true
+      }
+    )
+    expect(facade.bindPublishedXpert).toHaveBeenCalled()
+    expect(dialogRef.close).toHaveBeenCalled()
   })
 
   it('does not expose close or cancel actions because setup must finish by creating ClawXpert', async () => {
@@ -790,24 +1081,30 @@ describe('ClawXpertSetupWizardComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(mockPluginAPI.getPlugins).toHaveBeenCalled()
+    expect(mockPluginAPI.getPlugins).not.toHaveBeenCalled()
     expect(mockPluginAPI.getMarketplace).not.toHaveBeenCalled()
     expect(fixture.nativeElement.textContent).not.toContain('Integration Plugin')
     expect(fixture.nativeElement.querySelector('[data-plugin-install-button="integration-plugin"]')).toBeNull()
     expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
   })
 
-  it('shows default model configuration before installed model plugins and hides uninitialized plugins behind More', async () => {
+  it('uses configured ids only to select real templates returned by the template catalog', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
         closed: of(undefined)
       }))
     }
-    const copilotServer = {
-      ...createCopilotServerMock(),
-      getCopilotModels: jest.fn(() => of([]))
-    }
+    const templateService = createXpertTemplateServiceMock({
+      recommendedApps: [
+        createRecommendedTemplate(),
+        createRecommendedTemplate({
+          id: '@xpert-ai/plugin-demo:demo-assistant',
+          name: 'demo-assistant',
+          title: 'Demo Assistant'
+        })
+      ]
+    })
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
@@ -827,7 +1124,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         },
         {
           provide: CopilotServerService,
-          useValue: copilotServer
+          useValue: createCopilotServerMock()
         },
         {
           provide: ToastrService,
@@ -839,7 +1136,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         },
         {
           provide: XpertTemplateService,
-          useValue: createXpertTemplateServiceMock()
+          useValue: templateService
         },
         {
           provide: EnvironmentService,
@@ -857,56 +1154,311 @@ describe('ClawXpertSetupWizardComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('[data-model-plugin-section="initialized"]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-model-plugin-section="uninitialized"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-model-provider-config-form]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('OpenAI Compatible')
-    expect(fixture.nativeElement.textContent).not.toContain('SiliconFlow')
+    expect(templateService.getAll).toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-recommended-templates]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('Canvas Assistant')
+    expect(fixture.nativeElement.textContent).not.toContain('SalesClaw Business Assistant')
+    expect(fixture.nativeElement.textContent).not.toContain('BOM Contract Intake')
+    expect(fixture.nativeElement.textContent).not.toContain('Demo Assistant')
+    const canvasTemplateSelect = fixture.nativeElement.querySelector(
+      '[data-recommended-template-select="@xpert-ai/plugin-canvas:canvas-assistant"]'
+    )
+    expect(canvasTemplateSelect).not.toBeNull()
+    expect(canvasTemplateSelect?.querySelector('label.sr-only')).not.toBeNull()
     expect(
-      fixture.nativeElement.querySelector(
-        '[data-onboarding-step="model-provider"] > .mt-4.rounded-2xl.bg-background-default-subtle.p-4'
-      )
+      fixture.nativeElement.querySelector('[data-recommended-template-select="@xpert-ai/plugin-demo:demo-assistant"]')
     ).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-recommended-template-install]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-recommended-plugin-install]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
     expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
     expect(mockPluginAPI.getMarketplace).not.toHaveBeenCalled()
 
-    const modelForm = fixture.nativeElement.querySelector('[data-model-provider-config-form]') as HTMLElement
-    const installedPlugins = fixture.nativeElement.querySelector(
-      '[data-model-plugin-section="initialized"]'
-    ) as HTMLElement
-    expect(modelForm.compareDocumentPosition(installedPlugins) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-
-    fixture.nativeElement.querySelector('[data-model-plugin-more]').click()
-    fixture.detectChanges()
-
-    expect(mockPluginAPI.getMarketplace).toHaveBeenCalledWith({ targetApp: 'xpert' })
-    expect(fixture.nativeElement.querySelector('[data-model-plugin-section="uninitialized"]')).not.toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('SiliconFlow')
-
-    fixture.nativeElement.querySelector('[data-plugin-install-button="siliconflow"]').click()
-
-    expect(dialog.open).toHaveBeenCalledWith(
-      PluginInstallComponent,
-      expect.objectContaining({
-        disableClose: true,
-        data: expect.objectContaining({
-          plugin: expect.objectContaining({
-            name: 'siliconflow'
-          }),
-          reload: expect.any(Function)
-        })
-      })
+    mockPluginAPI.getPlugins.mockReturnValueOnce(
+      of([
+        {
+          name: '@xpert-ai/plugin-canvas@0.1.0',
+          packageName: '@xpert-ai/plugin-canvas',
+          currentVersion: '0.1.0',
+          isGlobal: false,
+          level: 'organization',
+          effectiveInCurrentScope: true,
+          meta: {
+            name: '@xpert-ai/plugin-canvas',
+            displayName: 'Canvas',
+            description: 'Canvas plugin',
+            version: '0.1.0',
+            category: 'creative',
+            targetAppMeta: {
+              xpert: {
+                marketplace: {
+                  contents: [
+                    {
+                      type: 'assistant-template',
+                      name: 'canvas-assistant',
+                      displayName: 'Canvas Assistant'
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ])
     )
+    const detailsButton = fixture.nativeElement.querySelector(
+      '[data-recommended-template-details="@xpert-ai/plugin-canvas:canvas-assistant"]'
+    ) as HTMLButtonElement | null
+    expect(detailsButton).not.toBeNull()
+    expect(detailsButton?.classList.contains('inset-x-3')).toBe(true)
+    expect(detailsButton?.classList.contains('opacity-0')).toBe(true)
+    expect(detailsButton?.classList.contains('group-hover:opacity-100')).toBe(true)
+    expect(detailsButton?.classList.contains('!bg-components-card-bg')).toBe(true)
+    expect(detailsButton?.parentElement?.className).not.toContain('pb-12')
+
+    detailsButton?.click()
+    await flushPromises()
+
+    expect(dialog.open).toHaveBeenCalledWith(PluginMarketplaceDetailComponent, {
+      data: {
+        plugin: expect.objectContaining({
+          packageName: '@xpert-ai/plugin-canvas',
+          contributions: [
+            expect.objectContaining({
+              type: 'assistant-template',
+              name: 'canvas-assistant'
+            })
+          ]
+        }),
+        showActions: false
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
   })
 
-  it('shows the same model selector as the new xpert flow when LLM models are available', async () => {
+  it('does not initialize recommended templates when required workspace toolsets are missing', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
         closed: of(undefined)
       }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+    const canvasTemplate = createRecommendedTemplate({
+      dependencies: {
+        toolsets: [
+          {
+            provider: 'seedream_aigc',
+            templateNodeKey: 'toolset_seedream',
+            instanceName: 'Seedream AIGC'
+          }
+        ]
+      }
+    })
+    const templateService = createXpertTemplateServiceMock({
+      recommendedApps: [canvasTemplate]
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: createCopilotServerMock()
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: templateService
+        },
+        {
+          provide: XpertToolsetService,
+          useValue: createXpertToolsetServiceMock()
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+    fixture.detectChanges()
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-recommended-template-unavailable="@xpert-ai/plugin-canvas:canvas-assistant"]'
+      )
+    ).not.toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.RecommendedTemplateToolsetUnavailable')
+
+    component.setRecommendedTemplateSelected(canvasTemplate, true)
+    expect(component.selectedRecommendedTemplateCount()).toBe(0)
+
+    component.completeInitialization()
+    await flushPromises()
+    await flushPromises()
+
+    expect(clawXpertBootstrap.createClawXpert).toHaveBeenCalled()
+    expect(clawXpertBootstrap.createTemplateXpert).not.toHaveBeenCalled()
+    expect(facade.bindPublishedXpert).toHaveBeenCalled()
+    expect(dialogRef.close).toHaveBeenCalled()
+  })
+
+  it('allows recommended templates when required workspace toolsets are configured', async () => {
+    const facade = createFacadeMock()
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+    const canvasTemplate = createRecommendedTemplate({
+      dependencies: {
+        toolsets: [
+          {
+            provider: 'seedream_aigc',
+            templateNodeKey: 'toolset_seedream',
+            instanceName: 'Seedream AIGC'
+          }
+        ]
+      }
+    })
+    const templateService = createXpertTemplateServiceMock({
+      recommendedApps: [canvasTemplate]
+    })
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: createCopilotServerMock()
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: templateService
+        },
+        {
+          provide: XpertToolsetService,
+          useValue: createXpertToolsetServiceMock({
+            toolsets: [createToolset()]
+          })
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+    fixture.detectChanges()
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-recommended-template-unavailable="@xpert-ai/plugin-canvas:canvas-assistant"]'
+      )
+    ).toBeNull()
+
+    component.setRecommendedTemplateSelected(canvasTemplate, true)
+    component.completeInitialization()
+    await flushPromises()
+    await flushPromises()
+
+    expect(clawXpertBootstrap.createTemplateXpert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '@xpert-ai/plugin-canvas:canvas-assistant'
+      }),
+      expect.objectContaining({
+        copilotId: 'copilot-primary',
+        model: 'gpt-4.1'
+      }),
+      {
+        suppressAutoPublishWarning: true,
+        suppressPluginPrepareWarning: true
+      }
+    )
+  })
+
+  it('initializes selected recommended templates together with the default ClawXpert', async () => {
+    const facade = createFacadeMock()
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
     }
 
     await TestBed.configureTestingModule({
@@ -920,6 +1472,10 @@ describe('ClawXpertSetupWizardComponent', () => {
         {
           provide: Dialog,
           useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
         },
         {
           provide: Store,
@@ -953,18 +1509,265 @@ describe('ClawXpertSetupWizardComponent', () => {
     }).compileComponents()
 
     const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('copilot-model-select')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-model-plugin-section="initialized"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('PAC.KEY_WORDS.Model')
-    expect(fixture.nativeElement.textContent).not.toContain('[object Object]')
+    component.setRecommendedTemplateSelected(component.recommendedTemplateItems()?.[0]?.template ?? createRecommendedTemplate(), true)
+    component.completeInitialization()
+    await flushPromises()
+    await flushPromises()
+
+    expect(clawXpertBootstrap.createClawXpert).toHaveBeenCalledWith(
+      {
+        copilotId: 'copilot-primary',
+        model: 'gpt-4.1',
+        modelType: 'llm'
+      },
+      {
+        suppressAutoPublishWarning: true,
+        suppressPluginPrepareWarning: true
+      }
+    )
+    expect(clawXpertBootstrap.createTemplateXpert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '@xpert-ai/plugin-canvas:canvas-assistant',
+        title: 'Canvas Assistant'
+      }),
+      {
+        copilotId: 'copilot-primary',
+        model: 'gpt-4.1',
+        modelType: 'llm'
+      },
+      {
+        suppressAutoPublishWarning: true,
+        suppressPluginPrepareWarning: true
+      }
+    )
+    expect(dialog.open).not.toHaveBeenCalled()
+    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'created-clawxpert'
+      }),
+      {
+        bindNextConversationToXpert: true,
+        navigateToChat: true,
+        notifySuccess: false,
+        notifyError: false,
+        rethrowOnError: true
+      }
+    )
+    expect(dialogRef.close).toHaveBeenCalled()
   })
 
-  it('shows a ready state when an LLM model is available but the primary copilot form is disabled', async () => {
+  it('continues binding default ClawXpert when a selected recommended template fails', async () => {
+    const facade = createFacadeMock()
+    const toastr = createToastrMock()
+    const canvasTemplate = createRecommendedTemplate()
+    const drawioTemplate = createRecommendedTemplate({
+      id: '@xpert-ai/plugin-drawio:drawio-assistant',
+      name: 'drawio-assistant',
+      title: 'Drawio Assistant',
+      category: 'Drawio',
+      pluginDisplayName: 'Drawio',
+      pluginName: '@xpert-ai/plugin-drawio'
+    })
+    clawXpertBootstrap.createTemplateXpert.mockImplementation((template: RecommendedTemplateMock) =>
+      template.id === drawioTemplate.id
+        ? Promise.reject(new Error('drawio failed'))
+        : Promise.resolve({
+            id: 'created-template-xpert',
+            name: template.name,
+            title: template.title,
+            latest: true,
+            type: XpertTypeEnum.Agent
+          } as IXpert)
+    )
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: createCopilotServerMock()
+        },
+        {
+          provide: ToastrService,
+          useValue: toastr
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: createXpertTemplateServiceMock({
+            recommendedApps: [canvasTemplate, drawioTemplate]
+          })
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    component.setRecommendedTemplateSelected(canvasTemplate, true)
+    component.setRecommendedTemplateSelected(drawioTemplate, true)
+    component.completeInitialization()
+    await flushPromises()
+    await flushPromises()
+
+    expect(clawXpertBootstrap.createTemplateXpert).toHaveBeenCalledTimes(2)
+    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'created-clawxpert'
+      }),
+      {
+        bindNextConversationToXpert: true,
+        navigateToChat: true,
+        notifySuccess: false,
+        notifyError: false,
+        rethrowOnError: true
+      }
+    )
+    expect(dialogRef.close).toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-error]')).toBeNull()
+    expect(toastr.error).toHaveBeenCalledWith('PAC.Chat.ClawXpert.RecommendedTemplatesInitializeFailed', '', {
+      Default: 'ClawXpert was initialized, but {{names}} could not be initialized.',
+      count: 1,
+      names: 'Drawio Assistant'
+    })
+  })
+
+  it('shows initialization progress inside the setup dialog while creating', async () => {
+    const facade = createFacadeMock()
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+    let resolveCreatedXpert: ((xpert: IXpert) => void) | null = null
+    clawXpertBootstrap.createClawXpert.mockImplementation(
+      () =>
+        new Promise<IXpert>((resolve) => {
+          resolveCreatedXpert = resolve
+        })
+    )
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: createCopilotServerMock()
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: createXpertAPIMock()
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: createXpertTemplateServiceMock()
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    component.completeInitialization()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-status]')?.textContent).toContain(
+      'PAC.Chat.ClawXpert.InitializingDefault'
+    )
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.Initializing')
+
+    resolveCreatedXpert?.({
+      id: 'created-clawxpert',
+      name: 'clawxpert',
+      title: 'ClawXpert',
+      latest: true,
+      type: XpertTypeEnum.Agent
+    } as IXpert)
+    await flushPromises()
+
+    expect(dialogRef.close).toHaveBeenCalled()
+  })
+
+  it('uses the default model without rendering a model selector', async () => {
     const facade = createFacadeMock()
     const dialog = {
       open: jest.fn(() => ({
@@ -1036,25 +1839,19 @@ describe('ClawXpertSetupWizardComponent', () => {
 
     expect(fixture.componentInstance.hasLlmModelProvider()).toBe(true)
     expect(fixture.componentInstance.hasSelectedCopilotModel()).toBe(true)
-    expect(fixture.componentInstance.showModelProviderForm()).toBe(false)
-    expect(fixture.nativeElement.querySelector('[data-model-provider-ready]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('copilot-model-select')).not.toBeNull()
-
-    fixture.componentInstance.onSelectedCopilotModelChange({
-      copilotId: 'copilot-primary',
-      model: 'deepseek-chat'
-    })
-
     expect(fixture.componentInstance.selectedCopilotModel()).toEqual({
       copilotId: 'copilot-primary',
-      model: 'deepseek-chat',
+      model: 'gpt-4.1',
       modelType: 'llm'
     })
-    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.ModelProvidersReady')
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('copilot-model-select')).toBeNull()
+    expect(fixture.nativeElement.querySelector('pac-copilot-config-form')).toBeNull()
+    expect(fixture.nativeElement.textContent).toContain('PAC.Chat.ClawXpert.DefaultModelReady')
     expect(fixture.nativeElement.textContent).not.toContain('PAC.Chat.ClawXpert.PreparingModelProvider')
   })
 
-  it('installs the ClawXpert template, publishes, binds, and navigates without opening the blank wizard', async () => {
+  it('initializes the default ClawXpert template directly with the selected model', async () => {
     const facade = createFacadeMock({
       availableXperts: [
         {
@@ -1071,10 +1868,7 @@ describe('ClawXpertSetupWizardComponent', () => {
       }))
     }
     const xpertService = createXpertAPIMock()
-    const templateRequiredPlugins = ['@xpert-ai/plugin-template-required', '@xpert-ai/plugin-model-retry']
-    const templateService = createXpertTemplateServiceMock({
-      requiredPluginNames: templateRequiredPlugins
-    })
+    const templateService = createXpertTemplateServiceMock()
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
@@ -1125,78 +1919,60 @@ describe('ClawXpertSetupWizardComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    await component.createAndBindClawXpert()
+    component.completeInitialization()
+    await flushPromises()
 
-    expect(dialog.open).not.toHaveBeenCalledWith(XpertNewBlankComponent, expect.anything())
-    expect(templateService.getTemplate).toHaveBeenCalledWith('xpert-my-claw-xpert')
-    const expectedMissingMiddlewarePlugins = templateRequiredPlugins.filter(
-      (pluginName) => pluginName !== '@xpert-ai/plugin-model-retry'
-    )
-    expect(mockPluginAPI.install.mock.calls.map(([input]) => input)).toEqual(
-      expectedMissingMiddlewarePlugins.map((pluginName) => ({
-        pluginName
-      }))
-    )
-    const installCallOrder = mockPluginAPI.install.mock.invocationCallOrder
-    expect(installCallOrder[installCallOrder.length - 1]).toBeLessThan(
-      templateService.installTemplate.mock.invocationCallOrder[0]
-    )
-    const installPayload = templateService.installTemplate.mock.calls[0][1]
-    const installName = installPayload.basic.name
-    expect(installName).toMatch(/^clawxpert-[a-z0-9]{6}$/)
-    expect(templateService.installTemplate).toHaveBeenCalledWith('xpert-my-claw-xpert', {
-      workspaceId: 'workspace-default',
-      basic: {
-        name: installName,
-        title: installName,
-        copilotModel: {
-          copilotId: 'copilot-primary',
-          model: 'gpt-4.1',
-          modelType: 'llm'
-        }
+    expect(dialog.open).not.toHaveBeenCalled()
+    expect(clawXpertBootstrap.createClawXpert).toHaveBeenCalledWith(
+      {
+        copilotId: 'copilot-primary',
+        model: 'gpt-4.1',
+        modelType: 'llm'
+      },
+      {
+        suppressAutoPublishWarning: true,
+        suppressPluginPrepareWarning: true
       }
-    })
-    expect(xpertService.create).not.toHaveBeenCalled()
-    expect(xpertService.getTeam).toHaveBeenCalledWith('created-xpert', {
-      relations: ['agent']
-    })
-    expect(xpertService.saveDraft).toHaveBeenCalledWith('created-xpert', expect.any(Object))
-    const savedDraft = xpertService.saveDraft.mock.calls[0][1] as TXpertTeamDraft
-    expect(savedDraft.team.agent?.updatedAt).toEqual(xpertService.latestAgent.updatedAt)
-    expect(savedDraft.nodes[0]).toMatchObject({
-      type: 'agent',
-      key: 'Agent_primary',
-      entity: {
-        key: 'Agent_primary',
-        updatedAt: xpertService.latestAgent.updatedAt
+    )
+    expect(templateService.getTemplate).not.toHaveBeenCalled()
+    expect(templateService.installTemplate).not.toHaveBeenCalled()
+    expect(clawXpertBootstrap.createTemplateXpert).not.toHaveBeenCalled()
+    expect(xpertService.getTeam).not.toHaveBeenCalled()
+    expect(xpertService.saveDraft).not.toHaveBeenCalled()
+    expect(xpertService.publish).not.toHaveBeenCalled()
+    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'created-clawxpert'
+      }),
+      {
+        bindNextConversationToXpert: true,
+        navigateToChat: true,
+        notifySuccess: false,
+        notifyError: false,
+        rethrowOnError: true
       }
-    })
-    expect(xpertService.getTeam.mock.invocationCallOrder[0]).toBeLessThan(
-      xpertService.saveDraft.mock.invocationCallOrder[0]
     )
-    expect(xpertService.saveDraft.mock.invocationCallOrder[0]).toBeLessThan(
-      xpertService.publish.mock.invocationCallOrder[0]
-    )
-    expect(xpertService.publish).toHaveBeenCalledWith('created-xpert', false, {
-      environmentId: null,
-      releaseNotes: 'Initial ClawXpert bootstrap release.'
-    })
-    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(xpertService.publishedXpert, {
-      navigateToChat: true,
-      bindNextConversationToXpert: true
-    })
   })
 
-  it('binds the installed ClawXpert when automatic publish fails after template installation', async () => {
+  it('binds the initialized ClawXpert for the next conversation and closes setup on the chat page', async () => {
     const facade = createFacadeMock()
+    const createdXpert = {
+      id: 'created-xpert',
+      name: 'clawxpert',
+      title: 'ClawXpert',
+      latest: true,
+      type: XpertTypeEnum.Agent
+    } as IXpert
+    clawXpertBootstrap.createClawXpert.mockResolvedValue(createdXpert)
     const dialog = {
       open: jest.fn(() => ({
         closed: of(undefined)
       }))
     }
-    const toastr = createToastrMock()
+    const dialogRef = {
+      close: jest.fn()
+    }
     const xpertService = createXpertAPIMock()
-    xpertService.publish.mockImplementation(() => throwError(() => new Error('publish failed')))
     const templateService = createXpertTemplateServiceMock()
 
     await TestBed.configureTestingModule({
@@ -1210,6 +1986,102 @@ describe('ClawXpertSetupWizardComponent', () => {
         {
           provide: Dialog,
           useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
+          provide: Store,
+          useValue: createStoreMock()
+        },
+        {
+          provide: CopilotServerService,
+          useValue: createCopilotServerMock()
+        },
+        {
+          provide: ToastrService,
+          useValue: createToastrMock()
+        },
+        {
+          provide: XpertAPIService,
+          useValue: xpertService
+        },
+        {
+          provide: XpertTemplateService,
+          useValue: templateService
+        },
+        {
+          provide: EnvironmentService,
+          useValue: createEnvironmentMock()
+        },
+        {
+          provide: XpertWorkspaceService,
+          useValue: createWorkspaceServiceMock()
+        }
+      ]
+    }).compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertSetupWizardComponent)
+    const component = fixture.componentInstance
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    component.completeInitialization()
+    await flushPromises()
+
+    expect(templateService.installTemplate).not.toHaveBeenCalled()
+    expect(xpertService.publish).not.toHaveBeenCalled()
+    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(createdXpert, {
+      bindNextConversationToXpert: true,
+      navigateToChat: true,
+      notifySuccess: false,
+      notifyError: false,
+      rethrowOnError: true
+    })
+    expect(facade.navigateToOverview).not.toHaveBeenCalled()
+    expect(dialogRef.close).toHaveBeenCalled()
+  })
+
+  it('keeps setup open and shows inline error when binding the initialized ClawXpert fails', async () => {
+    const facade = createFacadeMock()
+    const toastr = createToastrMock()
+    const createdXpert = {
+      id: 'created-xpert',
+      name: 'clawxpert',
+      title: 'ClawXpert',
+      latest: true,
+      type: XpertTypeEnum.Agent
+    } as IXpert
+    clawXpertBootstrap.createClawXpert.mockResolvedValue(createdXpert)
+    facade.bindPublishedXpert.mockRejectedValue(new Error('bind failed'))
+    const dialog = {
+      open: jest.fn(() => ({
+        closed: of(undefined)
+      }))
+    }
+    const dialogRef = {
+      close: jest.fn()
+    }
+    const xpertService = createXpertAPIMock()
+    const templateService = createXpertTemplateServiceMock()
+
+    await TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ClawXpertFacade,
+          useValue: facade
+        },
+        {
+          provide: Dialog,
+          useValue: dialog
+        },
+        {
+          provide: DialogRef,
+          useValue: dialogRef
         },
         {
           provide: Store,
@@ -1248,33 +2120,41 @@ describe('ClawXpertSetupWizardComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    await component.createAndBindClawXpert()
+    component.completeInitialization()
+    await flushPromises()
+    fixture.detectChanges()
 
-    expect(templateService.installTemplate).toHaveBeenCalled()
-    expect(xpertService.publish).toHaveBeenCalled()
-    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(templateService.installedXpert, {
+    expect(facade.bindPublishedXpert).toHaveBeenCalledWith(createdXpert, {
+      bindNextConversationToXpert: true,
       navigateToChat: true,
-      bindNextConversationToXpert: true
+      notifySuccess: false,
+      notifyError: false,
+      rethrowOnError: true
     })
-    expect(toastr.warning).toHaveBeenCalledWith('PAC.Xpert.AutoPublishFailed', {
-      Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-    })
+    expect(facade.navigateToOverview).not.toHaveBeenCalled()
+    expect(dialogRef.close).not.toHaveBeenCalled()
+    expect(toastr.error).not.toHaveBeenCalled()
+    expect(toastr.success).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-error]')?.textContent).toContain(
+      'Error: bind failed'
+    )
   })
 
-  it('creates a default workspace before installing the ClawXpert template when the user has none', async () => {
+  it('keeps setup open when default ClawXpert initialization fails', async () => {
     const facade = createFacadeMock()
+    const toastr = createToastrMock()
+    clawXpertBootstrap.createClawXpert.mockRejectedValue(new Error('create failed'))
     const dialog = {
       open: jest.fn(() => ({
         closed: of(undefined)
       }))
     }
+    const dialogRef = {
+      close: jest.fn()
+    }
     const xpertService = createXpertAPIMock()
-    const templateService = createXpertTemplateServiceMock({
-      installedXpert: {
-        workspaceId: 'workspace-created'
-      }
-    })
-    const workspaceService = createWorkspaceServiceMock({ defaultWorkspace: null })
+    const templateService = createXpertTemplateServiceMock()
+    const workspaceService = createWorkspaceServiceMock()
 
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertSetupWizardComponent],
@@ -1289,6 +2169,10 @@ describe('ClawXpertSetupWizardComponent', () => {
           useValue: dialog
         },
         {
+          provide: DialogRef,
+          useValue: dialogRef
+        },
+        {
           provide: Store,
           useValue: createStoreMock()
         },
@@ -1298,7 +2182,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         },
         {
           provide: ToastrService,
-          useValue: createToastrMock()
+          useValue: toastr
         },
         {
           provide: XpertAPIService,
@@ -1325,29 +2209,19 @@ describe('ClawXpertSetupWizardComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    await component.createAndBindClawXpert()
+    component.completeInitialization()
+    await flushPromises()
 
-    expect(workspaceService.getMyDefault).toHaveBeenCalledWith({ purpose: 'authoring' })
-    expect(workspaceService.create).toHaveBeenCalledWith({
-      name: 'Default Workspace'
-    })
-    expect(workspaceService.setMyDefault).toHaveBeenCalledWith('workspace-created')
-    expect(workspaceService.refresh).toHaveBeenCalled()
-    const installPayload = templateService.installTemplate.mock.calls[0][1]
-    const installName = installPayload.basic.name
-    expect(installName).toMatch(/^clawxpert-[a-z0-9]{6}$/)
-    expect(templateService.installTemplate).toHaveBeenCalledWith('xpert-my-claw-xpert', {
-      workspaceId: 'workspace-created',
-      basic: {
-        name: installName,
-        title: installName,
-        copilotModel: {
-          copilotId: 'copilot-primary',
-          model: 'gpt-4.1',
-          modelType: 'llm'
-        }
-      }
-    })
+    expect(facade.bindPublishedXpert).not.toHaveBeenCalled()
+    expect(dialogRef.close).not.toHaveBeenCalled()
+    expect(templateService.installTemplate).not.toHaveBeenCalled()
+    expect(workspaceService.getMyDefault).not.toHaveBeenCalled()
     expect(xpertService.create).not.toHaveBeenCalled()
+    fixture.detectChanges()
+
+    expect(toastr.error).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-initialization-error]')?.textContent).toContain(
+      'Error: create failed'
+    )
   })
 })

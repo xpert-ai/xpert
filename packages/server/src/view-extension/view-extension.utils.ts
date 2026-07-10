@@ -1,6 +1,7 @@
 import {
 	I18nObject,
 	XpertExtensionViewManifest,
+	XpertRemoteComponentRuntime,
 	XpertResolvedViewHostContext,
 	XpertViewActionDefinition,
 	XpertViewActionPlacement,
@@ -34,6 +35,7 @@ const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>([
 const ALLOWED_ACTION_TYPES = new Set<XpertViewActionType>(['invoke', 'navigate', 'open_detail', 'refresh'])
 const ALLOWED_ACTION_PLACEMENTS = new Set<XpertViewActionPlacement>(['toolbar', 'row'])
 const ALLOWED_ACTION_TRANSPORTS = new Set<XpertViewActionTransport>(['json', 'file'])
+const ALLOWED_REMOTE_COMPONENT_RUNTIMES = new Set<XpertRemoteComponentRuntime>(['react', 'vue', 'esm'])
 const ALLOWED_HOST_EVENT_ACTION_TYPES = new Set<XpertViewHostEventSubscriptionActionType>([
 	'refresh',
 	'forward',
@@ -91,6 +93,10 @@ export function buildBaseViewHostContext(hostType: string, hostId: string): Xper
 		hostId,
 		locale: RequestContext.getLanguageCode() ?? LanguagesEnum.English
 	}
+}
+
+export function isSupportedRemoteComponentRuntime(runtime: string | undefined): runtime is XpertRemoteComponentRuntime {
+	return ALLOWED_REMOTE_COMPONENT_RUNTIMES.has(runtime as XpertRemoteComponentRuntime)
 }
 
 export function normalizeManifest(
@@ -498,9 +504,9 @@ function validateSchemaText(manifest: XpertExtensionViewManifest, providerKey: s
 		case 'raw_json':
 			break
 		case 'remote_component':
-			if (manifest.view.runtime !== 'react') {
+			if (!isSupportedRemoteComponentRuntime(manifest.view.runtime)) {
 				throw new BadRequestException(
-					`Remote component view '${providerKey}:${manifest.key}' must use react runtime`
+					`Remote component view '${providerKey}:${manifest.key}' uses an unsupported runtime`
 				)
 			}
 			if (manifest.view.protocolVersion !== 1) {

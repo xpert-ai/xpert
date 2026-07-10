@@ -61,7 +61,17 @@ import {
 import { t } from 'i18next'
 import { assign, sortBy } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { DataSource, DeleteResult, FindOptionsWhere, In, IsNull, Not, QueryFailedError, Repository } from 'typeorm'
+import {
+    DataSource,
+    DeleteResult,
+    FindOptionsSelect,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Not,
+    QueryFailedError,
+    Repository
+} from 'typeorm'
 import {
     CopilotModelGetChatModelQuery,
     CopilotModelGetEmbeddingsQuery,
@@ -91,8 +101,74 @@ import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
 import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from '../xpert/commands'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
+import { KnowledgebaseDetailDTO } from './dto'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
+
+const KNOWLEDGEBASE_DETAIL_RELATIONS = [
+    'copilotModel',
+    'chatModel',
+    'rerankModel',
+    'visionModel',
+    'xperts',
+    'pipeline'
+]
+
+const KNOWLEDGEBASE_MODEL_DETAIL_SELECT = {
+    id: true,
+    modelType: true,
+    model: true,
+    copilotId: true,
+    referencedId: true,
+    options: true
+}
+
+const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
+    id: true,
+    name: true,
+    type: true,
+    structure: true,
+    language: true,
+    avatar: true,
+    description: true,
+    permission: true,
+    copilotModelId: true,
+    chatModelId: true,
+    rerankModelId: true,
+    visionModelId: true,
+    documentNum: true,
+    tokenNum: true,
+    chunkNum: true,
+    recall: true,
+    parserConfig: true,
+    status: true,
+    embeddingRebuildError: true,
+    metadataSchema: true,
+    apiEnabled: true,
+    incrementalSyncEnabled: true,
+    graphRag: true,
+    graphStatus: true,
+    graphRevision: true,
+    graphIndexError: true,
+    workspaceId: true,
+    pipelineId: true,
+    integrationId: true,
+    copilotModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    chatModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    rerankModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    visionModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    xperts: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true
+    },
+    pipeline: {
+        id: true,
+        publishAt: true,
+        version: true
+    }
+}
 
 function getQueryFailedErrorCode(error: QueryFailedError) {
     const driverError: unknown = error.driverError
@@ -246,6 +322,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
 
         return await super.create(entity)
+    }
+
+    async findOneDetail(id: string) {
+        const knowledgebase = await this.findOne(id, {
+            relations: KNOWLEDGEBASE_DETAIL_RELATIONS,
+            select: KNOWLEDGEBASE_DETAIL_SELECT
+        })
+
+        return new KnowledgebaseDetailDTO(knowledgebase)
     }
 
     async delete(criteria: string | FindOptionsWhere<Knowledgebase>): Promise<DeleteResult> {
