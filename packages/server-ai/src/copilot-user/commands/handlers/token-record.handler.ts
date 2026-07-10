@@ -4,6 +4,7 @@ import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
+import { usesOrganizationCredentials } from '../../../copilot/utils'
 import { ExceedingLimitException } from '../../../core/errors'
 import { MembershipService } from '../../../membership'
 import { formatInUTC0 } from '../../../shared/utils'
@@ -55,18 +56,20 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                 currency: input.currency
             })
 
-            await this.membershipService.recordUsage({
-                tenantId: input.tenantId,
-                organizationId,
-                copilotOrganizationId: copilot.organizationId ?? null,
-                userId,
-                provider: copilot.modelProvider.providerName,
-                model,
-                tokenUsed,
-                xpertId,
-                threadId,
-                copilotId
-            })
+            if (!usesOrganizationCredentials(copilot, organizationId)) {
+                await this.membershipService.recordUsage({
+                    tenantId: input.tenantId,
+                    organizationId,
+                    copilotOrganizationId: copilot.organizationId ?? null,
+                    userId,
+                    provider: copilot.modelProvider.providerName,
+                    model,
+                    tokenUsed,
+                    xpertId,
+                    threadId,
+                    copilotId
+                })
+            }
 
             if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
                 throw new ExceedingLimitException(

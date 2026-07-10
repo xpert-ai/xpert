@@ -18,6 +18,7 @@ import { CopilotProviderService } from '../copilot-provider/copilot-provider.ser
 import { MembershipService } from '../membership'
 import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
+import { usesOrganizationCredentials } from './utils'
 
 export const ProviderRolePriority = [
     AiProviderRole.Embedding,
@@ -117,18 +118,28 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
             tenantId,
             organizationId
         })
-        if (!access) {
+        if (!access && !organizationId) {
             return []
         }
 
-        const copilotOrganizationId = access.organizationId
         const resolvedRelations = this.mergeCopilotRelations(relations)
+        const baseWhere = { ...(where ?? {}), tenantId, enabled: true }
         const items = await this.repository.find({
-            where: { ...(where ?? {}), tenantId, organizationId: copilotOrganizationId ?? IsNull(), enabled: true },
+            where: organizationId
+                ? [
+                      { ...baseWhere, organizationId },
+                      { ...baseWhere, organizationId: IsNull() }
+                  ]
+                : { ...baseWhere, organizationId: IsNull() },
             relations: resolvedRelations
         })
+        const hydratedItems = await this.hydrateVisibleModelProviders(items, tenantId, organizationId ?? null)
 
-        return this.hydrateVisibleModelProviders(items, tenantId, copilotOrganizationId)
+        return hydratedItems.filter(
+            (copilot) =>
+                (!!access && (copilot.organizationId ?? null) === access.organizationId) ||
+                usesOrganizationCredentials(copilot, organizationId)
+        )
     }
 
     private async findAllEnabledCopilotsWithoutMembership(
