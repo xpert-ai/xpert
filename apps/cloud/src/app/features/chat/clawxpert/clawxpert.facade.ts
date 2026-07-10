@@ -77,6 +77,9 @@ export type ClawXpertToolPreferenceSourceMetadata = AssistantBindingToolPreferen
 type ClawXpertBindPublishedXpertOptions = {
   navigateToChat?: boolean
   bindNextConversationToXpert?: boolean
+  notifySuccess?: boolean
+  notifyError?: boolean
+  rethrowOnError?: boolean
 }
 
 type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
@@ -500,7 +503,10 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     }
     await this.persistPreference(xpert.id, {
       forceAssistantId: true,
-      navigateToChat: options?.navigateToChat
+      navigateToChat: options?.navigateToChat,
+      notifySuccess: options?.notifySuccess,
+      notifyError: options?.notifyError,
+      rethrowOnError: options?.rethrowOnError
     })
     if (options?.bindNextConversationToXpert && this.resolvedPreference()?.assistantId !== xpert.id) {
       this.#pendingWizardConversationXpertId = null
@@ -509,7 +515,13 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
   private async persistPreference(
     assistantId: string,
-    options?: { forceAssistantId?: boolean; navigateToChat?: boolean }
+    options?: {
+      forceAssistantId?: boolean
+      navigateToChat?: boolean
+      notifySuccess?: boolean
+      notifyError?: boolean
+      rethrowOnError?: boolean
+    }
   ) {
     this.saving.set(true)
     const currentPreference = this.preference()
@@ -543,17 +555,24 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         )
       }
       this.showWizard.set(false)
-      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      if (options?.notifySuccess !== false) {
+        this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+      }
       if (options?.navigateToChat) {
         await this.navigateToChat()
       }
     } catch (error) {
-      this.#toastr.error(
-        getErrorMessage(error) ||
-          this.#translate.instant('PAC.Chat.ClawXpert.SaveFailed', {
-            Default: 'Failed to save the ClawXpert binding.'
-          })
-      )
+      if (options?.notifyError !== false) {
+        this.#toastr.error(
+          getErrorMessage(error) ||
+            this.#translate.instant('PAC.Chat.ClawXpert.SaveFailed', {
+              Default: 'Failed to save the ClawXpert binding.'
+            })
+        )
+      }
+      if (options?.rethrowOnError) {
+        throw error
+      }
     } finally {
       this.saving.set(false)
     }

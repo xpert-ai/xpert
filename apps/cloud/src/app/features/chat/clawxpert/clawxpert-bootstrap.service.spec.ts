@@ -30,7 +30,7 @@ jest.mock('../../../@core', () => ({
 
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import type { ICopilotModel, IPluginDescriptor, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
+import type { ICopilotModel, IPluginDescriptor, IXpert, TXpertTeamDraft, TXpertTemplate } from '@xpert-ai/contracts'
 import { PLUGIN_LEVEL, XpertTypeEnum } from '@xpert-ai/contracts'
 import { of, throwError } from 'rxjs'
 import {
@@ -47,6 +47,7 @@ import {
   XpertWorkspaceService
 } from '../../../@core'
 import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
+import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
 
 describe('ClawXpertBootstrapService', () => {
   function setup() {
@@ -144,6 +145,7 @@ describe('ClawXpertBootstrapService', () => {
       service: TestBed.inject(ClawXpertBootstrapService),
       toastrService,
       xpertAgentService,
+      xpertService,
       xpertTemplateService
     }
   }
@@ -221,6 +223,23 @@ describe('ClawXpertBootstrapService', () => {
     expect(xpertAgentService.refresh).toHaveBeenCalledTimes(1)
   })
 
+  it('uses a stable title and a unique internal name when creating ClawXpert', async () => {
+    const { service, xpertTemplateService } = setup()
+    xpertTemplateService.getTemplate.mockReturnValue(of({ dependencies: {} }))
+    xpertTemplateService.installTemplate.mockReturnValue(of({ xpert: createXpert('created-clawxpert') }))
+
+    await service.createClawXpert(createCopilotModel())
+
+    expect(xpertTemplateService.installTemplate).toHaveBeenCalledWith(CLAWXPERT_TEMPLATE_ID, {
+      workspaceId: 'workspace-1',
+      basic: {
+        name: 'clawxpert-abc123',
+        title: 'ClawXpert',
+        copilotModel: createCopilotModel()
+      }
+    })
+  })
+
   it('refreshes middleware providers when template plugins are already installed', async () => {
     const { service, xpertAgentService, xpertTemplateService } = setup()
     xpertTemplateService.getTemplate.mockReturnValue(
@@ -274,7 +293,113 @@ describe('ClawXpertBootstrapService', () => {
     expect(xpertTemplateService.installTemplate).toHaveBeenCalled()
     expect(toastrService.warning).toHaveBeenCalledWith('PAC.Chat.ClawXpert.PluginPrepareFailed', {
       Default:
-        'ClawXpert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
+        'Digital expert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
+    })
+  })
+
+  it('suppresses plugin preparation warnings when requested by setup', async () => {
+    const { service, toastrService, xpertTemplateService } = setup()
+    xpertTemplateService.getTemplate.mockReturnValue(
+      of({
+        dependencies: {
+          plugins: ['@xpert-ai/plugin-file-memory']
+        }
+      })
+    )
+    xpertTemplateService.installTemplate.mockReturnValue(of({ xpert: createXpert('created-clawxpert') }))
+    mockPluginAPI.getPlugins.mockReturnValue(of([]))
+    mockPluginAPI.install.mockReturnValue(throwError(() => new Error('install failed')))
+
+    await expect(
+      service.createClawXpert(createCopilotModel(), {
+        suppressPluginPrepareWarning: true
+      })
+    ).resolves.toMatchObject({
+      id: 'created-clawxpert'
+    })
+
+    expect(xpertTemplateService.installTemplate).toHaveBeenCalled()
+    expect(toastrService.warning).not.toHaveBeenCalled()
+  })
+
+  it('suppresses auto publish warnings when requested by setup', async () => {
+    const { service, toastrService, xpertService, xpertTemplateService } = setup()
+    xpertTemplateService.getTemplate.mockReturnValue(
+      of({
+        dependencies: {}
+      })
+    )
+    xpertTemplateService.installTemplate.mockReturnValue(of({ xpert: createXpert('created-clawxpert') }))
+    xpertService.publish.mockReturnValue(throwError(() => new Error('publish failed')))
+
+    await expect(
+      service.createClawXpert(createCopilotModel(), {
+        suppressAutoPublishWarning: true
+      })
+    ).resolves.toMatchObject({
+      id: 'created-clawxpert'
+    })
+
+    expect(xpertService.publish).toHaveBeenCalled()
+    expect(toastrService.warning).not.toHaveBeenCalled()
+  })
+
+  it('installs and publishes a recommended template directly', async () => {
+    const { service, xpertService, xpertTemplateService } = setup()
+    const template: TXpertTemplate = {
+      id: '@xpert-ai/plugin-canvas:canvas-assistant',
+      name: 'canvas-assistant',
+      title: 'Canvas Assistant',
+      description: 'Canvas template',
+      category: 'Canvas',
+      copyright: '',
+      export_data: '',
+      avatar: {
+        emoji: {
+          id: 'art'
+        }
+      },
+      type: XpertTypeEnum.Agent
+    }
+    xpertTemplateService.getTemplate.mockReturnValue(
+      of({
+        id: template.id,
+        dependencies: {}
+      })
+    )
+    xpertTemplateService.installTemplate.mockReturnValue(of({ xpert: createXpert('created-canvas') }))
+    xpertService.getTeam.mockReturnValue(
+      of({
+        ...createXpert('created-canvas'),
+        agent: {
+          key: 'agent-created'
+        },
+        draft: createDraft()
+      })
+    )
+    xpertService.publish.mockReturnValue(of(createXpert('created-canvas')))
+
+    await expect(service.createTemplateXpert(template, createCopilotModel())).resolves.toMatchObject({
+      id: 'created-canvas'
+    })
+
+    expect(xpertTemplateService.installTemplate).toHaveBeenCalledWith(template.id, {
+      workspaceId: 'workspace-1',
+      basic: {
+        name: 'canvas-assistant-abc123',
+        title: 'Canvas Assistant',
+        description: 'Canvas template',
+        avatar: {
+          emoji: {
+            id: 'art'
+          }
+        },
+        copilotModel: createCopilotModel()
+      }
+    })
+    expect(xpertService.publish).toHaveBeenCalledWith('created-canvas', false, {
+      environmentId: null,
+      releaseNotes: 'Initial template bootstrap release.'
     })
   })
 

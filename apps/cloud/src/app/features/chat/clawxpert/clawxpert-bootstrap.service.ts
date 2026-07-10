@@ -20,6 +20,7 @@ import {
   IXpert,
   IXpertWorkspace,
   ToastrService,
+  TXpertTemplate,
   uid10,
   XpertAPIService,
   XpertAgentService,
@@ -29,8 +30,15 @@ import {
 import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
 
 const CLAWXPERT_NAME = 'clawxpert'
+const CLAWXPERT_TITLE = 'ClawXpert'
 const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
+const TEMPLATE_AUTO_PUBLISH_RELEASE_NOTES = 'Initial template bootstrap release.'
 const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
+
+type CreateXpertOptions = {
+  suppressAutoPublishWarning?: boolean
+  suppressPluginPrepareWarning?: boolean
+}
 
 @Injectable({ providedIn: 'root' })
 export class ClawXpertBootstrapService {
@@ -53,8 +61,8 @@ export class ClawXpertBootstrapService {
     return resolveFirstClawXpertLlmModel(copilots)
   }
 
-  async createClawXpert(selectedCopilotModel: ICopilotModel): Promise<IXpert> {
-    await this.prepareClawXpertTemplatePlugins()
+  async createClawXpert(selectedCopilotModel: ICopilotModel, options?: CreateXpertOptions): Promise<IXpert> {
+    await this.prepareTemplatePlugins(CLAWXPERT_TEMPLATE_ID, options)
     const workspace = await this.ensureDefaultWorkspace()
     const installName = createClawXpertInstallName()
     const installed = await firstValueFrom(
@@ -62,7 +70,7 @@ export class ClawXpertBootstrapService {
         workspaceId: workspace.id,
         basic: {
           name: installName,
-          title: installName,
+          title: CLAWXPERT_TITLE,
           copilotModel: selectedCopilotModel
         }
       })
@@ -72,9 +80,46 @@ export class ClawXpertBootstrapService {
       throw new Error('ClawXpert template installation did not return an xpert id.')
     }
     await this.refreshDraftSnapshotBeforePublish(createdXpert)
-    const bindableXpert = await this.publishCreatedXpertOrFallback(createdXpert)
+    const bindableXpert = await this.publishCreatedXpertOrFallback(
+      createdXpert,
+      CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES,
+      options
+    )
 
     return bindableXpert
+  }
+
+  async createTemplateXpert(
+    template: TXpertTemplate,
+    selectedCopilotModel: ICopilotModel,
+    options?: CreateXpertOptions
+  ): Promise<IXpert> {
+    if (!template.id) {
+      throw new Error('Template id is required.')
+    }
+
+    await this.prepareTemplatePlugins(template.id, options)
+    const workspace = await this.ensureDefaultWorkspace()
+    const installName = createTemplateInstallName(template.name || template.title || 'xpert')
+    const installed = await firstValueFrom(
+      this.#xpertTemplateService.installTemplate(template.id, {
+        workspaceId: workspace.id,
+        basic: {
+          name: installName,
+          title: template.title || installName,
+          description: template.description,
+          avatar: template.avatar,
+          copilotModel: selectedCopilotModel
+        }
+      })
+    )
+    const createdXpert = installed.xpert
+    if (!createdXpert?.id) {
+      throw new Error('Template installation did not return an xpert id.')
+    }
+
+    await this.refreshDraftSnapshotBeforePublish(createdXpert)
+    return this.publishCreatedXpertOrFallback(createdXpert, TEMPLATE_AUTO_PUBLISH_RELEASE_NOTES, options)
   }
 
   async createAndOpenClawXpert(selectedCopilotModel: ICopilotModel): Promise<IXpert> {
@@ -161,17 +206,21 @@ export class ClawXpertBootstrapService {
     return workspace?.id ? workspace : createdWorkspace
   }
 
-  private prepareClawXpertTemplatePlugins(): Promise<void> {
-    return this.ensureClawXpertTemplatePlugins().catch(() => {
+  private prepareTemplatePlugins(templateId: string, options?: CreateXpertOptions): Promise<void> {
+    return this.ensureTemplatePlugins(templateId).catch(() => {
+      if (options?.suppressPluginPrepareWarning) {
+        return
+      }
+
       this.#toastr.warning('PAC.Chat.ClawXpert.PluginPrepareFailed', {
         Default:
-          'ClawXpert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
+          'Digital expert was created, but plugin preparation did not finish. Some middleware may appear missing until plugins are installed.'
       })
     })
   }
 
-  private async ensureClawXpertTemplatePlugins(): Promise<void> {
-    const template = await firstValueFrom(this.#xpertTemplateService.getTemplate(CLAWXPERT_TEMPLATE_ID))
+  private async ensureTemplatePlugins(templateId: string): Promise<void> {
+    const template = await firstValueFrom(this.#xpertTemplateService.getTemplate(templateId))
     const requiredPluginNames = readTemplateRequiredPluginNames(template.dependencies)
     if (!requiredPluginNames.length) {
       return
@@ -222,7 +271,10 @@ export class ClawXpertBootstrapService {
     await firstValueFrom(this.#xpertService.saveDraft(xpert.id, syncedDraft))
   }
 
-  private async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
+  private async publishCreatedXpert(
+    xpert: IXpert,
+    releaseNotes = CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
+  ): Promise<IXpert> {
     const workspaceId = xpert.workspaceId ?? null
     let environmentId: string | null = null
 
@@ -237,15 +289,23 @@ export class ClawXpertBootstrapService {
     return firstValueFrom(
       this.#xpertService.publish(xpert.id, false, {
         environmentId,
-        releaseNotes: CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
+        releaseNotes
       })
     )
   }
 
-  private async publishCreatedXpertOrFallback(xpert: IXpert): Promise<IXpert> {
+  private async publishCreatedXpertOrFallback(
+    xpert: IXpert,
+    releaseNotes = CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES,
+    options?: CreateXpertOptions
+  ): Promise<IXpert> {
     try {
-      return await this.publishCreatedXpert(xpert)
+      return await this.publishCreatedXpert(xpert, releaseNotes)
     } catch {
+      if (options?.suppressAutoPublishWarning) {
+        return xpert
+      }
+
       this.#toastr.warning('PAC.Xpert.AutoPublishFailed', {
         Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
       })
@@ -272,13 +332,24 @@ export function resolveFirstClawXpertLlmModel(
 }
 
 function createClawXpertInstallName() {
+  return createTemplateInstallName(CLAWXPERT_NAME)
+}
+
+function createTemplateInstallName(baseName: string) {
+  const normalizedBaseName = baseName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32)
+    .replace(/-+$/g, '')
+  const prefix = normalizedBaseName || 'xpert'
   const suffix = uid10()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     .slice(0, 6)
     .padEnd(6, '0')
 
-  return `${CLAWXPERT_NAME}-${suffix}`
+  return `${prefix}-${suffix}`
 }
 
 function readInstalledPluginNames(item: IPluginDescriptor): string[] {
