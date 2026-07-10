@@ -31,9 +31,6 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Update npm
-        run: npm i -g npm@latest
-
       - name: Enable pnpm
         run: |
           corepack enable
