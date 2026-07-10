@@ -8,7 +8,12 @@ import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { FeatureOrganization, RequestContext } from '@xpert-ai/server-core'
-import { MembershipPeriodEnum, MembershipPlanStatusEnum, MembershipStatusEnum } from '@xpert-ai/contracts'
+import {
+    MembershipLedgerSourceEnum,
+    MembershipPeriodEnum,
+    MembershipPlanStatusEnum,
+    MembershipStatusEnum
+} from '@xpert-ai/contracts'
 import i18next from 'i18next'
 
 describe('MembershipService', () => {
@@ -67,6 +72,24 @@ describe('MembershipService', () => {
             },
             ...overrides
         } as UserMembership & { plan: NonNullable<UserMembership['plan']> }
+    }
+
+    function createPlan(overrides: Partial<MembershipPlan> = {}): MembershipPlan {
+        return {
+            id: 'plan-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            code: 'default',
+            name: 'Default',
+            status: MembershipPlanStatusEnum.Active,
+            isDefault: true,
+            period: MembershipPeriodEnum.Monthly,
+            includedPoints: 1000,
+            tokensPerPoint: 1000,
+            modelMultipliers: [],
+            rateLimits: [],
+            ...overrides
+        } as MembershipPlan
     }
 
     function createMembershipFeatureRepository(
@@ -131,6 +154,13 @@ describe('MembershipService', () => {
         const plans: MembershipPlan[] = []
         const memberships: UserMembership[] = []
         const ledgers: MembershipPointLedger[] = []
+        const matchesScope = (
+            record: { tenantId?: string; organizationId?: string | null },
+            where?: { tenantId?: string; organizationId?: unknown }
+        ) => {
+            const organizationId = typeof where?.organizationId === 'string' ? where.organizationId : null
+            return record.tenantId === where?.tenantId && (record.organizationId ?? null) === organizationId
+        }
         const featureOrganizationRepository = createMembershipFeatureRepository().repository
         const updateBuilder = {
             update: jest.fn().mockReturnThis(),
@@ -143,25 +173,22 @@ describe('MembershipService', () => {
             createQueryBuilder: jest.fn().mockReturnValue(updateBuilder),
             create: jest.fn((input) => ({ id: 'plan-default', ...input })),
             count: jest.fn(async ({ where }) => {
-                return plans.filter(
-                    (plan) =>
-                        plan.tenantId === where?.tenantId &&
-                        plan.organizationId === where?.organizationId &&
-                        plan.status === where?.status
-                ).length
+                return plans.filter((plan) => matchesScope(plan, where) && plan.status === where?.status).length
             }),
-            find: jest.fn(async () => [...plans]),
+            find: jest.fn(async ({ where }) => plans.filter((plan) => matchesScope(plan, where))),
             findOne: jest.fn(async ({ where }) => {
+                const scopedPlans = plans.filter((plan) => matchesScope(plan, where))
                 if (where?.status === MembershipPlanStatusEnum.Active && where?.isDefault === true) {
                     return (
-                        plans.find((plan) => plan.status === MembershipPlanStatusEnum.Active && plan.isDefault) ?? null
+                        scopedPlans.find((plan) => plan.status === MembershipPlanStatusEnum.Active && plan.isDefault) ??
+                        null
                     )
                 }
                 if (where?.status === MembershipPlanStatusEnum.Active && where?.isDefault === undefined) {
-                    return plans.find((plan) => plan.status === MembershipPlanStatusEnum.Active) ?? null
+                    return scopedPlans.find((plan) => plan.status === MembershipPlanStatusEnum.Active) ?? null
                 }
                 if (where?.code === 'default-unlimited') {
-                    return plans.find((plan) => plan.code === 'default-unlimited') ?? null
+                    return scopedPlans.find((plan) => plan.code === 'default-unlimited') ?? null
                 }
                 return null
             }),
@@ -180,15 +207,75 @@ describe('MembershipService', () => {
             find: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }])
         }
         const membershipRepository = {
+            createQueryBuilder: jest.fn(() => {
+                let tenantId: string | undefined
+                let organizationId: string | null | undefined
+                let userId: string | undefined
+                let status: MembershipStatusEnum | undefined
+                const capture = (
+                    condition: string,
+                    parameters?: {
+                        tenantId?: string
+                        organizationId?: string
+                        userId?: string
+                        status?: MembershipStatusEnum
+                    }
+                ) => {
+                    if (condition.includes('tenantId = :tenantId')) tenantId = parameters?.tenantId
+                    if (condition.includes('organizationId = :organizationId')) {
+                        organizationId = parameters?.organizationId
+                    }
+                    if (condition.includes('organizationId IS NULL')) organizationId = null
+                    if (condition.includes('userId = :userId')) userId = parameters?.userId
+                    if (condition.includes('status = :status')) status = parameters?.status
+                }
+                const queryBuilder = {
+                    leftJoinAndSelect: jest.fn().mockReturnThis(),
+                    where: jest.fn((condition, parameters) => {
+                        capture(condition, parameters)
+                        return queryBuilder
+                    }),
+                    andWhere: jest.fn((condition, parameters) => {
+                        capture(condition, parameters)
+                        return queryBuilder
+                    }),
+                    setLock: jest.fn().mockReturnThis(),
+                    getOne: jest.fn(
+                        async () =>
+                            memberships.find(
+                                (membership) =>
+                                    membership.tenantId === tenantId &&
+                                    (membership.organizationId ?? null) === organizationId &&
+                                    membership.userId === userId &&
+                                    membership.status === status
+                            ) ?? null
+                    )
+                }
+                return queryBuilder
+            }),
             create: jest.fn((input) => ({ id: `membership-${memberships.length + 1}`, ...input })),
-            count: jest.fn(async () => memberships.length),
-            find: jest.fn(async () => memberships.map((membership) => ({ userId: membership.userId }))),
+            count: jest.fn(
+                async ({ where }) =>
+                    memberships.filter(
+                        (membership) => matchesScope(membership, where) && membership.status === where?.status
+                    ).length
+            ),
+            find: jest.fn(async ({ where }) =>
+                memberships
+                    .filter((membership) => matchesScope(membership, where) && membership.status === where?.status)
+                    .map((membership) => ({ userId: membership.userId }))
+            ),
             save: jest.fn(async (membership) => {
                 const saved = {
                     ...membership,
                     id: membership.id ?? `membership-${memberships.length + 1}`
                 } as UserMembership
-                memberships.push(saved)
+                const index = memberships.findIndex((item) => item.id === saved.id)
+                if (index >= 0) {
+                    memberships[index] = saved
+                } else {
+                    memberships.push(saved)
+                }
                 return saved
             })
         }
@@ -216,17 +303,53 @@ describe('MembershipService', () => {
                 return userOrganizationRepository
             })
         }
+        const transactionManagers: Array<{
+            connection: { options: { type: string } }
+            getRepository: jest.Mock
+            query: jest.Mock
+        }> = []
+        const advisoryLockTails = new Map<string, Promise<void>>()
         const dataSource = {
-            transaction: jest.fn((callback) => callback(manager))
+            transaction: jest.fn(async (callback) => {
+                let releaseLock: (() => void) | undefined
+                const transactionManager = {
+                    ...manager,
+                    connection: { options: { type: 'postgres' } },
+                    query: jest.fn(async (_query: string, parameters: string[]) => {
+                        const lockKey = parameters.join(':')
+                        const previousLock = advisoryLockTails.get(lockKey) ?? Promise.resolve()
+                        let releaseCurrentLock = () => undefined
+                        const currentLock = new Promise<void>((resolve) => {
+                            releaseCurrentLock = resolve
+                        })
+                        advisoryLockTails.set(lockKey, currentLock)
+                        releaseLock = () => {
+                            releaseCurrentLock()
+                            if (advisoryLockTails.get(lockKey) === currentLock) {
+                                advisoryLockTails.delete(lockKey)
+                            }
+                        }
+                        await previousLock
+                    })
+                }
+                transactionManagers.push(transactionManager)
+                try {
+                    return await callback(transactionManager)
+                } finally {
+                    releaseLock?.()
+                }
+            })
         }
 
         return {
             dataSource,
+            ledgers,
             ledgerRepository,
             memberships,
             membershipRepository,
             planRepository,
             plans,
+            transactionManagers,
             service: createMembershipService(
                 dataSource as never,
                 planRepository as never,
@@ -577,6 +700,151 @@ describe('MembershipService', () => {
             })
         ).resolves.toBeNull()
         expect(ensureScopeInitialized).not.toHaveBeenCalled()
+    })
+
+    it('grants the tenant default membership idempotently without treating an organization membership as tenant-level', async () => {
+        const { dataSource, ledgers, ledgerRepository, memberships, membershipRepository, plans, service } =
+            createScopeInitializationHarness()
+        plans.push(
+            createPlan({
+                id: 'plan-org-default',
+                organizationId: 'org-1',
+                code: 'org-default',
+                name: 'Organization Default',
+                includedPoints: 500
+            }),
+            createPlan({ id: 'plan-tenant-default' })
+        )
+        memberships.push(
+            createMembership({
+                id: 'membership-org',
+                organizationId: 'org-1',
+                userId: 'trial-user'
+            })
+        )
+
+        const firstMembership = await service.ensureTenantDefaultMembership({
+            tenantId: 'tenant-1',
+            userId: 'trial-user'
+        })
+        const secondMembership = await service.ensureTenantDefaultMembership({
+            tenantId: 'tenant-1',
+            userId: 'trial-user'
+        })
+
+        expect(firstMembership).toMatchObject({
+            organizationId: null,
+            userId: 'trial-user',
+            planId: 'plan-tenant-default',
+            pointsGranted: 1000,
+            pointsUsed: 0,
+            pointsTotalUsed: 0,
+            note: 'Default tenant plan grant'
+        })
+        expect(secondMembership?.id).toBe(firstMembership?.id)
+        expect(memberships.filter((membership) => membership.organizationId == null)).toHaveLength(1)
+        expect(dataSource.transaction).toHaveBeenCalledTimes(2)
+        expect(membershipRepository.save).toHaveBeenCalledTimes(1)
+        expect(ledgerRepository.save).toHaveBeenCalledTimes(1)
+        expect(ledgers).toHaveLength(1)
+        expect(ledgers[0]).toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: 'trial-user',
+            planId: 'plan-tenant-default',
+            source: MembershipLedgerSourceEnum.Grant,
+            pointsDelta: 1000,
+            reason: 'Default tenant plan grant'
+        })
+    })
+
+    it('serializes concurrent tenant default membership grants for the same user', async () => {
+        const { ledgerRepository, ledgers, memberships, membershipRepository, plans, service, transactionManagers } =
+            createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+
+        const [firstMembership, secondMembership] = await Promise.all([
+            service.ensureTenantDefaultMembership({ tenantId: 'tenant-1', userId: 'trial-user' }),
+            service.ensureTenantDefaultMembership({ tenantId: 'tenant-1', userId: 'trial-user' })
+        ])
+
+        expect(firstMembership?.id).toBe(secondMembership?.id)
+        expect(memberships.filter((membership) => membership.organizationId == null)).toHaveLength(1)
+        expect(membershipRepository.save).toHaveBeenCalledTimes(1)
+        expect(ledgerRepository.save).toHaveBeenCalledTimes(1)
+        expect(ledgers).toHaveLength(1)
+        expect(transactionManagers).toHaveLength(2)
+        transactionManagers.forEach((transactionManager, index) => {
+            expect(transactionManager.query).toHaveBeenCalledWith(
+                'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
+                ['tenant-1', 'tenant-default-membership:trial-user']
+            )
+            expect(transactionManager.query.mock.invocationCallOrder[0]).toBeLessThan(
+                membershipRepository.createQueryBuilder.mock.invocationCallOrder[index]
+            )
+        })
+    })
+
+    it('preserves an existing active tenant membership instead of replacing its plan', async () => {
+        const { ledgerRepository, memberships, membershipRepository, plans, service } =
+            createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+        const existingMembership = createMembership({
+            id: 'membership-custom',
+            organizationId: null,
+            userId: 'trial-user',
+            planId: 'plan-custom',
+            pointsGranted: 250,
+            plan: createPlan({
+                id: 'plan-custom',
+                code: 'custom',
+                name: 'Custom',
+                isDefault: false,
+                includedPoints: 250
+            })
+        })
+        memberships.push(existingMembership)
+
+        const result = await service.ensureTenantDefaultMembership({
+            tenantId: 'tenant-1',
+            userId: 'trial-user'
+        })
+
+        expect(result).toBe(existingMembership)
+        expect(result).toMatchObject({ planId: 'plan-custom', pointsGranted: 250 })
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('does not create a membership when the tenant has no active default plan', async () => {
+        const { ledgerRepository, membershipRepository, planRepository, plans, service } =
+            createScopeInitializationHarness()
+        plans.push(
+            createPlan({
+                id: 'plan-org-default',
+                organizationId: 'org-1',
+                code: 'org-default',
+                name: 'Organization Default',
+                includedPoints: 500
+            }),
+            createPlan({
+                id: 'plan-tenant-custom',
+                code: 'custom',
+                name: 'Custom',
+                isDefault: false,
+                includedPoints: 250
+            })
+        )
+
+        await expect(
+            service.ensureTenantDefaultMembership({
+                tenantId: 'tenant-1',
+                userId: 'trial-user'
+            })
+        ).resolves.toBeNull()
+        expect(planRepository.save).not.toHaveBeenCalled()
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
     })
 
     it('uses organization membership before tenant membership for model access', async () => {

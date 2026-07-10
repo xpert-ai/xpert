@@ -211,6 +211,8 @@ describe('cloud sidebar assistants helpers', () => {
 })
 class DummyComponent {}
 
+const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order:user-1:organization:org-1'
+
 describe('CloudSidebarAssistantsComponent', () => {
   let documentVisibilityState: DocumentVisibilityState
   let assistantBindingService: {
@@ -238,6 +240,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
 
   beforeEach(async () => {
+    localStorage.removeItem(ASSISTANT_ORDER_STORAGE_KEY)
     documentVisibilityState = 'visible'
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -329,6 +332,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   afterEach(() => {
+    localStorage.removeItem(ASSISTANT_ORDER_STORAGE_KEY)
     jest.useRealTimers()
     TestBed.resetTestingModule()
     jest.restoreAllMocks()
@@ -351,6 +355,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(names).toEqual(['Other Assistant'])
     expect(descriptions).toEqual(['General workbench assistant'])
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
   })
 
@@ -593,6 +598,68 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(names()).toEqual(['Assistant 1', 'Assistant 2', 'Assistant 3', 'Assistant 4', 'Assistant 5'])
   })
 
+  it('persists drag ordering in local storage and restores it for the same user scope', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'assistant-1',
+          slug: 'assistant-1',
+          title: 'Assistant 1',
+          latest: true
+        },
+        {
+          id: 'assistant-2',
+          slug: 'assistant-2',
+          title: 'Assistant 2',
+          latest: true
+        },
+        {
+          id: 'assistant-3',
+          slug: 'assistant-3',
+          title: 'Assistant 3',
+          latest: true
+        },
+        {
+          id: 'bound-xpert',
+          slug: 'personal-assistant',
+          title: 'Personal Assistant',
+          latest: true
+        }
+      ])
+    )
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    fixture.componentInstance.reorderAssistants(0, 2)
+    fixture.detectChanges()
+
+    const names = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+        item.textContent.trim()
+      )
+
+    expect(names()).toEqual(['Assistant 2', 'Assistant 3', 'Assistant 1'])
+    expect(localStorage.getItem(ASSISTANT_ORDER_STORAGE_KEY)).toBe(
+      JSON.stringify(['assistant-2', 'assistant-3', 'assistant-1'])
+    )
+
+    fixture.destroy()
+
+    const restoredFixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    restoredFixture.detectChanges()
+    await restoredFixture.whenStable()
+    restoredFixture.detectChanges()
+
+    expect(
+      Array.from(restoredFixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+        item.textContent.trim()
+      )
+    ).toEqual(['Assistant 2', 'Assistant 3', 'Assistant 1'])
+  })
+
   it('builds category filters from assistant tags', async () => {
     assistantBindingService.getAvailableXperts.mockReturnValue(
       of([
@@ -663,9 +730,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.componentInstance.activeCategory()).toBe('all')
     expect(fixture.componentInstance.shouldRender()).toBe(true)
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filter.is-active').textContent.trim()).toBe(
-      'PAC.Assistant.CategoryAll'
-    )
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
   })
 
   it('does not expose filters that only match the hidden current assistant', async () => {
@@ -720,6 +785,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(fixture.componentInstance.activeCategory()).toBe('all')
     expect(names).toEqual(['Other Assistant'])
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__empty')).toBeNull()
   })
 

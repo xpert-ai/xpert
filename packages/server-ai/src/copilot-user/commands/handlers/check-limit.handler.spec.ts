@@ -61,4 +61,49 @@ describe('CopilotCheckLimitHandler', () => {
             })
         )
     })
+
+    it('skips membership checks for an organization provider with configured credentials', async () => {
+        const copilotUserService = {
+            getUsageSummary: jest.fn().mockResolvedValue({
+                tokenUsed: 0,
+                tokenLimit: null
+            })
+        }
+        const copilotOrganizationService = {
+            getUsageSummary: jest.fn().mockResolvedValue({
+                tokenUsed: 0,
+                tokenLimit: null
+            })
+        }
+        const membershipService = {
+            assertCanUse: jest.fn().mockResolvedValue(undefined)
+        }
+        const handler = new CopilotCheckLimitHandler(
+            copilotUserService as never,
+            copilotOrganizationService as never,
+            membershipService as never,
+            { t: jest.fn().mockResolvedValue('limit exceeded') } as never
+        )
+
+        await handler.execute(
+            new CopilotCheckLimitCommand({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                copilot: {
+                    organizationId: 'org-1',
+                    modelProvider: {
+                        organizationId: 'org-1',
+                        providerName: 'deepseek',
+                        credentials: { api_key: 'configured' }
+                    }
+                } as never,
+                model: 'deepseek-chat'
+            })
+        )
+
+        expect(membershipService.assertCanUse).not.toHaveBeenCalled()
+        expect(copilotUserService.getUsageSummary).toHaveBeenCalled()
+        expect(copilotOrganizationService.getUsageSummary).toHaveBeenCalled()
+    })
 })

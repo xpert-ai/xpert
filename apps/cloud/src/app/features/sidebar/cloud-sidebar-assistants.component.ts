@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, NgZone, computed, inject, input, signal } from '@angular/core'
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
+import { ChangeDetectionStrategy, Component, NgZone, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -29,7 +30,8 @@ import {
   getAssistantRouteId,
   getAssistantTagNames,
   isAssistantRouteActive,
-  normalizeAssistantXperts
+  normalizeAssistantXperts,
+  orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
 
 export type CloudSidebarAssistantState = {
@@ -47,6 +49,7 @@ const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
 const UNREAD_POLL_INTERVAL_MS = 2_000
 const ALL_ASSISTANT_CATEGORY = 'all'
+const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
 
@@ -55,7 +58,14 @@ const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
   selector: 'pac-cloud-sidebar-assistants',
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
-  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, ZardIconComponent, ...ZardTooltipImports],
+  imports: [
+    CommonModule,
+    DragDropModule,
+    TranslateModule,
+    EmojiAvatarComponent,
+    ZardIconComponent,
+    ...ZardTooltipImports
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarAssistantsComponent {
@@ -165,6 +175,17 @@ export class CloudSidebarAssistantsComponent {
       enabled
     }
   })
+  readonly #assistantOrder = signal<string[]>([])
+  readonly #assistantOrderStorageKey = computed(() => {
+    const request = this.request()
+    const userId = this.#store.user?.id ?? this.#store.userId ?? 'anonymous'
+    const scopeId = request.organizationId ?? request.scopeLevel
+
+    return `${ASSISTANT_ORDER_STORAGE_KEY}:${userId}:${request.scopeLevel}:${scopeId}`
+  })
+  readonly #loadAssistantOrderEffect = effect(() => {
+    this.#assistantOrder.set(readAssistantOrder(this.#assistantOrderStorageKey()))
+  })
   readonly state = toSignal(
     toObservable(this.request).pipe(
       switchMap(({ enabled, scopeLevel }) => {
@@ -228,7 +249,9 @@ export class CloudSidebarAssistantsComponent {
   readonly isClawXpertConfigured = computed(() => !!this.boundXpert())
   readonly listXperts = computed(() => {
     const boundId = this.boundXpert()?.id
-    return this.xperts().filter((xpert) => xpert.id !== boundId)
+    const items = this.xperts().filter((xpert) => xpert.id !== boundId)
+
+    return orderAssistantXperts(items, this.#assistantOrder())
   })
   readonly categories = computed(() => {
     const categories: Array<{ value: string; labelKey?: string; labelDefault: string }> = [
@@ -251,7 +274,12 @@ export class CloudSidebarAssistantsComponent {
 
     return categories
   })
+  readonly showCategoryFilters = computed(() => this.categories().length > 2)
   readonly activeCategory = computed(() => {
+    if (!this.showCategoryFilters()) {
+      return ALL_ASSISTANT_CATEGORY
+    }
+
     const category = this.category()
     return this.categories().some((item) => item.value === category) ? category : ALL_ASSISTANT_CATEGORY
   })
@@ -470,6 +498,43 @@ export class CloudSidebarAssistantsComponent {
     this.category.set(category)
   }
 
+  dropAssistant(event: CdkDragDrop<IXpert[]>) {
+    this.reorderAssistants(event.previousIndex, event.currentIndex, event.container.data)
+  }
+
+  reorderAssistants(previousIndex: number, currentIndex: number, visibleItems = this.visibleXperts()) {
+    if (
+      previousIndex === currentIndex ||
+      previousIndex < 0 ||
+      currentIndex < 0 ||
+      previousIndex >= visibleItems.length ||
+      currentIndex >= visibleItems.length
+    ) {
+      return
+    }
+
+    const reorderedVisibleItems = [...visibleItems]
+    moveItemInArray(reorderedVisibleItems, previousIndex, currentIndex)
+
+    const visibleIds = new Set(
+      reorderedVisibleItems.map((xpert) => xpert.id).filter((id): id is string => typeof id === 'string' && !!id.trim())
+    )
+    let reorderedVisibleIndex = 0
+    const reorderedItems = this.listXperts().map((xpert) => {
+      if (typeof xpert.id !== 'string' || !visibleIds.has(xpert.id)) {
+        return xpert
+      }
+
+      return reorderedVisibleItems[reorderedVisibleIndex++] ?? xpert
+    })
+    const orderedIds = reorderedItems
+      .map((xpert) => xpert.id)
+      .filter((id): id is string => typeof id === 'string' && !!id.trim())
+
+    this.#assistantOrder.set(orderedIds)
+    writeAssistantOrder(this.#assistantOrderStorageKey(), orderedIds)
+  }
+
   trackAssistant(index: number, xpert: IXpert) {
     return xpert.id || xpert.slug || index
   }
@@ -530,4 +595,48 @@ function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertS
     typeof (value as IChatConversationUnreadXpertSummary).xpertId === 'string' &&
     typeof (value as IChatConversationUnreadXpertSummary).unreadMessages === 'number'
   )
+}
+
+function readAssistantOrder(storageKey: string) {
+  const storage = getLocalStorage()
+  if (!storage) {
+    return []
+  }
+
+  let value: unknown
+  try {
+    const storedValue = storage.getItem(storageKey)
+    value = storedValue ? JSON.parse(storedValue) : []
+  } catch {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const orderedIds = value.filter((id): id is string => typeof id === 'string' && !!id.trim()).map((id) => id.trim())
+
+  return Array.from(new Set(orderedIds))
+}
+
+function writeAssistantOrder(storageKey: string, orderedIds: string[]) {
+  const storage = getLocalStorage()
+  if (!storage) {
+    return
+  }
+
+  try {
+    storage.setItem(storageKey, JSON.stringify(orderedIds))
+  } catch {
+    return
+  }
+}
+
+function getLocalStorage() {
+  try {
+    return globalThis.localStorage ?? null
+  } catch {
+    return null
+  }
 }

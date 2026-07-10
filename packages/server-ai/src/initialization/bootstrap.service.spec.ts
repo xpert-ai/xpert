@@ -76,7 +76,11 @@ jest.mock('../membership', () => ({
 
 import { ServerAIBootstrapService } from './bootstrap.service'
 import { XpertImportCommand } from '../xpert'
-import type { OrganizationCreatedEvent, PluginManagementService } from '@xpert-ai/server-core'
+import type {
+    OrganizationCreatedEvent,
+    PluginManagementService,
+    UserOrganizationCreatedEvent
+} from '@xpert-ai/server-core'
 
 type PluginManagementServiceMock = jest.Mocked<Pick<PluginManagementService, 'findLoadedPlugin' | 'installPlugin'>>
 
@@ -231,6 +235,7 @@ describe('ServerAIBootstrapService', () => {
             })
         }
         const membershipService = {
+            ensureTenantDefaultMembership: jest.fn().mockResolvedValue(null),
             ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null)
         }
         const pluginManagementService: PluginManagementServiceMock = {
@@ -352,9 +357,7 @@ describe('ServerAIBootstrapService', () => {
         })
         pluginManagementService.installPlugin.mockRejectedValue(new Error('install failed'))
 
-        await expect(
-            service.bootstrapOrganization(createOrganizationCreatedEvent())
-        ).resolves.toEqual({
+        await expect(service.bootstrapOrganization(createOrganizationCreatedEvent())).resolves.toEqual({
             repositoryIds: []
         })
 
@@ -638,6 +641,7 @@ connections: []`
         expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-2')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-2', 'member-1')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
+        expect(membershipService.ensureTenantDefaultMembership).not.toHaveBeenCalled()
         expect(membershipService.ensureUserAssignedIfScopeInitialized).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -647,6 +651,38 @@ connections: []`
         expect(result).toEqual({
             workspaceId: 'workspace-2',
             createdNewUserDefaultWorkspace: true
+        })
+    })
+
+    it('assigns the tenant default membership to trial users while preserving organization assignment', async () => {
+        const { membershipService, service, userService, workspaceService } = createService()
+        userService.findOne.mockResolvedValue({
+            id: 'member-1',
+            preferredLanguage: 'en_US',
+            role: {
+                name: 'TRIAL'
+            }
+        })
+        workspaceService.findUserDefaultWorkspace.mockResolvedValue({
+            id: 'workspace-existing',
+            ownerId: 'member-1'
+        })
+
+        await service.bootstrapUserInOrganization({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'member-1'
+        } as UserOrganizationCreatedEvent)
+
+        expect(membershipService.ensureTenantDefaultMembership).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            userId: 'member-1'
+        })
+        expect(membershipService.ensureUserAssignedIfScopeInitialized).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'member-1',
+            assignedById: 'member-1'
         })
     })
 

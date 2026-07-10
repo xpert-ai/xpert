@@ -62,21 +62,6 @@
   padding: 0.45rem 0.5rem 0.55rem;
 }
 
-.cloud-sidebar__utility {
-  display: flex;
-  justify-content: flex-start;
-  padding: 0 0.25rem 0.2rem;
-}
-
-.cloud-sidebar.is-collapsed .cloud-sidebar__utility {
-  justify-content: center;
-  padding-inline: 0;
-}
-
-.cloud-sidebar__notification {
-  display: flex;
-}
-
 .cloud-sidebar__user {
   display: block;
 }

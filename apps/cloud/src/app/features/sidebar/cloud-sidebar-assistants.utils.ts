@@ -25,11 +25,7 @@ export function normalizeAssistantXperts<T extends AssistantXpertLike>(
   })
 }
 
-export function filterAssistantXperts<T extends AssistantXpertLike>(
-  items: T[],
-  query: string,
-  category = 'all'
-) {
+export function filterAssistantXperts<T extends AssistantXpertLike>(items: T[], query: string, category = 'all') {
   const keyword = query.trim().toLowerCase()
 
   return items.filter((xpert) => {
@@ -38,6 +34,24 @@ export function filterAssistantXperts<T extends AssistantXpertLike>(
 
     return matchesCategory && matchesKeyword
   })
+}
+
+export function orderAssistantXperts<T extends AssistantXpertLike>(items: T[], orderedIds: string[]) {
+  if (!orderedIds.length) {
+    return items
+  }
+
+  const itemById = new Map(
+    items
+      .filter((item): item is T & { id: string } => typeof item.id === 'string' && !!item.id.trim())
+      .map((item) => [item.id, item] as const)
+  )
+  const orderedIdSet = new Set(orderedIds)
+
+  return [
+    ...orderedIds.map((id) => itemById.get(id)).filter((item): item is T & { id: string } => !!item),
+    ...items.filter((item) => !item.id || !orderedIdSet.has(item.id))
+  ]
 }
 
 export function getAssistantRouteId(xpert: AssistantXpertLike) {
@@ -69,21 +83,14 @@ function assistantMatchesTag(xpert: AssistantXpertLike, tagName: string) {
 }
 
 function getAssistantSearchText(xpert: AssistantXpertLike) {
-  return [
-    getAssistantLabel(xpert),
-    getAssistantDescription(xpert),
-    xpert.slug,
-    ...getAssistantTagNames(xpert)
-  ]
+  return [getAssistantLabel(xpert), getAssistantDescription(xpert), xpert.slug, ...getAssistantTagNames(xpert)]
     .filter(Boolean)
     .join(' ')
 }
 
 export function getAssistantTagNames(xpert: AssistantXpertLike) {
   return (
-    xpert.tags
-      ?.map((tag) => tag.name)
-      .filter((name): name is string => typeof name === 'string' && !!name.trim()) ?? []
+    xpert.tags?.map((tag) => tag.name).filter((name): name is string => typeof name === 'string' && !!name.trim()) ?? []
   )
 }
 
