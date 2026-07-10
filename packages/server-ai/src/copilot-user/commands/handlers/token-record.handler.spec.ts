@@ -75,4 +75,57 @@ describe('CopilotTokenRecordHandler', () => {
             })
         )
     })
+
+    it('does not charge membership points for an organization provider with configured credentials', async () => {
+        const copilot = {
+            id: 'copilot-1',
+            organizationId: 'org-1',
+            tokenBalance: null,
+            modelProvider: {
+                organizationId: 'org-1',
+                providerName: 'deepseek',
+                credentials: { api_key: 'configured' }
+            }
+        }
+        const queryBus = {
+            execute: jest.fn().mockResolvedValue(copilot)
+        }
+        const copilotUserService = {
+            upsert: jest.fn().mockResolvedValue({
+                tokenUsed: 100,
+                tokenLimit: null
+            })
+        }
+        const copilotOrganizationService = {
+            upsert: jest.fn().mockResolvedValue({
+                tokenUsed: 100,
+                tokenLimit: null
+            })
+        }
+        const membershipService = {
+            recordUsage: jest.fn().mockResolvedValue(null)
+        }
+        const handler = new CopilotTokenRecordHandler(
+            queryBus as never,
+            copilotUserService as never,
+            copilotOrganizationService as never,
+            membershipService as never,
+            { t: jest.fn().mockResolvedValue('limit exceeded') } as never
+        )
+
+        await handler.execute(
+            new CopilotTokenRecordCommand({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                copilotId: 'copilot-1',
+                model: 'deepseek-chat',
+                tokenUsed: 100
+            })
+        )
+
+        expect(copilotUserService.upsert).toHaveBeenCalled()
+        expect(copilotOrganizationService.upsert).toHaveBeenCalled()
+        expect(membershipService.recordUsage).not.toHaveBeenCalled()
+    })
 })

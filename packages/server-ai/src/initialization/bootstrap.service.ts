@@ -141,6 +141,13 @@ export class ServerAIBootstrapService {
         let workspaceId: string | null = null
         let createdNewUserDefaultWorkspace = false
 
+        if (user.role?.name === RolesEnum.TRIAL) {
+            await this.membershipService.ensureTenantDefaultMembership({
+                tenantId: event.tenantId,
+                userId: event.userId
+            })
+        }
+
         await this.runInOrganizationContext(user, event.organizationId, async () => {
             if (this.shouldBootstrapPersonalWorkspace(user)) {
                 const { workspace, created } = await this.ensureUserWorkspace(event.organizationId, user)

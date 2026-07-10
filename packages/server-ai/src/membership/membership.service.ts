@@ -32,6 +32,7 @@ const DEFAULT_INCLUDED_POINTS = 1000
 const DEFAULT_UNLIMITED_PLAN_CODE = 'default-unlimited'
 const DEFAULT_UNLIMITED_PLAN_NAME = 'Default Unlimited'
 const DEFAULT_TOKENS_PER_POINT = 1000
+const DEFAULT_TENANT_PLAN_GRANT_REASON = 'Default tenant plan grant'
 const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 
 type RecordUsageInput = {
@@ -63,6 +64,11 @@ type ResolveScopeInput = {
 
 type EnsureScopeInitializedInput = ResolveScopeInput & {
     assignedById?: string | null
+}
+
+type EnsureTenantDefaultMembershipInput = {
+    tenantId: string
+    userId: string
 }
 
 export type MembershipModelAccess = {
@@ -297,6 +303,80 @@ export class MembershipService {
 
         await this.ensureScopeInitialized(input)
         return this.findActiveMembership(scope.tenantId, scope.organizationId, input.userId)
+    }
+
+    async ensureTenantDefaultMembership(
+        input: EnsureTenantDefaultMembershipInput,
+        manager?: EntityManager
+    ): Promise<UserMembership | null> {
+        const scope: MembershipScope = {
+            tenantId: input.tenantId,
+            organizationId: null
+        }
+        if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
+            return null
+        }
+
+        const ensure = async (txManager: EntityManager) => {
+            await this.acquireTenantDefaultMembershipLock(txManager, scope.tenantId, input.userId)
+            const existingMembership = await this.findActiveMembershipForUpdate(
+                scope.tenantId,
+                scope.organizationId,
+                input.userId,
+                txManager
+            )
+            if (existingMembership) {
+                return existingMembership
+            }
+
+            const plan = await this.findDefaultPlan(scope.tenantId, scope.organizationId, txManager)
+            if (!plan) {
+                return null
+            }
+
+            const start = new Date()
+            const repository = txManager.getRepository(UserMembership)
+            const membership = await repository.save(
+                repository.create({
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    userId: input.userId,
+                    planId: plan.id,
+                    status: MembershipStatusEnum.Active,
+                    currentPeriodStart: start,
+                    currentPeriodEnd: periodEndFor(start, plan.period),
+                    pointsGranted: plan.includedPoints,
+                    pointsUsed: 0,
+                    pointsTotalUsed: 0,
+                    note: DEFAULT_TENANT_PLAN_GRANT_REASON
+                })
+            )
+            membership.plan = plan
+            await this.createLedger(txManager, {
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                userId: input.userId,
+                membershipId: membership.id,
+                planId: plan.id,
+                source: MembershipLedgerSourceEnum.Grant,
+                pointsDelta: plan.includedPoints ?? 0,
+                reason: DEFAULT_TENANT_PLAN_GRANT_REASON
+            })
+            return membership
+        }
+
+        return manager ? ensure(manager) : this.dataSource.transaction(ensure)
+    }
+
+    private async acquireTenantDefaultMembershipLock(manager: EntityManager, tenantId: string, userId: string) {
+        if (manager.connection.options.type !== 'postgres') {
+            return
+        }
+
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+            tenantId,
+            `tenant-default-membership:${userId}`
+        ])
     }
 
     async findAdminUsers(options?: {
