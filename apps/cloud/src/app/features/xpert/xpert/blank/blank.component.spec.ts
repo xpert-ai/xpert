@@ -309,6 +309,7 @@ nodes:
       type: middleware
       provider: ModelRetryMiddleware
       title: ModelRetryMiddleware
+      required: false
   - type: workflow
     key: Middleware_web_tools
     position:
@@ -340,22 +341,22 @@ nodes:
       provider: todoListMiddleware
       title: todoListMiddleware
 connections:
-  - key: Agent_primary/Middleware_model_retry
-    type: workflow
-    from: Agent_primary
-    to: Middleware_model_retry
-  - key: Agent_primary/Middleware_web_tools
-    type: workflow
-    from: Agent_primary
-    to: Middleware_web_tools
-  - key: Agent_primary/Middleware_summary
-    type: workflow
-    from: Agent_primary
-    to: Middleware_summary
-  - key: Agent_primary/Middleware_todo
-    type: workflow
-    from: Agent_primary
-    to: Middleware_todo
+  - key: Middleware_model_retry/Agent_primary
+    type: edge
+    from: Middleware_model_retry
+    to: Agent_primary
+  - key: Middleware_web_tools/Agent_primary
+    type: edge
+    from: Middleware_web_tools
+    to: Agent_primary
+  - key: Middleware_summary/Agent_primary
+    type: edge
+    from: Middleware_summary
+    to: Agent_primary
+  - key: Middleware_todo/Agent_primary
+    type: edge
+    from: Middleware_todo
+    to: Agent_primary
 `
 }
 
@@ -1647,6 +1648,9 @@ describe('XpertNewBlankComponent', () => {
       'SummarizationMiddleware',
       'todoListMiddleware'
     ])
+    expect(component.selectedMiddlewareRequired()).toEqual({ ModelRetryMiddleware: false })
+    expect(component.isMiddlewareRequired('ModelRetryMiddleware')).toBe(false)
+    expect(component.isMiddlewareRequired('WebTools')).toBe(true)
     expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual([
       'SummarizationMiddleware',
       'todoListMiddleware',

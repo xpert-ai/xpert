@@ -78,7 +78,6 @@ export function extractTemplateBasicInfo(draft: TXpertTeamDraft): BlankTemplateB
 export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAgentTemplateWizardState {
   const primaryAgentNode = getPrimaryAgentNode(draft)
   const inboundNodeKeys = getInboundNodeKeys(draft, primaryAgentNode.key)
-  const outboundNodeKeys = getOutboundNodeKeys(draft, primaryAgentNode.key)
 
   const triggerNodes = sortNodesByPosition(
     getWorkflowNodesByKeys(draft, inboundNodeKeys).filter(
@@ -86,13 +85,7 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
         node.entity.type === WorkflowNodeTypeEnum.TRIGGER
     )
   )
-  const middlewareNodes = sortMiddlewareNodes(
-    getWorkflowNodesByKeys(draft, outboundNodeKeys).filter(
-      (node): node is TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware } =>
-        node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
-    ),
-    draft.team?.agent?.options?.middlewares?.order ?? []
-  )
+  const middlewareNodes = getPrimaryAgentMiddlewareNodes(draft, primaryAgentNode.key)
 
   return {
     basic: extractTemplateBasicInfo(draft),
@@ -153,10 +146,12 @@ export function applyAgentTemplateWizardState(
 ): TXpertTeamDraft {
   const nextDraft = cloneDeep(draft)
   const primaryAgentNode = getPrimaryAgentNode(nextDraft)
+  const primaryAgentMiddlewareNodes = getPrimaryAgentMiddlewareNodes(nextDraft, primaryAgentNode.key)
   const managedNodeKeys = new Set(
     [
       ...getInboundNodeKeys(nextDraft, primaryAgentNode.key),
-      ...getOutboundNodeKeys(nextDraft, primaryAgentNode.key)
+      ...getOutboundNodeKeys(nextDraft, primaryAgentNode.key),
+      ...primaryAgentMiddlewareNodes.map((node) => node.key)
     ].filter((key) => {
       const node = nextDraft.nodes.find((item) => item.key === key)
       return (
@@ -488,6 +483,38 @@ function getWorkflowNodesByKeys(draft: TXpertTeamDraft, keys: string[]) {
   const keySet = new Set(keys)
   return draft.nodes.filter(
     (node): node is TXpertTeamNode<'workflow'> => node.type === 'workflow' && keySet.has(node.key)
+  )
+}
+
+/**
+ * Assistant templates in the wild use three middleware association formats:
+ * the current Agent -> Middleware workflow edge, legacy/reversed edges, and the
+ * primary agent's middleware order. Treat all three as authoritative so the
+ * creation wizard can faithfully initialize middleware selections.
+ */
+function getPrimaryAgentMiddlewareNodes(draft: TXpertTeamDraft, primaryAgentKey: string) {
+  const middlewareNodes = draft.nodes.filter(
+    (node): node is TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware } =>
+      node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+  )
+  const middlewareNodeKeys = new Set(middlewareNodes.map((node) => node.key))
+  const middlewareOrder = uniqueStrings(draft.team?.agent?.options?.middlewares?.order)
+  const associatedNodeKeys = new Set(middlewareOrder.filter((key) => middlewareNodeKeys.has(key)))
+
+  for (const connection of draft.connections ?? []) {
+    const from = normalizeConnectionEndpoint(connection.from)
+    const to = normalizeConnectionEndpoint(connection.to)
+    if (from === primaryAgentKey && middlewareNodeKeys.has(to)) {
+      associatedNodeKeys.add(to)
+    }
+    if (to === primaryAgentKey && middlewareNodeKeys.has(from)) {
+      associatedNodeKeys.add(from)
+    }
+  }
+
+  return sortMiddlewareNodes(
+    middlewareNodes.filter((node) => associatedNodeKeys.has(node.key)),
+    middlewareOrder
   )
 }
 
