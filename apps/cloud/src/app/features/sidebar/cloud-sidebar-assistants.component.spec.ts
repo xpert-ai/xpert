@@ -12,7 +12,8 @@ import {
   getAssistantLabel,
   getAssistantRouteId,
   isAssistantRouteActive,
-  normalizeAssistantXperts
+  normalizeAssistantXperts,
+  orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
 
 jest.mock('@xpert-ai/headless-ui', () => {
@@ -137,6 +138,32 @@ describe('cloud sidebar assistants helpers', () => {
 
     expect(filterAssistantXperts(items, 'sheet').map((item) => item.id)).toEqual(['documents'])
     expect(filterAssistantXperts(items, 'tool').map((item) => item.id)).toEqual(['tools'])
+  })
+
+  it('places assistants missing from the saved order first by newest creation time', () => {
+    const items = [
+      xpert({ id: 'ordered-first', createdAt: new Date('2026-01-03T00:00:00Z') }),
+      xpert({ id: 'newer', createdAt: new Date('2026-01-05T00:00:00Z') }),
+      xpert({ id: 'ordered-second', createdAt: new Date('2026-01-04T00:00:00Z') }),
+      xpert({ id: 'newest', createdAt: new Date('2026-01-06T00:00:00Z') })
+    ]
+
+    expect(orderAssistantXperts(items, ['ordered-first', 'ordered-second']).map((item) => item.id)).toEqual([
+      'newest',
+      'newer',
+      'ordered-first',
+      'ordered-second'
+    ])
+  })
+
+  it('orders all assistants by newest creation time when no saved order exists', () => {
+    const items = [
+      xpert({ id: 'oldest', createdAt: new Date('2026-01-01T00:00:00Z') }),
+      xpert({ id: 'newest', createdAt: new Date('2026-01-03T00:00:00Z') }),
+      xpert({ id: 'middle', createdAt: new Date('2026-01-02T00:00:00Z') })
+    ]
+
+    expect(orderAssistantXperts(items, []).map((item) => item.id)).toEqual(['newest', 'middle', 'oldest'])
   })
 
   it('matches assistant categories from tag names instead of label or description keywords', () => {
