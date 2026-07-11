@@ -50,6 +50,7 @@ import {
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     AssistantTaskRuntimeCapability,
     ConnectorRuntimeCapability,
+    CollaborationRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
@@ -85,6 +86,7 @@ import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts'
+import { CollaborationService } from '../../collaboration'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
@@ -99,6 +101,10 @@ export type AgentMiddlewareRuntimeScope = {
     workspaceId?: string | null
     projectId?: string | null
     xpertId?: string | null
+    xpertName?: string | null
+    conversationId?: string | null
+    agentKey?: string | null
+    executionId?: string | null
     workspaceRoot?: string | null
     workspacePath?: string | null
 }
@@ -446,7 +452,8 @@ export class AgentMiddlewareRuntimeService {
         private readonly i18nService: I18nService,
         private readonly connectors: ConnectorService,
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
-        private readonly artifacts: ArtifactsService
+        private readonly artifacts: ArtifactsService,
+        private readonly collaboration: CollaborationService
     ) {
         this.api = this.createScopedApi()
     }
@@ -466,6 +473,7 @@ export class AgentMiddlewareRuntimeService {
             ...scope,
             organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
         })
+        const collaborationApi = this.collaboration.createScopedApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [
                 KnowledgebaseRuntimeCapability,
@@ -507,6 +515,7 @@ export class AgentMiddlewareRuntimeService {
                 }
             ],
             [ArtifactsRuntimeCapability, artifactsApi],
+            [CollaborationRuntimeCapability, collaborationApi],
             [WorkspaceFilesRuntimeCapability, workspaceFilesApi]
         ])
 

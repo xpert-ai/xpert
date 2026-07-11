@@ -6,10 +6,11 @@ import { VolumeModule } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { ConnectorModule } from '../../connector/connector.module'
 import { ArtifactsModule } from '../../artifacts'
+import { CollaborationModule } from '../../collaboration'
 
 @Global()
 @Module({
-    imports: [CqrsModule, VolumeModule, ConnectorModule, ArtifactsModule],
+    imports: [CqrsModule, VolumeModule, ConnectorModule, ArtifactsModule, CollaborationModule],
     providers: [
         WorkspaceFilesRuntimeCapabilityService,
         AgentMiddlewareRuntimeService,
@@ -22,6 +23,7 @@ import { ArtifactsModule } from '../../artifacts'
     exports: [
         ConnectorModule,
         ArtifactsModule,
+        CollaborationModule,
         AgentMiddlewareRuntimeService,
         WorkspaceFilesRuntimeCapabilityService,
         XPERT_RUNTIME_CAPABILITIES_TOKEN

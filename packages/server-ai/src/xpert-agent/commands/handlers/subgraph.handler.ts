@@ -761,6 +761,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             workspaceId: xpert.workspaceId,
             projectId: options.projectId,
             xpertId: xpert.id,
+            xpertName: xpert.name,
+            conversationId: options.conversationId,
+            agentKey,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
         })

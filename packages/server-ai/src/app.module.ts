@@ -53,6 +53,7 @@ import { MetricsModule } from './metrics'
 import { MobileModule } from './mobile'
 import { MembershipModule } from './membership'
 import { ArtifactsModule } from './artifacts'
+import { CollaborationModule } from './collaboration'
 
 @Module({
     imports: [
@@ -108,7 +109,8 @@ import { ArtifactsModule } from './artifacts'
         RagVStoreModule,
         RagWebModule,
         SandboxModule,
-        ArtifactsModule
+        ArtifactsModule,
+        CollaborationModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]
