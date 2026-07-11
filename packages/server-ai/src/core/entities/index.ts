@@ -50,7 +50,11 @@ import {
     PluginResourceInstallation,
     McpRuntimeInstanceEntity,
     AssistantBinding,
-    AssistantBindingUserPreference
+    AssistantBindingUserPreference,
+    Artifact,
+    ArtifactVersion,
+    ArtifactLink,
+    ArtifactAccessLog
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
@@ -105,5 +109,9 @@ export const ALL_AI_ENTITIES = [
     PluginResourceInstallation,
     McpRuntimeInstanceEntity,
     AssistantBinding,
-    AssistantBindingUserPreference
+    AssistantBindingUserPreference,
+    Artifact,
+    ArtifactVersion,
+    ArtifactLink,
+    ArtifactAccessLog
 ]

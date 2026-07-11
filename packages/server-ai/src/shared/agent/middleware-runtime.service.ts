@@ -55,6 +55,7 @@ import {
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
+    ArtifactsRuntimeCapability,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
@@ -83,6 +84,7 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { ConnectorService } from '../../connector/connector.service'
+import { ArtifactsService } from '../../artifacts'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
@@ -92,7 +94,9 @@ import { wrapAgentExecution } from './execution'
  */
 export type AgentMiddlewareRuntimeScope = {
     tenantId?: string | null
+    organizationId?: string | null
     userId?: string | null
+    workspaceId?: string | null
     projectId?: string | null
     xpertId?: string | null
     workspaceRoot?: string | null
@@ -441,7 +445,8 @@ export class AgentMiddlewareRuntimeService {
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
         private readonly connectors: ConnectorService,
-        private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+        private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
+        private readonly artifacts: ArtifactsService
     ) {
         this.api = this.createScopedApi()
     }
@@ -457,6 +462,10 @@ export class AgentMiddlewareRuntimeService {
         const workspaceFilesApi = hasRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
             : this.workspaceFiles.api
+        const artifactsApi = this.artifacts.createScopedApi({
+            ...scope,
+            organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
+        })
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [
                 KnowledgebaseRuntimeCapability,
@@ -497,6 +506,7 @@ export class AgentMiddlewareRuntimeService {
                     getConnector: (input) => this.connectors.getRuntimeConnector(input)
                 }
             ],
+            [ArtifactsRuntimeCapability, artifactsApi],
             [WorkspaceFilesRuntimeCapability, workspaceFilesApi]
         ])
 

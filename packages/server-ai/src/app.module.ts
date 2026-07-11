@@ -52,6 +52,7 @@ import { FileUnderstandingModule } from './file-understanding'
 import { MetricsModule } from './metrics'
 import { MobileModule } from './mobile'
 import { MembershipModule } from './membership'
+import { ArtifactsModule } from './artifacts'
 
 @Module({
     imports: [
@@ -106,7 +107,8 @@ import { MembershipModule } from './membership'
         KnowledgeDocumentModule,
         RagVStoreModule,
         RagWebModule,
-        SandboxModule
+        SandboxModule,
+        ArtifactsModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

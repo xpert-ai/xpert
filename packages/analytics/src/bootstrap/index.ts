@@ -106,7 +106,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 	)
 
 	const globalPrefix = 'api'
-	app.setGlobalPrefix(globalPrefix)
+	app.setGlobalPrefix(globalPrefix, { exclude: ['artifacts/share', 'artifacts/share/(.*)'] })
 
 	// Seed default values
 	const serverService = app.select(ServerAppModule).get(AppService)
