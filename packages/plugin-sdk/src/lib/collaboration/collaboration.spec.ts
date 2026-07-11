@@ -3,13 +3,16 @@ import {
   base64ToBytes,
   bytesToBase64,
   createCollaborationClient,
+  createCollaborationPresenceStore,
   type CollaborationBinaryDocumentAdapter,
   type CollaborationTransport,
   type CollaborationTransportHandler
 } from './client'
+import type { ICollaborationPresence } from './types'
 
 class TestTransport implements CollaborationTransport {
   connected = false
+  clientId: string | null = 'socket-self'
   readonly emitted: Array<{ event: string; payload: Record<string, unknown> }> = []
   private readonly handlers = new Map<string, Set<CollaborationTransportHandler>>()
 
@@ -116,4 +119,84 @@ describe('platform collaboration SDK', () => {
     client.disconnect()
     expect(transport.connected).toBe(false)
   })
+
+  it('keeps actor identity separate from browser client identity', () => {
+    const selfActor = { presenceId: 'user-1', actorType: 'user' as const, displayName: 'User', color: '#111111' }
+    const snapshots: Array<ReturnType<ReturnType<typeof createCollaborationPresenceStore>['snapshot']>> = []
+    const store = createCollaborationPresenceStore({ selfActor, onChange: (snapshot) => snapshots.push(snapshot) })
+    store.replace(
+      [
+        presence({ clientId: 'socket-self', presenceId: 'user-1', displayName: 'User' }),
+        presence({ clientId: 'socket-other-tab', presenceId: 'user-1', displayName: 'User' }),
+        presence({ clientId: 'socket-user-2', presenceId: 'user-2', displayName: 'Other' })
+      ],
+      'socket-self'
+    )
+
+    const snapshot = store.snapshot()
+    expect(snapshot.remoteSessions.map(({ clientId }) => clientId)).toEqual(['socket-other-tab', 'socket-user-2'])
+    expect(snapshot.collaborators.map(({ presenceId }) => presenceId)).toEqual(['user-1', 'user-2'])
+    expect(snapshots).toHaveLength(1)
+  })
+
+  it('reports selfClientId and removes silent remote presence locally', () => {
+    jest.useFakeTimers()
+    const transport = new TestTransport()
+    const removed: string[] = []
+    const snapshots: Array<{ selfClientId: string | null }> = []
+    const client = createCollaborationClient({
+      session: testSession(),
+      transport,
+      document: new TestDocument(),
+      presenceStaleMs: 3_000,
+      onPresenceSnapshot: (_items, metadata) => snapshots.push(metadata),
+      onPresenceRemove: (clientId) => removed.push(clientId)
+    })
+
+    client.connect()
+    transport.dispatch('presence-snapshot', { selfClientId: 'socket-self', items: [] })
+    transport.dispatch('presence', presence({ clientId: 'socket-remote', presenceId: 'user-2' }))
+    expect(client.selfClientId).toBe('socket-self')
+    expect(snapshots).toEqual([{ selfClientId: 'socket-self' }])
+
+    jest.advanceTimersByTime(4_000)
+    expect(removed).toEqual(['socket-remote'])
+    client.disconnect()
+  })
 })
+
+function testSession() {
+  return {
+    sessionId: 'session',
+    clientKey: 'key',
+    documentId: 'document',
+    namespace: '/api/collaboration',
+    connectionUrl: 'http://localhost:3000/api/collaboration',
+    access: 'write' as const,
+    actor: { presenceId: 'user-1', actorType: 'user' as const, displayName: 'User', color: '#000000' },
+    expiresAt: Date.now() + 60_000
+  }
+}
+
+function presence(
+  patch: Partial<ICollaborationPresence> & Pick<ICollaborationPresence, 'clientId' | 'presenceId'>
+): ICollaborationPresence {
+  return {
+    clientId: patch.clientId,
+    presenceId: patch.presenceId,
+    actorType: patch.actorType ?? 'user',
+    displayName: patch.displayName ?? 'Remote',
+    color: patch.color ?? '#222222',
+    avatarUrl: patch.avatarUrl ?? null,
+    pageId: patch.pageId ?? null,
+    pointer: patch.pointer ?? null,
+    focus: patch.focus ?? null,
+    selection: patch.selection ?? null,
+    viewport: patch.viewport ?? null,
+    mode: patch.mode ?? null,
+    status: patch.status ?? null,
+    toolName: patch.toolName ?? null,
+    operationLabel: patch.operationLabel ?? null,
+    updatedAt: patch.updatedAt ?? Date.now()
+  }
+}

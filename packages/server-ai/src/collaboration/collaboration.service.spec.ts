@@ -7,7 +7,7 @@ function matches(value: Record<string, unknown>, where: Record<string, unknown>)
     return Object.entries(where).every(([key, expected]) => value[key] === expected)
 }
 
-function createHarness() {
+function createHarness(redis?: TestRedis) {
     const documents: CollaborationDocument[] = []
     const updates: CollaborationUpdate[] = []
     let id = 0
@@ -89,11 +89,47 @@ function createHarness() {
         documentRepository as never,
         updateRepository as never,
         providers as never,
-        undefined,
+        redis as never,
         undefined
     )
     const api = service.createScopedApi({ tenantId: 'tenant', organizationId: 'organization', userId: 'user' })
     return { api, documents, updates, provider }
+}
+
+class TestRedis {
+    readonly strings = new Map<string, string>()
+    readonly sets = new Map<string, Set<string>>()
+    readonly published: Array<{ channel: string; message: string }> = []
+
+    async set(key: string, value: string) {
+        this.strings.set(key, value)
+        return 'OK'
+    }
+    async get(key: string) {
+        return this.strings.get(key) ?? null
+    }
+    async del(key: string) {
+        return this.strings.delete(key) ? 1 : 0
+    }
+    async sAdd(key: string, value: string) {
+        const values = this.sets.get(key) ?? new Set<string>()
+        values.add(value)
+        this.sets.set(key, values)
+        return 1
+    }
+    async sRem(key: string, value: string) {
+        return this.sets.get(key)?.delete(value) ? 1 : 0
+    }
+    async sMembers(key: string) {
+        return Array.from(this.sets.get(key) ?? [])
+    }
+    async expire() {
+        return true
+    }
+    async publish(channel: string, message: string) {
+        this.published.push({ channel, message })
+        return 1
+    }
 }
 
 describe('CollaborationService', () => {
@@ -141,5 +177,24 @@ describe('CollaborationService', () => {
         await expect(api.applyUpdate({ documentId: created.id, updateBase64, expectedSequence: 4 })).rejects.toThrow(
             /sequence conflict/i
         )
+    })
+
+    it('stores and removes each virtual presence independently', async () => {
+        const redis = new TestRedis()
+        const { api } = createHarness(redis)
+        const created = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+
+        await api.upsertVirtualPresence({
+            documentId: created.id,
+            actor: { actorKey: 'agent-a', displayName: 'Agent A' },
+            presence: { status: 'editing', pageId: 'page-1' }
+        })
+        expect(await api.listPresence({ documentId: created.id })).toEqual([
+            expect.objectContaining({ actorType: 'agent', displayName: 'Agent A', status: 'editing' })
+        ])
+
+        await api.removeVirtualPresence({ documentId: created.id, actorKey: 'agent-a' })
+        expect(await api.listPresence({ documentId: created.id })).toEqual([])
+        expect(redis.published.some(({ message }) => message.includes('presence-remove'))).toBe(true)
     })
 })

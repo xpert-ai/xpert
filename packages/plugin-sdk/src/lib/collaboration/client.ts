@@ -2,6 +2,7 @@ import type {
   ApplyCollaborationUpdateResult,
   CollaborationPresencePatch,
   CollaborationSessionDescriptor,
+  ICollaborationActor,
   ICollaborationPresence
 } from './types'
 
@@ -11,6 +12,8 @@ export type CollaborationTransportHandler = (payload: CollaborationTransportPayl
 /** Framework-neutral event transport used by the collaboration client. */
 export interface CollaborationTransport {
   readonly connected: boolean
+  /** Socket/session identifier for this exact browser client, when the transport exposes one. */
+  readonly clientId?: string | null
   connect(): void
   disconnect(): void
   emit(event: string, payload?: CollaborationTransportPayload): void
@@ -20,6 +23,7 @@ export interface CollaborationTransport {
 /** Minimal Socket.IO-compatible shape; keeps socket.io-client out of the SDK bundle. */
 export interface CollaborationSocketLike {
   readonly connected: boolean
+  readonly id?: string
   connect(): unknown
   disconnect(): unknown
   emit(event: string, payload?: CollaborationTransportPayload): unknown
@@ -32,6 +36,9 @@ export function createSocketIoTransportAdapter(socket: CollaborationSocketLike):
   return {
     get connected() {
       return socket.connected
+    },
+    get clientId() {
+      return socket.id ?? null
     },
     connect: () => {
       socket.connect()
@@ -99,9 +106,11 @@ export type CollaborationClientOptions = {
   batchMs?: number
   syncIntervalMs?: number
   presenceHeartbeatMs?: number
+  /** Remove a presence locally when no refresh has been received within this interval. */
+  presenceStaleMs?: number
   onAck?: (ack: ApplyCollaborationUpdateResult) => void
   onPresence?: (presence: ICollaborationPresence) => void
-  onPresenceSnapshot?: (items: ICollaborationPresence[]) => void
+  onPresenceSnapshot?: (items: ICollaborationPresence[], metadata: CollaborationPresenceSnapshotMetadata) => void
   onPresenceRemove?: (clientId: string) => void
   onConnectionChange?: (state: 'connecting' | 'connected' | 'disconnected') => void
   onError?: (error: Error) => void
@@ -111,11 +120,101 @@ export type CollaborationClientOptions = {
 export interface CollaborationClient {
   /** Stable origin applied to remote updates so local observers can prevent echo loops. */
   readonly remoteOrigin: object
+  /** Socket id for this exact tab/device; distinct from the stable actor `presenceId`. */
+  readonly selfClientId: string | null
   connect(): void
   disconnect(): void
   flush(): void
   requestSync(): void
   setPresence(patch: CollaborationPresencePatch): void
+}
+
+/** Connection-specific metadata delivered with a presence snapshot. */
+export type CollaborationPresenceSnapshotMetadata = {
+  selfClientId: string | null
+}
+
+/** Stable, framework-neutral view of active collaboration sessions and deduplicated actors. */
+export type CollaborationPresenceStoreSnapshot = {
+  selfClientId: string | null
+  /** Every active browser/Agent session keyed by `clientId`. */
+  sessions: ICollaborationPresence[]
+  /** Sessions excluding only this exact browser client. */
+  remoteSessions: ICollaborationPresence[]
+  /** One entry per actor identity, including the local actor when supplied. */
+  collaborators: ICollaborationPresence[]
+}
+
+export type CollaborationPresenceStoreOptions = {
+  selfActor?: ICollaborationActor | null
+  includeSelf?: boolean
+  onChange?: (snapshot: CollaborationPresenceStoreSnapshot) => void
+}
+
+/** Mutable presence projection used by plugin UIs without coupling them to a framework. */
+export interface CollaborationPresenceStore {
+  setSelfClientId(clientId: string | null): void
+  replace(items: ICollaborationPresence[], selfClientId?: string | null): void
+  upsert(item: ICollaborationPresence): void
+  remove(clientId: string): void
+  clear(): void
+  snapshot(): CollaborationPresenceStoreSnapshot
+}
+
+/**
+ * Keep per-client sessions for cursors while exposing one collaborator per stable actor identity.
+ * This prevents a second tab owned by the same user from either duplicating or hiding that user.
+ */
+export function createCollaborationPresenceStore(
+  options: CollaborationPresenceStoreOptions = {}
+): CollaborationPresenceStore {
+  let selfClientId: string | null = null
+  let sessions = new Map<string, ICollaborationPresence>()
+
+  const readSnapshot = (): CollaborationPresenceStoreSnapshot => {
+    const activeSessions = Array.from(sessions.values()).sort((left, right) => right.updatedAt - left.updatedAt)
+    const remoteSessions = activeSessions.filter((item) => item.clientId !== selfClientId)
+    const actors = new Map<string, ICollaborationPresence>()
+    for (const item of activeSessions) if (!actors.has(item.presenceId)) actors.set(item.presenceId, item)
+    if (options.includeSelf !== false && options.selfActor) {
+      const existing = activeSessions.find(
+        (item) => item.clientId === selfClientId || item.presenceId === options.selfActor?.presenceId
+      )
+      actors.set(options.selfActor.presenceId, existing ?? actorPresence(options.selfActor, selfClientId))
+    }
+    const collaborators = Array.from(actors.values()).sort((left, right) => {
+      const leftSelf = left.presenceId === options.selfActor?.presenceId ? 1 : 0
+      const rightSelf = right.presenceId === options.selfActor?.presenceId ? 1 : 0
+      return rightSelf - leftSelf || right.updatedAt - left.updatedAt
+    })
+    return { selfClientId, sessions: activeSessions, remoteSessions, collaborators }
+  }
+  const publish = () => options.onChange?.(readSnapshot())
+
+  return {
+    setSelfClientId: (clientId) => {
+      selfClientId = clientId
+      publish()
+    },
+    replace: (items, clientId = selfClientId) => {
+      selfClientId = clientId
+      sessions = new Map(items.map((item) => [item.clientId, item]))
+      publish()
+    },
+    upsert: (item) => {
+      sessions.set(item.clientId, item)
+      publish()
+    },
+    remove: (clientId) => {
+      if (sessions.delete(clientId)) publish()
+    },
+    clear: () => {
+      sessions.clear()
+      selfClientId = null
+      publish()
+    },
+    snapshot: readSnapshot
+  }
 }
 
 /**
@@ -127,13 +226,17 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
   const batchMs = positiveInteger(options.batchMs, 40)
   const syncIntervalMs = positiveInteger(options.syncIntervalMs, 2_000)
   const presenceHeartbeatMs = positiveInteger(options.presenceHeartbeatMs, 5_000)
+  const presenceStaleMs = positiveInteger(options.presenceStaleMs, 15_000)
   let presence: CollaborationPresencePatch = { ...(options.initialPresence ?? {}) }
   let pending: Uint8Array[] = []
   let flushTimer: ReturnType<typeof setTimeout> | undefined
   let syncTimer: ReturnType<typeof setInterval> | undefined
   let presenceTimer: ReturnType<typeof setInterval> | undefined
+  let presenceCleanupTimer: ReturnType<typeof setInterval> | undefined
+  let selfClientId: string | null = options.transport.clientId ?? null
   let started = false
   const cleanups: Array<() => void> = []
+  const presenceSeenAt = new Map<string, number>()
 
   const reportError = (error: unknown) => options.onError?.(error instanceof Error ? error : new Error(String(error)))
   const emitPresence = () => options.transport.emit('presence', { ...presence })
@@ -182,6 +285,7 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     )
     cleanups.push(
       options.transport.on('connect', () => {
+        selfClientId = options.transport.clientId ?? selfClientId
         options.onConnectionChange?.('connected')
         requestSync()
         emitPresence()
@@ -199,20 +303,29 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     cleanups.push(
       options.transport.on('presence', (payload) => {
         const item = parsePresence(payload)
-        if (item) options.onPresence?.(item)
+        if (item) {
+          presenceSeenAt.set(item.clientId, Date.now())
+          options.onPresence?.(item)
+        }
       })
     )
     cleanups.push(
       options.transport.on('presence-snapshot', (payload) => {
         const rawItems = payload['items']
         const items = Array.isArray(rawItems) ? rawItems.map(parsePresence).filter(isPresence) : []
-        options.onPresenceSnapshot?.(items)
+        selfClientId = stringValue(payload['selfClientId']) ?? options.transport.clientId ?? selfClientId
+        presenceSeenAt.clear()
+        for (const item of items) presenceSeenAt.set(item.clientId, Date.now())
+        options.onPresenceSnapshot?.(items, { selfClientId })
       })
     )
     cleanups.push(
       options.transport.on('presence-remove', (payload) => {
         const clientId = stringValue(payload['clientId'])
-        if (clientId) options.onPresenceRemove?.(clientId)
+        if (clientId) {
+          presenceSeenAt.delete(clientId)
+          options.onPresenceRemove?.(clientId)
+        }
       })
     )
     cleanups.push(
@@ -222,6 +335,17 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     )
     syncTimer = setInterval(requestSync, syncIntervalMs)
     presenceTimer = setInterval(emitPresence, presenceHeartbeatMs)
+    presenceCleanupTimer = setInterval(
+      () => {
+        const cutoff = Date.now() - presenceStaleMs
+        for (const [clientId, seenAt] of presenceSeenAt) {
+          if (clientId === selfClientId || seenAt >= cutoff) continue
+          presenceSeenAt.delete(clientId)
+          options.onPresenceRemove?.(clientId)
+        }
+      },
+      Math.min(5_000, Math.max(1_000, Math.floor(presenceStaleMs / 3)))
+    )
     options.transport.connect()
   }
 
@@ -233,15 +357,21 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     if (flushTimer) clearTimeout(flushTimer)
     if (syncTimer) clearInterval(syncTimer)
     if (presenceTimer) clearInterval(presenceTimer)
+    if (presenceCleanupTimer) clearInterval(presenceCleanupTimer)
     flushTimer = undefined
     syncTimer = undefined
     presenceTimer = undefined
+    presenceCleanupTimer = undefined
+    presenceSeenAt.clear()
     while (cleanups.length) cleanups.pop()?.()
     options.transport.disconnect()
     options.onConnectionChange?.('disconnected')
   }
 
   return {
+    get selfClientId() {
+      return selfClientId
+    },
     remoteOrigin,
     connect,
     disconnect,
@@ -251,6 +381,23 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
       presence = { ...presence, ...patch }
       if (options.transport.connected) emitPresence()
     }
+  }
+}
+
+function actorPresence(actor: ICollaborationActor, clientId: string | null): ICollaborationPresence {
+  return {
+    ...actor,
+    clientId: clientId ?? `self:${actor.presenceId}`,
+    pageId: null,
+    pointer: null,
+    focus: null,
+    selection: null,
+    viewport: null,
+    mode: null,
+    status: null,
+    toolName: null,
+    operationLabel: null,
+    updatedAt: Date.now()
   }
 }
 

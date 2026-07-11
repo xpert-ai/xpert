@@ -570,16 +570,25 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         if (Buffer.byteLength(JSON.stringify(presence)) > MAX_PRESENCE_BYTES)
             throw new BadRequestException('Collaboration presence exceeds the platform size limit.')
         if (this.redis) {
-            const key = presenceKey(scope, documentId)
-            await this.redis.hSet(key, clientId, JSON.stringify(presence))
-            await this.redis.expire(key, PRESENCE_TTL_SECONDS)
+            const indexKey = presenceIndexKey(scope, documentId)
+            await Promise.all([
+                this.redis.set(presenceEntryKey(scope, documentId, clientId), JSON.stringify(presence), {
+                    EX: PRESENCE_TTL_SECONDS
+                }),
+                this.redis.sAdd(indexKey, clientId)
+            ])
+            await this.redis.expire(indexKey, PRESENCE_TTL_SECONDS * 2)
         }
         await this.publishBroadcast({ nodeId: this.nodeId, type: 'presence', documentId, payload: { ...presence } })
         return presence
     }
 
     private async removePresence(documentId: string, clientId: string, scope: CollaborationScope) {
-        if (this.redis) await this.redis.hDel(presenceKey(scope, documentId), clientId).catch(() => undefined)
+        if (this.redis)
+            await Promise.all([
+                this.redis.del(presenceEntryKey(scope, documentId, clientId)),
+                this.redis.sRem(presenceIndexKey(scope, documentId), clientId)
+            ]).catch(() => undefined)
         await this.publishBroadcast({ nodeId: this.nodeId, type: 'presence-remove', documentId, payload: { clientId } })
     }
 
@@ -588,17 +597,38 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         if (!this.redis) return []
         const document = await this.documentRepository.findOneBy({ id: documentId })
         if (!document) return []
-        const key = presenceKey(documentScope(document), documentId)
-        const values = await this.redis.hGetAll(key).catch(() => ({}))
+        const scope = documentScope(document)
+        const indexKey = presenceIndexKey(scope, documentId)
+        const clientIds = await this.redis.sMembers(indexKey).catch(() => [])
+        const values = await Promise.all(
+            clientIds.map(async (clientId) => ({
+                clientId,
+                raw: await this.redis?.get(presenceEntryKey(scope, documentId, clientId)).catch(() => null)
+            }))
+        )
         const cutoff = Date.now() - PRESENCE_STALE_MS
         const active: ICollaborationPresence[] = []
         const stale: string[] = []
-        for (const [clientId, raw] of Object.entries(values)) {
-            const parsed = parsePresence(raw)
+        for (const { clientId, raw } of values) {
+            const parsed = raw ? parsePresence(raw) : null
             if (!parsed || parsed.updatedAt < cutoff) stale.push(clientId)
             else active.push(parsed)
         }
-        if (stale.length) await this.redis.hDel(key, stale).catch(() => undefined)
+        if (stale.length) {
+            await Promise.all(
+                stale.flatMap((clientId) => [
+                    this.redis!.del(presenceEntryKey(scope, documentId, clientId)),
+                    this.redis!.sRem(indexKey, clientId)
+                ])
+            ).catch(() => undefined)
+            for (const clientId of stale)
+                await this.publishBroadcast({
+                    nodeId: this.nodeId,
+                    type: 'presence-remove',
+                    documentId,
+                    payload: { clientId }
+                })
+        }
         return active
     }
 
@@ -924,6 +954,12 @@ function sessionKey(sessionId: string) {
 }
 function presenceKey(scope: CollaborationScope, documentId: string) {
     return `xpert:collaboration:presence:${collaborationScopeKey(scope)}:${documentId}`
+}
+function presenceIndexKey(scope: CollaborationScope, documentId: string) {
+    return `${presenceKey(scope, documentId)}:index`
+}
+function presenceEntryKey(scope: CollaborationScope, documentId: string, clientId: string) {
+    return `${presenceKey(scope, documentId)}:entry:${createHash('sha256').update(clientId).digest('base64url')}`
 }
 function hashSecret(value: string) {
     return createHash('sha256').update(value).digest('hex')

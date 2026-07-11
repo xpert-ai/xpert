@@ -48,7 +48,10 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
         this.clients.set(client, { session })
         await client.join(room(session.documentId))
         client.emit('sync', await this.collaboration.getStateForSession(session))
-        client.emit('presence-snapshot', { items: await this.collaboration.listPresenceForSession(session) })
+        client.emit('presence-snapshot', {
+            selfClientId: client.id,
+            items: await this.collaboration.listPresenceForSession(session)
+        })
     }
 
     async handleDisconnect(client: Socket) {
