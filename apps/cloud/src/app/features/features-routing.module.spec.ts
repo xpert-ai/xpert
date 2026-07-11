@@ -1,4 +1,8 @@
 jest.mock('../@core', () => ({
+  AiFeatureEnum: {
+    FEATURE_XPERT: 'FEATURE_XPERT',
+    FEATURE_XPERT_MARKETPLACE: 'FEATURE_XPERT_MARKETPLACE'
+  },
   AnalyticsPermissionsEnum: {
     STORIES_VIEW: 'STORIES_VIEW',
     STORIES_EDIT: 'STORIES_EDIT',
@@ -9,9 +13,18 @@ jest.mock('../@core', () => ({
     XPERT_EDIT: 'XPERT_EDIT'
   },
   RolesEnum: {
+    ADMIN: 'ADMIN',
+    AI_BUILDER: 'AI_BUILDER',
     SUPER_ADMIN: 'SUPER_ADMIN'
   },
   authGuard: jest.fn()
+}))
+
+jest.mock('./feature-gate', () => ({
+  featureGate: jest.fn((featureKeys: string[], redirectCommands: string[]) => ({
+    featureKeys,
+    redirectCommands
+  }))
 }))
 
 jest.mock('./features.component', () => ({
@@ -31,7 +44,7 @@ jest.mock('../app.service', () => ({
 }))
 
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { routes } from './features-routing.module'
+import { routes, xpertMarketplaceRouteGate } from './features-routing.module'
 
 describe('features routing', () => {
   const children = routes[0].children ?? []
@@ -71,6 +84,16 @@ describe('features routing', () => {
     expect(route?.data?.title).toBe('MCP Monitor')
     expect(route?.data?.scopeContext).toBe('dual-scope')
     expect(route?.data?.permissions?.only).toEqual(['SUPER_ADMIN'])
+  })
+
+  it('mounts xpert access requests at the top level behind marketplace and reviewer role gates', () => {
+    const route = children.find((item) => item.path === 'xpert-access-requests')
+
+    expect(route?.loadComponent).toEqual(expect.any(Function))
+    expect(route?.canActivate).toContain(NgxPermissionsGuard)
+    expect(route?.canActivate).toContain(xpertMarketplaceRouteGate)
+    expect(route?.data?.scopeContext).toBe('organization-only')
+    expect(route?.data?.permissions?.only).toEqual(['AI_BUILDER', 'ADMIN', 'SUPER_ADMIN'])
   })
 
   it('mounts model providers at the top-level /copilot route', () => {

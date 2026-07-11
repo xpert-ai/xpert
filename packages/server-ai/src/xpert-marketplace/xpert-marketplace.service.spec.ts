@@ -13,6 +13,8 @@ import {
 import { RequestContext, User, UserGroup } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import type { Xpert } from '../xpert/xpert.entity'
+import { XpertWorkspaceAccessService } from '../xpert-workspace'
+import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertAccessRequest } from './xpert-access-request.entity'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
 
@@ -51,6 +53,19 @@ function createRequest(overrides: Partial<XpertAccessRequest> = {}) {
     } as XpertAccessRequest
 }
 
+function createWorkspace(overrides: Partial<XpertWorkspace> = {}) {
+    return {
+        id: 'workspace-1',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        name: 'Workspace',
+        status: 'active',
+        ownerId: 'owner-1',
+        members: [],
+        ...overrides
+    } as XpertWorkspace
+}
+
 function createDiscoverableQueryBuilder(xpert: Xpert | null = createDiscoverableXpert()) {
     return {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -67,8 +82,10 @@ function createService(options?: {
     xpert?: Xpert | null
     existingRequest?: XpertAccessRequest | null
     decisionRequest?: XpertAccessRequest | null
+    reviewableRequests?: XpertAccessRequest[]
     managedGroup?: UserGroup | null
     requester?: User | null
+    canManageWorkspace?: boolean
 }) {
     const queryBuilder = createDiscoverableQueryBuilder(options?.xpert)
     const requestQueryBuilder = {
@@ -82,7 +99,7 @@ function createService(options?: {
     }
     const requestRepository = {
         createQueryBuilder: jest.fn().mockReturnValue(requestQueryBuilder),
-        find: jest.fn().mockResolvedValue([]),
+        find: jest.fn().mockResolvedValue(options?.reviewableRequests ?? []),
         findOne: jest.fn().mockResolvedValueOnce(options?.existingRequest ?? options?.decisionRequest ?? null),
         create: jest.fn().mockImplementation((input: Partial<XpertAccessRequest>) => input as XpertAccessRequest),
         save: jest.fn().mockImplementation(async (entity: XpertAccessRequest) => entity)
@@ -116,12 +133,23 @@ function createService(options?: {
                 : options.requester
         )
     }
+    const workspaceAccessService = new XpertWorkspaceAccessService(asRepository<XpertWorkspace>({}))
+    jest.spyOn(workspaceAccessService, 'getCapabilities').mockImplementation(async (workspace: XpertWorkspace) => {
+        const canManage = options?.canManageWorkspace ?? workspace.ownerId === RequestContext.currentUserId()
+        return {
+            canRead: canManage,
+            canRun: canManage,
+            canWrite: canManage,
+            canManage
+        }
+    })
 
     const service = new XpertMarketplaceService(
         asRepository<Xpert>(xpertRepository),
         asRepository<XpertAccessRequest>(requestRepository),
         asRepository<UserGroup>(userGroupRepository),
-        asRepository<User>(userRepository)
+        asRepository<User>(userRepository),
+        workspaceAccessService
     )
 
     return {
@@ -132,6 +160,7 @@ function createService(options?: {
         requestRepository,
         userGroupRepository,
         userRepository,
+        workspaceAccessService,
         createdGroup
     }
 }
@@ -175,24 +204,102 @@ describe('XpertMarketplaceService', () => {
         expect(requestRepository.save).not.toHaveBeenCalled()
     })
 
-    it('rejects approve decisions from users who cannot review the xpert', async () => {
+    it('only returns requests for workspaces the current user can manage', async () => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+        const reviewableRequest = createRequest({
+            requesterId: 'requester-2',
+            xpert: createDiscoverableXpert({
+                workspace: createWorkspace()
+            })
+        })
+        const { service, workspaceAccessService } = createService({
+            reviewableRequests: [reviewableRequest],
+            canManageWorkspace: false
+        })
+
+        await expect(service.findReviewableRequests()).resolves.toEqual([])
+        expect(workspaceAccessService.getCapabilities).toHaveBeenCalledWith(reviewableRequest.xpert?.workspace)
+    })
+
+    it('does not return the current users own request even when they manage the workspace', async () => {
+        const ownRequest = createRequest({
+            xpert: createDiscoverableXpert({
+                createdById: 'user-1',
+                workspace: createWorkspace({ ownerId: 'user-1' })
+            })
+        })
+        const { service, workspaceAccessService } = createService({
+            reviewableRequests: [ownRequest],
+            canManageWorkspace: true
+        })
+
+        await expect(service.findReviewableRequests()).resolves.toEqual([])
+        expect(workspaceAccessService.getCapabilities).not.toHaveBeenCalled()
+    })
+
+    it('rejects approve decisions when global xpert edit permission lacks workspace management access', async () => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         const decisionRequest = createRequest({
+            requesterId: 'requester-2',
             xpert: createDiscoverableXpert({
                 createdById: 'owner-1',
-                workspace: {
-                    id: 'workspace-1',
-                    name: 'Workspace',
-                    status: 'active',
-                    ownerId: 'owner-1',
-                    members: []
-                }
+                workspace: createWorkspace()
             })
         })
         const { service, requestRepository } = createService({
-            decisionRequest
+            decisionRequest,
+            canManageWorkspace: false
         })
 
         await expect(service.approveRequest('request-1')).rejects.toThrow(ForbiddenException)
+        expect(requestRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('rejects reject decisions without workspace management access', async () => {
+        const decisionRequest = createRequest({
+            requesterId: 'requester-2',
+            xpert: createDiscoverableXpert({
+                workspace: createWorkspace()
+            })
+        })
+        const { service, requestRepository } = createService({
+            decisionRequest,
+            canManageWorkspace: false
+        })
+
+        await expect(service.rejectRequest('request-1')).rejects.toThrow(ForbiddenException)
+        expect(requestRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('rejects approve decisions for the current users own request', async () => {
+        const decisionRequest = createRequest({
+            xpert: createDiscoverableXpert({
+                createdById: 'user-1',
+                workspace: createWorkspace({ ownerId: 'user-1' })
+            })
+        })
+        const { service, requestRepository } = createService({
+            decisionRequest,
+            canManageWorkspace: true
+        })
+
+        await expect(service.approveRequest('request-1')).rejects.toThrow(ForbiddenException)
+        expect(requestRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('rejects reject decisions for the current users own request', async () => {
+        const decisionRequest = createRequest({
+            xpert: createDiscoverableXpert({
+                createdById: 'user-1',
+                workspace: createWorkspace({ ownerId: 'user-1' })
+            })
+        })
+        const { service, requestRepository } = createService({
+            decisionRequest,
+            canManageWorkspace: true
+        })
+
+        await expect(service.rejectRequest('request-1')).rejects.toThrow(ForbiddenException)
         expect(requestRepository.save).not.toHaveBeenCalled()
     })
 
@@ -209,6 +316,7 @@ describe('XpertMarketplaceService', () => {
 
         const xpert = createDiscoverableXpert({
             createdById: 'owner-1',
+            workspace: createWorkspace(),
             userGroups: []
         })
         const decisionRequest = createRequest({
@@ -291,6 +399,7 @@ describe('XpertMarketplaceService', () => {
         } as UserGroup
         const xpert = createDiscoverableXpert({
             createdById: 'owner-1',
+            workspace: createWorkspace(),
             userGroups: []
         })
         const decisionRequest = createRequest({

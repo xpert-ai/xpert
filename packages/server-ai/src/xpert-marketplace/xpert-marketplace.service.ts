@@ -1,12 +1,9 @@
 import {
-    AIPermissionsEnum,
     IXpert,
     IXpertAccessRequest,
     IXpertMarketplaceItem,
     IXpertMarketplaceListResponse,
     IUser,
-    PermissionsEnum,
-    RolesEnum,
     TXpertAccessRequestCreateInput,
     TXpertAccessRequestDecisionInput,
     TXpertMarketplaceAccessStatus,
@@ -25,6 +22,7 @@ import { RequestContext, User, UserGroup } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { Brackets, Repository } from 'typeorm'
 import { Xpert } from '../xpert/xpert.entity'
+import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { XpertAccessRequest } from './xpert-access-request.entity'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
@@ -43,7 +41,8 @@ export class XpertMarketplaceService {
         @InjectRepository(UserGroup)
         private readonly userGroupRepository: Repository<UserGroup>,
         @InjectRepository(User)
-        private readonly userRepository: Repository<User>
+        private readonly userRepository: Repository<User>,
+        private readonly workspaceAccessService: XpertWorkspaceAccessService
     ) {}
 
     async findMarketplace(query: TXpertMarketplaceQuery = {}): Promise<IXpertMarketplaceListResponse> {
@@ -51,9 +50,9 @@ export class XpertMarketplaceService {
         const requests = await this.findCurrentUserRequests(xperts.map((xpert) => xpert.id))
         const requestsByXpertId = new Map(requests.map((request) => [request.xpertId, request]))
 
-        const allItems = xperts
-            .map((xpert) => this.toMarketplaceItem(xpert, requestsByXpertId.get(xpert.id)))
-            .filter((item) => this.matchesFilters(item, query))
+        const allItems = (
+            await Promise.all(xperts.map((xpert) => this.toMarketplaceItem(xpert, requestsByXpertId.get(xpert.id))))
+        ).filter((item) => this.matchesFilters(item, query))
 
         this.sortItems(allItems, query.sort)
 
@@ -72,7 +71,7 @@ export class XpertMarketplaceService {
     async getMarketplaceItem(id: string): Promise<IXpertMarketplaceItem> {
         const xpert = await this.findDiscoverableXpert(id)
         const request = await this.findCurrentUserRequest(id)
-        return this.toMarketplaceItem(xpert, request)
+        return await this.toMarketplaceItem(xpert, request)
     }
 
     async requestAccess(id: string, input?: TXpertAccessRequestCreateInput): Promise<IXpertAccessRequest> {
@@ -163,21 +162,23 @@ export class XpertMarketplaceService {
             }
         })
 
-        return requests
-            .filter((request) => request.xpert && this.canReviewXpert(request.xpert))
-            .map((request) => this.toPublicRequest(request))
+        const reviewableRequests: IXpertAccessRequest[] = []
+        for (const request of requests) {
+            if (
+                request.requesterId !== this.currentUserId() &&
+                request.xpert &&
+                (await this.canReviewXpert(request.xpert))
+            ) {
+                reviewableRequests.push(this.toPublicRequest(request))
+            }
+        }
+
+        return reviewableRequests
     }
 
     async approveRequest(id: string, input?: TXpertAccessRequestDecisionInput): Promise<IXpertAccessRequest> {
         const request = await this.findRequestForDecision(id)
-        const xpert = request.xpert
-        if (!xpert || !this.canReviewXpert(xpert)) {
-            throw new ForbiddenException(
-                t('server-ai:Error.XpertMarketplaceReviewForbidden', {
-                    defaultValue: 'You are not allowed to review this request.'
-                })
-            )
-        }
+        const xpert = await this.assertCanReviewRequest(request)
 
         const group = await this.ensureAccessGroup(xpert)
         const requester = await this.userRepository.findOne({
@@ -215,13 +216,7 @@ export class XpertMarketplaceService {
 
     async rejectRequest(id: string, input?: TXpertAccessRequestDecisionInput): Promise<IXpertAccessRequest> {
         const request = await this.findRequestForDecision(id)
-        if (!request.xpert || !this.canReviewXpert(request.xpert)) {
-            throw new ForbiddenException(
-                t('server-ai:Error.XpertMarketplaceReviewForbidden', {
-                    defaultValue: 'You are not allowed to review this request.'
-                })
-            )
-        }
+        await this.assertCanReviewRequest(request)
 
         request.status = XpertAccessRequestStatusEnum.REJECTED
         request.reviewerId = this.currentUserId()
@@ -384,14 +379,14 @@ export class XpertMarketplaceService {
         return name.length > 100 ? name.slice(0, 100) : name
     }
 
-    private toMarketplaceItem(xpert: Xpert, request?: XpertAccessRequest | null): IXpertMarketplaceItem {
+    private async toMarketplaceItem(xpert: Xpert, request?: XpertAccessRequest | null): Promise<IXpertMarketplaceItem> {
         const marketplace = this.resolveMarketplaceProfile(xpert)
         return {
             xpert: this.toMarketplaceXpert(xpert, marketplace),
             marketplace,
             accessStatus: this.resolveAccessStatus(xpert, request ?? null),
             request: request ? this.toPublicRequest(request) : null,
-            canReview: this.canReviewXpert(xpert)
+            canReview: await this.canReviewXpert(xpert)
         }
     }
 
@@ -442,24 +437,33 @@ export class XpertMarketplaceService {
         )
     }
 
-    private canReviewXpert(xpert: Xpert) {
-        const userId = this.currentUserId()
-        if (xpert.createdById === userId || xpert.workspace?.ownerId === userId) {
-            return true
-        }
-        if (this.isOrgOrTenantAdmin()) {
-            return true
+    private async assertCanReviewRequest(request: XpertAccessRequest) {
+        if (request.requesterId === this.currentUserId()) {
+            throw new ForbiddenException(
+                t('server-ai:Error.XpertMarketplaceSelfReviewForbidden', {
+                    defaultValue: 'You cannot review your own access request.'
+                })
+            )
         }
 
-        return (
-            RequestContext.hasPermission(PermissionsEnum.ALL_ORG_EDIT, false) ||
-            RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)
-        )
+        if (!request.xpert || !(await this.canReviewXpert(request.xpert))) {
+            throw new ForbiddenException(
+                t('server-ai:Error.XpertMarketplaceReviewForbidden', {
+                    defaultValue: 'You are not allowed to review this request.'
+                })
+            )
+        }
+
+        return request.xpert
     }
 
-    private isOrgOrTenantAdmin() {
-        const role = RequestContext.currentUser()?.role?.name
-        return role === RolesEnum.SUPER_ADMIN || role === RolesEnum.ADMIN
+    private async canReviewXpert(xpert: Xpert) {
+        if (xpert.workspace) {
+            const capabilities = await this.workspaceAccessService.getCapabilities(xpert.workspace)
+            return capabilities.canManage
+        }
+
+        return xpert.createdById === this.currentUserId()
     }
 
     private matchesFilters(item: IXpertMarketplaceItem, query: TXpertMarketplaceQuery) {

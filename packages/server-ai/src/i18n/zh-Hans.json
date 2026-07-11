@@ -29,6 +29,7 @@
         "XpertMarketplaceUserRequired": "访问智能体广场需要用户上下文。",
         "XpertMarketplaceAlreadyAccessible": "你已经拥有此智能体的访问权限。",
         "XpertMarketplaceReviewForbidden": "你无权审批此申请。",
+        "XpertMarketplaceSelfReviewForbidden": "你不能审批自己提交的访问申请。",
         "XpertMarketplaceRequesterNotFound": "未找到申请用户。",
         "XpertMarketplaceNotFound": "未找到该广场智能体。",
         "XpertMarketplaceRequestNotFound": "未找到该访问申请。"

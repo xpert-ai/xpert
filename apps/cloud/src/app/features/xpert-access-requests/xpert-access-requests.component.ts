@@ -3,11 +3,11 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core'
 import { injectOrganization } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardBadgeComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { XpertAccessRequestReviewListComponent } from '../../xpert-access-requests/review-requests-list.component'
+import { XpertAccessRequestReviewListComponent } from './review-requests-list.component'
 
 @Component({
   standalone: true,
-  selector: 'pac-xpert-access-requests-settings',
+  selector: 'xp-xpert-access-requests',
   imports: [
     CommonModule,
     TranslateModule,
@@ -95,7 +95,7 @@ import { XpertAccessRequestReviewListComponent } from '../../xpert-access-reques
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertAccessRequestsSettingsComponent {
+export class XpertAccessRequestsComponent {
   readonly organization = injectOrganization()
   readonly reviewableCount = signal(0)
   readonly filteredCount = signal(0)

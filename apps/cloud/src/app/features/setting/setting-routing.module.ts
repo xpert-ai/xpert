@@ -14,11 +14,6 @@ export const membershipPlanAccountGate = featureGate(
   [AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN],
   ['/settings/account/profile']
 )
-export const xpertMarketplaceSettingsGate = featureGate(
-  [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_MARKETPLACE],
-  ['/settings']
-)
-
 export const routes: Routes = [
   {
     path: '',
@@ -134,22 +129,6 @@ export const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/groups',
-          scopeContext: 'organization-only',
-          permissions: {
-            only: [PermissionsEnum.ORG_USERS_VIEW],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'xpert-access-requests',
-        loadComponent: () =>
-          import('./xpert-access-requests/xpert-access-requests.component').then(
-            (m) => m.XpertAccessRequestsSettingsComponent
-          ),
-        canActivate: [NgxPermissionsGuard, xpertMarketplaceSettingsGate],
-        data: {
-          title: 'settings/xpert-access-requests',
           scopeContext: 'organization-only',
           permissions: {
             only: [PermissionsEnum.ORG_USERS_VIEW],
