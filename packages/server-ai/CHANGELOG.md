@@ -1,5 +1,27 @@
 # @xpert-ai/server-ai
 
+## 3.9.12
+
+### Patch Changes
+
+- Updated dependencies [601438f]
+    - @xpert-ai/plugin-sdk@3.15.9
+    - @xpert-ai/contracts@3.15.9
+    - @xpert-ai/server-core@3.9.27
+    - @xpert-ai/copilot@3.9.24
+
+## 3.9.11
+
+### Patch Changes
+
+- 7ab7aa1: Add connector contracts, management UI, runtime APIs, and connector middleware support.
+- Updated dependencies [7ab7aa1]
+- Updated dependencies [121ced0]
+    - @xpert-ai/contracts@3.15.8
+    - @xpert-ai/plugin-sdk@3.15.8
+    - @xpert-ai/copilot@3.9.23
+    - @xpert-ai/server-core@3.9.26
+
 ## 3.9.10
 
 ### Patch Changes
