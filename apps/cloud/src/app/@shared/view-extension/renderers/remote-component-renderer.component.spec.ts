@@ -17,7 +17,10 @@ import { TestBed } from '@angular/core/testing'
 import { of, Subject } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
-import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import {
+  XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
+  XpertExtensionViewManifest
+} from '@xpert-ai/contracts'
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import { ViewHostEventBus } from '../view-host-event-bus.service'
@@ -418,7 +421,7 @@ describe('RemoteComponentRendererComponent', () => {
         channel: 'xpertai.remote_component',
         protocolVersion: 1,
         instanceId: component.instanceId(),
-        type: 'invokeClientCommand',
+        type: XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
         requestId: 'request-1',
         commandKey: 'assistant.chat.send_message',
         payload: {

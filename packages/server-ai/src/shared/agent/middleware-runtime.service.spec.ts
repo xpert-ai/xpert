@@ -1234,6 +1234,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(conversationCommand.entity).toEqual(
             expect.objectContaining({
                 id: 'conversation-1',
+                createdById: 'user-1',
                 status: 'busy',
                 taskId: 'task-1',
                 xpertId: 'assistant-1',

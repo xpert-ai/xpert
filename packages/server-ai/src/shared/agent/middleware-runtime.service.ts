@@ -420,6 +420,7 @@ export class AgentMiddlewareRuntimeService {
         const conversation = await this.commandBus.execute<ChatConversationUpsertCommand, IChatConversation>(
             new ChatConversationUpsertCommand({
                 id: conversationId,
+                createdById: RequestContext.currentUserId(),
                 status: 'busy',
                 xpertId,
                 from: 'job',

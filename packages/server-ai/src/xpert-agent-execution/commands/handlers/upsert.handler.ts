@@ -6,20 +6,23 @@ import { XpertAgentExecutionUpsertCommand } from '../upsert.command'
 
 @CommandHandler(XpertAgentExecutionUpsertCommand)
 export class XpertAgentExecutionUpsertHandler implements ICommandHandler<XpertAgentExecutionUpsertCommand> {
-	readonly #logger = new Logger(XpertAgentExecutionUpsertHandler.name)
+    readonly #logger = new Logger(XpertAgentExecutionUpsertHandler.name)
 
-	constructor(
-		private readonly executionService: XpertAgentExecutionService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+    constructor(
+        private readonly executionService: XpertAgentExecutionService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {}
 
-	public async execute(command: XpertAgentExecutionUpsertCommand): Promise<IXpertAgentExecution> {
-		const entity = command.execution
-		if (entity.id) {
-			await this.executionService.update(entity.id, entity)
-			return await this.executionService.findOne(entity.id)
-		}
-		return await this.executionService.create(entity)
-	}
+    public async execute(command: XpertAgentExecutionUpsertCommand): Promise<IXpertAgentExecution> {
+        const entity = command.execution
+        if (entity.id) {
+            const existing = await this.executionService.findOneOrFailByIdString(entity.id)
+            if (existing.success) {
+                await this.executionService.update(entity.id, entity)
+                return await this.executionService.findOne(entity.id)
+            }
+        }
+        return await this.executionService.create(entity)
+    }
 }

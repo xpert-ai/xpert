@@ -235,7 +235,12 @@ import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import {
+  WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_NAVIGATION_OPEN_COMMAND,
+  type IconDefinition,
+  type XpertExtensionViewManifest
+} from '@xpert-ai/contracts'
 import { of } from 'rxjs'
 import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
@@ -1066,6 +1071,63 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect.objectContaining({ id: 'history-conversation-1', threadId: 'history-thread-1' })
     )
     expect(conversationService.markRead).toHaveBeenCalledWith('history-conversation-1')
+  })
+
+  it('opens assistant conversation client commands inside the embedded chatkit', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'job-conversation-1',
+        threadId: 'persisted-thread-1',
+        status: 'busy',
+        messages: []
+      } as IChatConversation)
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    facade.onChatThreadChange.mockClear()
+    conversationService.markRead.mockClear()
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        executionId: 'job-execution-1'
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'drawing-material',
+        manifest: buildFixedViewManifest('drawing-material')
+      }
+    )
+    await settle(fixture)
+
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+      conversationId: 'job-conversation-1',
+      threadId: 'job-thread-1',
+      executionId: 'job-execution-1'
+    })
+    expect(conversationService.getById).toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
+    expect(setThreadId).toHaveBeenCalledWith('job-thread-1')
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('job-thread-1')
+    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'job-conversation-1', threadId: 'job-thread-1' })
+    )
+    expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
   })
 
   it('adds a browser tab with the resolved conversation context', async () => {
