@@ -8,6 +8,7 @@ import {
     IXpertAgentExecution,
     TChatConversationStatus,
     TChatRequest,
+    XpertAgentExecutionStatusEnum,
     mapTranslationLanguage
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
@@ -82,8 +83,11 @@ import {
 } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
+import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
+import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { ConnectorService } from '../../connector/connector.service'
 import { ArtifactsService } from '../../artifacts'
 import { CollaborationService } from '../../collaboration'
@@ -381,18 +385,21 @@ export class AgentMiddlewareRuntimeService {
     async getAssistantTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskResult | null> {
+        const execution = await this.findAssistantTaskExecution(input)
         const conversation = await this.findAssistantTaskConversation(input)
-        if (!conversation) {
+        if (!execution && !conversation) {
             return null
         }
 
         return {
-            status: mapConversationStatusToTaskStatus(conversation.status),
+            status: execution
+                ? mapExecutionStatusToTaskStatus(execution.status)
+                : mapConversationStatusToTaskStatus(conversation?.status),
             taskId: normalizeOptionalString(input.taskId),
-            executionId: normalizeOptionalString(input.executionId),
-            conversationId: conversation.id,
-            threadId: conversation.threadId,
-            errorMessage: conversation.error
+            executionId: execution?.id ?? normalizeOptionalString(input.executionId),
+            conversationId: conversation?.id ?? normalizeOptionalString(input.conversationId),
+            threadId: execution?.threadId ?? conversation?.threadId ?? normalizeOptionalString(input.threadId),
+            errorMessage: execution?.error ?? conversation?.error
         }
     }
 
@@ -406,12 +413,39 @@ export class AgentMiddlewareRuntimeService {
             throw new Error('prompt is required to start an assistant task')
         }
 
-        const taskId = normalizeOptionalString(input.taskId) ?? randomUUID()
+        const requestedTaskId = normalizeOptionalString(input.taskId)
+        const taskId = requestedTaskId ?? randomUUID()
+        const conversationId = normalizeOptionalString(input.conversationId) ?? randomUUID()
+        const executionId = normalizeOptionalString(input.executionId) ?? randomUUID()
+        const conversation = await this.commandBus.execute<ChatConversationUpsertCommand, IChatConversation>(
+            new ChatConversationUpsertCommand({
+                id: conversationId,
+                status: 'busy',
+                xpertId,
+                from: 'job',
+                options: {
+                    parameters: {
+                        input: prompt
+                    }
+                },
+                ...(requestedTaskId ? { taskId: requestedTaskId } : {})
+            })
+        )
+        const execution = await this.commandBus.execute<XpertAgentExecutionUpsertCommand, IXpertAgentExecution>(
+            new XpertAgentExecutionUpsertCommand({
+                id: executionId,
+                xpertId,
+                agentKey: normalizeOptionalString(input.agentKey),
+                status: XpertAgentExecutionStatusEnum.RUNNING,
+                threadId: conversation.threadId,
+                metadata: {
+                    from: 'job'
+                }
+            })
+        )
         const request: TChatRequest = {
             action: 'send',
-            ...(normalizeOptionalString(input.conversationId)
-                ? { conversationId: normalizeOptionalString(input.conversationId) }
-                : {}),
+            conversationId: conversation.id,
             ...(normalizeOptionalString(input.projectId)
                 ? { projectId: normalizeOptionalString(input.projectId) }
                 : {}),
@@ -428,21 +462,32 @@ export class AgentMiddlewareRuntimeService {
             new XpertChatCommand(request, {
                 xpertId,
                 from: 'job',
-                taskId,
+                ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: normalizeOptionalString(input.projectId) ?? undefined,
-                context: input.context
+                context: input.context,
+                execution: { id: execution.id },
+                streamPersistence: {
+                    transport: 'redis-stream',
+                    threadId: conversation.threadId,
+                    runId: execution.id
+                }
             })
         )
 
         stream.subscribe({
-            error: (error) => this.#logger.error(error),
+            error: (error) =>
+                this.#logger.error(
+                    `Assistant task stream failed (${error instanceof Error ? error.name : 'UnknownError'})`
+                ),
             complete: () => undefined
         })
 
         return {
             status: 'running',
             taskId,
-            conversationId: normalizeOptionalString(input.conversationId)
+            conversationId: conversation.id,
+            threadId: conversation.threadId,
+            executionId: execution.id
         }
     }
 
@@ -577,6 +622,26 @@ export class AgentMiddlewareRuntimeService {
             return null
         }
     }
+
+    private async findAssistantTaskExecution(
+        input: AgentMiddlewareAssistantTaskStatusInput
+    ): Promise<IXpertAgentExecution | null> {
+        const executionId = normalizeOptionalString(input.executionId)
+        if (!executionId) {
+            return null
+        }
+
+        try {
+            return await this.queryBus.execute<XpertAgentExecutionOneQuery, IXpertAgentExecution>(
+                new XpertAgentExecutionOneQuery(executionId)
+            )
+        } catch (error) {
+            this.#logger.debug(
+                `Assistant task execution was not found: ${error instanceof Error ? error.message : String(error)}`
+            )
+            return null
+        }
+    }
 }
 
 function normalizeOptionalString(value: unknown) {
@@ -607,6 +672,26 @@ function mapConversationStatusToTaskStatus(
             return 'interrupted'
         case 'idle':
             return 'succeeded'
+        default:
+            return 'unknown'
+    }
+}
+
+function mapExecutionStatusToTaskStatus(
+    status: XpertAgentExecutionStatusEnum | undefined
+): AgentMiddlewareAssistantTaskStatus {
+    switch (status) {
+        case XpertAgentExecutionStatusEnum.PENDING:
+            return 'queued'
+        case XpertAgentExecutionStatusEnum.RUNNING:
+            return 'running'
+        case XpertAgentExecutionStatusEnum.SUCCESS:
+            return 'succeeded'
+        case XpertAgentExecutionStatusEnum.INTERRUPTED:
+            return 'interrupted'
+        case XpertAgentExecutionStatusEnum.ERROR:
+        case XpertAgentExecutionStatusEnum.TIMEOUT:
+            return 'failed'
         default:
             return 'unknown'
     }

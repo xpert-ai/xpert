@@ -82,6 +82,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-rec
 import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
+import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
 import {
     CreateKnowledgebaseDocumentsCommand,
@@ -95,6 +96,7 @@ import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../kn
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { CollaborationService } from '../../collaboration'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
@@ -105,6 +107,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let artifacts: { createScopedApi: jest.Mock }
+    let collaboration: CollaborationService
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -136,6 +139,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 defaults
             }))
         }
+        collaboration = new CollaborationService(null!, null!, null!)
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -146,7 +150,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                 getRuntimeConnector: jest.fn().mockResolvedValue(undefined)
             } as any,
             workspaceFiles,
-            artifacts as any
+            artifacts as any,
+            collaboration
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -1149,6 +1154,15 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('starts an assistant task through the runtime facade', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    ...command.entity,
+                    threadId: 'thread-1'
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution
+            }
             if (command instanceof XpertChatCommand) {
                 return of({ data: { event: 'done' } } as MessageEvent)
             }
@@ -1160,6 +1174,8 @@ describe('AgentMiddlewareRuntimeService', () => {
             xpertId: 'assistant-1',
             agentKey: 'agent-main',
             taskId: 'task-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1',
             prompt: '重新解析合同',
             files: [
                 {
@@ -1174,11 +1190,18 @@ describe('AgentMiddlewareRuntimeService', () => {
             }
         })
 
-        expect(result).toEqual(expect.objectContaining({ status: 'running', taskId: 'task-1' }))
-        const command = commandBus.execute.mock.calls[0][0] as XpertChatCommand
+        expect(result).toEqual({
+            status: 'running',
+            taskId: 'task-1',
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            executionId: 'execution-1'
+        })
+        const command = commandBus.execute.mock.calls[2][0] as XpertChatCommand
         expect(command.request).toEqual(
             expect.objectContaining({
                 action: 'send',
+                conversationId: 'conversation-1',
                 message: expect.objectContaining({
                     input: expect.objectContaining({
                         input: '重新解析合同',
@@ -1198,9 +1221,79 @@ describe('AgentMiddlewareRuntimeService', () => {
                 xpertId: 'assistant-1',
                 from: 'job',
                 taskId: 'task-1',
-                context: { source: 'test' }
+                context: { source: 'test' },
+                execution: { id: 'execution-1' },
+                streamPersistence: {
+                    transport: 'redis-stream',
+                    threadId: 'thread-1',
+                    runId: 'execution-1'
+                }
             })
         )
+        const conversationCommand = commandBus.execute.mock.calls[0][0] as ChatConversationUpsertCommand
+        expect(conversationCommand.entity).toEqual(
+            expect.objectContaining({
+                id: 'conversation-1',
+                status: 'busy',
+                taskId: 'task-1',
+                xpertId: 'assistant-1',
+                from: 'job'
+            })
+        )
+        const executionCommand = commandBus.execute.mock.calls[1][0] as XpertAgentExecutionUpsertCommand
+        expect(executionCommand.execution).toEqual(
+            expect.objectContaining({
+                id: 'execution-1',
+                xpertId: 'assistant-1',
+                agentKey: 'agent-main',
+                status: XpertAgentExecutionStatusEnum.RUNNING,
+                threadId: 'thread-1'
+            })
+        )
+    })
+
+    it('does not write a generated assistant task id into chat conversation taskId', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    ...command.entity,
+                    threadId: 'thread-generated'
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution
+            }
+            if (command instanceof XpertChatCommand) {
+                return of({ data: { event: 'done' } } as MessageEvent)
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+            xpertId: 'assistant-1',
+            prompt: '处理图纸抽取任务'
+        })
+
+        expect(result).toEqual(expect.objectContaining({ status: 'running', taskId: expect.any(String) }))
+        const conversationCommand = commandBus.execute.mock.calls[0][0] as ChatConversationUpsertCommand
+        expect(conversationCommand.entity).not.toHaveProperty('taskId')
+        const command = commandBus.execute.mock.calls[2][0] as XpertChatCommand
+        expect(command.request).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    clientMessageId: `assistant-task:${result?.taskId}`,
+                    input: expect.objectContaining({})
+                })
+            })
+        )
+        expect(command.options).toEqual(
+            expect.objectContaining({
+                xpertId: 'assistant-1',
+                from: 'job'
+            })
+        )
+        expect(command.options).not.toHaveProperty('taskId')
     })
 
     it('checks assistant task status from the chat conversation thread', async () => {
@@ -1233,6 +1326,42 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(query.conditions).toEqual({
             threadId: 'thread-1',
             xpertId: 'assistant-1'
+        })
+    })
+
+    it('prefers the persisted execution status over the conversation status', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1',
+                    status: XpertAgentExecutionStatusEnum.ERROR,
+                    error: 'safe failure summary'
+                }
+            }
+            if (query instanceof GetChatConversationQuery) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: 'idle'
+                }
+            }
+
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).getTaskStatus?.({
+            executionId: 'execution-1',
+            conversationId: 'conversation-1'
+        })
+
+        expect(result).toEqual({
+            status: 'failed',
+            taskId: undefined,
+            executionId: 'execution-1',
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            errorMessage: 'safe failure summary'
         })
     })
 })
