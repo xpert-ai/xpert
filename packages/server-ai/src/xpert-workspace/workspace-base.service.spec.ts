@@ -1,5 +1,6 @@
+import { IUser } from '@xpert-ai/contracts'
 import { FindManyOptions, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
-import { RequestContext } from '@xpert-ai/server-core'
+import { PaginationParams, RequestContext } from '@xpert-ai/server-core'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspaceBaseService } from './workspace-base.service'
@@ -89,5 +90,69 @@ describe('XpertWorkspaceBaseService', () => {
             id: 'xpert-1',
             createdById: 'user-1'
         })
+    })
+
+    it('loads workspace records for runtime with run access instead of read access', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+
+        const record = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1'
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(record)
+        } as Pick<Repository<WorkspaceBaseEntity>, 'findOne'>
+        const assertCan = jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+        const workspaceAccessService = {
+            assertCan
+        } as Pick<XpertWorkspaceAccessService, 'assertCan'>
+        const service = new XpertWorkspaceBaseService(
+            repository as Repository<WorkspaceBaseEntity>,
+            workspaceAccessService as XpertWorkspaceAccessService
+        )
+
+        await expect(service.findOneForRuntime('xpert-1')).resolves.toBe(record)
+        expect(assertCan).toHaveBeenCalledWith('workspace-1', 'run')
+    })
+
+    it('lists workspace records for runtime with run access instead of authoring access', async () => {
+        const repository = {
+            findAndCount: jest.fn().mockResolvedValue([[], 0])
+        } as Pick<Repository<WorkspaceBaseEntity>, 'findAndCount'>
+        const assertCan = jest.fn().mockResolvedValue({
+            workspace: {
+                id: 'workspace-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            }
+        })
+        const workspaceAccessService = {
+            assertCan
+        } as Pick<XpertWorkspaceAccessService, 'assertCan'>
+        const service = new XpertWorkspaceBaseService(
+            repository as Repository<WorkspaceBaseEntity>,
+            workspaceAccessService as XpertWorkspaceAccessService
+        )
+
+        await service.getAllByWorkspaceForRuntime(
+            'workspace-1',
+            { where: {} } as PaginationParams<WorkspaceBaseEntity>,
+            false,
+            { id: 'user-1' } as IUser
+        )
+
+        expect(assertCan).toHaveBeenCalledWith('workspace-1', 'run')
+        expect(assertCan).toHaveBeenCalledTimes(1)
+        expect(repository.findAndCount).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    workspaceId: 'workspace-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1'
+                })
+            })
+        )
     })
 })

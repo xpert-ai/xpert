@@ -163,8 +163,8 @@
       --secondary-foreground: var(--xui-color-secondary-foreground, var(--foreground));
       --muted: var(--xui-color-muted, #f4f4f5);
       --muted-foreground: var(--xui-color-muted-foreground, #71717a);
-      --accent: var(--xui-color-accent, color-mix(in srgb, var(--primary) 10%, var(--background)));
-      --accent-foreground: var(--xui-color-accent-foreground, var(--foreground));
+      --accent: var(--xui-color-accent, oklch(0.58 0.18 255));
+      --accent-foreground: var(--xui-color-accent-foreground, oklch(0.985 0 0));
       --destructive: var(--xui-color-destructive, #dc2626);
       --destructive-foreground: var(--xui-color-destructive-foreground, #ffffff);
       --border: var(--xui-color-border, #e4e4e7);
@@ -191,8 +191,8 @@
       --secondary-foreground: var(--xui-color-secondary-foreground, var(--foreground));
       --muted: var(--xui-color-muted, #27272a);
       --muted-foreground: var(--xui-color-muted-foreground, #a1a1aa);
-      --accent: var(--xui-color-accent, #27272a);
-      --accent-foreground: var(--xui-color-accent-foreground, var(--foreground));
+      --accent: var(--xui-color-accent, oklch(0.58 0.18 255));
+      --accent-foreground: var(--xui-color-accent-foreground, oklch(0.985 0 0));
       --border: var(--xui-color-border, #27272a);
       --input: var(--xui-color-input, var(--border));
     }

@@ -155,7 +155,7 @@
               [cdkDragDisabled]="collapsed()"
             >
               <div
-                class="cloud-sidebar-assistants__item relative"
+                class="cloud-sidebar-assistants__item group relative"
                 [class.is-active]="isActive(xpert)"
                 [zTooltip]="assistantLabel(xpert)"
                 zPosition="right"
@@ -163,7 +163,7 @@
               >
                 @if (!collapsed()) {
                   <i
-                    class="ri-draggable w-3 shrink-0 cursor-grab touch-none text-text-tertiary opacity-50 transition-opacity hover:opacity-100 active:cursor-grabbing"
+                    class="ri-draggable pointer-events-none w-3 -translate-x-1 shrink-0 cursor-grab touch-none text-text-tertiary opacity-0 transition-opacity duration-200 ease-out group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none active:cursor-grabbing"
                     cdkDragHandle
                     aria-hidden="true"
                   ></i>

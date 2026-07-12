@@ -56,9 +56,24 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
     }
 
     async getAllByWorkspace(workspaceId: string, data: PaginationParams<T>, published: boolean, user: IUser) {
+        return this.getAllByWorkspaceWithAccess(workspaceId, data, published, user, 'authoring')
+    }
+
+    async getAllByWorkspaceForRuntime(workspaceId: string, data: PaginationParams<T>, published: boolean, user: IUser) {
+        return this.getAllByWorkspaceWithAccess(workspaceId, data, published, user, 'run')
+    }
+
+    private async getAllByWorkspaceWithAccess(
+        workspaceId: string,
+        data: PaginationParams<T>,
+        published: boolean,
+        user: IUser,
+        action: 'authoring' | 'run'
+    ) {
         const { select, relations, order, take } = data ?? {}
         let { where } = data ?? {}
         where = transformWhere(where ?? {})
+        let runtimeWorkspace: XpertWorkspace | null = null
 
         if (this.isEmptyWorkspaceId(workspaceId)) {
             where = {
@@ -67,7 +82,11 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
                 createdById: user.id
             }
         } else {
-            await this.assertWorkspaceAuthoringAccess(workspaceId)
+            if (action === 'run') {
+                runtimeWorkspace = (await this.assertWorkspaceRunAccess(workspaceId)).workspace
+            } else {
+                await this.assertWorkspaceAuthoringAccess(workspaceId)
+            }
             where = {
                 ...(where as FindOptionsWhere<T>),
                 workspaceId
@@ -76,6 +95,18 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
 
         if (published) {
             where.publishAt = Not(IsNull())
+        }
+
+        if (runtimeWorkspace) {
+            // findAll() performs an authoring read check; query directly after the run check to preserve run-only access.
+            const [items, total] = await this.repository.findAndCount({
+                select,
+                where: this.mergeWorkspaceScopeWhere(where as FindOptionsWhere<T>, runtimeWorkspace),
+                relations,
+                order,
+                take
+            })
+            return { items, total }
         }
 
         return this.findAll({
@@ -98,6 +129,19 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
     }
 
     public async findOne(id: string | number | FindOneOptions<T>, options?: FindOneOptions<T>): Promise<T> {
+        return this.findOneWithWorkspaceAccess(id, options, 'read')
+    }
+
+    public async findOneForRuntime(id: string | number | FindOneOptions<T>, options?: FindOneOptions<T>): Promise<T> {
+        // Runtime callers may hold canRun without canRead through a published Xpert UserGroup grant.
+        return this.findOneWithWorkspaceAccess(id, options, 'run')
+    }
+
+    private async findOneWithWorkspaceAccess(
+        id: string | number | FindOneOptions<T>,
+        options: FindOneOptions<T> | undefined,
+        action: 'read' | 'run'
+    ): Promise<T> {
         if (typeof id === 'string' || typeof id === 'number') {
             const scopedSelect = this.withReadableScopeSelect(options)
             const record = await this.repository.findOne({
@@ -105,14 +149,17 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
                 where: this.mergeFindOneWhereWithTenant(id, options?.where)
             })
             return this.stripReadableScopeSelectFields(
-                await this.assertRecordReadable(record),
+                await this.assertRecordAccessible(record, action),
                 scopedSelect.addedFields
             )
         }
 
         const scopedSelect = this.withReadableScopeSelect(id)
         const record = await this.repository.findOne(scopedSelect.options)
-        return this.stripReadableScopeSelectFields(await this.assertRecordReadable(record), scopedSelect.addedFields)
+        return this.stripReadableScopeSelectFields(
+            await this.assertRecordAccessible(record, action),
+            scopedSelect.addedFields
+        )
     }
 
     public async findOneByIdString(id: string, options?: FindOneOptions<T>): Promise<T> {
@@ -340,13 +387,13 @@ export class XpertWorkspaceBaseService<T extends WorkspaceBaseEntity> extends Te
         return record
     }
 
-    private async assertRecordReadable(record: T | null): Promise<T> {
+    private async assertRecordAccessible(record: T | null, action: 'read' | 'run'): Promise<T> {
         if (!record) {
             throw new NotFoundException(`The requested record was not found`)
         }
 
         if (record.workspaceId) {
-            await this.assertWorkspaceReadAccess(record.workspaceId)
+            await this.assertWorkspaceAccess(record.workspaceId, action)
             return record
         }
 

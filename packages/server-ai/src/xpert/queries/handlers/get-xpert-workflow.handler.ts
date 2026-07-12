@@ -19,7 +19,8 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
     public async execute(command: GetXpertWorkflowQuery): Promise<TXpertWorkflowQueryOutput> {
         const { id, agentKey: keyOrName, draft } = command
-        const xpert = await this.service.findOne(id, {
+        // Workflow compilation is a runtime read; authoring findOne() would reject run-only UserGroup users.
+        const xpert = await this.service.findOneForRuntime(id, {
             relations: [
                 'agent',
                 'agent.copilotModel',

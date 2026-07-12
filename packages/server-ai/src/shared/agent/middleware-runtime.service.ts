@@ -50,11 +50,13 @@ import {
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     AssistantTaskRuntimeCapability,
     ConnectorRuntimeCapability,
+    CollaborationRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
+    ArtifactsRuntimeCapability,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
@@ -83,6 +85,8 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { ConnectorService } from '../../connector/connector.service'
+import { ArtifactsService } from '../../artifacts'
+import { CollaborationService } from '../../collaboration'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 
@@ -92,9 +96,15 @@ import { wrapAgentExecution } from './execution'
  */
 export type AgentMiddlewareRuntimeScope = {
     tenantId?: string | null
+    organizationId?: string | null
     userId?: string | null
+    workspaceId?: string | null
     projectId?: string | null
     xpertId?: string | null
+    xpertName?: string | null
+    conversationId?: string | null
+    agentKey?: string | null
+    executionId?: string | null
     workspaceRoot?: string | null
     workspacePath?: string | null
 }
@@ -441,7 +451,9 @@ export class AgentMiddlewareRuntimeService {
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService,
         private readonly connectors: ConnectorService,
-        private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+        private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
+        private readonly artifacts: ArtifactsService,
+        private readonly collaboration: CollaborationService
     ) {
         this.api = this.createScopedApi()
     }
@@ -457,6 +469,11 @@ export class AgentMiddlewareRuntimeService {
         const workspaceFilesApi = hasRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
             : this.workspaceFiles.api
+        const artifactsApi = this.artifacts.createScopedApi({
+            ...scope,
+            organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
+        })
+        const collaborationApi = this.collaboration.createScopedApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [
                 KnowledgebaseRuntimeCapability,
@@ -497,6 +514,8 @@ export class AgentMiddlewareRuntimeService {
                     getConnector: (input) => this.connectors.getRuntimeConnector(input)
                 }
             ],
+            [ArtifactsRuntimeCapability, artifactsApi],
+            [CollaborationRuntimeCapability, collaborationApi],
             [WorkspaceFilesRuntimeCapability, workspaceFilesApi]
         ])
 

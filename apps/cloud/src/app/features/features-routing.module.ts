@@ -1,14 +1,20 @@
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AIPermissionsEnum, AnalyticsPermissionsEnum, RolesEnum, authGuard } from '../@core'
+import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, RolesEnum, authGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
 import { AppService } from '../app.service'
+import { featureGate } from './feature-gate'
 
 export function redirectTo() {
   return '/chat'
 }
+
+export const xpertMarketplaceRouteGate = featureGate(
+  [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_MARKETPLACE],
+  ['/explore']
+)
 
 export const routes: Routes = [
   {
@@ -132,6 +138,20 @@ export const routes: Routes = [
           scopeContext: 'dual-scope',
           permissions: {
             only: [RolesEnum.SUPER_ADMIN],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'xpert-access-requests',
+        loadComponent: () =>
+          import('./xpert-access-requests/xpert-access-requests.component').then((m) => m.XpertAccessRequestsComponent),
+        canActivate: [authGuard, NgxPermissionsGuard, xpertMarketplaceRouteGate],
+        data: {
+          title: 'Xpert Access Requests',
+          scopeContext: 'organization-only',
+          permissions: {
+            only: [RolesEnum.AI_BUILDER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN],
             redirectTo
           }
         }

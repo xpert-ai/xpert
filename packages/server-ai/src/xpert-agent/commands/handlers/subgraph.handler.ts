@@ -756,9 +756,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const organizationId = RequestContext.getOrganizationId() ?? null
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
             tenantId: xpert.tenantId,
+            organizationId,
             userId: RequestContext.currentUserId(),
+            workspaceId: xpert.workspaceId,
             projectId: options.projectId,
             xpertId: xpert.id,
+            xpertName: xpert.name,
+            conversationId: options.conversationId,
+            agentKey,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
         })

@@ -302,6 +302,83 @@ POST /api/ai/threads/:thread_id/runs/wait
 2. LangGraph SDK 风格的 assistant 客户端使用 `/api/ai/*`；这些接口返回成功时，表示已经通过同源的 Xpert 访问判断。
 3. 不要通过 Workspace 访问权限、User Group 列表或 `assistant_binding` 自行推断 Xpert Agent 授权。
 
+### 5.5 Xpert 编辑态与运行态权限体系
+
+Xpert 权限不能只用 `XPERT_EDIT` 或 `CHAT_VIEW` 一个权限点解释。当前实现分为三层：
+
+| 层级             | 解决的问题                              | 主要机制                                                                  |
+| ---------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| 产品能力层       | 用户能否进入 Xpert 编辑或聊天功能       | Feature、`XPERT_EDIT`、`CHAT_VIEW`                                        |
+| Xpert 资源层     | 用户能否编辑或运行这个具体 Xpert        | creator、Workspace owner/member、`PublishedXpertAccessService`、UserGroup |
+| Workspace 动作层 | 本次操作能否读取或修改 Xpert 的依赖资源 | `canRead`、`canRun`、`canWrite`、`canManage`                              |
+
+#### 编辑态
+
+编辑态包括进入 `/xpert/w`、创建 Xpert、保存 draft、配置工作流、安装资源、发布和管理 Workspace。它的权限链路是：
+
+1. 页面、菜单和部分接口先检查 `XPERT_EDIT`。
+2. Workspace 列表和默认 Workspace 使用 `purpose=authoring`，只返回可编辑目标。
+3. Workspace 资源服务通过 `assertCanAuthor()` 校验；当前实现中 authoring 等价于 `canWrite`。
+4. 针对已有 Xpert 的操作还会校验创建者或 Workspace owner/member 等资源关系。
+
+组织 Workspace 的 owner/member 当前同时拥有 `canRead`、`canRun` 和 `canWrite`；只有 owner 拥有 `canManage`。UserGroup 成员关系不授予编辑权，不能因为用户获准运行一个已发布 Xpert，就让其进入 Workspace 或修改 draft。
+
+#### 运行态
+
+运行态包括 Assistant 详情、Chat、run stream、工作流编译、运行能力发现、技能和连接器调用。它使用两道不能互相替代的校验：
+
+1. `PublishedXpertAccessService` 校验当前用户是否有权使用目标已发布 Xpert。
+2. `XpertWorkspaceAccessService` 校验运行过程是否对目标 Workspace 拥有 `canRun`。
+
+用户通过智能体访问申请或管理员授权加入 Xpert 绑定的 UserGroup 后，第一道校验允许其使用该 Xpert。第二道校验会查找当前 tenant、organization、Workspace 下绑定该用户 UserGroup 的已发布 Xpert，并只补充 Workspace `canRun`：
+
+| 当前组织 Workspace 身份        | canRead | canRun | canWrite | canManage |
+| ------------------------------ | ------- | ------ | -------- | --------- |
+| owner                          | 是      | 是     | 是       | 是        |
+| member                         | 是      | 是     | 是       | 否        |
+| 已发布 Xpert 的 UserGroup 成员 | 否      | 是     | 否       | 否        |
+| 无资源关系                     | 否      | 否     | 否       | 否        |
+
+Workspace 级 `canRun` 用来访问运行依赖，不代表用户可以启动该 Workspace 中的任意 Xpert。每个目标 Xpert 仍必须单独通过 `PublishedXpertAccessService` 的资源 ACL。
+
+#### 服务方法语义
+
+Workspace 资源服务明确区分编辑态和运行态方法：
+
+| 场景                          | 方法                            | Workspace 动作        |
+| ----------------------------- | ------------------------------- | --------------------- |
+| 编辑或普通资源读取            | `findOne()`                     | `read`                |
+| 编辑态 Workspace 列表         | `getAllByWorkspace()`           | `authoring` / `write` |
+| 运行时读取单条资源            | `findOneForRuntime()`           | `run`                 |
+| 运行时读取 Workspace 资源列表 | `getAllByWorkspaceForRuntime()` | `run`                 |
+
+当前运行链路中：
+
+- `XpertChatHandler` 使用 `findOneForRuntime()` 加载主 Xpert 和 follow-up Xpert。
+- `GetXpertWorkflowHandler` 使用 `findOneForRuntime()` 加载并编译工作流。
+- `RuntimeCapabilitiesService` 使用 `getAllByWorkspaceForRuntime()` 获取技能包。
+- Connector 和 Skills Middleware 使用 `assertCanRun()`。
+
+运行态列表完成 `run` 校验后会直接执行附带 tenant、organization 和 workspace scope 的 repository 查询，不能再次调用通用 `findAll()`。通用 `findAll()` 会触发创作态 `read` 校验，导致只有 `canRun` 的 UserGroup 用户被二次拒绝，并表现为 `Access denied to workspace`。
+
+#### 安全不变量
+
+1. `XPERT_EDIT` 不能替代具体 Workspace/Xpert 的资源权限。
+2. `CHAT_VIEW` 只代表聊天产品能力可用，不能替代目标 Xpert ACL。
+3. UserGroup 只对已发布 Xpert 生效，并且只桥接 Workspace `canRun`。
+4. `canRun` 不得提升为 `canRead`、`canWrite` 或 `canManage`。
+5. 运行态查询在授权后仍必须保留 tenant、organization 和 workspace 数据范围。
+6. 编辑、保存、删除、发布和管理入口不能使用 Runtime 方法绕过 authoring 校验。
+
+相关实现：
+
+- `packages/server-ai/src/xpert/published-xpert-access.service.ts`
+- `packages/server-ai/src/xpert-workspace/workspace-access.service.ts`
+- `packages/server-ai/src/xpert-workspace/workspace-base.service.ts`
+- `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/xpert/queries/handlers/get-xpert-workflow.handler.ts`
+- `packages/server-ai/src/ai/runtime-capabilities.service.ts`
+
 ## 6. 一次权限判断是如何发生的
 
 下面是当前系统的一次典型授权链路：

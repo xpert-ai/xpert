@@ -28,6 +28,7 @@
         "XpertMarketplaceUserRequired": "User context is required to access the assistant marketplace.",
         "XpertMarketplaceAlreadyAccessible": "You already have access to this assistant.",
         "XpertMarketplaceReviewForbidden": "You are not allowed to review this request.",
+        "XpertMarketplaceSelfReviewForbidden": "You cannot review your own access request.",
         "XpertMarketplaceRequesterNotFound": "The request user was not found.",
         "XpertMarketplaceNotFound": "The marketplace assistant was not found.",
         "XpertMarketplaceRequestNotFound": "The access request was not found."

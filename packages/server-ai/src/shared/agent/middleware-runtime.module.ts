@@ -5,10 +5,12 @@ import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 import { VolumeModule } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { ConnectorModule } from '../../connector/connector.module'
+import { ArtifactsModule } from '../../artifacts'
+import { CollaborationModule } from '../../collaboration'
 
 @Global()
 @Module({
-    imports: [CqrsModule, VolumeModule, ConnectorModule],
+    imports: [CqrsModule, VolumeModule, ConnectorModule, ArtifactsModule, CollaborationModule],
     providers: [
         WorkspaceFilesRuntimeCapabilityService,
         AgentMiddlewareRuntimeService,
@@ -20,6 +22,8 @@ import { ConnectorModule } from '../../connector/connector.module'
     ],
     exports: [
         ConnectorModule,
+        ArtifactsModule,
+        CollaborationModule,
         AgentMiddlewareRuntimeService,
         WorkspaceFilesRuntimeCapabilityService,
         XPERT_RUNTIME_CAPABILITIES_TOKEN

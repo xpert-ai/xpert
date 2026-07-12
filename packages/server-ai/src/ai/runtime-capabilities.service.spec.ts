@@ -18,7 +18,7 @@ describe('RuntimeCapabilitiesService', () => {
         const service = new RuntimeCapabilitiesService(
             { get: jest.fn() } as any,
             {
-                getAllByWorkspace: jest.fn(async () => ({
+                getAllByWorkspaceForRuntime: jest.fn(async () => ({
                     items: [
                         {
                             id: 'documents-skill',
@@ -101,12 +101,12 @@ describe('RuntimeCapabilitiesService', () => {
                 }
             }
         })
-        const getAllByWorkspace = jest.fn(async (_workspaceId: string, query: { take?: number }) => ({
+        const getAllByWorkspaceForRuntime = jest.fn(async (_workspaceId: string, query: { take?: number }) => ({
             items: skillPackages.slice(0, typeof query.take === 'number' ? query.take : skillPackages.length)
         }))
         const service = new RuntimeCapabilitiesService(
             { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
-            { getAllByWorkspace } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+            { getAllByWorkspaceForRuntime } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
             new RuntimeCommandService(),
             {
                 resolveRuntimeCommandProfile: jest.fn(async () => ({
@@ -147,7 +147,7 @@ describe('RuntimeCapabilitiesService', () => {
         } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0])
 
         expect(result.skills.map((skill) => skill.id)).toEqual(skillPackages.map((skill) => skill.id))
-        const query = getAllByWorkspace.mock.calls[0]?.[1]
+        const query = getAllByWorkspaceForRuntime.mock.calls[0]?.[1]
         expect(query).not.toHaveProperty('take')
         expect(query).not.toHaveProperty('skip')
     })

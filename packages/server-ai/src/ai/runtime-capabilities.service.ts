@@ -180,7 +180,8 @@ export class RuntimeCapabilitiesService {
             where: {},
             withDeleted: false
         } as PaginationParams<SkillPackage>
-        const result = await this.skillPackageService.getAllByWorkspace(
+        // Capability discovery is part of execution and must honor run-only workspace access.
+        const result = await this.skillPackageService.getAllByWorkspaceForRuntime(
             workspaceId,
             query,
             false,

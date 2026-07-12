@@ -1,26 +1,28 @@
 <section class="space-y-8">
-  <div
-    class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-  >
-    <div>
-      <div class="text-sm font-semibold text-foreground">
-        {{ 'PAC.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
+  @if (reviewableCount() > 0) {
+    <div
+      class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <div class="text-sm font-semibold text-foreground">
+          {{ 'PAC.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
+        </div>
+        <div class="mt-1 text-sm text-muted-foreground">
+          {{
+            'PAC.Explore.AgentSquare.ReviewSubtitle'
+              | translate: { Default: 'Approve or reject pending agent access requests.' }
+          }}
+        </div>
       </div>
-      <div class="mt-1 text-sm text-muted-foreground">
-        {{
-          'PAC.Explore.AgentSquare.ReviewSubtitle'
-            | translate: { Default: 'Approve or reject pending agent access requests.' }
-        }}
-      </div>
+      <button z-button zSize="sm" zType="outline" type="button" class="w-fit" (click)="openReviewDialog()">
+        <z-icon zType="inbox" zSize="sm" />
+        {{ 'PAC.Explore.AgentSquare.ReviewEntry' | translate: { Default: 'Review' } }}
+        <span class="ml-1 rounded-md bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">{{
+          reviewableCount()
+        }}</span>
+      </button>
     </div>
-    <button z-button zSize="sm" zType="outline" type="button" class="w-fit" (click)="openReviewDialog()">
-      <z-icon zType="inbox" zSize="sm" />
-      {{ 'PAC.Explore.AgentSquare.ReviewEntry' | translate: { Default: 'Review' } }}
-      <span class="ml-1 rounded-md bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">{{
-        reviewableCount()
-      }}</span>
-    </button>
-  </div>
+  }
 
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
     <section

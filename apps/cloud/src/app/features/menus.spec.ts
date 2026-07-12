@@ -137,10 +137,8 @@ describe('getFeatureMenus', () => {
 
   it('promotes xpert access requests to the management menu with approval gates', () => {
     const menus = getFeatureMenus(RequestScopeLevel.ORGANIZATION, null)
-    const settings = menus.find((item) => item.link === '/settings')
-    const requests = menus.find((item) => item.link === '/settings/xpert-access-requests')
+    const requests = menus.find((item) => item.link === '/xpert-access-requests')
 
-    expect(settings?.data?.inactivePathPrefixes).toEqual(['/settings/xpert-access-requests'])
     expect(requests).toMatchObject({
       title: 'Xpert Access Requests',
       icon: 'approval',
@@ -153,7 +151,7 @@ describe('getFeatureMenus', () => {
       AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
       FeatureEnum.FEATURE_USER_GROUPS
     ])
-    expect(requests?.data?.permissionKeys).toEqual([PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT])
+    expect(requests?.data?.permissionKeys).toEqual([RolesEnum.AI_BUILDER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN])
   })
 
   it('marks the workspace menu as an onboarding target', () => {

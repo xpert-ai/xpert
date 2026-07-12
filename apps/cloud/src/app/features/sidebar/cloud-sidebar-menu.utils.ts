@@ -20,7 +20,7 @@ const MANAGEMENT_MENU_ORDER = [
   '/plugins',
   '/operations',
   '/copilot/basic',
-  '/settings/xpert-access-requests',
+  '/xpert-access-requests',
   '/settings'
 ] as const
 

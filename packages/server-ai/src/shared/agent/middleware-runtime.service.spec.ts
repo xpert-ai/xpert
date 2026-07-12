@@ -69,6 +69,7 @@ import {
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
+    ArtifactsRuntimeCapability,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
@@ -103,6 +104,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let volumeClient: { resolve: jest.Mock }
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+    let artifacts: { createScopedApi: jest.Mock }
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -117,6 +119,23 @@ describe('AgentMiddlewareRuntimeService', () => {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
         }
         workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient)
+        artifacts = {
+            createScopedApi: jest.fn((defaults) => ({
+                createArtifact: jest.fn(),
+                createArtifactVersion: jest.fn(),
+                createArtifactLink: jest
+                    .fn()
+                    .mockResolvedValue({ id: 'link-1', publicUrl: 'https://share.test/artifacts/share/one' }),
+                createSignedPreviewLink: jest.fn(),
+                getArtifact: jest.fn(),
+                listArtifacts: jest.fn(),
+                archiveArtifact: jest.fn(),
+                deleteArtifact: jest.fn(),
+                updateArtifactLinkAccess: jest.fn(),
+                revokeArtifactLink: jest.fn(),
+                defaults
+            }))
+        }
         service = new AgentMiddlewareRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -126,7 +145,8 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 getRuntimeConnector: jest.fn().mockResolvedValue(undefined)
             } as any,
-            workspaceFiles
+            workspaceFiles,
+            artifacts as any
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -180,6 +200,36 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('registers the artifacts runtime capability with the middleware scope', async () => {
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1'
+        })
+        const artifactsApi = runtime.capabilities?.require(ArtifactsRuntimeCapability) as {
+            defaults?: Record<string, unknown>
+        }
+
+        expect(artifacts.createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                workspaceId: 'workspace-1',
+                xpertId: 'xpert-1'
+            })
+        )
+        expect(artifactsApi.defaults).toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1'
+        })
     })
 
     function mockCreateModelClientDependencies(options?: { tokenRecordError?: Error }) {

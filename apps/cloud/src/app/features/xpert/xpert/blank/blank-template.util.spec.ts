@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+  AiModelTypeEnum,
+  IWFNMiddleware,
+  TXpertTeamDraft,
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum,
+  XpertTypeEnum
+} from '@xpert-ai/contracts'
 import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import {
   applyAgentTemplateWizardState,
@@ -441,6 +448,94 @@ describe('blank template util', () => {
     expect(state.selections.middlewareRequired).toEqual({
       guard: false
     })
+  })
+
+  it('extracts middlewares from order metadata and legacy reversed edges with required flags', () => {
+    const draft = createAgentTemplateDraft()
+    if (draft.team.agent) {
+      draft.team.agent.options = {
+        ...(draft.team.agent.options ?? {}),
+        middlewares: {
+          order: ['Middleware_guard']
+        }
+      }
+    }
+    draft.connections = [
+      ...draft.connections.filter(
+        (connection) =>
+          !['Middleware_guard', 'Middleware_skills', 'Middleware_audit'].includes(
+            connection.from === 'Agent_primary' ? connection.to : connection.from
+          )
+      ),
+      {
+        key: 'Middleware_skills/Agent_primary',
+        type: 'edge',
+        from: 'Middleware_skills',
+        to: 'Agent_primary'
+      },
+      {
+        key: 'Middleware_audit/Agent_primary',
+        type: 'edge',
+        from: 'Middleware_audit',
+        to: 'Agent_primary'
+      }
+    ]
+    const guardNode = draft.nodes.find((node) => node.key === 'Middleware_guard')
+    const auditNode = draft.nodes.find((node) => node.key === 'Middleware_audit')
+    if (guardNode?.type === 'workflow') {
+      ;(guardNode.entity as IWFNMiddleware).required = false
+    }
+    if (auditNode?.type === 'workflow') {
+      ;(auditNode.entity as IWFNMiddleware).required = true
+    }
+
+    const state = extractAgentTemplateWizardState(draft)
+
+    expect(state.selections.middlewares).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER, 'audit'])
+    expect(state.selections.middlewareRequired).toEqual({ guard: false })
+
+    const result = applyAgentTemplateWizardState(draft, state.selections)
+    const middlewareNodes = result.nodes.filter(
+      (node): node is TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware } =>
+        node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
+    )
+    const requiredByProvider = Object.fromEntries(
+      middlewareNodes.map((node) => [node.entity.provider, node.entity.required])
+    )
+
+    expect(middlewareNodes).toHaveLength(3)
+    expect(requiredByProvider).toEqual({
+      guard: false,
+      [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]: true,
+      audit: true
+    })
+    expect(
+      result.connections.filter((connection) =>
+        middlewareNodes.some((middlewareNode) => middlewareNode.key === connection.to)
+      )
+    ).toEqual(
+      middlewareNodes.map((middlewareNode) => ({
+        key: `Agent_primary/${middlewareNode.key}`,
+        type: 'workflow',
+        from: 'Agent_primary',
+        to: middlewareNode.key
+      }))
+    )
+  })
+
+  it('does not infer disconnected middleware nodes that the template does not associate with the primary agent', () => {
+    const draft = createAgentTemplateDraft()
+    if (draft.team.agent) {
+      draft.team.agent.options = {}
+    }
+    draft.connections = draft.connections.filter(
+      (connection) =>
+        !['Middleware_guard', 'Middleware_skills', 'Middleware_audit'].includes(
+          connection.from === 'Agent_primary' ? connection.to : connection.from
+        )
+    )
+
+    expect(extractAgentTemplateWizardState(draft).selections.middlewares).toEqual([])
   })
 
   it('falls back to the primary agent model when the template team model is missing', () => {

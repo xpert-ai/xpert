@@ -43,8 +43,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 		origin: '*',
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
-		allowedHeaders:
-			`Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}`
+		allowedHeaders: `Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}`
 	})
 
 	// TODO: enable csurf
@@ -62,7 +61,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 
 	app.use(helmet())
 	const globalPrefix = 'api'
-	app.setGlobalPrefix(globalPrefix)
+	app.setGlobalPrefix(globalPrefix, { exclude: ['a', 'a/(.*)'] })
 
 	const service = app.select(ServerAppModule).get(AppService)
 	await service.seedDBIfEmpty()
@@ -129,10 +128,7 @@ export async function registerAllSubscribers(pluginConfig: Partial<any> = {}) {
 	const plugins = pluginConfig.plugins ?? getConfig().plugins
 	const { subscribers: pluginSubscribers } = collectPluginOrmMetadata(plugins)
 
-	return mergeSubscriberClasses(
-		coreSubscribers as Array<Type<EntitySubscriberInterface>>,
-		pluginSubscribers
-	)
+	return mergeSubscriberClasses(coreSubscribers as Array<Type<EntitySubscriberInterface>>, pluginSubscribers)
 }
 
 export * from './cache'
