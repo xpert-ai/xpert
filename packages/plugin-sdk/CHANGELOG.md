@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.11
+
+### Patch Changes
+
+- aa16ee9: Publish a browser-safe collaboration client entry at `@xpert-ai/plugin-sdk/collaboration-client`.
+- Updated dependencies [aa16ee9]
+  - @xpert-ai/contracts@3.15.11
+
 ## 3.15.10
 
 ### Patch Changes
