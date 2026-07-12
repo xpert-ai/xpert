@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.15.10
+
+### Patch Changes
+
+- c9d8401: collaboration & artifacts
+
 ## 3.15.9
 
 ### Patch Changes
