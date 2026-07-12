@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.10
+
+### Patch Changes
+
+- c9d8401: collaboration & artifacts
+- Updated dependencies [c9d8401]
+  - @xpert-ai/contracts@3.15.10
+
 ## 3.15.9
 
 ### Patch Changes
