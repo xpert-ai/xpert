@@ -282,6 +282,9 @@ importers:
       passport-dingtalk2:
         specifier: ^2.1.1
         version: 2.1.1
+      pdfjs-dist:
+        specifier: 2.12.313
+        version: 2.12.313
       pg:
         specifier: ^8.7.3
         version: 8.18.0

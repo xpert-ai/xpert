@@ -43,7 +43,10 @@ import {
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
-import { registerWorkbenchNavigationOpenCommand } from '../../assistant/workbench-navigation-open-client-command'
+import {
+  registerWorkbenchNavigationOpenCommand,
+  type WorkbenchAssistantConversationOpenRequest
+} from '../../assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -963,7 +966,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     })
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
-      navigate: (commands) => this.#router.navigate(commands)
+      navigate: (commands) => this.#router.navigate(commands),
+      openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request)
     })
 
     effect((onCleanup) => {
@@ -1401,6 +1405,31 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to open task history conversation.')
     }
+  }
+
+  async openWorkbenchAssistantConversation(request: WorkbenchAssistantConversationOpenRequest) {
+    const conversation = await this.loadConversationDetail(request.conversationId)
+    const threadId = normalizeConversationThreadId(request.threadId ?? conversation?.threadId)
+    if (!threadId) {
+      throw new Error('This assistant conversation has no ChatKit thread.')
+    }
+
+    const control = this.control()
+    if (!control) {
+      throw new Error('Chat is not ready yet.')
+    }
+
+    this.isChatMinimizedToPet.set(false)
+    if (conversation) {
+      this.syncResolvedConversation(request.conversationId, {
+        ...conversation,
+        id: conversation.id ?? request.conversationId,
+        threadId
+      })
+    }
+    await control.setThreadId(threadId)
+    this.facade.onChatThreadChange(threadId)
+    this.markConversationRead(request.conversationId)
   }
 
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {

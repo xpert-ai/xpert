@@ -1702,6 +1702,21 @@
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "Embedded assistant experience for the ClawXpert page."
+      },
+      "FilePreview": {
+        "SourceDocument": "Source document",
+        "PdfDocument": "PDF document",
+        "OpenFile": "Open file",
+        "DownloadFile": "Download file",
+        "Close": "Close",
+        "EvidenceLocation": "Evidence location",
+        "EvidenceText": "Evidence text",
+        "EvidenceHint": "The host preview overlays the evidence box using the rendered PDF page dimensions. An external browser tab can only open the original file and cannot render this evidence box.",
+        "RenderingEvidencePage": "Rendering evidence page…",
+        "EvidencePageUnavailable": "Evidence page unavailable",
+        "Evidence": "Evidence",
+        "UnknownPdfPreviewError": "Unknown PDF preview error",
+        "CanvasUnavailable": "Canvas rendering context is unavailable."
       }
     },
     "Workflow": {

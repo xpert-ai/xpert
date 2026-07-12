@@ -1,17 +1,22 @@
-import { WORKBENCH_NAVIGATION_OPEN_COMMAND } from '@xpert-ai/contracts'
+import {
+  WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
+  WORKBENCH_NAVIGATION_OPEN_COMMAND,
+  type WorkbenchAssistantConversationOpenRequest
+} from '@xpert-ai/contracts'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
-export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
-
-export type WorkbenchNavigationOpenTarget = typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
-
-export type WorkbenchNavigationOpenPayload = {
-  target: WorkbenchNavigationOpenTarget
-  knowledgebaseId: string
-}
+export {
+  WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
+  type WorkbenchAssistantConversationOpenRequest,
+  type WorkbenchNavigationOpenPayload,
+  type WorkbenchNavigationOpenTarget
+} from '@xpert-ai/contracts'
 
 type WorkbenchNavigationOpenCommandOptions = {
   navigate?: (commands: string[]) => Promise<unknown> | unknown
+  openAssistantConversation?: (request: WorkbenchAssistantConversationOpenRequest) => Promise<unknown> | unknown
 }
 
 export function registerWorkbenchNavigationOpenCommand(
@@ -28,7 +33,7 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    if (target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET) {
+    if (target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET && target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET) {
       return {
         success: false,
         code: 'unsupported_target',
@@ -36,12 +41,45 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    const knowledgebaseId = getString(payload, 'knowledgebaseId')
-    if (!knowledgebaseId) {
+    const resourceId =
+      target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+        ? getString(payload, 'conversationId')
+        : getString(payload, 'knowledgebaseId')
+    if (!resourceId) {
       return {
         success: false,
         code: 'bad_request',
-        message: 'Knowledgebase id is required.'
+        message:
+          target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+            ? 'Conversation id is required.'
+            : 'Knowledgebase id is required.'
+      }
+    }
+
+    if (target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET) {
+      if (!options.openAssistantConversation) {
+        return {
+          success: false,
+          code: 'unsupported',
+          message: 'Assistant conversation opening is not available in this host.'
+        }
+      }
+
+      const threadId = getString(payload, 'threadId')
+      const executionId = getString(payload, 'executionId')
+      await options.openAssistantConversation({
+        conversationId: resourceId,
+        ...(threadId ? { threadId } : {}),
+        ...(executionId ? { executionId } : {})
+      })
+
+      return {
+        success: true,
+        status: 'opened',
+        target,
+        conversationId: resourceId,
+        ...(threadId ? { threadId } : {}),
+        ...(executionId ? { executionId } : {})
       }
     }
 
@@ -53,13 +91,13 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    await options.navigate(['/xpert/knowledges', knowledgebaseId, 'documents'])
+    await options.navigate(['/xpert/knowledges', resourceId, 'documents'])
 
     return {
       success: true,
       status: 'opened',
       target,
-      knowledgebaseId
+      knowledgebaseId: resourceId
     }
   })
 }

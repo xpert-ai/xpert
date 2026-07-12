@@ -1,3 +1,12 @@
+import {
+    RequestContext as PluginRequestContext,
+    runWithRequestContext as runWithPluginRequestContext
+} from '@xpert-ai/plugin-sdk'
+import {
+    RequestContext as LegacyRequestContext,
+    runWithRequestContext as runWithLegacyRequestContext
+} from '@xpert-ai/server-core'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { Observable } from 'rxjs'
 import { ApplicationTracing, TracingDriver, TracingSpan } from './application-tracing'
 
@@ -29,6 +38,7 @@ class FakeSpan implements TracingSpan {
 
 class FakeTracingDriver implements TracingDriver {
     spans: FakeSpan[] = []
+    private readonly spanContext = new AsyncLocalStorage<TracingSpan>()
 
     constructor(private readonly enabledValue: boolean) {}
 
@@ -42,8 +52,8 @@ class FakeTracingDriver implements TracingDriver {
         return span
     }
 
-    withSpan<T>(_span: TracingSpan, handler: () => T): T {
-        return handler()
+    withSpan<T>(span: TracingSpan, handler: () => T): T {
+        return this.spanContext.run(span, handler)
     }
 }
 
@@ -74,6 +84,50 @@ describe('ApplicationTracing', () => {
         expect(driver.spans[0].status).toBe('error')
         expect(driver.spans[0].ended).toBe(1)
     })
+
+    it.each([false, true])(
+        'preserves plugin and legacy request contexts through traced async work when tracing enabled=%s',
+        async (tracingEnabled) => {
+            const driver = new FakeTracingDriver(tracingEnabled)
+            const tracing = new ApplicationTracing(driver)
+            const user: NonNullable<Parameters<typeof runWithPluginRequestContext>[0]['user']> = {
+                id: 'user-1',
+                tenantId: 'tenant-1'
+            }
+            const headers = {
+                'tenant-id': 'tenant-1',
+                'organization-id': 'organization-1',
+                'x-scope-level': 'organization'
+            }
+
+            await new Promise<void>((resolve, reject) => {
+                runWithPluginRequestContext({ user, headers }, {}, () => {
+                    runWithLegacyRequestContext({ user, headers }, () => {
+                        tracing
+                            .traceAsync('conversation.upsert', { operation: 'save' }, async () => {
+                                assertRequestContexts()
+                                await Promise.resolve()
+                                assertRequestContexts()
+                                await new Promise<void>((resume) => setImmediate(resume))
+                                assertRequestContexts()
+                            })
+                            .then(resolve, reject)
+                    })
+                })
+            })
+
+            expect(driver.spans).toHaveLength(tracingEnabled ? 1 : 0)
+
+            function assertRequestContexts() {
+                expect(PluginRequestContext.currentTenantId()).toBe('tenant-1')
+                expect(PluginRequestContext.getOrganizationId()).toBe('organization-1')
+                expect(PluginRequestContext.currentUserId()).toBe('user-1')
+                expect(LegacyRequestContext.currentTenantId()).toBe('tenant-1')
+                expect(LegacyRequestContext.getOrganizationId()).toBe('organization-1')
+                expect(LegacyRequestContext.currentUserId()).toBe('user-1')
+            }
+        }
+    )
 
     it('ends observable spans once on normal completion', async () => {
         const driver = new FakeTracingDriver(true)
