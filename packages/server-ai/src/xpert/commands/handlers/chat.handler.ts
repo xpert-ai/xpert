@@ -310,7 +310,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
             )
             const followUpXpert = xpertId
-                ? await this.xpertService.findOne(xpertId, { relations: ['agent'] }).catch(() => null)
+                ? await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent'] }).catch(() => null)
                 : null
             await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpInput.files, {
                 xpertId: followUpXpert?.id ?? xpertId,
@@ -331,7 +331,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
         const timeStart = Date.now()
 
-        const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
+        // Published assistant execution can be granted by UserGroup without workspace read membership.
+        const xpert = await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent', 'knowledgebase'] })
         const [userPreference, clawXpertBinding] = await Promise.all([
             this.assistantBindingService.getUserPreferenceByAssistantId(xpertId),
             this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)

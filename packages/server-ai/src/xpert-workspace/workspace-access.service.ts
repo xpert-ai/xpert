@@ -192,9 +192,18 @@ export class XpertWorkspaceAccessService {
         if (isCurrentOrganizationWorkspace) {
             const canRead = isOwner || isMember
             const canWrite = canRead
+            // A published Xpert grant unlocks execution only; it must not expose workspace authoring resources.
+            const canRun =
+                canRead ||
+                (await this.hasPublishedXpertRunAccess({
+                    workspaceId: workspace.id,
+                    tenantId,
+                    organizationId,
+                    userId
+                }))
             return {
                 canRead,
-                canRun: canRead,
+                canRun,
                 canWrite,
                 canManage: isOwner
             }
@@ -221,6 +230,41 @@ export class XpertWorkspaceAccessService {
         }
 
         return this.emptyCapabilities()
+    }
+
+    private async hasPublishedXpertRunAccess(input: {
+        workspaceId: string
+        tenantId: string
+        organizationId: string
+        userId: string
+    }) {
+        // Keep aliases lower-case because PostgreSQL folds unquoted identifiers and TypeORM reuses them in join SQL.
+        const count = await this.workspaceRepository.manager
+            .createQueryBuilder()
+            .select('xpert.id')
+            .from('xpert', 'xpert')
+            .innerJoin('xpert_to_user_group', 'xug', 'xug."xpertId" = xpert.id')
+            .innerJoin(
+                'user_group',
+                'ug',
+                'ug.id = xug."userGroupId" AND ug."tenantId" = :tenantId AND ug."organizationId" = :organizationId',
+                {
+                    tenantId: input.tenantId,
+                    organizationId: input.organizationId
+                }
+            )
+            .innerJoin('user_group_to_user', 'ugu', 'ugu."userGroupId" = ug.id AND ugu."userId" = :userId', {
+                userId: input.userId
+            })
+            .where('xpert."workspaceId" = :workspaceId', { workspaceId: input.workspaceId })
+            .andWhere('xpert."tenantId" = :tenantId', { tenantId: input.tenantId })
+            .andWhere('xpert."organizationId" = :organizationId', {
+                organizationId: input.organizationId
+            })
+            .andWhere('xpert."publishAt" IS NOT NULL')
+            .getCount()
+
+        return count > 0
     }
 
     isTenantSharedWorkspace(workspace?: Pick<XpertWorkspace, 'settings'> | null) {

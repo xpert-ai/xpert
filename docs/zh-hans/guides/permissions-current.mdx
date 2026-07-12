@@ -141,9 +141,9 @@ AI 默认权限主要在 `packages/server-ai/src/core/default-role-permissions.t
 
 - 有 `EDIT`
 - 有少量 `VIEW`
-- 缺少更细的“运行”“只读知识库”“只读 Xpert”“ChatBI 专属编辑”权限
+- 缺少角色级的“运行”“只读知识库”“只读 Xpert”“ChatBI 专属编辑”权限点
 
-因此 AI 权限已经可用，但粒度还比较粗。
+这里的“缺少运行权限”仅指没有独立的 `XPERT_RUN` RolePermission，并不表示运行时没有授权。当前 Xpert 运行由 `CHAT_VIEW` 产品能力、`PublishedXpertAccessService` 的目标 Xpert ACL，以及 Workspace `canRun` 三层共同控制；UserGroup 授权只会补充 `canRun`，不会获得 Workspace 编辑权。完整模型见《角色与权限设计说明书》的“Xpert 编辑态与运行态权限体系”。
 
 ## 5. Analytics 权限现状
 

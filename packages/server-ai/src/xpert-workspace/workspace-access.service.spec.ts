@@ -18,10 +18,12 @@ describe('XpertWorkspaceAccessService', () => {
         select: jest.Mock
         addSelect: jest.Mock
         from: jest.Mock
+        innerJoin: jest.Mock
         where: jest.Mock
         andWhere: jest.Mock
         limit: jest.Mock
         getRawOne: jest.Mock
+        getCount: jest.Mock
     }
 
     beforeEach(() => {
@@ -40,13 +42,15 @@ describe('XpertWorkspaceAccessService', () => {
             select: jest.fn(),
             addSelect: jest.fn(),
             from: jest.fn(),
+            innerJoin: jest.fn(),
             where: jest.fn(),
             andWhere: jest.fn(),
             limit: jest.fn(),
-            getRawOne: jest.fn()
+            getRawOne: jest.fn(),
+            getCount: jest.fn().mockResolvedValue(0)
         }
         Object.values(xpertQueryBuilder)
-            .filter((mock) => mock !== xpertQueryBuilder.getRawOne)
+            .filter((mock) => mock !== xpertQueryBuilder.getRawOne && mock !== xpertQueryBuilder.getCount)
             .forEach((mock) => mock.mockReturnValue(xpertQueryBuilder))
         workspaceRepository = {
             createQueryBuilder: jest.fn(() => workspaceQueryBuilder),
@@ -169,6 +173,32 @@ describe('XpertWorkspaceAccessService', () => {
         await expect(service.getCapabilities(workspace)).resolves.toMatchObject({
             canRead: false
         })
+    })
+
+    it('grants runtime-only workspace access through a published xpert user-group grant', async () => {
+        xpertQueryBuilder.getCount.mockResolvedValue(1)
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: 'owner-1',
+            settings: { access: { visibility: 'private' } },
+            members: []
+        })
+
+        await expect(service.getCapabilities(workspace)).resolves.toEqual({
+            canRead: false,
+            canRun: true,
+            canWrite: false,
+            canManage: false
+        })
+        expect(xpertQueryBuilder.innerJoin).toHaveBeenCalledWith(
+            'user_group_to_user',
+            'ugu',
+            'ugu."userGroupId" = ug.id AND ugu."userId" = :userId',
+            { userId: 'user-1' }
+        )
+        expect(xpertQueryBuilder.andWhere).toHaveBeenCalledWith('xpert."publishAt" IS NOT NULL')
     })
 
     it('allows tenant-scope owners to manage tenant-shared workspaces', async () => {

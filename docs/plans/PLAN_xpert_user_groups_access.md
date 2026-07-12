@@ -1,132 +1,122 @@
-# Xpert UserGroup 授权重构与 Assistant 安全加固
+# Xpert UserGroup 授权与工作空间运行权限设计
 
-## 背景与问题分析
+> 状态：已落地，2026-07 更新运行时权限桥接设计。
 
-当前 `GET /api/ai/assistants/:id` 在组织用户访问 tenant 级 assistant 时会出现 404，根因不是数据真的不存在，而是查询作用域和资源作用域不一致：
+## 背景
 
-- `assistant.controller.ts` 当前直接调用 `XpertService.findOne(id, ...)`
-- `XpertService` 继承 `TenantOrganizationAwareCrudService`
-- 当请求处于 organization scope 时，基类会自动附加 `organizationId = 当前组织`
-- tenant 级 xpert 的 `organizationId` 为 `NULL`
-- 于是 tenant 级记录会在查询阶段被过滤掉，最终表现成 404
+已发布智能体通过 `UserGroup` 向组织用户授权。审批通过后，用户会加入该智能体绑定的访问组，因此用户可以在智能体广场看到并打开智能体。
 
-这个问题同时暴露了更深层的安全缺口：
+运行智能体时还会读取工作空间内的工作流、技能包和连接器。此前这些内部调用复用了创作态的 `read` 校验，而被授权用户通常不是工作空间 owner/member，因此即使已获得智能体使用权，运行链路仍会报：
 
-- `assistants/search` / `assistants/count` / `assistants/:id` / run create 四条链路使用了不同的可见性逻辑
-- tenant 级 published xpert 一旦发布，组织用户几乎没有显式授权边界
-- API key / client secret 鉴权会主动改写请求为 tenant scope，如果不保留原始 organization 上下文，后续授权容易被绕开
+```text
+Access denied to workspace
+```
 
-## 目标模型
+问题不是智能体 ACL 没有生效，而是存在两层独立权限，且第二层错误地使用了创作态权限：
 
-本轮统一采用以下模型：
+1. `PublishedXpertAccessService` 判断用户是否可以使用目标已发布智能体。
+2. `XpertWorkspaceAccessService` 判断运行过程是否可以读取该智能体依赖的工作空间资源。
 
-- `UserGroup` 定义为 org 级实体，不做 tenant 级 group
-- `Xpert` 删除 `managers`，统一改为 `userGroups`
-- `userGroups` 只控制 published xpert 的使用/运行访问
-- authoring/edit 继续沿用现有 creator/workspace/XpertGuard 规则
-- tenant 级和 org 级 published xpert 都必须绑定 group 才能被访问
-- 历史已发布但未绑定 group 的 xpert 立即关闭，不做兼容保留
+## 权限模型
 
-## 核心设计
+### 智能体入口 ACL
 
-### 1. 数据模型
+`PublishedXpertAccessService` 是已发布智能体的入口边界。查询必须同时满足 tenant、organization、发布状态和资源授权范围。
 
-- 新增 `IUserGroup`
-- 新增后端 `UserGroup` 实体：
-  - 继承 `TenantOrganizationBaseEntity`
-  - 字段：`name`、`description`、`members`
-  - `members` 直接关联 `User[]`
-- `Xpert` 新增 `userGroups` many-to-many，join table 为 `xpert_to_user_group`
-- 旧 `xpert_to_manager` 不保留兼容逻辑，也不迁移历史数据
+普通组织用户可以通过以下任一关系访问目标智能体：
 
-### 2. 运行时授权
+- 智能体创建者；
+- 工作空间 owner/member；
+- 用户属于该智能体在当前组织绑定的任一 `UserGroup`；
+- 智能体位于 tenant-shared 工作空间。
 
-新增统一的 published xpert 访问服务，负责：
+API key、client secret 和公开 Chat App 继续使用各自的绑定范围。资源不存在或未发布返回 404；资源存在但无权访问返回 403。
 
-- 在 tenant 范围解析目标 published xpert
-- 从 `currentApiPrincipal.requestedOrganizationId ?? RequestContext.getOrganizationId()` 解析授权 org
-- 校验候选资源只允许：
-  - 当前 org 自己的 published xpert
-  - tenant 默认 published xpert
-- 校验当前用户是否属于该 xpert 在当前 org 绑定的任一 `userGroup`
+### 工作空间能力
 
-统一接入以下入口：
+智能体入口 ACL 通过后，运行时仍要访问工作空间资源。工作空间能力明确拆分为 `read`、`run`、`write` 和 `manage`：
 
-- `POST /api/ai/assistants/search`
-- `POST /api/ai/assistants/count`
-- `GET /api/ai/assistants/:id`
-- run create / execute
+| 身份                                                          | canRead | canRun | canWrite | canManage |
+| ------------------------------------------------------------- | ------- | ------ | -------- | --------- |
+| 当前组织工作空间 owner                                        | 是      | 是     | 是       | 是        |
+| 当前组织工作空间 member                                       | 是      | 是     | 是       | 否        |
+| 当前组织中，属于该工作空间内任一已发布智能体 UserGroup 的用户 | 否      | 是     | 否       | 否        |
+| 无上述关系的组织用户                                          | 否      | 否     | 否       | 否        |
 
-行为统一为：
+UserGroup 只补充 `canRun`，绝不提升 `canRead`、`canWrite` 或 `canManage`。因此被授权用户能够执行智能体，但不能进入工作空间查看、编辑或管理其资源。
 
-- 资源不存在或未发布：404
-- 资源存在但当前 org / group 无权访问：403
+`canRun` 是工作空间级运行能力，因为技能、连接器等依赖资源以 `workspaceId` 为边界。它不替代目标智能体的入口 ACL：用户即使因某个智能体获得该工作空间的 `canRun`，也不能绕过 `PublishedXpertAccessService` 去启动同工作空间内未向其授权的其他智能体。
 
-### 3. API key / client secret
+## UserGroup 到运行权限的桥接
 
-当前 api key / client secret 鉴权会把请求强制改写为 tenant scope。为避免 published assistant ACL 被绕过，需要：
+`XpertWorkspaceAccessService.hasPublishedXpertRunAccess()` 查询当前工作空间中是否存在满足全部条件的智能体：
 
-- 在 `IApiPrincipal` 中新增 `requestedOrganizationId`
-- 在 `ApiKeyStrategy` / `SecretTokenStrategy` 清除 `organization-id` 之前先保存原始 org
-- 后续 published assistant ACL 一律优先使用这个原始 org
-- 若 assistant 请求没有 org 上下文，则直接拒绝访问
+- `xpert.tenantId` 等于当前 tenant；
+- `xpert.organizationId` 等于当前 organization；
+- `xpert.workspaceId` 等于目标工作空间；
+- `xpert.publishAt IS NOT NULL`；
+- 智能体绑定的 `UserGroup` 同属当前 tenant 和 organization；
+- 当前用户是该组成员。
 
-### 4. 发布规则
+查询使用 `xpert_to_user_group`、`user_group` 和 `user_group_to_user` 三张关联表。TypeORM 原生表名查询中的 alias 保持全小写，避免 PostgreSQL 对未加引号标识符折叠后出现 `missing FROM-clause entry`。
 
-在 `XpertPublishHandler` 发布前增加校验：
+审批通过或管理员把用户加入智能体绑定的 UserGroup 后，不需要把用户加入工作空间，也不需要复制一份工作空间权限；下一次权限计算会直接获得 `canRun`。
 
-- 当前 xpert 至少绑定一个 `userGroup`
-- 否则禁止发布
+## 创作态与运行态 API 分离
 
-同时保留运行时兜底：
+`XpertWorkspaceBaseService` 保留两组语义不同的方法：
 
-- 历史已发布且无 group 的记录在访问时直接拒绝
+- 创作态：`findOne()`、`getAllByWorkspace()`，要求 workspace `read`/authoring 权限；
+- 运行态：`findOneForRuntime()`、`getAllByWorkspaceForRuntime()`，要求 workspace `run` 权限。
 
-### 5. 前端
+本次已将以下运行链路切换到运行态方法：
 
-- 新增 org-only 的 `settings/groups` 页面
-- 提供 group 列表、编辑、成员维护
-- `xpert` 授权页把 managers UI 全部替换为 userGroups UI
-- `XpertAPIService` 删除 managers API，改成 `getXpertUserGroups/updateXpertUserGroups`
-- 修正遗留 `/settings/groups/:id` 导航，正式落到新的 groups 页面
+- `XpertChatHandler`：加载主智能体和 follow-up 智能体；
+- `GetXpertWorkflowHandler`：编译运行所需工作流；
+- `RuntimeCapabilitiesService`：列出工作空间技能包；
+- 连接器与技能中间件继续通过 `assertCanRun()` 校验。
 
-## 实施步骤
+`getAllByWorkspaceForRuntime()` 在完成一次 `run` 校验后，直接使用带 tenant、organization、workspace 条件的 repository 查询。这里不能再调用通用 `findAll()`，因为后者会对 workspace 条件执行第二次 `read` 校验，从而再次拒绝只有 `canRun` 的用户。
 
-1. 先补 contracts：
-   - `IUserGroup`
-   - `IApiPrincipal.requestedOrganizationId`
-   - `IXpert.userGroups`
-2. 新建 `packages/server/src/user-group/**`
-3. 改造 `Xpert` 实体与接口，移除 `managers`
-4. 新增统一 published xpert access service
-5. 改造 assistant controller 与 run create 主链路
-6. 发布链路增加 `userGroups` 校验
-7. 前端增加 `settings/groups` 与 xpert authorization 新界面
-8. 补齐测试
+所有编辑、保存、删除、发布和工作空间管理入口仍使用创作态方法或 `write/manage` 校验，不能为了复用运行逻辑而改成 `run`。
 
-## Public Interfaces
+## 运行调用链
 
-- `IApiPrincipal.requestedOrganizationId?: string | null`
-- `IXpert.userGroups?: IUserGroup[]`
-- 新增 org-only REST：
-  - `GET /user-groups`
-  - `POST /user-groups`
-  - `GET /user-groups/:id`
-  - `PUT /user-groups/:id`
-  - `DELETE /user-groups/:id`
-  - `PUT /user-groups/:id/members`
-- xpert 授权接口改为：
-  - `GET /xpert/:id/user-groups`
-  - `PUT /xpert/:id/user-groups`
-- 删除旧接口：
-  - `GET /xpert/:id/managers`
-  - `PUT /xpert/:id/managers`
-  - `DELETE /xpert/:id/managers/:userId`
+一次组织用户聊天请求的授权顺序如下：
 
-## Assumptions
+1. Assistant 查询/运行入口通过 `PublishedXpertAccessService` 校验目标智能体 ACL。
+2. `XpertChatHandler` 通过 `findOneForRuntime()` 加载智能体。
+3. `GetXpertWorkflowHandler` 通过 `findOneForRuntime()` 加载并编译工作流。
+4. `RuntimeCapabilitiesService` 通过 `getAllByWorkspaceForRuntime()` 读取技能包。
+5. 连接器和技能执行通过 `assertCanRun()` 读取运行依赖。
+6. 任一步发现 tenant、organization、发布状态、UserGroup 成员关系或工作空间范围不匹配，立即拒绝。
 
-- `UserGroup` 为 org 级，不提供 tenant 级 group
-- 不再引入 direct-user ACL，也不保留 `responsibleUsers`
-- 不迁移 `xpert.managers` 历史数据，只迁移结构
-- 当前仓库继续依赖 `synchronize: true` 做 schema 变更，本轮不额外补手写 migration
-- `userGroups` 不参与 xpert 编辑权限，只参与 published assistant 的使用权限
+## 安全不变量
+
+- 智能体授权和工作空间授权必须分层校验，不能只保留其中一层。
+- UserGroup 授权只适用于已发布智能体；未发布智能体不能产生 workspace `canRun`。
+- UserGroup、用户、智能体和工作空间必须属于同一 tenant/organization 范围。
+- 运行态查询仍必须附加 tenant、organization 和 workspace 条件，不能在权限校验后做无作用域查询。
+- 普通 `findOne()`/`findAll()` 保持创作态语义；只有真实运行调用链可以使用 Runtime 方法。
+- 获得 `canRun` 不代表可以列出、查看、编辑或管理工作空间。
+
+## 回归测试
+
+关键测试覆盖：
+
+- UserGroup 中的用户对包含已发布智能体的组织工作空间仅获得 `canRun`；
+- 未发布、跨 tenant、跨 organization 或非成员关系不会产生 `canRun`；
+- SQL 关联使用兼容 PostgreSQL 的小写 alias；
+- `findOneForRuntime()` 使用 `run` 而不是 `read`；
+- `getAllByWorkspaceForRuntime()` 只做一次运行权限校验，并执行带完整 scope 的查询；
+- Chat、工作流编译和 Runtime Capabilities 使用运行态 service 方法；
+- 原有创作态读取仍要求 workspace authoring 权限。
+
+## 相关实现
+
+- `packages/server-ai/src/xpert/published-xpert-access.service.ts`
+- `packages/server-ai/src/xpert-workspace/workspace-access.service.ts`
+- `packages/server-ai/src/xpert-workspace/workspace-base.service.ts`
+- `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
+- `packages/server-ai/src/xpert/queries/handlers/get-xpert-workflow.handler.ts`
+- `packages/server-ai/src/ai/runtime-capabilities.service.ts`

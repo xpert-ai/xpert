@@ -234,7 +234,7 @@ describe('AssistantsController', () => {
             }))
         }
         const skillPackageService = {
-            getAllByWorkspace: jest.fn(async () => ({
+            getAllByWorkspaceForRuntime: jest.fn(async () => ({
                 items: [
                     {
                         id: 'skill-default',
@@ -558,7 +558,7 @@ describe('AssistantsController', () => {
             getUserPreferenceByAssistantId: jest.fn(async () => null)
         }
         const skillPackageService = {
-            getAllByWorkspace: jest.fn(async () => ({
+            getAllByWorkspaceForRuntime: jest.fn(async () => ({
                 items: [
                     {
                         id: 'draft-skill',
@@ -628,8 +628,8 @@ describe('AssistantsController', () => {
                 knowledgebaseNames: []
             }
         ])
-        expect(skillPackageService.getAllByWorkspace).toHaveBeenCalled()
-        expect(skillPackageService.getAllByWorkspace.mock.calls[0].slice(0, 3)).toEqual([
+        expect(skillPackageService.getAllByWorkspaceForRuntime).toHaveBeenCalled()
+        expect(skillPackageService.getAllByWorkspaceForRuntime.mock.calls[0].slice(0, 3)).toEqual([
             'workspace-1',
             expect.objectContaining({
                 relations: ['skillIndex', 'skillIndex.repository']
@@ -701,7 +701,7 @@ describe('AssistantsController', () => {
             }))
         }
         const skillPackageService = {
-            getAllByWorkspace: jest.fn(async () => ({
+            getAllByWorkspaceForRuntime: jest.fn(async () => ({
                 items: [
                     {
                         id: 'skill-enabled',
@@ -873,7 +873,7 @@ describe('AssistantsController', () => {
             assistantBindingService,
             agentMiddlewareRegistry,
             {
-                getAllByWorkspace: jest.fn()
+                getAllByWorkspaceForRuntime: jest.fn()
             },
             new RuntimeCommandService(),
             promptWorkflowService
@@ -982,7 +982,7 @@ describe('AssistantsController', () => {
             assistantBindingService,
             agentMiddlewareRegistry,
             {
-                getAllByWorkspace: jest.fn()
+                getAllByWorkspaceForRuntime: jest.fn()
             },
             new RuntimeCommandService(),
             promptWorkflowService
@@ -1050,7 +1050,7 @@ describe('AssistantsController', () => {
                 get: jest.fn()
             },
             {
-                getAllByWorkspace: jest.fn()
+                getAllByWorkspaceForRuntime: jest.fn()
             },
             new RuntimeCommandService(),
             promptWorkflowService

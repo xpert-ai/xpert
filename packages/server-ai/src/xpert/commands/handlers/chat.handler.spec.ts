@@ -42,7 +42,7 @@ import { XpertChatHandler } from './chat.handler'
 type XpertChatCommandOptions = NonNullable<ConstructorParameters<typeof XpertChatCommand>[1]>
 
 describe('XpertChatHandler', () => {
-    let xpertService: { findOne: jest.Mock }
+    let xpertService: { findOneForRuntime: jest.Mock }
     let assistantBindingService: {
         getBinding: jest.Mock
         getUserPreferenceByAssistantId: jest.Mock
@@ -66,7 +66,7 @@ describe('XpertChatHandler', () => {
 
     beforeEach(() => {
         xpertService = {
-            findOne: jest.fn().mockResolvedValue(xpert)
+            findOneForRuntime: jest.fn().mockResolvedValue(xpert)
         }
         assistantBindingService = {
             getBinding: jest.fn().mockResolvedValue({
