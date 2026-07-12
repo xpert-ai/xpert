@@ -1,5 +1,6 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { FilePreviewContentComponent } from '../../@shared/files/preview/file-preview-content.component'
 import { createFilePreviewState, toFilePreviewSource } from '../../@shared/files/preview/file-preview.utils'
 
@@ -9,7 +10,7 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
 @Component({
   standalone: true,
   selector: 'xp-workbench-file-preview-dialog',
-  imports: [FilePreviewContentComponent, WorkbenchPdfEvidencePreviewComponent],
+  imports: [TranslateModule, FilePreviewContentComponent, WorkbenchPdfEvidencePreviewComponent],
   host: {
     class: 'block h-full w-full'
   },
@@ -35,7 +36,11 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
             }
           </div>
           <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold leading-6">{{ file.name || 'Source document' }}</h2>
+            <h2 class="truncate text-base font-semibold leading-6">
+              {{
+                file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+              }}
+            </h2>
             @if (file.mimeType) {
               <p class="mt-1 truncate text-xs text-text-tertiary">{{ file.mimeType }}</p>
             }
@@ -46,7 +51,7 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
           <button
             type="button"
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-            aria-label="Open file"
+            [attr.aria-label]="'PAC.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
             (click)="openExternal()"
           >
             <i class="ri-external-link-line"></i>
@@ -55,14 +60,14 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
             [href]="previewUrl()"
             [download]="file.name || 'source-document'"
-            aria-label="Download file"
+            [attr.aria-label]="'PAC.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' }"
           >
             <i class="ri-download-line"></i>
           </a>
           <button
             type="button"
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-            aria-label="Close"
+            [attr.aria-label]="'PAC.Assistant.FilePreview.Close' | translate: { Default: 'Close' }"
             (click)="close()"
           >
             <i class="ri-close-line"></i>
@@ -77,8 +82,11 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
               <xp-workbench-pdf-evidence-preview
                 class="block h-full min-h-0"
                 [box]="evidenceBox()"
-                [fileName]="file.name || 'Source document'"
+                [fileName]="
+                  file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                "
                 [page]="evidencePage()"
+                [searchTerms]="evidenceSearchTerms()"
                 [url]="basePreviewUrl()"
               />
             } @else {
@@ -88,7 +96,9 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
                 [documentBlob]="previewData().documentBlob"
                 [downloadable]="true"
                 [error]="previewError()"
-                [fileName]="file.name || 'Source document'"
+                [fileName]="
+                  file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                "
                 [loading]="previewLoading()"
                 [previewKind]="previewKind()"
                 [spreadsheet]="spreadsheet()"
@@ -102,7 +112,9 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
             class="space-y-3 overflow-auto border-t border-divider-regular bg-components-card-bg p-4 text-sm lg:border-l lg:border-t-0"
           >
             <div>
-              <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">证据位置</div>
+              <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                {{ 'PAC.Assistant.FilePreview.EvidenceLocation' | translate: { Default: 'Evidence location' } }}
+              </div>
               <div class="mt-1 text-text-primary">
                 @if (evidencePage()) {
                   P{{ evidencePage() }}
@@ -135,13 +147,22 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
 
             @if (currentEvidence.text) {
               <div>
-                <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">证据原文</div>
+                <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                  {{ 'PAC.Assistant.FilePreview.EvidenceText' | translate: { Default: 'Evidence text' } }}
+                </div>
                 <p class="mt-1 whitespace-pre-wrap leading-6 text-text-primary">{{ currentEvidence.text }}</p>
               </div>
             }
 
             <p class="text-xs leading-5 text-text-tertiary">
-              宿主预览会按 PDF 页面实际渲染尺寸叠加证据框；外部浏览器标签页只能打开原文件，不能渲染该证据框。
+              {{
+                'PAC.Assistant.FilePreview.EvidenceHint'
+                  | translate
+                    : {
+                        Default:
+                          'The host preview overlays the evidence box using the rendered PDF page dimensions. An external browser tab can only open the original file and cannot render this evidence box.'
+                      }
+              }}
             </p>
           </aside>
         </div>
@@ -152,7 +173,9 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
           [documentBlob]="previewData().documentBlob"
           [downloadable]="true"
           [error]="previewError()"
-          [fileName]="file.name || 'Source document'"
+          [fileName]="
+            file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+          "
           [loading]="previewLoading()"
           [previewKind]="previewKind()"
           [spreadsheet]="spreadsheet()"
@@ -171,6 +194,10 @@ export class WorkbenchFilePreviewDialogComponent {
   readonly evidence = computed(() => this.file.evidence ?? null)
   readonly evidencePage = computed(() => this.evidence()?.locator?.page)
   readonly evidenceBox = computed(() => normalizeEvidenceBox(this.evidence()?.locator?.box))
+  readonly evidenceSearchTerms = computed(() => {
+    const evidence = this.evidence()
+    return [evidence?.displayValue, evidence?.text].filter((value): value is string => Boolean(value?.trim()))
+  })
   readonly basePreviewUrl = computed(() => this.file.previewUrl || this.file.url)
   readonly previewUrl = computed(() => appendPdfPageAnchor(this.basePreviewUrl(), this.evidencePage()))
   readonly controlledPdfEvidence = computed(() => this.previewKind() === 'pdf' && !!this.evidenceBox())
