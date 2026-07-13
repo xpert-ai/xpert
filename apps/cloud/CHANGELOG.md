@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.12
+
+### Patch Changes
+
+- b8bac1f: Add system-plugin Sandbox Actions, the action-oriented Sandbox Jobs Core, provider-neutral Runtime Definitions, the minimal Runtime Provider/workspace mapper SPI, Worker heartbeat health, and Browser execution-pool capability discovery.
+
 ## 3.15.11
 
 ### Patch Changes

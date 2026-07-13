@@ -1,5 +1,12 @@
 # @xpert-ai/contracts
 
+## 3.15.12
+
+### Patch Changes
+
+- b8bac1f: Add system-plugin Sandbox Actions, the action-oriented Sandbox Jobs Core, provider-neutral Runtime Definitions, the minimal Runtime Provider/workspace mapper SPI, Worker heartbeat health, and Browser execution-pool capability discovery.
+- b905a58: Publish the Workbench file-open command key, file payload, and evidence payload contracts for host and plugin reuse.
+
 ## 3.15.11
 
 ### Patch Changes
