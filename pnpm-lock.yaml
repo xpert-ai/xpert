@@ -1692,9 +1692,6 @@ importers:
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:../plugin-sdk/dist
-      '@xpert-ai/sandbox-runtime':
-        specifier: workspace:*
-        version: link:../sandbox-runtime
       '@xpert-ai/server-auth':
         specifier: workspace:*
         version: link:../auth

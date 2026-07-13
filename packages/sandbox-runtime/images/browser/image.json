@@ -14,7 +14,7 @@
   "capabilities": ["browser.chromium", "browser.pdf", "browser.screenshot", "sandbox.action.v1"],
   "dockerfile": "images/browser/Dockerfile",
   "manifest": "images/browser/runtime/manifest.json",
-  "runtimeDefinition": "images/browser/runtime-definition.json",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/browser-playwright-1.61-v1.json",
   "artifactCatalogTemplate": "images/browser/artifact-catalog.template.json",
   "smokeCommand": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs", "--browser-smoke"],
   "baseImages": {

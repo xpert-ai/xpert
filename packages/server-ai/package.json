@@ -43,7 +43,6 @@
         "@xpert-ai/copilot": "workspace:*",
         "@xpert-ai/ocap-core": "workspace:*",
         "@xpert-ai/plugin-sdk": "workspace:*",
-        "@xpert-ai/sandbox-runtime": "workspace:*",
         "@xpert-ai/server-auth": "workspace:*",
         "@xpert-ai/server-common": "workspace:*",
         "@xpert-ai/server-config": "workspace:*",

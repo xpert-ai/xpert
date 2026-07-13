@@ -1,4 +1,3 @@
-import browserDefinition from '@xpert-ai/sandbox-runtime/definitions/browser'
 import { Injectable } from '@nestjs/common'
 import type {
     SandboxRuntimeDefinition,
@@ -7,13 +6,16 @@ import type {
     SandboxRuntimeResources,
     SandboxRuntimeSecurity
 } from '@xpert-ai/plugin-sdk'
+import browserDefinition from './runtime-definitions/browser-playwright-1.61-v1.json'
 
-/** Stable Browser Runtime profile shipped by the provider-neutral Runtime Suite. */
+/** Stable Browser Runtime profile embedded in the provider-neutral OSS Core catalog. */
 export const DEFAULT_BROWSER_RUNTIME_PROFILE = 'browser/playwright-1.61/v1'
 
 /**
- * Loads and validates trusted Runtime Definitions distributed by
- * `@xpert-ai/sandbox-runtime`; it never selects a Provider or artifact.
+ * Loads and validates trusted Runtime Definitions embedded in OSS Core.
+ *
+ * Runtime Suite release tooling consumes the same catalog when producing image
+ * metadata, so API processes never install the image-build package.
  */
 @Injectable()
 export class SandboxRuntimeDefinitionRegistry {

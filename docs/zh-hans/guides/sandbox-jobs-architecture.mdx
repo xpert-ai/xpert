@@ -55,7 +55,6 @@ packages/sandbox-runtime/
 │   ├── Dockerfile
 │   ├── runtime/runner-host.mjs
 │   ├── runtime/manifest.json
-│   ├── runtime-definition.json
 │   ├── artifact-catalog.template.json
 │   └── tests/
 └── scripts/
@@ -75,7 +74,7 @@ Browser Runtime Profile 固定为 `browser/playwright-1.61/v1`。首版镜像包
 
 ### SandboxRuntimeDefinitionRegistry
 
-OSS Core 从 `@xpert-ai/sandbox-runtime` 构建产物注册通用的 `browser/playwright-1.61/v1`：
+OSS Core 从自身内置的 Runtime Definition Catalog 注册通用的 `browser/playwright-1.61/v1`：
 
 - 固定 Runner Host command
 - Runtime contract 与 suite version
@@ -83,7 +82,7 @@ OSS Core 从 `@xpert-ai/sandbox-runtime` 构建产物注册通用的 `browser/pl
 - network/security policy
 - expected Runtime manifest
 
-Definition 不包含 provider、image、宿主路径或插件标识。它在 OSS 与 Pro 中完全相同，不要求用户配置 profile 文件或环境变量。
+Definition 不包含 provider、image、宿主路径或插件标识。它在 OSS 与 Pro 中完全相同，不要求用户配置 profile 文件或环境变量。API image 不安装或携带 `@xpert-ai/sandbox-runtime`；Runtime Suite 构建和校验直接消费同一份 Core Definition 文件，避免两份契约漂移。
 
 ### SandboxRuntimeProviderRegistry 与 Binding Selector
 
@@ -157,7 +156,7 @@ Core 的主要 class 负责维护上述边界：
 | Core class                           | 作用                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | `SandboxActionRegistry`              | 授权 system Action，并校验安全路径、文件限制、链接、checksum 和 bundle tree hash。                                 |
-| `SandboxRuntimeDefinitionRegistry`   | 从 Runtime Suite 加载提供方无关的 Runtime Definition。                                                             |
+| `SandboxRuntimeDefinitionRegistry`   | 从 OSS Core 内置 Catalog 加载提供方无关的 Runtime Definition，并供 Runtime Suite 发布校验复用。                    |
 | `SandboxRuntimeBindingSelector`      | 过滤必需能力与不可变 artifact，执行 health 检查，再按优先级确定性选择 Binding。                                    |
 | `SandboxRuntimeHealthService`        | Worker 探测并发布有 TTL 的 Runtime health；API 只聚合 Redis heartbeat。                                            |
 | `SandboxJobRuntimeCapabilityService` | 负责幂等、容量、materialize、执行、输出校验、运行证据、取消和清理；只有 worker 执行路径可以创建 Runtime instance。 |

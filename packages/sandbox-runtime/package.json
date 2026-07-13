@@ -2,15 +2,9 @@
   "name": "@xpert-ai/sandbox-runtime",
   "version": "1.0.0",
   "private": true,
-  "description": "Versioned OCI image suite and runtime contracts for Xpert Sandbox workloads.",
+  "description": "Versioned OCI image suite for Xpert Sandbox workloads.",
   "license": "AGPL-3.0",
   "type": "module",
-  "exports": {
-    "./definitions/browser": {
-      "types": "./definitions/browser.d.ts",
-      "default": "./images/browser/runtime-definition.json"
-    }
-  },
   "scripts": {
     "build:matrix": "node scripts/build-matrix.mjs",
     "sync:metadata": "node scripts/sync-version.mjs",

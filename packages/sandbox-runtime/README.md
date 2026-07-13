@@ -1,12 +1,12 @@
 # Xpert Sandbox Runtime Suite
 
-This private package is the single source of truth for Xpert Sandbox OCI images, provider-neutral Runtime Definitions, immutable Runtime Artifact catalogs, build metadata, and smoke tests. It does not contain Sandbox providers, job orchestration, capacity control, workspace mapping, or plugin business code.
+This private package is the single source of truth for Xpert Sandbox OCI images, immutable Runtime Artifact catalogs, build metadata, and smoke tests. Provider-neutral Runtime Definitions are embedded in OSS Core so API processes can perform capability discovery without installing this image-build package. Runtime Suite tooling consumes those Definitions when validating images and producing release catalogs.
 
 The first image family is the Browser Runtime profile `browser/playwright-1.61/v1`. It supplies Node.js 20.20.2, Playwright 1.61.0, matching Chromium, CJK/Emoji fonts, and a generic Runner Host. Plugins contribute versioned Sandbox Action Bundles; they never select an image or pass a command.
 
 ## Add an image family
 
-Add the family below `images/`, declare it once in `images/catalog.json`, and implement its manifest, Runtime Definition, Artifact Catalog template, Dockerfile, and smoke tests. Release workflows derive their build matrix only from the catalog.
+Add the family below `images/`, declare it once in `images/catalog.json`, and implement its image manifest, Artifact Catalog template, Dockerfile, and smoke tests. Add its provider-neutral Runtime Definition to the OSS Core catalog and reference that file from `image.json`. Release workflows derive their build matrix only from the image catalog.
 
 ## Local verification
 
@@ -25,7 +25,7 @@ Production Providers consume the released Runtime Artifact Catalog and must pin 
 
 ## Ownership boundary
 
-- `@xpert-ai/sandbox-runtime`: Definition and artifact production.
-- OSS Sandbox Jobs Core: Action validation, Job state, Binding selection, capacity, files, audit and health aggregation.
+- `@xpert-ai/sandbox-runtime`: OCI image, manifest, artifact catalog, release metadata and smoke production; never an API dependency.
+- OSS Sandbox Jobs Core: Runtime Definitions, Action validation, Job state, Binding selection, capacity, files, audit and health aggregation.
 - Runtime Provider plugins: turn a compatible Binding into one isolated Runtime instance.
 - Sandbox Action plugins: declare only an Action, version and required Runtime Profile.
