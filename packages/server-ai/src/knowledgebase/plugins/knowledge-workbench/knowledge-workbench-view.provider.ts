@@ -17,6 +17,7 @@ import {
     XpertViewParameterOptionsQuery,
     XpertViewParameterOptionsResult,
     XpertViewQuery,
+    WORKBENCH_FILE_OPEN_COMMAND,
     WORKBENCH_NAVIGATION_OPEN_COMMAND
 } from '@xpert-ai/contracts'
 import {
@@ -39,7 +40,6 @@ import {
 import { getConnectedKnowledgebaseIds, KnowledgeWorkbenchService } from './knowledge-workbench.service'
 
 const requireFromHere = createRequire(__filename)
-const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
 const KNOWLEDGE_WORKBENCH_REMOTE_ASSET_SUBPATH = join(
     'src',

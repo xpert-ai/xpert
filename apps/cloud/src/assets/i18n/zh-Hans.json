@@ -1201,6 +1201,21 @@
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "用于 ClawXpert 页面的嵌入式助手体验。"
+      },
+      "FilePreview": {
+        "SourceDocument": "源文档",
+        "PdfDocument": "PDF 文档",
+        "OpenFile": "打开文件",
+        "DownloadFile": "下载文件",
+        "Close": "关闭",
+        "EvidenceLocation": "证据位置",
+        "EvidenceText": "证据原文",
+        "EvidenceHint": "宿主预览会按 PDF 页面实际渲染尺寸叠加证据框；外部浏览器标签页只能打开原文件，不能渲染该证据框。",
+        "RenderingEvidencePage": "正在渲染证据页…",
+        "EvidencePageUnavailable": "证据页无法预览",
+        "Evidence": "证据",
+        "UnknownPdfPreviewError": "未知的 PDF 预览错误",
+        "CanvasUnavailable": "Canvas 渲染上下文不可用。"
       }
     },
     "MenuGroup": {

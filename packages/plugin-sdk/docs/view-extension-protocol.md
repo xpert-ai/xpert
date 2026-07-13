@@ -74,6 +74,21 @@ Iframe to parent:
 
 No other message type may perform backend I/O until it is added to this document, the host bridge, and the provider interface.
 
+Remote components and hosts should import the public identifiers from `@xpert-ai/contracts` instead of repeating
+their wire values:
+
+```ts
+import {
+  WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_FILE_OPEN_COMMAND,
+  WORKBENCH_NAVIGATION_OPEN_COMMAND,
+  XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
+  type WorkbenchOpenFile,
+  type WorkbenchNavigationOpenPayload,
+  type XpertRemoteComponentInvokeClientCommandRequest
+} from '@xpert-ai/contracts'
+```
+
 ## Manifest Rules
 
 The manifest is the capability whitelist. A remote component may only request operations that the manifest declares.
@@ -282,6 +297,11 @@ type XpertViewClientCommandDefinition = {
   permissions?: string[]
 }
 ```
+
+The public file preview command uses `WORKBENCH_FILE_OPEN_COMMAND` and a
+`WorkbenchOpenFile` payload. Optional evidence metadata is represented by
+`WorkbenchOpenFileEvidence` and `WorkbenchOpenFileEvidenceBox`; plugins should
+import these contracts instead of repeating the payload shape.
 
 Rules:
 

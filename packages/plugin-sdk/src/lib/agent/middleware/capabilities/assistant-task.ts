@@ -25,6 +25,7 @@ export type AgentMiddlewareAssistantTaskInput = {
   xpertId: string
   agentKey?: string
   conversationId?: string | null
+  executionId?: string | null
   projectId?: string | null
   taskId?: string
   clientMessageId?: string

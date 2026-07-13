@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { WORKBENCH_FILE_OPEN_COMMAND, type WorkbenchOpenFile } from '@xpert-ai/contracts'
 import {
     Badge,
     Button,
@@ -491,14 +492,15 @@ function App() {
         if (!url) {
             return
         }
-        await invokeClientCommand('workbench.file.open', {
+        const file = {
             id: row.id,
             name: row.name || 'source-document',
             mimeType: row.mimeType || preview?.originalFile?.mimeType,
             size: typeof row.size === 'number' ? row.size : undefined,
             url,
             previewUrl: url
-        })
+        } satisfies WorkbenchOpenFile
+        await invokeClientCommand(WORKBENCH_FILE_OPEN_COMMAND, file)
     }
 
     const openGraphEvidence = React.useCallback(

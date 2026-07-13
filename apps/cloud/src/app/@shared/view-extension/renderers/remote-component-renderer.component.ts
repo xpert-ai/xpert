@@ -13,6 +13,7 @@ import {
 } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import {
+  XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
   XpertViewActionDefinition,
   XpertViewHostEventSubscription,
@@ -253,7 +254,7 @@ export class RemoteComponentRendererComponent {
       case 'executeFileAction':
         void this.handleRequest(message, 'fileActionResult', () => this.handleFileActionRequest(message))
         return
-      case 'invokeClientCommand':
+      case XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE:
         void this.handleRequest(message, 'clientCommandResult', () => this.handleClientCommandRequest(message))
         return
       default:
