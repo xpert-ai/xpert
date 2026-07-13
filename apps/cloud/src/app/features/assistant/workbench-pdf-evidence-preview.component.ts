@@ -13,6 +13,7 @@ import {
   viewChild
 } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import type { WorkbenchOpenFileEvidenceBox } from '@xpert-ai/contracts'
 import {
   getDocument,
   Util,
@@ -22,7 +23,12 @@ import {
   type RenderTask
 } from 'pdfjs-dist'
 
-import type { WorkbenchOpenFileEvidenceBox } from './workbench-file-open-client-command'
+import {
+  normalizePdfEvidenceRotation,
+  resolvePdfEvidenceViewportRotation,
+  rotateNormalizedEvidenceBox,
+  type PdfEvidenceRotation
+} from './workbench-pdf-evidence-rotation'
 
 type PageSize = {
   width: number
@@ -130,6 +136,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
   readonly fileName = input('')
   readonly page = input<number | null | undefined>(null)
   readonly box = input<WorkbenchOpenFileEvidenceBox | null>(null)
+  readonly rotation = input<number | null | undefined>(0)
   readonly searchTerms = input<readonly string[]>([])
 
   readonly loading = signal(false)
@@ -144,6 +151,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
     const page = this.page()
     return Number.isInteger(page) && Number(page) > 0 ? Number(page) : 1
   })
+  readonly displayRotation = computed(() => normalizePdfEvidenceRotation(this.rotation()))
 
   readonly normalizedMarkerStyle = computed<MarkerStyle | null>(() => {
     const box = this.box()
@@ -152,11 +160,12 @@ export class WorkbenchPdfEvidencePreviewComponent {
       return null
     }
 
+    const rotatedBox = rotateNormalizedEvidenceBox(box, this.displayRotation())
     return {
-      left: box.x * pageSize.width,
-      top: box.y * pageSize.height,
-      width: box.width * pageSize.width,
-      height: box.height * pageSize.height
+      left: rotatedBox.x * pageSize.width,
+      top: rotatedBox.y * pageSize.height,
+      width: rotatedBox.width * pageSize.width,
+      height: rotatedBox.height * pageSize.height
     }
   })
   readonly markerStyle = computed<MarkerStyle | null>(() => this.textMarkerStyle() ?? this.normalizedMarkerStyle())
@@ -197,6 +206,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
     const url = this.url()
     const page = this.requestedPage()
     const width = this.viewportWidth()
+    const rotation = this.displayRotation()
     const searchTerms = this.searchTerms()
     const canvas = this.canvasRef()?.nativeElement
 
@@ -204,7 +214,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
       return
     }
 
-    void this.render(url, page, width, canvas, searchTerms)
+    void this.render(url, page, width, canvas, rotation, searchTerms)
   })
 
   constructor() {
@@ -219,6 +229,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
     page: number,
     hostWidth: number,
     canvas: HTMLCanvasElement,
+    recognitionRotation: PdfEvidenceRotation,
     searchTerms: readonly string[]
   ) {
     const serial = ++this.#renderSerial
@@ -240,7 +251,7 @@ export class WorkbenchPdfEvidencePreviewComponent {
         return
       }
 
-      await this.renderPage(pdfPage, pageNumber, hostWidth, canvas, searchTerms)
+      await this.renderPage(pdfPage, pageNumber, hostWidth, canvas, recognitionRotation, searchTerms)
       if (serial !== this.#renderSerial) {
         return
       }
@@ -281,14 +292,16 @@ export class WorkbenchPdfEvidencePreviewComponent {
     pageNumber: number,
     hostWidth: number,
     canvas: HTMLCanvasElement,
+    recognitionRotation: PdfEvidenceRotation,
     searchTerms: readonly string[]
   ) {
     this.cancelRenderTask()
 
-    const baseViewport = pdfPage.getViewport({ scale: 1 })
+    const viewportRotation = resolvePdfEvidenceViewportRotation(pdfPage.rotate, recognitionRotation)
+    const baseViewport = pdfPage.getViewport({ scale: 1, rotation: viewportRotation })
     const availableWidth = Math.max(320, hostWidth - 48)
     const viewportScale = clampNumber(availableWidth / baseViewport.width, 0.35, 3)
-    const viewport = pdfPage.getViewport({ scale: viewportScale })
+    const viewport = pdfPage.getViewport({ scale: viewportScale, rotation: viewportRotation })
     const outputScale = Math.min(globalThis.devicePixelRatio || 1, 2)
     const canvasContext = canvas.getContext('2d')
     if (!canvasContext) {
@@ -412,9 +425,6 @@ async function resolveTextMarker(
 
   const content = await pdfPage.getTextContent()
   const textItems = content.items.filter(isPdfTextItem)
-  if (!textItems.length) {
-    return calibrateImageOnlyMarker(fallback, viewport.width, viewport.height)
-  }
 
   for (const term of terms) {
     const candidates = textItems
@@ -431,32 +441,6 @@ async function resolveTextMarker(
   }
 
   return null
-}
-
-/**
- * Drawing evidence produced from image-only PDF pages is anchored to the
- * neighbouring title-block label: half a locator width to the left and one
- * locator height below the value. PDF.js cannot refine these pages through a
- * text layer, so normalize that VLM anchor before drawing the marker.
- */
-function calibrateImageOnlyMarker(
-  marker: MarkerStyle | null,
-  pageWidth: number,
-  pageHeight: number
-): MarkerStyle | null {
-  if (!marker) {
-    return null
-  }
-
-  return clampMarker(
-    {
-      ...marker,
-      left: marker.left + marker.width / 2,
-      top: marker.top - marker.height
-    },
-    pageWidth,
-    pageHeight
-  )
 }
 
 function textItemMarker(
