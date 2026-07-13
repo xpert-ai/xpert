@@ -1,42 +1,13 @@
+import {
+  WORKBENCH_FILE_OPEN_COMMAND,
+  type WorkbenchOpenFile,
+  type WorkbenchOpenFileEvidence,
+  type WorkbenchOpenFileEvidenceBox
+} from '@xpert-ai/contracts'
+
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
-export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
-
-export type WorkbenchOpenFile = {
-  id?: string
-  fileId?: string
-  fileAssetId?: string
-  storageFileId?: string
-  name: string
-  mimeType?: string
-  size?: number
-  url: string
-  previewUrl?: string
-  evidence?: WorkbenchOpenFileEvidence
-}
-
-export type WorkbenchOpenFileEvidenceBox = {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-export type WorkbenchOpenFileEvidence = {
-  observationId?: string
-  attributeCode?: string
-  displayValue?: string
-  text?: string
-  method?: string
-  region?: string
-  confidence?: number
-  locator?: {
-    sourceType?: string
-    page?: number
-    box?: WorkbenchOpenFileEvidenceBox
-  }
-}
-
+/** Host-only registration behavior; this is not part of the plugin wire contract. */
 type WorkbenchFileOpenCommandOptions = {
   openFile?: (file: WorkbenchOpenFile) => void
 }
@@ -121,10 +92,15 @@ function toWorkbenchOpenFileEvidenceLocator(value: unknown): WorkbenchOpenFileEv
   }
 
   const page = getPositiveInteger(value.page)
+  const recognitionRotation = getFiniteNumber(value.recognitionRotation)
+  const orientationConfidence = getFiniteNumber(value.orientationConfidence)
   const box = toWorkbenchOpenFileEvidenceBox(value.box)
   const locator: NonNullable<WorkbenchOpenFileEvidence['locator']> = {
     ...(getString(value.sourceType) ? { sourceType: getString(value.sourceType) } : {}),
     ...(page !== undefined ? { page } : {}),
+    ...(getString(value.coordinateSpace) ? { coordinateSpace: getString(value.coordinateSpace) } : {}),
+    ...(recognitionRotation !== undefined ? { recognitionRotation } : {}),
+    ...(orientationConfidence !== undefined ? { orientationConfidence } : {}),
     ...(box ? { box } : {})
   }
 

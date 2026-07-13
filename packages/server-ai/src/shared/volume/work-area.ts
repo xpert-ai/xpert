@@ -1,14 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
-import {
-    getWorkspacePathMapperForProvider,
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeHandle,
-    VolumeScope,
-    WorkspaceBinding
-} from './volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle, VolumeScope, WorkspaceBinding } from './volume'
+import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 const KNOWLEDGE_FILES_PATH = 'files'
@@ -78,7 +72,8 @@ export type KnowledgeRuntimeWorkArea = {
 export class XpertWorkAreaResolver {
     constructor(
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly workspaceMappers: WorkspacePathMapperFactory
     ) {}
 
     async resolve(input: XpertRuntimeWorkAreaInput): Promise<XpertRuntimeWorkArea> {
@@ -87,7 +82,7 @@ export class XpertWorkAreaResolver {
         const relativePaths = this.resolveRelativePaths(input)
         await this.ensureRelativePaths(volume, relativePaths.allPaths)
 
-        const workspaceBinding = getWorkspacePathMapperForProvider(input.provider).mapVolumeToWorkspace(volume, {
+        const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: relativePaths.defaultPath
         })
         const defaultPath = toRuntimePath(volume, workspaceBinding, relativePaths.defaultPath)
@@ -127,7 +122,7 @@ export class XpertWorkAreaResolver {
             .ensureRoot()
         const memoryPath = XPERT_FILE_MEMORY_WORKSPACE_PATH
         await this.ensureRelativePaths(volume, [memoryPath])
-        const workspaceBinding = getWorkspacePathMapperForProvider(input.provider).mapVolumeToWorkspace(volume, {
+        const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: memoryPath
         })
         return {
@@ -213,7 +208,8 @@ export class XpertWorkAreaResolver {
 export class KnowledgeWorkAreaResolver {
     constructor(
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly workspaceMappers: WorkspacePathMapperFactory
     ) {}
 
     async resolve(input: KnowledgeRuntimeWorkAreaInput): Promise<KnowledgeRuntimeWorkArea> {
@@ -227,7 +223,7 @@ export class KnowledgeWorkAreaResolver {
         const relativePaths = this.resolveRelativePaths(input)
         await this.ensureRelativePaths(volume, relativePaths.allPaths)
 
-        const workspaceBinding = getWorkspacePathMapperForProvider(input.provider).mapVolumeToWorkspace(volume, {
+        const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: relativePaths.defaultPath
         })
         const defaultPath = toRuntimePath(volume, workspaceBinding, relativePaths.defaultPath)

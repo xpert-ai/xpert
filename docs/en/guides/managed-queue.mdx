@@ -116,6 +116,19 @@ await redis.set(lockKey, '1', 'PX', 30_000, 'NX')
 
 Redis keys must include tenant, organization, integration, or other business scope identifiers.
 
+### Execution pools
+
+`queueName + jobName` selects a logical plugin handler. `executionPool` selects the physical queue and worker role that may run it.
+
+| Public contract                                | Meaning                                                                                                                     |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ManagedQueueExecutionPool`                    | `'default'` for normal plugin work or `'sandbox-browser'` for heavyweight Browser Runtime work. Omission means `'default'`. |
+| `ManagedQueueEnqueueInput.executionPool`       | Routes enqueue to a physical pool; lookup and cancellation pass the same pool explicitly. It is not a tenant feature flag.  |
+| `ManagedQueueExecutionPoolHealth`              | Reports whether BullMQ currently sees a consumer and provides a warning suitable for capability diagnostics.                |
+| `ManagedQueueService.getExecutionPoolHealth()` | Checks pool readiness before a product accepts and enqueues heavyweight work.                                               |
+
+Pool health and Runtime health answer different questions. A live `sandbox-browser` consumer does not prove that an Action, Runtime Definition, Binding, artifact, or Provider is ready; browser-backed features must combine this check with Sandbox Jobs `getActionHealth()`. If either check is unavailable, show the returned warning and do not enqueue work that would otherwise remain stuck.
+
 ## Declaring Processors
 
 Plugins do not use `@Processor()` or `WorkerHost`. They declare logical processors:
@@ -208,7 +221,14 @@ For WeChat, new code no longer consumes `plugin_wechat:plugin_wechat_outbound` o
 
 ## Operations
 
-Environment variables:
+Normal API deployments need no queue autorun configuration. Pool selection follows the process role:
+
+- Development and production API: consume `default` only.
+- `XPERT_PROCESS_ROLE=sandbox-browser-worker`: consumes `sandbox-browser` only.
+
+The OSS Compose distribution does not instantiate the browser role. A concrete Sandbox Runtime Provider distribution owns that worker deployment; Xpert Pro supplies it through the private Docker Provider overlay. `bootstrapWorker()` remains in `@xpert-ai/xpert-api` as the public platform assembly point.
+
+`getExecutionPoolHealth({ executionPool })` reports active BullMQ worker count so plugins can warn before accepting work. Advanced overrides remain available for tests or unusual deployments:
 
 - `MANAGED_QUEUE_CONCURRENCY`: platform physical worker concurrency.
 - `MANAGED_QUEUE_AUTORUN=false`: prevents worker autorun for tests or special deployments.

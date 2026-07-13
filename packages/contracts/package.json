@@ -21,7 +21,7 @@
   "dependencies": {
     "@octokit/types": "13.10.0",
     "@types/json-schema": "^7.0.15",
-    "@xpert-ai/chatkit-types": "~0.4.5",
+    "@xpert-ai/chatkit-types": "~0.4.6",
     "zod-to-json-schema": "^3.25.2"
   }
 }

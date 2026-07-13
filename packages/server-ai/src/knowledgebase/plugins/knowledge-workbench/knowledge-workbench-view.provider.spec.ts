@@ -1,5 +1,6 @@
 import {
     ASSISTANT_CITATION_OPEN_EVENT,
+    WORKBENCH_FILE_OPEN_COMMAND,
     WORKBENCH_NAVIGATION_OPEN_COMMAND,
     XpertResolvedViewHostContext
 } from '@xpert-ai/contracts'
@@ -74,7 +75,11 @@ describe('KnowledgeWorkbenchViewProvider', () => {
             })
         )
         expect(manifest.clientCommands?.map((command) => command.key)).toEqual(
-            expect.arrayContaining(['assistant.context.set', 'workbench.file.open', WORKBENCH_NAVIGATION_OPEN_COMMAND])
+            expect.arrayContaining([
+                'assistant.context.set',
+                WORKBENCH_FILE_OPEN_COMMAND,
+                WORKBENCH_NAVIGATION_OPEN_COMMAND
+            ])
         )
         expect(manifest.clientCommands?.map((command) => command.key)).not.toContain('assistant.chat.send_message')
         expect(manifest.actions?.find((action) => action.key === 'upload_document')?.transport).toBe('file')

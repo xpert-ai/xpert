@@ -1,11 +1,12 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import type { WorkbenchOpenFile, WorkbenchOpenFileEvidenceBox } from '@xpert-ai/contracts'
 import { FilePreviewContentComponent } from '../../@shared/files/preview/file-preview-content.component'
 import { createFilePreviewState, toFilePreviewSource } from '../../@shared/files/preview/file-preview.utils'
 
-import type { WorkbenchOpenFile, WorkbenchOpenFileEvidenceBox } from './workbench-file-open-client-command'
 import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-preview.component'
+import { normalizePdfEvidenceRotation } from './workbench-pdf-evidence-rotation'
 
 @Component({
   standalone: true,
@@ -86,6 +87,7 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
                   file.name || ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
                 "
                 [page]="evidencePage()"
+                [rotation]="evidenceRotation()"
                 [searchTerms]="evidenceSearchTerms()"
                 [url]="basePreviewUrl()"
               />
@@ -130,6 +132,13 @@ import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-p
                   x={{ box.x.toFixed(3) }}, y={{ box.y.toFixed(3) }}, w={{ box.width.toFixed(3) }}, h={{
                     box.height.toFixed(3)
                   }}
+                </div>
+              }
+              @if (currentEvidence.locator?.recognitionRotation !== undefined) {
+                <div class="mt-1 text-xs text-text-tertiary">
+                  {{
+                    'PAC.Assistant.FilePreview.RecognitionRotation' | translate: { Default: 'Recognition rotation' }
+                  }}: {{ currentEvidence.locator?.recognitionRotation }}°
                 </div>
               }
             </div>
@@ -194,6 +203,9 @@ export class WorkbenchFilePreviewDialogComponent {
   readonly evidence = computed(() => this.file.evidence ?? null)
   readonly evidencePage = computed(() => this.evidence()?.locator?.page)
   readonly evidenceBox = computed(() => normalizeEvidenceBox(this.evidence()?.locator?.box))
+  readonly evidenceRotation = computed(() =>
+    normalizePdfEvidenceRotation(this.evidence()?.locator?.recognitionRotation)
+  )
   readonly evidenceSearchTerms = computed(() => {
     const evidence = this.evidence()
     return [evidence?.displayValue, evidence?.text].filter((value): value is string => Boolean(value?.trim()))

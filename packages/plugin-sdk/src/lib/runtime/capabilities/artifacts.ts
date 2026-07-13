@@ -69,6 +69,11 @@ export type CreateArtifactVersionInput = ArtifactVersionInput & {
   artifactId: string
 }
 
+/** Idempotently creates or reuses one immutable Artifact content version. */
+export type EnsureArtifactVersionInput = CreateArtifactVersionInput & {
+  idempotencyKey: string
+}
+
 /** Access policy requested for an Artifact link. */
 export type ArtifactLinkAccessInput = {
   mode: ArtifactAccessMode
@@ -95,6 +100,11 @@ export type CreateArtifactLinkInput = {
   metadata?: Record<string, unknown> | null
 }
 
+/** Stable plugin-owned slot for one active durable share policy. */
+export type ArtifactShareInput = CreateArtifactLinkInput & {
+  shareKey: string
+}
+
 /** Creates a short-lived signed preview link; never use this as a durable share URL. */
 export type CreateSignedArtifactPreviewLinkInput = Omit<CreateArtifactLinkInput, 'access'> & {
   ttlSeconds?: number | null
@@ -106,6 +116,7 @@ export type ArtifactVersionRecord = {
   artifactId: string
   versionNumber: number
   status: ArtifactVersionStatus
+  idempotencyKey?: string | null
   sourceVersionId?: string | null
   checksum?: string | null
   mimeType: string
@@ -114,6 +125,8 @@ export type ArtifactVersionRecord = {
   description?: string | null
   size?: number | null
   sha256?: string | null
+  workspaceFileRef?: WorkspacePortableFileReference | null
+  metadata?: Record<string, unknown> | null
   createdAt?: string | Date
 }
 
@@ -130,6 +143,7 @@ export type ArtifactRecord = ArtifactScopeInput & {
   description?: string | null
   currentVersionId?: string | null
   currentVersion?: ArtifactVersionRecord | null
+  metadata?: Record<string, unknown> | null
   createdAt?: string | Date
   updatedAt?: string | Date
 }
@@ -139,6 +153,7 @@ export type ArtifactLinkRecord = ArtifactScopeInput & {
   id: string
   artifactId: string
   artifactVersionId?: string | null
+  shareKey?: string | null
   versionMode: ArtifactLinkVersionMode
   slug: string
   publicUrl: string
@@ -152,6 +167,7 @@ export type ArtifactLinkRecord = ArtifactScopeInput & {
   disposition: ArtifactLinkDisposition
   allowDownload: boolean
   safeHtmlProfile?: ArtifactSafeHtmlProfile | null
+  metadata?: Record<string, unknown> | null
   createdAt?: string | Date
   updatedAt?: string | Date
   artifact?: ArtifactRecord
@@ -175,6 +191,32 @@ export type ListArtifactsResult = {
   pageSize: number
 }
 
+export type FindArtifactBySourceInput = Pick<ArtifactSourceInput, 'pluginName' | 'resourceType' | 'resourceId'> & {
+  includeDeleted?: boolean | null
+}
+
+export type ListArtifactVersionsInput = {
+  artifactId: string
+  idempotencyKey?: string | null
+  status?: ArtifactVersionStatus | 'all' | null
+}
+
+export type EnsureArtifactVersionResult = {
+  version: ArtifactVersionRecord
+  outcome: 'created' | 'reused'
+}
+
+export type ArtifactShareKeyInput = {
+  artifactId: string
+  shareKey: string
+}
+
+export type EnsureArtifactShareResult = {
+  link: ArtifactLinkRecord
+  outcome: 'created' | 'reused' | 'replaced'
+  replacedLinkId?: string | null
+}
+
 /** Mutable parts of an Artifact link; content versions remain immutable. */
 export type UpdateArtifactLinkAccessInput = {
   access?: ArtifactLinkAccessInput | null
@@ -186,12 +228,18 @@ export type UpdateArtifactLinkAccessInput = {
 /** Platform runtime capability exposed to plugins for managing generated Artifacts. */
 export interface ArtifactsApi {
   createArtifact(input: CreateArtifactInput): Promise<ArtifactRecord>
+  findArtifactBySource(input: FindArtifactBySourceInput): Promise<ArtifactRecord | null>
   createArtifactVersion(input: CreateArtifactVersionInput): Promise<ArtifactVersionRecord>
+  listArtifactVersions(input: ListArtifactVersionsInput): Promise<ArtifactVersionRecord[]>
+  ensureArtifactVersion(input: EnsureArtifactVersionInput): Promise<EnsureArtifactVersionResult>
   getArtifact(idOrSlug: string): Promise<ArtifactRecord>
   listArtifacts(input?: ListArtifactsInput): Promise<ListArtifactsResult>
   archiveArtifact(idOrSlug: string): Promise<ArtifactRecord>
   deleteArtifact(idOrSlug: string): Promise<ArtifactRecord>
   createArtifactLink(input: CreateArtifactLinkInput): Promise<ArtifactLinkRecord>
+  getArtifactShare(input: ArtifactShareKeyInput): Promise<ArtifactLinkRecord | null>
+  ensureArtifactShare(input: ArtifactShareInput): Promise<EnsureArtifactShareResult>
+  revokeArtifactShare(input: ArtifactShareKeyInput): Promise<ArtifactLinkRecord | null>
   createSignedPreviewLink(input: CreateSignedArtifactPreviewLinkInput): Promise<ArtifactLinkRecord>
   updateArtifactLinkAccess(idOrSlug: string, patch: UpdateArtifactLinkAccessInput): Promise<ArtifactLinkRecord>
   revokeArtifactLink(idOrSlug: string): Promise<ArtifactLinkRecord>

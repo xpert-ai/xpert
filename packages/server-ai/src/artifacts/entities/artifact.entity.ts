@@ -10,6 +10,18 @@ import { Column, Entity, Index } from 'typeorm'
  */
 @Entity('artifact')
 @Index(['tenantId', 'organizationId', 'pluginName', 'resourceType', 'resourceId'])
+@Index(
+    'IDX_artifact_source_with_organization_unique',
+    ['tenantId', 'organizationId', 'pluginName', 'resourceType', 'resourceId'],
+    {
+        unique: true,
+        where: '"organizationId" IS NOT NULL'
+    }
+)
+@Index('IDX_artifact_source_without_organization_unique', ['tenantId', 'pluginName', 'resourceType', 'resourceId'], {
+    unique: true,
+    where: '"organizationId" IS NULL'
+})
 export class Artifact extends TenantOrganizationBaseEntity implements IArtifact {
     @Column({ type: 'varchar' })
     pluginName: string

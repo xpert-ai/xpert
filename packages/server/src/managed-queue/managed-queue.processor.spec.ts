@@ -9,13 +9,36 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 import { runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
-import { ManagedQueueProcessor } from './managed-queue.processor'
+import { ManagedQueueProcessor, managedQueuePoolAutorun } from './managed-queue.processor'
 
 jest.mock('../core/context/request-context.middleware', () => ({
 	runWithRequestContext: jest.fn((_req, next) => next())
 }))
 
 describe('ManagedQueueProcessor', () => {
+	it('selects queue pools from the process role without configuration switches', () => {
+		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'development' })).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'development' })).toBe(false)
+		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'production' })).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'production' })).toBe(false)
+		expect(
+			managedQueuePoolAutorun('default', {
+				NODE_ENV: 'production',
+				XPERT_PROCESS_ROLE: 'sandbox-browser-worker'
+			})
+		).toBe(false)
+		expect(
+			managedQueuePoolAutorun('sandbox-browser', {
+				NODE_ENV: 'production',
+				XPERT_PROCESS_ROLE: 'sandbox-browser-worker'
+			})
+		).toBe(true)
+	})
+
+	it('keeps the default-pool autorun override', () => {
+		expect(managedQueuePoolAutorun('default', { MANAGED_QUEUE_AUTORUN: 'false' })).toBe(false)
+	})
+
 	it('restores tenant context and dispatches plugin payload to the registered handler', async () => {
 		const handler = jest.fn(async () => undefined)
 		const registry = {

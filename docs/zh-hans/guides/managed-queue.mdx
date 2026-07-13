@@ -125,6 +125,19 @@ await redis.set(lockKey, '1', 'PX', 30_000, 'NX')
 
 插件可以用这个 Redis 能力保存限流状态、聚合状态或分布式锁，但 key 必须包含 tenant、organization、integration 等作用域信息。
 
+### Execution Pool 契约
+
+`queueName + jobName` 决定逻辑插件 handler，`executionPool` 决定实际由哪个物理队列和 worker role 执行。
+
+| 公开契约                                       | 含义                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ManagedQueueExecutionPool`                    | 普通插件任务使用 `'default'`，重量级 Browser Runtime 任务使用 `'sandbox-browser'`；省略时默认为 `'default'`。 |
+| `ManagedQueueEnqueueInput.executionPool`       | 让入队选择物理 pool；查询和取消需要显式传入同一个 pool。它不是租户功能开关。                                  |
+| `ManagedQueueExecutionPoolHealth`              | 报告 BullMQ 当前是否能看到 consumer，并提供可用于能力诊断的 warning。                                         |
+| `ManagedQueueService.getExecutionPoolHealth()` | 产品接受并入队重量级任务前检查 pool 是否就绪。                                                                |
+
+Pool health 与 Runtime health 回答不同问题。`sandbox-browser` 存在 consumer，不代表 Action、Runtime Definition、Binding、artifact 或 Provider 已就绪；浏览器功能必须同时结合 Sandbox Jobs 的 `getActionHealth()`。任一检查不可用时，界面应展示相应 warning，且不要把必然滞留的任务入队。
+
 ## 声明 Processor
 
 插件不再写 `@Processor()` 和 `WorkerHost`。插件只声明逻辑 processor：
@@ -230,7 +243,14 @@ WeChat 插件迁移后，旧队列 `plugin_wechat:plugin_wechat_outbound` 和 `p
 
 ## 运维配置
 
-平台 worker 支持以下环境变量：
+正常 API 部署不需要配置队列 autorun。平台按进程角色自动选择 execution pool：
+
+- 开发与生产 API：都只消费 `default`。
+- `XPERT_PROCESS_ROLE=sandbox-browser-worker`：只消费 `sandbox-browser`。
+
+OSS Compose 不实例化浏览器 Worker 角色。具体 Sandbox Runtime Provider 发行物负责该 Worker 的部署；Xpert Pro 由私有 Docker Provider overlay 提供。`bootstrapWorker()` 继续保留在 `@xpert-ai/xpert-api`，作为平台公共组装入口。
+
+`getExecutionPoolHealth({ executionPool })` 返回 BullMQ 活跃 worker 数，插件可在接受任务前显示 warning。以下变量仅作为测试或特殊部署的高级覆盖保留：
 
 - `MANAGED_QUEUE_CONCURRENCY`：平台物理 worker 并发，默认值由服务端实现决定。
 - `MANAGED_QUEUE_AUTORUN=false`：阻止 worker 自动启动，适合部分测试或特殊部署。

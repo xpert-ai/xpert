@@ -15,6 +15,8 @@ export function createRuntimeCapability<T>(
 }
 
 export interface RuntimeCapabilityRegistry {
+  register<T>(key: RuntimeCapabilityKey<T> | string, implementation: T): this
+
   has<T>(key: RuntimeCapabilityKey<T> | string): boolean
 
   get<T>(key: RuntimeCapabilityKey<T> | string): T | undefined

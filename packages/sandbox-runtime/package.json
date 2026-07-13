@@ -1,0 +1,15 @@
+{
+  "name": "@xpert-ai/sandbox-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Versioned OCI image suite for Xpert Sandbox workloads.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "build:matrix": "node scripts/build-matrix.mjs",
+    "sync:metadata": "node scripts/sync-version.mjs",
+    "verify": "node scripts/verify-catalog.mjs",
+    "verify:image": "node scripts/verify-image.mjs",
+    "render:artifacts": "node scripts/render-artifact-catalog.mjs"
+  }
+}

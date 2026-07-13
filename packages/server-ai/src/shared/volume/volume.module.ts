@@ -1,31 +1,30 @@
-import { Global, Injectable, Module } from '@nestjs/common'
-import {
-    createRuntimeVolumeClient,
-    getWorkspacePathMapperForProvider,
-    VOLUME_CLIENT,
-    VolumeClient,
-    WorkspacePathMapper
-} from './volume'
+import { Global, Module } from '@nestjs/common'
+import { DiscoveryModule } from '@nestjs/core'
+import { SandboxWorkspaceMapperRegistry } from '@xpert-ai/plugin-sdk'
+import { createRuntimeVolumeClient, LocalShellWorkspacePathMapper, VOLUME_CLIENT, VolumeClient } from './volume'
 import { KnowledgeWorkAreaResolver, XpertWorkAreaResolver } from './work-area'
-
-@Injectable()
-export class WorkspacePathMapperFactory {
-    forProvider(provider?: string | null): WorkspacePathMapper {
-        return getWorkspacePathMapperForProvider(provider)
-    }
-}
+import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
 
 @Global()
 @Module({
+    imports: [DiscoveryModule],
     providers: [
         {
             provide: VOLUME_CLIENT,
             useFactory: (): VolumeClient => createRuntimeVolumeClient()
         },
+        SandboxWorkspaceMapperRegistry,
+        LocalShellWorkspacePathMapper,
         WorkspacePathMapperFactory,
         KnowledgeWorkAreaResolver,
         XpertWorkAreaResolver
     ],
-    exports: [VOLUME_CLIENT, WorkspacePathMapperFactory, KnowledgeWorkAreaResolver, XpertWorkAreaResolver]
+    exports: [
+        VOLUME_CLIENT,
+        SandboxWorkspaceMapperRegistry,
+        WorkspacePathMapperFactory,
+        KnowledgeWorkAreaResolver,
+        XpertWorkAreaResolver
+    ]
 })
 export class VolumeModule {}

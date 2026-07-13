@@ -288,10 +288,50 @@ export interface XpertViewClientCommandDefinition {
 
 export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
 export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
+export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
 export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
 export const XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE = 'invokeClientCommand'
+
+export interface WorkbenchOpenFileEvidenceBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface WorkbenchOpenFileEvidence {
+  observationId?: string
+  attributeCode?: string
+  displayValue?: string
+  text?: string
+  method?: string
+  region?: string
+  confidence?: number
+  locator?: {
+    sourceType?: string
+    page?: number
+    coordinateSpace?: string
+    recognitionRotation?: number
+    orientationConfidence?: number
+    box?: WorkbenchOpenFileEvidenceBox
+  }
+}
+
+/** Payload accepted by the host-side `workbench.file.open` client command. */
+export interface WorkbenchOpenFile {
+  id?: string
+  fileId?: string
+  fileAssetId?: string
+  storageFileId?: string
+  name: string
+  mimeType?: string
+  size?: number
+  url: string
+  previewUrl?: string
+  evidence?: WorkbenchOpenFileEvidence
+}
 
 export type WorkbenchNavigationOpenTarget =
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET

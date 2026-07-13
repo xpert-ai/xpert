@@ -167,6 +167,8 @@ export interface ExecuteResponse {
   truncated: boolean
   /** Whether the command exceeded its timeout and was terminated */
   timedOut?: boolean
+  /** Provider-observed container/process termination reason. */
+  terminationReason?: 'oom' | 'deadline' | 'cancelled' | 'container-died'
 }
 
 /**
@@ -387,6 +389,8 @@ export interface SandboxBackendProtocol extends BackendProtocol {
   readonly id: string
   /** Canonical sandbox environment identifier bound to this backend */
   readonly environmentId?: string | null
+  /** Best-effort immediate termination for an ephemeral job sandbox. */
+  terminate?(): MaybePromise<void>
 }
 
 /**

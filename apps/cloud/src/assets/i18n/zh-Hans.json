@@ -7332,6 +7332,11 @@
     "AddTemplate": "添加模版",
     "AddTemplateHelp": "学习更多关于自定义邮件模板"
   },
+  "ArtifactShareAuth": {
+    "Authorizing": "正在验证访问权限…",
+    "Unavailable": "无法打开此分享内容",
+    "UnavailableHint": "链接可能已过期、被撤销，或您没有访问权限。"
+  },
   "TOASTR": {
     "TITLE": {
       "SUCCESS": "成功"

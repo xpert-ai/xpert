@@ -1,27 +1,33 @@
 import { InjectQueue } from '@nestjs/bullmq'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import type {
 	ManagedQueueCancelInput,
 	ManagedQueueCancelResult,
 	ManagedQueueEnqueueInput,
 	ManagedQueueEnqueueResult,
+	ManagedQueueExecutionPool,
+	ManagedQueueExecutionPoolHealth,
 	ManagedQueueJobSnapshot,
 	ManagedQueueRemoveOption,
 	ManagedQueueRedis,
 	ManagedQueueService as ManagedQueueServiceContract
 } from '@xpert-ai/plugin-sdk'
 import type { JobsOptions, Queue } from 'bullmq'
-import { MANAGED_QUEUE_PHYSICAL_QUEUE_NAME } from './constants'
+import { MANAGED_QUEUE_PHYSICAL_QUEUE_NAME, MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME } from './constants'
 import type { ManagedQueueEnvelope } from './constants'
 
 @Injectable()
 export class ManagedQueueService implements ManagedQueueServiceContract {
 	constructor(
 		@InjectQueue(MANAGED_QUEUE_PHYSICAL_QUEUE_NAME)
-		private readonly queue: Queue<ManagedQueueEnvelope>
+		private readonly defaultQueue: Queue<ManagedQueueEnvelope>,
+		@Optional()
+		@InjectQueue(MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME)
+		private readonly sandboxBrowserQueue: Queue<ManagedQueueEnvelope> = defaultQueue
 	) {}
 
 	async enqueue<TPayload = unknown>(input: ManagedQueueEnqueueInput<TPayload>): Promise<ManagedQueueEnqueueResult> {
+		const executionPool = input.executionPool ?? 'default'
 		const envelope: ManagedQueueEnvelope<TPayload> = {
 			pluginName: this.requireValue(input.pluginName, 'pluginName'),
 			queueName: this.requireValue(input.queueName, 'queueName'),
@@ -31,15 +37,16 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			organizationId: input.organizationId ?? null,
 			scopeKey: input.scopeKey ?? null,
 			userId: input.userId ?? null,
+			executionPool,
 			enqueuedAt: new Date().toISOString()
 		}
-		const job = await this.queue.add(envelope.jobName, envelope, this.toJobOptions(input))
+		const job = await this.queueFor(executionPool).add(envelope.jobName, envelope, this.toJobOptions(input))
 		return { jobId: String(job.id) }
 	}
 
 	async cancel(input: ManagedQueueCancelInput): Promise<ManagedQueueCancelResult> {
 		const jobId = this.requireValue(input.jobId, 'jobId')
-		const job = await this.queue.getJob(jobId)
+		const job = await this.findJob(jobId, input.executionPool)
 		if (!job) {
 			return { success: false, jobId, reason: 'not_found' }
 		}
@@ -70,9 +77,12 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		}
 	}
 
-	async getJob<TPayload = unknown>(input: { jobId: string }): Promise<ManagedQueueJobSnapshot<TPayload> | null> {
+	async getJob<TPayload = unknown>(input: {
+		jobId: string
+		executionPool?: ManagedQueueExecutionPool
+	}): Promise<ManagedQueueJobSnapshot<TPayload> | null> {
 		const jobId = this.requireValue(input.jobId, 'jobId')
-		const job = await this.queue.getJob(jobId)
+		const job = await this.findJob(jobId, input.executionPool)
 		if (!job) {
 			return null
 		}
@@ -90,8 +100,48 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		}
 	}
 
+	/** Returns Worker readiness without coupling callers to BullMQ queue internals. */
+	async getExecutionPoolHealth(input: {
+		executionPool: ManagedQueueExecutionPool
+	}): Promise<ManagedQueueExecutionPoolHealth> {
+		try {
+			const workerCount = await this.queueFor(input.executionPool).getWorkersCount()
+			return {
+				executionPool: input.executionPool,
+				available: workerCount > 0,
+				workerCount,
+				...(workerCount > 0
+					? {}
+					: {
+							warning: `No active Managed Queue worker is consuming the ${input.executionPool} execution pool.`
+						})
+			}
+		} catch (error) {
+			return {
+				executionPool: input.executionPool,
+				available: false,
+				workerCount: 0,
+				warning: `Unable to inspect the ${input.executionPool} execution pool: ${
+					error instanceof Error ? error.message : String(error)
+				}`
+			}
+		}
+	}
+
 	async getRedis(): Promise<ManagedQueueRedis> {
-		return (await (this.queue as unknown as { client: Promise<ManagedQueueRedis> }).client) as ManagedQueueRedis
+		return (await (this.defaultQueue as unknown as { client: Promise<ManagedQueueRedis> })
+			.client) as ManagedQueueRedis
+	}
+
+	private queueFor(executionPool: ManagedQueueExecutionPool) {
+		return executionPool === 'sandbox-browser' ? this.sandboxBrowserQueue : this.defaultQueue
+	}
+
+	private async findJob(jobId: string, executionPool?: ManagedQueueExecutionPool) {
+		if (executionPool) {
+			return this.queueFor(executionPool).getJob(jobId)
+		}
+		return (await this.defaultQueue.getJob(jobId)) ?? this.sandboxBrowserQueue.getJob(jobId)
 	}
 
 	private toJobOptions(input: ManagedQueueEnqueueInput): JobsOptions {

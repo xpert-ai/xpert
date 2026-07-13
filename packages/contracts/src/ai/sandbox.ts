@@ -6,6 +6,8 @@ export type TSandboxProviderMeta = {
   icon: IconDefinition
 }
 
-export const SANDBOX_WORK_FOR_TYPES = ['user', 'project', 'environment'] as const
+/** Supported ownership scopes for interactive sandboxes and isolated background jobs. */
+export const SANDBOX_WORK_FOR_TYPES = ['user', 'project', 'environment', 'job'] as const
 
+/** Identifies the business lifetime that owns a sandbox instance. */
 export type TSandboxWorkForType = (typeof SANDBOX_WORK_FOR_TYPES)[number]
