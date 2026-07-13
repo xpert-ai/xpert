@@ -2596,6 +2596,11 @@
       "PATTERN": "Invalid format"
     }
   },
+  "ArtifactShareAuth": {
+    "Authorizing": "Checking access…",
+    "Unavailable": "This shared artifact is unavailable",
+    "UnavailableHint": "The link may have expired, been revoked, or you may not have access."
+  },
   "FORM": {
     "PLACEHOLDERS": {
       "EMAILS_EMPTY_HINT": "Click the input on the right to add emails",

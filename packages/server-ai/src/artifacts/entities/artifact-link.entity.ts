@@ -20,6 +20,10 @@ import { Artifact } from './artifact.entity'
 @Index(['slug'], { unique: true })
 @Index(['tenantId', 'organizationId', 'artifactId'])
 @Index(['tenantId', 'organizationId', 'status'])
+@Index('IDX_artifact_link_active_share_unique', ['artifactId', 'shareKey'], {
+    unique: true,
+    where: '"shareKey" IS NOT NULL AND status = \'active\''
+})
 export class ArtifactLink extends TenantOrganizationBaseEntity implements IArtifactLink {
     @ManyToOne(() => Artifact, {
         nullable: false,
@@ -33,6 +37,9 @@ export class ArtifactLink extends TenantOrganizationBaseEntity implements IArtif
 
     @Column({ type: 'uuid', nullable: true })
     artifactVersionId?: string | null
+
+    @Column({ type: 'varchar', nullable: true })
+    shareKey?: string | null
 
     @Column({ type: 'varchar', default: 'latest' })
     versionMode: ArtifactLinkVersionMode
