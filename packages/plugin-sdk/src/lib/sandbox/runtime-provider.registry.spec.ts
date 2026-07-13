@@ -5,6 +5,27 @@ import { SandboxRuntimeProviderStrategy } from './runtime-provider.decorator'
 import { SandboxRuntimeProviderRegistry } from './runtime-provider.registry'
 
 describe('SandboxRuntimeProviderRegistry', () => {
+  it('ignores primitive values returned by provider discovery', () => {
+    const registry = new SandboxRuntimeProviderRegistry({ getProviders: () => [] } as never, new Reflector())
+
+    for (const value of ['provider-value', 1, true, Symbol('provider')]) {
+      expect(() => registry.upsert(value)).not.toThrow()
+    }
+
+    expect(registry.list()).toEqual([])
+  })
+
+  it('ignores unrelated organization plugin providers without treating them as Runtime Providers', () => {
+    const registry = new SandboxRuntimeProviderRegistry({ getProviders: () => [] } as never, new Reflector())
+    class OrganizationService {}
+    SetMetadata(PLUGIN_METADATA_KEY, '@acme/plugin')(OrganizationService)
+    SetMetadata(ORGANIZATION_METADATA_KEY, 'organization-1')(OrganizationService)
+
+    registry.upsert(new OrganizationService())
+
+    expect(registry.list()).toEqual([])
+  })
+
   it('accepts built-in and system plugin Providers but rejects organization plugin Providers', () => {
     const registry = new SandboxRuntimeProviderRegistry({ getProviders: () => [] } as never, new Reflector())
 

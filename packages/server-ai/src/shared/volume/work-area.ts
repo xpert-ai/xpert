@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle, VolumeScope, WorkspaceBinding } from './volume'
-import { WorkspacePathMapperFactory } from './volume.module'
+import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 const KNOWLEDGE_FILES_PATH = 'files'

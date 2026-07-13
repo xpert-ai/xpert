@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { BUILTIN_GLOBAL_SCOPE, ORGANIZATION_METADATA_KEY, PLUGIN_METADATA_KEY, SYSTEM_GLOBAL_SCOPE } from '../types'
-import { BaseStrategyRegistry } from '../strategy'
+import { BaseStrategyRegistry, resolveStrategyMetadataTarget } from '../strategy'
 import type { ISandboxRuntimeProvider } from './runtime-provider'
 import { SANDBOX_RUNTIME_PROVIDER } from './runtime-provider.decorator'
 
@@ -14,8 +14,14 @@ export class SandboxRuntimeProviderRegistry extends BaseStrategyRegistry<ISandbo
     super(SANDBOX_RUNTIME_PROVIDER, discoveryService, reflector)
   }
 
-  override upsert(instance: object): void {
-    const target = Reflect.get(instance, 'metatype') ?? instance.constructor
+  override upsert(instance: unknown): void {
+    const target = resolveStrategyMetadataTarget(instance)
+    if (!target) {
+      return
+    }
+    if (!this.reflector.get<string>(SANDBOX_RUNTIME_PROVIDER, target)) {
+      return
+    }
     const pluginName = this.reflector.get<string>(PLUGIN_METADATA_KEY, target)
     const scope = this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ?? BUILTIN_GLOBAL_SCOPE
     if (pluginName && scope !== SYSTEM_GLOBAL_SCOPE) {
