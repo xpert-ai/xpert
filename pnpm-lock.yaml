@@ -1312,6 +1312,8 @@ importers:
         specifier: ^0.34.4
         version: 0.34.5
 
+  packages/sandbox-runtime: {}
+
   packages/server:
     dependencies:
       '@casl/ability':
@@ -1687,6 +1689,9 @@ importers:
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:../plugin-sdk/dist
+      '@xpert-ai/sandbox-runtime':
+        specifier: workspace:*
+        version: link:../sandbox-runtime
       '@xpert-ai/server-auth':
         specifier: workspace:*
         version: link:../auth
@@ -38694,7 +38699,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1)
+      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -44957,7 +44962,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1):
+  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 

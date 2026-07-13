@@ -14,7 +14,10 @@ describe('XpertWorkAreaResolver', () => {
         volumeClient = {
             resolve: jest.fn((scope) => new VolumeHandle(scope, tempRoot, tempRoot, 'http://localhost/volume'))
         }
-        resolver = new XpertWorkAreaResolver(new TestVolumeClient(volumeClient.resolve))
+        resolver = new XpertWorkAreaResolver(
+            new TestVolumeClient(volumeClient.resolve),
+            createWorkspaceMappers() as never
+        )
     })
 
     afterEach(async () => {
@@ -75,14 +78,14 @@ describe('XpertWorkAreaResolver', () => {
         await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory'))).resolves.toBeTruthy()
     })
 
-    it('maps docker sandboxes to /workspace while preserving explicit relative paths', async () => {
+    it('delegates container workspace mapping to the selected mapper strategy', async () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',
             userId: 'user-1',
             xpertId: 'xpert-1',
             projectId: 'project-1',
             conversationId: 'conversation-1',
-            provider: 'docker-sandbox'
+            provider: 'test-container-runtime'
         })
 
         expect(workArea.workspaceRoot).toBe('/workspace')
@@ -103,7 +106,10 @@ describe('KnowledgeWorkAreaResolver', () => {
         volumeClient = {
             resolve: jest.fn((scope) => new VolumeHandle(scope, tempRoot, tempRoot, 'http://localhost/volume'))
         }
-        resolver = new KnowledgeWorkAreaResolver(new TestVolumeClient(volumeClient.resolve))
+        resolver = new KnowledgeWorkAreaResolver(
+            new TestVolumeClient(volumeClient.resolve),
+            createWorkspaceMappers() as never
+        )
     })
 
     afterEach(async () => {
@@ -143,7 +149,7 @@ describe('KnowledgeWorkAreaResolver', () => {
             userId: 'user-1',
             knowledgebaseId: 'kb-1',
             taskId: 'task-1',
-            provider: 'docker-sandbox'
+            provider: 'test-container-runtime'
         })
 
         expect(workArea.workspaceRoot).toBe('/workspace')
@@ -171,5 +177,35 @@ class TestVolumeClient extends VolumeClient {
 
     resolveRoot(_tenantId: string): VolumeRootResolution {
         throw new Error('Not used in XpertWorkAreaResolver tests')
+    }
+}
+
+function createWorkspaceMappers() {
+    return {
+        mapVolumeToWorkspace(
+            provider: string | null | undefined,
+            volume: VolumeHandle,
+            options?: { serverPath?: string }
+        ) {
+            const serverPath = options?.serverPath === undefined ? volume.serverRoot : volume.path(options.serverPath)
+            if (provider === 'test-container-runtime') {
+                const relativePath = path.relative(volume.serverRoot, serverPath).replace(/\\/g, '/')
+                return {
+                    bindSource: volume.hostRoot,
+                    containerMountPath: '/workspace',
+                    volumeRoot: volume.serverRoot,
+                    workspaceRoot: '/workspace',
+                    workspacePath:
+                        relativePath && relativePath !== '.'
+                            ? path.posix.join('/workspace', relativePath)
+                            : '/workspace'
+                }
+            }
+            return {
+                volumeRoot: volume.serverRoot,
+                workspaceRoot: volume.serverRoot,
+                workspacePath: serverPath
+            }
+        }
     }
 }

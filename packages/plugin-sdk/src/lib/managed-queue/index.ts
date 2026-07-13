@@ -18,6 +18,17 @@ export type PluginJobProcessorMetadata = {
   concurrency?: number
 }
 
+/** Physical worker pool chosen independently from a plugin's logical queue name. */
+export type ManagedQueueExecutionPool = 'default' | 'sandbox-browser'
+
+/** Readiness signal used to reject work before it is stranded in an unconsumed pool. */
+export type ManagedQueueExecutionPoolHealth = {
+  executionPool: ManagedQueueExecutionPool
+  available: boolean
+  workerCount: number
+  warning?: string
+}
+
 export type ManagedQueueRemoveOption =
   | boolean
   | number
@@ -64,6 +75,8 @@ export type ManagedQueueEnqueueInput<TPayload = unknown> = {
   backoffMs?: ManagedQueueBackoffInput
   removeOnComplete?: ManagedQueueRemoveOption
   removeOnFail?: ManagedQueueRemoveOption
+  /** Defaults to `default`; browser-heavy jobs must explicitly select the isolated pool. */
+  executionPool?: ManagedQueueExecutionPool
 }
 
 export type ManagedQueueEnqueueResult = {
@@ -72,6 +85,7 @@ export type ManagedQueueEnqueueResult = {
 
 export type ManagedQueueCancelInput = {
   jobId: string
+  executionPool?: ManagedQueueExecutionPool
 }
 
 export type ManagedQueueCancelResult = {
@@ -126,7 +140,12 @@ export interface ManagedQueueHandlerRegistry {
 export interface ManagedQueueService {
   enqueue<TPayload = unknown>(input: ManagedQueueEnqueueInput<TPayload>): Promise<ManagedQueueEnqueueResult>
   cancel(input: ManagedQueueCancelInput): Promise<ManagedQueueCancelResult>
-  getJob<TPayload = unknown>(input: { jobId: string }): Promise<ManagedQueueJobSnapshot<TPayload> | null>
+  getJob<TPayload = unknown>(input: {
+    jobId: string
+    executionPool?: ManagedQueueExecutionPool
+  }): Promise<ManagedQueueJobSnapshot<TPayload> | null>
+  /** Reports active BullMQ consumers for a physical execution pool. */
+  getExecutionPoolHealth(input: { executionPool: ManagedQueueExecutionPool }): Promise<ManagedQueueExecutionPoolHealth>
   getRedis(): Promise<ManagedQueueRedis>
 }
 

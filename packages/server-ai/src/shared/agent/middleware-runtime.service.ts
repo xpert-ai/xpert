@@ -85,8 +85,8 @@ import { GetChatConversationQuery } from '../../chat-conversation/queries/conver
 import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { ConnectorService } from '../../connector/connector.service'
-import { ArtifactsService } from '../../artifacts'
-import { CollaborationService } from '../../collaboration'
+import { ArtifactsService } from '../../artifacts/artifacts.service'
+import { CollaborationService } from '../../collaboration/collaboration.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { wrapAgentExecution } from './execution'
 

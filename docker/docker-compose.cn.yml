@@ -5,7 +5,6 @@ volumes:
   api_data:
 
 services:
-
   # OLAP Services
   olap:
     image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-olap:latest
@@ -23,7 +22,7 @@ services:
       - api
     environment:
       REDIS_DATABASE: 1
-      REDIS_HOST: "redis"
+      REDIS_HOST: 'redis'
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
@@ -36,7 +35,7 @@ services:
     environment:
       # HOST: ${API_HOST:-api}
       # PORT: ${API_PORT:-3000}
-      NODE_OPTIONS: "--max-old-space-size=8192"
+      NODE_OPTIONS: '--max-old-space-size=8192'
       NODE_ENV: ${NODE_ENV:-development}
       IS_DOCKER: true
       DB_HOST: db
@@ -49,13 +48,13 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     entrypoint: './entrypoint.compose.sh'
-    command: [ 'pm2-runtime', 'main.js' ]
+    command: ['pm2-runtime', 'main.js']
     restart: on-failure
     depends_on:
       - db
@@ -66,7 +65,6 @@ services:
       - '3000'
     volumes:
       - ./volumes/api/public:/srv/xpert/public
-      - ./volumes/api/ms-playwright:/ms-playwright
       - ./volumes/api/sandbox/:/sandbox/
       - ./volumes/api/data/:/var/lib/xpert/data/
     networks:

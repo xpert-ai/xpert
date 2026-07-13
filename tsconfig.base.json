@@ -55,6 +55,9 @@
       "@xpert-ai/plugin-draft": ["packages/plugins/draft/src/index.ts"],
       "@xpert-ai/plugin-integration-lark": ["packages/plugins/integration-lark/src/index.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
+      "@xpert-ai/sandbox-runtime/definitions/browser": [
+        "packages/sandbox-runtime/images/browser/runtime-definition.json"
+      ],
       "@xpert-ai/plugin-vlm-default": ["packages/plugins/vlm-default/src/index.ts"],
       "ngx-echarts": ["legacies/ngx-echarts/src/public-api"],
       "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"],

@@ -66,7 +66,7 @@
     "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=7000 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json ./apps/api/src/seed-module.ts --name",
     "bootstrap": "pnpm install && pnpm nx build server && pnpm nx build plugin-sdk",
     "changeset": "changeset",
-    "changeset:version": "changeset version && pnpm install --lockfile-only --ignore-scripts",
+    "changeset:version": "changeset version && node packages/sandbox-runtime/scripts/sync-version.mjs && pnpm install --lockfile-only --ignore-scripts",
     "lockfile:update": "pnpm install --lockfile-only --ignore-scripts",
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts",
     "check:typeorm-columns": "node tools/scripts/check-typeorm-column-types.cjs",

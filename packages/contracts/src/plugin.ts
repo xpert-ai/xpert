@@ -161,6 +161,36 @@ export interface XpertPluginMcpServerPolicy {
   }
 }
 
+/**
+ * Declares a trusted executable bundle that a system-level plugin can run through Sandbox Jobs.
+ * The bundle is resolved relative to the action manifest file, never from a caller-provided host path.
+ */
+export interface XpertPluginSandboxActionDefinition {
+  /** Stable action identity used by SandboxJobsApi callers. */
+  name: string
+  /** Version of the action payload and output behavior, independent of the plugin package version. */
+  version: string
+  /** Provider-neutral Runtime Definition required to execute this action. */
+  runtimeProfile: string
+  /** Runner Host contract version expected by the bundle. */
+  runtimeContractVersion: string
+  /** Optional exact Playwright compatibility requirement for Browser Runtime actions. */
+  playwrightVersion?: string
+  /** Bundle directory relative to this definition or the plugin manifest. */
+  bundle: string
+  /** Regular-file entrypoint relative to the verified bundle root. */
+  entrypoint: string
+  /** Deterministic SHA-256 tree hash covering every regular file in the bundle. */
+  bundleSha256: string
+}
+
+/** Inline Action declarations or paths to Action manifest files in an installed plugin. */
+export type XpertPluginSandboxActions =
+  | string
+  | string[]
+  | XpertPluginSandboxActionDefinition
+  | XpertPluginSandboxActionDefinition[]
+
 export interface XpertPluginBundleManifest {
   name: string
   version?: string
@@ -180,6 +210,8 @@ export interface XpertPluginBundleManifest {
   apps?: string | string[] | JSONValue
   connectors?: string | string[] | JSONValue
   hooks?: string | string[] | JSONValue | JSONValue[]
+  /** Sandbox Action manifest paths or definitions. Executable actions are restricted to system-level plugins. */
+  sandboxActions?: XpertPluginSandboxActions
   interface?: XpertPluginInstallInterface
   policy?: XpertPluginMarketplacePolicy
   source?: XpertPluginMarketplaceSource

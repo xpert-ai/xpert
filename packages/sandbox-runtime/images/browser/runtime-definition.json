@@ -1,0 +1,38 @@
+{
+  "name": "browser/playwright-1.61/v1",
+  "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+  "contractVersion": "1",
+  "sandboxRuntimeVersion": "1.0.0",
+  "timeoutMs": 300000,
+  "hardDeadlineMs": 360000,
+  "resources": {
+    "cpu": 2,
+    "memoryMb": 4096,
+    "shmSizeMb": 1024,
+    "tempDiskMb": 4096
+  },
+  "networkPolicy": { "mode": "none" },
+  "security": {
+    "runAsNonRoot": true,
+    "readOnlyRootFilesystem": true,
+    "noNewPrivileges": true,
+    "dropCapabilities": "all"
+  },
+  "requirements": {
+    "isolation": "hardened",
+    "ephemeral": true,
+    "resourceLimits": true,
+    "networkPolicy": true,
+    "readOnlyRootFilesystem": true
+  },
+  "expectedManifest": {
+    "sandboxRuntimeVersion": "1.0.0",
+    "imageFamily": "browser",
+    "profileName": "browser/playwright-1.61/v1",
+    "contractVersion": "1",
+    "nodeVersion": "20.20.2",
+    "playwrightVersion": "1.61.0",
+    "browserRevision": "1228",
+    "runnerHostSha256": "e5a7351587f600a86aa716582801396d337d57fe42c9eaca7be10ffb598c873e"
+  }
+}

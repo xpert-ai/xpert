@@ -54,3 +54,194 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
+
+  prepare-sandbox-runtime-images:
+    name: Prepare Sandbox Runtime image release
+    needs: release
+    if: github.repository == 'xpert-ai/xpert' && always() && needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.runtime.outputs.changed }}
+      matrix: ${{ steps.runtime.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect a Runtime Suite version release
+        id: runtime
+        shell: bash
+        run: |
+          changed=false
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            changed=true
+          elif ! git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- packages/sandbox-runtime/package.json; then
+            changed=true
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs)" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Runtime Suite catalog
+        if: steps.runtime.outputs.changed == 'true'
+        run: |
+          mkdir -p runtime-definition-catalog
+          node packages/sandbox-runtime/scripts/verify-catalog.mjs \
+            --definitions-output runtime-definition-catalog/runtime-definitions.json
+
+      - name: Upload provider-neutral Runtime Definition catalog
+        if: steps.runtime.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-runtime-definitions
+          path: runtime-definition-catalog/runtime-definitions.json
+          if-no-files-found: error
+
+  verify-sandbox-runtime-images:
+    name: Verify Sandbox Runtime / ${{ matrix.family }}
+    needs: prepare-sandbox-runtime-images
+    if: needs.prepare-sandbox-runtime-images.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare-sandbox-runtime-images.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Reject an existing immutable release tag
+        env:
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+          VERSION_TAG: ${{ matrix.versionTag }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            if docker buildx imagetools inspect "$repository:$VERSION_TAG" >/dev/null 2>&1; then
+              echo "Refusing to overwrite $repository:$VERSION_TAG" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build release candidate locally
+        env:
+          LOCAL_IMAGE: xpert-sandbox-runtime-${{ matrix.family }}:${{ github.sha }}
+        run: docker buildx build --platform linux/amd64 --load --file "${{ matrix.dockerfile }}" --tag "$LOCAL_IMAGE" .
+
+      - name: Verify manifest, isolation, fonts, Chromium and PDF
+        env:
+          LOCAL_IMAGE: xpert-sandbox-runtime-${{ matrix.family }}:${{ github.sha }}
+        run: node packages/sandbox-runtime/scripts/verify-image.mjs --family "${{ matrix.family }}" --image "$LOCAL_IMAGE"
+
+      - name: Push verified commit candidates to all registries
+        env:
+          LOCAL_IMAGE: xpert-sandbox-runtime-${{ matrix.family }}:${{ github.sha }}
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            docker tag "$LOCAL_IMAGE" "$repository:sha-${{ github.sha }}"
+            docker push "$repository:sha-${{ github.sha }}"
+          done
+
+  publish-sandbox-runtime-images:
+    name: Publish Sandbox Runtime / ${{ matrix.family }}
+    needs:
+      - prepare-sandbox-runtime-images
+      - verify-sandbox-runtime-images
+    if: needs.prepare-sandbox-runtime-images.outputs.changed == 'true' && needs.verify-sandbox-runtime-images.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare-sandbox-runtime-images.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Promote verified Runtime Suite candidates
+        env:
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+          VERSION_TAG: ${{ matrix.versionTag }}
+        shell: bash
+        run: |
+          for repository in $(jq -r '.[]' <<< "$REPOSITORIES"); do
+            source="$repository:sha-${{ github.sha }}"
+            docker buildx imagetools inspect "$source" >/dev/null
+            docker buildx imagetools create \
+              --tag "$repository:$VERSION_TAG" \
+              --tag "$repository:main" \
+              --tag "$repository:latest" \
+              "$source"
+          done
+
+      - name: Render immutable Runtime Artifact catalogs
+        env:
+          REPOSITORIES: ${{ toJSON(matrix.repositories) }}
+          VERSION_TAG: ${{ matrix.versionTag }}
+        shell: bash
+        run: |
+          mkdir -p runtime-artifact-catalogs
+          while IFS=$'\t' read -r registry repository; do
+            digest="sha256:$(docker buildx imagetools inspect "$repository:$VERSION_TAG" --raw | sha256sum | cut -d ' ' -f 1)"
+            node packages/sandbox-runtime/scripts/render-artifact-catalog.mjs \
+              --family "${{ matrix.family }}" \
+              --image "$repository@$digest" \
+              --output "runtime-artifact-catalogs/${{ matrix.family }}-$registry.json"
+          done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' <<< "$REPOSITORIES")
+
+      - name: Upload Runtime Artifact catalogs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-runtime-${{ matrix.family }}-${{ matrix.version }}-artifacts
+          path: runtime-artifact-catalogs/*.json
+          if-no-files-found: error

@@ -1,4 +1,11 @@
 import { FileUploadVolumeCatalog } from '@xpert-ai/contracts'
+import {
+    SandboxWorkspaceMapperStrategy,
+    type SandboxWorkspaceBinding,
+    type SandboxWorkspaceMapper,
+    type SandboxWorkspaceMappingOptions
+} from '@xpert-ai/plugin-sdk'
+import { Injectable } from '@nestjs/common'
 import { environment } from '@xpert-ai/server-config'
 import { normalizeUploadedFileName, urlJoin } from '@xpert-ai/server-common'
 import fsPromises from 'fs/promises'
@@ -14,7 +21,8 @@ import {
     usesFlattenedSandboxVolumeLayout
 } from './volume-layout'
 
-export type VolumeCatalog = FileUploadVolumeCatalog | 'workspaces' | 'environment'
+/** Platform storage catalogs, including the tenant/Job-isolated Sandbox Runtime workspace. */
+export type VolumeCatalog = FileUploadVolumeCatalog | 'workspaces' | 'environment' | 'runtime-jobs'
 
 export type VolumeScope = {
     tenantId: string
@@ -26,6 +34,8 @@ export type VolumeScope = {
     rootId?: string
     userId?: string
     workspaceId?: string
+    /** Required when `catalog` is `runtime-jobs`; isolates one short-lived execution volume. */
+    jobId?: string
     xpertId?: string
     isolateByUser?: boolean
 }
@@ -35,22 +45,9 @@ export type VolumeRootResolution = {
     hostRoot: string
 }
 
-export type WorkspaceBinding = {
-    bindSource?: string
-    containerMountPath?: string
-    volumeRoot: string
-    workspacePath: string
-    workspaceRoot: string
-}
-
-export type WorkspaceMappingOptions = {
-    serverPath?: string
-}
-
-export interface WorkspacePathMapper {
-    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding
-    mapWorkspaceToVolume(binding: WorkspaceBinding, workspacePath: string): string
-}
+export type WorkspaceBinding = SandboxWorkspaceBinding
+export type WorkspaceMappingOptions = SandboxWorkspaceMappingOptions
+export type WorkspacePathMapper = SandboxWorkspaceMapper
 
 export abstract class VolumeClient {
     abstract resolve(scope: VolumeScope): VolumeHandle
@@ -145,6 +142,12 @@ export abstract class VolumeClient {
                     catalog: 'workspaces',
                     workspaceId: id
                 }).serverRoot
+            case 'runtime-jobs':
+                return createRuntimeVolumeClient().resolve({
+                    tenantId,
+                    catalog: 'runtime-jobs',
+                    jobId: id
+                }).serverRoot
             default:
                 return path.join(createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot, type, id)
         }
@@ -152,7 +155,7 @@ export abstract class VolumeClient {
 }
 
 export const VOLUME_CLIENT = Symbol('VOLUME_CLIENT')
-const DOCKER_SANDBOX_PROVIDER_TYPE = 'docker-sandbox'
+export const LOCAL_SHELL_SANDBOX_PROVIDER_TYPE = 'local-shell-sandbox'
 
 function getXpertUserIsolation(isolateByUser?: boolean) {
     return isolateByUser !== false
@@ -227,6 +230,11 @@ export function getVolumeSubpath(scope: Omit<VolumeScope, 'tenantId'>) {
                 throw new Error('userId is required for user-isolated xpert volume access')
             }
             return `/xpert/${scope.xpertId}/user/${scope.userId}`
+        case 'runtime-jobs':
+            if (!scope.jobId) {
+                throw new Error('jobId is required for runtime job volume access')
+            }
+            return `/runtime-jobs/${scope.jobId}`
     }
 }
 
@@ -271,10 +279,7 @@ export class VolumeHandle {
         return normalizedRelativePath ? urlJoin(this.publicBaseUrl, normalizedRelativePath) : this.publicBaseUrl
     }
 
-    async putFile(
-        folder = '',
-        file: { originalname: string; buffer: Buffer; mimetype?: string }
-    ): Promise<string> {
+    async putFile(folder = '', file: { originalname: string; buffer: Buffer; mimetype?: string }): Promise<string> {
         const normalizedFolder = normalizeRelativePathForVolume(folder)
         const fileName = normalizeUploadedFileName(file.originalname)
 
@@ -361,9 +366,15 @@ export class DockerVolumeClient extends BaseRuntimeVolumeClient {
     }
 }
 
+/** Identity mapper used only by local interactive sandboxes, never as a Sandbox Job Provider. */
+@Injectable()
+@SandboxWorkspaceMapperStrategy(LOCAL_SHELL_SANDBOX_PROVIDER_TYPE)
 export class LocalShellWorkspacePathMapper implements WorkspacePathMapper {
-    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding {
-        const serverPath = options?.serverPath ? volume.path(options.serverPath) : volume.serverRoot
+    mapVolumeToWorkspace(
+        volume: { serverRoot: string; hostRoot: string },
+        options?: WorkspaceMappingOptions
+    ): WorkspaceBinding {
+        const serverPath = options?.serverPath ?? volume.serverRoot
         return {
             volumeRoot: volume.serverRoot,
             workspaceRoot: volume.serverRoot,
@@ -379,57 +390,10 @@ export class LocalShellWorkspacePathMapper implements WorkspacePathMapper {
     }
 }
 
-export class DockerWorkspacePathMapper implements WorkspacePathMapper {
-    mapVolumeToWorkspace(volume: VolumeHandle, options?: WorkspaceMappingOptions): WorkspaceBinding {
-        const workspaceRoot = '/workspace'
-        const serverPath = options?.serverPath ? volume.path(options.serverPath) : volume.serverRoot
-        const relativePath = path.relative(volume.serverRoot, serverPath).replace(/\\/g, '/')
-        if (relativePath.startsWith('..') || path.posix.isAbsolute(relativePath)) {
-            throw new Error('Resolved workspace path is outside of the mapped volume root')
-        }
-
-        return {
-            bindSource: volume.hostRoot,
-            containerMountPath: workspaceRoot,
-            volumeRoot: volume.serverRoot,
-            workspaceRoot,
-            workspacePath:
-                relativePath && relativePath !== '.'
-                    ? path.posix.join(workspaceRoot, relativePath)
-                    : workspaceRoot
-        }
-    }
-
-    mapWorkspaceToVolume(binding: WorkspaceBinding, workspacePath: string): string {
-        const normalizedWorkspaceRoot = path.posix.normalize(binding.workspaceRoot)
-        const normalizedWorkspacePath = path.posix.normalize(workspacePath)
-        const relativePath = path.posix.relative(normalizedWorkspaceRoot, normalizedWorkspacePath)
-        if (relativePath.startsWith('..') || path.posix.isAbsolute(relativePath)) {
-            throw new Error('Resolved workspace path is outside of the mounted workspace root')
-        }
-
-        return relativePath && relativePath !== '.'
-            ? path.join(binding.volumeRoot, relativePath)
-            : binding.volumeRoot
-    }
-}
-
 export function createRuntimeVolumeClient(): VolumeClient {
     return runsInsideDockerApiContainer() ? new DockerVolumeClient() : new DevVolumeClient()
 }
 
-export function getWorkspacePathMapperForProvider(provider?: string | null): WorkspacePathMapper {
-    return provider === DOCKER_SANDBOX_PROVIDER_TYPE ? new DockerWorkspacePathMapper() : new LocalShellWorkspacePathMapper()
-}
-
 export function resolveRuntimeVolume(scope: VolumeScope) {
     return createRuntimeVolumeClient().resolve(scope)
-}
-
-export function resolveRuntimeWorkspaceBinding(
-    provider: string | null | undefined,
-    scope: VolumeScope,
-    options?: WorkspaceMappingOptions
-) {
-    return getWorkspacePathMapperForProvider(provider).mapVolumeToWorkspace(resolveRuntimeVolume(scope), options)
 }
