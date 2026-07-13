@@ -34,7 +34,8 @@ for (const entry of catalog.images) {
   const runtimeDefinition = await readJson(image.runtimeDefinition)
   if (manifest.sandboxRuntimeVersion !== packageJson.version)
     fail(`${entry.family} runtime version differs from package version.`)
-  if (manifest.runnerHostSha256 !== runnerSha256) fail(`${entry.family} Runner Host SHA-256 is stale.`)
+  if (manifest.runnerHostSha256 !== runnerSha256)
+    fail(`${entry.family} Runner Host SHA-256 is stale. Run "pnpm --filter @xpert-ai/sandbox-runtime sync:metadata".`)
   if (manifest.profileName !== image.profileName || manifest.contractVersion !== image.runtimeContractVersion)
     fail(`${entry.family} runtime contract is inconsistent.`)
   if (runtimeDefinition.name !== image.profileName) fail(`${entry.family} Runtime Definition profile is inconsistent.`)
@@ -43,7 +44,9 @@ for (const entry of catalog.images) {
   if (runtimeDefinition.sandboxRuntimeVersion !== packageJson.version)
     fail(`${entry.family} Runtime Definition version differs from Runtime Suite.`)
   if (runtimeDefinition.expectedManifest?.runnerHostSha256 !== runnerSha256)
-    fail(`${entry.family} Runtime Definition Runner Host SHA-256 is stale.`)
+    fail(
+      `${entry.family} Runtime Definition Runner Host SHA-256 is stale. Run "pnpm --filter @xpert-ai/sandbox-runtime sync:metadata".`
+    )
   if ('provider' in runtimeDefinition || 'image' in runtimeDefinition)
     fail(`${entry.family} Runtime Definition must be provider-neutral.`)
   if (JSON.stringify({ image, manifest, runtimeDefinition }).toLowerCase().includes('presentation'))

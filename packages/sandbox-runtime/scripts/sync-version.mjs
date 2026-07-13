@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,12 +17,18 @@ for (const entry of catalog.images) {
   imageLock.version = suite.version
   if (imageLock.packages?.['']) imageLock.packages[''].version = suite.version
   await writeJson(imageLockPath, imageLock)
+  const runner = await readFile(path.join(packageRoot, 'images', entry.family, 'runtime', 'runner-host.mjs'))
+  const runnerHostSha256 = createHash('sha256').update(runner).digest('hex')
   const manifest = await readJson(image.manifest)
   manifest.sandboxRuntimeVersion = suite.version
+  manifest.runnerHostSha256 = runnerHostSha256
   await writeJson(image.manifest, manifest)
   const runtimeDefinition = await readJson(image.runtimeDefinition)
   runtimeDefinition.sandboxRuntimeVersion = suite.version
-  if (runtimeDefinition.expectedManifest) runtimeDefinition.expectedManifest.sandboxRuntimeVersion = suite.version
+  if (runtimeDefinition.expectedManifest) {
+    runtimeDefinition.expectedManifest.sandboxRuntimeVersion = suite.version
+    runtimeDefinition.expectedManifest.runnerHostSha256 = runnerHostSha256
+  }
   await writeJson(image.runtimeDefinition, runtimeDefinition)
   const artifactTemplate = await readJson(image.artifactCatalogTemplate)
   artifactTemplate.runtimeSuiteVersion = suite.version

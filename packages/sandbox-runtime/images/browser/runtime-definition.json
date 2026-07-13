@@ -11,7 +11,9 @@
     "shmSizeMb": 1024,
     "tempDiskMb": 4096
   },
-  "networkPolicy": { "mode": "none" },
+  "networkPolicy": {
+    "mode": "none"
+  },
   "security": {
     "runAsNonRoot": true,
     "readOnlyRootFilesystem": true,
@@ -33,6 +35,6 @@
     "nodeVersion": "20.20.2",
     "playwrightVersion": "1.61.0",
     "browserRevision": "1228",
-    "runnerHostSha256": "e5a7351587f600a86aa716582801396d337d57fe42c9eaca7be10ffb598c873e"
+    "runnerHostSha256": "3419c55a557e2645c9a781fdcb2485e6af1effeade862fba647cd55e7542082e"
   }
 }
