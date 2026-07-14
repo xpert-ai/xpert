@@ -32,6 +32,7 @@ import {
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
 import { ChatConversationGoalService, ChatConversationService } from '../chat-conversation'
+import { ChatTaskSummaryService } from '../chat-conversation/task-summary.service'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ChatMessageFeedbackService } from '../chat-message-feedback/feedback.service'
 import { ChatConversationUpsertCommand } from '../chat-conversation/commands'
@@ -78,6 +79,7 @@ export class ConversationsController {
     constructor(
         private readonly conversationService: ChatConversationService,
         private readonly goalService: ChatConversationGoalService,
+        private readonly taskSummaryService: ChatTaskSummaryService,
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
         private readonly commandBus: CommandBus,
@@ -229,6 +231,23 @@ export class ConversationsController {
     async clearGoal(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
         return this.goalService.clearGoalFromUser(conversation.id)
+    }
+
+    @Get(':conversation_id/task-summary')
+    async getTaskSummary(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.taskSummaryService.getSnapshot(conversation)
+    }
+
+    @Get(':conversation_id/task-summary/:section')
+    async listTaskSummaryItems(
+        @Param('conversation_id', UUIDValidationPipe) conversationId: string,
+        @Param('section') section: string,
+        @Query('offset') offset?: number,
+        @Query('limit') limit?: number
+    ) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.taskSummaryService.listSection(conversation, section, offset, limit)
     }
 
     @Get(':conversation_id/messages')

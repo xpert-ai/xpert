@@ -7,6 +7,7 @@ import {
     IXpertAgentExecution,
     TChatMessageStep,
     TChatReference,
+    TChatTaskSummaryContribution,
     TMessageContent,
     TMessageContentReasoning,
     TSummaryJob,
@@ -77,6 +78,12 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @IsOptional()
     @Column({ type: 'json', nullable: true })
     references?: TChatReference[]
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'json', nullable: true })
+    taskSummary?: TChatTaskSummaryContribution
 
     @ApiProperty({ type: () => String })
     @IsString()

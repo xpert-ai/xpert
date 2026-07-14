@@ -129,11 +129,12 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
-  getFile(id: string, path: string, organizationId?: string) {
+  getFile(id: string, path: string, organizationId?: string, fileAssetId?: string) {
     return this.httpClient.get<TFile>(this.apiBaseUrl + `/${id}/file`, {
       params: createOptionalQueryParams({
         path,
-        organizationId
+        organizationId,
+        fileAssetId
       })
     })
   }

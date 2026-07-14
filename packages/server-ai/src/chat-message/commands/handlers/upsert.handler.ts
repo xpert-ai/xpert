@@ -3,6 +3,8 @@ import { ChatMessageUpsertCommand } from '../upsert.command'
 import { ChatMessageService } from '../../chat-message.service'
 import { ChatMessage } from '../../chat-message.entity'
 import { applicationTracing } from '../../../tracing'
+import { extractChatMessageTaskSummary } from '../../task-summary'
+import type { IChatMessage } from '@xpert-ai/contracts'
 
 @CommandHandler(ChatMessageUpsertCommand)
 export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpsertCommand> {
@@ -25,11 +27,38 @@ export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpse
             async () => {
                 const entity = command.entity
 
-                if (entity.id) {
-                    return await this.service.save(entity as ChatMessage)
+                const saved = entity.id
+                    ? await this.service.save(entity as ChatMessage)
+                    : await this.service.create(entity)
+
+                if (!this.shouldExtractTaskSummary(entity)) {
+                    return saved
                 }
-                return await this.service.create(entity)
+
+                const message = await this.service.findOneInOrganizationOrTenant(saved.id, {
+                    select: ['id', 'content', 'references', 'thirdPartyMessage', 'createdAt', 'updatedAt'],
+                    relations: ['attachments', 'fileAssets']
+                })
+                const taskSummary = extractChatMessageTaskSummary({
+                    ...message,
+                    taskSummary: entity.taskSummary
+                })
+                await this.service.save({ id: saved.id, taskSummary } as ChatMessage)
+                saved.taskSummary = taskSummary
+                return saved
             }
+        )
+    }
+
+    private shouldExtractTaskSummary(entity: Partial<IChatMessage>) {
+        return (
+            !entity.id ||
+            entity.content !== undefined ||
+            entity.references !== undefined ||
+            entity.fileAssets !== undefined ||
+            entity.attachments !== undefined ||
+            entity.thirdPartyMessage !== undefined ||
+            entity.taskSummary !== undefined
         )
     }
 }

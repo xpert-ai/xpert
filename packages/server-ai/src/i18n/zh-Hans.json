@@ -32,6 +32,7 @@
         "XpertMarketplaceSelfReviewForbidden": "你不能审批自己提交的访问申请。",
         "XpertMarketplaceRequesterNotFound": "未找到申请用户。",
         "XpertMarketplaceNotFound": "未找到该广场智能体。",
+        "UnsupportedTaskSummarySection": "不支持的任务摘要分区",
         "XpertMarketplaceRequestNotFound": "未找到该访问申请。"
     },
     "tools": {
@@ -51,6 +52,12 @@
         "SummaryTitleEnd": "标题已总结",
         "TaskHandover": "任务移交",
         "KnowledgeRetrieval": "知识检索"
+    },
+    "ChatTaskSummary": {
+        "Agent": "智能体",
+        "PendingSteeringMessage": "待处理的引导消息",
+        "PendingFollowUpMessage": "待处理的追问消息",
+        "ConversationNeedsInput": "会话需要输入"
     },
     "Tools": {
         "MCP": {
