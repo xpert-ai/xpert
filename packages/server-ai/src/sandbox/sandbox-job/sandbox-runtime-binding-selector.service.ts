@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import {
+    isDevelopmentSandboxRuntimeEnvironment,
     SandboxJobRuntimeError,
     SandboxRuntimeProviderRegistry,
     type ISandboxRuntimeProvider,
@@ -41,13 +42,13 @@ export class SandboxRuntimeBindingSelector {
         const candidates: Array<{ provider: ISandboxRuntimeProvider; binding: SandboxRuntimeBinding }> = []
         const providerErrors: string[] = []
         for (const provider of providers) {
-            if (!satisfiesRequirements(provider, definition)) continue
             try {
                 const bindings = await provider.listBindings()
                 for (const binding of bindings) {
                     if (
                         binding.runtimeProfile === definition.name &&
                         binding.provider === provider.type &&
+                        isBindingEligible(provider, binding, definition) &&
                         isArtifactAllowed(binding)
                     ) {
                         candidates.push({ provider, binding })
@@ -124,6 +125,20 @@ export class SandboxRuntimeBindingSelector {
             jobId
         )
     }
+}
+
+/**
+ * Production Bindings must meet every Definition guarantee. A Binding marked
+ * developmentOnly is the single explicit escape hatch for local process-based
+ * testing and is fail-closed outside development/test.
+ */
+function isBindingEligible(
+    provider: ISandboxRuntimeProvider,
+    binding: SandboxRuntimeBinding,
+    definition: SandboxRuntimeDefinition
+): boolean {
+    if (binding.developmentOnly) return isDevelopmentSandboxRuntimeEnvironment()
+    return satisfiesRequirements(provider, definition)
 }
 
 function satisfiesRequirements(provider: ISandboxRuntimeProvider, definition: SandboxRuntimeDefinition): boolean {

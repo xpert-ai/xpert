@@ -21,6 +21,11 @@ if (process.argv.includes('--browser-smoke')) {
   process.exit(0)
 }
 
+if (process.argv.includes('--browser-health')) {
+  await browserHealth()
+  process.exit(0)
+}
+
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error)
   process.stderr.write(`${classify(message)}: ${message}\n`)
@@ -117,6 +122,20 @@ async function browserSmoke() {
     process.stdout.write(
       `${JSON.stringify({ chromium: true, pdfBytes: pdf.length, text, uid: process.getuid?.() ?? null })}\n`
     )
+  } finally {
+    await browser.close()
+  }
+}
+
+async function browserHealth() {
+  const { chromium } = await import('playwright-core')
+  const browser = await chromium
+    .launch({ headless: true, args: ['--disable-gpu', '--disable-software-rasterizer'] })
+    .catch((error) => {
+      throw new Error(`BROWSER_LAUNCH_FAILED: ${error instanceof Error ? error.message : String(error)}`)
+    })
+  try {
+    process.stdout.write(`${JSON.stringify({ available: true, version: browser.version() })}\n`)
   } finally {
     await browser.close()
   }

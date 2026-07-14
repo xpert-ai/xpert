@@ -50,14 +50,13 @@ type ActiveSandbox = {
  * Core implementation of the Action-oriented Sandbox Jobs API.
  *
  * It owns idempotency, capacity, action/input materialization, output validation,
- * runtime evidence, and cleanup. Provider creation is permitted only in the
- * dedicated Runtime Worker process; API processes remain health/query clients.
+ * runtime evidence, and cleanup. The API process owns Runtime selection,
+ * instance creation, cancellation, and orphan cleanup for every execution pool.
  */
 @Injectable()
 export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(SandboxJobRuntimeCapabilityService.name)
     private readonly active = new Map<string, ActiveSandbox>()
-    private readonly ownsRuntimeLifecycle = ownsSandboxRuntimeLifecycle()
     private cleanupTimer?: ReturnType<typeof setInterval>
 
     constructor(
@@ -75,7 +74,6 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
     ) {}
 
     onModuleInit(): void {
-        if (!this.ownsRuntimeLifecycle) return
         void this.cleanupOrphans()
         this.cleanupTimer = setInterval(() => void this.cleanupOrphans(), CLEANUP_INTERVAL_MS)
         this.cleanupTimer.unref()
@@ -101,14 +99,6 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 if (!(error instanceof SandboxJobRuntimeError) || current?.status !== 'lost') throw error
                 return this.run(input)
             }
-        }
-        if (!this.ownsRuntimeLifecycle) {
-            throw new SandboxJobRuntimeError(
-                'SANDBOX_RUNTIME_UNAVAILABLE',
-                'Sandbox Jobs execute only in the sandbox-browser worker.',
-                true,
-                job?.id as string | undefined
-            )
         }
         if (job?.cleanupPending) await this.requirePreviousAttemptCleanup(job)
         const resolution = await this.bindingSelector.require(definition, job?.id as string | undefined)
@@ -139,10 +129,8 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         job.errorMessage = 'Sandbox job was cancelled.'
         job.finishedAt = new Date()
         await this.repository.save(job)
-        if (this.ownsRuntimeLifecycle || active) {
-            const cleaned = await this.destroySandbox(job, active?.resolution)
-            if (cleaned) await this.cleanupVolume(job)
-        }
+        const cleaned = await this.destroySandbox(job, active?.resolution)
+        if (cleaned) await this.cleanupVolume(job)
         return this.toSnapshot(job)
     }
 
@@ -163,7 +151,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         return this.repository.findOne({ where: { id: jobId, tenantId } })
     }
 
-    /** Aggregates Action compatibility with Worker-published Runtime readiness. */
+    /** Aggregates Action compatibility with API-local Runtime readiness. */
     async getActionHealth(input: {
         pluginName: string
         action: string
@@ -958,11 +946,6 @@ function capacityPollInterval(): number {
 function artifactDigest(reference: string, configured?: string): string | undefined {
     if (configured) return configured.toLowerCase()
     return reference.match(/@(sha256:[a-f0-9]{64})$/i)?.[1]?.toLowerCase()
-}
-
-/** Prevents API processes from selecting Providers or creating Runtime instances. */
-function ownsSandboxRuntimeLifecycle(): boolean {
-    return process.env.XPERT_PROCESS_ROLE === 'sandbox-browser-worker' || process.env.NODE_ENV === 'test'
 }
 
 function positiveInteger(value: string | undefined, fallback: number): number {

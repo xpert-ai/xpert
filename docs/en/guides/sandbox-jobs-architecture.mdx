@@ -5,7 +5,7 @@ description: Architecture and release contracts for Xpert Sandbox Jobs Core, Run
 
 # Sandbox Runtime and Sandbox Jobs Architecture
 
-Xpert separates task orchestration, runtime definitions, runtime implementations, and plugin behavior. OSS Core owns generic Job semantics and the Provider SPI; Runtime Suite publishes provider-neutral Definitions and artifacts; system plugins own reviewable Action Bundles; Pro or another distribution supplies concrete Runtime Bindings and Providers.
+Xpert separates task orchestration, runtime definitions, runtime implementations, and plugin behavior. OSS Core owns generic Job semantics and the Provider SPI; Runtime Suite publishes provider-neutral Definitions and artifacts; system plugins own reviewable Action Bundles; Pro or another distribution supplies production Runtime Bindings and Providers. OSS additionally includes a reduced-isolation local Binding for development and tests only.
 
 The first implementation is Browser Runtime for Presentation Studio PDF/PPTX export. It does not reuse an interactive agent sandbox and works without an active conversation.
 
@@ -28,24 +28,24 @@ Runtime Definitions contain no Docker, plugin, Presentation, or Dashi identifier
 flowchart LR
     C["Workbench / Agent"] --> P["Business plugin"]
     P --> Q["Managed Queue<br/>sandbox-browser pool"]
-    Q --> W["Provider distribution worker<br/>Pro: sandbox-runtime-worker"]
+    Q --> W["API Runtime executor<br/>concurrency one by default"]
     W --> J["Sandbox Jobs Runtime"]
     J --> A["SandboxActionRegistry"]
     J --> R["SandboxRuntimeDefinitionRegistry"]
     J --> B["Binding Selector"]
     J --> L["Redis capacity leases"]
     B --> D["Runtime Provider SPI"]
-    D --> PR["Pro Docker / Podman / Kubernetes / Remote"]
+    D --> PR["OSS Local dev / Pro Docker / other Providers"]
     PR --> S["Ephemeral Job Sandbox<br/>Browser Runtime + Action Bundle"]
     J --> F["Workspace Files"]
     J --> E["SandboxJob evidence"]
 ```
 
-The Provider distribution worker is a dedicated queue-consumer process, not a second orchestration layer. Idempotency, capacity, containers, I/O, validation, and cleanup remain in Sandbox Jobs Runtime. API processes never consume the browser pool or initialize Runtime Providers. OSS keeps the generic `bootstrapWorker()` extension entrypoint but deliberately does not deploy this process; a concrete Provider distribution owns its worker service.
+The API process is the Runtime executor as well as the queue consumer. Idempotency, capacity, Runtime lifecycle, I/O, validation, and cleanup remain in Sandbox Jobs Runtime. Every API consumes the browser pool at concurrency one by default. Development/test can bind it to `local-browser-runtime`; OSS production deliberately has no production Binding; Pro binds it to the Docker Runtime Provider.
 
 ## Runtime Suite package and release
 
-The private `@xpert-ai/sandbox-runtime` package under `packages/sandbox-runtime` owns OCI image assets only. `images/catalog.json` is the sole workflow matrix source, allowing future Agent, Office, Python, and GPU families without copied workflows.
+The private `@xpert-ai/sandbox-runtime` package under `packages/sandbox-runtime` owns Browser Runtime assets, OCI image construction, and local-development verification. It contains no Provider or Job orchestration. `images/catalog.json` is the sole workflow matrix source, allowing future Agent, Office, Python, and GPU families without copied workflows.
 
 Browser Runtime uses profile `browser/playwright-1.61/v1` and currently contains Node.js `20.20.2`, `playwright-core@1.61.0`, its matching Chromium, Noto CJK/Color Emoji, and the generic Runner Host. Its manifest records suite version, family, contract, dependency versions, browser revision, and Runner Host SHA-256.
 
@@ -55,9 +55,11 @@ The suite has an independent private-package SemVer release train. A version rel
 
 `SandboxRuntimeDefinitionRegistry` loads generic `browser/playwright-1.61/v1` from the catalog embedded in OSS Core. Its Runner Host, versions, resources, deadlines, network, security policy, and expected manifest are provider-neutral defaults. It contains no image, Provider, host path, or plugin identity and requires no user profile configuration. The API image does not install or carry `@xpert-ai/sandbox-runtime`; Runtime Suite verification consumes the same Core file to prevent contract drift.
 
-`SandboxRuntimeProviderRegistry` accepts built-ins or `level=system` plugins only. Providers declare Bindings and capabilities through the small `ISandboxRuntimeProvider` SPI. `SandboxRuntimeBindingSelector` filters compatibility and immutable artifacts, probes health, orders candidates deterministically, and permits a new attempt to fail over. Interactive Agent Sandbox backends and `LocalShellSandboxProvider` are never Job candidates. Workspace mapping is separately extensible through `SandboxWorkspaceMapperRegistry`; OSS Core has no Docker string branch.
+`SandboxRuntimeProviderRegistry` accepts built-ins or `level=system` plugins only. Providers declare Bindings and capabilities through the small `ISandboxRuntimeProvider` SPI. `SandboxRuntimeBindingSelector` filters compatibility and immutable artifacts, probes health, orders candidates deterministically, and permits a new attempt to fail over. A Binding marked `developmentOnly` may relax Definition guarantees only when `NODE_ENV` is exactly `development` or `test`; it is rejected in every other environment. Interactive Agent Sandbox backends and `LocalShellSandboxProvider` are never Job candidates. Workspace mapping is separately extensible through `SandboxWorkspaceMapperRegistry`; OSS Core has no Docker string branch.
 
-`SandboxActionRegistry` resolves `sandboxActions` from loaded system-level plugin manifests. It rejects organization-level execution in v1, unsafe or traversing paths, null bytes, symlinks, hard links, and non-regular entries. Bundles default to 256 MiB and 20,000 files. Per-file integrity and a deterministic tree hash are verified before immutable content is cached by `bundleSha256` and materialized into `/workspace/runtime/action` for each Job. Plugin installation directories and host `node_modules` are never mounted.
+OSS registers `LocalBrowserRuntimeProvider` only in development/test. It runs the fixed Runner Host as a child process, confines file operations to the Job workspace, strips server secrets from the child environment, and supports timeout, cancellation, and process-tree cleanup. It honestly advertises process isolation with no resource, network, or read-only-root guarantees, so it is not a production sandbox. Its Binding priority is `10000`, making a healthy Pro Docker Binding the preferred development choice as well.
+
+`SandboxActionRegistry` resolves `sandboxActions` from loaded system-level plugin manifests. It rejects organization-level execution in v1, unsafe or traversing paths, null bytes, symlinks, hard links, and non-regular entries. Bundles default to 256 MiB and 20,000 files. Per-file integrity and a deterministic tree hash are verified before immutable content is cached by `bundleSha256` and materialized into `/workspace/runtime/action` for each Job. Plugin installation directories and host `node_modules` are never mounted. Action-owned dependencies use a normal bundle directory such as `runtime-modules`; nested `node_modules` is forbidden because npm removes it while packing. Release verification must extract a real `npm pack` tarball and recompute the hash from the extracted Action, not rely only on the source `dist` tree or a dry-run file list.
 
 ## Action-oriented SDK
 
@@ -99,15 +101,14 @@ Use the exported contracts as the boundary between plugins, Runtime Providers, a
 
 The main Core classes preserve those boundaries:
 
-| Core class                           | Role                                                                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SandboxActionRegistry`              | Authorizes system Actions and verifies safe paths, file limits, links, checksums, and the bundle tree hash.                                                              |
-| `SandboxRuntimeDefinitionRegistry`   | Loads provider-neutral Runtime Definitions embedded in OSS Core and shared with Runtime Suite release validation.                                                        |
-| `SandboxRuntimeBindingSelector`      | Filters required capabilities and immutable artifacts, checks health, and chooses deterministically by priority.                                                         |
-| `SandboxRuntimeHealthService`        | Lets workers probe/publish expiring Runtime health while APIs only aggregate Redis heartbeats.                                                                           |
-| `SandboxJobRuntimeCapabilityService` | Owns idempotency, capacity, materialization, execution, output validation, runtime evidence, cancellation, and cleanup. Only worker execution creates Runtime instances. |
-| `SandboxJobCapacityService`          | Acquires expiring global/tenant/user leases before Runtime creation and releases them idempotently.                                                                      |
-| `bootstrapWorker()`                  | Assembles a no-HTTP worker in `@xpert-ai/xpert-api`; OSS does not deploy one, while a Provider distribution owns its worker service.                                     |
+| Core class                           | Role                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SandboxActionRegistry`              | Authorizes system Actions and verifies safe paths, file limits, links, checksums, and the bundle tree hash.                                |
+| `SandboxRuntimeDefinitionRegistry`   | Loads provider-neutral Runtime Definitions embedded in OSS Core and shared with Runtime Suite release validation.                          |
+| `SandboxRuntimeBindingSelector`      | Filters required capabilities and immutable artifacts, checks health, and chooses deterministically by priority.                           |
+| `SandboxRuntimeHealthService`        | Probes API-local Providers, caches short-lived readiness, and publishes expiring Redis evidence for observability.                         |
+| `SandboxJobRuntimeCapabilityService` | Owns idempotency, capacity, materialization, execution, output validation, runtime evidence, cancellation, and cleanup in the API process. |
+| `SandboxJobCapacityService`          | Acquires expiring global/tenant/user leases before Runtime creation and releases them idempotently.                                        |
 
 ## Job, data, and security model
 
@@ -121,28 +122,24 @@ Containers enforce non-root execution, read-only root, no-new-privileges, droppe
 
 ## Presentation Studio integration
 
-Presentation Studio publishes `dist/sandbox-actions/presentation-export`, not an image. Its build bundles the Runner and pinned Dashi render/export runtime, copies themes/templates/static resources, externalizes `playwright-core`, and produces `action.json` plus a deterministic tree hash. `.xpertai-plugin/plugin.json` declares this manifest through `sandboxActions`.
+Presentation Studio publishes `dist/sandbox-actions/presentation-export`, not an image. Its build bundles the Runner and pinned Dashi render/export runtime, copies themes/templates/static resources, externalizes `playwright-core`, stores Action-owned dependencies under `bundle/runtime-modules`, and produces `action.json` plus a deterministic tree hash. `.xpertai-plugin/plugin.json` declares this manifest through `sandboxActions`. Its package verification packs, extracts, and validates the final npm artifact so the registered hash always describes the files that production installs.
 
-The export handler loads the immutable deck snapshot and persisted asset references, then calls `presentation.export@1.0.0`. Browser Runtime supplies Playwright/Chromium, the Action supplies Presentation behavior, and the platform writes validated PDF/PPTX output to Workspace Files. HTML stays on the browser-free path. Production forces `sandbox-job`; local Chromium compatibility is development/test only. PDF/PPTX are enabled by default: a missing Action, Definition, Binding, Provider artifact, or browser-pool worker is reported as a capability warning instead of requiring a rollout switch.
+The export handler loads the immutable deck snapshot and persisted asset references, then calls `presentation.export@1.0.0`. Browser Runtime supplies Playwright/Chromium, the Action supplies Presentation behavior, and the platform writes validated PDF/PPTX output to Workspace Files. HTML stays on the browser-free path. Production forces `sandbox-job`; local Chromium compatibility is development/test only. PDF/PPTX are enabled by default: a missing Action, Definition, Binding, Provider artifact, or browser-pool consumer is reported as a capability warning instead of requiring a rollout switch.
 
 ## Health, OSS/Pro boundary, and deployment
 
 Deterministic Action/Profile/version/input/output errors are not retryable. Capacity-service, provider startup, browser launch, timeout, and OOM errors are retryable. Plugins persist user-facing business state and only rethrow runtime errors marked retryable.
 
-Workers probe all Runtime Definitions immediately and every 15 seconds, publishing Redis heartbeats with a 45-second TTL. APIs read heartbeats and never need Docker socket access; the Worker selects and validates a local Binding again immediately before execution. A live Worker without a Binding reports `RUNTIME_UNBOUND`; no live heartbeat reports `PROVIDER_UNAVAILABLE`.
+Each API probes all Runtime Definitions immediately and every 15 seconds, caches readiness for 45 seconds, and publishes Redis evidence for observability. `getActionHealth()` uses the API-local probe, while actual execution selects and validates a Binding again. An API with no compatible Binding reports `RUNTIME_UNBOUND`; a registered Provider that cannot enumerate Bindings reports `PROVIDER_UNAVAILABLE`.
 
-The no-HTTP `bootstrapWorker()` entrypoint is owned by `@xpert-ai/xpert-api`, which composes plugins, queues, and domain modules. Analytics is a loaded domain module; it does not choose the process role or own Worker startup.
+In a source checkout, development/test starts the local browser consumer automatically at concurrency one. Install its pinned browser once with `corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser`; if the artifact, version, or Runner manifest is missing, capability health returns that command as a warning instead of silently disabling exports. This path does not use `CHROME_PATH` and does not make the API image depend on the Runtime Suite package.
 
-The OSS Compose files deploy no Sandbox Runtime worker, mount no Docker socket, and pull no Runtime artifact. They still ship `bootstrapWorker()` so community Provider distributions can assemble a worker without forking API bootstrap code. With no fresh heartbeat, health reports `PROVIDER_UNAVAILABLE`; if the action/runtime health is valid but the browser execution pool has no consumer, it reports `WORKER_UNAVAILABLE`. Presentation Studio does not enqueue PDF/PPTX work in either state, shows an actionable warning, and keeps HTML available.
+The OSS production Compose files deploy no production Sandbox Runtime Provider, mount no Docker socket, and pull no Runtime artifact. Its API still consumes the browser queue, but health reports `RUNTIME_UNBOUND`, so Presentation Studio does not enqueue PDF/PPTX work and keeps HTML available. `WORKER_UNAVAILABLE` now means the API queue consumer itself is disabled or unhealthy, rather than a missing dedicated service.
 
-The private Docker Provider owns the Pro deployment overlay. It starts the `sandbox-runtime-worker` service with the current internal role below; queue selection, concurrency, capacity, Provider registration, and immutable Runtime artifact selection come from packaged defaults:
+Pro's Docker Sandbox module contains two strategy classes with different lifecycle contracts. `DockerSandboxProvider` implements only the interactive Agent Sandbox contract, while `DockerSandboxRuntimeProvider` implements only the smaller Job Runtime SPI and owns the Docker Runtime Binding. They share the low-level Docker engine adapter and container utilities, not a strategy object. The module registers both strategies in the API process, so browser Jobs still cannot inherit terminal, setup-script, cache, reusable-environment, or arbitrary-command behavior. Browser-pool concurrency defaults to one; distributed capacity remains 20 global, 4 per tenant, and 2 per user.
 
-```text
-XPERT_PROCESS_ROLE=sandbox-browser-worker
-```
+The Pro API image contains no Chromium; only ephemeral Browser Runtime containers contain the browser. The Pro API already needs Docker engine access for its Provider implementation, while OSS API services do not. Provider CI creates `runtime-suite.lock.json` from Runtime Artifact release catalogs and rejects missing or mutable production artifacts. Pro users configure no process role, image, profile, Provider selector, or `CHROME_PATH`; Provider development automatically uses `xpert-sandbox-browser:local` and reports a build hint when missing.
 
-The Pro overlay defaults to two workers with local concurrency five. Workers use the API image to load plugin handlers and the platform Runtime graph but contain no Chromium; only ephemeral Browser Runtime containers contain the browser. Only this Pro worker gets the Docker socket; API containers and all OSS base services do not. Provider CI creates `runtime-suite.lock.json` from Runtime Artifact release catalogs and rejects missing or mutable production artifacts. Pro users configure no worker switch, image, profile, Provider selector, or `CHROME_PATH`; Provider development automatically uses `xpert-sandbox-browser:local` and reports a build hint when missing.
+The open-source distribution includes Jobs Core, Definition and Action registries, Provider/mapper SPI, heartbeat evidence, and the development-only Local Browser Provider, but no production Provider. Even if the Local Provider class is instantiated manually, production returns no Binding and `create()` fails. Community implementations can provide Podman, Kubernetes, or remote execution through the public SPI and register them as system infrastructure in the API process. `RUNTIME_UNBOUND` means the API executor cannot bind a compatible Runtime Definition. The dedicated Docker Job Runtime Provider, shared engine adapter, and immutable Runtime Suite lock live in the existing Docker sandbox module in the Pro repository; `xpert-plugins` contains no second Docker implementation package.
 
-The open-source distribution includes Jobs Core, Definition and Action registries, Provider/mapper SPI, heartbeat contracts, and Fake Provider tests, but no production Provider or worker service. Community implementations can provide Podman, Kubernetes, or remote execution through the public SPI and must package their own worker deployment. `RUNTIME_UNBOUND` is reserved for a live worker that cannot bind a compatible Runtime Definition. The Docker implementation and its deployment overlays currently live as private system plugin `xpertai/providers/sandbox-docker` and can later move intact to the Pro repository.
-
-Release in this order: platform contracts/SDK/Core, Runtime Suite, Provider lock and workers, then the plugin Action Bundle. Roll back to the previous Runtime artifact digest first; if browser capability is unavailable, the platform warns and keeps HTML available.
+Release in this order: platform contracts/SDK/Core, Runtime Suite, Provider lock, then the plugin Action Bundle. Roll back to the previous Runtime artifact digest first; if browser capability is unavailable, the platform warns and keeps HTML available.

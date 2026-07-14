@@ -16,27 +16,17 @@ jest.mock('../core/context/request-context.middleware', () => ({
 }))
 
 describe('ManagedQueueProcessor', () => {
-	it('selects queue pools from the process role without configuration switches', () => {
+	it('starts both logical queue pools in the API process by default', () => {
 		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'development' })).toBe(true)
-		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'development' })).toBe(false)
+		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'development' })).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'test' })).toBe(true)
 		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'production' })).toBe(true)
-		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'production' })).toBe(false)
-		expect(
-			managedQueuePoolAutorun('default', {
-				NODE_ENV: 'production',
-				XPERT_PROCESS_ROLE: 'sandbox-browser-worker'
-			})
-		).toBe(false)
-		expect(
-			managedQueuePoolAutorun('sandbox-browser', {
-				NODE_ENV: 'production',
-				XPERT_PROCESS_ROLE: 'sandbox-browser-worker'
-			})
-		).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'production' })).toBe(true)
 	})
 
-	it('keeps the default-pool autorun override', () => {
+	it('keeps the global autorun override for maintenance', () => {
 		expect(managedQueuePoolAutorun('default', { MANAGED_QUEUE_AUTORUN: 'false' })).toBe(false)
+		expect(managedQueuePoolAutorun('sandbox-browser', { MANAGED_QUEUE_AUTORUN: 'false' })).toBe(false)
 	})
 
 	it('restores tenant context and dispatches plugin payload to the registered handler', async () => {
