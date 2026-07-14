@@ -37,6 +37,10 @@ jest.mock('../chat-conversation', () => ({
     ChatConversationService: class {}
 }))
 
+jest.mock('../chat-conversation/task-summary.service', () => ({
+    ChatTaskSummaryService: class {}
+}))
+
 jest.mock('../chat-message/chat-message.service', () => ({
     ChatMessageService: class {}
 }))
@@ -211,11 +215,34 @@ describe('ConversationsController searchConversations', () => {
         expect(options.where.createdById).toBe('public-user-1')
         expect(options.where.xpertId).toBe('public-xpert-1')
     })
+
+    it('uses the same conversation access path for task summary snapshot and pagination', async () => {
+        const { controller, conversationService, taskSummaryService } = createController()
+        const conversation = { id: 'conversation-1', threadId: 'thread-1' }
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue(conversation)
+        taskSummaryService.getSnapshot.mockResolvedValue({ version: 1 })
+        taskSummaryService.listSection.mockResolvedValue({ section: 'outputs', items: [] })
+
+        await expect(controller.getTaskSummary('conversation-1')).resolves.toEqual({ version: 1 })
+        await expect(controller.listTaskSummaryItems('conversation-1', 'outputs', 3, 50)).resolves.toEqual({
+            section: 'outputs',
+            items: []
+        })
+
+        expect(conversationService.findOneInOrganizationOrTenant).toHaveBeenCalledTimes(2)
+        expect(taskSummaryService.getSnapshot).toHaveBeenCalledWith(conversation)
+        expect(taskSummaryService.listSection).toHaveBeenCalledWith(conversation, 'outputs', 3, 50)
+    })
 })
 
 function createController() {
     const conversationService = {
-        findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 })
+        findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+        findOneInOrganizationOrTenant: jest.fn()
+    }
+    const taskSummaryService = {
+        getSnapshot: jest.fn(),
+        listSection: jest.fn()
     }
     const xpertService = {
         findOneInOrganizationOrTenant: jest.fn()
@@ -224,6 +251,7 @@ function createController() {
     const controller = new ConversationsController(
         conversationService as any,
         {} as any,
+        taskSummaryService as never,
         {} as any,
         {} as any,
         {} as any,
@@ -233,6 +261,7 @@ function createController() {
     return {
         controller,
         conversationService,
+        taskSummaryService,
         xpertService
     }
 }

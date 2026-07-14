@@ -29,6 +29,7 @@ import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-even
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
 import {
   AiThreadService,
+  ArtifactService,
   ChatConversationService,
   IChatConversation,
   ViewExtensionApiService,
@@ -67,6 +68,10 @@ import {
   shouldRefreshWorkspaceFilesFromLogEvent
 } from './clawxpert-workspace-file-refresh.utils'
 import { createAssistantToolCompletedHostEvent } from './assistant-tool-host-events.utils'
+import {
+  getTaskSummaryResourceTarget,
+  type ClawXpertTaskSummaryResourceTarget
+} from './clawxpert-task-summary-effect.utils'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
@@ -721,6 +726,7 @@ const INITIAL_WORKSPACE_TAB: ClawXpertToolTab = {
 })
 export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #threadService = inject(AiThreadService)
+  readonly #artifactService = inject(ArtifactService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #viewExtensionApi = inject(ViewExtensionApiService)
   readonly #translate = inject(TranslateService)
@@ -763,6 +769,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     layout: {
       maxWidth: CLAWXPERT_CHATKIT_MAX_WIDTH
     },
+    taskSummary: {
+      enabled: true
+    },
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
@@ -772,6 +781,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
+      const taskSummaryTarget = getTaskSummaryResourceTarget(event)
+      if (taskSummaryTarget) {
+        void this.openTaskSummaryResource(taskSummaryTarget)
+        return
+      }
       const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
@@ -1527,6 +1541,79 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
   }
 
+  private async openTaskSummaryResource(target: ClawXpertTaskSummaryResourceTarget) {
+    try {
+      const currentConversationId = this.resolvedConversationId() ?? this.resolvedConversation()?.id ?? null
+      if (target.conversationId && currentConversationId && target.conversationId !== currentConversationId) {
+        throw new Error('Task summary resource belongs to another conversation.')
+      }
+      const conversationId = target.conversationId ?? currentConversationId
+      switch (target.type) {
+        case 'workspace_file': {
+          if (!conversationId) {
+            throw new Error('Conversation context is required to open a workspace file.')
+          }
+          const file = await firstValueFrom(
+            this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId)
+          )
+          const url = readHttpUrl(file.fileUrl ?? file.url)
+          if (!url) {
+            throw new Error('Workspace file preview URL is unavailable.')
+          }
+          openWorkbenchFilePreviewDialog(this.#dialog, {
+            id: target.fileAssetId,
+            fileAssetId: target.fileAssetId,
+            storageFileId: target.storageFileId,
+            name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
+            mimeType: file.mimeType,
+            url,
+            previewUrl: url
+          })
+          return
+        }
+        case 'artifact': {
+          const link = await firstValueFrom(this.#artifactService.createSignedPreviewLink(target.artifactId))
+          const url = readHttpUrl(link.publicUrl)
+          if (!url) {
+            throw new Error('Artifact preview URL is unavailable.')
+          }
+          const version = link.version ?? link.artifact?.currentVersion ?? null
+          const mimeType = version?.mimeType ?? undefined
+          const title = target.title ?? version?.title ?? link.artifact?.title ?? version?.fileName ?? 'Artifact'
+          if (mimeType === 'text/html') {
+            this.openBrowserTabFromSandboxEvent({ displayUrl: title, url })
+            return
+          }
+          openWorkbenchFilePreviewDialog(this.#dialog, {
+            id: link.artifactId,
+            name: title,
+            mimeType,
+            url,
+            previewUrl: url
+          })
+          return
+        }
+        case 'browser': {
+          this.openBrowserTabFromSandboxEvent({
+            displayUrl: target.title ?? target.url ?? null,
+            serviceId: target.serviceId ?? null,
+            url: target.url ?? null
+          })
+          return
+        }
+        case 'url': {
+          this.openBrowserTabFromSandboxEvent({
+            displayUrl: target.title ?? target.url,
+            url: target.url
+          })
+          return
+        }
+      }
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error) || 'Failed to open task summary resource.')
+    }
+  }
+
   private findBrowserTabForPreviewTarget(target: ClawXpertSandboxPreviewTarget) {
     return this.browserTabs().find((tab) => isMatchingBrowserTab(tab, target)) ?? null
   }
@@ -2217,6 +2304,19 @@ function toSkillTrialRuntimeCapabilities(intent: ClawXpertSkillTrialIntent): Run
 
 function readNonEmptyString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readHttpUrl(value: unknown) {
+  const text = readNonEmptyString(value)
+  if (!text) {
+    return null
+  }
+  try {
+    const url = new URL(text)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
 function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
