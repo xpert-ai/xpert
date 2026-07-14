@@ -98,6 +98,9 @@ export class ChatMessageDTO {
     @Expose()
     references?: IChatMessage['references']
 
+    @Expose()
+    taskSummary?: IChatMessage['taskSummary']
+
     /**
      * @deprecated Use `fileAssets` on chat messages for parsed attachments.
      */

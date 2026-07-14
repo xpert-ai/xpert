@@ -19,6 +19,7 @@ describe('ManagedQueueService', () => {
 		}
 		const queue = {
 			client: Promise.resolve(redis),
+			getWorkersCount: jest.fn(async () => 1),
 			add: jest.fn(async (_name, _data, opts) => ({
 				id: opts?.jobId ?? 'job-1'
 			})),
@@ -69,6 +70,47 @@ describe('ManagedQueueService', () => {
 				}
 			})
 		)
+	})
+
+	it('routes sandbox browser jobs to the dedicated execution pool', async () => {
+		const { queue: defaultQueue } = createQueue()
+		const { queue: sandboxQueue } = createQueue()
+		const service = new ManagedQueueService(defaultQueue as never, sandboxQueue as never)
+
+		await service.enqueue({
+			pluginName: 'presentation-studio',
+			queueName: 'presentation-studio.export',
+			jobName: 'render',
+			payload: { exportId: 'export-1' },
+			executionPool: 'sandbox-browser'
+		})
+
+		expect(defaultQueue.add).not.toHaveBeenCalled()
+		expect(sandboxQueue.add).toHaveBeenCalledWith(
+			'render',
+			expect.objectContaining({ executionPool: 'sandbox-browser' }),
+			expect.any(Object)
+		)
+	})
+
+	it('reports execution-pool worker health before plugins enqueue work', async () => {
+		const { queue: defaultQueue } = createQueue()
+		const { queue: sandboxQueue } = createQueue()
+		const service = new ManagedQueueService(defaultQueue as never, sandboxQueue as never)
+
+		await expect(service.getExecutionPoolHealth({ executionPool: 'sandbox-browser' })).resolves.toEqual({
+			executionPool: 'sandbox-browser',
+			available: true,
+			workerCount: 1
+		})
+
+		sandboxQueue.getWorkersCount.mockResolvedValueOnce(0)
+		await expect(service.getExecutionPoolHealth({ executionPool: 'sandbox-browser' })).resolves.toEqual({
+			executionPool: 'sandbox-browser',
+			available: false,
+			workerCount: 0,
+			warning: expect.stringContaining('No active Managed Queue worker')
+		})
 	})
 
 	it('cancels delayed jobs and reports active jobs as not removable', async () => {

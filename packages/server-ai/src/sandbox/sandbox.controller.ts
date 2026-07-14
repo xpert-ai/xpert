@@ -50,7 +50,7 @@ import {
     VolumeClient,
     VolumeHandle,
     getMediaTypeWithCharset,
-    getWorkspacePathMapperForProvider
+    WorkspacePathMapperFactory
 } from '../shared'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
@@ -74,6 +74,7 @@ export class SandboxController {
         private readonly sandboxManagedServiceService: SandboxManagedServiceService,
         private readonly sandboxPreviewSessionService: SandboxPreviewSessionService,
         private readonly organizationScopeService: SuperAdminOrganizationScopeService,
+        private readonly workspaceMappers: WorkspacePathMapperFactory,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
@@ -194,7 +195,7 @@ export class SandboxController {
         workspace?: string | null
     ) {
         const requestedWorkspace = workspace?.trim()
-        const mapper = getWorkspacePathMapperForProvider(resolved.provider)
+        const mapper = this.workspaceMappers.forProvider(resolved.provider)
         if (!requestedWorkspace) {
             return mapper.mapWorkspaceToVolume(resolved.workspaceBinding, resolved.workingDirectory)
         }

@@ -19,6 +19,7 @@ const bigintNumberTransformer = {
 @Entity('artifact_version')
 @Index(['tenantId', 'organizationId', 'artifactId', 'versionNumber'], { unique: true })
 @Index(['tenantId', 'organizationId', 'artifactId', 'sourceVersionId'])
+@Index(['artifactId', 'idempotencyKey'], { unique: true })
 @Index(['sha256'])
 export class ArtifactVersion extends TenantOrganizationBaseEntity implements IArtifactVersion {
     @ManyToOne(() => Artifact, {
@@ -36,6 +37,9 @@ export class ArtifactVersion extends TenantOrganizationBaseEntity implements IAr
 
     @Column({ type: 'varchar', default: 'active' })
     status: ArtifactVersionStatus
+
+    @Column({ type: 'varchar', nullable: true })
+    idempotencyKey?: string | null
 
     @Column({ type: 'varchar', nullable: true })
     sourceVersionId?: string | null

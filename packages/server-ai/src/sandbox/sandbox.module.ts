@@ -2,7 +2,7 @@ import { TenantModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { SandboxProviderRegistry, SandboxRuntimeProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CommandHandlers } from './commands/handlers'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
@@ -17,6 +17,18 @@ import { ChatConversationModule } from '../chat-conversation'
 import { SandboxFileMiddleware, SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
+import {
+    SandboxActionRegistry,
+    SandboxJobEntity,
+    SandboxJobRuntimeCapabilityService,
+    SandboxRuntimeDefinitionRegistry
+} from './sandbox-job'
+import { SandboxRuntimeBindingSelector } from './sandbox-job/sandbox-runtime-binding-selector.service'
+import { SandboxRuntimeHealthService } from './sandbox-job/sandbox-runtime-health.service'
+import { SandboxJobCapacityService } from './sandbox-job/sandbox-job-capacity.service'
+import { SandboxJobCapabilityRegistrationService } from './sandbox-job/sandbox-job-capability-registration.service'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { VolumeModule } from '../shared/volume'
 
 @Module({
     imports: [
@@ -24,7 +36,9 @@ import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
         TenantModule,
         CqrsModule,
         DiscoveryModule,
-        TypeOrmModule.forFeature([SandboxManagedServiceEntity]),
+        TypeOrmModule.forFeature([SandboxManagedServiceEntity, SandboxJobEntity]),
+        AgentMiddlewareRuntimeModule,
+        VolumeModule,
 
         ChatConversationModule,
         SuperAdminOrganizationScopeModule
@@ -36,9 +50,17 @@ import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
         SandboxPreviewSessionService,
         SandboxPreviewAuthGuard,
         SandboxProviderRegistry,
+        SandboxRuntimeProviderRegistry,
         SandboxConversationContextService,
         SandboxTerminalGateway,
         LocalShellSandboxProvider,
+        SandboxRuntimeDefinitionRegistry,
+        SandboxRuntimeBindingSelector,
+        SandboxRuntimeHealthService,
+        SandboxActionRegistry,
+        SandboxJobCapacityService,
+        SandboxJobRuntimeCapabilityService,
+        SandboxJobCapabilityRegistrationService,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware,
@@ -48,8 +70,14 @@ import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
         SandboxService,
         SandboxManagedServiceService,
         SandboxProviderRegistry,
+        SandboxRuntimeProviderRegistry,
         SandboxConversationContextService,
         LocalShellSandboxProvider,
+        SandboxJobRuntimeCapabilityService,
+        SandboxRuntimeDefinitionRegistry,
+        SandboxRuntimeBindingSelector,
+        SandboxRuntimeHealthService,
+        SandboxActionRegistry,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware

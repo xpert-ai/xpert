@@ -7,6 +7,7 @@ import {
 	PluginSourceConfig,
 	PluginTargetAppMeta,
 	XpertPluginBundleManifest,
+	XpertPluginSandboxActionDefinition,
 	XpertPluginInstallInterface,
 	XpertPluginMarketplacePolicy,
 	XpertPluginMarketplaceSource
@@ -144,6 +145,46 @@ function normalizeJsonValue(value: unknown): JSONValue | undefined {
 
 function normalizeStringOrStringArray(value: unknown): string | string[] | undefined {
 	return readString(value) ?? readStringArray(value)
+}
+
+/** Normalizes manifest shape only; SandboxActionRegistry performs trust and content verification later. */
+function normalizeSandboxActionDefinition(value: unknown): XpertPluginSandboxActionDefinition | undefined {
+	if (!isJsonDictionary(value)) {
+		return undefined
+	}
+	const name = readStringField(value, 'name')
+	const version = readStringField(value, 'version')
+	const runtimeProfile = readStringField(value, 'runtimeProfile')
+	const runtimeContractVersion = readStringField(value, 'runtimeContractVersion')
+	const bundle = readStringField(value, 'bundle')
+	const entrypoint = readStringField(value, 'entrypoint')
+	const bundleSha256 = readStringField(value, 'bundleSha256')
+	if (!name || !version || !runtimeProfile || !runtimeContractVersion || !bundle || !entrypoint || !bundleSha256) {
+		return undefined
+	}
+	return removeUndefinedFields({
+		name,
+		version,
+		runtimeProfile,
+		runtimeContractVersion,
+		playwrightVersion: readStringField(value, 'playwrightVersion'),
+		bundle,
+		entrypoint,
+		bundleSha256
+	})
+}
+
+/** Accepts inline definitions or relative manifest paths without resolving host filesystem paths. */
+function normalizeSandboxActions(value: unknown): XpertPluginBundleManifest['sandboxActions'] {
+	const pathValue = normalizeStringOrStringArray(value)
+	if (pathValue) return pathValue
+	const definition = normalizeSandboxActionDefinition(value)
+	if (definition) return definition
+	if (!Array.isArray(value)) return undefined
+	const definitions = value.map(normalizeSandboxActionDefinition)
+	return definitions.every((item): item is XpertPluginSandboxActionDefinition => Boolean(item))
+		? definitions
+		: undefined
 }
 
 function normalizeInstallInterface(value: unknown): XpertPluginInstallInterface | undefined {
@@ -284,6 +325,7 @@ export function normalizePluginBundleManifest(value: unknown): XpertPluginBundle
 		apps,
 		connectors,
 		hooks,
+		sandboxActions: normalizeSandboxActions(Reflect.get(value, 'sandboxActions')),
 		interface: normalizeInstallInterface(Reflect.get(value, 'interface')),
 		policy: normalizeMarketplacePolicy(Reflect.get(value, 'policy')),
 		source: normalizeMarketplaceSource(Reflect.get(value, 'source')),

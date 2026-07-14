@@ -3,7 +3,7 @@ import http from 'node:http'
 import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
-import { LocalShellSandbox } from './local-shell-sandbox.provider'
+import { LocalShellSandbox, LocalShellSandboxProvider } from './local-shell-sandbox.provider'
 
 const mockSpawnPty = jest.fn()
 
@@ -513,5 +513,31 @@ describe('LocalShellSandbox', () => {
             })
             fs.rmSync(workingDirectory, { recursive: true, force: true })
         }
+    })
+})
+
+describe('LocalShellSandboxProvider Sandbox Jobs', () => {
+    const originalEnvironment = { ...process.env }
+
+    afterEach(() => {
+        process.env = { ...originalEnvironment }
+    })
+
+    it('rejects host-executed jobs in production', async () => {
+        process.env.NODE_ENV = 'production'
+        const provider = new LocalShellSandboxProvider()
+
+        await expect(
+            provider.create({
+                workFor: { type: 'job', id: 'job-1' },
+                workingDirectory: '/tmp/sandbox-job'
+            })
+        ).rejects.toThrow('disabled in production')
+        await expect(
+            provider.getProfileHealth({
+                profile: 'document-export/v1',
+                manifestCommand: ['node', '/opt/acme/runner.mjs', '--manifest']
+            })
+        ).resolves.toMatchObject({ available: false, reason: expect.stringContaining('disabled in production') })
     })
 })

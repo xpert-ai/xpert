@@ -1,15 +1,33 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+    Req,
+    Res,
+    UnauthorizedException
+} from '@nestjs/common'
 import { Public } from '@xpert-ai/server-core'
 import type {
     CreateArtifactInput,
     CreateArtifactLinkInput,
     CreateArtifactVersionInput,
     CreateSignedArtifactPreviewLinkInput,
+    EnsureArtifactVersionInput,
     ListArtifactsInput,
+    ArtifactShareInput,
     UpdateArtifactLinkAccessInput
 } from '@xpert-ai/plugin-sdk'
 import type { Request, Response } from 'express'
-import { ArtifactsService } from './artifacts.service'
+import {
+    ARTIFACT_SHARE_SESSION_COOKIE,
+    ARTIFACT_SHARE_SESSION_TTL_SECONDS,
+    ArtifactsService
+} from './artifacts.service'
 
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'
 
@@ -25,14 +43,7 @@ export class ArtifactsPublicController {
         @Req() req: Request,
         @Res() res: Response
     ) {
-        const principal = this.service.resolvePrincipalFromRequest(req)
-        const artifact = await this.service.resolveForPublicAccess({
-            slug: artifactLinkSlug,
-            previewToken,
-            principal,
-            requestSummary: this.service.summarizeRequest(req)
-        })
-        sendArtifactResponse(res, artifact)
+        await this.sendOrRedirect(artifactLinkSlug, previewToken, req, res, false)
     }
 
     @Public()
@@ -43,15 +54,52 @@ export class ArtifactsPublicController {
         @Req() req: Request,
         @Res() res: Response
     ) {
-        const principal = this.service.resolvePrincipalFromRequest(req)
-        const artifact = await this.service.resolveForPublicAccess({
+        await this.sendOrRedirect(artifactLinkSlug, previewToken, req, res, true)
+    }
+
+    private async sendOrRedirect(slug: string, previewToken: string, req: Request, res: Response, download: boolean) {
+        const access = await this.service.resolveAccessContextFromRequest(req)
+        try {
+            const artifact = await this.service.resolveForPublicAccess({
+                slug,
+                download,
+                previewToken,
+                principal: access.principal,
+                authenticatedUser: access.authenticatedUser,
+                requestSummary: this.service.summarizeRequest(req)
+            })
+            sendArtifactResponse(res, artifact)
+        } catch (error) {
+            if (!(error instanceof UnauthorizedException)) throw error
+            const suffix = download ? '?download=1' : ''
+            res.redirect(302, `/artifacts/auth/${encodeURIComponent(slug)}${suffix}`)
+        }
+    }
+}
+
+@Controller('artifacts/share-session')
+export class ArtifactsShareSessionController {
+    constructor(private readonly service: ArtifactsService) {}
+
+    @Post(':artifactLinkSlug')
+    async create(
+        @Param('artifactLinkSlug') artifactLinkSlug: string,
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const session = await this.service.createArtifactShareSession({
             slug: artifactLinkSlug,
-            download: true,
-            previewToken,
-            principal,
             requestSummary: this.service.summarizeRequest(req)
         })
-        sendArtifactResponse(res, artifact)
+        res.cookie(ARTIFACT_SHARE_SESSION_COOKIE, session.token, artifactShareCookieOptions(req))
+        return { publicUrl: session.publicUrl }
+    }
+
+    @Public()
+    @Delete()
+    clear(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        res.clearCookie(ARTIFACT_SHARE_SESSION_COOKIE, artifactShareCookieOptions(req))
+        return { cleared: true }
     }
 }
 
@@ -69,6 +117,21 @@ export class ArtifactsManagementController {
         return this.service.listArtifacts(query)
     }
 
+    @Get('by-source')
+    async findBySource(
+        @Query('pluginName') pluginName: string,
+        @Query('resourceType') resourceType: string,
+        @Query('resourceId') resourceId: string,
+        @Query('includeDeleted') includeDeleted?: string
+    ) {
+        return this.service.findArtifactBySource({
+            pluginName,
+            resourceType,
+            resourceId,
+            includeDeleted: includeDeleted === 'true'
+        })
+    }
+
     @Get(':idOrSlug')
     async getArtifact(@Param('idOrSlug') idOrSlug: string) {
         return this.service.getArtifact(idOrSlug)
@@ -80,6 +143,23 @@ export class ArtifactsManagementController {
         @Body() input: Omit<CreateArtifactVersionInput, 'artifactId'>
     ) {
         return this.service.createArtifactVersion({ ...input, artifactId })
+    }
+
+    @Get(':artifactId/versions')
+    async listVersions(
+        @Param('artifactId') artifactId: string,
+        @Query('idempotencyKey') idempotencyKey?: string,
+        @Query('status') status?: 'active' | 'deleted' | 'all'
+    ) {
+        return this.service.listArtifactVersions({ artifactId, idempotencyKey, status })
+    }
+
+    @Post(':artifactId/versions/ensure')
+    async ensureVersion(
+        @Param('artifactId') artifactId: string,
+        @Body() input: Omit<EnsureArtifactVersionInput, 'artifactId'>
+    ) {
+        return this.service.ensureArtifactVersion({ ...input, artifactId })
     }
 
     @Patch(':idOrSlug/archive')
@@ -98,6 +178,25 @@ export class ArtifactsManagementController {
         @Body() input: Omit<CreateArtifactLinkInput, 'artifactId'>
     ) {
         return this.service.createArtifactLink({ ...input, artifactId })
+    }
+
+    @Get(':artifactId/shares/:shareKey')
+    async getShare(@Param('artifactId') artifactId: string, @Param('shareKey') shareKey: string) {
+        return this.service.getArtifactShare({ artifactId, shareKey })
+    }
+
+    @Post(':artifactId/shares/:shareKey')
+    async ensureShare(
+        @Param('artifactId') artifactId: string,
+        @Param('shareKey') shareKey: string,
+        @Body() input: Omit<ArtifactShareInput, 'artifactId' | 'shareKey'>
+    ) {
+        return this.service.ensureArtifactShare({ ...input, artifactId, shareKey })
+    }
+
+    @Delete(':artifactId/shares/:shareKey')
+    async revokeShare(@Param('artifactId') artifactId: string, @Param('shareKey') shareKey: string) {
+        return this.service.revokeArtifactShare({ artifactId, shareKey })
     }
 
     @Post(':artifactId/links/signed-preview')
@@ -128,6 +227,7 @@ function sendArtifactResponse(res: Response, artifact: ArtifactResponse) {
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('Content-Disposition', buildContentDisposition(artifact.disposition, artifact.fileName))
     if (artifact.mimeType === 'text/html') {
+        res.setHeader('X-Xpert-Artifact-Html-Profile', artifact.safeHtmlProfile ?? 'strict')
         res.setHeader('Content-Security-Policy', buildHtmlCsp(artifact.safeHtmlProfile))
     }
     res.send(artifact.buffer)
@@ -142,26 +242,45 @@ function buildContentDisposition(disposition: 'inline' | 'attachment', fileName:
 function buildHtmlCsp(profile?: 'strict' | 'interactive' | null) {
     if (profile === 'interactive') {
         return [
-            "default-src 'self' data: blob:",
-            "script-src 'unsafe-inline' 'unsafe-eval' data: blob:",
+            'sandbox allow-scripts',
+            "default-src 'none'",
+            "script-src 'unsafe-inline'",
             "style-src 'unsafe-inline' data: blob:",
-            "img-src 'self' data: blob:",
-            "font-src 'self' data: blob:",
-            "media-src 'self' data: blob:",
-            "connect-src 'self' data: blob:",
+            'img-src data: blob:',
+            'font-src data:',
+            'media-src data: blob:',
+            "connect-src 'none'",
+            "object-src 'none'",
+            "frame-src 'none'",
             "base-uri 'none'",
             "form-action 'none'",
             "frame-ancestors 'none'"
         ].join('; ')
     }
     return [
+        'sandbox',
         "default-src 'none'",
         "style-src 'unsafe-inline'",
         'img-src data: blob:',
         'font-src data:',
         'media-src data: blob:',
+        "connect-src 'none'",
+        "object-src 'none'",
+        "frame-src 'none'",
         "base-uri 'none'",
         "form-action 'none'",
         "frame-ancestors 'none'"
     ].join('; ')
+}
+
+function artifactShareCookieOptions(req: Request) {
+    const forwardedProtocol = req.headers['x-forwarded-proto']
+    const secure = req.secure || forwardedProtocol === 'https'
+    return {
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        secure,
+        path: '/artifacts/share',
+        maxAge: ARTIFACT_SHARE_SESSION_TTL_SECONDS * 1000
+    }
 }

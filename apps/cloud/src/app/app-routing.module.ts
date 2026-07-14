@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core'
 import { ExtraOptions, PreloadAllModules, RouterModule, Routes } from '@angular/router'
 import { SignInSuccessComponent } from './@core/auth/signin-success'
+import { authGuard } from './@core/auth/auth.guard'
 
 const routes: Routes = [
   {
@@ -8,12 +9,17 @@ const routes: Routes = [
     loadChildren: () => import('./public/public.module').then((m) => m.PublicModule)
   },
   {
-		path: 'onboarding',
-		loadChildren: () => import('./onboarding/onboarding.module').then((m) => m.OnboardingModule),
-	},
+    path: 'onboarding',
+    loadChildren: () => import('./onboarding/onboarding.module').then((m) => m.OnboardingModule)
+  },
   {
     path: 'auth',
     loadChildren: () => import('@xpert-ai/cloud/auth').then((m) => m.PacAuthModule)
+  },
+  {
+    path: 'artifacts/auth/:artifactLinkSlug',
+    canActivate: [authGuard],
+    loadComponent: () => import('./artifacts/artifact-share-auth.component').then((m) => m.ArtifactShareAuthComponent)
   },
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {
@@ -22,7 +28,7 @@ const routes: Routes = [
   },
   {
     path: 'x',
-    loadChildren: () => import('./xpert/routes').then((m) => m.routes),
+    loadChildren: () => import('./xpert/routes').then((m) => m.routes)
   },
   {
     path: '',

@@ -7,17 +7,12 @@
   "targets": {
     "build": {
       "executor": "@angular/build:application",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/cloud",
         "index": "apps/cloud/src/index.html",
         "browser": "apps/cloud/src/main.ts",
-        "polyfills": [
-          "zone.js",
-          "apps/cloud/src/polyfills.ts"
-        ],
+        "polyfills": ["zone.js", "apps/cloud/src/polyfills.ts"],
         "tsConfig": "apps/cloud/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
@@ -126,10 +121,7 @@
           "node_modules/@ctrl/ngx-emoji-mart/picker.css"
         ],
         "stylePreprocessorOptions": {
-          "includePaths": [
-            "node_modules/",
-            "."
-          ]
+          "includePaths": ["node_modules/", "."]
         },
         "scripts": [
           "node_modules/prismjs/prism.js",
@@ -181,16 +173,12 @@
       "defaultConfiguration": "production",
       "dependsOn": [
         {
-          "projects": [
-            "contracts"
-          ],
+          "projects": ["contracts"],
           "target": "build",
           "params": "ignore"
         },
         {
-          "projects": [
-            "sql"
-          ],
+          "projects": ["sql"],
           "target": "build",
           "params": "ignore"
         }
@@ -199,7 +187,7 @@
     "serve": {
       "executor": "@angular/build:dev-server",
       "options": {
-        "proxyConfig": "apps/cloud/proxy.conf.json"
+        "proxyConfig": "apps/cloud/proxy.conf.cjs"
       },
       "configurations": {
         "production": {
@@ -207,7 +195,7 @@
         },
         "development": {
           "buildTarget": "cloud:build:development",
-          "proxyConfig": "apps/cloud/proxy.conf.json"
+          "proxyConfig": "apps/cloud/proxy.conf.cjs"
         }
       },
       "defaultConfiguration": "development"
@@ -221,17 +209,12 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": [
-          "apps/cloud/src/**/*.ts",
-          "apps/cloud/src/**/*.html"
-        ]
+        "lintFilePatterns": ["apps/cloud/src/**/*.ts", "apps/cloud/src/**/*.html"]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/apps/cloud"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/apps/cloud"],
       "options": {
         "jestConfig": "apps/cloud/jest.config.ts",
         "webWorkerTsConfig": "apps/cloud/tsconfig.worker.json"

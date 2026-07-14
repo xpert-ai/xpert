@@ -1,12 +1,14 @@
+import { HttpClient } from '@angular/common/http'
 import { Injectable, signal } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { PacAuthResult, PacAuthStrategy, PacAuthStrategyClass } from '@xpert-ai/cloud/auth'
 import { AuthService } from '@xpert-ai/cloud/state'
 import { IAuthResponse, ITag, ITenant, IUser, IUserLoginInput } from '@xpert-ai/contracts'
 import { CookieService } from 'ngx-cookie-service'
-import { Observable, from, of } from 'rxjs'
+import { Observable, firstValueFrom, from, of } from 'rxjs'
 import { catchError, map, shareReplay, tap } from 'rxjs/operators'
 import { Store } from '../services/store.service'
+import { ARTIFACT_SHARE_SESSION_HTTP_OPTIONS, artifactShareSessionUrl } from '../../artifacts/artifact-share-session'
 
 @Injectable()
 export class AuthStrategy extends PacAuthStrategy {
@@ -63,7 +65,8 @@ export class AuthStrategy extends PacAuthStrategy {
     private readonly route: ActivatedRoute,
     private authService: AuthService,
     private store: Store,
-    private readonly cookieService: CookieService
+    private readonly cookieService: CookieService,
+    private readonly http: HttpClient
   ) {
     super()
   }
@@ -200,9 +203,9 @@ export class AuthStrategy extends PacAuthStrategy {
 
   /**
    * Refresh token
-   * 
+   *
    * Will share the refresh token request, avoid duplicate requests.
-   * 
+   *
    */
   refreshToken(data?: any): Observable<PacAuthResult> {
     if (!this.refreshTokenReq()) {
@@ -276,6 +279,11 @@ export class AuthStrategy extends PacAuthStrategy {
   }
 
   private async _logout(): Promise<PacAuthResult> {
+    try {
+      await firstValueFrom(this.http.delete(artifactShareSessionUrl(), ARTIFACT_SHARE_SESSION_HTTP_OPTIONS))
+    } catch {
+      // Logout must still clear local authentication if the API is offline.
+    }
     this.authService.logout()
 
     this.store.clear()

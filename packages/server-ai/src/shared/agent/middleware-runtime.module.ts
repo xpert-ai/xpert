@@ -5,8 +5,8 @@ import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 import { VolumeModule } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
 import { ConnectorModule } from '../../connector/connector.module'
-import { ArtifactsModule } from '../../artifacts'
-import { CollaborationModule } from '../../collaboration'
+import { ArtifactsModule } from '../../artifacts/artifacts.module'
+import { CollaborationModule } from '../../collaboration/collaboration.module'
 
 @Global()
 @Module({

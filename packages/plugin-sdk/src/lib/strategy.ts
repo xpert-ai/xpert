@@ -1,4 +1,4 @@
-import { Inject, Logger, OnModuleInit } from '@nestjs/common'
+import { Inject, Logger, OnModuleInit, type Type } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { filter } from 'rxjs'
 import { RequestContext } from './core/context'
@@ -47,10 +47,13 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
     }
   }
 
-  upsert(instance: any) {
-    const type = this.reflector.get<string>(this.strategyKey, instance.constructor)
+  upsert(instance: unknown) {
+    const target = resolveStrategyMetadataTarget(instance)
+    if (!target) {
+      return
+    }
+    const type = this.reflector.get<string>(this.strategyKey, target)
     if (type) {
-      const target = instance.metatype ?? instance.constructor
       const pluginName = this.reflector.get<string>(PLUGIN_METADATA_KEY, target)
       const organizationId =
         this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ??
@@ -150,4 +153,28 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
 
     return Array.from(effective.values())
   }
+}
+
+/** Returns whether a discovered provider can carry decorator metadata. */
+export function isStrategyInstance(instance: unknown): instance is object {
+  return (typeof instance === 'object' && instance !== null) || typeof instance === 'function'
+}
+
+/** Resolves the class used for plugin and organization metadata without reflecting over primitive provider values. */
+export function resolveStrategyMetadataTarget(instance: unknown): Type<unknown> | null {
+  if (!isStrategyInstance(instance)) {
+    return null
+  }
+
+  if (typeof instance === 'function') {
+    return instance as Type<unknown>
+  }
+
+  const metatype = (instance as { metatype?: unknown }).metatype
+  if (typeof metatype === 'function') {
+    return metatype as Type<unknown>
+  }
+
+  const constructor = (instance as { constructor?: unknown }).constructor
+  return typeof constructor === 'function' ? (constructor as Type<unknown>) : null
 }

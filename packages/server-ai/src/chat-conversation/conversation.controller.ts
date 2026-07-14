@@ -265,9 +265,12 @@ export class ChatConversationController extends CrudController<ChatConversation>
     async getFile(
         @Param('id', UUIDValidationPipe) id: string,
         @Query('path') path: string,
-        @Query('organizationId') organizationId?: string
+        @Query('organizationId') organizationId?: string,
+        @Query('fileAssetId') fileAssetId?: string
     ) {
-        return this.organizationScopeService.run(organizationId, () => this.service.readWorkspaceFile(id, path))
+        return this.organizationScopeService.run(organizationId, () =>
+            this.service.readWorkspaceFile(id, path, fileAssetId)
+        )
     }
 
     @Get(':id/file/download')

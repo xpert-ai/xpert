@@ -1,0 +1,280 @@
+---
+title: Sandbox Runtime 与 Sandbox Jobs 技术架构
+description: Xpert Sandbox Jobs Core、Runtime Definition/Binding、Provider SPI、Browser Runtime 与 Sandbox Action Bundle 的架构和发布约束。
+---
+
+# Sandbox Runtime 与 Sandbox Jobs 技术架构
+
+Xpert 把“任务编排”“运行时定义”“运行时实现”和“插件功能”拆成独立层：OSS Core 维护通用 Job 语义和 Provider SPI，Runtime Suite 发布提供方无关的 Definition 与 OCI artifacts，system-level 插件维护可审核的 Action Bundle，Pro 或其他发行版通过 Binding 接入具体 Provider。
+
+首个实现是 Browser Runtime 与 Presentation Studio 的 PDF/PPTX 导出。它不复用智能体会话 Sandbox；Workbench 没有活跃对话、后台重试或交互式 Sandbox 被关闭时，系统导出仍可运行。
+
+## 核心概念与所有权
+
+| 概念                  | 所有者            | 内容                                                                                                                    |
+| --------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Sandbox Runtime Suite | Xpert 平台        | 统一版本、Catalog、镜像构建和发布工具                                                                                   |
+| Browser Runtime       | Xpert 平台        | Node、`playwright-core`、匹配的 Chromium、字体和通用 Runner Host                                                        |
+| Runtime Definition    | OSS Runtime Suite | 稳定 profile 名称、固定 Runner argv、contract/runtime 版本、默认资源、安全要求和 expected manifest；不含 provider/image |
+| Runtime Binding       | Runtime Provider  | 把 Definition 绑定到 provider 和不可变 artifact，并声明优先级                                                           |
+| Runtime Provider SPI  | OSS Plugin SDK    | 最小的 binding/health/create/destroy 与 Runtime instance 文件/执行接口                                                  |
+| Sandbox Action Bundle | system-level 插件 | action 名称/版本、Runtime 兼容约束、入口和确定性 bundle hash                                                            |
+
+Runtime Definition 不知道 Docker、Presentation、Dashi 或任何插件。Action Bundle 不包含 Chromium，也不能选择 image、provider 或 Docker 参数。
+
+## 总体架构
+
+```mermaid
+flowchart LR
+    C["Workbench / Agent"] --> P["业务插件"]
+    P --> Q["Managed Queue<br/>sandbox-browser pool"]
+    Q --> W["Provider 发行物 Worker<br/>Pro: sandbox-runtime-worker"]
+    W --> J["Sandbox Jobs Runtime"]
+    J --> A["SandboxActionRegistry"]
+    J --> R["SandboxRuntimeDefinitionRegistry"]
+    J --> B["Binding Selector"]
+    J --> L["Redis 容量租约"]
+    B --> D["Runtime Provider SPI"]
+    D --> PR["Pro Docker / Podman / Kubernetes / Remote"]
+    PR --> S["Ephemeral Job Sandbox<br/>Browser Runtime + Action Bundle"]
+    J --> F["Workspace Files"]
+    J --> E["SandboxJob 运行证据"]
+```
+
+Provider 发行物的 Worker 不是第二套 Job 编排系统。它只是专门消费 `sandbox-browser` execution pool 的进程形态；幂等、容量、容器生命周期、输入输出和清理由 `Sandbox Jobs Runtime` 完成。API 在开发和生产环境都不消费浏览器池、不初始化 Runtime Provider。OSS 保留通用 `bootstrapWorker()` 扩展入口，但有意不部署该进程；具体 Provider 发行物负责提供 Worker 服务。
+
+## 平台 Runtime Suite package
+
+`packages/sandbox-runtime` 是私有 package `@xpert-ai/sandbox-runtime`，只集中维护 OCI image 资产，不包含 Provider 或业务编排：
+
+```text
+packages/sandbox-runtime/
+├── images/catalog.json
+├── images/browser/
+│   ├── image.json
+│   ├── Dockerfile
+│   ├── runtime/runner-host.mjs
+│   ├── runtime/manifest.json
+│   ├── artifact-catalog.template.json
+│   └── tests/
+└── scripts/
+    ├── build-matrix.mjs
+    ├── verify-image.mjs
+    ├── render-artifact-catalog.mjs
+    └── verify-catalog.mjs
+```
+
+`images/catalog.json` 是 workflow 唯一矩阵来源。未来增加 Agent Sandbox、Office、Python 或 GPU image family 时新增 Catalog entry 和 family 目录，不复制 workflow。
+
+Browser Runtime Profile 固定为 `browser/playwright-1.61/v1`。首版镜像包含 Node.js `20.20.2`、`playwright-core@1.61.0`、匹配的 Chromium、Noto CJK、Noto Color Emoji 和通用 Runner Host。Runtime manifest 记录 suite version、image family、contract、依赖版本、browser revision 和 Runner Host SHA-256。
+
+## Definition、Binding、Provider 与 Action Registry
+
+平台使用两个 registry，避免把插件身份硬编码进平台配置：
+
+### SandboxRuntimeDefinitionRegistry
+
+OSS Core 从自身内置的 Runtime Definition Catalog 注册通用的 `browser/playwright-1.61/v1`：
+
+- 固定 Runner Host command
+- Runtime contract 与 suite version
+- CPU、内存、`/dev/shm`、临时空间和 deadline
+- network/security policy
+- expected Runtime manifest
+
+Definition 不包含 provider、image、宿主路径或插件标识。它在 OSS 与 Pro 中完全相同，不要求用户配置 profile 文件或环境变量。API image 不安装或携带 `@xpert-ai/sandbox-runtime`；Runtime Suite 构建和校验直接消费同一份 Core Definition 文件，避免两份契约漂移。
+
+### SandboxRuntimeProviderRegistry 与 Binding Selector
+
+`@SandboxRuntimeProviderStrategy()` 只允许 built-in 或 `level=system` 插件注册最小 Provider SPI；组织级插件会被拒绝。Provider 用 `listBindings()` 声明可承载的 Definition 与不可变 artifact，用 `getBindingHealth()` 验证引擎、artifact、manifest 和安全保证。Selector 按能力、版本、健康和优先级确定性选择 Binding，并支持新 attempt 在多个 Provider 之间 failover。
+
+交互式 Agent Sandbox 的 `ISandboxProvider/SandboxBackendProtocol` 不参与该选择；`LocalShellSandboxProvider` 也不是 Sandbox Job 候选。Workspace 映射由独立 `SandboxWorkspaceMapperRegistry` 扩展，OSS 不再对 `docker-sandbox` 做字符串分支。
+
+### SandboxActionRegistry
+
+它从已加载的 system-level 插件 `.xpertai-plugin/plugin.json` 解析 `sandboxActions`。v1 不执行 organization-level 插件声明的 Action。
+
+```json
+{
+  "name": "presentation.export",
+  "version": "1.0.0",
+  "runtimeProfile": "browser/playwright-1.61/v1",
+  "runtimeContractVersion": "1",
+  "playwrightVersion": "1.61.0",
+  "bundle": "./bundle",
+  "entrypoint": "runner.mjs",
+  "bundleSha256": "<tree-sha256>"
+}
+```
+
+Registry 会拒绝绝对路径、路径穿越、空字节、软链接、硬链接和非普通文件；默认限制为 256 MiB 和 20,000 个文件。它逐文件校验 size/SHA-256，再校验确定性 tree hash。验证后的不可变内容按 `bundleSha256` 在 worker 内缓存，随后复制到每个 Job 的 `/workspace/runtime/action`。插件安装目录、宿主路径和插件 `node_modules` 从不挂载到 Sandbox。
+
+## Plugin SDK 契约
+
+插件只按 Action 调用：
+
+```ts
+interface SandboxJobsApi {
+  run(input: {
+    action: string
+    actionVersion: string
+    idempotencyKey: string
+    scope: SandboxJobScope
+    payload: JSONValue
+    files?: SandboxJobFileInput[]
+    outputs: SandboxJobOutputRequest[]
+    timeoutMs?: number
+  }): Promise<SandboxJobRunResult>
+
+  cancel(input: { jobId: string }): Promise<SandboxJobSnapshot>
+  getJob(input: { jobId: string }): Promise<SandboxJobSnapshot | null>
+  getActionHealth(input: { pluginName: string; action: string; actionVersion: string }): Promise<SandboxJobActionHealth>
+}
+```
+
+调用中没有 `profile`、image、command、entrypoint、environment 或 Docker 参数。平台根据 `scope.pluginName + action + actionVersion` 找到已安装 Action，再由 Action 找到 Runtime Profile。
+
+Health 依次检查 Action 是否存在、bundle 是否有效、Runtime contract/Playwright 是否兼容、Definition 是否存在、Worker heartbeat、Binding、不可变 artifact、Provider 和实际 Runtime manifest。`RUNTIME_UNBOUND` 表示 Worker 在线但没有兼容 Binding；没有有效 Worker heartbeat 则是 `PROVIDER_UNAVAILABLE`。
+
+## 关键代码契约
+
+插件、Runtime Provider 与 Core 之间以公开契约为边界。插件和 Provider 发行物只从 `@xpert-ai/contracts` 或 `@xpert-ai/plugin-sdk` 导入这些类型，不得导入 `server-ai` 内部实现。
+
+| 公开契约                                                     | 职责与不变量                                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `XpertPluginSandboxActionDefinition`                         | 声明 Action 身份、Runtime 兼容性、bundle root、entrypoint 和确定性 tree hash；只有 system-level 插件可以注册。                |
+| `SandboxJobsApi`、`SandboxJobRunInput`                       | 按 Action 启动、取消和查询 Job；`run()` 只接受结构化 payload 与 portable file references，不接受执行引擎参数。                |
+| `SandboxJobSnapshot`                                         | 返回持久化的 attempt、Provider/Binding、opaque `runtimeRef`、artifact digest、错误与输出证据，不暴露实时引擎客户端。          |
+| `SandboxJobRuntimeError`、`isSandboxJobRuntimeError()`       | 携带稳定错误码、`retryable` 和可选 Job id，使 Managed Queue 只重试短暂 Runtime 故障。                                         |
+| `SandboxRuntimeDefinition`                                   | 定义提供方无关的固定 Runner argv、contract/version、默认资源和安全能力要求；不包含 image、Provider 或插件身份。               |
+| `SandboxRuntimeBinding`、`SandboxRuntimeArtifact`            | 由 Provider 把 Definition 映射到兼容的不可变 artifact；每次真实 attempt 都持久化最终选择。                                    |
+| `SandboxRuntimeInstance`、`ISandboxRuntimeProvider`          | 通过独立于交互式 Agent Sandbox 的 SPI 提供 Job workspace I/O、固定 argv 执行、终止、Binding health、创建/重新附着和幂等回收。 |
+| `SandboxWorkspaceMapper`、`SandboxWorkspaceMapperStrategy()` | 把执行引擎特有的路径转换隔离在策略中，OSS Workspace/Volume 不感知 Docker 等引擎字符串。                                       |
+
+Core 的主要 class 负责维护上述边界：
+
+| Core class                           | 作用                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `SandboxActionRegistry`              | 授权 system Action，并校验安全路径、文件限制、链接、checksum 和 bundle tree hash。                                 |
+| `SandboxRuntimeDefinitionRegistry`   | 从 OSS Core 内置 Catalog 加载提供方无关的 Runtime Definition，并供 Runtime Suite 发布校验复用。                    |
+| `SandboxRuntimeBindingSelector`      | 过滤必需能力与不可变 artifact，执行 health 检查，再按优先级确定性选择 Binding。                                    |
+| `SandboxRuntimeHealthService`        | Worker 探测并发布有 TTL 的 Runtime health；API 只聚合 Redis heartbeat。                                            |
+| `SandboxJobRuntimeCapabilityService` | 负责幂等、容量、materialize、执行、输出校验、运行证据、取消和清理；只有 worker 执行路径可以创建 Runtime instance。 |
+| `SandboxJobCapacityService`          | 在创建 Runtime 前原子获取全局/tenant/user 有期限租约，并幂等释放。                                                 |
+| `bootstrapWorker()`                  | 在 `@xpert-ai/xpert-api` 组装无 HTTP worker；OSS 不部署该服务，具体 Provider 发行物负责部署。                      |
+
+## Job 作用域、幂等与容量
+
+每次执行使用独立作用域：
+
+```ts
+workFor: { type: 'job', id: sandboxJobId }
+```
+
+`SandboxJob` 保存 `runtimeProfile`、`sandboxRuntimeVersion`、`action`、`actionVersion`、调用插件、tenant/organization/user、业务资源、attempt、provider、`runtimeBindingId`、artifact digest、`runtimeRef`、输出 references、时间和标准错误。`containerRef` 只保留一版兼容读取。
+
+平台按 `(tenantId, idempotencyKey)` 保证唯一：成功任务直接返回原输出；运行中的任务重新附着；失败或丢失任务由下一 Managed Queue attempt 使用新容器。推荐 key：
+
+```text
+<plugin>:<operation>:<businessId>:<immutable-checksum>
+```
+
+Redis 有期限租约默认限制全局 20、单租户 4、单用户 2。容量满时 Job 保持 `waiting`，不创建部分容器，也不消耗业务 attempt。
+
+## 文件与执行流
+
+```mermaid
+sequenceDiagram
+    participant Plugin as 插件 Handler
+    participant Jobs as Sandbox Jobs Runtime
+    participant Files as Workspace Files
+    participant Sandbox as Browser Runtime Sandbox
+
+    Plugin->>Jobs: run(action, version, payload, refs, checksums)
+    Jobs->>Jobs: 验证 Action + Definition + Binding 兼容性
+    Jobs->>Files: 读取 portable refs，校验 tenant/size/SHA-256
+    Jobs->>Sandbox: materialize input、Action Bundle 和 manifest
+    Jobs->>Sandbox: 执行固定 Runner Host command
+    Sandbox->>Sandbox: Runner Host 只启动 Registry entrypoint
+    Sandbox-->>Jobs: /workspace/output
+    Jobs->>Jobs: 校验 PDF/PPTX 结构和大小
+    Jobs->>Files: 写入声明的 destination
+    Jobs-->>Plugin: portable output references + runtime evidence
+```
+
+`runtime-jobs` Volume 按 tenant/jobId 隔离，Sandbox 内统一映射为 `/workspace`。当前输入和输出各限制 350 MiB；队列消息不保存 buffer/base64。输入拒绝跨租户 reference、绝对路径、空字节和 `..`。PDF 校验 header 与页数；PPTX 校验 ZIP、`[Content_Types].xml`、`ppt/presentation.xml` 和 slides。
+
+## Browser Runtime 安全基线
+
+- 非 root、只读根文件系统、`no-new-privileges`
+- drop all Linux capabilities、无 sudo
+- 仅当前 Job workspace 可写
+- 默认无公网；仅 Runtime Definition 显式允许内部端点
+- 2 CPU、4096 MiB 内存、1024 MiB `/dev/shm`、4096 MiB 临时空间
+- action timeout 300 秒，container hard deadline 360 秒
+- 成功、失败、取消后立即回收；scheduler 补偿 orphan cleanup
+
+通用 Job 生命周期位于 OSS `server-ai`；具体容器生命周期由 Provider SPI 实现，不进入 `packages/sandbox-runtime`。Docker 实现暂存在私有 system-level 插件 `xpertai/providers/sandbox-docker`，未来可整体移入 Pro 仓库。
+
+## Presentation Studio 接入
+
+Presentation Studio 发布 `dist/sandbox-actions/presentation-export`，而不是 Docker image：
+
+1. esbuild 生成 `runner.mjs`、Dashi render/export entry。
+2. Dashi 固定 commit 的主题、模板和静态资源复制进 bundle。
+3. 除 `playwright-core` 外的 JS 依赖进入 bundle；Playwright 由 Browser Runtime 提供。
+4. 构建生成 `action.json` 和确定性 tree hash。
+5. 插件 manifest 的 `sandboxActions` 指向该 Action manifest。
+
+导出时，插件先创建业务 Export 记录，只把业务标识放入 `sandbox-browser` 队列。Handler 读取固定 version 或 working-copy snapshot，收集持久化 asset references，然后调用 `run({ action: 'presentation.export', actionVersion: '1.0.0', ... })`。Runner 输出 PDF/PPTX，平台写回 Workspace Files，插件再更新业务状态、报告和下载信息。
+
+HTML 继续走无浏览器路径。生产强制 `exportBackend='sandbox-job'`；`local` 与 `chromiumExecutablePath` 只保留给 development/test。PDF/PPTX 默认开启，不再提供 `sandboxExportEnabled` 开关；Action、Definition、Binding、Provider artifact 或 worker 条件不足时，通过 capability warning 明确提示并保持 HTML 可用。
+
+## 错误与重试
+
+| 错误码                                           | 默认重试 | 说明                                 |
+| ------------------------------------------------ | -------- | ------------------------------------ |
+| `SANDBOX_ACTION_UNAVAILABLE`                     | 否       | Action 不存在或插件级别不允许        |
+| `SANDBOX_ACTION_INVALID`                         | 否       | manifest、路径或 bundle hash 无效    |
+| `SANDBOX_PROFILE_UNAVAILABLE`                    | 否       | Runtime Definition 不存在            |
+| `SANDBOX_RUNTIME_UNAVAILABLE`                    | 否       | Definition 存在但没有兼容 Binding    |
+| `SANDBOX_VERSION_MISMATCH`                       | 否       | Action 与 Runtime 不兼容             |
+| `SANDBOX_CAPACITY_UNAVAILABLE`                   | 是       | 容量服务暂时故障；正常配额等待不失败 |
+| `SANDBOX_START_FAILED`                           | 是       | Provider 或容器异常                  |
+| `BROWSER_LAUNCH_FAILED`                          | 是       | Chromium 启动失败                    |
+| `EXPORT_TIMEOUT` / `EXPORT_OOM`                  | 是       | 超时或资源限制                       |
+| `EXPORT_INPUT_INVALID` / `EXPORT_OUTPUT_INVALID` | 否       | 输入或产物确定性错误                 |
+| `SANDBOX_CANCELLED`                              | 否       | 用户或业务取消                       |
+
+插件维护用户可见业务状态。只有 `retryable: true` 的错误继续抛给 Managed Queue。
+
+## Worker 与部署
+
+Worker 启动后立即探测所有 Runtime Definition，随后每 15 秒写入一次 Redis heartbeat，TTL 为 45 秒。API 只读 heartbeat，不连接 Docker socket；真正执行前 Worker 会再次本地选择和验证 Binding。
+
+Worker 的无 HTTP `bootstrapWorker()` 由 `@xpert-ai/xpert-api` 入口拥有并负责组合插件、队列和领域模块。Analytics 只是被加载的领域模块，不负责选择进程角色或启动 Worker。
+
+OSS Compose 不部署 Sandbox Runtime Worker、不挂载 Docker socket，也不拉取 Runtime artifact；它仍提供 `bootstrapWorker()`，使社区 Provider 发行物无需 fork API bootstrap 即可组装 Worker。没有有效 heartbeat 时 health 返回 `PROVIDER_UNAVAILABLE`；Action/Runtime 健康但浏览器执行池没有消费者时返回 `WORKER_UNAVAILABLE`。Presentation Studio 在这两种情况下都不会入队 PDF/PPTX 任务，而是显示可操作 warning，并保持 HTML 可用。
+
+私有 Docker Provider 拥有 Pro 部署 overlay。它默认启动 `sandbox-runtime-worker` 服务，当前内部进程角色如下；队列选择、并发、容量、Provider 注册和不可变 Runtime artifact 都由发行物默认值提供：
+
+| 变量                                        | 用途                         |
+| ------------------------------------------- | ---------------------------- |
+| `XPERT_PROCESS_ROLE=sandbox-browser-worker` | 启动无 HTTP worker bootstrap |
+
+Pro overlay 默认两个 Worker，单实例默认并发 5，容量默认全局 20、单租户 4、单用户 2。它使用 API 镜像以加载插件 handler 和平台 Runtime，但镜像本身不含 Chromium；Chromium 只存在于短生命周期 Browser Runtime 容器。只有 Pro Worker 挂载 Docker socket；API 和所有 OSS 基础服务都不挂载。Provider 自带由 CI 生成的 `runtime-suite.lock.json` 并选择不可变 digest；Pro 用户无需设置 Worker 开关、image、profile、provider 或 `CHROME_PATH`。Provider 开发环境自动使用 `xpert-sandbox-browser:local`，缺失时 health warning 会给出构建提示。
+
+开源版默认提供 Core、SPI、Definition、Action、心跳契约和测试 Fake Provider，但不内置生产 Provider 或 Worker 服务。社区可以通过公开 SPI 实现 Podman、Kubernetes 或 Remote Provider，并随 Provider 自行打包 Worker 部署。`RUNTIME_UNBOUND` 只表示 Worker 在线但无法绑定兼容 Runtime Definition。Docker 实现及其部署 overlays 目前暂存在私有 system-level 插件 `xpertai/providers/sandbox-docker`，后续可整体迁往 Pro 仓库。
+
+## 版本与镜像发布
+
+`@xpert-ai/sandbox-runtime` 使用独立 SemVer，作为 private package 进入 Changesets version PR，但不发布 npm。version release 从 `images/catalog.json` 动态生成矩阵：
+
+1. 构建 `linux/amd64` 本地镜像。
+2. 验证 manifest、非 root、只读根、drop capabilities、禁网、字体、Chromium 和 PDF。
+3. smoke 成功后推送 GHCR、Docker Hub 和 ACR。
+4. 为每个 registry 计算 digest，并生成 Runtime Artifact Catalog；同时发布 provider-neutral Runtime Definition Catalog。
+
+Browser release tag 为 `<suite-version>-pw<playwright-version>`，例如 `1.0.0-pw1.61.0`。develop 只构建变化的 family 并发布 `develop-candidate`；Xpert git tag 只为已验证 suite 创建 `xpert-<platform-tag>` 别名，不重复构建。生产配置始终使用 `@sha256:`。
+
+Pro Provider release CI 从 Runtime Artifact Catalog 生成自己的不可变 `runtime-suite.lock.json`，生产 lock 缺失或含 tag 时直接失败。推荐发布顺序：平台 Contracts/SDK/Core → Runtime Suite → Provider lock 与 worker → 插件 Action Bundle。回滚优先恢复上一 Runtime artifact digest；Runtime 故障时平台提示 PDF/PPTX 不可用，并保持 HTML 可用。

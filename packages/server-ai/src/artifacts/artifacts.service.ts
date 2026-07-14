@@ -7,11 +7,13 @@ import {
     Inject,
     Injectable,
     NotFoundException,
+    Optional,
     UnauthorizedException
 } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import type { ArtifactAccessEvent } from '@xpert-ai/contracts'
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
+import type { ArtifactAccessEvent, IUser } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
+import { RequestContext as ServerRequestContext, UserOrganizationService, UserService } from '@xpert-ai/server-core'
 import {
     ArtifactAccessMode,
     ArtifactKind,
@@ -24,10 +26,17 @@ import {
     ArtifactsApi,
     ArtifactSafeHtmlProfile,
     ArtifactVersionRecord,
+    ArtifactShareInput,
+    ArtifactShareKeyInput,
     CreateArtifactInput,
     CreateArtifactLinkInput,
     CreateArtifactVersionInput,
     CreateSignedArtifactPreviewLinkInput,
+    EnsureArtifactShareResult,
+    EnsureArtifactVersionInput,
+    EnsureArtifactVersionResult,
+    FindArtifactBySourceInput,
+    ListArtifactVersionsInput,
     ListArtifactsInput,
     ListArtifactsResult,
     RequestContext,
@@ -35,14 +44,18 @@ import {
     WORKSPACE_FILES_SOURCE,
     WorkspacePortableFileReference
 } from '@xpert-ai/plugin-sdk'
-import { verify } from 'jsonwebtoken'
-import { Repository } from 'typeorm'
+import { sign, verify } from 'jsonwebtoken'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
 
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'
 const DEFAULT_SIGNED_PREVIEW_TTL_SECONDS = 15 * 60
+export const ARTIFACT_SHARE_SESSION_COOKIE = 'xpert_artifact_share_session'
+export const ARTIFACT_SHARE_SESSION_TTL_SECONDS = 15 * 60
 const MAX_TTL_SECONDS = 60 * 60 * 24 * 365
 const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 20
@@ -108,18 +121,33 @@ export class ArtifactsService implements ArtifactsApi {
         @InjectRepository(ArtifactAccessLog)
         private readonly accessLogRepository: Repository<ArtifactAccessLog>,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        @Optional()
+        private readonly userOrganizationService?: UserOrganizationService,
+        @Optional()
+        private readonly workspaceAccessService?: XpertWorkspaceAccessService,
+        @Optional()
+        private readonly userService?: UserService,
+        @Optional()
+        @InjectDataSource()
+        private readonly dataSource?: DataSource
     ) {}
 
     createScopedApi(defaults: ArtifactsRuntimeScope): ArtifactsApi {
         return {
             createArtifact: (input) => this.createArtifactWithDefaults(input, defaults),
+            findArtifactBySource: (input) => this.findArtifactBySourceWithDefaults(input, defaults),
             createArtifactVersion: (input) => this.createArtifactVersionWithDefaults(input, defaults),
+            listArtifactVersions: (input) => this.listArtifactVersionsWithDefaults(input, defaults),
+            ensureArtifactVersion: (input) => this.ensureArtifactVersionWithDefaults(input, defaults),
             getArtifact: (idOrSlug) => this.getArtifactWithDefaults(idOrSlug, defaults),
             listArtifacts: (input) => this.listArtifactsWithDefaults(input, defaults),
             archiveArtifact: (idOrSlug) => this.archiveArtifactWithDefaults(idOrSlug, defaults),
             deleteArtifact: (idOrSlug) => this.deleteArtifactWithDefaults(idOrSlug, defaults),
             createArtifactLink: (input) => this.createArtifactLinkWithDefaults(input, defaults),
+            getArtifactShare: (input) => this.getArtifactShareWithDefaults(input, defaults),
+            ensureArtifactShare: (input) => this.ensureArtifactShareWithDefaults(input, defaults),
+            revokeArtifactShare: (input) => this.revokeArtifactShareWithDefaults(input, defaults),
             createSignedPreviewLink: (input) => this.createSignedPreviewLinkWithDefaults(input, defaults),
             updateArtifactLinkAccess: (idOrSlug, patch) =>
                 this.updateArtifactLinkAccessWithDefaults(idOrSlug, patch, defaults),
@@ -131,8 +159,20 @@ export class ArtifactsService implements ArtifactsApi {
         return this.createArtifactWithDefaults(input, {})
     }
 
+    async findArtifactBySource(input: FindArtifactBySourceInput): Promise<ArtifactRecord | null> {
+        return this.findArtifactBySourceWithDefaults(input, {})
+    }
+
     async createArtifactVersion(input: CreateArtifactVersionInput): Promise<ArtifactVersionRecord> {
         return this.createArtifactVersionWithDefaults(input, {})
+    }
+
+    async listArtifactVersions(input: ListArtifactVersionsInput): Promise<ArtifactVersionRecord[]> {
+        return this.listArtifactVersionsWithDefaults(input, {})
+    }
+
+    async ensureArtifactVersion(input: EnsureArtifactVersionInput): Promise<EnsureArtifactVersionResult> {
+        return this.ensureArtifactVersionWithDefaults(input, {})
     }
 
     async getArtifact(idOrSlug: string): Promise<ArtifactRecord> {
@@ -155,6 +195,18 @@ export class ArtifactsService implements ArtifactsApi {
         return this.createArtifactLinkWithDefaults(input, {})
     }
 
+    async getArtifactShare(input: ArtifactShareKeyInput): Promise<ArtifactLinkRecord | null> {
+        return this.getArtifactShareWithDefaults(input, {})
+    }
+
+    async ensureArtifactShare(input: ArtifactShareInput): Promise<EnsureArtifactShareResult> {
+        return this.ensureArtifactShareWithDefaults(input, {})
+    }
+
+    async revokeArtifactShare(input: ArtifactShareKeyInput): Promise<ArtifactLinkRecord | null> {
+        return this.revokeArtifactShareWithDefaults(input, {})
+    }
+
     async createSignedPreviewLink(input: CreateSignedArtifactPreviewLinkInput): Promise<ArtifactLinkRecord> {
         return this.createSignedPreviewLinkWithDefaults(input, {})
     }
@@ -175,6 +227,34 @@ export class ArtifactsService implements ArtifactsApi {
         download?: boolean
         previewToken?: string | null
         principal?: ArtifactAccessPrincipal | null
+        authenticatedUser?: IUser | null
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<ArtifactResolvedVersion> {
+        return this.resolveArtifactLink(input)
+    }
+
+    async resolveForAuthenticatedAccess(input: {
+        slug: string
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<ArtifactResolvedVersion> {
+        const user = ServerRequestContext.currentUser()
+        if (!user?.id || !user.tenantId) {
+            throw new UnauthorizedException('Login is required to access this artifact link')
+        }
+        return this.resolveArtifactLink({
+            slug: input.slug,
+            principal: { userId: user.id, tenantId: user.tenantId },
+            authenticatedUser: user,
+            requestSummary: input.requestSummary
+        })
+    }
+
+    private async resolveArtifactLink(input: {
+        slug: string
+        download?: boolean
+        previewToken?: string | null
+        principal?: ArtifactAccessPrincipal | null
+        authenticatedUser?: IUser | null
         requestSummary?: ArtifactRequestSummary
     }): Promise<ArtifactResolvedVersion> {
         const link = await this.linkRepository.findOne({
@@ -193,7 +273,13 @@ export class ArtifactsService implements ArtifactsApi {
             throw new ForbiddenException('Download is not allowed for this artifact link')
         }
 
-        await this.assertPublicAccess(link, input.previewToken, input.principal ?? null, input.requestSummary)
+        await this.assertPublicAccess(
+            link,
+            input.previewToken,
+            input.principal ?? null,
+            input.requestSummary,
+            input.authenticatedUser ?? null
+        )
         const artifact = link.artifact
         if (artifact.status !== 'active') {
             await this.recordAccessLog(link, 'denied', {
@@ -238,19 +324,114 @@ export class ArtifactsService implements ArtifactsApi {
 
     resolvePrincipalFromRequest(request: ArtifactHttpRequest): ArtifactAccessPrincipal {
         const token = extractBearerToken(request.headers)
-        const organizationId = getHeaderValue(request.headers, 'organization-id')
         if (!token) {
-            return { organizationId }
+            return {}
         }
         try {
             const payload = verify(token, environment.JWT_SECRET) as ArtifactJwtPayload
             return {
                 userId: normalizeOptionalString(payload.id),
-                tenantId: normalizeOptionalString(payload.tenantId),
-                organizationId
+                tenantId: normalizeOptionalString(payload.tenantId)
             }
         } catch {
-            return { organizationId }
+            return {}
+        }
+    }
+
+    async resolveAccessContextFromRequest(request: ArtifactHttpRequest): Promise<{
+        principal: ArtifactAccessPrincipal
+        authenticatedUser?: IUser | null
+    }> {
+        const bearerToken = extractBearerToken(request.headers)
+        if (bearerToken) {
+            try {
+                const payload = verify(bearerToken, environment.JWT_SECRET) as ArtifactJwtPayload
+                const user = await this.loadAuthenticatedUser(payload)
+                if (user?.id && user.tenantId) {
+                    return {
+                        principal: { userId: user.id, tenantId: user.tenantId },
+                        authenticatedUser: user
+                    }
+                }
+            } catch {
+                return { principal: {} }
+            }
+        }
+
+        const sessionToken = readCookie(request.headers, ARTIFACT_SHARE_SESSION_COOKIE)
+        if (!sessionToken) return { principal: {} }
+        try {
+            const payload = verify(sessionToken, artifactShareSessionSecret()) as ArtifactShareSessionPayload
+            if (payload.purpose !== 'artifact_share' || !payload.id || !payload.tenantId) {
+                return { principal: {} }
+            }
+            const user = await this.loadAuthenticatedUser(payload)
+            if (!user?.id || user.tenantId !== payload.tenantId) {
+                return { principal: {} }
+            }
+            return {
+                principal: { userId: user.id, tenantId: user.tenantId },
+                authenticatedUser: user
+            }
+        } catch {
+            return { principal: {} }
+        }
+    }
+
+    async createArtifactShareSession(input: {
+        slug: string
+        requestSummary?: ArtifactRequestSummary
+    }): Promise<{ token: string; publicUrl: string }> {
+        const user = ServerRequestContext.currentUser()
+        if (!user?.id || !user.tenantId) {
+            throw new UnauthorizedException('Login is required to access this artifact link')
+        }
+        const link = await this.linkRepository.findOne({
+            where: { slug: normalizeRequiredString(input.slug, 'slug') },
+            relations: ['artifact']
+        })
+        if (!link?.artifact) {
+            throw new NotFoundException('Artifact link was not found')
+        }
+        await this.assertPublicAccess(
+            link,
+            null,
+            { userId: user.id, tenantId: user.tenantId },
+            input.requestSummary,
+            user
+        )
+        if (link.artifact.status !== 'active') {
+            throw new GoneException('Artifact is no longer active')
+        }
+        const publicUrl = this.buildPublicUrl(link.slug)
+        if (link.publicUrl !== publicUrl) {
+            link.publicUrl = publicUrl
+            await this.linkRepository.save(link)
+        }
+        return {
+            token: sign(
+                {
+                    purpose: 'artifact_share',
+                    id: user.id,
+                    tenantId: user.tenantId
+                } satisfies ArtifactShareSessionPayload,
+                artifactShareSessionSecret(),
+                { expiresIn: ARTIFACT_SHARE_SESSION_TTL_SECONDS }
+            ),
+            publicUrl
+        }
+    }
+
+    private async loadAuthenticatedUser(payload: ArtifactJwtPayload) {
+        if (!this.userService) return null
+        try {
+            return payload.thirdPartyId
+                ? await this.userService.getIfExistsThirdParty(payload.thirdPartyId)
+                : payload.id
+                  ? await this.userService.getIfExists(payload.id)
+                  : null
+        } catch {
+            return null
         }
     }
 
@@ -268,8 +449,8 @@ export class ArtifactsService implements ArtifactsApi {
         const source = normalizeSourceInput(input.source)
         const scope = this.resolveCreateScope(input.scope, defaults, 'create an artifact')
         const existing = await this.findExistingArtifact(source, scope)
-        if (existing && existing.status !== 'deleted') {
-            existing.status = existing.status === 'archived' ? 'active' : existing.status
+        if (existing) {
+            existing.status = 'active'
             existing.kind = input.kind ?? existing.kind
             existing.checksum = source.checksum ?? existing.checksum
             existing.title = normalizeOptionalString(input.title) ?? existing.title
@@ -278,23 +459,47 @@ export class ArtifactsService implements ArtifactsApi {
             return serializeArtifact(await this.artifactRepository.save(existing))
         }
 
-        const artifact = await this.artifactRepository.save(
-            this.artifactRepository.create({
-                ...scope,
-                createdById: scope.userId ?? undefined,
-                pluginName: source.pluginName,
-                resourceType: source.resourceType,
-                resourceId: source.resourceId,
-                checksum: source.checksum,
-                kind: input.kind ?? 'file',
-                status: 'active',
-                title: normalizeOptionalString(input.title),
-                description: normalizeOptionalString(input.description),
-                currentVersionId: null,
-                metadata: input.metadata ?? null
-            })
-        )
-        return serializeArtifact(artifact)
+        const candidate = this.artifactRepository.create({
+            ...scope,
+            createdById: scope.userId ?? undefined,
+            pluginName: source.pluginName,
+            resourceType: source.resourceType,
+            resourceId: source.resourceId,
+            checksum: source.checksum,
+            kind: input.kind ?? 'file',
+            status: 'active',
+            title: normalizeOptionalString(input.title),
+            description: normalizeOptionalString(input.description),
+            currentVersionId: null,
+            metadata: input.metadata ?? null
+        })
+        try {
+            return serializeArtifact(await this.artifactRepository.save(candidate))
+        } catch (error) {
+            if (!isUniqueConstraintError(error)) throw error
+            const concurrent = await this.findExistingArtifact(source, scope)
+            if (!concurrent) throw error
+            concurrent.status = 'active'
+            concurrent.kind = input.kind ?? concurrent.kind
+            concurrent.checksum = source.checksum ?? concurrent.checksum
+            concurrent.title = normalizeOptionalString(input.title) ?? concurrent.title
+            concurrent.description = normalizeOptionalString(input.description) ?? concurrent.description
+            concurrent.metadata = input.metadata ?? concurrent.metadata ?? null
+            return serializeArtifact(await this.artifactRepository.save(concurrent))
+        }
+    }
+
+    private async findArtifactBySourceWithDefaults(
+        input: FindArtifactBySourceInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<ArtifactRecord | null> {
+        const source = normalizeSourceInput(input)
+        const scope = this.resolveCurrentScope(defaults)
+        const artifact = await this.findExistingArtifact(source, scope)
+        if (!artifact || (!input.includeDeleted && artifact.status === 'deleted')) {
+            return null
+        }
+        return serializeArtifact(artifact, await this.findCurrentVersion(artifact))
     }
 
     private async createArtifactVersionWithDefaults(
@@ -353,6 +558,97 @@ export class ArtifactsService implements ArtifactsApi {
             await this.artifactRepository.save(artifact)
         }
         return serializeArtifactVersion(version)
+    }
+
+    private async listArtifactVersionsWithDefaults(
+        input: ListArtifactVersionsInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<ArtifactVersionRecord[]> {
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true)
+        const versions = await this.versionRepository.find({
+            where: {
+                artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
+                ...(normalizeOptionalString(input.idempotencyKey)
+                    ? { idempotencyKey: normalizeOptionalString(input.idempotencyKey) }
+                    : {}),
+                ...(input.status && input.status !== 'all' ? { status: input.status } : {})
+            },
+            order: { versionNumber: 'DESC' }
+        })
+        return versions.map(serializeArtifactVersion)
+    }
+
+    private async ensureArtifactVersionWithDefaults(
+        input: EnsureArtifactVersionInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<EnsureArtifactVersionResult> {
+        const idempotencyKey = normalizeRequiredString(input.idempotencyKey, 'idempotencyKey')
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults)
+        const versionInput = this.normalizeArtifactVersionInput(input)
+        const file = await this.readWorkspaceArtifact(versionInput.workspaceFileRef)
+        const sha256 = digestBuffer(file.buffer)
+        const size = file.buffer.length
+        if (versionInput.sha256 && !safeEqualString(versionInput.sha256, sha256)) {
+            throw new BadRequestException('Artifact version checksum does not match the workspace file')
+        }
+        if (versionInput.size !== undefined && versionInput.size !== null && versionInput.size !== size) {
+            throw new BadRequestException('Artifact version size does not match the workspace file')
+        }
+
+        return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
+            const artifactId = normalizeRequiredString(lockedArtifact.id, 'artifact.id')
+            const existing = await repositories.version.findOne({ where: { artifactId, idempotencyKey } })
+            if (existing) {
+                if (!existing.sha256 || !safeEqualString(existing.sha256, sha256)) {
+                    throw new BadRequestException(
+                        'Artifact version idempotency key was already used for different content'
+                    )
+                }
+                if (versionInput.setCurrent !== false && lockedArtifact.currentVersionId !== existing.id) {
+                    lockedArtifact.currentVersionId = normalizeRequiredString(existing.id, 'version.id')
+                    lockedArtifact.status = 'active'
+                    await repositories.artifact.save(lockedArtifact)
+                }
+                return { version: serializeArtifactVersion(existing), outcome: 'reused' }
+            }
+
+            const previous = await repositories.version.findOne({
+                where: { artifactId },
+                order: { versionNumber: 'DESC' }
+            })
+            const version = await repositories.version.save(
+                repositories.version.create({
+                    tenantId: lockedArtifact.tenantId,
+                    organizationId: lockedArtifact.organizationId,
+                    createdById: defaults.userId ?? lockedArtifact.userId ?? undefined,
+                    artifactId,
+                    artifact: lockedArtifact,
+                    versionNumber: Number(previous?.versionNumber ?? 0) + 1,
+                    status: 'active',
+                    idempotencyKey,
+                    sourceVersionId: versionInput.sourceVersionId,
+                    checksum: versionInput.checksum,
+                    workspaceFileRef: versionInput.workspaceFileRef,
+                    mimeType: versionInput.mimeType,
+                    fileName: versionInput.fileName ?? file.name,
+                    title: versionInput.title,
+                    description: versionInput.description,
+                    size,
+                    sha256,
+                    workspaceId: lockedArtifact.workspaceId,
+                    projectId: lockedArtifact.projectId,
+                    xpertId: lockedArtifact.xpertId,
+                    userId: lockedArtifact.userId,
+                    metadata: versionInput.metadata ?? null
+                })
+            )
+            if (versionInput.setCurrent !== false) {
+                lockedArtifact.currentVersionId = normalizeRequiredString(version.id, 'version.id')
+                lockedArtifact.status = 'active'
+                await repositories.artifact.save(lockedArtifact)
+            }
+            return { version: serializeArtifactVersion(version), outcome: 'created' }
+        })
     }
 
     private async getArtifactWithDefaults(idOrSlug: string, defaults: ArtifactsRuntimeScope): Promise<ArtifactRecord> {
@@ -438,8 +734,23 @@ export class ArtifactsService implements ArtifactsApi {
         defaults: ArtifactsRuntimeScope
     ): Promise<ArtifactLinkRecord> {
         const artifact = await this.resolveScopedArtifact(input.artifactId, defaults)
+        return this.createArtifactLinkRecord(artifact, input, defaults, this.repositories())
+    }
+
+    private async createArtifactLinkRecord(
+        artifact: Artifact,
+        input: CreateArtifactLinkInput,
+        defaults: ArtifactsRuntimeScope,
+        repositories: ArtifactRepositories,
+        shareKey?: string
+    ): Promise<ArtifactLinkRecord> {
         const versionMode = normalizeVersionMode(input.versionMode, input.artifactVersionId)
-        const version = await this.resolveRequestedVersion(artifact, versionMode, input.artifactVersionId)
+        const version = await this.resolveRequestedVersionFromRepository(
+            artifact,
+            versionMode,
+            input.artifactVersionId,
+            repositories.version
+        )
         const access = normalizeAccessInput(input.access)
         const scope = artifactToScope(artifact)
         const token = this.assertAndApplyPublicLinkPolicy(access, {
@@ -447,11 +758,12 @@ export class ArtifactsService implements ArtifactsApi {
             userId: defaults.userId ?? artifact.userId
         })
         const slug = await this.createUniqueSlug()
-        const link = this.linkRepository.create({
+        const link = repositories.link.create({
             ...scope,
             createdById: defaults.userId ?? artifact.userId ?? undefined,
             artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
             artifact,
+            shareKey: normalizeOptionalString(shareKey),
             artifactVersionId: versionMode === 'version' ? normalizeRequiredString(version.id, 'version.id') : null,
             versionMode,
             slug,
@@ -470,8 +782,111 @@ export class ArtifactsService implements ArtifactsApi {
         if (access.mode === 'signed_preview') {
             link.tokenHash = digestString(token ?? createSignedPreviewToken())
         }
-        const saved = await this.linkRepository.save(link)
+        const saved = await repositories.link.save(link)
         return this.serializeLink(saved, token, artifact, version)
+    }
+
+    private async getArtifactShareWithDefaults(
+        input: ArtifactShareKeyInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<ArtifactLinkRecord | null> {
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true)
+        const shareKey = normalizeRequiredString(input.shareKey, 'shareKey')
+        const link = await this.linkRepository.findOne({
+            where: {
+                artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
+                shareKey,
+                status: 'active'
+            },
+            relations: ['artifact']
+        })
+        if (!link) return null
+        if (isExpired(link)) {
+            link.status = 'expired'
+            await this.linkRepository.save(link)
+            return null
+        }
+        const version = await this.resolveLinkVersion(link, artifact)
+        return this.serializeLink(link, undefined, artifact, version)
+    }
+
+    private async ensureArtifactShareWithDefaults(
+        input: ArtifactShareInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<EnsureArtifactShareResult> {
+        const shareKey = normalizeRequiredString(input.shareKey, 'shareKey')
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults)
+        const access = normalizeAccessInput(input.access)
+        this.assertAndApplyPublicLinkPolicy(access, {
+            ...artifactToScope(artifact),
+            userId: defaults.userId ?? artifact.userId
+        })
+
+        return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
+            const artifactId = normalizeRequiredString(lockedArtifact.id, 'artifact.id')
+            const versionMode = normalizeVersionMode(input.versionMode, input.artifactVersionId)
+            const version = await this.resolveRequestedVersionFromRepository(
+                lockedArtifact,
+                versionMode,
+                input.artifactVersionId,
+                repositories.version
+            )
+            const current = await repositories.link.findOne({
+                where: { artifactId, shareKey, status: 'active' },
+                relations: ['artifact']
+            })
+            if (current && isExpired(current)) {
+                current.status = 'expired'
+                await repositories.link.save(current)
+            }
+            const active = current && current.status === 'active' ? current : null
+            if (active && linkMatchesShare(active, input, versionMode, version)) {
+                const canonicalUrl = this.buildPublicUrl(active.slug)
+                if (active.publicUrl !== canonicalUrl) {
+                    active.publicUrl = canonicalUrl
+                    await repositories.link.save(active)
+                }
+                return {
+                    link: this.serializeLink(active, undefined, lockedArtifact, version),
+                    outcome: 'reused'
+                }
+            }
+
+            const replacedLinkId = active?.id ?? null
+            if (active) {
+                active.status = 'revoked'
+                active.revokedAt = new Date()
+                await repositories.link.save(active)
+                await this.recordAccessLog(active, 'revoked', { statusCode: 200 })
+            }
+            const link = await this.createArtifactLinkRecord(lockedArtifact, input, defaults, repositories, shareKey)
+            return {
+                link,
+                outcome: replacedLinkId ? 'replaced' : 'created',
+                ...(replacedLinkId ? { replacedLinkId } : {})
+            }
+        })
+    }
+
+    private async revokeArtifactShareWithDefaults(
+        input: ArtifactShareKeyInput,
+        defaults: ArtifactsRuntimeScope
+    ): Promise<ArtifactLinkRecord | null> {
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true)
+        const shareKey = normalizeRequiredString(input.shareKey, 'shareKey')
+        const link = await this.linkRepository.findOne({
+            where: {
+                artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
+                shareKey,
+                status: 'active'
+            }
+        })
+        if (!link) return null
+        link.status = 'revoked'
+        link.revokedAt = new Date()
+        const saved = await this.linkRepository.save(link)
+        await this.recordAccessLog(saved, 'revoked', { statusCode: 200 })
+        return this.serializeLink(saved, undefined, artifact)
     }
 
     private async createSignedPreviewLinkWithDefaults(
@@ -497,6 +912,9 @@ export class ArtifactsService implements ArtifactsApi {
     ): Promise<ArtifactLinkRecord> {
         const link = await this.resolveScopedLink(idOrSlug, defaults)
         const token = patch.access ? this.applyAccessPatch(link, patch.access) : undefined
+        if (patch.access) {
+            link.publicUrl = this.buildPublicUrl(link.slug)
+        }
         if (patch.presentation) {
             this.applyPresentationPatch(link, patch.presentation)
         }
@@ -591,15 +1009,20 @@ export class ArtifactsService implements ArtifactsApi {
         source: NormalizedArtifactSource,
         scope: Required<Pick<ArtifactsRuntimeScope, 'tenantId'>> & ArtifactsRuntimeScope
     ) {
-        return this.artifactRepository.findOne({
+        const candidates = await this.artifactRepository.find({
             where: {
                 tenantId: scope.tenantId,
-                organizationId: scope.organizationId,
                 pluginName: source.pluginName,
                 resourceType: source.resourceType,
                 resourceId: source.resourceId
             }
         })
+        return (
+            candidates.find(
+                (artifact) =>
+                    normalizeOptionalString(artifact.organizationId) === normalizeOptionalString(scope.organizationId)
+            ) ?? null
+        )
     }
 
     private async resolveScopedArtifact(
@@ -660,6 +1083,20 @@ export class ArtifactsService implements ArtifactsApi {
         versionMode: ArtifactLinkVersionMode,
         artifactVersionId?: string | null
     ) {
+        return this.resolveRequestedVersionFromRepository(
+            artifact,
+            versionMode,
+            artifactVersionId,
+            this.versionRepository
+        )
+    }
+
+    private async resolveRequestedVersionFromRepository(
+        artifact: Artifact,
+        versionMode: ArtifactLinkVersionMode,
+        artifactVersionId: string | null | undefined,
+        repository: Repository<ArtifactVersion>
+    ) {
         const id =
             versionMode === 'version'
                 ? normalizeRequiredString(artifactVersionId, 'artifactVersionId')
@@ -667,11 +1104,52 @@ export class ArtifactsService implements ArtifactsApi {
         if (!id) {
             throw new BadRequestException('Artifact has no current version')
         }
-        const version = await this.versionRepository.findOne({ where: { id, artifactId: artifact.id } })
+        const version = await repository.findOne({ where: { id, artifactId: artifact.id } })
         if (!version || version.status !== 'active') {
             throw new NotFoundException('Artifact version was not found')
         }
         return version
+    }
+
+    private repositories(manager?: EntityManager): ArtifactRepositories {
+        return manager
+            ? {
+                  artifact: manager.getRepository(Artifact),
+                  version: manager.getRepository(ArtifactVersion),
+                  link: manager.getRepository(ArtifactLink)
+              }
+            : {
+                  artifact: this.artifactRepository,
+                  version: this.versionRepository,
+                  link: this.linkRepository
+              }
+    }
+
+    private async withLockedArtifact<T>(
+        artifact: Artifact,
+        operation: (artifact: Artifact, repositories: ArtifactRepositories) => Promise<T>
+    ): Promise<T> {
+        if (!this.dataSource?.isInitialized) {
+            return operation(artifact, this.repositories())
+        }
+        return this.dataSource.transaction(async (manager) => {
+            const repositories = this.repositories(manager)
+            const locked = await repositories.artifact.findOne({
+                where: { id: normalizeRequiredString(artifact.id, 'artifact.id') },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (
+                !locked ||
+                locked.tenantId !== artifact.tenantId ||
+                normalizeOptionalString(locked.organizationId) !== normalizeOptionalString(artifact.organizationId)
+            ) {
+                throw new NotFoundException('Artifact was not found')
+            }
+            if (locked.status === 'deleted') {
+                throw new GoneException('Artifact was deleted')
+            }
+            return operation(locked, repositories)
+        })
     }
 
     private async resolveLinkVersion(link: ArtifactLink, artifact: Artifact) {
@@ -682,7 +1160,8 @@ export class ArtifactsService implements ArtifactsApi {
         link: ArtifactLink,
         previewToken?: string | null,
         principal?: ArtifactAccessPrincipal | null,
-        requestSummary?: ArtifactRequestSummary
+        requestSummary?: ArtifactRequestSummary,
+        authenticatedUser?: IUser | null
     ) {
         if (link.status === 'revoked') {
             await this.recordAccessLog(link, 'revoked', { statusCode: 410, requestSummary })
@@ -695,7 +1174,7 @@ export class ArtifactsService implements ArtifactsApi {
             throw new GoneException('Artifact link expired')
         }
 
-        const allowed = this.canAccessLink(link, previewToken, principal ?? null)
+        const allowed = await this.canAccessLink(link, previewToken, principal ?? null, authenticatedUser ?? null)
         if (!allowed) {
             await this.recordAccessLog(link, 'denied', {
                 statusCode: principal?.userId ? 403 : 401,
@@ -715,10 +1194,11 @@ export class ArtifactsService implements ArtifactsApi {
      * Revoked/expired transitions and audit writes are handled by assertPublicAccess;
      * this helper only answers whether the supplied principal/token is allowed.
      */
-    private canAccessLink(
+    private async canAccessLink(
         link: ArtifactLink,
         previewToken?: string | null,
-        principal?: ArtifactAccessPrincipal | null
+        principal?: ArtifactAccessPrincipal | null,
+        authenticatedUser?: IUser | null
     ) {
         switch (link.accessMode) {
             case 'public_link':
@@ -729,13 +1209,54 @@ export class ArtifactsService implements ArtifactsApi {
                 return Boolean(
                     principal?.userId && (principal.userId === link.createdById || principal.userId === link.userId)
                 )
-            case 'workspace_all':
             case 'organization_all':
-                return sameTenantAndOrganization(link, principal)
+                return this.hasOrganizationAccess(link, principal)
+            case 'workspace_all':
+                return this.hasWorkspaceAccess(link, principal, authenticatedUser)
             case 'custom_principals':
                 return sameTenantAndOrganization(link, principal) && matchesCustomPrincipal(link, principal)
             default:
                 return false
+        }
+    }
+
+    private async hasOrganizationAccess(link: ArtifactLink, principal?: ArtifactAccessPrincipal | null) {
+        if (!sameTenant(link, principal) || !principal?.userId || !link.organizationId) {
+            return false
+        }
+        const membership = await this.userOrganizationService?.findMembershipByUserAndOrganization({
+            organizationId: link.organizationId,
+            tenantId: link.tenantId,
+            userId: principal.userId
+        })
+        return Boolean(membership?.isActive)
+    }
+
+    private async hasWorkspaceAccess(
+        link: ArtifactLink,
+        principal?: ArtifactAccessPrincipal | null,
+        authenticatedUser?: IUser | null
+    ) {
+        const workspaceId = link.workspaceId
+        if (
+            !sameTenant(link, principal) ||
+            !principal?.userId ||
+            !workspaceId ||
+            authenticatedUser?.id !== principal.userId ||
+            !this.workspaceAccessService
+        ) {
+            return false
+        }
+        const context = captureRequestContext({
+            tenantId: link.tenantId,
+            organizationId: link.organizationId,
+            user: authenticatedUser
+        })
+        try {
+            await runWithCapturedRequestContext(context, () => this.workspaceAccessService.assertCanRead(workspaceId))
+            return true
+        } catch {
+            return false
         }
     }
 
@@ -760,6 +1281,12 @@ export class ArtifactsService implements ArtifactsApi {
         if (access.mode === 'custom_principals' && !normalizeStringArray(access.customPrincipals)?.length) {
             throw new BadRequestException('custom_principals requires customPrincipals')
         }
+        if (access.mode === 'organization_all' && !scope.organizationId) {
+            throw new BadRequestException('organization_all requires an organization-scoped Artifact')
+        }
+        if (access.mode === 'workspace_all' && !scope.workspaceId) {
+            throw new BadRequestException('workspace_all requires a workspace-scoped Artifact')
+        }
         if (!scope.userId && access.mode === 'public_link') {
             throw new BadRequestException('public_link requires a user-scoped operation')
         }
@@ -771,7 +1298,10 @@ export class ArtifactsService implements ArtifactsApi {
         const token = this.assertAndApplyPublicLinkPolicy(normalized, {
             tenantId: link.tenantId,
             organizationId: link.organizationId,
-            userId: RequestContext.currentUserId()
+            userId: RequestContext.currentUserId(),
+            workspaceId: link.workspaceId,
+            projectId: link.projectId,
+            xpertId: link.xpertId
         })
         link.accessMode = normalized.mode
         link.customPrincipals = normalizeStringArray(normalized.customPrincipals)
@@ -864,6 +1394,7 @@ export class ArtifactsService implements ArtifactsApi {
             id: normalizeRequiredString(link.id, 'link.id'),
             artifactId: link.artifactId,
             artifactVersionId: link.artifactVersionId,
+            shareKey: link.shareKey,
             versionMode: link.versionMode ?? 'latest',
             slug: link.slug,
             publicUrl:
@@ -880,6 +1411,7 @@ export class ArtifactsService implements ArtifactsApi {
             disposition: link.disposition,
             allowDownload: link.allowDownload,
             safeHtmlProfile: link.safeHtmlProfile ?? null,
+            metadata: link.metadata ?? null,
             tenantId: link.tenantId,
             organizationId: link.organizationId,
             userId: link.userId,
@@ -965,9 +1497,48 @@ export class ArtifactsService implements ArtifactsApi {
     }
 }
 
+type ArtifactRepositories = {
+    artifact: Repository<Artifact>
+    version: Repository<ArtifactVersion>
+    link: Repository<ArtifactLink>
+}
+
+function linkMatchesShare(
+    link: ArtifactLink,
+    input: ArtifactShareInput,
+    versionMode: ArtifactLinkVersionMode,
+    version: ArtifactVersion
+) {
+    if (input.access.mode === 'signed_preview') return false
+    const presentation = input.presentation
+    const expiresAt = resolveExpiresAt(input.access)
+    const linkPrincipals = normalizeStringArray(link.customPrincipals) ?? []
+    const inputPrincipals = normalizeStringArray(input.access.customPrincipals) ?? []
+    return (
+        link.status === 'active' &&
+        link.accessMode === input.access.mode &&
+        link.versionMode === versionMode &&
+        (versionMode === 'latest' || link.artifactVersionId === version.id) &&
+        linkPrincipals.length === inputPrincipals.length &&
+        [...linkPrincipals].sort().every((principal, index) => principal === [...inputPrincipals].sort()[index]) &&
+        (link.expiresAt?.getTime() ?? null) === (expiresAt?.getTime() ?? null) &&
+        link.disposition === (presentation?.disposition ?? 'inline') &&
+        link.allowDownload === (presentation?.allowDownload ?? true) &&
+        (link.safeHtmlProfile ?? null) ===
+            (presentation?.safeHtmlProfile ?? defaultSafeHtmlProfile(version.mimeType) ?? null)
+    )
+}
+
 type ArtifactJwtPayload = {
     id?: string
     tenantId?: string
+    thirdPartyId?: string
+}
+
+type ArtifactShareSessionPayload = {
+    purpose: 'artifact_share'
+    id: string
+    tenantId: string
 }
 
 type ArtifactHeaders = Record<string, string | string[] | undefined>
@@ -1106,6 +1677,7 @@ function serializeArtifact(artifact: Artifact, currentVersion?: ArtifactVersion 
         description: artifact.description,
         currentVersionId: artifact.currentVersionId,
         currentVersion: currentVersion ? serializeArtifactVersion(currentVersion) : null,
+        metadata: artifact.metadata ?? null,
         tenantId: artifact.tenantId,
         organizationId: artifact.organizationId,
         userId: artifact.userId,
@@ -1123,6 +1695,7 @@ function serializeArtifactVersion(version: ArtifactVersion): ArtifactVersionReco
         artifactId: version.artifactId,
         versionNumber: version.versionNumber,
         status: version.status,
+        idempotencyKey: version.idempotencyKey,
         sourceVersionId: version.sourceVersionId,
         checksum: version.checksum,
         mimeType: version.mimeType,
@@ -1131,6 +1704,8 @@ function serializeArtifactVersion(version: ArtifactVersion): ArtifactVersionReco
         description: version.description,
         size: version.size,
         sha256: version.sha256,
+        workspaceFileRef: version.workspaceFileRef,
+        metadata: version.metadata ?? null,
         createdAt: version.createdAt
     }
 }
@@ -1156,6 +1731,10 @@ function sameTenantAndOrganization(
         principal.organizationId &&
         principal.organizationId === link.organizationId
     )
+}
+
+function sameTenant(link: Pick<ArtifactLink, 'tenantId'>, principal?: ArtifactAccessPrincipal | null) {
+    return Boolean(principal?.tenantId && principal.tenantId === link.tenantId)
 }
 
 function matchesCustomPrincipal(
@@ -1228,6 +1807,17 @@ function safeEqualString(left: string, right: string) {
     return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
 }
 
+function isUniqueConstraintError(error: unknown) {
+    if (!(error instanceof Error)) return false
+    const code = Reflect.get(error, 'code')
+    return (
+        code === '23505' ||
+        code === 1062 ||
+        code === 'SQLITE_CONSTRAINT' ||
+        /duplicate key|unique constraint|duplicate entry/i.test(error.message)
+    )
+}
+
 function normalizeRequiredString(value: unknown, field: string) {
     const normalized = normalizeOptionalString(value)
     if (!normalized) {
@@ -1264,6 +1854,26 @@ function extractBearerToken(headers: ArtifactHeaders) {
     const authorization = getHeaderValue(headers, 'authorization')
     const match = authorization?.match(/^Bearer\s+(.+)$/i)
     return match?.[1]
+}
+
+function readCookie(headers: ArtifactHeaders, name: string) {
+    const cookieHeader = getHeaderValue(headers, 'cookie')
+    if (!cookieHeader) return undefined
+    for (const pair of cookieHeader.split(';')) {
+        const separator = pair.indexOf('=')
+        if (separator < 0 || pair.slice(0, separator).trim() !== name) continue
+        const value = pair.slice(separator + 1).trim()
+        try {
+            return decodeURIComponent(value)
+        } catch {
+            return undefined
+        }
+    }
+    return undefined
+}
+
+function artifactShareSessionSecret() {
+    return normalizeOptionalString(process.env.ARTIFACT_SHARE_SESSION_SECRET) ?? environment.JWT_SECRET
 }
 
 function getRequestIp(request: ArtifactHttpRequest) {

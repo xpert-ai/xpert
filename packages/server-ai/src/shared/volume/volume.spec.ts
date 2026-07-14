@@ -13,12 +13,7 @@ jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 
-import {
-    DockerVolumeClient,
-    DockerWorkspacePathMapper,
-    DevVolumeClient,
-    getVolumePublicBaseUrl
-} from './volume'
+import { DockerVolumeClient, DevVolumeClient, LocalShellWorkspacePathMapper, getVolumePublicBaseUrl } from './volume'
 
 describe('Volume runtime clients', () => {
     it('resolves docker project volumes as distinct server and host roots', () => {
@@ -45,24 +40,34 @@ describe('Volume runtime clients', () => {
 
         expect(volume.serverRoot).toBe('/sandbox/tenant-1/xpert/xpert-1/user/user-1')
         expect(volume.hostRoot).toBe('/mnt/sandbox/tenant-1/xpert/xpert-1/user/user-1')
-        expect(getVolumePublicBaseUrl({ catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: true })).toBe(
-            'http://localhost:3000/api/sandbox/volume/xpert/xpert-1/user/user-1'
-        )
+        expect(
+            getVolumePublicBaseUrl({ catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: true })
+        ).toBe('http://localhost:3000/api/sandbox/volume/xpert/xpert-1/user/user-1')
     })
 
-    it('maps docker volumes to /workspace inside the sandbox container', () => {
+    it('keeps local-shell workspace paths on the server-visible volume', () => {
         const volume = new DockerVolumeClient().resolve({
             tenantId: 'tenant-1',
             catalog: 'projects',
             projectId: 'project-1',
             userId: 'user-1'
         })
-        const binding = new DockerWorkspacePathMapper().mapVolumeToWorkspace(volume)
+        const binding = new LocalShellWorkspacePathMapper().mapVolumeToWorkspace(volume)
 
         expect(binding.volumeRoot).toBe('/sandbox/tenant-1/project/project-1')
-        expect(binding.bindSource).toBe('/mnt/sandbox/tenant-1/project/project-1')
-        expect(binding.workspaceRoot).toBe('/workspace')
-        expect(binding.workspacePath).toBe('/workspace')
+        expect(binding.bindSource).toBeUndefined()
+        expect(binding.workspaceRoot).toBe('/sandbox/tenant-1/project/project-1')
+        expect(binding.workspacePath).toBe('/sandbox/tenant-1/project/project-1')
+    })
+
+    it('isolates short-lived runtime job volumes by tenant and job id', () => {
+        const volume = new DockerVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'runtime-jobs',
+            jobId: 'job-1'
+        })
+        expect(volume.serverRoot).toBe('/sandbox/tenant-1/runtime-jobs/job-1')
+        expect(volume.hostRoot).toBe('/mnt/sandbox/tenant-1/runtime-jobs/job-1')
     })
 
     it('keeps serverRoot and hostRoot identical for direct host runtime volumes', () => {

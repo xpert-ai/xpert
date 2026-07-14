@@ -100,6 +100,7 @@ export interface IArtifactVersion extends IBasePerTenantAndOrganizationEntityMod
   artifactId: string
   versionNumber: number
   status: ArtifactVersionStatus
+  idempotencyKey?: string | null
   sourceVersionId?: string | null
   checksum?: string | null
   workspaceFileRef: IArtifactWorkspaceFileReference
@@ -126,6 +127,7 @@ export interface IArtifactLink extends IBasePerTenantAndOrganizationEntityModel 
   artifact?: IArtifact | null
   artifactId: string
   artifactVersionId?: string | null
+  shareKey?: string | null
   versionMode: ArtifactLinkVersionMode
   slug: string
   publicUrl: string

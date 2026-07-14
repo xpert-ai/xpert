@@ -1,7 +1,8 @@
-import './polyfills';
+import './polyfills'
 import { bootstrap, prepare, seedModule } from '@xpert-ai/analytics'
-import {  seedDefault } from '@xpert-ai/server-core'
+import { seedDefault } from '@xpert-ai/server-core'
 import yargs from 'yargs'
+import { bootstrapWorker } from './bootstrap-worker'
 import { pluginConfig } from './plugin-config'
 import { runTenantAdminCli } from './tenant-admin-cli'
 
@@ -9,12 +10,18 @@ import { runTenantAdminCli } from './tenant-admin-cli'
 //   installPlugins()
 // }
 
-prepare()
-
 const argv: any = yargs(process.argv).argv
 const command = argv.command
+const isSandboxBrowserWorker = process.env.XPERT_PROCESS_ROLE === 'sandbox-browser-worker'
 
-if (command === 'seedModule') {
+if (!isSandboxBrowserWorker) prepare()
+
+if (isSandboxBrowserWorker) {
+  bootstrapWorker().catch((error: unknown) => {
+    console.error(error)
+    process.exit(1)
+  })
+} else if (command === 'seedModule') {
   seedModule(pluginConfig)
     .then(() => process.exit(0))
     .catch((error: any) => {
@@ -34,9 +41,8 @@ if (command === 'seedModule') {
       process.exit(1)
     })
 } else {
-  bootstrap({title: 'Xpert AI', version: '1.0'})
+  bootstrap({ title: 'Xpert AI', version: '1.0' })
 }
-
 
 // async function bootstrap() {
 //   const app = await NestFactory.create(AppModule, {
@@ -103,4 +109,3 @@ if (command === 'seedModule') {
 //     Logger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
 //   })
 // }
-

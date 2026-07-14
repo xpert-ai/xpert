@@ -1,0 +1,10 @@
+{
+  "catalogVersion": 1,
+  "runtimeSuitePackage": "@xpert-ai/sandbox-runtime",
+  "images": [
+    {
+      "family": "browser",
+      "definition": "images/browser/image.json"
+    }
+  ]
+}

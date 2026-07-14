@@ -1235,12 +1235,56 @@ export class LocalShellSandboxProvider implements ISandboxProvider<LocalShellSan
     }
 
     async create(options?: SandboxProviderCreateOptions): Promise<LocalShellSandbox> {
+        if (options?.workFor.type === 'job' && process.env.NODE_ENV === 'production') {
+            throw new Error('Local Shell Sandbox Jobs are disabled in production.')
+        }
         return new LocalShellSandbox({
             workingDirectory: options?.workingDirectory ?? this.getDefaultWorkingDir()
         })
     }
 
+    async getProfileHealth(input: {
+        profile: string
+        image?: string
+        manifestCommand?: readonly string[]
+        expectedManifest?: Record<string, string>
+    }): Promise<{ available: boolean; reason?: string; manifest?: Record<string, string> }> {
+        if (process.env.NODE_ENV === 'production') {
+            return { available: false, reason: 'Local Shell Sandbox Job profiles are disabled in production.' }
+        }
+        const [executable, ...args] = input.manifestCommand ?? []
+        if (!executable)
+            return { available: false, reason: `Profile ${input.profile} has no manifest command configured.` }
+        try {
+            const parsed: unknown = JSON.parse(cp.execFileSync(executable, args, { encoding: 'utf8' }))
+            if (!isStringRecord(parsed))
+                return { available: false, reason: `Profile ${input.profile} returned an invalid manifest.` }
+            const manifest = parsed
+            const mismatch = Object.entries(input.expectedManifest ?? {}).find(
+                ([key, value]) => manifest[key] !== value
+            )
+            return mismatch
+                ? {
+                      available: false,
+                      reason: `Runner manifest ${mismatch[0]} does not match ${mismatch[1]}.`,
+                      manifest
+                  }
+                : { available: true, manifest }
+        } catch (error) {
+            return { available: false, reason: error instanceof Error ? error.message : String(error) }
+        }
+    }
+
     getDefaultWorkingDir(): string {
         return path.resolve(process.cwd(), 'sandbox')
     }
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+    return (
+        Boolean(value) &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        Object.values(value).every((item) => typeof item === 'string')
+    )
 }
