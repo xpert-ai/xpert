@@ -507,7 +507,11 @@ describe('XpertTemplateService', () => {
             templates: {
                 'en-US': {
                     categories: ['External'],
-                    recommendedApps: [{ id: 'template-1', name: 'External Template 1', category: 'External' }]
+                    recommendedApps: Array.from({ length: 7 }, (_, index) => ({
+                        id: `template-${index + 1}`,
+                        name: `External Template ${index + 1}`,
+                        category: 'External'
+                    }))
                 }
             },
             details: {}
@@ -521,8 +525,12 @@ describe('XpertTemplateService', () => {
         })
 
         const catalog = await service.getAll(LanguagesEnum.English)
+        const recommendations = await service.getMarketplaceRecommendedTemplates(LanguagesEnum.English)
 
-        expect(catalog.recommendedApps.map((template) => template.id)).toEqual(configuredIds)
+        expect(catalog.recommendedApps.map((template) => template.id)).toEqual(
+            Array.from({ length: 7 }, (_, index) => `template-${index + 1}`)
+        )
+        expect(recommendations.map((template) => template.id)).toEqual(configuredIds)
     })
 
     it('resolves configured plugin templates with namespaced ids and skips unavailable refs', async () => {
@@ -584,6 +592,7 @@ describe('XpertTemplateService', () => {
             templateType: 'business-assistant'
         }
         const catalog = await service.getAll(LanguagesEnum.English, query)
+        const recommendations = await service.getMarketplaceRecommendedTemplates(LanguagesEnum.English, query)
         const detail = await service.getTemplateDetail('@xpert-ai/plugin-demo:business', LanguagesEnum.English, query)
         const legacyVersionedDetail = await service.getTemplateDetail(
             '@xpert-ai/plugin-demo@0.1.0:business',
@@ -592,6 +601,7 @@ describe('XpertTemplateService', () => {
         )
 
         expect(catalog.recommendedApps.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
+        expect(recommendations.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
         expect(catalog.categories).toEqual(expect.arrayContaining(['Built-in', 'Plugin']))
         expect(detail).toMatchObject({
             id: '@xpert-ai/plugin-demo:business',

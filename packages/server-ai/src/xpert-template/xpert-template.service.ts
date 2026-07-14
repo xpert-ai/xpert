@@ -14,6 +14,7 @@ import {
     TAvatar,
     TKnowledgePipelineTemplate,
     TXpertExportedTemplate,
+    TXpertTemplate,
     XpertTemplatePluginDependencies,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
@@ -63,6 +64,7 @@ type TXpertTemplateDescriptor = {
     title?: string
     description?: string
     avatar?: TAvatar
+    copilotModel?: TXpertTemplate['copilotModel']
     category?: string
     copyright?: string | null
     privacyPolicy?: string | null
@@ -355,32 +357,49 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     async getAll(language: LanguagesEnum, query?: TXpertTemplateQuery) {
+        const [templatesData, pluginTemplates] = await Promise.all([
+            this.readTemplatesFile(),
+            this.getPluginTemplates(query)
+        ])
+        const group = templatesData.templates[language]?.recommendedApps?.length
+            ? templatesData.templates[language]
+            : templatesData.templates[fallbackLanguage]
+        const recommendedApps = [...(group?.recommendedApps ?? []), ...pluginTemplates]
+            .filter((template) => this.matchesTemplateQuery(template, query))
+            .sort(
+                (left, right) =>
+                    this.getTemplateOrder(left) - this.getTemplateOrder(right) || left.id.localeCompare(right.id)
+            )
+
+        return {
+            ...(group ?? { categories: [], recommendedApps: [] }),
+            categories: this.mergeTemplateCategories(
+                group?.categories,
+                pluginTemplates.map((template) => template.category)
+            ),
+            recommendedApps
+        }
+    }
+
+    async getMarketplaceRecommendedTemplates(
+        language: LanguagesEnum,
+        query?: TXpertTemplateQuery
+    ): Promise<TXpertTemplate[]> {
         const [templatesData, builtinTemplatesData, marketConfig, pluginTemplates] = await Promise.all([
             this.readTemplatesFile(),
             this.readBuiltinTemplatesFile(),
             this.readTemplatesMarketConfig(),
             this.getPluginTemplates(query)
         ])
-        const group = templatesData.templates[language]?.recommendedApps?.length
-            ? templatesData.templates[language]
-            : templatesData.templates[fallbackLanguage]
-        const recommendedApps = this.resolveRecommendedTemplates(
+
+        return this.resolveRecommendedTemplates(
             marketConfig.recommendedApps,
             templatesData,
             builtinTemplatesData,
             pluginTemplates,
             language,
             query
-        )
-
-        return {
-            ...(group ?? { categories: [], recommendedApps: [] }),
-            categories: this.mergeTemplateCategories(
-                group?.categories,
-                recommendedApps.map((template) => template.category)
-            ),
-            recommendedApps
-        }
+        ).map((template) => this.toXpertTemplate(template))
     }
 
     async readTemplatesMarketConfig(): Promise<TTemplateMarketConfig> {
@@ -984,6 +1003,28 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         }
 
         return true
+    }
+
+    private getTemplateOrder(template: TXpertTemplateDescriptor) {
+        return typeof template.order === 'number' && Number.isFinite(template.order)
+            ? template.order
+            : Number.MAX_SAFE_INTEGER
+    }
+
+    private toXpertTemplate(template: TXpertTemplateDescriptor): TXpertTemplate {
+        const name = template.name?.trim() || template.title?.trim() || template.id
+        return {
+            ...template,
+            name,
+            title: template.title?.trim() || name,
+            description: template.description ?? '',
+            category: template.category ?? '',
+            copyright: template.copyright ?? '',
+            privacyPolicy: template.privacyPolicy ?? undefined,
+            export_data: template.export_data ?? '',
+            avatar: template.avatar ?? {},
+            type: template.type ?? XpertTypeEnum.Agent
+        }
     }
 
     private mergeTemplateCategories(categories: string[] = [], extraCategories: Array<string | undefined>) {

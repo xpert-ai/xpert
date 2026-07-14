@@ -1,9 +1,10 @@
-import { PluginTargetAppMeta } from '@xpert-ai/contracts'
+import { PLUGIN_MARKETPLACE_CATEGORIES, PluginTargetAppMeta } from '@xpert-ai/contracts'
 import {
   groupPluginsByMarketplaceCategory,
   LEGACY_DEVELOPER_TOOL_CATEGORIES,
   matchesPluginMarketplaceCategoryFilters,
   normalizePluginMarketplaceCategory,
+  PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS,
   PluginMarketplaceCategorizedItem,
   resolvePluginMarketplaceGrouping
 } from './plugin-marketplace-categories'
@@ -22,6 +23,10 @@ function targetAppMeta(
 }
 
 describe('plugin marketplace categories', () => {
+  it('keeps visible category tabs aligned with the shared marketplace taxonomy', () => {
+    expect(PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS.map(({ value }) => value)).toEqual(PLUGIN_MARKETPLACE_CATEGORIES)
+  })
+
   it('uses explicit marketplace category from xpert target app metadata', () => {
     const grouping = resolvePluginMarketplaceGrouping({
       category: 'integration',

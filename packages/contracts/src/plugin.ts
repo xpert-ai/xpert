@@ -256,21 +256,24 @@ export interface PluginMarketplaceTrialShortcut {
   icon?: IconDefinition
 }
 
-export type PluginMarketplaceCategory =
-  | 'featured'
-  | 'business-operations'
-  | 'communication'
-  | 'creativity'
-  | 'data-analytics'
-  | 'developer-tools'
-  | 'education-research'
-  | 'finance'
-  | 'productivity'
-  | 'research'
-  | 'security'
-  | 'travel'
-  | 'sales'
-  | 'other'
+export const PLUGIN_MARKETPLACE_CATEGORIES = [
+  'featured',
+  'business-operations',
+  'communication',
+  'creativity',
+  'data-analytics',
+  'developer-tools',
+  'education-research',
+  'finance',
+  'productivity',
+  'research',
+  'security',
+  'travel',
+  'sales',
+  'other'
+] as const
+
+export type PluginMarketplaceCategory = (typeof PLUGIN_MARKETPLACE_CATEGORIES)[number]
 
 export interface PluginTargetAppMarketplaceMetadata {
   contents?: PluginMarketplaceContribution[]

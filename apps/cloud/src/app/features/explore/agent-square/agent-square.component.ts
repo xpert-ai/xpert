@@ -1,8 +1,10 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
+import { FormsModule } from '@angular/forms'
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   WritableSignal,
   computed,
   effect,
@@ -21,22 +23,39 @@ import {
   TXpertMarketplaceBusinessCategory,
   TXpertMarketplaceCollaborationMode,
   TXpertMarketplaceTechnicalCategory,
+  TXpertTemplate,
   XpertMarketplaceBusinessCategories,
   XpertMarketplaceCollaborationModes,
   XpertMarketplaceService,
   XpertMarketplaceTechnicalCategories
 } from '@cloud/app/@core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ExploreAgentsComponent } from '../agents/agents.component'
+import { ExploreAgentInstallComponent } from '../agents/install/install.component'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dialog.component'
 
 type AgentSquareSort = 'match' | 'hot' | 'updated'
 
+type AgentSquareDisplayItem =
+  | { kind: 'template'; id: string; template: TXpertTemplate }
+  | { kind: 'published'; id: string; published: IXpertMarketplaceItem }
+type AgentSquareTemplateDisplayItem = Extract<AgentSquareDisplayItem, { kind: 'template' }>
+
 @Component({
   standalone: true,
   selector: 'xp-explore-agent-square',
-  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardIconComponent, ExploreAgentsComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    EmojiAvatarComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardIconComponent,
+    ExploreAgentsComponent
+  ],
   templateUrl: './agent-square.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -48,6 +67,7 @@ export class ExploreAgentSquareComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly businessCategories = XpertMarketplaceBusinessCategories
   readonly collaborationModes = XpertMarketplaceCollaborationModes
@@ -60,15 +80,12 @@ export class ExploreAgentSquareComponent {
   readonly sort = signal<AgentSquareSort>('match')
 
   readonly items = signal<IXpertMarketplaceItem[]>([])
+  readonly recommendedTemplates = signal<TXpertTemplate[]>([])
   readonly total = signal(0)
   readonly reviewableCount = signal(0)
   readonly loading = signal(false)
   readonly selectedId = signal<string | null>(null)
-
-  readonly selectedItem = computed(() => {
-    const selectedId = this.selectedId()
-    return this.items().find((item) => item.xpert.id === selectedId) ?? this.items()[0] ?? null
-  })
+  readonly featuredIndex = signal(0)
 
   readonly activeFilterCount = computed(
     () =>
@@ -77,7 +94,40 @@ export class ExploreAgentSquareComponent {
       this.selectedTechnicalCategories().length
   )
 
+  readonly recommendedItems = computed<AgentSquareTemplateDisplayItem[]>(() =>
+    this.recommendedTemplates().map((template) => ({ kind: 'template', id: `template:${template.id}`, template }))
+  )
+
+  readonly displayItems = computed<AgentSquareDisplayItem[]>(() =>
+    this.items().map((published) => ({
+      kind: 'published',
+      id: `published:${published.xpert.id}`,
+      published
+    }))
+  )
+
+  readonly featuredItem = computed(() => {
+    const items = this.recommendedItems()
+    return items.length ? items[this.featuredIndex() % items.length] : null
+  })
+
+  workspaceAvatar(item: AgentSquareDisplayItem) {
+    return item.kind === 'published' ? item.published.xpert.avatar : undefined
+  }
+
+  readonly selectedItem = computed(() => {
+    const selectedId = this.selectedId()
+    return (
+      this.displayItems().find((item) => item.id === selectedId) ??
+      this.recommendedItems().find((item) => item.id === selectedId) ??
+      this.displayItems()[0] ??
+      this.recommendedItems()[0] ??
+      null
+    )
+  })
+
   #queryVersion = 0
+  #carouselTimer: ReturnType<typeof setInterval> | null = null
 
   constructor() {
     effect(
@@ -95,6 +145,8 @@ export class ExploreAgentSquareComponent {
       },
       { allowSignalWrites: true }
     )
+
+    this.#destroyRef.onDestroy(() => this.pauseHeroCarousel())
   }
 
   async loadMarketplace(query = this.currentQuery()) {
@@ -108,14 +160,19 @@ export class ExploreAgentSquareComponent {
       }
 
       this.items.set(result.items ?? [])
+      this.recommendedTemplates.set(result.recommendedTemplates ?? [])
+      this.featuredIndex.set(0)
+      this.restartHeroCarousel()
       this.total.set(result.total ?? 0)
       this.reviewableCount.set(result.reviewableCount ?? 0)
-      if (!this.items().some((item) => item.xpert.id === this.selectedId())) {
-        this.selectedId.set(this.items()[0]?.xpert.id ?? null)
+      if (![...this.displayItems(), ...this.recommendedItems()].some((item) => item.id === this.selectedId())) {
+        this.selectedId.set(this.displayItems()[0]?.id ?? this.recommendedItems()[0]?.id ?? null)
       }
     } catch (error) {
       if (version === this.#queryVersion) {
         this.items.set([])
+        this.recommendedTemplates.set([])
+        this.pauseHeroCarousel()
         this.total.set(0)
         this.reviewableCount.set(0)
         this.#toastr.error(getErrorMessage(error))
@@ -149,22 +206,50 @@ export class ExploreAgentSquareComponent {
     this.toggle(this.selectedTechnicalCategories, category)
   }
 
-  selectItem(item: IXpertMarketplaceItem) {
-    this.selectedId.set(item.xpert.id ?? null)
+  selectItem(item: AgentSquareDisplayItem) {
+    this.selectedId.set(item.id)
+    if (item.kind === 'template') {
+      const index = this.recommendedItems().findIndex((candidate) => candidate.id === item.id)
+      if (index >= 0) {
+        this.showHeroItem(index)
+      }
+    }
   }
 
-  async handlePrimaryAction(item: IXpertMarketplaceItem, event?: Event) {
+  showHeroItem(index: number) {
+    this.updateFeaturedIndex(index)
+    this.restartHeroCarousel()
+  }
+
+  pauseHeroCarousel() {
+    if (this.#carouselTimer !== null) {
+      clearInterval(this.#carouselTimer)
+      this.#carouselTimer = null
+    }
+  }
+
+  resumeHeroCarousel() {
+    this.startHeroCarousel()
+  }
+
+  async handlePrimaryAction(item: AgentSquareDisplayItem, event?: Event) {
     event?.stopPropagation()
-    if (this.canUse(item)) {
-      this.openChat(item)
+    if (item.kind === 'template') {
+      this.#dialog.open(ExploreAgentInstallComponent, { data: item.template })
       return
     }
-    if (item.accessStatus === 'requested') {
+
+    const published = item.published
+    if (this.canUse(item)) {
+      this.openChat(published)
+      return
+    }
+    if (published.accessStatus === 'requested') {
       return
     }
 
     const reason = await firstValueFrom(
-      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, { data: { item } }).closed
+      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, { data: { item: published } }).closed
     )
     if (reason == null) {
       return
@@ -172,7 +257,7 @@ export class ExploreAgentSquareComponent {
 
     try {
       await firstValueFrom(
-        this.#service.requestAccess(item.xpert.id, {
+        this.#service.requestAccess(published.xpert.id, {
           reason
         })
       )
@@ -197,27 +282,39 @@ export class ExploreAgentSquareComponent {
     this.#router.navigate(['/chat/x', item.xpert.slug, 'c'])
   }
 
-  canUse(item: IXpertMarketplaceItem) {
-    return item.accessStatus === 'owned' || item.accessStatus === 'accessible' || item.accessStatus === 'approved'
+  canUse(item: AgentSquareDisplayItem) {
+    return item.kind === 'published' && ['owned', 'accessible', 'approved'].includes(item.published.accessStatus)
   }
 
-  isPending(item: IXpertMarketplaceItem) {
-    return item.accessStatus === 'requested'
+  isPending(item: AgentSquareDisplayItem) {
+    return item.kind === 'published' && item.published.accessStatus === 'requested'
   }
 
-  title(item: IXpertMarketplaceItem | null) {
+  isTemplate(item: AgentSquareDisplayItem) {
+    return item.kind === 'template'
+  }
+
+  title(item: AgentSquareDisplayItem | null) {
     if (!item) {
       return ''
     }
-    return item.xpert.title || item.xpert.titleCN || item.xpert.name
+    return item.kind === 'template'
+      ? item.template.title || item.template.name
+      : item.published.xpert.title || item.published.xpert.titleCN || item.published.xpert.name
   }
 
-  summary(item: IXpertMarketplaceItem | null) {
-    return item?.marketplace.summary || item?.xpert.description || ''
+  summary(item: AgentSquareDisplayItem | null) {
+    if (!item) {
+      return ''
+    }
+    return item.kind === 'template'
+      ? item.template.description || ''
+      : item.published.marketplace.summary || item.published.xpert.description || ''
   }
 
-  initials(item: IXpertMarketplaceItem) {
-    const label = this.title(item) || item.xpert.slug || 'AI'
+  initials(item: AgentSquareDisplayItem) {
+    const label =
+      this.title(item) || (item.kind === 'template' ? item.template.name : item.published.xpert.slug) || 'AI'
     return label
       .split(/[\s_-]+/)
       .filter(Boolean)
@@ -228,18 +325,23 @@ export class ExploreAgentSquareComponent {
       .toLowerCase()
   }
 
-  matchScore(item: IXpertMarketplaceItem) {
-    const technical = item.marketplace.technical
+  matchScore(item: AgentSquareDisplayItem) {
+    if (item.kind === 'template') {
+      const index = this.recommendedItems().findIndex((candidate) => candidate.id === item.id)
+      return Math.max(80, 92 - Math.max(index, 0) * 3)
+    }
+
+    const technical = item.published.marketplace.technical
     const raw =
       78 +
-      (item.marketplace.businessCategories?.length ?? 0) * 3 +
+      (item.published.marketplace.businessCategories?.length ?? 0) * 3 +
       (technical?.categories.length ?? 0) * 2 +
       (technical?.agentCount ?? 0)
     return Math.min(raw, 98)
   }
 
-  capabilityWidth(item: IXpertMarketplaceItem | null, capability: 'knowledge' | 'tools' | 'execution') {
-    const technical = item?.marketplace.technical
+  capabilityWidth(item: AgentSquareDisplayItem | null, capability: 'knowledge' | 'tools' | 'execution') {
+    const technical = item?.kind === 'published' ? item.published.marketplace.technical : null
     if (!technical) {
       return 30
     }
@@ -256,7 +358,7 @@ export class ExploreAgentSquareComponent {
   }
 
   businessLabelKey(category: TXpertMarketplaceBusinessCategory) {
-    return `PAC.Explore.AgentSquare.Business.${category}`
+    return `PAC.Plugin.MarketplaceCategory_${category}`
   }
 
   collaborationLabelKey(mode: TXpertMarketplaceCollaborationMode) {
@@ -265,6 +367,20 @@ export class ExploreAgentSquareComponent {
 
   technicalLabelKey(category: TXpertMarketplaceTechnicalCategory) {
     return `PAC.Explore.AgentSquare.Technical.${category}`
+  }
+
+  capabilityTags(item: AgentSquareDisplayItem) {
+    return item.kind === 'template'
+      ? [item.template.category].filter(Boolean)
+      : (item.published.marketplace.capabilityTags ?? [])
+  }
+
+  itemTechnicalCategories(item: AgentSquareDisplayItem) {
+    return item.kind === 'published' ? (item.published.marketplace.technical?.categories ?? []) : []
+  }
+
+  profileCount(item: AgentSquareDisplayItem, field: 'agentCount' | 'toolsetCount' | 'workflowNodeCount') {
+    return item.kind === 'published' ? (item.published.marketplace.technical?.[field] ?? 0) : 0
   }
 
   private currentQuery() {
@@ -276,6 +392,28 @@ export class ExploreAgentSquareComponent {
       sort: this.sort(),
       take: 60
     }
+  }
+
+  private updateFeaturedIndex(index: number) {
+    const itemCount = this.recommendedItems().length
+    this.featuredIndex.set(itemCount ? (index + itemCount) % itemCount : 0)
+  }
+
+  private restartHeroCarousel() {
+    this.pauseHeroCarousel()
+    this.startHeroCarousel()
+  }
+
+  private startHeroCarousel() {
+    if (
+      this.#carouselTimer !== null ||
+      this.recommendedItems().length < 2 ||
+      (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+    ) {
+      return
+    }
+
+    this.#carouselTimer = setInterval(() => this.updateFeaturedIndex(this.featuredIndex() + 1), 6000)
   }
 
   private toggle<T extends string>(signalValue: WritableSignal<T[]>, value: T) {
