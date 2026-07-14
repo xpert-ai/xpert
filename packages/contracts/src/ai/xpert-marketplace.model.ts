@@ -1,20 +1,14 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { PLUGIN_MARKETPLACE_CATEGORIES, type PluginMarketplaceCategory } from '../plugin'
 import { IUser } from '../user.model'
 import { IUserGroup } from '../user-group.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
+import type { TXpertTemplate } from './xpert-template.model'
 import type { IXpert, TXpertTeamDraft, TXpertTeamNode } from './xpert.model'
 
-export const XpertMarketplaceBusinessCategories = [
-  'knowledge-management',
-  'sales-growth',
-  'data-analysis',
-  'workflow-automation',
-  'legal-compliance',
-  'content-creation',
-  'customer-service'
-] as const
+export const XpertMarketplaceBusinessCategories = PLUGIN_MARKETPLACE_CATEGORIES
 
-export type TXpertMarketplaceBusinessCategory = (typeof XpertMarketplaceBusinessCategories)[number]
+export type TXpertMarketplaceBusinessCategory = PluginMarketplaceCategory
 
 export const XpertMarketplaceCollaborationModes = ['single-agent', 'multi-agent', 'human-in-loop'] as const
 
@@ -125,6 +119,7 @@ export type IXpertMarketplaceItem = {
 
 export type IXpertMarketplaceListResponse = {
   items: IXpertMarketplaceItem[]
+  recommendedTemplates: TXpertTemplate[]
   total: number
   reviewableCount: number
 }

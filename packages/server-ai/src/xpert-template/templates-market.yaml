@@ -1,0 +1,5 @@
+recommendedApps:
+    - id: '@xpert-ai/plugin-sites:sites-builder-assistant'
+    - id: '@xpert-ai/plugin-docx-editor:docx-editor-assistant'
+    - id: xpert--client-browser-automation-tools
+    - id: '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant'
