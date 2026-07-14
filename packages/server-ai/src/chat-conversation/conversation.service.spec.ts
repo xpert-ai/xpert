@@ -55,6 +55,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
+import { GetFileAssetQuery } from '../file-understanding/queries'
 import { VolumeClient } from '../shared/volume'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
@@ -76,6 +77,7 @@ describe('ChatConversationService workspace files', () => {
         findOneByOptions: jest.Mock
     }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
+    let queryBus: { execute: jest.Mock }
     let service: ChatConversationService
     const conversation = {
         id: 'conversation-1',
@@ -132,13 +134,16 @@ describe('ChatConversationService workspace files', () => {
             }),
             resolveRoot: jest.fn()
         }
+        queryBus = {
+            execute: jest.fn()
+        }
 
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
             readStateRepository as any,
             messageService as unknown as ChatMessageService,
             {} as CommandBus,
-            {} as QueryBus,
+            queryBus as unknown as QueryBus,
             {} as Queue,
             volumeClient
         )
@@ -391,6 +396,63 @@ describe('ChatConversationService workspace files', () => {
 
         expect(findConversation).toHaveBeenCalledWith('conversation-1')
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
+    })
+
+    it('resolves agent-visible file paths through file asset workspace metadata', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        queryBus.execute.mockResolvedValue({
+            id: 'file-asset-1',
+            conversationId: 'conversation-1',
+            workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf',
+            metadata: {
+                workspace: {
+                    relativePath: 'sessions/conversation-1/files/file-asset-1/report.pdf'
+                }
+            }
+        })
+        const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile').mockResolvedValue({
+            filePath: 'sessions/conversation-1/files/file-asset-1/report.pdf'
+        } as TFile)
+
+        await service.readWorkspaceFile(
+            'conversation-1',
+            '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf',
+            'file-asset-1'
+        )
+
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(GetFileAssetQuery))
+        expect(readWorkspaceFile).toHaveBeenCalledWith('', 'sessions/conversation-1/files/file-asset-1/report.pdf')
+    })
+
+    it('normalizes agent-visible workspace paths without file asset metadata', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile').mockResolvedValue({
+            filePath: 'reports/report.pdf'
+        } as TFile)
+
+        await service.readWorkspaceFile('conversation-1', '/workspace/reports/report.pdf')
+
+        expect(queryBus.execute).not.toHaveBeenCalled()
+        expect(readWorkspaceFile).toHaveBeenCalledWith('', 'reports/report.pdf')
+    })
+
+    it('rejects file assets that belong to another conversation', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        queryBus.execute.mockResolvedValue({
+            id: 'file-asset-1',
+            conversationId: 'conversation-2',
+            metadata: {
+                workspace: {
+                    relativePath: 'sessions/conversation-2/files/file-asset-1/report.pdf'
+                }
+            }
+        })
+        const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile')
+
+        await expect(
+            service.readWorkspaceFile('conversation-1', '/workspace/report.pdf', 'file-asset-1')
+        ).rejects.toThrow('Conversation file not found')
+        expect(readWorkspaceFile).not.toHaveBeenCalled()
     })
 
     it('returns download targets inside the current conversation workspace', async () => {

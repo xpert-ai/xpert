@@ -79,6 +79,7 @@ type AssistantHostedRuntimeInput = {
   initialThread?: Signal<string | null>
   layout?: AssistantHostedChatKitOptions['layout']
   pet?: AssistantHostedChatKitOptions['pet']
+  taskSummary?: AssistantHostedChatKitOptions['taskSummary']
   startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
   titleKey: string
@@ -305,6 +306,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       displayMode: input.displayMode,
       layout: input.layout,
       pet: input.pet,
+      taskSummary: input.taskSummary,
       messageNavigation: {
         enabled: true
       },
