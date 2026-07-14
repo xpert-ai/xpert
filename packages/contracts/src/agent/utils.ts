@@ -55,6 +55,44 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
 }
 
 /**
+ * Keep only edge connections that can reach the target node.
+ * Non-edge connections are preserved because workflow nodes may depend on attached resources.
+ */
+export function getUpstreamGraph(graph: TXpertGraph, key: string): TXpertGraph {
+  const normalize = (value: string) => value.split('/')[0]
+  const edgeConnections = graph.connections.filter((connection) => connection.type === 'edge')
+  const upstreamConnections = new Set<TXpertGraph['connections'][number]>()
+  const visited = new Set<string>()
+  const pending = [normalize(key)]
+
+  while (pending.length) {
+    const current = pending.pop()
+    if (!current || visited.has(current)) {
+      continue
+    }
+    visited.add(current)
+
+    for (const connection of edgeConnections) {
+      if (normalize(connection.to) !== current) {
+        continue
+      }
+      upstreamConnections.add(connection)
+      const parent = normalize(connection.from)
+      if (!visited.has(parent)) {
+        pending.push(parent)
+      }
+    }
+  }
+
+  return {
+    nodes: graph.nodes,
+    connections: graph.connections.filter(
+      (connection) => connection.type !== 'edge' || upstreamConnections.has(connection)
+    )
+  }
+}
+
+/**
  * Keep the content in the same graph as the key node (including the node, its connected nodes, and the 'edge' type connections between them)
  * 
  * @param graph 

@@ -28,6 +28,7 @@ import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
+import { CreateWorkflowNodeCommand } from '../../workflow/create-workflow.command'
 import { CreateNodeConsumePendingSteerFollowUpsHandler } from './create-node-consume-pending-steer-follow-ups.handler'
 import { CreateNodeStagePendingSteerFollowUpsHandler } from './create-node-stage-pending-steer-follow-ups.handler'
 import { XpertAgentSubgraphHandler } from './subgraph.handler'
@@ -524,6 +525,185 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             .filter((command) => command.constructor.name === 'CreateWorkflowNodeCommand')
         expect(workflowCommands).toHaveLength(1)
         expect(workflowCommands[0].node.key).toBe('trigger-1')
+    })
+})
+
+describe('XpertAgentSubgraphHandler shared upstream branches', () => {
+    it('does not compile sibling agents when preparing the target agent entry path', async () => {
+        const model = RunnableLambda.from(async () => new AIMessage(''))
+        const targetAgent = {
+            key: 'agent-target',
+            name: 'Target Agent',
+            title: 'Target Agent',
+            prompt: 'Handle the request.',
+            toolsetIds: [],
+            knowledgebaseIds: [],
+            options: {
+                fileUnderstanding: {
+                    enabled: false
+                }
+            },
+            team: {
+                id: 'xpert-1',
+                workspaceId: 'workspace-1',
+                agentConfig: {},
+                copilotModel: {
+                    model: 'fake-model',
+                    copilot: {
+                        modelProvider: {
+                            providerName: 'fake-provider'
+                        },
+                        copilotModel: {
+                            model: 'provider-model'
+                        }
+                    }
+                }
+            }
+        }
+        const targetEdge = {
+            key: 'shared/agent-target',
+            type: 'edge' as const,
+            from: 'shared',
+            to: 'agent-target'
+        }
+        const siblingEdge = {
+            key: 'shared/agent-sibling',
+            type: 'edge' as const,
+            from: 'shared',
+            to: 'agent-sibling'
+        }
+        const graph = {
+            nodes: [
+                {
+                    type: 'agent' as const,
+                    key: 'agent-target',
+                    entity: targetAgent
+                },
+                {
+                    type: 'workflow' as const,
+                    key: 'shared',
+                    entity: {
+                        key: 'shared',
+                        type: WorkflowNodeTypeEnum.TEMPLATE
+                    }
+                },
+                {
+                    type: 'agent' as const,
+                    key: 'agent-sibling',
+                    entity: {
+                        ...targetAgent,
+                        key: 'agent-sibling',
+                        name: 'Sibling Agent',
+                        title: 'Sibling Agent'
+                    }
+                }
+            ],
+            connections: [targetEdge, siblingEdge]
+        }
+        const workflowGraphs: Array<CreateWorkflowNodeCommand['graph']> = []
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                if (command instanceof CreateWorkflowNodeCommand) {
+                    workflowGraphs.push(command.graph)
+                    return {
+                        workflowNode: {
+                            graph: RunnableLambda.from(() => ({})),
+                            ends: []
+                        },
+                        nextNodes: command.graph.connections
+                            .filter((connection) => connection.type === 'edge' && connection.from === command.node.key)
+                            .map((connection) => command.graph.nodes.find((node) => node.key === connection.to))
+                            .filter((node) => !!node)
+                    }
+                }
+
+                const commandName = command && typeof command === 'object' ? command.constructor.name : ''
+                switch (commandName) {
+                    case 'ToolsetGetToolsCommand':
+                        return []
+                    case 'CreateNodeStagePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({
+                            [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
+                        }))
+                    case 'CreateNodeConsumePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({}))
+                    default:
+                        throw new Error(`Unexpected command: ${commandName}`)
+                }
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                const queryName = query && typeof query === 'object' ? query.constructor.name : ''
+                switch (queryName) {
+                    case 'GetXpertWorkflowQuery':
+                        return {
+                            agent: targetAgent,
+                            graph,
+                            next: [],
+                            fail: []
+                        }
+                    case 'GetXpertChatModelQuery':
+                        return model
+                    default:
+                        throw new Error(`Unexpected query: ${queryName}`)
+                }
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            null,
+            null,
+            {
+                api: {},
+                createScopedApi: jest.fn().mockReturnValue({})
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        Object.defineProperty(handler, 'agentMiddlewareRegistry', {
+            value: {
+                get: jest.fn()
+            }
+        })
+
+        await handler.execute(
+            new XpertAgentSubgraphCommand(
+                'agent-target',
+                {
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1'
+                },
+                {
+                    isStart: true,
+                    isDraft: true,
+                    mute: [],
+                    store: null,
+                    subscriber: null,
+                    execution: {
+                        id: 'execution-1'
+                    } as IXpertAgentExecution,
+                    rootController: new AbortController(),
+                    signal: new AbortController().signal,
+                    channel: channelName('agent-target'),
+                    thread_id: 'thread-1',
+                    disableCheckpointer: true,
+                    environment: {
+                        variables: []
+                    } as IEnvironment,
+                    partners: []
+                }
+            )
+        )
+
+        expect(workflowGraphs).toHaveLength(1)
+        expect(workflowGraphs[0].connections.filter((connection) => connection.type === 'edge')).toEqual([targetEdge])
+        expect(
+            commandBus.execute.mock.calls.some(
+                ([command]) =>
+                    command && typeof command === 'object' && command.constructor.name === 'XpertAgentSubgraphCommand'
+            )
+        ).toBe(false)
     })
 })
 

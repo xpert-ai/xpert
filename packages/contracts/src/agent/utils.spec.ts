@@ -1,6 +1,6 @@
 import { TXpertGraph } from '../ai/xpert.model'
 import { DeepPartial } from '../types'
-import { allChannels, findStartNodes, getCurrentGraph } from './utils'
+import { allChannels, findStartNodes, getCurrentGraph, getUpstreamGraph } from './utils'
 
 describe('findStartNodes', () => {
   it('should return the correct start nodes for a given key', () => {
@@ -169,6 +169,24 @@ describe('findStartNodes', () => {
         to: 'Http_T9uLo1NJUV'
       }
     ])
+  })
+})
+
+describe('getUpstreamGraph', () => {
+  it('removes sibling and downstream edge branches while preserving non-edge connections', () => {
+    const upstream = { key: 'upstream/shared', type: 'edge' as const, from: 'upstream', to: 'shared' }
+    const target = { key: 'shared/agent-a', type: 'edge' as const, from: 'shared', to: 'agent-a' }
+    const sibling = { key: 'shared/agent-b', type: 'edge' as const, from: 'shared', to: 'agent-b' }
+    const downstream = { key: 'agent-a/after-a', type: 'edge' as const, from: 'agent-a', to: 'after-a' }
+    const toolset = { key: 'agent-a/tool-a', type: 'toolset' as const, from: 'agent-a', to: 'tool-a' }
+    const graph: TXpertGraph = {
+      nodes: [],
+      connections: [upstream, target, sibling, downstream, toolset]
+    }
+
+    const result = getUpstreamGraph(graph, 'agent-a')
+
+    expect(result.connections).toEqual([upstream, target, toolset])
   })
 })
 

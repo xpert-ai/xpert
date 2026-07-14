@@ -32,7 +32,7 @@ import {
     ChatMessageEventTypeEnum,
     figureOutXpert,
     findStartNodes,
-    getCurrentGraph,
+    getUpstreamGraph,
     getWorkflowTriggers,
     GRAPH_NODE_SUMMARIZE_CONVERSATION,
     isAgentKey,
@@ -536,7 +536,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
          * @param parentKey The pre-node of this node
          * @param finalReturn The end node if this node is the end of the workflow
          */
-        const createSubgraph = async (node: TXpertTeamNode, parentKey?: string, finalReturn?: string) => {
+        const createSubgraph = async (
+            node: TXpertTeamNode,
+            parentKey?: string,
+            finalReturn?: string,
+            traversalGraph: TXpertGraph = graph
+        ) => {
             if (node?.type === 'agent') {
                 if (agentKeys.has(node.key)) {
                     return
@@ -576,7 +581,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 // The failure process of non-starting agents is created here
                 if (failNode) {
                     ends.push(failNode.key)
-                    await createSubgraph(failNode, null, finalReturn)
+                    await createSubgraph(failNode, null, finalReturn, traversalGraph)
                 }
                 nodes[node.key] = {
                     graph: stateGraph,
@@ -602,7 +607,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         edges[node.key] = _nextNodes[0].key
                     }
                     for await (const nextNode of _nextNodes) {
-                        await createSubgraph(nextNode, node.key, finalReturn)
+                        await createSubgraph(nextNode, node.key, finalReturn, traversalGraph)
                     }
                 } else if (finalReturn) {
                     if (failNode) {
@@ -629,7 +634,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset, variables } =
                     await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
-                        new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+                        new CreateWorkflowNodeCommand(xpert.id, traversalGraph, node, parentKey, {
                             mute: options.mute,
                             store: options.store,
                             isDraft: options.isDraft,
@@ -683,7 +688,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
 
                 for await (const nNode of nextNodes ?? []) {
-                    await createSubgraph(nNode, null, finalReturn)
+                    await createSubgraph(nNode, null, finalReturn, traversalGraph)
                 }
 
                 if (!nextNodes.length) {
@@ -726,9 +731,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     ? runtimeTriggerNodes
                     : getWorkflowTriggers(graph, 'chat').map((n) => n.key)
             } else {
-                startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
+                const upstreamGraph = getUpstreamGraph(graph, agent.key)
+                startNodes = findStartNodes(upstreamGraph, agent.key).filter((_) => _ !== agent.key)
+                if (startNodes.length) {
+                    for await (const key of startNodes) {
+                        const node = graph.nodes.find((_) => _.key === key)
+                        await createSubgraph(node, null, undefined, upstreamGraph)
+                    }
+                }
             }
-            if (startNodes.length) {
+            if (hiddenAgent && startNodes.length) {
                 for await (const key of startNodes) {
                     const node = graph.nodes.find((_) => _.key === key)
                     await createSubgraph(node, null)
