@@ -2,7 +2,7 @@
     "name": "browser/playwright-1.61/v1",
     "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
     "contractVersion": "1",
-    "sandboxRuntimeVersion": "1.0.0",
+    "sandboxRuntimeVersion": "1.0.1",
     "timeoutMs": 300000,
     "hardDeadlineMs": 360000,
     "resources": {
@@ -28,7 +28,7 @@
         "readOnlyRootFilesystem": true
     },
     "expectedManifest": {
-        "sandboxRuntimeVersion": "1.0.0",
+        "sandboxRuntimeVersion": "1.0.1",
         "imageFamily": "browser",
         "profileName": "browser/playwright-1.61/v1",
         "contractVersion": "1",

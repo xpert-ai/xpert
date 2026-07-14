@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.15.13
+
+### Patch Changes
+
+- 25664c9: Persist and aggregate conversation task summaries and enable the responsive summary card with resource opening in ClawXpert.
+
 ## 3.15.12
 
 ### Patch Changes

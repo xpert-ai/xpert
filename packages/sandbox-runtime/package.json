@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/sandbox-runtime",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Versioned OCI image suite for Xpert Sandbox workloads.",
   "license": "AGPL-3.0",
