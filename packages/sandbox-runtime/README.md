@@ -25,6 +25,16 @@ The release target is `linux/amd64`. On an ARM development host, build a native,
 
 Production Providers consume the released Runtime Artifact Catalog and must pin artifacts with `@sha256:`. Provider release CI turns those catalogs into its own immutable lock file. There is no production image/profile environment-variable override; mutable tags are aliases for development and release discovery only.
 
+## CI and release flow
+
+Application images and Runtime images intentionally use different workflows:
+
+- `.github/workflows/docker-publish.yml` publishes only `xpert-api` and `xpert-webapp`.
+- `.github/workflows/sandbox-runtime-publish.yml` owns Runtime image validation and candidate aliases.
+- `.github/workflows/publish-npm-packages.yml` publishes immutable Runtime Suite version tags when `@xpert-ai/sandbox-runtime` is versioned.
+
+Pull requests that touch `packages/sandbox-runtime/**` or Runtime Definitions build and smoke-test the affected image families but do not push images. Pushes to `develop` for the same paths build, smoke-test, and push only `develop-candidate` and `sha-<commit>` aliases. Platform git tags do not rebuild Runtime images; they create `xpert-<tag>` aliases for already-published Runtime Suite version tags.
+
 ## Ownership boundary
 
 - `@xpert-ai/sandbox-runtime`: OCI image, local development Runner/browser dependency, manifest, artifact catalog, release metadata and smoke production; never a production API dependency.
