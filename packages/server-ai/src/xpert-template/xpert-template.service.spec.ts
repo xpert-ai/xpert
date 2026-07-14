@@ -481,7 +481,51 @@ describe('XpertTemplateService', () => {
         expect(catalog.details).not.toHaveProperty(exportedTemplate.id)
     })
 
-    it('merges plugin xpert templates into the template catalog with namespaced ids', async () => {
+    it('returns every configured recommendation in configuration order without a fixed limit', async () => {
+        const workspaceRoot = createTempDir()
+        const dataRoot = createTempDir()
+        const externalRoot = join(dataRoot, 'external-templates')
+        const configuredIds = Array.from({ length: 7 }, (_, index) => `template-${7 - index}`)
+        seedBuiltinTemplates(workspaceRoot, {
+            templatesJson: {
+                templates: {
+                    'en-US': {
+                        categories: ['Built-in'],
+                        recommendedApps: Array.from({ length: 7 }, (_, index) => ({
+                            id: `template-${index + 1}`,
+                            name: `Template ${index + 1}`,
+                            category: 'Built-in'
+                        }))
+                    }
+                },
+                details: {}
+            },
+            templatesMarketYaml: ['recommendedApps:', ...configuredIds.map((id) => `  - id: ${id}`)].join('\n')
+        })
+        mkdirSync(externalRoot, { recursive: true })
+        writeJson(join(externalRoot, 'templates.json'), {
+            templates: {
+                'en-US': {
+                    categories: ['External'],
+                    recommendedApps: [{ id: 'template-1', name: 'External Template 1', category: 'External' }]
+                }
+            },
+            details: {}
+        })
+        const { service } = createService({
+            serverRoot: workspaceRoot,
+            dataPath: join(dataRoot, 'fallback-data'),
+            env: {
+                XPERT_TEMPLATE_DIR: externalRoot
+            }
+        })
+
+        const catalog = await service.getAll(LanguagesEnum.English)
+
+        expect(catalog.recommendedApps.map((template) => template.id)).toEqual(configuredIds)
+    })
+
+    it('resolves configured plugin templates with namespaced ids and skips unavailable refs', async () => {
         const workspaceRoot = createTempDir()
         const dataRoot = createTempDir()
         seedBuiltinTemplates(workspaceRoot, {
@@ -493,7 +537,12 @@ describe('XpertTemplateService', () => {
                     }
                 },
                 details: {}
-            }
+            },
+            templatesMarketYaml: [
+                'recommendedApps:',
+                '  - id: "@xpert-ai/plugin-demo:business"',
+                '  - id: "@xpert-ai/plugin-missing:assistant"'
+            ].join('\n')
         })
         const { service } = createService({
             serverRoot: workspaceRoot,
@@ -1350,6 +1399,7 @@ describe('XpertTemplateService', () => {
             mcpTemplatesJson?: Record<string, unknown>
             knowledgePipelinesJson?: Record<string, unknown>
             skillsMarketYaml?: string
+            templatesMarketYaml?: string
             skillRepositoriesYaml?: string
             workspaceDefaultsYaml?: string
             templateYaml?: string
@@ -1408,6 +1458,11 @@ describe('XpertTemplateService', () => {
                     '      label: Trending',
                     '      options: []'
                 ].join('\n'),
+            'utf8'
+        )
+        writeFileSync(
+            join(builtinRoot, 'templates-market.yaml'),
+            overrides.templatesMarketYaml ?? ['recommendedApps:', '  - id: template-1'].join('\n'),
             'utf8'
         )
         writeFileSync(
