@@ -1,5 +1,17 @@
 # @xpert-ai/server-ai
 
+## 3.9.16
+
+### Patch Changes
+
+- 25664c9: Persist and aggregate conversation task summaries and enable the responsive summary card with resource opening in ClawXpert.
+- Updated dependencies [25664c9]
+- Updated dependencies [b269a84]
+    - @xpert-ai/contracts@3.15.13
+    - @xpert-ai/plugin-sdk@3.15.13
+    - @xpert-ai/copilot@3.9.28
+    - @xpert-ai/server-core@3.9.31
+
 ## 3.9.15
 
 ### Patch Changes
