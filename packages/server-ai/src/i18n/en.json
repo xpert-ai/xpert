@@ -31,6 +31,7 @@
         "XpertMarketplaceSelfReviewForbidden": "You cannot review your own access request.",
         "XpertMarketplaceRequesterNotFound": "The request user was not found.",
         "XpertMarketplaceNotFound": "The marketplace assistant was not found.",
+        "UnsupportedTaskSummarySection": "Unsupported task summary section",
         "XpertMarketplaceRequestNotFound": "The access request was not found."
     },
     "tools": {
@@ -50,6 +51,12 @@
         "SummaryTitleEnd": "Title summarized",
         "TaskHandover": "Task handover",
         "KnowledgeRetrieval": "Knowledge retrieval"
+    },
+    "ChatTaskSummary": {
+        "Agent": "Agent",
+        "PendingSteeringMessage": "Pending steering message",
+        "PendingFollowUpMessage": "Pending follow-up message",
+        "ConversationNeedsInput": "Conversation needs input"
     },
     "Tools": {
         "MCP": {

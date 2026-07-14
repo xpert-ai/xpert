@@ -38,7 +38,7 @@
         "@opentelemetry/sdk-trace-base": "^2.7.1",
         "@opentelemetry/sdk-trace-node": "^2.7.1",
         "@sap_oss/odata-library": "2.4.0",
-        "@xpert-ai/chatkit-types": "0.4.5",
+        "@xpert-ai/chatkit-types": "0.4.6",
         "@xpert-ai/contracts": "workspace:*",
         "@xpert-ai/copilot": "workspace:*",
         "@xpert-ai/ocap-core": "workspace:*",

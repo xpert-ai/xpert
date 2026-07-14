@@ -17,11 +17,13 @@ import { ExecutionCancelModule } from '../shared'
 import { SseStreamModule } from '../shared/stream'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
+import { ChatTaskSummaryService } from './task-summary.service'
+import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
-        TypeOrmModule.forFeature([ChatConversation, ChatConversationGoal, ChatConversationReadState]),
+        TypeOrmModule.forFeature([ChatConversation, ChatConversationGoal, ChatConversationReadState, XpertAgent]),
         SharedModule,
         CqrsModule,
 
@@ -39,10 +41,11 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
     providers: [
         ChatConversationService,
         ChatConversationGoalService,
+        ChatTaskSummaryService,
         ConversationSummaryProcessor,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [ChatConversationService, ChatConversationGoalService]
+    exports: [ChatConversationService, ChatConversationGoalService, ChatTaskSummaryService]
 })
 export class ChatConversationModule {}

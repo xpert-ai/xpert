@@ -3,6 +3,7 @@ import type {
   ChatKitReference,
   ChatKitReferenceBase,
   TChatMessageStep,
+  TChatTaskSummaryContribution,
   TMessageContent,
   TMessageContentReasoning
 } from '@xpert-ai/chatkit-types'
@@ -96,6 +97,8 @@ export interface IChatMessage
    * Structured references associated with the human input
    */
   references?: TChatReference[]
+  /** Compact contribution used to rebuild the thread task summary. */
+  taskSummary?: TChatTaskSummaryContribution
   /**
    * Job of summary
    */

@@ -3,12 +3,14 @@ jest.mock('../../../@core', () => ({
     CLAWXPERT: 'clawxpert'
   },
   AiThreadService: class AiThreadService {},
+  ArtifactService: class ArtifactService {},
   ChatConversationService: class ChatConversationService {},
   ViewExtensionApiService: class ViewExtensionApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
     warning: jest.fn(),
-    danger: jest.fn()
+    danger: jest.fn(),
+    error: jest.fn()
   })
 }))
 
@@ -242,7 +244,13 @@ import {
   type XpertExtensionViewManifest
 } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
-import { AiThreadService, ChatConversationService, IChatConversation, ViewExtensionApiService } from '../../../@core'
+import {
+  AiThreadService,
+  ArtifactService,
+  ChatConversationService,
+  IChatConversation,
+  ViewExtensionApiService
+} from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
@@ -283,6 +291,9 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
 const runtimeModule = jest.requireMock('../../assistant/assistant-chatkit.runtime') as {
   injectHostedAssistantChatkitControl: jest.Mock
 }
+const filePreviewModule = jest.requireMock('../../assistant/workbench-file-preview-dialog.component') as {
+  openWorkbenchFilePreviewDialog: jest.Mock
+}
 
 type MockChatKitEvent = {
   name: string
@@ -293,6 +304,9 @@ type MockChatKitRuntimeInput = {
   initialThread?: () => string | null
   layout?: {
     maxWidth?: number | string
+  }
+  taskSummary?: {
+    enabled?: boolean
   }
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
@@ -400,6 +414,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     getByThreadId: jest.Mock
     getById: jest.Mock
     markRead: jest.Mock
+    getFile: jest.Mock
+  }
+  let artifactService: {
+    createSignedPreviewLink: jest.Mock
   }
   let viewExtensionApi: {
     getSlotViews: jest.Mock
@@ -485,7 +503,24 @@ describe('ClawXpertConversationDetailComponent', () => {
           messages: []
         } as IChatConversation)
       ),
-      markRead: jest.fn(() => of({}))
+      markRead: jest.fn(() => of({})),
+      getFile: jest.fn(() =>
+        of({
+          filePath: '/workspace/report.pdf',
+          fileUrl: 'https://files.example.com/report.pdf',
+          mimeType: 'application/pdf'
+        })
+      )
+    }
+    artifactService = {
+      createSignedPreviewLink: jest.fn(() =>
+        of({
+          id: 'link-1',
+          artifactId: 'artifact-1',
+          publicUrl: 'https://artifacts.example.com/report.pdf',
+          version: { mimeType: 'application/pdf', fileName: 'report.pdf' }
+        })
+      )
     }
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
@@ -506,6 +541,10 @@ describe('ClawXpertConversationDetailComponent', () => {
         {
           provide: ChatConversationService,
           useValue: conversationService
+        },
+        {
+          provide: ArtifactService,
+          useValue: artifactService
         },
         {
           provide: ViewExtensionApiService,
@@ -623,6 +662,93 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().layout).toEqual({
       maxWidth: '960px'
     })
+  })
+
+  it('enables the task summary only for the ClawXpert ChatKit runtime', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().taskSummary).toEqual({ enabled: true })
+  })
+
+  it('opens task summary workspace files with the existing file preview', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        title: 'Report',
+        resource: {
+          type: 'workspace_file',
+          workspacePath: '/workspace/report.pdf',
+          fileAssetId: 'file-1'
+        }
+      }
+    })
+    await settle(fixture)
+
+    expect(conversationService.getFile).toHaveBeenCalledWith(
+      'conversation-1',
+      '/workspace/report.pdf',
+      undefined,
+      'file-1'
+    )
+    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        id: 'file-1',
+        name: 'Report',
+        url: 'https://files.example.com/report.pdf'
+      })
+    )
+  })
+
+  it('creates an artifact signed preview only when the task summary item is clicked', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(artifactService.createSignedPreviewLink).not.toHaveBeenCalled()
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        resource: { type: 'artifact', artifactId: 'artifact-1' }
+      }
+    })
+    await settle(fixture)
+
+    expect(artifactService.createSignedPreviewLink).toHaveBeenCalledWith('artifact-1')
+    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        id: 'artifact-1',
+        url: 'https://artifacts.example.com/report.pdf'
+      })
+    )
+  })
+
+  it('opens validated task summary URLs in the existing Browser tab', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        title: 'Preview',
+        resource: { type: 'url', url: 'https://example.com/preview' }
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.activeBrowserTab()).toEqual(
+      expect.objectContaining({
+        displayUrl: 'Preview',
+        url: 'https://example.com/preview'
+      })
+    )
   })
 
   it('marks a route-resolved conversation read without waiting for ChatKit thread load callbacks', async () => {

@@ -87,15 +87,15 @@ export class ManagedQueueProcessor extends WorkerHost {
 	}
 }
 
-const SANDBOX_BROWSER_WORKER_CONCURRENCY = normalizeConcurrency(
+const SANDBOX_BROWSER_EXECUTOR_CONCURRENCY = normalizeConcurrency(
 	process.env.MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY,
-	5
+	1
 )
 
-/** Dedicated no-HTTP Worker consumer for browser-heavy Sandbox Job handlers. */
+/** Browser-heavy API-local consumer, isolated in its own pool with a conservative default concurrency. */
 @Injectable()
 @Processor(MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME, {
-	concurrency: SANDBOX_BROWSER_WORKER_CONCURRENCY,
+	concurrency: SANDBOX_BROWSER_EXECUTOR_CONCURRENCY,
 	autorun: managedQueuePoolAutorun('sandbox-browser')
 })
 export class SandboxBrowserManagedQueueProcessor extends ManagedQueueProcessor {
@@ -114,17 +114,13 @@ function normalizeConcurrency(value: string | undefined, fallback: number): numb
 }
 
 /**
- * Selects queue consumers from the process role so normal deployments do not
- * need separate autorun switches. Explicit legacy values remain supported for
- * tests and unusual deployments.
+ * Enables both logical execution pools in the API process by default.
+ * The existing global override remains available for tests and maintenance.
  */
 export function managedQueuePoolAutorun(
-	executionPool: ManagedQueueExecutionPool,
+	_executionPool: ManagedQueueExecutionPool,
 	environment: NodeJS.ProcessEnv = process.env
 ): boolean {
-	const isBrowserWorker = environment.XPERT_PROCESS_ROLE === 'sandbox-browser-worker'
-	if (executionPool === 'sandbox-browser') return isBrowserWorker
-	if (isBrowserWorker) return false
 	return optionalBoolean(environment.MANAGED_QUEUE_AUTORUN) ?? true
 }
 

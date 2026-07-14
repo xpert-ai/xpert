@@ -16,6 +16,8 @@ import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
+import { resolveFileAssetWorkspaceRelativePath } from '../file-understanding/domain/workspace-file'
+import { GetFileAssetQuery } from '../file-understanding/queries'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
@@ -391,10 +393,22 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         })
     }
 
-    async readWorkspaceFile(id: string, filePath: string): Promise<TFile> {
+    async readWorkspaceFile(id: string, filePath: string, fileAssetId?: string): Promise<TFile> {
         const conversation = await this.findOne(id)
+        let resolvedFilePath = filePath.startsWith('/workspace/') ? filePath.slice('/workspace/'.length) : filePath
+        if (fileAssetId) {
+            const fileAsset = await this.queryBus.execute(new GetFileAssetQuery(fileAssetId))
+            if (!fileAsset || fileAsset.conversationId !== conversation.id) {
+                throw new BadRequestException('Conversation file not found')
+            }
+            const workspaceRelativePath = resolveFileAssetWorkspaceRelativePath(fileAsset, filePath)
+            if (!workspaceRelativePath) {
+                throw new BadRequestException('Conversation file not found')
+            }
+            resolvedFilePath = workspaceRelativePath
+        }
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
-        return client.readFile(scopePath, filePath)
+        return client.readFile(scopePath, resolvedFilePath)
     }
 
     async getWorkspaceFileDownload(id: string, filePath: string) {

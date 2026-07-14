@@ -115,7 +115,7 @@ type PdfTextItem = Extract<PdfTextContentItem, { str: string }>
                 [style.height.px]="marker.height"
               >
                 <span
-                  class="absolute -top-6 left-0 rounded bg-text-destructive px-1.5 py-0.5 text-xs font-medium leading-5 text-components-button-primary-text shadow"
+                  class="absolute -top-6 left-0 rounded bg-text-destructive px-1.5 py-0.5 text-xs font-medium leading-5 text-components-button-primary-text shadow white-space-nowrap"
                 >
                   {{ 'PAC.Assistant.FilePreview.Evidence' | translate: { Default: 'Evidence' } }}
                 </span>
