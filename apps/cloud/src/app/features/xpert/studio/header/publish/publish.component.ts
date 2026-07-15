@@ -75,10 +75,12 @@ export class XpertPublishVersionComponent {
   readonly releaseNotes = model('')
   readonly marketplaceSummary = model(this.xpert().marketplace?.summary ?? '')
   readonly capabilityTagsText = model((this.xpert().marketplace?.capabilityTags ?? []).join(', '))
-  readonly selectedBusinessCategories = signal<TXpertMarketplaceBusinessCategory[]>([
-    ...(this.xpert().marketplace?.businessCategories ?? [])
-  ])
   readonly businessCategories = XpertMarketplaceBusinessCategories
+  readonly selectedBusinessCategories = signal<TXpertMarketplaceBusinessCategory[]>(
+    (this.xpert().marketplace?.businessCategories ?? []).filter((category) =>
+      this.businessCategories.includes(category)
+    )
+  )
   readonly technicalPreview = computed(() => {
     const xpert = this.xpert()
     if (xpert.draft) {
@@ -211,7 +213,7 @@ export class XpertPublishVersionComponent {
   }
 
   businessLabelKey(category: TXpertMarketplaceBusinessCategory) {
-    return `PAC.Explore.AgentSquare.Business.${category}`
+    return `PAC.Plugin.MarketplaceCategory_${category}`
   }
 
   technicalLabelKey(category: TXpertMarketplaceTechnicalCategory) {
