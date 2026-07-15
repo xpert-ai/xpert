@@ -112,6 +112,10 @@ export type TIntegrationProvider = {
   features?: IntegrationFeatureEnum[]
   helpUrl?: string
   helpLabel?: I18nObject
+  helpLinks?: Array<{
+    url: string
+    label?: I18nObject
+  }>
   /**
    * Declarative setup hints consumed by the host integration configuration UI.
    *
