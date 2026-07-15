@@ -508,7 +508,8 @@ describe('ClawXpertConversationDetailComponent', () => {
         of({
           filePath: '/workspace/report.pdf',
           fileUrl: 'https://files.example.com/report.pdf',
-          mimeType: 'application/pdf'
+          mimeType: 'application/pdf',
+          size: 2 * 1024 * 1024
         })
       )
     }
@@ -518,7 +519,7 @@ describe('ClawXpertConversationDetailComponent', () => {
           id: 'link-1',
           artifactId: 'artifact-1',
           publicUrl: 'https://artifacts.example.com/report.pdf',
-          version: { mimeType: 'application/pdf', fileName: 'report.pdf' }
+          version: { mimeType: 'application/pdf', fileName: 'report.pdf', size: 3 * 1024 * 1024 }
         })
       )
     }
@@ -693,13 +694,15 @@ describe('ClawXpertConversationDetailComponent', () => {
       'conversation-1',
       '/workspace/report.pdf',
       undefined,
-      'file-1'
+      'file-1',
+      true
     )
     expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         id: 'file-1',
         name: 'Report',
+        size: 2 * 1024 * 1024,
         url: 'https://files.example.com/report.pdf'
       })
     )
@@ -724,6 +727,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect.anything(),
       expect.objectContaining({
         id: 'artifact-1',
+        size: 3 * 1024 * 1024,
         url: 'https://artifacts.example.com/report.pdf'
       })
     )
