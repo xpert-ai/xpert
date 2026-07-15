@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.15.14
+
+### Patch Changes
+
+- 8a46f00: Expose shared marketplace categories and recommended template metadata through the Xpert marketplace contracts.
+
 ## 3.15.13
 
 ### Patch Changes
