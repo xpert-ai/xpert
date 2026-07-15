@@ -1554,7 +1554,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             throw new Error('Conversation context is required to open a workspace file.')
           }
           const file = await firstValueFrom(
-            this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId)
+            this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId, true)
           )
           const url = readHttpUrl(file.fileUrl ?? file.url)
           if (!url) {
@@ -1566,6 +1566,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             storageFileId: target.storageFileId,
             name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
             mimeType: file.mimeType,
+            size: file.size,
             url,
             previewUrl: url
           })
@@ -1588,6 +1589,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             id: link.artifactId,
             name: title,
             mimeType,
+            size: version?.size ?? undefined,
             url,
             previewUrl: url
           })

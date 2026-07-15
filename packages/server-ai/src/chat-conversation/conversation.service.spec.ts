@@ -436,6 +436,18 @@ describe('ChatConversationService workspace files', () => {
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'reports/report.pdf')
     })
 
+    it('reads only workspace file metadata when requested', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile').mockResolvedValue({
+            filePath: 'reports/report.xlsx',
+            size: 2 * 1024 * 1024
+        } as TFile)
+
+        await service.readWorkspaceFile('conversation-1', '/workspace/reports/report.xlsx', undefined, true)
+
+        expect(readWorkspaceFile).toHaveBeenCalledWith('', 'reports/report.xlsx', { metadataOnly: true })
+    })
+
     it('rejects file assets that belong to another conversation', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         queryBus.execute.mockResolvedValue({

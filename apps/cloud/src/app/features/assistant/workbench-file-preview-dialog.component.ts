@@ -3,10 +3,16 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { TranslateModule } from '@ngx-translate/core'
 import type { WorkbenchOpenFile, WorkbenchOpenFileEvidenceBox } from '@xpert-ai/contracts'
 import { FilePreviewContentComponent } from '../../@shared/files/preview/file-preview-content.component'
-import { createFilePreviewState, toFilePreviewSource } from '../../@shared/files/preview/file-preview.utils'
+import {
+  createFilePreviewState,
+  resolveFilePreviewKind,
+  toFilePreviewSource
+} from '../../@shared/files/preview/file-preview.utils'
 
 import { WorkbenchPdfEvidencePreviewComponent } from './workbench-pdf-evidence-preview.component'
 import { normalizePdfEvidenceRotation } from './workbench-pdf-evidence-rotation'
+
+export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
 
 @Component({
   standalone: true,
@@ -49,14 +55,17 @@ import { normalizePdfEvidenceRotation } from './workbench-pdf-evidence-rotation'
         </div>
 
         <div class="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-            [attr.aria-label]="'PAC.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
-            (click)="openExternal()"
-          >
-            <i class="ri-external-link-line"></i>
-          </button>
+          @if (!previewTooLarge()) {
+            <button
+              type="button"
+              data-file-preview-open-external="true"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+              [attr.aria-label]="'PAC.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
+              (click)="openExternal()"
+            >
+              <i class="ri-external-link-line"></i>
+            </button>
+          }
           <a
             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
             [href]="previewUrl()"
@@ -76,7 +85,49 @@ import { normalizePdfEvidenceRotation } from './workbench-pdf-evidence-rotation'
         </div>
       </header>
 
-      @if (evidence(); as currentEvidence) {
+      @if (previewTooLarge()) {
+        <div
+          data-file-preview-too-large="true"
+          class="flex min-h-0 flex-1 items-center justify-center bg-components-card-bg px-6 py-10"
+        >
+          <div class="max-w-lg text-center">
+            <div
+              class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-background-default-subtle text-text-secondary"
+            >
+              <i class="ri-file-download-line text-xl"></i>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-text-primary">
+              {{ 'PAC.Chat.FileTooLargeToPreview' | translate: { Default: 'This file is too large to preview.' } }}
+            </h3>
+            <p class="mt-2 text-sm leading-6 text-text-tertiary">
+              {{
+                'PAC.Chat.FileTooLargeDownloadHint'
+                  | translate: { Default: 'Download it and open it locally to view its contents.' }
+              }}
+            </p>
+            @if (fileSizeLabel() && previewSizeLimitLabel()) {
+              <p class="mt-2 text-sm text-text-tertiary">
+                {{
+                  'PAC.Chat.FilePreviewSizeLimit'
+                    | translate
+                      : {
+                          size: fileSizeLabel(),
+                          limit: previewSizeLimitLabel(),
+                          Default: 'File size: {{size
+                }}. File preview limit: {{ limit }}.' } }}
+              </p>
+            }
+            <button
+              type="button"
+              class="mt-5 inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-divider-regular px-4 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
+              (click)="downloadFile()"
+            >
+              <i class="ri-download-line"></i>
+              {{ 'PAC.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' } }}
+            </button>
+          </div>
+        </div>
+      } @else if (evidence(); as currentEvidence) {
         <div class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
           <div class="relative min-h-0 overflow-hidden">
             @if (controlledPdfEvidence()) {
@@ -199,6 +250,7 @@ import { normalizePdfEvidenceRotation } from './workbench-pdf-evidence-rotation'
 export class WorkbenchFilePreviewDialogComponent {
   readonly file = inject<WorkbenchOpenFile>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
+  readonly filePreviewSizeLimit = WORKBENCH_FILE_PREVIEW_MAX_BYTES
 
   readonly evidence = computed(() => this.file.evidence ?? null)
   readonly evidencePage = computed(() => this.evidence()?.locator?.page)
@@ -213,19 +265,28 @@ export class WorkbenchFilePreviewDialogComponent {
   readonly basePreviewUrl = computed(() => this.file.previewUrl || this.file.url)
   readonly previewUrl = computed(() => appendPdfPageAnchor(this.basePreviewUrl(), this.evidencePage()))
   readonly controlledPdfEvidence = computed(() => this.previewKind() === 'pdf' && !!this.evidenceBox())
-  readonly previewSource = computed(() =>
+  readonly rawPreviewSource = computed(() =>
     toFilePreviewSource({
       mimeType: this.file.mimeType,
       name: this.file.name,
       url: this.previewUrl()
     })
   )
+  readonly previewKind = computed(() => resolveFilePreviewKind(this.rawPreviewSource()))
+  readonly previewTooLarge = computed(
+    () =>
+      typeof this.file.size === 'number' &&
+      Number.isFinite(this.file.size) &&
+      this.file.size > WORKBENCH_FILE_PREVIEW_MAX_BYTES
+  )
+  readonly fileSizeLabel = computed(() => formatFileSize(this.file.size ?? null))
+  readonly previewSizeLimitLabel = computed(() => formatFileSize(this.filePreviewSizeLimit))
+  readonly previewSource = computed(() => (this.previewTooLarge() ? null : this.rawPreviewSource()))
   readonly previewState = createFilePreviewState(this.previewSource, loadTextPreview)
   readonly previewContent = this.previewState.content
   readonly previewData = this.previewState.previewData
-  readonly previewError = this.previewState.previewError
-  readonly previewKind = this.previewState.previewKind
-  readonly previewLoading = this.previewState.previewLoading
+  readonly previewError = computed(() => (this.previewTooLarge() ? 'file-too-large' : this.previewState.previewError()))
+  readonly previewLoading = computed(() => (this.previewTooLarge() ? false : this.previewState.previewLoading()))
   readonly spreadsheet = this.previewState.spreadsheet
 
   close() {
@@ -294,6 +355,22 @@ function normalizeEvidenceBox(box?: WorkbenchOpenFileEvidenceBox) {
     width: Math.min(clamp01(box.width), 1 - x),
     height: Math.min(clamp01(box.height), 1 - y)
   }
+}
+
+function formatFileSize(size: number | null) {
+  if (size === null || !Number.isFinite(size) || size < 0) {
+    return null
+  }
+
+  if (size < 1024) {
+    return `${size} B`
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0)} MB`
 }
 
 function clamp01(value: number) {

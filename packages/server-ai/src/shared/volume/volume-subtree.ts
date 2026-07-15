@@ -54,7 +54,7 @@ export class VolumeSubtreeClient {
         return files ?? []
     }
 
-    async readFile(scopePath: string, filePath: string): Promise<TFile> {
+    async readFile(scopePath: string, filePath: string, options?: { metadataOnly?: boolean }): Promise<TFile> {
         const subtreeRoot = this.resolveSubtreeRoot(scopePath)
         const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
         if (!relativePath) {
@@ -67,21 +67,28 @@ export class VolumeSubtreeClient {
             throw new BadRequestException('Conversation file not found')
         }
 
-        const buffer = await fsPromises.readFile(absolutePath)
         const subtreePrefix = normalizeSubtreePath(scopePath)
         const publicPath = [subtreePrefix, relativePath].filter(Boolean).join('/')
-
-        return {
+        const metadata: TFile = {
             filePath: relativePath,
             fileType: getSubtreeFileExtension(relativePath) || 'text',
             mimeType: getMediaTypeWithCharset(relativePath),
-            contents: isBinaryBuffer(buffer) ? undefined : buffer.toString('utf8'),
-            previewText: isBinaryBuffer(buffer) ? await extractOfficePreviewText(relativePath, buffer) : undefined,
             size: stat.size,
             createdAt: stat.mtime,
             updatedAt: stat.mtime,
             fileUrl: this.volume.publicUrl(publicPath),
             url: this.volume.publicUrl(publicPath)
+        }
+        if (options?.metadataOnly) {
+            return metadata
+        }
+
+        const buffer = await fsPromises.readFile(absolutePath)
+        const binary = isBinaryBuffer(buffer)
+        return {
+            ...metadata,
+            contents: binary ? undefined : buffer.toString('utf8'),
+            previewText: binary ? await extractOfficePreviewText(relativePath, buffer) : undefined
         }
     }
 
