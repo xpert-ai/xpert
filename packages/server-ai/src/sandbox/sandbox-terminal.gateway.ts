@@ -68,17 +68,9 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
             }
 
             const sessionId = randomUUID()
-            let pendingError: Error | null = null
             const session = await terminalAdapter.open({
                 cols: data.cols,
                 rows: data.rows,
-                onError: (error) => {
-                    if (!this.getSessionEntry(client.id, sessionId)) {
-                        pendingError = error
-                        return
-                    }
-                    void this.handleSessionError(client, sessionId, error)
-                },
                 onOutput: (chunk) => {
                     client.emit(SandboxTerminalServerEvent.Output, {
                         sessionId,
@@ -93,11 +85,6 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
             this.getSocketSessions(client.id).set(sessionId, {
                 session
             })
-
-            if (pendingError) {
-                await this.handleSessionError(client, sessionId, pendingError)
-                return
-            }
 
             client.emit(SandboxTerminalServerEvent.Opened, {
                 provider: resolved.provider,
@@ -195,38 +182,6 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         })
         this.emitClosed(client, {
             reason: entry.closeReason ?? SandboxTerminalClosedReason.ProcessExited,
-            sessionId
-        })
-    }
-
-    private async handleSessionError(client: Socket, sessionId: string, error: unknown): Promise<void> {
-        const sessionMap = this.#sessions.get(client.id)
-        const entry = sessionMap?.get(sessionId)
-        if (!entry) {
-            return
-        }
-
-        sessionMap.delete(sessionId)
-        if (sessionMap.size === 0) {
-            this.#sessions.delete(client.id)
-        }
-
-        try {
-            await entry.session.close()
-        } catch (closeError) {
-            this.#logger.warn(
-                `Failed to close sandbox terminal session ${sessionId} after terminal error: ${
-                    this.normalizeError(closeError, SandboxTerminalErrorCode.CloseFailed).message
-                }`
-            )
-        }
-
-        this.emitError(client, {
-            ...this.normalizeError(error, SandboxTerminalErrorCode.ProviderUnavailable),
-            sessionId
-        })
-        this.emitClosed(client, {
-            reason: SandboxTerminalClosedReason.Error,
             sessionId
         })
     }

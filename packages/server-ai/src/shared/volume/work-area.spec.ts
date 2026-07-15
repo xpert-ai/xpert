@@ -94,23 +94,6 @@ describe('XpertWorkAreaResolver', () => {
         expect(workArea.agentPath?.workspacePath).toBe('/workspace/agents/xpert-1')
         expect(workArea.sessionPath?.workspacePath).toBe('/workspace/sessions/conversation-1')
     })
-
-    it('maps nsjail sandboxes through the shared container workspace contract', async () => {
-        const workArea = await resolver.resolve({
-            tenantId: 'tenant-1',
-            userId: 'user-1',
-            xpertId: 'xpert-1',
-            projectId: 'project-1',
-            conversationId: 'conversation-1',
-            provider: 'nsjail'
-        })
-
-        expect(workArea.workspaceRoot).toBe('/workspace')
-        expect(workArea.workingDirectory).toBe('/workspace')
-        expect(workArea.workspaceBinding.volumeRoot).toBe(tempRoot)
-        expect(workArea.workspaceBinding.bindSource).toBe(tempRoot)
-        expect(workArea.sessionPath?.workspacePath).toBe('/workspace/sessions/conversation-1')
-    })
 })
 
 describe('KnowledgeWorkAreaResolver', () => {
@@ -205,7 +188,7 @@ function createWorkspaceMappers() {
             options?: { serverPath?: string }
         ) {
             const serverPath = options?.serverPath === undefined ? volume.serverRoot : volume.path(options.serverPath)
-            if (provider === 'test-container-runtime' || provider === 'nsjail') {
+            if (provider === 'test-container-runtime') {
                 const relativePath = path.relative(volume.serverRoot, serverPath).replace(/\\/g, '/')
                 return {
                     bindSource: volume.hostRoot,
