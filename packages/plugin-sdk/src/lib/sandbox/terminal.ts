@@ -9,6 +9,8 @@ export type SandboxTerminalExit = {
 export type SandboxTerminalOpenOptions = {
   cols: number
   rows: number
+  /** Reports terminal transport or provider failures separately from process exit. */
+  onError?: (error: Error) => void
   onExit: (event: SandboxTerminalExit) => void
   onOutput: (data: string) => void
 }

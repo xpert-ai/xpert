@@ -292,6 +292,16 @@ export class ChatSharedTerminalComponent {
         this.statusMessage.set('Terminal connection lost. Reconnecting will start a new session.')
       })
     )
+    this.#socketSubscription.add(
+      this.#sandboxTerminalSocketService.connectionError$.subscribe((message) => {
+        this.#sessionId = null
+        this.#terminalOpenRequestId = null
+        this.setTerminalInteractivity(false)
+        this.status.set('error')
+        this.statusMessage.set(message)
+        this.#terminal?.writeln(`[${message}]`)
+      })
+    )
 
     this.status.set('connecting')
     this.statusMessage.set(null)

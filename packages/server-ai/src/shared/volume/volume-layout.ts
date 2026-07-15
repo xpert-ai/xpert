@@ -9,8 +9,12 @@ export function getLocalSandboxDataRoot() {
     return path.join(homeDir, 'data')
 }
 
+function getConfiguredSandboxVolume() {
+    return environment.sandboxConfig?.volume?.trim() || process.env.SANDBOX_VOLUME?.trim() || ''
+}
+
 function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
-    const configuredRoot = environment.sandboxConfig?.volume?.trim()
+    const configuredRoot = getConfiguredSandboxVolume()
     if (!configuredRoot) {
         return null
     }
@@ -20,7 +24,7 @@ function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
 }
 
 export function hasConfiguredSandboxVolume() {
-    return Boolean(environment.sandboxConfig?.volume?.trim())
+    return Boolean(getConfiguredSandboxVolume())
 }
 
 export function usesFlattenedSandboxVolumeLayout() {

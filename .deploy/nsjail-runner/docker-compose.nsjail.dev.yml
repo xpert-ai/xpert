@@ -1,0 +1,16 @@
+# Host-development override for an API started outside Docker.
+services:
+  nsjail-runner:
+    environment:
+      XPERT_NSJAIL_USE_CGROUP_V2: ${XPERT_NSJAIL_USE_CGROUP_V2:-false}
+      XPERT_NSJAIL_WORKSPACE_ROOT: ${SANDBOX_VOLUME:?Set SANDBOX_VOLUME for host development}
+    ports:
+      - '127.0.0.1:8090:8090'
+    volumes:
+      - type: bind
+        source: ${SANDBOX_VOLUME:?Set SANDBOX_VOLUME for host development}
+        target: ${SANDBOX_VOLUME:?Set SANDBOX_VOLUME for host development}
+
+networks:
+  nsjail-control:
+    internal: false
