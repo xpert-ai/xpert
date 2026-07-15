@@ -1,4 +1,5 @@
 import {
+    SandboxTerminalClientEvent,
     SandboxTerminalClosedReason,
     SandboxTerminalErrorCode,
     SandboxTerminalServerEvent
@@ -142,52 +143,6 @@ describe('SandboxTerminalGateway', () => {
             reason: SandboxTerminalClosedReason.UnsupportedProvider,
             requestId: 'request-unsupported'
         })
-    })
-
-    it('forwards terminal transport errors instead of reporting a normal process exit', async () => {
-        let openOptions: SandboxTerminalOpenOptions | null = null
-        const session = { close: jest.fn(), resize: jest.fn(), write: jest.fn() }
-        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
-            provider: 'nsjail',
-            sandbox: {
-                backend: {
-                    open: jest.fn((options: SandboxTerminalOpenOptions) => {
-                        openOptions = options
-                        return session
-                    })
-                }
-            },
-            workingDirectory: '/workspace'
-        })
-
-        await gateway.open(
-            {
-                cols: 80,
-                conversationId: 'conversation-1',
-                requestId: 'request-error',
-                rows: 24
-            },
-            client as unknown as Socket
-        )
-        const sessionId = findEmitPayload(client.emit, SandboxTerminalServerEvent.Opened)?.sessionId
-
-        openOptions?.onError?.(new Error('NsJail Runner authentication failed'))
-        await Promise.resolve()
-
-        expect(client.emit).toHaveBeenCalledWith(SandboxTerminalServerEvent.Error, {
-            code: SandboxTerminalErrorCode.ProviderUnavailable,
-            message: 'NsJail Runner authentication failed',
-            sessionId
-        })
-        expect(client.emit).toHaveBeenCalledWith(SandboxTerminalServerEvent.Closed, {
-            reason: SandboxTerminalClosedReason.Error,
-            sessionId
-        })
-        expect(client.emit).not.toHaveBeenCalledWith(
-            SandboxTerminalServerEvent.Exit,
-            expect.objectContaining({ sessionId })
-        )
-        expect(session.close).toHaveBeenCalledTimes(1)
     })
 
     it('closes sessions explicitly and on socket disconnect', async () => {

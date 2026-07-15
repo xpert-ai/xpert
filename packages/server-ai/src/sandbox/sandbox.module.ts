@@ -34,7 +34,6 @@ import { SandboxJobCapabilityRegistrationService } from './sandbox-job/sandbox-j
 import { LocalBrowserRuntimeProvider } from './sandbox-job/local-browser-runtime.provider'
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { VolumeModule } from '../shared/volume'
-import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
 
 // Local Browser Runtime is source-checkout tooling, never a production fallback.
 const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment() ? [LocalBrowserRuntimeProvider] : []
@@ -71,8 +70,6 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxJobCapacityService,
         SandboxJobRuntimeCapabilityService,
         SandboxJobCapabilityRegistrationService,
-        NsjailSandboxProvider,
-        NsjailWorkspacePathMapper,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware,
@@ -91,8 +88,6 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxRuntimeBindingSelector,
         SandboxRuntimeHealthService,
         SandboxActionRegistry,
-        NsjailSandboxProvider,
-        NsjailWorkspacePathMapper,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware

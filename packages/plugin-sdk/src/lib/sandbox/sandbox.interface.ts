@@ -1,5 +1,5 @@
 import { TSandboxProviderMeta, TSandboxWorkForType } from '@xpert-ai/contracts'
-import { MaybePromise, SandboxBackendProtocol } from './protocol'
+import { SandboxBackendProtocol } from './protocol'
 
 export type SandboxWorkspaceBinding = {
   /**
@@ -75,12 +75,6 @@ export interface ISandboxProvider<T extends SandboxBackendProtocol = SandboxBack
   type: string
 
   meta: TSandboxProviderMeta
-
-  /**
-   * Whether this provider is currently available in this deployment.
-   * Providers without an availability hook remain available for backward compatibility.
-   */
-  isAvailable?(): MaybePromise<boolean>
 
   /**
    * Create a new sandbox instance

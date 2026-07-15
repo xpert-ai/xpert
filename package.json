@@ -35,8 +35,6 @@
     "start:olap": "pnpm -C ./packages/olap start",
     "start:api": "pnpm b:p:all && pnpm nx serve api",
     "start:api:dev": "nodemon",
-    "start:nsjail:dev": "docker compose -f docker-compose.yml -f .deploy/nsjail-runner/docker-compose.nsjail.yml -f .deploy/nsjail-runner/docker-compose.nsjail.dev.yml up -d --build --no-deps nsjail-runner",
-    "test:nsjail-runner": "python3 .deploy/nsjail-runner/test_runner.py",
     "start:api:debug": "nodemon --config nodemon-debug.json",
     "start:analytics:debug": "pnpm -C ./packages/analytics start:debug",
     "start:docs": "pnpm -C ./docs dev",

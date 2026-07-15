@@ -5,7 +5,6 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { Injectable } from '@nestjs/common'
-import { t } from 'i18next'
 import {
     appendSandboxMessage,
     BaseSandbox,
@@ -384,26 +383,8 @@ function readLogTail(filePath: string, maxLines: number): string {
         .trim()
 }
 
-const MAX_SERVICE_READY_TEXT_BYTES = 4096
-
-function normalizeServiceReadyText(value: string | null | undefined): string | null {
-    if (!isNonEmptyString(value)) {
-        return null
-    }
-    if (Buffer.byteLength(value, 'utf8') > MAX_SERVICE_READY_TEXT_BYTES) {
-        const fallbackMessage = `Service readiness text must not exceed ${MAX_SERVICE_READY_TEXT_BYTES} UTF-8 bytes.`
-        throw new Error(
-            t('server-ai:Error.SandboxServiceReadyTextTooLarge', {
-                defaultValue: fallbackMessage,
-                maxBytes: MAX_SERVICE_READY_TEXT_BYTES
-            }) || fallbackMessage
-        )
-    }
-    return value
-}
-
-function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyText: string): boolean {
-    return `${readLogTail(logPaths.stdoutPath, 200)}\n${readLogTail(logPaths.stderrPath, 200)}`.includes(readyText)
+function doesServiceLogMatch(logPaths: ManagedServiceLogPaths, readyPattern: RegExp): boolean {
+    return readyPattern.test(`${readLogTail(logPaths.stdoutPath, 200)}\n${readLogTail(logPaths.stderrPath, 200)}`)
 }
 
 function waitForPort(port: number, timeoutMs: number): Promise<void> {
@@ -593,7 +574,6 @@ export class LocalShellSandbox
 
     async startService(options: SandboxManagedServiceStartOptions): Promise<SandboxManagedServiceStartResult> {
         const cwd = path.resolve(options.cwd || this.workingDirectory)
-        const readyText = normalizeServiceReadyText(options.readyPattern)
         if (options.port) {
             await ensurePortIsAvailable(options.port)
         }
@@ -693,7 +673,7 @@ export class LocalShellSandbox
                 logPaths,
                 port: options.port ?? null,
                 processId: child.pid,
-                readyPattern: readyText
+                readyPattern: options.readyPattern ?? null
             })
         } catch (error) {
             try {
@@ -937,7 +917,7 @@ export class LocalShellSandbox
         processId?: number
         readyPattern?: string | null
     }): Promise<void> {
-        const readyText = normalizeServiceReadyText(params.readyPattern)
+        const readyRegex = isNonEmptyString(params.readyPattern) ? new RegExp(params.readyPattern) : null
         const deadline = Date.now() + 30_000
 
         while (Date.now() < deadline) {
@@ -950,11 +930,11 @@ export class LocalShellSandbox
                 }
             }
 
-            if (readyText && doesServiceLogMatch(params.logPaths, readyText)) {
+            if (readyRegex && doesServiceLogMatch(params.logPaths, readyRegex)) {
                 return
             }
 
-            if (!params.port && !readyText) {
+            if (!params.port && !readyRegex) {
                 await sleep(300)
                 if (params.processId) {
                     try {
@@ -1254,23 +1234,7 @@ export class LocalShellSandboxProvider implements ISandboxProvider<LocalShellSan
         }
     }
 
-    isAvailable(): boolean {
-        if (process.env.NODE_ENV !== 'production') {
-            return true
-        }
-        return !process.env.NSJAIL_RUNNER_URL?.trim() && !process.env.NSJAIL_RUNNER_TOKEN?.trim()
-    }
-
     async create(options?: SandboxProviderCreateOptions): Promise<LocalShellSandbox> {
-        if (!this.isAvailable()) {
-            const fallbackMessage = 'Sandbox provider is unavailable: ' + this.type
-            throw new Error(
-                t('server-ai:Error.SandboxProviderUnavailable', {
-                    defaultValue: fallbackMessage,
-                    provider: this.type
-                }) || fallbackMessage
-            )
-        }
         if (options?.workFor.type === 'job' && process.env.NODE_ENV === 'production') {
             throw new Error('Local Shell Sandbox Jobs are disabled in production.')
         }

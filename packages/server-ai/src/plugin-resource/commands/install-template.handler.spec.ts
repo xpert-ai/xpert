@@ -214,8 +214,8 @@ describe('PluginTemplateInstallHandler', () => {
 
     it('replaces an unavailable template sandbox provider with the first available provider', async () => {
         const { handler, commandBus } = createHandler({
-            templateDsl: createSandboxTemplateDsl('local-shell-sandbox'),
-            sandboxProviders: [{ type: 'nsjail' }]
+            templateDsl: createSandboxTemplateDsl('docker-sandbox'),
+            sandboxProviders: [{ type: 'local-shell-sandbox' }]
         })
 
         await handler.execute(
@@ -232,7 +232,7 @@ describe('PluginTemplateInstallHandler', () => {
         }
         expect(importCommand.draft.team?.features?.sandbox).toEqual({
             enabled: true,
-            provider: 'nsjail'
+            provider: 'local-shell-sandbox'
         })
     })
 

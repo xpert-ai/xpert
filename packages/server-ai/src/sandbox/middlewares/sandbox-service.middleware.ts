@@ -34,13 +34,7 @@ const serviceStartToolSchema = z.object({
   name: z.string().min(1, 'Service name is required.'),
   port: z.number().int().positive().optional(),
   previewPath: z.string().min(1).optional(),
-  readyPattern: z
-    .string()
-    .min(1)
-    .max(4096)
-    .refine((value) => Buffer.byteLength(value, 'utf8') <= 4096, 'Readiness text must not exceed 4096 UTF-8 bytes.')
-    .describe('Literal text that must appear in stdout or stderr before the service is considered ready.')
-    .optional(),
+  readyPattern: z.string().min(1).optional(),
   replaceExisting: z.boolean().optional()
 })
 
