@@ -45,72 +45,41 @@ export class SandboxTerminalSocketService {
   readonly disconnected$ = this.#disconnected$.asObservable().pipe(distinctUntilChanged())
   readonly refreshTokening = signal(false)
   readonly #events = new Subject<SandboxTerminalServerMessage>()
+  readonly #connectionErrors = new Subject<string>()
+  readonly connectionError$ = this.#connectionErrors.asObservable()
+  #connectingSocket: Socket | null = null
 
   connect() {
-    if (!this.socket || this.socket.disconnected || !this.#connected$.value) {
-      this.socket = io(`${getWebSocketUrl(environment.API_BASE_URL)}/${SANDBOX_TERMINAL_NAMESPACE}`, {
-        auth: (cb: (params: { token: string }) => void) => {
-          cb({ token: this.#store.token })
-        }
-      })
-
-      let socketId = this.socket.id
-      this.socket.on('connect', () => {
-        socketId = this.socket?.id
-        this.setStatus(true)
-      })
-
-      this.socket.on('exception', (data: { status?: number }) => {
-        if (data?.status === 401 && socketId === this.socket?.id) {
-          this.setStatus(false)
-          if (!this.refreshTokening()) {
-            this.refreshToken()
-          }
-        }
-      })
-
-      this.socket.on('disconnect', () => {
-        this.setStatus(false)
-      })
-
-      this.socket.on(SandboxTerminalServerEvent.Opened, (data: SandboxTerminalOpenedEvent) => {
-        this.#events.next({
-          data,
-          event: SandboxTerminalServerEvent.Opened
-        })
-      })
-      this.socket.on(SandboxTerminalServerEvent.Output, (data: SandboxTerminalOutputEvent) => {
-        this.#events.next({
-          data,
-          event: SandboxTerminalServerEvent.Output
-        })
-      })
-      this.socket.on(SandboxTerminalServerEvent.Exit, (data: SandboxTerminalExitEvent) => {
-        this.#events.next({
-          data,
-          event: SandboxTerminalServerEvent.Exit
-        })
-      })
-      this.socket.on(SandboxTerminalServerEvent.Error, (data: SandboxTerminalErrorEvent) => {
-        this.#events.next({
-          data,
-          event: SandboxTerminalServerEvent.Error
-        })
-      })
-      this.socket.on(SandboxTerminalServerEvent.Closed, (data: SandboxTerminalClosedEvent) => {
-        this.#events.next({
-          data,
-          event: SandboxTerminalServerEvent.Closed
-        })
-      })
+    const currentSocket = this.socket
+    if (
+      currentSocket &&
+      (currentSocket.connected || currentSocket.active || this.#connectingSocket === currentSocket)
+    ) {
+      return currentSocket
     }
 
-    return this.socket
+    if (currentSocket) {
+      this.releaseSocket(currentSocket)
+    }
+
+    const socket = io(`${getWebSocketUrl(environment.API_BASE_URL)}/${SANDBOX_TERMINAL_NAMESPACE}`, {
+      auth: (cb: (params: { token: string }) => void) => {
+        cb({ token: this.#store.token })
+      },
+      transports: ['websocket']
+    })
+    this.socket = socket
+    this.#connectingSocket = socket
+    this.bindSocket(socket)
+
+    return socket
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.disconnect()
+    const socket = this.socket
+    if (socket) {
+      this.releaseSocket(socket)
+      this.setStatus(false)
     }
   }
 
@@ -164,6 +133,106 @@ export class SandboxTerminalSocketService {
     const socket = this.connect()
     socket?.emit(message.event, message.data)
   }
+
+  private bindSocket(socket: Socket) {
+    socket.on('connect', () => {
+      if (!this.isCurrentSocket(socket)) {
+        return
+      }
+
+      this.#connectingSocket = null
+      this.setStatus(true)
+    })
+
+    socket.on('exception', (data: { status?: number }) => {
+      if (!this.isCurrentSocket(socket) || data?.status !== 401) {
+        return
+      }
+
+      this.setStatus(false)
+      this.releaseSocket(socket)
+      if (!this.refreshTokening()) {
+        this.refreshToken()
+      }
+    })
+
+    socket.on('disconnect', () => {
+      if (!this.isCurrentSocket(socket)) {
+        return
+      }
+
+      this.#connectingSocket = socket.active ? socket : null
+      this.setStatus(false)
+    })
+
+    socket.on('connect_error', (error: Error) => {
+      if (!this.isCurrentSocket(socket)) {
+        return
+      }
+
+      this.#connectingSocket = socket.active ? socket : null
+      this.setStatus(false)
+      this.#connectionErrors.next(error.message || 'Failed to connect to the terminal service.')
+    })
+
+    socket.on(SandboxTerminalServerEvent.Opened, (data: SandboxTerminalOpenedEvent) => {
+      if (this.isCurrentSocket(socket)) {
+        this.#events.next({
+          data,
+          event: SandboxTerminalServerEvent.Opened
+        })
+      }
+    })
+    socket.on(SandboxTerminalServerEvent.Output, (data: SandboxTerminalOutputEvent) => {
+      if (this.isCurrentSocket(socket)) {
+        this.#events.next({
+          data,
+          event: SandboxTerminalServerEvent.Output
+        })
+      }
+    })
+    socket.on(SandboxTerminalServerEvent.Exit, (data: SandboxTerminalExitEvent) => {
+      if (this.isCurrentSocket(socket)) {
+        this.#events.next({
+          data,
+          event: SandboxTerminalServerEvent.Exit
+        })
+      }
+    })
+    socket.on(SandboxTerminalServerEvent.Error, (data: SandboxTerminalErrorEvent) => {
+      if (this.isCurrentSocket(socket)) {
+        this.#events.next({
+          data,
+          event: SandboxTerminalServerEvent.Error
+        })
+      }
+    })
+    socket.on(SandboxTerminalServerEvent.Closed, (data: SandboxTerminalClosedEvent) => {
+      if (this.isCurrentSocket(socket)) {
+        this.#events.next({
+          data,
+          event: SandboxTerminalServerEvent.Closed
+        })
+      }
+    })
+  }
+
+  private isCurrentSocket(socket: Socket) {
+    return this.socket === socket
+  }
+
+  private releaseSocket(socket: Socket) {
+    if (this.socket === socket) {
+      this.socket = null
+    }
+    if (this.#connectingSocket === socket) {
+      this.#connectingSocket = null
+    }
+
+    socket.removeAllListeners()
+    socket.disconnect()
+  }
+
   private setStatus(status: boolean) {
     this.#connected$.next(status)
     this.#disconnected$.next(!status)

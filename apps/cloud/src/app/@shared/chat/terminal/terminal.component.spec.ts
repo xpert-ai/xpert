@@ -17,9 +17,9 @@ class MockTerminal {
     mockTerminalInstances.push(this)
   }
 
-  loadAddon(): void {}
+  readonly loadAddon = jest.fn()
 
-  open(): void {}
+  readonly open = jest.fn()
 
   write(data: string): void {
     this.writes.push(data)
@@ -29,9 +29,9 @@ class MockTerminal {
     this.writes.push(`${data}\n`)
   }
 
-  focus(): void {}
+  readonly focus = jest.fn()
 
-  dispose(): void {}
+  readonly dispose = jest.fn()
 
   onData(callback: (data: string) => void) {
     this.#onData = callback
@@ -73,6 +73,10 @@ jest.mock('@xterm/addon-fit', () => ({
   FitAddon: MockFitAddon
 }))
 
+jest.mock('echarts/core', () => ({
+  registerTheme: jest.fn()
+}))
+
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
@@ -85,9 +89,11 @@ import { ChatSharedTerminalComponent } from './terminal.component'
 
 describe('ChatSharedTerminalComponent', () => {
   let messages$: Subject<unknown>
+  let connectionErrors$: Subject<string>
   let sandboxTerminalSocketService: {
     close: jest.Mock
     connect: jest.Mock
+    connectionError$: Subject<string>
     connected$: BehaviorSubject<boolean>
     disconnected$: Subject<boolean>
     input: jest.Mock
@@ -108,12 +114,14 @@ describe('ChatSharedTerminalComponent', () => {
     globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
     messages$ = new Subject()
+    connectionErrors$ = new Subject()
     sandboxTerminalSocketService = {
       close: jest.fn(),
       connect: jest.fn(() => {
         sandboxTerminalSocketService.connected$.next(true)
         return null
       }),
+      connectionError$: connectionErrors$,
       connected$: new BehaviorSubject<boolean>(false),
       disconnected$: new Subject<boolean>(),
       input: jest.fn(),
@@ -302,5 +310,53 @@ describe('ChatSharedTerminalComponent', () => {
 
     expect(toastr.error).toHaveBeenCalledWith('Sandbox provider "demo" does not support terminal sessions.')
     expect(fixture.nativeElement.textContent).toContain('Unsupported provider')
+  })
+
+  it('shows socket connection errors instead of staying in the connecting state', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    connectionErrors$.next('xhr poll error')
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('error')
+    expect(fixture.nativeElement.textContent).toContain('xhr poll error')
+    expect(mockTerminalInstances[0].writes.join('')).toContain('[xhr poll error]')
+  })
+
+  it('recovers from a socket connection error after reconnecting and opening a session', async () => {
+    const fixture = TestBed.createComponent(ChatSharedTerminalComponent)
+    fixture.componentRef.setInput('mode', 'interactive')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    connectionErrors$.next('temporary connection failure')
+    expect(fixture.componentInstance.status()).toBe('error')
+
+    sandboxTerminalSocketService.connected$.next(true)
+    const openRequest = sandboxTerminalSocketService.open.mock.calls.at(-1)?.[0] as {
+      requestId: string
+    }
+    messages$.next({
+      event: SandboxTerminalServerEvent.Opened,
+      data: {
+        provider: 'nsjail',
+        requestId: openRequest.requestId,
+        sessionId: 'session-recovered',
+        workingDirectory: '/workspace'
+      }
+    })
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.status()).toBe('connected')
+    expect(fixture.componentInstance.statusMessage()).toBeNull()
+    expect(mockTerminalInstances[0].options.disableStdin).toBe(false)
+    expect(mockTerminalInstances[0].focus).toHaveBeenCalled()
   })
 })

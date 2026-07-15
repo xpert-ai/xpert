@@ -29,6 +29,7 @@ import { SandboxJobCapacityService } from './sandbox-job/sandbox-job-capacity.se
 import { SandboxJobCapabilityRegistrationService } from './sandbox-job/sandbox-job-capability-registration.service'
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { VolumeModule } from '../shared/volume'
+import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
 
 @Module({
     imports: [
@@ -61,6 +62,8 @@ import { VolumeModule } from '../shared/volume'
         SandboxJobCapacityService,
         SandboxJobRuntimeCapabilityService,
         SandboxJobCapabilityRegistrationService,
+        NsjailSandboxProvider,
+        NsjailWorkspacePathMapper,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware,
@@ -78,6 +81,8 @@ import { VolumeModule } from '../shared/volume'
         SandboxRuntimeBindingSelector,
         SandboxRuntimeHealthService,
         SandboxActionRegistry,
+        NsjailSandboxProvider,
+        NsjailWorkspacePathMapper,
         SandboxFileMiddleware,
         SandboxServiceMiddleware,
         SandboxShellMiddleware

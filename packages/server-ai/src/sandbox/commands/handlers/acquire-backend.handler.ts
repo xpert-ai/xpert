@@ -1,6 +1,7 @@
 import { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SandboxProviderCreateOptions, SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { SandboxAcquireBackendCommand } from '../acquire-backend.command'
 
 type SandboxInstance = {
@@ -38,6 +39,15 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
         }
 
         const providerInstance = this.registry.get(provider)
+        if (providerInstance.isAvailable && !(await providerInstance.isAvailable())) {
+            const fallbackMessage = 'Sandbox provider is unavailable: ' + provider
+            throw new Error(
+                t('server-ai:Error.SandboxProviderUnavailable', {
+                    defaultValue: fallbackMessage,
+                    provider
+                }) || fallbackMessage
+            )
+        }
         const backend = await providerInstance.create({
             environmentId,
             tenantId,

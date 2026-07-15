@@ -154,6 +154,26 @@ describe('SandboxServiceMiddleware', () => {
     )
   })
 
+  it('rejects readiness text over 4096 UTF-8 bytes before dispatching a command', async () => {
+    const tool = await createTool('sandbox_service_start')
+
+    await expect(
+      tool.invoke(
+        {
+          command: 'npm run dev',
+          name: 'web',
+          readyPattern: '测'.repeat(1366)
+        },
+        {
+          configurable: {
+            thread_id: 'thread-1'
+          }
+        }
+      )
+    ).rejects.toThrow('Received tool input did not match expected schema')
+    expect(commandBus.execute).not.toHaveBeenCalled()
+  })
+
   it('stringifies managed service command results', async () => {
     commandBus.execute.mockResolvedValue({
       serviceId: 'service-1',
