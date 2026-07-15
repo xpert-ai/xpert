@@ -116,6 +116,7 @@ jobs:
           docker run --detach \
             --name xpert-nsjail-runner-ci \
             --privileged \
+            --cgroupns=host \
             --security-opt apparmor=unconfined \
             --env XPERT_NSJAIL_RUNNER_TOKEN="$token" \
             --env XPERT_NSJAIL_MEMORY_BYTES=134217728 \

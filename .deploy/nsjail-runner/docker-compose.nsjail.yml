@@ -17,6 +17,7 @@ services:
         NSJAIL_COMMIT: f78475530b46d0186111a9096b30725f816b55fe
         NSJAIL_VERSION: 3.6
     privileged: true
+    cgroup: host
     security_opt:
       - apparmor=unconfined
     environment:
