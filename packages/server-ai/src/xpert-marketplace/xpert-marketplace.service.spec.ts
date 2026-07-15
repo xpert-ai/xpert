@@ -2,9 +2,13 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
-import { ForbiddenException } from '@nestjs/common'
+import { ForbiddenException, Logger } from '@nestjs/common'
 import {
+    LanguagesEnum,
     RolesEnum,
+    type TXpertMarketplaceBusinessCategory,
+    type TXpertMarketplaceCollaborationMode,
+    type TXpertMarketplaceTechnicalCategory,
     UserGroupManagedByEnum,
     UserGroupManagedEntityTypeEnum,
     XpertAccessRequestStatusEnum,
@@ -36,6 +40,31 @@ function createDiscoverableXpert(overrides: Partial<Xpert> = {}) {
         userGroups: [],
         ...overrides
     } as Xpert
+}
+
+function createCategorizedXpert(
+    id: string,
+    businessCategory: TXpertMarketplaceBusinessCategory,
+    collaborationMode: TXpertMarketplaceCollaborationMode,
+    technicalCategory: TXpertMarketplaceTechnicalCategory
+) {
+    return createDiscoverableXpert({
+        id,
+        marketplace: {
+            businessCategories: [businessCategory],
+            collaborationModes: [collaborationMode],
+            technical: {
+                agentCount: 1,
+                toolsetCount: 0,
+                knowledgebaseCount: 0,
+                externalXpertCount: 0,
+                workflowNodeCount: 0,
+                workflowNodeTypes: [],
+                categories: [technicalCategory],
+                collaborationModes: [collaborationMode]
+            }
+        }
+    })
 }
 
 function createRequest(overrides: Partial<XpertAccessRequest> = {}) {
@@ -80,6 +109,7 @@ function createDiscoverableQueryBuilder(xpert: Xpert | null = createDiscoverable
 
 function createService(options?: {
     xpert?: Xpert | null
+    xperts?: Xpert[]
     existingRequest?: XpertAccessRequest | null
     decisionRequest?: XpertAccessRequest | null
     reviewableRequests?: XpertAccessRequest[]
@@ -88,6 +118,9 @@ function createService(options?: {
     canManageWorkspace?: boolean
 }) {
     const queryBuilder = createDiscoverableQueryBuilder(options?.xpert)
+    if (options?.xperts) {
+        queryBuilder.getMany.mockResolvedValue(options.xperts)
+    }
     const requestQueryBuilder = {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
@@ -143,13 +176,26 @@ function createService(options?: {
             canManage
         }
     })
+    const xpertTemplateService = {
+        getMarketplaceRecommendedTemplates: jest
+            .fn()
+            .mockResolvedValue(
+                [
+                    '@xpert-ai/plugin-sites:sites-builder-assistant',
+                    '@xpert-ai/plugin-docx-editor:docx-editor-assistant',
+                    'xpert--client-browser-automation-tools',
+                    '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant'
+                ].map((id) => ({ id }))
+            )
+    }
 
     const service = new XpertMarketplaceService(
         asRepository<Xpert>(xpertRepository),
         asRepository<XpertAccessRequest>(requestRepository),
         asRepository<UserGroup>(userGroupRepository),
         asRepository<User>(userRepository),
-        workspaceAccessService
+        workspaceAccessService,
+        xpertTemplateService as never
     )
 
     return {
@@ -161,6 +207,7 @@ function createService(options?: {
         userGroupRepository,
         userRepository,
         workspaceAccessService,
+        xpertTemplateService,
         createdGroup
     }
 }
@@ -182,6 +229,72 @@ describe('XpertMarketplaceService', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('returns configured agent templates in order without replacing published agents', async () => {
+        const xperts = [createDiscoverableXpert({ id: 'published-agent', marketplace: { featured: true } })]
+        const { service, xpertTemplateService } = createService({ xperts })
+
+        const result = await service.findMarketplace({ sort: 'match' }, LanguagesEnum.SimplifiedChinese)
+
+        expect(result.items.map((item) => item.xpert.id)).toEqual(['published-agent'])
+        expect(result.recommendedTemplates.map((item) => item.id)).toEqual([
+            '@xpert-ai/plugin-sites:sites-builder-assistant',
+            '@xpert-ai/plugin-docx-editor:docx-editor-assistant',
+            'xpert--client-browser-automation-tools',
+            '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant'
+        ])
+        expect(xpertTemplateService.getMarketplaceRecommendedTemplates).toHaveBeenCalledWith(
+            LanguagesEnum.SimplifiedChinese
+        )
+    })
+
+    it('preserves the requested marketplace page when recommended templates fail to load', async () => {
+        const error = new Error('template catalog unavailable')
+        const loggerSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined)
+        const xperts = [
+            createDiscoverableXpert({ id: 'agent-1' }),
+            createDiscoverableXpert({ id: 'agent-2' }),
+            createDiscoverableXpert({ id: 'agent-3' })
+        ]
+        const { service, xpertTemplateService } = createService({ xperts })
+        xpertTemplateService.getMarketplaceRecommendedTemplates.mockRejectedValueOnce(error)
+
+        const result = await service.findMarketplace({ skip: 1, take: 1 }, LanguagesEnum.English)
+
+        expect(result.items.map((item) => item.xpert.id)).toEqual(['agent-2'])
+        expect(result.items).toHaveLength(1)
+        expect(result.total).toBe(3)
+        expect(result.recommendedTemplates).toEqual([])
+        expect(loggerSpy).toHaveBeenCalledWith(
+            "Failed to load Xpert marketplace recommended templates for language 'en': template catalog unavailable",
+            error.stack
+        )
+    })
+
+    it('matches any selected value within a filter group and requires every active group to match', async () => {
+        const xperts = [
+            createCategorizedXpert('featured-agent', 'featured', 'single-agent', 'knowledge-retrieval'),
+            createCategorizedXpert('sales-agent', 'sales', 'multi-agent', 'tool-calling'),
+            createCategorizedXpert('finance-agent', 'finance', 'multi-agent', 'tool-calling')
+        ]
+        const { service } = createService({ xperts })
+
+        const sameGroup = await service.findMarketplace(
+            { businessCategories: ['featured', 'sales'] },
+            LanguagesEnum.English
+        )
+        expect(sameGroup.items.map((item) => item.xpert.id).sort()).toEqual(['featured-agent', 'sales-agent'])
+
+        const acrossGroups = await service.findMarketplace(
+            {
+                businessCategories: ['featured', 'sales'],
+                collaborationModes: ['multi-agent'],
+                technicalCategories: ['tool-calling', 'database']
+            },
+            LanguagesEnum.English
+        )
+        expect(acrossGroups.items.map((item) => item.xpert.id)).toEqual(['sales-agent'])
     })
 
     it('returns the existing requested access request instead of creating a duplicate', async () => {

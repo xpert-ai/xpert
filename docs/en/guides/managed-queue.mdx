@@ -221,16 +221,14 @@ For WeChat, new code no longer consumes `plugin_wechat:plugin_wechat_outbound` o
 
 ## Operations
 
-Normal API deployments need no queue autorun configuration. Pool selection follows the process role:
+Normal API deployments need no queue autorun configuration. Every API process consumes both the `default` and `sandbox-browser` logical pools. The browser pool is physically separate and defaults to concurrency one so browser-heavy work cannot occupy the normal job pool.
 
-- Development and production API: consume `default` only.
-- `XPERT_PROCESS_ROLE=sandbox-browser-worker`: consumes `sandbox-browser` only.
-
-The OSS Compose distribution does not instantiate the browser role. A concrete Sandbox Runtime Provider distribution owns that worker deployment; Xpert Pro supplies it through the private Docker Provider overlay. `bootstrapWorker()` remains in `@xpert-ai/xpert-api` as the public platform assembly point.
+In source development, the API can execute browser jobs through the built-in `local-browser-runtime`. OSS production keeps consuming the queue but deliberately registers no production Runtime Provider, so capability health reports `RUNTIME_UNBOUND` and Presentation Studio does not enqueue PDF/PPTX work. Xpert Pro registers both the interactive `DockerSandboxProvider` and the separate `DockerSandboxRuntimeProvider` in the API process; the two strategies share only the low-level Docker engine adapter.
 
 `getExecutionPoolHealth({ executionPool })` reports active BullMQ worker count so plugins can warn before accepting work. Advanced overrides remain available for tests or unusual deployments:
 
 - `MANAGED_QUEUE_CONCURRENCY`: platform physical worker concurrency.
+- `MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY`: browser-pool concurrency; defaults to one in the API process.
 - `MANAGED_QUEUE_AUTORUN=false`: prevents worker autorun for tests or special deployments.
 
 Plugins should not configure BullMQ connections directly. Redis is provided by the platform.

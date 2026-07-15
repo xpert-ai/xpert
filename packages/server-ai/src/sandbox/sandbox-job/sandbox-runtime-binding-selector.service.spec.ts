@@ -67,6 +67,46 @@ describe('SandboxRuntimeBindingSelector', () => {
             reason: 'RUNTIME_UNBOUND'
         })
     })
+
+    it('allows an explicitly development-only process Binding during local development', async () => {
+        process.env.NODE_ENV = 'development'
+        const localBinding = { ...binding('local', 'local-browser-runtime', 10_000), developmentOnly: true as const }
+        const local = provider('local-browser-runtime', [localBinding])
+        local.capabilities = {
+            isolation: 'process',
+            ephemeral: true,
+            resourceLimits: false,
+            networkPolicy: false,
+            readOnlyRootFilesystem: false
+        }
+
+        await expect(createSelector([local]).require(definition)).resolves.toMatchObject({
+            provider: { type: 'local-browser-runtime' },
+            binding: { id: 'local', developmentOnly: true }
+        })
+    })
+
+    it('rejects a development-only Binding in production even when its Provider is present', async () => {
+        process.env.NODE_ENV = 'production'
+        const localBinding = { ...binding('local', 'local-browser-runtime', 0), developmentOnly: true as const }
+
+        await expect(
+            createSelector([provider('local-browser-runtime', [localBinding])]).inspect(definition)
+        ).resolves.toMatchObject({
+            available: false,
+            reason: 'RUNTIME_UNBOUND'
+        })
+    })
+
+    it('prefers a production-capable Binding over the local fallback in development', async () => {
+        process.env.NODE_ENV = 'development'
+        const docker = provider('docker-runtime', [binding('docker', 'docker-runtime', 100)])
+        const localBinding = { ...binding('local', 'local-browser-runtime', 10_000), developmentOnly: true as const }
+
+        await expect(
+            createSelector([provider('local-browser-runtime', [localBinding]), docker]).require(definition)
+        ).resolves.toMatchObject({ provider: { type: 'docker-runtime' }, binding: { id: 'docker' } })
+    })
 })
 
 function createSelector(providers: ISandboxRuntimeProvider[]) {

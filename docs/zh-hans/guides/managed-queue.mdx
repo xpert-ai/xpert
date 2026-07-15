@@ -243,16 +243,14 @@ WeChat 插件迁移后，旧队列 `plugin_wechat:plugin_wechat_outbound` 和 `p
 
 ## 运维配置
 
-正常 API 部署不需要配置队列 autorun。平台按进程角色自动选择 execution pool：
+正常 API 部署不需要配置队列 autorun。每个 API 进程同时消费 `default` 和 `sandbox-browser` 两个逻辑池。浏览器池使用独立物理队列，默认并发为 1，避免浏览器重任务占满普通后台任务池。
 
-- 开发与生产 API：都只消费 `default`。
-- `XPERT_PROCESS_ROLE=sandbox-browser-worker`：只消费 `sandbox-browser`。
-
-OSS Compose 不实例化浏览器 Worker 角色。具体 Sandbox Runtime Provider 发行物负责该 Worker 的部署；Xpert Pro 由私有 Docker Provider overlay 提供。`bootstrapWorker()` 继续保留在 `@xpert-ai/xpert-api`，作为平台公共组装入口。
+源码开发环境中，API 可通过内置 `local-browser-runtime` 执行浏览器任务。OSS 生产环境仍消费浏览器队列，但刻意不注册生产 Runtime Provider，因此 capability health 返回 `RUNTIME_UNBOUND`，Presentation Studio 不会入队 PDF/PPTX。Xpert Pro 在 API 进程同时注册交互式 `DockerSandboxProvider` 与独立的 `DockerSandboxRuntimeProvider`；两种策略只共享底层 Docker engine adapter。
 
 `getExecutionPoolHealth({ executionPool })` 返回 BullMQ 活跃 worker 数，插件可在接受任务前显示 warning。以下变量仅作为测试或特殊部署的高级覆盖保留：
 
 - `MANAGED_QUEUE_CONCURRENCY`：平台物理 worker 并发，默认值由服务端实现决定。
+- `MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY`：浏览器池并发，API 进程默认值为 1。
 - `MANAGED_QUEUE_AUTORUN=false`：阻止 worker 自动启动，适合部分测试或特殊部署。
 
 插件不应自行配置 BullMQ connection。Redis 连接由平台配置统一提供。

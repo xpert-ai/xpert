@@ -121,7 +121,7 @@ describe('XpertPublishHandler', () => {
         const publishSpy = jest.spyOn(handler, 'publish').mockResolvedValue({ id: 'xpert-1', version: '1' } as Xpert)
         const marketplace = {
             summary: 'Handles support triage.',
-            businessCategories: ['customer-service' as const],
+            businessCategories: ['business-operations' as const],
             capabilityTags: ['triage']
         }
 

@@ -2,7 +2,6 @@ import './polyfills'
 import { bootstrap, prepare, seedModule } from '@xpert-ai/analytics'
 import { seedDefault } from '@xpert-ai/server-core'
 import yargs from 'yargs'
-import { bootstrapWorker } from './bootstrap-worker'
 import { pluginConfig } from './plugin-config'
 import { runTenantAdminCli } from './tenant-admin-cli'
 
@@ -12,16 +11,9 @@ import { runTenantAdminCli } from './tenant-admin-cli'
 
 const argv: any = yargs(process.argv).argv
 const command = argv.command
-const isSandboxBrowserWorker = process.env.XPERT_PROCESS_ROLE === 'sandbox-browser-worker'
+prepare()
 
-if (!isSandboxBrowserWorker) prepare()
-
-if (isSandboxBrowserWorker) {
-  bootstrapWorker().catch((error: unknown) => {
-    console.error(error)
-    process.exit(1)
-  })
-} else if (command === 'seedModule') {
+if (command === 'seedModule') {
   seedModule(pluginConfig)
     .then(() => process.exit(0))
     .catch((error: any) => {

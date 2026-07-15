@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import {
     MANAGED_QUEUE_SERVICE_TOKEN,
-    type ManagedQueueRedis,
     type ManagedQueueService,
     type SandboxRuntimeDefinition
 } from '@xpert-ai/plugin-sdk'
@@ -16,13 +15,12 @@ import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.r
 const HEARTBEAT_INTERVAL_MS = 15_000
 const HEARTBEAT_TTL_MS = 45_000
 const HEALTH_KEY_PREFIX = 'sandbox_runtime:{health}'
-const READ_HASH_SCRIPT = `return redis.call('HGETALL', KEYS[1])`
 const WRITE_HASH_SCRIPT = `redis.call('HSET', KEYS[1], ARGV[1], ARGV[2]); redis.call('PEXPIRE', KEYS[1], ARGV[3]); return 1`
 const DELETE_HASH_FIELD_SCRIPT = `redis.call('HDEL', KEYS[1], ARGV[1]); return 1`
 
-/** One Worker-specific Runtime readiness heartbeat stored in Redis. */
+/** One API Runtime executor readiness heartbeat stored in Redis. */
 export type SandboxRuntimeHealthRecord = {
-    workerId: string
+    executorId: string
     runtimeProfile: string
     sandboxRuntimeVersion: string
     available: boolean
@@ -37,14 +35,14 @@ export type SandboxRuntimeHealthRecord = {
 }
 
 /**
- * Bridges process isolation for Runtime health: Workers probe local Providers
- * and publish short-lived records, while API processes only read those records.
+ * Probes Providers registered in the API process and publishes short-lived
+ * readiness evidence for observability. Job execution always reselects a Binding.
  */
 @Injectable()
 export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(SandboxRuntimeHealthService.name)
-    private readonly workerId = `${os.hostname()}:${process.pid}:${randomUUID()}`
-    private readonly publishesHealth = shouldPublishRuntimeHealth()
+    private readonly executorId = `${os.hostname()}:${process.pid}:${randomUUID()}`
+    private readonly latest = new Map<string, SandboxRuntimeHealthRecord>()
     private heartbeatTimer?: ReturnType<typeof setInterval>
 
     constructor(
@@ -55,7 +53,6 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
     ) {}
 
     onModuleInit(): void {
-        if (!this.publishesHealth) return
         void this.refreshAll()
         this.heartbeatTimer = setInterval(() => void this.refreshAll(), HEARTBEAT_INTERVAL_MS)
         this.heartbeatTimer.unref()
@@ -63,7 +60,6 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
 
     async onModuleDestroy(): Promise<void> {
         if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
-        if (!this.publishesHealth) return
         const redis = await this.queue.getRedis().catch(() => null)
         if (!redis) return
         await Promise.all(
@@ -71,40 +67,24 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
                 .list()
                 .map((definition) =>
                     redis
-                        .eval(DELETE_HASH_FIELD_SCRIPT, 1, healthKey(definition.name), this.workerId)
+                        .eval(DELETE_HASH_FIELD_SCRIPT, 1, healthKey(definition.name), this.executorId)
                         .catch(() => undefined)
                 )
         )
     }
 
     /**
-     * Returns local probe health in a Worker and the freshest live heartbeat in
-     * an API process. Absence is reported as PROVIDER_UNAVAILABLE, not a probe.
+     * Returns a fresh API-local Provider probe, using a short-lived cache to
+     * avoid repeatedly inspecting Runtime artifacts from UI health requests.
      */
     async getProfileHealth(definition: SandboxRuntimeDefinition): Promise<SandboxRuntimeHealthRecord> {
-        if (this.publishesHealth) {
-            const record = await this.probe(definition)
-            await this.publish(record).catch((error) => {
-                this.logger.warn(`Failed to publish Sandbox Runtime health: ${messageOf(error)}`)
-            })
-            return record
-        }
-        try {
-            const redis = await this.queue.getRedis()
-            const records = await readRecords(redis, definition.name)
-            const live = records
-                .filter((record) => record.expiresAt > Date.now())
-                .sort(
-                    (left, right) =>
-                        Number(right.available) - Number(left.available) || right.checkedAt - left.checkedAt
-                )
-            return live[0] ?? unavailableWorkerRecord(definition, this.workerId)
-        } catch (error) {
-            return {
-                ...unavailableWorkerRecord(definition, this.workerId),
-                message: `Unable to read Sandbox Runtime worker health: ${messageOf(error)}`
-            }
-        }
+        const cached = this.latest.get(definition.name)
+        if (cached?.expiresAt > Date.now()) return cached
+        const record = await this.probe(definition)
+        await this.publish(record).catch((error) => {
+            this.logger.warn(`Failed to publish Sandbox Runtime health: ${messageOf(error)}`)
+        })
+        return record
     }
 
     private async refreshAll(): Promise<void> {
@@ -119,7 +99,9 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
 
     private async probe(definition: SandboxRuntimeDefinition): Promise<SandboxRuntimeHealthRecord> {
         const health = await this.selector.inspect(definition)
-        return recordFromSelection(this.workerId, definition, health)
+        const record = recordFromSelection(this.executorId, definition, health)
+        this.latest.set(definition.name, record)
+        return record
     }
 
     private async publish(record: SandboxRuntimeHealthRecord): Promise<void> {
@@ -128,7 +110,7 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
             WRITE_HASH_SCRIPT,
             1,
             healthKey(record.runtimeProfile),
-            this.workerId,
+            this.executorId,
             JSON.stringify(record),
             HEARTBEAT_TTL_MS * 2
         )
@@ -136,14 +118,14 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
 }
 
 function recordFromSelection(
-    workerId: string,
+    executorId: string,
     definition: SandboxRuntimeDefinition,
     health: SandboxRuntimeSelectionHealth
 ): SandboxRuntimeHealthRecord {
     const checkedAt = Date.now()
     const resolution = health.resolution
     return {
-        workerId,
+        executorId,
         runtimeProfile: definition.name,
         sandboxRuntimeVersion: definition.sandboxRuntimeVersion,
         available: Boolean(resolution),
@@ -167,56 +149,6 @@ function recordFromSelection(
         checkedAt,
         expiresAt: checkedAt + HEARTBEAT_TTL_MS
     }
-}
-
-async function readRecords(redis: ManagedQueueRedis, runtimeProfile: string): Promise<SandboxRuntimeHealthRecord[]> {
-    const raw = await redis.eval(READ_HASH_SCRIPT, 1, healthKey(runtimeProfile))
-    if (!Array.isArray(raw)) return []
-    const records: SandboxRuntimeHealthRecord[] = []
-    for (let index = 1; index < raw.length; index += 2) {
-        if (typeof raw[index] !== 'string') continue
-        const parsed = parseHealthRecord(raw[index])
-        if (parsed) records.push(parsed)
-    }
-    return records
-}
-
-function parseHealthRecord(value: string): SandboxRuntimeHealthRecord | null {
-    try {
-        const parsed: unknown = JSON.parse(value)
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
-        const record = Object.fromEntries(Object.entries(parsed))
-        if (
-            typeof record.workerId !== 'string' ||
-            typeof record.runtimeProfile !== 'string' ||
-            typeof record.sandboxRuntimeVersion !== 'string' ||
-            typeof record.available !== 'boolean' ||
-            typeof record.checkedAt !== 'number' ||
-            typeof record.expiresAt !== 'number'
-        )
-            return null
-        return parsed as SandboxRuntimeHealthRecord
-    } catch {
-        return null
-    }
-}
-
-function unavailableWorkerRecord(definition: SandboxRuntimeDefinition, workerId: string): SandboxRuntimeHealthRecord {
-    const checkedAt = Date.now()
-    return {
-        workerId,
-        runtimeProfile: definition.name,
-        sandboxRuntimeVersion: definition.sandboxRuntimeVersion,
-        available: false,
-        reason: 'PROVIDER_UNAVAILABLE',
-        message: `No active sandbox-browser worker has published health for ${definition.name}.`,
-        checkedAt,
-        expiresAt: checkedAt
-    }
-}
-
-function shouldPublishRuntimeHealth(): boolean {
-    return process.env.XPERT_PROCESS_ROLE === 'sandbox-browser-worker'
 }
 
 function healthKey(runtimeProfile: string): string {

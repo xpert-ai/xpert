@@ -1,5 +1,36 @@
 # @xpert-ai/server-ai
 
+## 3.9.15
+
+### Patch Changes
+
+- Updated dependencies [b8bac1f]
+- Updated dependencies [b905a58]
+    - @xpert-ai/contracts@3.15.12
+    - @xpert-ai/plugin-sdk@3.15.12
+    - @xpert-ai/copilot@3.9.27
+    - @xpert-ai/server-core@3.9.30
+
+## 3.9.14
+
+### Patch Changes
+
+- Updated dependencies [aa16ee9]
+    - @xpert-ai/plugin-sdk@3.15.11
+    - @xpert-ai/contracts@3.15.11
+    - @xpert-ai/server-core@3.9.29
+    - @xpert-ai/copilot@3.9.26
+
+## 3.9.13
+
+### Patch Changes
+
+- Updated dependencies [c9d8401]
+    - @xpert-ai/plugin-sdk@3.15.10
+    - @xpert-ai/contracts@3.15.10
+    - @xpert-ai/server-core@3.9.28
+    - @xpert-ai/copilot@3.9.25
+
 ## 3.9.12
 
 ### Patch Changes

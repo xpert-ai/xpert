@@ -108,6 +108,11 @@ export type SandboxRuntimeBinding = {
   priority: number
   providerVersion: string
   artifact: SandboxRuntimeArtifact
+  /**
+   * Allows a Binding with reduced isolation guarantees to participate only in
+   * development/test. Core always rejects this Binding in production.
+   */
+  developmentOnly?: true
 }
 
 /** Result of verifying an engine, artifact, security guarantees, and Runtime manifest. */

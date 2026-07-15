@@ -1,4 +1,4 @@
-name: Publish Docker images
+name: Publish Application Docker images
 
 on:
   pull_request:
