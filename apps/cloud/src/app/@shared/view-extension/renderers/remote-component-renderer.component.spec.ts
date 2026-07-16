@@ -204,6 +204,7 @@ describe('RemoteComponentRendererComponent', () => {
     expect(frame.getAttribute('sandbox')?.split(/\s+/).sort()).toEqual(
       ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-same-origin', 'allow-scripts'].sort()
     )
+    expect(frame.getAttribute('allow')).toBe('autoplay')
   })
 
   it('passes the current host theme to the iframe init message', async () => {

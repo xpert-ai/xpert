@@ -67,6 +67,7 @@ export type ManagedQueueEnqueueInput<TPayload = unknown> = {
   payload: TPayload
   tenantId?: string | null
   organizationId?: string | null
+  /** Plugin installation scope used to route to the matching processor (for example system:global or an organization id). */
   scopeKey?: string | null
   userId?: string | null
   jobId?: string
@@ -113,6 +114,8 @@ export type ManagedQueueJobContext = {
 
 export type ManagedQueueJobSnapshot<TPayload = unknown> = ManagedQueueJob<TPayload> & {
   state?: string
+  /** BullMQ terminal failure text, when the physical job is in the failed state. */
+  failedReason?: string
   timestamp?: number
   processedOn?: number
   finishedOn?: number

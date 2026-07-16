@@ -11,6 +11,7 @@ describe('ManagedQueueService', () => {
 			},
 			attemptsMade: 1,
 			opts: { attempts: 2 },
+			failedReason: 'handler unavailable',
 			timestamp: 1,
 			processedOn: 2,
 			finishedOn: 3,
@@ -151,7 +152,8 @@ describe('ManagedQueueService', () => {
 				name: 'send',
 				data: { ok: true },
 				attemptsMade: 1,
-				state: 'delayed'
+				state: 'delayed',
+				failedReason: 'handler unavailable'
 			})
 		)
 		await expect(service.getRedis()).resolves.toBe(redis)

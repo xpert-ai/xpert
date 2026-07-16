@@ -67,7 +67,7 @@ export class SandboxActionRegistry {
         actionVersion: string
     }): Promise<RegisteredSandboxAction | null> {
         const pluginName = normalizePluginName(input.pluginName)
-        const cacheKey = `${pluginName}\0${input.action}\0${input.actionVersion}`
+        const cacheKey = actionCacheKey(pluginName, input.action, input.actionVersion)
         let cached = this.cache.get(cacheKey)
         if (!cached) {
             cached = this.resolve({ ...input, pluginName })
@@ -108,6 +108,10 @@ export class SandboxActionRegistry {
             return await cached
         } catch (error) {
             this.bundleCache.delete(action.bundleSha256)
+            // Local-workspace plugin reloads replace the immutable runtime directory.
+            // Do not let a verified Action keep pointing at the removed installation:
+            // the next job/attempt must resolve the current LoadedPluginRecord again.
+            this.cache.delete(actionCacheKey(action.pluginName, action.name, action.version))
             throw error
         }
     }
@@ -290,6 +294,9 @@ function treeSha256(files: readonly SandboxActionBundleFile[]): string {
     const hash = createHash('sha256')
     for (const file of files) hash.update(`${file.relativePath}\0${file.size}\0${file.sha256}\n`)
     return hash.digest('hex')
+}
+function actionCacheKey(pluginName: string, action: string, actionVersion: string): string {
+    return `${normalizePluginName(pluginName)}\0${action}\0${actionVersion}`
 }
 function sha256(value: Uint8Array): string {
     return createHash('sha256').update(value).digest('hex')

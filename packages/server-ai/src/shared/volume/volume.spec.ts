@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 const mockEnvironment = {
     env: {
         IS_DOCKER: 'true'
@@ -83,5 +85,21 @@ describe('Volume runtime clients', () => {
 
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
         expect(volume.hostRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
+    })
+
+    it('keeps runtime jobs isolated even in the flattened local development layout', () => {
+        mockEnvironment.env.IS_DOCKER = 'false'
+        mockEnvironment.envName = 'dev'
+        mockEnvironment.sandboxConfig.volume = ''
+
+        const volume = new DevVolumeClient().resolve({
+            tenantId: 'tenant-1',
+            catalog: 'runtime-jobs',
+            jobId: 'job-1'
+        })
+
+        const expected = path.join(process.env.HOME!, 'data', 'runtime-jobs', 'job-1')
+        expect(volume.serverRoot).toBe(expected)
+        expect(volume.hostRoot).toBe(expected)
     })
 })
