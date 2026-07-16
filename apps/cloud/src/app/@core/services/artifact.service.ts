@@ -11,6 +11,7 @@ export type SignedArtifactPreviewLink = {
     mimeType?: string | null
     fileName?: string | null
     title?: string | null
+    size?: number | null
   } | null
   artifact?: {
     title?: string | null
@@ -18,6 +19,7 @@ export type SignedArtifactPreviewLink = {
       mimeType?: string | null
       fileName?: string | null
       title?: string | null
+      size?: number | null
     } | null
   } | null
 }

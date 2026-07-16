@@ -26,7 +26,11 @@
 
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
     <section
-      class="relative min-h-[320px] overflow-hidden rounded-lg border border-border bg-card px-6 py-8 md:px-8 md:py-10"
+      class="relative min-h-[360px] overflow-hidden rounded-lg border border-border bg-card px-6 py-8 md:px-8 md:py-10"
+      (mouseenter)="pauseHeroCarousel()"
+      (mouseleave)="resumeHeroCarousel()"
+      (focusin)="pauseHeroCarousel()"
+      (focusout)="resumeHeroCarousel()"
     >
       <div
         aria-hidden="true"
@@ -75,62 +79,111 @@
         />
       </svg>
 
-      <div aria-hidden="true" class="pointer-events-none absolute bottom-8 right-8 hidden h-48 w-[460px] lg:block">
-        <div
-          class="absolute left-8 top-20 h-12 w-24 rounded-lg border border-border/80 bg-background/85 shadow-sm backdrop-blur"
-        >
-          <div class="m-3 h-2 w-12 rounded-full bg-muted-foreground/25"></div>
-          <div class="mx-3 mt-2 h-2 w-16 rounded-full bg-primary/25"></div>
-        </div>
-
-        <div
-          class="absolute left-[162px] top-6 flex h-28 w-32 flex-col justify-between rounded-xl border border-foreground/10 bg-foreground p-4 text-background shadow-2xl"
-        >
-          <div class="h-2.5 w-16 rounded-full bg-background/45"></div>
-          <div class="grid grid-cols-3 gap-1.5">
-            <span class="h-8 rounded-md bg-background/15"></span>
-            <span class="h-8 rounded-md bg-background/30"></span>
-            <span class="h-8 rounded-md bg-background/15"></span>
+      <div
+        class="relative z-10 grid min-h-[288px] items-center gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(320px,440px)]"
+      >
+        <div class="max-w-2xl">
+          <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {{ 'PAC.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured agent' } }}
           </div>
-          <div class="h-2 w-20 rounded-full bg-background/35"></div>
+          <h2 class="mt-3 text-3xl font-semibold leading-tight text-foreground md:text-4xl">
+            {{
+              'PAC.Explore.AgentSquare.HeroTitle' | translate: { Default: 'Find the right agent for the current task' }
+            }}
+          </h2>
+          <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+            {{
+              'PAC.Explore.AgentSquare.HeroSubtitle'
+                | translate
+                  : {
+                      Default:
+                        'Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.'
+                    }
+            }}
+          </p>
+
+          @if (featuredItem(); as item) {
+            <button z-button type="button" class="mt-6 w-fit" (click)="handlePrimaryAction(item)">
+              {{ 'PAC.Explore.AgentSquare.ViewCurrentPick' | translate: { Default: 'View current pick' } }}
+              <z-icon zType="arrow-right" zSize="sm" />
+            </button>
+          }
         </div>
 
-        <div
-          class="absolute right-10 top-24 h-14 w-28 rounded-lg border border-border/80 bg-background/90 shadow-sm backdrop-blur"
-        >
-          <div class="m-3 flex gap-1.5">
-            <span class="h-3 w-3 rounded-sm bg-primary/55"></span>
-            <span class="h-3 w-3 rounded-sm bg-muted-foreground/25"></span>
-            <span class="h-3 w-3 rounded-sm bg-primary/30"></span>
-          </div>
-          <div class="mx-3 h-2 w-16 rounded-full bg-muted-foreground/25"></div>
-        </div>
+        @if (featuredItem(); as item) {
+          <div
+            class="relative w-full max-w-[440px] pt-10 sm:pl-12 lg:justify-self-end"
+            role="region"
+            aria-roledescription="carousel"
+            [attr.aria-label]="
+              'PAC.Explore.AgentSquare.HeroCarouselLabel' | translate: { Default: 'Weekly recommended agents' }
+            "
+          >
+            <div
+              aria-hidden="true"
+              class="absolute right-2 top-0 flex h-32 w-36 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground text-background shadow-2xl"
+            >
+              <span
+                class="flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-xl font-semibold text-primary-foreground"
+              >
+                {{ initials(item) }}
+              </span>
+            </div>
 
-        <div
-          class="absolute bottom-0 left-[112px] h-10 w-20 rounded-lg border border-primary/20 bg-primary/10 shadow-sm backdrop-blur"
-        ></div>
-        <div
-          class="absolute right-0 top-2 h-9 w-16 rounded-lg border border-border/80 bg-background/80 shadow-sm backdrop-blur"
-        ></div>
-      </div>
+            <article class="relative z-10 rounded-xl border border-border bg-background/95 p-5 shadow-xl backdrop-blur">
+              <div
+                class="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.14em] text-muted-foreground"
+              >
+                <span>{{ 'PAC.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured agent' } }}</span>
+                <span>{{ featuredIndex() + 1 }} / {{ recommendedItems().length }}</span>
+              </div>
 
-      <div class="relative z-10 max-w-3xl">
-        <h2 class="text-3xl font-semibold leading-tight text-foreground md:text-4xl">
-          {{
-            'PAC.Explore.AgentSquare.HeroTitle' | translate: { Default: 'Find the right agent for the current task' }
-          }}
-        </h2>
-        <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-          {{
-            'PAC.Explore.AgentSquare.HeroSubtitle'
-              | translate
-                : {
-                    Default:
-                      'Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.'
+              <div class="mt-4 flex min-w-0 items-start gap-3">
+                <div
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+                >
+                  {{ initials(item) }}
+                </div>
+                <div class="min-w-0">
+                  <h3 class="truncate text-base font-semibold text-foreground">{{ title(item) }}</h3>
+                  <p class="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{{ summary(item) }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 flex items-end justify-between gap-4 border-t border-border pt-4">
+                <div class="flex min-w-0 flex-wrap gap-2">
+                  @for (tag of capabilityTags(item).slice(0, 2); track tag) {
+                    <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{
+                      tag
+                    }}</span>
                   }
-          }}
-        </p>
+                </div>
+                <span class="shrink-0 text-xs font-semibold text-primary">
+                  {{ 'PAC.Explore.AgentSquare.MatchScore' | translate: { Default: 'Match' } }} {{ matchScore(item) }}%
+                </span>
+              </div>
+            </article>
+          </div>
+        }
       </div>
+
+      @if (recommendedItems().length > 1) {
+        <div class="relative z-10 mt-6 flex items-center gap-2 lg:absolute lg:bottom-6 lg:left-8 lg:mt-0">
+          @for (recommendation of recommendedItems(); track recommendation.id; let index = $index) {
+            <button
+              type="button"
+              [class]="
+                featuredIndex() === index
+                  ? 'h-1.5 w-8 rounded-full bg-primary transition-all'
+                  : 'h-1.5 w-5 rounded-full bg-muted-foreground/25 transition-all hover:bg-muted-foreground/50'
+              "
+              (click)="showHeroItem(index)"
+              [attr.aria-label]="title(recommendation)"
+              [attr.aria-current]="featuredIndex() === index ? 'true' : null"
+            ></button>
+          }
+        </div>
+      }
     </section>
 
     <aside class="rounded-lg border border-border bg-card p-5">
@@ -140,10 +193,14 @@
         </h3>
       </div>
       <div class="mt-4 space-y-3">
-        @for (item of items().slice(0, 3); track item.xpert.id) {
+        @for (item of recommendedItems(); track item.id) {
           <button
             type="button"
-            class="flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary/60"
+            [class]="
+              featuredItem()?.id === item.id
+                ? 'flex w-full items-center gap-3 rounded-lg border border-primary bg-primary/5 p-3 text-left transition'
+                : 'flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary/60'
+            "
             (click)="selectItem(item)"
           >
             <div
@@ -157,7 +214,7 @@
             </div>
           </button>
         }
-        @if (!items().length && !loading()) {
+        @if (!recommendedItems().length && !loading()) {
           <div class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             {{ 'PAC.Explore.AgentSquare.NoRecommendations' | translate: { Default: 'No recommendations yet.' } }}
           </div>
@@ -166,33 +223,66 @@
     </aside>
   </div>
 
-  <div class="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-    <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-semibold text-foreground">
-          {{ 'PAC.Explore.AgentSquare.FilterTitle' | translate: { Default: 'Filter agents' } }}
-        </h3>
-        @if (activeFilterCount()) {
-          <button z-button zType="ghost" zSize="sm" type="button" (click)="resetFilters()">
+  <div class="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
+    <aside class="overflow-hidden rounded-lg border border-border bg-card xl:sticky xl:top-24 xl:self-start">
+      <div class="border-b border-border bg-muted/30 p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h3 class="text-base font-semibold text-foreground">
+              {{ 'PAC.Explore.AgentSquare.FilterTitle' | translate: { Default: 'Filter agents' } }}
+            </h3>
+            <p class="mt-1 text-xs leading-5 text-muted-foreground">
+              {{
+                'PAC.Explore.AgentSquare.FilterHint'
+                  | translate
+                    : {
+                        Default:
+                          'A group with no selection does not restrict results. Combine filters to narrow the library.'
+                      }
+              }}
+            </p>
+          </div>
+          <button
+            z-button
+            zType="ghost"
+            zSize="sm"
+            type="button"
+            class="shrink-0"
+            [disabled]="activeFilterCount() === 0"
+            (click)="resetFilters()"
+          >
             {{ 'PAC.Explore.AgentSquare.ResetFilters' | translate: { Default: 'Reset' } }}
           </button>
-        }
+        </div>
       </div>
 
-      <div class="mt-5 space-y-6">
-        <section>
-          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
-            {{ 'PAC.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Business scenario' } }}
-          </h4>
-          <div class="flex flex-wrap gap-2">
+      <div class="divide-y divide-border">
+        <section class="p-4">
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {{ 'PAC.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Marketplace category' } }}
+            </h4>
+            @if (selectedBusinessCategories().length) {
+              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                {{ selectedBusinessCategories().length }}
+              </span>
+            }
+          </div>
+          <div
+            class="mt-3 flex flex-wrap gap-2"
+            [attr.aria-label]="
+              'PAC.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Marketplace category' }
+            "
+          >
             @for (category of businessCategories; track category) {
               <button
                 type="button"
                 [class]="
                   selectedBusinessCategories().includes(category)
-                    ? 'rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary'
-                    : 'rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/60 hover:text-foreground'
+                    ? 'rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary'
+                    : 'rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/60 hover:text-foreground'
                 "
+                [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
                 (click)="toggleBusinessCategory(category)"
               >
                 {{ businessLabelKey(category) | translate }}
@@ -201,38 +291,52 @@
           </div>
         </section>
 
-        <section>
-          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
-            {{ 'PAC.Explore.AgentSquare.CollaborationMode' | translate: { Default: 'Collaboration' } }}
-          </h4>
-          <div class="space-y-2">
+        <section class="p-4">
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {{ 'PAC.Explore.AgentSquare.CollaborationMode' | translate: { Default: 'Collaboration' } }}
+            </h4>
+            @if (selectedCollaborationModes().length) {
+              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                {{ selectedCollaborationModes().length }}
+              </span>
+            }
+          </div>
+          <div class="mt-3 space-y-3">
             @for (mode of collaborationModes; track mode) {
-              <label class="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-border accent-primary"
-                  [checked]="selectedCollaborationModes().includes(mode)"
-                  (change)="toggleCollaborationMode(mode)"
-                />
-                {{ collaborationLabelKey(mode) | translate }}
-              </label>
+              <z-checkbox
+                displayDensity="compact"
+                class="w-full"
+                [ngModel]="selectedCollaborationModes().includes(mode)"
+                (ngModelChange)="toggleCollaborationMode(mode)"
+              >
+                <span class="text-sm text-foreground">{{ collaborationLabelKey(mode) | translate }}</span>
+              </z-checkbox>
             }
           </div>
         </section>
 
-        <section>
-          <h4 class="mb-3 text-xs font-semibold uppercase text-muted-foreground">
-            {{ 'PAC.Explore.AgentSquare.TechnicalCapability' | translate: { Default: 'Technical capability' } }}
-          </h4>
-          <div class="flex flex-wrap gap-2">
+        <section class="p-4">
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {{ 'PAC.Explore.AgentSquare.TechnicalCapability' | translate: { Default: 'Technical capability' } }}
+            </h4>
+            @if (selectedTechnicalCategories().length) {
+              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                {{ selectedTechnicalCategories().length }}
+              </span>
+            }
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
             @for (category of technicalCategories; track category) {
               <button
                 type="button"
                 [class]="
                   selectedTechnicalCategories().includes(category)
-                    ? 'rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary'
-                    : 'rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/60 hover:text-foreground'
+                    ? 'rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary'
+                    : 'rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/60 hover:text-foreground'
                 "
+                [attr.aria-pressed]="selectedTechnicalCategories().includes(category)"
                 (click)="toggleTechnicalCategory(category)"
               >
                 {{ technicalLabelKey(category) | translate }}
@@ -246,7 +350,7 @@
     <section class="min-w-0">
       <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <h3 class="text-xl font-semibold text-foreground">
-          {{ 'PAC.Explore.AgentSquare.RecommendedAgents' | translate: { Default: 'Recommended agents' } }}
+          {{ 'PAC.Explore.AgentSquare.AgentList' | translate: { Default: 'Agent library' } }}
           <span class="text-muted-foreground">{{ total() }}</span>
         </h3>
         <div class="inline-flex w-fit rounded-lg border border-border bg-card p-1">
@@ -272,7 +376,7 @@
             <div class="h-52 animate-pulse rounded-lg border border-border bg-card"></div>
           }
         </div>
-      } @else if (!items().length) {
+      } @else if (!displayItems().length) {
         <div
           class="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 text-center"
         >
@@ -291,12 +395,12 @@
         </div>
       } @else {
         <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-          @for (item of items(); track item.xpert.id) {
+          @for (item of displayItems(); track item.id) {
             <article
               role="button"
               tabindex="0"
               [class]="
-                selectedItem()?.xpert.id === item.xpert.id
+                selectedItem()?.id === item.id
                   ? 'rounded-lg border border-primary bg-card p-5 shadow-sm outline-none'
                   : 'rounded-lg border border-border bg-card p-5 shadow-sm outline-none transition hover:border-primary/60'
               "
@@ -305,11 +409,13 @@
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="flex min-w-0 gap-4">
-                  <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
-                  >
-                    {{ initials(item) }}
-                  </div>
+                  <emoji-avatar
+                    large
+                    class="shrink-0 overflow-hidden rounded-lg shadow-sm"
+                    [avatar]="workspaceAvatar(item)"
+                    [alt]="title(item)"
+                    [fallbackLabel]="title(item)"
+                  />
                   <div class="min-w-0">
                     <h4 class="truncate text-lg font-semibold text-foreground">{{ title(item) }}</h4>
                     <p class="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
@@ -321,10 +427,10 @@
               </div>
 
               <div class="mt-5 flex flex-wrap gap-2">
-                @for (tag of item.marketplace.capabilityTags?.slice(0, 4) ?? []; track tag) {
+                @for (tag of capabilityTags(item).slice(0, 4); track tag) {
                   <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
                 }
-                @for (category of item.marketplace.technical?.categories?.slice(0, 3) ?? []; track category) {
+                @for (category of itemTechnicalCategories(item).slice(0, 3); track category) {
                   <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                     {{ technicalLabelKey(category) | translate }}
                   </span>
@@ -344,7 +450,7 @@
                   "
                   (click)="handlePrimaryAction(item, $event)"
                 >
-                  @if (canUse(item)) {
+                  @if (isTemplate(item) || canUse(item)) {
                     {{ 'PAC.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
                   } @else if (isPending(item)) {
                     {{ 'PAC.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
@@ -361,23 +467,33 @@
 
     <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
       @if (selectedItem(); as item) {
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
-        >
-          {{ initials(item) }}
-        </div>
+        @if (isTemplate(item)) {
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
+          >
+            {{ initials(item) }}
+          </div>
+        } @else {
+          <emoji-avatar
+            large
+            class="overflow-hidden rounded-lg shadow-sm"
+            [avatar]="workspaceAvatar(item)"
+            [alt]="title(item)"
+            [fallbackLabel]="title(item)"
+          />
+        }
         <h3 class="mt-5 text-xl font-semibold text-foreground">{{ title(item) }}</h3>
         <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
 
         <div class="mt-5 flex flex-wrap gap-2">
-          @for (tag of item.marketplace.capabilityTags ?? []; track tag) {
+          @for (tag of capabilityTags(item); track tag) {
             <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
           }
         </div>
 
-        <div class="my-5 border-t border-border"></div>
+        <div class="my-5 border-t border-border" [class.hidden]="isTemplate(item)"></div>
 
-        <section>
+        <section [class.hidden]="isTemplate(item)">
           <h4 class="text-sm font-semibold text-foreground">
             {{ 'PAC.Explore.AgentSquare.CoreCapabilities' | translate: { Default: 'Core capabilities' } }}
           </h4>
@@ -411,7 +527,7 @@
           </div>
         </section>
 
-        <section class="mt-6">
+        <section class="mt-6" [class.hidden]="isTemplate(item)">
           <h4 class="text-sm font-semibold text-foreground">
             {{ 'PAC.Explore.AgentSquare.ExecutionProfile' | translate: { Default: 'Execution profile' } }}
           </h4>
@@ -422,7 +538,7 @@
                 >1</span
               >
               {{ 'PAC.Explore.AgentSquare.ProfileAgents' | translate: { Default: 'Agents' } }}:
-              {{ item.marketplace.technical?.agentCount ?? 0 }}
+              {{ profileCount(item, 'agentCount') }}
             </li>
             <li class="flex gap-2">
               <span
@@ -430,7 +546,7 @@
                 >2</span
               >
               {{ 'PAC.Explore.AgentSquare.ProfileTools' | translate: { Default: 'Toolsets' } }}:
-              {{ item.marketplace.technical?.toolsetCount ?? 0 }}
+              {{ profileCount(item, 'toolsetCount') }}
             </li>
             <li class="flex gap-2">
               <span
@@ -438,7 +554,7 @@
                 >3</span
               >
               {{ 'PAC.Explore.AgentSquare.ProfileWorkflow' | translate: { Default: 'Workflow nodes' } }}:
-              {{ item.marketplace.technical?.workflowNodeCount ?? 0 }}
+              {{ profileCount(item, 'workflowNodeCount') }}
             </li>
           </ol>
         </section>
@@ -451,7 +567,7 @@
             [disabled]="isPending(item)"
             (click)="handlePrimaryAction(item)"
           >
-            @if (canUse(item)) {
+            @if (isTemplate(item) || canUse(item)) {
               {{ 'PAC.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
             } @else if (isPending(item)) {
               {{ 'PAC.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}

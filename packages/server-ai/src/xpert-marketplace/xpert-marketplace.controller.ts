@@ -1,14 +1,17 @@
 import {
+    LanguagesEnum,
+    LanguagesMap,
+    PLUGIN_MARKETPLACE_CATEGORIES,
     TXpertAccessRequestCreateInput,
     TXpertAccessRequestDecisionInput,
     TXpertMarketplaceAccessStatus,
     TXpertMarketplaceQuery,
-    XpertMarketplaceBusinessCategories,
     XpertMarketplaceCollaborationModes,
     XpertMarketplaceTechnicalCategories
 } from '@xpert-ai/contracts'
 import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common'
 import { t } from 'i18next'
+import { I18nLang } from 'nestjs-i18n'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
 
 type XpertMarketplaceQueryParams = {
@@ -37,8 +40,8 @@ export class XpertMarketplaceController {
     constructor(private readonly service: XpertMarketplaceService) {}
 
     @Get('xpert-marketplace')
-    async findMarketplace(@Query() query: XpertMarketplaceQueryParams) {
-        return this.service.findMarketplace(this.parseQuery(query))
+    async findMarketplace(@I18nLang() language: LanguagesEnum, @Query() query: XpertMarketplaceQueryParams) {
+        return this.service.findMarketplace(this.parseQuery(query), LanguagesMap[language] ?? language)
     }
 
     @Get('xpert-marketplace/:id')
@@ -76,7 +79,7 @@ export class XpertMarketplaceController {
             search: query.search,
             businessCategories: this.readEnumList(
                 query.businessCategories,
-                XpertMarketplaceBusinessCategories,
+                PLUGIN_MARKETPLACE_CATEGORIES,
                 'businessCategories'
             ),
             capabilityTags: this.readStringList(query.capabilityTags),

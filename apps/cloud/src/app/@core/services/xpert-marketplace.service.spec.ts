@@ -26,10 +26,11 @@ describe('XpertMarketplaceService', () => {
   })
 
   it('serializes marketplace filters into query parameters', () => {
+    const next = jest.fn()
     service
       .findMarketplace({
         search: 'sales',
-        businessCategories: ['sales-growth'],
+        businessCategories: ['sales'],
         capabilityTags: ['crm', 'report'],
         collaborationModes: ['multi-agent'],
         technicalCategories: ['tool-calling', 'workflow'],
@@ -38,13 +39,13 @@ describe('XpertMarketplaceService', () => {
         skip: 10,
         take: 20
       })
-      .subscribe()
+      .subscribe(next)
 
     const request = httpMock.expectOne((req) => req.url === '/api/xpert-marketplace')
 
     expect(request.request.method).toBe('GET')
     expect(request.request.params.get('search')).toBe('sales')
-    expect(request.request.params.get('businessCategories')).toBe('sales-growth')
+    expect(request.request.params.get('businessCategories')).toBe('sales')
     expect(request.request.params.get('capabilityTags')).toBe('crm,report')
     expect(request.request.params.get('collaborationModes')).toBe('multi-agent')
     expect(request.request.params.get('technicalCategories')).toBe('tool-calling,workflow')
@@ -53,11 +54,15 @@ describe('XpertMarketplaceService', () => {
     expect(request.request.params.get('skip')).toBe('10')
     expect(request.request.params.get('take')).toBe('20')
 
-    request.flush({
+    const response = {
       items: [],
+      recommendedTemplates: [],
       total: 0,
       reviewableCount: 0
-    })
+    }
+    request.flush(response)
+
+    expect(next).toHaveBeenCalledWith(response)
   })
 
   it('calls access request and review endpoints with the expected methods', () => {

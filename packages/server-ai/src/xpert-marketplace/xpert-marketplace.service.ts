@@ -4,6 +4,7 @@ import {
     IXpertMarketplaceItem,
     IXpertMarketplaceListResponse,
     IUser,
+    LanguagesEnum,
     TXpertAccessRequestCreateInput,
     TXpertAccessRequestDecisionInput,
     TXpertMarketplaceAccessStatus,
@@ -16,13 +17,15 @@ import {
     buildXpertMarketplaceProfileSnapshot,
     isTenantSharedXpertWorkspace
 } from '@xpert-ai/contracts'
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, User, UserGroup } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { Brackets, Repository } from 'typeorm'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertWorkspaceAccessService } from '../xpert-workspace'
+import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertAccessRequest } from './xpert-access-request.entity'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
@@ -33,6 +36,8 @@ const MAX_RESPONSE_LENGTH = 500
 
 @Injectable()
 export class XpertMarketplaceService {
+    readonly #logger = new Logger(XpertMarketplaceService.name)
+
     constructor(
         @InjectRepository(Xpert)
         private readonly xpertRepository: Repository<Xpert>,
@@ -42,10 +47,14 @@ export class XpertMarketplaceService {
         private readonly userGroupRepository: Repository<UserGroup>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        private readonly workspaceAccessService: XpertWorkspaceAccessService
+        private readonly workspaceAccessService: XpertWorkspaceAccessService,
+        private readonly xpertTemplateService: XpertTemplateService
     ) {}
 
-    async findMarketplace(query: TXpertMarketplaceQuery = {}): Promise<IXpertMarketplaceListResponse> {
+    async findMarketplace(
+        query: TXpertMarketplaceQuery = {},
+        language = LanguagesEnum.English
+    ): Promise<IXpertMarketplaceListResponse> {
         const xperts = await this.findDiscoverableXperts(query.search)
         const requests = await this.findCurrentUserRequests(xperts.map((xpert) => xpert.id))
         const requestsByXpertId = new Map(requests.map((request) => [request.xpertId, request]))
@@ -60,9 +69,19 @@ export class XpertMarketplaceService {
         const skip = Math.max(query.skip ?? 0, 0)
         const take = Math.min(Math.max(query.take ?? DEFAULT_TAKE, 1), MAX_TAKE)
         const reviewableCount = (await this.findReviewableRequests()).length
+        let recommendedTemplates: IXpertMarketplaceListResponse['recommendedTemplates'] = []
+        try {
+            recommendedTemplates = await this.xpertTemplateService.getMarketplaceRecommendedTemplates(language)
+        } catch (error) {
+            this.#logger.error(
+                `Failed to load Xpert marketplace recommended templates for language '${language}': ${getErrorMessage(error)}`,
+                error instanceof Error ? error.stack : undefined
+            )
+        }
 
         return {
             items: allItems.slice(skip, skip + take),
+            recommendedTemplates,
             total,
             reviewableCount
         }
@@ -470,13 +489,13 @@ export class XpertMarketplaceService {
         if (query.status && item.accessStatus !== query.status) {
             return false
         }
-        if (!this.includesAll(item.marketplace.businessCategories, query.businessCategories)) {
+        if (!this.includesAny(item.marketplace.businessCategories, query.businessCategories)) {
             return false
         }
-        if (!this.includesAll(item.marketplace.collaborationModes, query.collaborationModes)) {
+        if (!this.includesAny(item.marketplace.collaborationModes, query.collaborationModes)) {
             return false
         }
-        if (!this.includesAll(item.marketplace.technical?.categories, query.technicalCategories)) {
+        if (!this.includesAny(item.marketplace.technical?.categories, query.technicalCategories)) {
             return false
         }
         if (query.capabilityTags?.length) {
@@ -486,11 +505,11 @@ export class XpertMarketplaceService {
         return true
     }
 
-    private includesAll<T extends string>(source?: T[], selected?: T[]) {
+    private includesAny<T extends string>(source?: T[], selected?: T[]) {
         if (!selected?.length) {
             return true
         }
-        return selected.every((item) => source?.includes(item))
+        return selected.some((item) => source?.includes(item))
     }
 
     private sortItems(items: IXpertMarketplaceItem[], sort?: TXpertMarketplaceQuery['sort']) {

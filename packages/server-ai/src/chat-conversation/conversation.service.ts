@@ -393,7 +393,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         })
     }
 
-    async readWorkspaceFile(id: string, filePath: string, fileAssetId?: string): Promise<TFile> {
+    async readWorkspaceFile(id: string, filePath: string, fileAssetId?: string, metadataOnly = false): Promise<TFile> {
         const conversation = await this.findOne(id)
         let resolvedFilePath = filePath.startsWith('/workspace/') ? filePath.slice('/workspace/'.length) : filePath
         if (fileAssetId) {
@@ -408,7 +408,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             resolvedFilePath = workspaceRelativePath
         }
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
-        return client.readFile(scopePath, resolvedFilePath)
+        return metadataOnly
+            ? client.readFile(scopePath, resolvedFilePath, { metadataOnly: true })
+            : client.readFile(scopePath, resolvedFilePath)
     }
 
     async getWorkspaceFileDownload(id: string, filePath: string) {

@@ -87,4 +87,29 @@ describe('VolumeSubtreeClient', () => {
             Buffer.from([0x50, 0x4b, 0x03, 0x04])
         )
     })
+
+    it('returns file metadata without reading file contents', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-file-metadata-'))
+        await mkdir(join(tempRoot, 'files'), { recursive: true })
+        await writeFile(join(tempRoot, 'files', 'report.xlsx'), Buffer.alloc(2 * 1024 * 1024))
+
+        const volume = new VolumeHandle(
+            {
+                tenantId: 'tenant-1',
+                catalog: 'projects',
+                projectId: 'project-1'
+            },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+
+        await expect(client.readFile('', 'files/report.xlsx', { metadataOnly: true })).resolves.toMatchObject({
+            filePath: 'files/report.xlsx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            size: 2 * 1024 * 1024,
+            fileUrl: 'http://localhost/volume/files/report.xlsx'
+        })
+    })
 })

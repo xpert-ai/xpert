@@ -46593,7 +46593,12 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                         id: j.id,
                         name: j.name || 'source-document',
                         mimeType: j.mimeType || E?.originalFile?.mimeType,
-                        size: typeof j.size == 'number' ? j.size : void 0,
+                        size: ((Be) => {
+                            if (typeof Be == 'number') return Number.isSafeInteger(Be) && Be >= 0 ? Be : void 0
+                            if (typeof Be != 'string' || !/^\d+$/.test(Be.trim())) return
+                            let Ze = Number(Be)
+                            if (Number.isSafeInteger(Ze)) return Ze
+                        })(j.size ?? E?.originalFile?.size),
                         url: Be,
                         previewUrl: Be
                     }

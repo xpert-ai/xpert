@@ -52,7 +52,7 @@ import type {
     GraphSummary,
     KnowledgebaseRow
 } from './types'
-import { compact, extractCitationTarget, readError } from './utils'
+import { compact, extractCitationTarget, normalizeFileSize, readError } from './utils'
 
 declare const ReactDOM: any
 
@@ -496,7 +496,7 @@ function App() {
             id: row.id,
             name: row.name || 'source-document',
             mimeType: row.mimeType || preview?.originalFile?.mimeType,
-            size: typeof row.size === 'number' ? row.size : undefined,
+            size: normalizeFileSize(row.size ?? preview?.originalFile?.size),
             url,
             previewUrl: url
         } satisfies WorkbenchOpenFile

@@ -14,6 +14,7 @@ import {
     TAvatar,
     TKnowledgePipelineTemplate,
     TXpertExportedTemplate,
+    TXpertTemplate,
     XpertTemplatePluginDependencies,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
@@ -53,6 +54,7 @@ const templateFiles = [
     'skill-repositories.yaml',
     'workspace-defaults.yaml'
 ] as const
+const builtinTemplateFiles = [...templateFiles, 'templates-market.yaml'] as const
 
 type TXpertTemplateDescriptor = {
     id: string
@@ -62,6 +64,7 @@ type TXpertTemplateDescriptor = {
     title?: string
     description?: string
     avatar?: TAvatar
+    copilotModel?: TXpertTemplate['copilotModel']
     category?: string
     copyright?: string | null
     privacyPolicy?: string | null
@@ -87,6 +90,14 @@ type TXpertTemplateGroup = {
 type TXpertTemplatesCatalog = {
     templates: Record<string, TXpertTemplateGroup>
     details: Record<string, TXpertTemplateDescriptor>
+}
+
+type TTemplateMarketRef = {
+    id: string
+}
+
+type TTemplateMarketConfig = {
+    recommendedApps: TTemplateMarketRef[]
 }
 
 type TLocalizedTemplates<T> = Record<string, { categories?: string[]; templates: T[] }>
@@ -249,6 +260,9 @@ const isWorkspaceDefaultSkillRef = (value: unknown): value is TWorkspaceDefaultS
     typeof Reflect.get(value, 'repositoryName') === 'string' &&
     typeof Reflect.get(value, 'skillId') === 'string'
 
+const isTemplateMarketRef = (value: unknown): value is TTemplateMarketRef =>
+    isObjectValue(value) && typeof Reflect.get(value, 'id') === 'string'
+
 const isOptionalRepositoryPayload = (value: unknown): value is ISkillRepository['options'] | null | undefined =>
     typeof value === 'undefined' || value === null || isObjectValue(value)
 
@@ -343,11 +357,13 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     async getAll(language: LanguagesEnum, query?: TXpertTemplateQuery) {
-        const templatesData = await this.readTemplatesFile()
+        const [templatesData, pluginTemplates] = await Promise.all([
+            this.readTemplatesFile(),
+            this.getPluginTemplates(query)
+        ])
         const group = templatesData.templates[language]?.recommendedApps?.length
             ? templatesData.templates[language]
             : templatesData.templates[fallbackLanguage]
-        const pluginTemplates = await this.getPluginTemplates(query)
         const recommendedApps = [...(group?.recommendedApps ?? []), ...pluginTemplates]
             .filter((template) => this.matchesTemplateQuery(template, query))
             .sort(
@@ -363,6 +379,41 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             ),
             recommendedApps
         }
+    }
+
+    async getMarketplaceRecommendedTemplates(
+        language: LanguagesEnum,
+        query?: TXpertTemplateQuery
+    ): Promise<TXpertTemplate[]> {
+        const [templatesData, builtinTemplatesData, marketConfig, pluginTemplates] = await Promise.all([
+            this.readTemplatesFile(),
+            this.readBuiltinTemplatesFile(),
+            this.readTemplatesMarketConfig(),
+            this.getPluginTemplates(query)
+        ])
+
+        return this.resolveRecommendedTemplates(
+            marketConfig.recommendedApps,
+            templatesData,
+            builtinTemplatesData,
+            pluginTemplates,
+            language,
+            query
+        ).map((template) => this.toXpertTemplate(template))
+    }
+
+    async readTemplatesMarketConfig(): Promise<TTemplateMarketConfig> {
+        let config = await this.cacheManager.get<TTemplateMarketConfig>('xpert:templates-market')
+        if (config) {
+            return config
+        }
+
+        const filePath = path.join(this.getBuiltinTemplateRoot(), 'templates-market.yaml')
+        const raw = await this.readYamlFromFile(filePath, 'templates market config')
+        config = this.normalizeTemplatesMarketConfig(raw)
+        await this.cacheManager.set('xpert:templates-market', config, 10 * 1000)
+
+        return config
     }
 
     async getTemplateDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery) {
@@ -389,10 +440,18 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         id: string,
         language: LanguagesEnum
     ): Promise<TXpertTemplateDescriptor | null> {
+        const templatesData = await this.readBuiltinTemplatesFile()
+        if (!templatesData) {
+            return null
+        }
+
+        return templatesData.details[id] ?? this.findTemplateDescriptorById(templatesData, id, language)
+    }
+
+    private async readBuiltinTemplatesFile(): Promise<TXpertTemplatesCatalog | null> {
         try {
             const templatesFilePath = path.join(this.getBuiltinTemplateRoot(), 'templates.json')
-            const templatesData = await this.readJsonFromFile<TXpertTemplatesCatalog>(templatesFilePath)
-            return templatesData.details[id] ?? this.findTemplateDescriptorById(templatesData, id, language)
+            return await this.readJsonFromFile<TXpertTemplatesCatalog>(templatesFilePath)
         } catch {
             return null
         }
@@ -785,6 +844,10 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor | null> {
         const templates = await this.getPluginTemplates(query)
+        return this.findPluginTemplateById(templates, id)
+    }
+
+    private findPluginTemplateById(templates: TXpertTemplateDescriptor[], id: string) {
         const normalizedId = this.normalizePluginTemplateId(id)
         return (
             templates.find(
@@ -795,6 +858,32 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                     this.normalizePluginTemplateId(template.key) === normalizedId
             ) ?? null
         )
+    }
+
+    private resolveRecommendedTemplates(
+        refs: TTemplateMarketRef[],
+        templatesData: TXpertTemplatesCatalog,
+        builtinTemplatesData: TXpertTemplatesCatalog | null,
+        pluginTemplates: TXpertTemplateDescriptor[],
+        language: LanguagesEnum,
+        query?: TXpertTemplateQuery
+    ) {
+        const recommendedApps: TXpertTemplateDescriptor[] = []
+
+        for (const ref of refs) {
+            const externalTemplate = this.findTemplateDescriptorById(templatesData, ref.id, language)
+            const builtinTemplate = builtinTemplatesData
+                ? this.findTemplateDescriptorById(builtinTemplatesData, ref.id, language)
+                : null
+            const template =
+                this.findPluginTemplateById(pluginTemplates, ref.id) ??
+                this.mergeTemplateDescriptorDependencies(externalTemplate, builtinTemplate)
+            if (template && this.matchesTemplateQuery(template, query)) {
+                recommendedApps.push(template)
+            }
+        }
+
+        return recommendedApps
     }
 
     private getEffectivePluginRecords() {
@@ -920,6 +1009,22 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         return typeof template.order === 'number' && Number.isFinite(template.order)
             ? template.order
             : Number.MAX_SAFE_INTEGER
+    }
+
+    private toXpertTemplate(template: TXpertTemplateDescriptor): TXpertTemplate {
+        const name = template.name?.trim() || template.title?.trim() || template.id
+        return {
+            ...template,
+            name,
+            title: template.title?.trim() || name,
+            description: template.description ?? '',
+            category: template.category ?? '',
+            copyright: template.copyright ?? '',
+            privacyPolicy: template.privacyPolicy ?? undefined,
+            export_data: template.export_data ?? '',
+            avatar: template.avatar ?? {},
+            type: template.type ?? XpertTypeEnum.Agent
+        }
     }
 
     private mergeTemplateCategories(categories: string[] = [], extraCategories: Array<string | undefined>) {
@@ -1175,7 +1280,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     private async assertBuiltinTemplateLayout(builtinRoot: string, externalRoot: string) {
-        for (const fileName of templateFiles) {
+        for (const fileName of builtinTemplateFiles) {
             await this.assertPathAvailable(
                 path.join(builtinRoot, fileName),
                 'file',
@@ -1330,6 +1435,24 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                 featured: [],
                 filters: DEFAULT_SKILL_MARKET_FILTERS
             }
+        }
+    }
+
+    private normalizeTemplatesMarketConfig(value: unknown): TTemplateMarketConfig {
+        if (!isObjectValue(value)) {
+            return { recommendedApps: [] }
+        }
+
+        const recommendedApps = Reflect.get(value, 'recommendedApps')
+        if (!Array.isArray(recommendedApps)) {
+            return { recommendedApps: [] }
+        }
+
+        return {
+            recommendedApps: recommendedApps
+                .filter(isTemplateMarketRef)
+                .map((item) => ({ id: item.id.trim() }))
+                .filter((item) => !!item.id)
         }
     }
 
