@@ -20,7 +20,13 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global')
 }))
 
-const { getOrganizationPluginRoot, stageWorkspacePlugin } = require('./organization-plugin.store')
+const {
+	getOrganizationPluginRoot,
+	installOrganizationPlugins,
+	readOrganizationManifest,
+	stageWorkspacePlugin,
+	writeOrganizationManifest
+} = require('./organization-plugin.store')
 
 describe('organization-plugin.store', () => {
 	const originalWorkspaceRoots = process.env.PLUGIN_WORKSPACE_ROOTS
@@ -104,6 +110,38 @@ describe('organization-plugin.store', () => {
 		const targetPackageDir = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark')
 		expect(fs.lstatSync(targetPackageDir).isSymbolicLink()).toBe(false)
 		expect(fs.existsSync(path.join(targetPackageDir, 'dist', 'index.js'))).toBe(true)
+	})
+
+	it('skips restaging when copied inputs have not changed', () => {
+		const options = {
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-lark',
+			expectedPackageName: '@xpert-ai/plugin-lark',
+			workspacePath: workspaceRoot,
+			rootDir: pluginRoot
+		}
+		const pluginDir = stageWorkspacePlugin(options)
+		const targetPackageDir = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark')
+		const sentinelPath = path.join(targetPackageDir, 'cache-hit-sentinel')
+		fs.writeFileSync(sentinelPath, 'preserved on cache hit\n')
+
+		stageWorkspacePlugin(options)
+
+		expect(fs.existsSync(sentinelPath)).toBe(true)
+
+		fs.writeFileSync(path.join(workspaceRoot, 'dist', 'index.js'), 'module.exports = { changed: true }\n')
+		stageWorkspacePlugin(options)
+
+		expect(fs.existsSync(sentinelPath)).toBe(false)
+		expect(fs.readFileSync(path.join(targetPackageDir, 'dist', 'index.js'), 'utf8')).toContain('changed: true')
+
+		const legacyOutputPath = path.join(pluginDir, 'legacy-dist', 'index.js')
+		fs.mkdirSync(path.dirname(legacyOutputPath), { recursive: true })
+		fs.writeFileSync(legacyOutputPath, 'stale legacy output\n')
+		fs.rmSync(path.join(pluginDir, '.xpert-workspace-stage.json'))
+		stageWorkspacePlugin(options)
+
+		expect(fs.existsSync(legacyOutputPath)).toBe(false)
 	})
 
 	it('copies monorepo build output beside the staged package for root index.cjs wrappers', () => {
@@ -301,6 +339,78 @@ describe('organization-plugin.store', () => {
 		expect(stagedPackageJson.peerDependencies).toEqual({
 			'xpert-peer-only': '*'
 		})
+
+		const dependencyCacheSentinel = path.join(stagedNodeModules, 'cache-sentinel')
+		fs.writeFileSync(dependencyCacheSentinel, 'preserve while dependencies are unchanged\n')
+		fs.writeFileSync(
+			path.join(workspaceRoot, 'dist', 'index.js'),
+			[
+				"const dependency = require('xpert-runtime-dependency')",
+				'module.exports = { ...dependency, changed: true }'
+			].join('\n')
+		)
+
+		stageWorkspacePlugin({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-lark',
+			expectedPackageName: '@xpert-ai/plugin-lark',
+			workspacePath: workspaceRoot,
+			rootDir: pluginRoot
+		})
+
+		expect(fs.existsSync(dependencyCacheSentinel)).toBe(true)
+
+		fs.writeFileSync(
+			path.join(runtimeDependencyRoot, 'index.js'),
+			"module.exports = { runtimeDependencyName: 'xpert-runtime-dependency-v2' }\n"
+		)
+		stageWorkspacePlugin({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-lark',
+			expectedPackageName: '@xpert-ai/plugin-lark',
+			workspacePath: workspaceRoot,
+			rootDir: pluginRoot
+		})
+
+		expect(fs.existsSync(dependencyCacheSentinel)).toBe(false)
+		expect(fs.readFileSync(path.join(stagedNodeModules, 'xpert-runtime-dependency', 'index.js'), 'utf8')).toContain(
+			'xpert-runtime-dependency-v2'
+		)
+	})
+
+	it('keeps only the latest spec for each package in an organization manifest', () => {
+		writeOrganizationManifest(
+			'org-1',
+			['@xpert-ai/plugin-markitdown', '@xpert-ai/plugin-other@1.0.0', '@xpert-ai/plugin-markitdown@0.0.5'],
+			{ rootDir: pluginRoot }
+		)
+
+		expect(readOrganizationManifest('org-1', { rootDir: pluginRoot })).toEqual([
+			'@xpert-ai/plugin-other@1.0.0',
+			'@xpert-ai/plugin-markitdown@0.0.5'
+		])
+	})
+
+	it('replaces stale manifest specs when an installed plugin is reused', () => {
+		const pluginSpec = '@xpert-ai/plugin-markitdown@0.0.5'
+		const installedPackageDir = path.join(
+			pluginRoot,
+			'org-1',
+			pluginSpec,
+			'node_modules',
+			'@xpert-ai',
+			'plugin-markitdown'
+		)
+		fs.mkdirSync(installedPackageDir, { recursive: true })
+		fs.writeFileSync(
+			path.join(installedPackageDir, 'package.json'),
+			JSON.stringify({ name: '@xpert-ai/plugin-markitdown', version: '0.0.5' })
+		)
+		writeOrganizationManifest('org-1', ['@xpert-ai/plugin-markitdown'], { rootDir: pluginRoot })
+
+		installOrganizationPlugins('org-1', [pluginSpec], { rootDir: pluginRoot })
+
+		expect(readOrganizationManifest('org-1', { rootDir: pluginRoot })).toEqual([pluginSpec])
 	})
 
 	it('rejects workspace paths outside allowed roots', () => {
