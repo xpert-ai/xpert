@@ -33,9 +33,10 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, Logger } from '@nestjs/common'
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING, RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { catchError, concat, concatMap, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { uniq } from 'lodash'
 import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
@@ -100,6 +101,8 @@ function isInternalGoalRunInput(input: TChatRequestHuman | null | undefined): bo
         readBooleanMarker(metadata, 'xpertInternalGoalRun')
     )
 }
+
+const STEER_FOLLOW_UP_TARGET_NOT_RUNNING_ERROR = 'Steer follow-up target execution is no longer running'
 
 function resolveVisibleConversationTitle(
     conversationTitle: string | null | undefined,
@@ -236,6 +239,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Follow-up is not available while the conversation is interrupted')
             }
 
+            const targetMessage = resolveFollowUpTargetMessage(request, conversation.messages)
+            const targetExecutionId =
+                targetMessage?.executionId ?? request.target?.executionId ?? options?.execution?.id ?? null
+            if (request.mode === 'steer') {
+                await this.assertSteerTargetIsActive(targetExecutionId, canPersistInterruptedSteerFollowUp)
+            }
+
             let followUpInput = request.message.input
             // Follow-ups are persisted immediately as pending human messages, so
             // normalize files before deriving message.fileAssets or attachments.
@@ -265,9 +275,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Follow-up input is required')
             }
 
-            const targetMessage = resolveFollowUpTargetMessage(request, conversation.messages)
-            const targetExecutionId =
-                targetMessage?.executionId ?? request.target?.executionId ?? options?.execution?.id ?? null
             const existingPendingFollowUp = findPendingFollowUpByClientMessageId(
                 conversation.messages,
                 request.message.clientMessageId
@@ -309,6 +316,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     }
                 })
             )
+            // Close the RUNNING -> completion race around the pending-message insert.
+            // If completion happened before the insert, this second check rejects and
+            // the channel can safely resend with the same clientMessageId. If it happens
+            // after this check, the execution's completion drain sees the inserted row.
+            if (request.mode === 'steer') {
+                await this.assertSteerTargetIsActive(targetExecutionId, canPersistInterruptedSteerFollowUp)
+            }
             const followUpXpert = xpertId
                 ? await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent'] }).catch(() => null)
                 : null
@@ -1179,6 +1193,34 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             'xpert.id': xpert.id,
             'project.id': options.projectId
         })
+    }
+
+    private async assertSteerTargetIsActive(
+        targetExecutionId: string | null,
+        allowInterrupted: boolean
+    ): Promise<void> {
+        let targetExecution: { status?: XpertAgentExecutionStatusEnum } | null = null
+        if (targetExecutionId) {
+            try {
+                targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(targetExecutionId))
+            } catch (error) {
+                if (!(error instanceof NotFoundException)) {
+                    throw error
+                }
+            }
+        }
+        const active =
+            targetExecution?.status === XpertAgentExecutionStatusEnum.RUNNING ||
+            (allowInterrupted && targetExecution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED)
+        if (!active) {
+            throw new BadRequestException({
+                code: AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING,
+                message:
+                    t('server-ai:Error.SteerFollowUpTargetNotRunning', {
+                        defaultValue: STEER_FOLLOW_UP_TARGET_NOT_RUNNING_ERROR
+                    }) || STEER_FOLLOW_UP_TARGET_NOT_RUNNING_ERROR
+            })
+        }
     }
 }
 

@@ -122,11 +122,9 @@ export abstract class LargeLanguageModel extends AIModel {
     promptTokens: number,
     completionTokens: number
   ): ILLMUsage {
-    // Get prompt price information
-    const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens)
-
-    // Get completed price information
-    const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens)
+    const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens, promptTokens)
+    const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens, promptTokens)
+    const totalPrice = Number((promptPriceInfo.totalAmount + completionPriceInfo.totalAmount).toFixed(7))
 
     // Conversion usage
     const usage: ILLMUsage = {
@@ -139,7 +137,7 @@ export abstract class LargeLanguageModel extends AIModel {
       completionPriceUnit: completionPriceInfo.unit,
       completionPrice: completionPriceInfo.totalAmount,
       totalTokens: promptTokens + completionTokens,
-      totalPrice: promptPriceInfo.totalAmount + completionPriceInfo.totalAmount,
+      totalPrice,
       currency: promptPriceInfo.currency,
       latency: performance.now() - this.startedAt
     }
@@ -327,8 +325,8 @@ export function calcTokenUsage(output: LLMResult) {
       const message = (<ChatGenerationChunk>item).message as AIMessage
       if (message.usage_metadata) {
         tokenUsage.promptTokens += message.usage_metadata.input_tokens
-        tokenUsage.completionTokens = message.usage_metadata.output_tokens
-        tokenUsage.totalTokens = message.usage_metadata.total_tokens
+        tokenUsage.completionTokens += message.usage_metadata.output_tokens
+        tokenUsage.totalTokens += message.usage_metadata.total_tokens
       }
     })
   })

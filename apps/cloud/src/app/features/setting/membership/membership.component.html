@@ -437,7 +437,15 @@
                   <span class="text-sm text-text-secondary">
                     {{ 'PAC.Membership.TokensPerPoint' | translate: { Default: 'Tokens per point' } }}
                   </span>
-                  <input z-input type="number" min="1" [(ngModel)]="draft.tokensPerPoint" />
+                  <z-select
+                    class="w-full"
+                    [zValue]="draft.tokensPerPoint || 1000"
+                    (zSelectionChange)="setDraftTokensPerPoint($event)"
+                  >
+                    @for (option of tokensPerPointOptions; track option) {
+                      <z-select-item [zValue]="option">{{ tokensPerPointLabel(option) }}</z-select-item>
+                    }
+                  </z-select>
                 </label>
 
                 <label class="flex flex-col gap-1">

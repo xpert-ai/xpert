@@ -1,6 +1,11 @@
 import { Observable, of } from 'rxjs'
+import { BadRequestException } from '@nestjs/common'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
-import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING,
+    AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
 import { AgentChatDispatchHandoffProcessor } from './agent-chat-dispatch.processor'
 import { AgentChatCallbackNoopHandoffProcessor } from './agent-chat-callback-noop.processor'
 
@@ -605,6 +610,39 @@ describe('AgentChatDispatchHandoffProcessor', () => {
             })
         )
         expect(agentChatRealtime.publish).not.toHaveBeenCalled()
+    })
+
+    it('forwards a machine-readable stale steer error code to handoff callbacks', async () => {
+        const commandBus = {
+            execute: jest.fn().mockRejectedValue(
+                new BadRequestException({
+                    code: AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING,
+                    message: 'Steer follow-up target execution is no longer running'
+                })
+            )
+        }
+        const handoffQueueService = { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+        const processor = new AgentChatDispatchHandoffProcessor(
+            commandBus as never,
+            handoffQueueService as never,
+            { publish: jest.fn() } as never
+        )
+
+        await processor.process(
+            createMessage({
+                request: { input: { input: 'hello world' } },
+                options: { xpertId: 'xpert-id' },
+                callback: { messageType: 'channel.lark.chat_stream_event.v1' }
+            }) as never,
+            createContext() as never
+        )
+
+        expect(handoffQueueService.enqueue.mock.calls[0][0].payload).toEqual(
+            expect.objectContaining({
+                kind: 'error',
+                errorCode: AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING
+            })
+        )
     })
 })
 

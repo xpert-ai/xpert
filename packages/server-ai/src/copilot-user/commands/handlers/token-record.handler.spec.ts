@@ -71,7 +71,8 @@ describe('CopilotTokenRecordHandler', () => {
                 userId: 'assistant-tech-user',
                 provider: 'tongyi',
                 model: 'qwen3.6-plus',
-                tokenUsed: 100
+                tokenUsed: 100,
+                usageHour: expect.any(String)
             })
         )
     })

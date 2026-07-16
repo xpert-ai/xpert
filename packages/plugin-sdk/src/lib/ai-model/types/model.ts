@@ -24,7 +24,8 @@ export interface IAIModel {
 		model: string,
 		credentials: Record<string, any>,
 		priceType: PriceType,
-		tokens: number
+		tokens: number,
+		inputTokens?: number
 	): PriceInfo
 }
 
