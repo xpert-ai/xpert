@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional } from '@nestjs/common'
+import { HttpException, Injectable, Logger, Optional } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiKeyBindingType, IApiKey, IApiPrincipal, IUser, RequestScopeLevel, UserType } from '@xpert-ai/contracts'
@@ -9,6 +9,7 @@ import {
     ProcessContext,
     ProcessResult,
     AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+    AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING,
     AgentChatCallbackEnvelopePayload,
     AgentChatCallbackTarget,
     AgentChatDispatchPayload,
@@ -95,11 +96,12 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             })
         } catch (error) {
             const reason = this.getErrorMessage(error)
+            const errorCode = this.getErrorCode(error)
             if (this.isRedisPubSubCallback(callback)) {
                 return this.deadResult(message, callback, reason)
             }
             if (this.isHandoffMessageCallback(callback)) {
-                await this.enqueueCallbackError(message, callback, reason)
+                await this.enqueueCallbackError(message, callback, reason, errorCode)
                 return {
                     status: 'dead',
                     reason
@@ -141,7 +143,8 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
     private async enqueueCallbackError(
         sourceMessage: HandoffMessage<AgentChatDispatchPayload>,
         callback: AgentChatHandoffMessageCallbackTarget,
-        error: string
+        error: string,
+        errorCode?: AgentChatCallbackEnvelopePayload['errorCode']
     ) {
         await this.handoffQueueService.enqueue(
             this.buildCallbackMessage(sourceMessage, callback, {
@@ -149,6 +152,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                 sourceMessageId: sourceMessage.id,
                 sequence: 1,
                 error,
+                ...(errorCode ? { errorCode } : {}),
                 context: callback.context
             })
         )
@@ -567,5 +571,21 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             return error
         }
         return 'Unknown agent chat dispatch error'
+    }
+
+    private getErrorCode(error: unknown): AgentChatCallbackEnvelopePayload['errorCode'] | undefined {
+        if (!(error instanceof HttpException)) {
+            return undefined
+        }
+        const response = error.getResponse()
+        if (
+            response &&
+            typeof response === 'object' &&
+            'code' in response &&
+            response.code === AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING
+        ) {
+            return AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING
+        }
+        return undefined
     }
 }

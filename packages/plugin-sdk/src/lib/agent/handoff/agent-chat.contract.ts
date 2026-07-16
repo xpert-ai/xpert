@@ -2,6 +2,7 @@ import { TChatOptions, TChatRequest, TChatRuntimePrincipal, TChatSourceAuditOpti
 import { defineAgentMessageType } from './message-type'
 
 export const AGENT_CHAT_DISPATCH_MESSAGE_TYPE = defineAgentMessageType('chat_dispatch', 1)
+export const AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING = 'steer_target_not_running'
 
 export interface AgentChatHandoffMessageCallbackTarget {
   transport?: 'handoff-message'
@@ -45,5 +46,6 @@ export interface AgentChatCallbackEnvelopePayload extends Record<string, unknown
   sequence: number
   event?: unknown
   error?: string
+  errorCode?: typeof AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING
   context?: Record<string, unknown>
 }
