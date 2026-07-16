@@ -5,6 +5,7 @@ import { MembershipService, getErrorMessage, injectToastr } from '../../../@core
 import {
   IMembershipPlan,
   IMembershipScopeStatus,
+  MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
   MembershipPeriodEnum,
   MembershipPlanStatusEnum
 } from '@xpert-ai/contracts'
@@ -64,6 +65,7 @@ export class MembershipAdminComponent implements OnInit {
     const selectedPlanId = this.selectedPlanId()
     return selectedPlanId ? (this.plans().find((plan) => plan.id === selectedPlanId) ?? null) : null
   })
+  readonly tokensPerPointOptions = MEMBERSHIP_TOKENS_PER_POINT_OPTIONS
 
   MembershipPlanStatusEnum = MembershipPlanStatusEnum
   MembershipPeriodEnum = MembershipPeriodEnum
@@ -228,6 +230,13 @@ export class MembershipAdminComponent implements OnInit {
   setDraftStatus(value: string | number | Array<string | number>) {
     const next = Array.isArray(value) ? value[0] : value
     this.draft.status = next as MembershipPlanStatusEnum
+  }
+
+  setDraftTokensPerPoint(value: string | number | Array<string | number>) {
+    const next = Number(Array.isArray(value) ? value[0] : value)
+    if (MEMBERSHIP_TOKENS_PER_POINT_OPTIONS.some((option) => option === next)) {
+      this.draft.tokensPerPoint = next
+    }
   }
 
   modelMultiplierCount(plan: IMembershipPlan | null) {

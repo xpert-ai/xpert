@@ -9,6 +9,7 @@ import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { FeatureOrganization, RequestContext } from '@xpert-ai/server-core'
 import {
+    MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
     MembershipPlanStatusEnum,
@@ -150,6 +151,14 @@ describe('MembershipService', () => {
         )
     }
 
+    it('calculates fractional points directly from token usage without rounding per call', () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const plan = createPlan({ tokensPerPoint: 100000 })
+
+        expect(service.calculatePoints(28_868_663, plan, 'tongyi', 'qwen3.6-plus')).toBe(288.68663)
+        expect(service.calculatePoints(1, plan, 'tongyi', 'qwen3.6-plus')).toBe(0.00001)
+    })
+
     function createScopeInitializationHarness() {
         const plans: MembershipPlan[] = []
         const memberships: UserMembership[] = []
@@ -167,6 +176,7 @@ describe('MembershipService', () => {
             set: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
             andWhere: jest.fn().mockReturnThis(),
+            getCount: jest.fn().mockResolvedValue(0),
             execute: jest.fn().mockResolvedValue(undefined)
         }
         const planRepository = {
@@ -362,6 +372,20 @@ describe('MembershipService', () => {
             )
         }
     }
+
+    it('accepts only the configured tokens-per-point options when saving plans', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { plans, service } = createScopeInitializationHarness()
+
+        await service.createPlan({ code: 'tokens-per-point-valid', name: 'Valid', tokensPerPoint: 10000 })
+
+        await expect(
+            service.createPlan({ code: 'tokens-per-point-invalid', name: 'Invalid', tokensPerPoint: 100000 })
+        ).rejects.toThrow('Tokens per point must be one of: 1, 10, 100, 1000, 10000.')
+        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1, 10, 100, 1000, 10000])
+        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([10000])
+    })
 
     it('locks only membership rows when loading an active membership for update', async () => {
         const queryBuilder = {
@@ -1109,7 +1133,7 @@ describe('MembershipService', () => {
             manager,
             true
         )
-        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 5 }))
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 4.5 }))
         expect(createLedger).toHaveBeenCalledWith(
             manager,
             expect.objectContaining({
@@ -1118,9 +1142,10 @@ describe('MembershipService', () => {
                 membershipId: 'membership-owner',
                 planId: 'plan-1',
                 source: 'usage',
-                pointsDelta: -3,
+                pointsDelta: -2.5,
                 tokenUsed: 2500,
                 organizationId: 'org-1',
+                runtimeOrganizationId: 'org-1',
                 xpertId: 'xpert-1',
                 threadId: 'thread-1',
                 copilotId: 'copilot-1'
@@ -1480,16 +1505,16 @@ describe('MembershipService', () => {
             tokenUsed: 2500
         })
 
-        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 102 }))
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 101.5 }))
         expect(createLedger).toHaveBeenCalledWith(
             manager,
             expect.objectContaining({
-                pointsDelta: -3,
+                pointsDelta: -2.5,
                 tokenUsed: 2500,
                 organizationId: 'org-1'
             })
         )
-        expect(ledger).toMatchObject({ pointsDelta: -3, tokenUsed: 2500 })
+        expect(ledger).toMatchObject({ pointsDelta: -2.5, tokenUsed: 2500 })
     })
 
     it('still evaluates rate limits for unlimited memberships', async () => {

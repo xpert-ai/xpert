@@ -31,7 +31,7 @@
               @if (overview()?.pointsRemaining === null) {
                 {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ overview()?.pointsRemaining | number }}
+                {{ overview()?.pointsRemaining | number: '1.0-10' }}
               }
             </div>
           </div>
@@ -39,7 +39,9 @@
             <div class="text-xs text-text-tertiary">
               {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
-            <div class="mt-1 text-xl font-semibold text-text-primary">{{ overview()?.pointsUsed | number }}</div>
+            <div class="mt-1 text-xl font-semibold text-text-primary">
+              {{ overview()?.pointsUsed | number: '1.0-10' }}
+            </div>
           </div>
         </div>
 
@@ -172,7 +174,8 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number }} {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
@@ -204,7 +207,8 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number }} {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {
@@ -236,7 +240,8 @@
               </div>
             </div>
             <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number }} {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
+              {{ item.pointsUsed | number: '1.0-10' }}
+              {{ 'PAC.Membership.PointsShort' | translate: { Default: 'pts' } }}
             </z-badge>
           </div>
         } @empty {

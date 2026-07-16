@@ -31,6 +31,7 @@ export interface ICopilotUsageSummary extends IBasePerTenantAndOrganizationEntit
   model?: string | null
   currency?: string | null
   tokenUsed: number
+  membershipPointsUsed?: number | null
   tokenLimit?: number | null
   tokenTotalUsed: number
   tokenGrandTotal: number

@@ -7,6 +7,7 @@ import {
     IMembershipUsageOverview,
     IMembershipUsageQuery,
     IPagination,
+    MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
     MembershipPlanStatusEnum,
@@ -43,6 +44,7 @@ type RecordUsageInput = {
     provider?: string
     model?: string
     tokenUsed?: number
+    usageHour?: string
     xpertId?: string
     threadId?: string
     copilotId?: string
@@ -174,7 +176,7 @@ export class MembershipService {
             isDefault: input.isDefault ?? false,
             period: input.period ?? MembershipPeriodEnum.Monthly,
             includedPoints: this.positiveIntegerOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS),
-            tokensPerPoint: this.positiveInteger(input.tokensPerPoint, DEFAULT_TOKENS_PER_POINT),
+            tokensPerPoint: this.normalizeTokensPerPoint(input.tokensPerPoint),
             priceAmount: input.priceAmount,
             priceCurrency: input.priceCurrency,
             modelMultipliers: input.modelMultipliers ?? [],
@@ -227,7 +229,7 @@ export class MembershipService {
                 plan.includedPoints = this.positiveIntegerOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS)
             }
             if (input.tokensPerPoint !== undefined) {
-                plan.tokensPerPoint = this.positiveInteger(input.tokensPerPoint, DEFAULT_TOKENS_PER_POINT)
+                plan.tokensPerPoint = this.normalizeTokensPerPoint(input.tokensPerPoint)
             }
             if (input.priceAmount !== undefined) {
                 plan.priceAmount = input.priceAmount
@@ -793,10 +795,11 @@ export class MembershipService {
                 provider: input.provider,
                 model: input.model,
                 organizationId,
+                runtimeOrganizationId: input.organizationId,
                 xpertId: input.xpertId,
                 threadId: input.threadId,
                 copilotId: input.copilotId,
-                usageHour: formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
+                usageHour: input.usageHour ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
             })
 
             if (saved.pointsGranted !== null && saved.pointsUsed > saved.pointsGranted) {
@@ -842,7 +845,7 @@ export class MembershipService {
     calculatePoints(tokenUsed: number, plan: MembershipPlan, provider?: string, model?: string): number {
         const tokensPerPoint = Math.max(1, Number(plan.tokensPerPoint || DEFAULT_TOKENS_PER_POINT))
         const multiplier = this.resolveModelMultiplier(plan, provider, model)
-        return Math.max(1, Math.ceil((tokenUsed / tokensPerPoint) * multiplier))
+        return Number(((tokenUsed / tokensPerPoint) * multiplier).toFixed(10))
     }
 
     async findModelAccess(
@@ -1605,6 +1608,22 @@ export class MembershipService {
     private positiveInteger(value: unknown, fallback: number) {
         const numberValue = Number(value)
         return Number.isFinite(numberValue) && numberValue > 0 ? Math.trunc(numberValue) : fallback
+    }
+
+    private normalizeTokensPerPoint(value: unknown) {
+        const numberValue = value === undefined ? DEFAULT_TOKENS_PER_POINT : Number(value)
+        if (
+            !Number.isInteger(numberValue) ||
+            !MEMBERSHIP_TOKENS_PER_POINT_OPTIONS.some((option) => option === numberValue)
+        ) {
+            throw new BadRequestException(
+                this.translateMembershipError(
+                    'server-ai:Error.InvalidMembershipTokensPerPoint',
+                    'Tokens per point must be one of: 1, 10, 100, 1000, 10000.'
+                )
+            )
+        }
+        return numberValue
     }
 
     private positiveIntegerOrNull(value: unknown, fallback: number) {

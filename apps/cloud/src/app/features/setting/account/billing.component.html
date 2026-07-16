@@ -39,7 +39,7 @@
               @if (isUnlimited()) {
                 {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ me()?.pointsRemaining | number }} / {{ me()?.pointsGranted | number }}
+                {{ me()?.pointsRemaining | number: '1.0-10' }} / {{ me()?.pointsGranted | number: '1.0-10' }}
               }
             </div>
             <div class="mt-1 text-xs text-text-tertiary">
@@ -56,7 +56,7 @@
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number }}</div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number: '1.0-10' }}</div>
             <div class="mt-1 text-xs text-text-tertiary">
               {{ usedPercent() | number }}% {{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}
             </div>
@@ -82,9 +82,10 @@
             <span>{{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
             <span>
               @if (isUnlimited()) {
-                {{ me()?.pointsUsed | number }} / {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ me()?.pointsUsed | number: '1.0-10' }} /
+                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ me()?.pointsUsed | number }} / {{ me()?.pointsGranted | number }}
+                {{ me()?.pointsUsed | number: '1.0-10' }} / {{ me()?.pointsGranted | number: '1.0-10' }}
               }
             </span>
           </div>
@@ -283,7 +284,7 @@
                     class="whitespace-nowrap px-4 py-3 text-right font-semibold"
                     [ngClass]="summary.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
                   >
-                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number }}
+                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number: '1.0-10' }}
                   </td>
                   <td class="whitespace-nowrap px-4 py-3 text-right text-text-secondary">
                     {{ summary.tokenUsed | number }}
@@ -339,7 +340,7 @@
                                   class="whitespace-nowrap px-4 py-2 text-right font-semibold"
                                   [ngClass]="ledger.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
                                 >
-                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number }}
+                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number: '1.0-10' }}
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2 text-right text-text-secondary">
                                   {{ ledger.tokenUsed | number }}
