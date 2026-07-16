@@ -6,6 +6,7 @@
         "KBReqVisionModel": "Knowledgebase requires vision model to process images",
         "IntegrationNotFound": "Integration '{{id}}' not found",
         "NoTriggerNodes": "No trigger nodes available to start the agent. Please add a trigger node.",
+        "SteerFollowUpTargetNotRunning": "Steer follow-up target execution is no longer running",
         "InconsistentTypes": "Cannot aggregate variables with inconsistent types '{{types}}'. Supported aggregation types: arrays, strings, objects.",
         "ModelNameExists": "Model name '{{modelName}}' already exists. Please choose a different name.",
         "AIModelProviderNotFound": "AI Model Provider '{{name}}' not found.",
