@@ -40,6 +40,8 @@
     "start:docs": "pnpm -C ./docs dev",
     "plugin:install:local": "node tools/scripts/install-local-plugin.mjs",
     "plugin:reinstall:local": "node tools/scripts/reinstall-local-plugin.mjs",
+    "plugin:deploy:local": "node tools/scripts/deploy-local-plugin.mjs",
+    "test:plugin:deploy:local": "node --test tools/scripts/deploy-local-plugin.test.mjs",
     "debug:olap": "pnpm -C ./packages/olap debug",
     "format:fix": "prettier --write --ignore-unknown",
     "prepare": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",

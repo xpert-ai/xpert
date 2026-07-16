@@ -1,30 +1,43 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs'
-import path from 'node:path'
 import process from 'node:process'
+import {
+  DEFAULT_API_URL,
+  DEFAULT_KEYCHAIN_SERVICE,
+  assertResponseOk,
+  createRequestHeaders,
+  handleCliError,
+  parseCliArgs,
+  parsePluginConfig,
+  postJson,
+  redactRequestHeaders,
+  requireAuthentication,
+  resolvePluginEndpoint,
+  resolvePluginInput,
+  summarizePluginResponse
+} from './local-plugin-cli.mjs'
 
-const DEFAULT_API_URL = 'http://localhost:3333'
-const DEFAULT_SOURCE = 'code'
-const ORGANIZATION_SCOPE = 'organization'
-const TENANT_SCOPE = 'tenant'
+const BOOLEAN_FLAGS = ['dryRun', 'help', 'noKeychain']
 
 function printUsage() {
   console.log(`Install a local plugin workspace into a running Xpert API.
 
 Usage:
-  pnpm plugin:install:local --workspace-path /abs/path/to/plugin --org-id <org-id> [options]
-  pnpm plugin:install:local <plugin-name> <workspace-path> --org-id <org-id> [options]
+  corepack pnpm plugin:install:local --workspace-path /abs/path/to/plugin --org-id <org-id> [options]
+  corepack pnpm plugin:install:local <plugin-name> <workspace-path> --org-id <org-id> [options]
 
 Options:
-  --plugin-name <name>       Plugin package name. If omitted, read from workspace package.json
-  --workspace-path <path>    Plugin workspace path. Relative paths are resolved to absolute paths
-  --org-id <id>              Organization-Id header used for org-scoped install
-  --tenant-id <id>           Optional Tenant-Id header
-  --scope <scope>            Install scope: organization or tenant. Defaults to organization when --org-id is set
-  --token <jwt>              Bearer token used for Authorization header
+  --plugin-name <name>       Plugin package name. Defaults to package.json name
+  --plugin-dir <path>        Plugin workspace. --workspace-path is also accepted
+  --org-id <id>              Organization scope identifier
+  --tenant-id <id>           Tenant scope identifier
+  --scope <scope>            organization or tenant
+  --token <jwt>              Bearer token; environment or Keychain is safer
+  --keychain-service <name>  Default: ${DEFAULT_KEYCHAIN_SERVICE}
+  --keychain-account <name>  Default: current OS user
+  --no-keychain              Do not read macOS Keychain
   --api-url <url>            API origin, default: ${DEFAULT_API_URL}
-  --endpoint <url>           Full install endpoint. Overrides --api-url
+  --endpoint <url>           Full plugin install endpoint
   --version <version>        Optional plugin version
   --config <json>            Optional JSON config payload
   --config-file <path>       Optional JSON config file path
@@ -32,277 +45,67 @@ Options:
   --help                     Show this help
 
 Environment fallbacks:
-  XPERT_API_URL
-  XPERT_TOKEN
-  XPERT_ORG_ID
-  XPERT_TENANT_ID
-  XPERT_SCOPE
-
-Examples:
-  pnpm plugin:install:local --workspace-path ../xpert-plugins/xpertai/integrations/lark --org-id org_123 --token <jwt>
-  pnpm plugin:install:local @xpert-ai/plugin-lark /Users/me/GitHub/xpert-plugins/xpertai/integrations/lark --org-id org_123
+  XPERT_API_URL, XPERT_TOKEN, XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
+  XPERT_KEYCHAIN_SERVICE, XPERT_KEYCHAIN_ACCOUNT
 `)
 }
 
-function fail(message) {
-  console.error(`[plugin:install:local] ${message}`)
-  process.exit(1)
-}
-
-function trimSlashes(value) {
-  return value.replace(/\/+$/, '')
-}
-
-function toCamelCase(flag) {
-  return flag.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-}
-
-function parseArgs(argv) {
-  const args = { _: [] }
-
-  for (let index = 0; index < argv.length; index++) {
-    const token = argv[index]
-
-    if (token === '--help' || token === '-h') {
-      args.help = true
-      continue
-    }
-
-    if (token === '--dry-run') {
-      args.dryRun = true
-      continue
-    }
-
-    if (!token.startsWith('--')) {
-      args._.push(token)
-      continue
-    }
-
-    const flag = token.slice(2)
-    const separatorIndex = flag.indexOf('=')
-    const rawKey = separatorIndex >= 0 ? flag.slice(0, separatorIndex) : flag
-    const inlineValue = separatorIndex >= 0 ? flag.slice(separatorIndex + 1) : undefined
-    const key = toCamelCase(rawKey)
-
-    let value = inlineValue
-    if (value == null) {
-      value = argv[index + 1]
-      if (value == null || value.startsWith('--')) {
-        fail(`Missing value for --${rawKey}`)
-      }
-      index += 1
-    }
-
-    args[key] = value
-  }
-
-  return args
-}
-
-function resolveWorkspacePath(workspacePath) {
-  if (!workspacePath) {
-    fail('workspace path is required. Use --workspace-path <path> or pass it as the second positional argument.')
-  }
-
-  return path.resolve(workspacePath)
-}
-
-function readPluginNameFromWorkspace(workspacePath) {
-  const packageJsonPath = path.join(workspacePath, 'package.json')
-  if (!fs.existsSync(packageJsonPath)) {
-    fail(`package.json not found under workspace path: ${workspacePath}`)
-  }
-
-  let packageJson
-  try {
-    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
-  } catch (error) {
-    fail(`Failed to parse ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`)
-  }
-
-  if (!packageJson?.name) {
-    fail(`package.json is missing "name": ${packageJsonPath}`)
-  }
-
-  return packageJson.name
-}
-
-function parseConfig(args) {
-  if (args.config && args.configFile) {
-    fail('Use either --config or --config-file, not both.')
-  }
-
-  if (args.configFile) {
-    const configPath = path.resolve(args.configFile)
-    if (!fs.existsSync(configPath)) {
-      fail(`Config file not found: ${configPath}`)
-    }
-
-    try {
-      return JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    } catch (error) {
-      fail(`Failed to parse config file ${configPath}: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-
-  if (args.config) {
-    try {
-      return JSON.parse(args.config)
-    } catch (error) {
-      fail(`Failed to parse --config JSON: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-
-  return undefined
-}
-
-function resolveEndpoint(args) {
-  if (args.endpoint) {
-    return args.endpoint
-  }
-
-  const apiUrl = trimSlashes(args.apiUrl || process.env.XPERT_API_URL || DEFAULT_API_URL)
-  if (apiUrl.endsWith('/api/plugin')) {
-    return apiUrl
-  }
-  if (apiUrl.endsWith('/api')) {
-    return `${apiUrl}/plugin`
-  }
-  return `${apiUrl}/api/plugin`
-}
-
-function buildHeaders(args) {
-  const headers = {
-    'content-type': 'application/json',
-    accept: 'application/json'
-  }
-
-  const token = args.token || process.env.XPERT_TOKEN
-  if (token) {
-    headers.authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
-  }
-
-  const organizationId = args.orgId || process.env.XPERT_ORG_ID
-  const tenantId = args.tenantId || process.env.XPERT_TENANT_ID
-  const scope = args.scope || process.env.XPERT_SCOPE || (organizationId ? ORGANIZATION_SCOPE : TENANT_SCOPE)
-  if (![ORGANIZATION_SCOPE, TENANT_SCOPE].includes(scope)) {
-    fail(`Unsupported --scope "${scope}". Use "organization" or "tenant".`)
-  }
-
-  if (scope === ORGANIZATION_SCOPE) {
-    if (!organizationId) {
-      fail('Organization ID is required for organization scope. Pass --org-id <id> or set XPERT_ORG_ID.')
-    }
-
-    headers['organization-id'] = organizationId
-    headers['x-scope-level'] = ORGANIZATION_SCOPE
-    if (tenantId) {
-      headers['tenant-id'] = tenantId
-    }
-    return headers
-  }
-
-  if (!tenantId) {
-    fail('Tenant ID is required for tenant scope. Pass --tenant-id <id> or set XPERT_TENANT_ID.')
-  }
-
-  headers['tenant-id'] = tenantId
-  headers['x-scope-level'] = TENANT_SCOPE
-
-  return headers
-}
-
 async function main() {
-  const args = parseArgs(process.argv.slice(2))
-
+  const args = parseCliArgs(process.argv.slice(2), { booleanFlags: BOOLEAN_FLAGS })
   if (args.help) {
     printUsage()
     return
   }
-
-  const firstPositional = args._[0]
-  const secondPositional = args._[1]
-  const firstPositionalLooksLikeWorkspace =
-    !args.workspacePath && typeof firstPositional === 'string' && fs.existsSync(path.resolve(firstPositional))
-  const positionalPluginName = firstPositionalLooksLikeWorkspace ? undefined : firstPositional
-  const positionalWorkspacePath = firstPositionalLooksLikeWorkspace ? firstPositional : secondPositional
-  const workspacePath = resolveWorkspacePath(args.workspacePath || positionalWorkspacePath)
-
-  if (!fs.existsSync(workspacePath) || !fs.statSync(workspacePath).isDirectory()) {
-    fail(`Workspace path does not exist or is not a directory: ${workspacePath}`)
-  }
-
-  const pluginName = args.pluginName || positionalPluginName || readPluginNameFromWorkspace(workspacePath)
   if (args.mode) {
-    fail('The --mode option has been removed. Local code installs now always use copy mode.')
+    throw new Error('The --mode option has been removed. Local code installs always use copy mode.')
   }
 
-  const endpoint = resolveEndpoint(args)
-  const headers = buildHeaders(args)
-  const config = parseConfig(args)
+  const { pluginName, workspacePath } = resolvePluginInput(args)
+  const config = parsePluginConfig(args)
+  const authentication = requireAuthentication(args, { dryRun: args.dryRun })
+  const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token')
+  const endpoint = resolvePluginEndpoint(args)
   const body = {
     pluginName,
-    source: DEFAULT_SOURCE,
-    sourceConfig: {
-      workspacePath
-    }
+    source: 'code',
+    sourceConfig: { workspacePath }
   }
-
   if (args.version) {
     body.version = args.version
   }
-
   if (config !== undefined) {
     body.config = config
   }
 
-  const safeHeaders = { ...headers }
-  if (safeHeaders.authorization) {
-    safeHeaders.authorization = 'Bearer ***'
-  }
-
-  console.log('[plugin:install:local] endpoint:', endpoint)
-  console.log('[plugin:install:local] headers:', JSON.stringify(safeHeaders, null, 2))
-  console.log('[plugin:install:local] body:', JSON.stringify(body, null, 2))
-
+  console.log('[plugin:install:local] Authentication source:', authentication?.source ?? 'dry-run only')
+  console.log('[plugin:install:local] Endpoint:', endpoint)
+  console.log('[plugin:install:local] Headers:', JSON.stringify(redactRequestHeaders(headers), null, 2))
+  console.log(
+    '[plugin:install:local] Request:',
+    JSON.stringify(
+      {
+        pluginName,
+        source: body.source,
+        sourceConfig: body.sourceConfig,
+        ...(args.version ? { version: args.version } : {}),
+        hasConfig: config !== undefined
+      },
+      null,
+      2
+    )
+  )
   if (args.dryRun) {
     console.log('[plugin:install:local] Dry run only. Request was not sent.')
     return
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body)
-  })
-
-  const responseText = await response.text()
-  let responseBody = responseText
-  const contentType = response.headers.get('content-type') || ''
-
-  if (contentType.includes('application/json') && responseText) {
-    try {
-      responseBody = JSON.parse(responseText)
-    } catch {
-      // Keep original text when parsing fails.
-    }
+  const response = await postJson(endpoint, headers, body)
+  assertResponseOk('Plugin install', response)
+  console.log(`[plugin:install:local] ${pluginName} installed successfully (HTTP ${response.status}).`)
+  const summary = summarizePluginResponse(response.body)
+  if (summary) {
+    console.log('[plugin:install:local] Result:', JSON.stringify(summary, null, 2))
   }
-
-  if (!response.ok) {
-    console.error('[plugin:install:local] Request failed with status', response.status)
-    console.error(
-      '[plugin:install:local] response:',
-      typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2)
-    )
-    process.exit(1)
-  }
-
-  console.log(
-    '[plugin:install:local] response:',
-    typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2)
-  )
 }
 
-main().catch((error) => {
-  fail(error instanceof Error ? error.message : String(error))
-})
+main().catch((error) => handleCliError('plugin:install:local', error))
