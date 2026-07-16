@@ -239,6 +239,10 @@ export class MembershipAdminComponent implements OnInit {
     }
   }
 
+  tokensPerPointLabel(value: number) {
+    return value >= 1_000_000 ? `${value / 1_000_000}M` : `${value / 1_000}k`
+  }
+
   modelMultiplierCount(plan: IMembershipPlan | null) {
     return plan?.modelMultipliers?.length ?? 0
   }

@@ -443,7 +443,7 @@
                     (zSelectionChange)="setDraftTokensPerPoint($event)"
                   >
                     @for (option of tokensPerPointOptions; track option) {
-                      <z-select-item [zValue]="option">{{ option | number }}</z-select-item>
+                      <z-select-item [zValue]="option">{{ tokensPerPointLabel(option) }}</z-select-item>
                     }
                   </z-select>
                 </label>

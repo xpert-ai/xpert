@@ -16,7 +16,7 @@ export enum MembershipStatusEnum {
   Expired = 'expired'
 }
 
-export const MEMBERSHIP_TOKENS_PER_POINT_OPTIONS = [1, 10, 100, 1000, 10000] as const
+export const MEMBERSHIP_TOKENS_PER_POINT_OPTIONS = [1000, 10000, 100000, 1000000] as const
 
 export enum MembershipLedgerSourceEnum {
   Assignment = 'assignment',

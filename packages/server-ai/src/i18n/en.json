@@ -15,7 +15,7 @@
         "MembershipPointsLimitExceeded": "Membership points limit exceeded.",
         "MembershipPlanFeatureDisabled": "Membership plan feature is disabled.",
         "CopilotModelUnavailableForMembershipPlan": "Copilot model is not available for the current membership plan.",
-        "InvalidMembershipTokensPerPoint": "Tokens per point must be one of: 1, 10, 100, 1000, 10000.",
+        "InvalidMembershipTokensPerPoint": "Tokens per point must be one of: 1k, 10k, 100k, 1M.",
         "ManagedImportRequiresPrimaryLlmModel": "Managed xpert import requires an enabled primary LLM copilot model for {{scope}}.",
         "CurrentOrganizationScope": "the current organization",
         "TenantScope": "tenant scope",

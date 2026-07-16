@@ -1619,7 +1619,7 @@ export class MembershipService {
             throw new BadRequestException(
                 this.translateMembershipError(
                     'server-ai:Error.InvalidMembershipTokensPerPoint',
-                    'Tokens per point must be one of: 1, 10, 100, 1000, 10000.'
+                    'Tokens per point must be one of: 1k, 10k, 100k, 1M.'
                 )
             )
         }

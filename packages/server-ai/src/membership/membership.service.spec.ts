@@ -378,13 +378,13 @@ describe('MembershipService', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         const { plans, service } = createScopeInitializationHarness()
 
-        await service.createPlan({ code: 'tokens-per-point-valid', name: 'Valid', tokensPerPoint: 10000 })
+        await service.createPlan({ code: 'tokens-per-point-valid', name: 'Valid', tokensPerPoint: 1000000 })
 
         await expect(
-            service.createPlan({ code: 'tokens-per-point-invalid', name: 'Invalid', tokensPerPoint: 100000 })
-        ).rejects.toThrow('Tokens per point must be one of: 1, 10, 100, 1000, 10000.')
-        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1, 10, 100, 1000, 10000])
-        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([10000])
+            service.createPlan({ code: 'tokens-per-point-invalid', name: 'Invalid', tokensPerPoint: 100 })
+        ).rejects.toThrow('Tokens per point must be one of: 1k, 10k, 100k, 1M.')
+        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1000, 10000, 100000, 1000000])
+        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([1000000])
     })
 
     it('locks only membership rows when loading an active membership for update', async () => {
