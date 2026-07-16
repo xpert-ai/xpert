@@ -1256,6 +1256,83 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
   })
 
+  it('restores the embedded ChatKit from pet mode before opening assistant conversation client commands', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'job-conversation-1',
+        threadId: 'persisted-thread-1',
+        status: 'busy',
+        messages: []
+      } as IChatConversation)
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) {
+      throw new Error('Expected xpert-chatkit to render')
+    }
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    const petButton = document.createElement('button')
+    const restorePet = jest.fn(() => {
+      delete chatkit.dataset.chatMinimizedToPet
+    })
+    petButton.setAttribute('data-chatkit-host-pet', '')
+    petButton.addEventListener('click', restorePet)
+    shadowRoot.appendChild(petButton)
+
+    fixture.componentInstance.openDetailPanel()
+    fixture.componentInstance.workspaceMaximized.set(true)
+    chatkit.dataset.chatMinimizedToPet = 'true'
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
+
+    facade.onChatThreadChange.mockClear()
+    conversationService.markRead.mockClear()
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1'
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'drawing-material',
+        manifest: buildFixedViewManifest('drawing-material')
+      }
+    )
+    await settle(fixture)
+
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+      conversationId: 'job-conversation-1',
+      threadId: 'job-thread-1'
+    })
+    expect(restorePet).toHaveBeenCalledTimes(1)
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
+    expect(setThreadId).toHaveBeenCalledWith('job-thread-1')
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('job-thread-1')
+    expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
+  })
+
   it('adds a browser tab with the resolved conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)

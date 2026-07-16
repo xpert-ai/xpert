@@ -1405,7 +1405,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     try {
-      this.isChatMinimizedToPet.set(false)
+      this.revealChatkitForConversationOpen()
       if (conversation.id) {
         this.syncResolvedConversation(conversation.id, conversation)
       }
@@ -1433,7 +1433,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       throw new Error('Chat is not ready yet.')
     }
 
-    this.isChatMinimizedToPet.set(false)
+    this.revealChatkitForConversationOpen()
     if (conversation) {
       this.syncResolvedConversation(request.conversationId, {
         ...conversation,
@@ -1444,6 +1444,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     await control.setThreadId(threadId)
     this.facade.onChatThreadChange(threadId)
     this.markConversationRead(request.conversationId)
+  }
+
+  private revealChatkitForConversationOpen() {
+    this.workspaceMaximized.set(false)
+    if (this.isChatMinimizedToPet()) {
+      this.restoreChatkitFromPet()
+    }
+    this.isChatMinimizedToPet.set(false)
   }
 
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
