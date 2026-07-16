@@ -3,6 +3,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { Repository, SelectQueryBuilder } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
+import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { CopilotUsageService } from './copilot-usage.service'
 
 jest.mock('@xpert-ai/server-core', () => {
@@ -53,10 +54,21 @@ function createQueryBuilderMock<T>(rawRows: Array<Record<string, unknown>> = [])
     return queryBuilder as unknown as SelectQueryBuilder<T>
 }
 
-function createService(userRepository: RepositoryMock, orgRepository: RepositoryMock) {
+function createService(
+    userRepository: RepositoryMock,
+    orgRepository: RepositoryMock,
+    ledgerRepository: RepositoryMock = {
+        createQueryBuilder: jest.fn().mockReturnValue(createQueryBuilderMock<MembershipPointLedger>()),
+        find: jest.fn(),
+        findOne: jest.fn(),
+        create: jest.fn((input) => input),
+        save: jest.fn()
+    }
+) {
     return new CopilotUsageService(
         userRepository as unknown as Repository<CopilotUser>,
-        orgRepository as unknown as Repository<CopilotOrganization>
+        orgRepository as unknown as Repository<CopilotOrganization>,
+        ledgerRepository as unknown as Repository<MembershipPointLedger>
     )
 }
 
@@ -105,10 +117,35 @@ describe('CopilotUsageService', () => {
             create: jest.fn((input) => input),
             save: jest.fn()
         }
-        const service = createService(userRepository, orgRepository)
+        const membershipQb = createQueryBuilderMock<MembershipPointLedger>([
+            {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'owner-user',
+                provider: 'openai',
+                model: 'gpt-4.1',
+                membershipPointsUsed: '0.0285'
+            }
+        ])
+        const ledgerRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn().mockReturnValue(membershipQb),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const service = createService(userRepository, orgRepository, ledgerRepository)
 
         const result = await service.findSummaries(
-            { dimension: 'user' },
+            {
+                dimension: 'user',
+                start: '2026-06-01T00:00:00.000Z',
+                end: '2026-06-01T23:59:59.999Z',
+                provider: 'openai',
+                model: 'gpt-4.1',
+                userId: 'owner-user',
+                currency: 'USD'
+            },
             { order: { updatedAt: OrderTypeEnum.DESC }, take: 20, skip: 0 }
         )
 
@@ -123,6 +160,36 @@ describe('CopilotUsageService', () => {
         )
         expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
         expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
+        expect(qb.addSelect).not.toHaveBeenCalledWith(expect.stringContaining('usage_membership'), expect.anything())
+        expect(qb.leftJoin).not.toHaveBeenCalledWith(expect.any(Function), 'usage_membership', expect.anything())
+        expect(membershipQb.addSelect).toHaveBeenCalledWith('SUM(ABS(ledger.pointsDelta))', 'membershipPointsUsed')
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.tenantId = :membershipTenantId', {
+            membershipTenantId: 'tenant-1'
+        })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith(
+            'COALESCE(ledger.runtimeOrganizationId, ledger.organizationId) = :membershipScopeOrganizationId',
+            { membershipScopeOrganizationId: 'org-1' }
+        )
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.userId = :membershipUserId', {
+            membershipUserId: 'owner-user'
+        })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.provider = :provider', { provider: 'openai' })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.model = :model', { model: 'gpt-4.1' })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.usageHour >= :usageStartHour', {
+            usageStartHour: '2026-06-01 00'
+        })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.usageHour <= :usageEndHour', {
+            usageEndHour: '2026-06-01 23'
+        })
+        expect(membershipQb.andWhere).toHaveBeenCalledWith(
+            expect.stringContaining('ledger.userId = :membershipPageuser0'),
+            expect.objectContaining({
+                membershipPageorg0: 'org-1',
+                membershipPageprovider0: 'openai',
+                membershipPagemodel0: 'gpt-4.1',
+                membershipPageuser0: 'owner-user'
+            })
+        )
         expect((qb as any).addGroupBy).toHaveBeenCalledWith(
             'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text)'
         )
@@ -135,6 +202,7 @@ describe('CopilotUsageService', () => {
             model: 'gpt-4.1',
             currency: 'USD',
             tokenUsed: 40,
+            membershipPointsUsed: 0.0285,
             tokenTotalUsed: 60,
             tokenGrandTotal: 100,
             priceUsed: 0.4,
@@ -224,7 +292,7 @@ describe('CopilotUsageService', () => {
         })
     })
 
-    it('overlays organization quotas from copilot organization rows', async () => {
+    it('overlays organization quotas and membership points without joining them into usage rows', async () => {
         const userRepository: RepositoryMock = {
             createQueryBuilder: jest.fn().mockReturnValue(
                 createQueryBuilderMock<CopilotUser>([
@@ -268,13 +336,31 @@ describe('CopilotUsageService', () => {
             create: jest.fn((input) => input),
             save: jest.fn()
         }
-        const service = createService(userRepository, orgRepository)
+        const ledgerRepository: RepositoryMock = {
+            createQueryBuilder: jest.fn().mockReturnValue(
+                createQueryBuilderMock<MembershipPointLedger>([
+                    {
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        provider: 'openai',
+                        model: 'gpt-4.1',
+                        membershipPointsUsed: '1.5'
+                    }
+                ])
+            ),
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn((input) => input),
+            save: jest.fn()
+        }
+        const service = createService(userRepository, orgRepository, ledgerRepository)
 
         const result = await service.findSummaries({ dimension: 'organization' })
 
         expect(result.items[0]).toMatchObject({
             dimension: 'organization',
             organizationId: 'org-1',
+            membershipPointsUsed: 1.5,
             tokenLimit: 5000,
             priceLimit: 10,
             userCount: 3

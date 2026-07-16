@@ -2,7 +2,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ModelFeature, ParameterRule, PriceInfo, PriceType, } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { yaml } from '@xpert-ai/server-common';
-import { IAIModel, ModelProfile } from '@xpert-ai/plugin-sdk';
+import { calculateModelPrice, IAIModel, ModelProfile } from '@xpert-ai/plugin-sdk';
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
@@ -35,7 +35,8 @@ export abstract class AIModel implements IAIModel {
 		model: string,
 		credentials: Record<string, any>,
 		priceType: PriceType,
-		tokens: number
+		tokens: number,
+		inputTokens = tokens
 	): PriceInfo {
 		const modelSchema = this.getModelSchema(model, credentials)
 		if (!modelSchema || !modelSchema.pricing) {
@@ -47,26 +48,7 @@ export abstract class AIModel implements IAIModel {
 			}
 		}
 
-		const { pricing } = modelSchema
-		const unitPrice = priceType === PriceType.INPUT ? pricing.input : pricing.output
-
-		if (unitPrice === undefined) {
-			return {
-				unitPrice: 0,
-				unit: 0,
-				totalAmount: 0,
-				currency: 'USD'
-			}
-		}
-
-		const totalAmount = Number((tokens * unitPrice * pricing.unit).toFixed(7))
-
-		return {
-			unitPrice,
-			unit: pricing.unit,
-			totalAmount,
-			currency: pricing.currency
-		}
+		return calculateModelPrice(modelSchema.pricing, priceType, tokens, inputTokens)
 	}
 
 	protected getModelPath() {

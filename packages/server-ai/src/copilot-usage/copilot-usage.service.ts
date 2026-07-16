@@ -4,6 +4,7 @@ import {
     ICopilotUsageSummary,
     ICopilotUsageTotals,
     IPagination,
+    MembershipLedgerSourceEnum,
     OrderTypeEnum,
     RolesEnum,
     TCopilotQuotaAdjustInput,
@@ -14,9 +15,10 @@ import {
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OrganizationPublicDTO, RequestContext, User, UserPublicDTO } from '@xpert-ai/server-core'
-import { EntityTarget, FindOptionsWhere, IsNull, ObjectLiteral, Repository } from 'typeorm'
+import { FindOptionsWhere, IsNull, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
+import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { formatInUTC0 } from '../shared/utils'
 
 type ScopeFilter = {
@@ -34,6 +36,7 @@ type UsageSummaryRaw = {
     model?: string | null
     currency?: string | null
     tokenUsed?: string | number | null
+    membershipPointsUsed?: string | number | null
     tokenLimit?: string | number | null
     tokenTotalUsed?: string | number | null
     priceUsed?: string | number | null
@@ -69,12 +72,17 @@ type QuotaRaw = {
     priceLimit?: string | number | null
 }
 
-type WhereQueryBuilder = {
-    andWhere(where: string, parameters?: ObjectLiteral): unknown
+type MembershipPointsRaw = {
+    tenantId?: string | null
+    organizationId?: string | null
+    userId?: string | null
+    provider?: string | null
+    model?: string | null
+    membershipPointsUsed?: string | number | null
 }
 
-type UsageOwnerQueryBuilder = WhereQueryBuilder & {
-    leftJoin(table: EntityTarget<unknown>, alias: string, condition?: string): unknown
+type WhereQueryBuilder = {
+    andWhere(where: string, parameters?: ObjectLiteral): unknown
 }
 
 const GROUP_ID_SEPARATOR = '|'
@@ -86,7 +94,9 @@ export class CopilotUsageService {
         @InjectRepository(CopilotUser)
         private readonly userRepository: Repository<CopilotUser>,
         @InjectRepository(CopilotOrganization)
-        private readonly organizationRepository: Repository<CopilotOrganization>
+        private readonly organizationRepository: Repository<CopilotOrganization>,
+        @InjectRepository(MembershipPointLedger)
+        private readonly membershipPointLedgerRepository: Repository<MembershipPointLedger>
     ) {}
 
     async findSummaries(
@@ -321,7 +331,7 @@ export class CopilotUsageService {
             .addGroupBy('usage_org.imageUrl')
 
         const rows = await qb.getRawMany<UsageSummaryRaw>()
-        return this.toPagination(rows, 'user')
+        return this.withMembershipPoints(this.toPagination(rows, 'user'), scope, query)
     }
 
     private async findOrganizationSummaries(
@@ -341,7 +351,7 @@ export class CopilotUsageService {
 
         const rows = await qb.getRawMany<UsageSummaryRaw>()
         const quotas = await this.findOrganizationQuotaMap(scope, query)
-        const items = this.toPagination(rows, 'organization')
+        const items = await this.withMembershipPoints(this.toPagination(rows, 'organization'), scope, query)
 
         return {
             ...items,
@@ -399,12 +409,16 @@ export class CopilotUsageService {
         this.applyUsageFilters(qb, 'usage', query)
 
         const rows = await qb.getRawMany<UsageSummaryRaw>()
-        return this.toPagination(
-            rows.map((row) => ({
-                ...row,
-                organizationId: scope.allOrganizations ? null : scope.organizationId
-            })),
-            'model'
+        return this.withMembershipPoints(
+            this.toPagination(
+                rows.map((row) => ({
+                    ...row,
+                    organizationId: scope.allOrganizations ? null : scope.organizationId
+                })),
+                'model'
+            ),
+            scope,
+            query
         )
     }
 
@@ -734,9 +748,160 @@ export class CopilotUsageService {
         }
     }
 
-    private leftJoinUsageXpert(qb: UsageOwnerQueryBuilder, alias: string) {
+    private leftJoinUsageXpert(qb: SelectQueryBuilder<CopilotUser>, alias: string) {
         const xpertAlias = this.usageXpertAlias(alias)
         qb.leftJoin('xpert', xpertAlias, `"${xpertAlias}"."id"::text = "${alias}"."xpertId"`)
+    }
+
+    private async withMembershipPoints(
+        pagination: IPagination<ICopilotUsageSummary>,
+        scope: ScopeFilter,
+        query: ICopilotUsageQuery
+    ): Promise<IPagination<ICopilotUsageSummary>> {
+        if (!pagination.items.length) {
+            return pagination
+        }
+
+        const dimension = pagination.items[0].dimension
+        const organizationIdSql = 'COALESCE(ledger.runtimeOrganizationId, ledger.organizationId)'
+        const qb = this.membershipPointLedgerRepository
+            .createQueryBuilder('ledger')
+            .select('ledger.tenantId', 'tenantId')
+            .addSelect('ledger.provider', 'provider')
+            .addSelect('ledger.model', 'model')
+            .addSelect('SUM(ABS(ledger.pointsDelta))', 'membershipPointsUsed')
+            .where('ledger.source = :membershipUsageSource', {
+                membershipUsageSource: MembershipLedgerSourceEnum.Usage
+            })
+            .groupBy('ledger.tenantId')
+            .addGroupBy('ledger.provider')
+            .addGroupBy('ledger.model')
+
+        if (dimension !== 'model') {
+            qb.addSelect(organizationIdSql, 'organizationId').addGroupBy(organizationIdSql)
+        }
+        if (dimension === 'user') {
+            qb.addSelect('ledger.userId', 'userId').addGroupBy('ledger.userId')
+        }
+
+        this.applyMembershipLedgerFilters(qb, 'ledger', scope, query)
+        this.applyMembershipPageFilter(qb, pagination.items, dimension, organizationIdSql)
+
+        const rows = await qb.getRawMany<MembershipPointsRaw>()
+        const pointMap = new Map(
+            rows.map((row) => [
+                this.membershipPointsKey(row, dimension),
+                toOptionalNumber(row.membershipPointsUsed) ?? 0
+            ])
+        )
+
+        return {
+            ...pagination,
+            items: pagination.items.map((item) => ({
+                ...item,
+                membershipPointsUsed: pointMap.get(this.membershipPointsKey(item.groupKey, dimension)) ?? null
+            }))
+        }
+    }
+
+    private applyMembershipPageFilter(
+        qb: WhereQueryBuilder,
+        items: ICopilotUsageSummary[],
+        dimension: TCopilotUsageDimension,
+        organizationIdSql: string
+    ) {
+        const parameters: ObjectLiteral = {}
+        const groups = items.map((item, index) => {
+            const clauses: string[] = []
+            if (dimension !== 'model') {
+                this.addNullableMembershipFilter(
+                    clauses,
+                    parameters,
+                    organizationIdSql,
+                    item.organizationId,
+                    'org',
+                    index
+                )
+            }
+            this.addNullableMembershipFilter(clauses, parameters, 'ledger.provider', item.provider, 'provider', index)
+            this.addNullableMembershipFilter(clauses, parameters, 'ledger.model', item.model, 'model', index)
+            if (dimension === 'user') {
+                this.addNullableMembershipFilter(clauses, parameters, 'ledger.userId', item.userId, 'user', index)
+            }
+            return `(${clauses.join(' AND ')})`
+        })
+
+        qb.andWhere(`(${groups.join(' OR ')})`, parameters)
+    }
+
+    private addNullableMembershipFilter(
+        clauses: string[],
+        parameters: ObjectLiteral,
+        column: string,
+        value: string | null | undefined,
+        parameterPrefix: string,
+        index: number
+    ) {
+        if (value === null || value === undefined) {
+            clauses.push(`${column} IS NULL`)
+            return
+        }
+
+        const parameter = `membershipPage${parameterPrefix}${index}`
+        clauses.push(`${column} = :${parameter}`)
+        parameters[parameter] = value
+    }
+
+    private membershipPointsKey(
+        input: Pick<MembershipPointsRaw | ICopilotUsageGroupKey, 'organizationId' | 'userId' | 'provider' | 'model'>,
+        dimension: TCopilotUsageDimension
+    ) {
+        return [
+            dimension === 'model' ? null : input.organizationId,
+            dimension === 'user' ? input.userId : null,
+            input.provider,
+            input.model
+        ]
+            .map(encodeGroupPart)
+            .join(GROUP_ID_SEPARATOR)
+    }
+
+    private applyMembershipLedgerFilters(
+        qb: WhereQueryBuilder,
+        alias: string,
+        scope: ScopeFilter,
+        query: ICopilotUsageQuery
+    ) {
+        qb.andWhere(`${alias}.tenantId = :membershipTenantId`, { membershipTenantId: scope.tenantId })
+
+        const organizationIdSql = `COALESCE(${alias}.runtimeOrganizationId, ${alias}.organizationId)`
+        if (!scope.allOrganizations) {
+            if (scope.organizationId) {
+                qb.andWhere(`${organizationIdSql} = :membershipScopeOrganizationId`, {
+                    membershipScopeOrganizationId: scope.organizationId
+                })
+            } else {
+                qb.andWhere(`${organizationIdSql} IS NULL`)
+            }
+        }
+        if (query.userId) {
+            qb.andWhere(`${alias}.userId = :membershipUserId`, { membershipUserId: query.userId })
+        }
+        if (query.provider) {
+            qb.andWhere(`${alias}.provider = :provider`, { provider: query.provider })
+        }
+        if (query.model) {
+            qb.andWhere(`${alias}.model = :model`, { model: query.model })
+        }
+
+        const start = this.toUsageHour(query.start)
+        const end = this.toUsageHour(query.end)
+        if (start) {
+            qb.andWhere(`${alias}.usageHour >= :usageStartHour`, { usageStartHour: start })
+        }
+        if (end) {
+            qb.andWhere(`${alias}.usageHour <= :usageEndHour`, { usageEndHour: end })
+        }
     }
 
     private usageOwnerUserIdSql(alias: string) {
@@ -806,6 +971,7 @@ export class CopilotUsageService {
             model: groupKey.model,
             currency: groupKey.currency,
             tokenUsed,
+            membershipPointsUsed: toOptionalNumber(row.membershipPointsUsed) ?? null,
             tokenLimit: dimension === 'user' ? null : (toOptionalNumber(row.tokenLimit) ?? null),
             tokenTotalUsed,
             tokenGrandTotal: tokenUsed + tokenTotalUsed,

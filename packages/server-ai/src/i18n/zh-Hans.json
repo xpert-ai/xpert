@@ -16,6 +16,7 @@
         "MembershipPointsLimitExceeded": "会员点数额度已用尽。",
         "MembershipPlanFeatureDisabled": "会员套餐功能未启用。",
         "CopilotModelUnavailableForMembershipPlan": "当前会员计划无法使用该 Copilot 模型。",
+        "InvalidMembershipTokensPerPoint": "每点 Token 数只能是 1k、10k、100k 或 1M。",
         "ManagedImportRequiresPrimaryLlmModel": "托管 Xpert 导入需要为{{scope}}配置并启用 Primary LLM Copilot 模型。",
         "CurrentOrganizationScope": "当前组织",
         "TenantScope": "租户级别",

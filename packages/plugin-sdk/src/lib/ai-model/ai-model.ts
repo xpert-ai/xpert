@@ -9,6 +9,7 @@ import { ModelProvider } from './abstract-provider';
 import { getPositionMap } from '../core';
 import { CommonParameterRules, IAIModel, TChatModelOptions } from './types/model'
 import { ModelProfile } from './types/profile'
+import { calculateModelPrice } from './pricing'
 
 @Injectable()
 export abstract class AIModel implements IAIModel {
@@ -35,7 +36,8 @@ export abstract class AIModel implements IAIModel {
 		model: string,
 		credentials: Record<string, any>,
 		priceType: PriceType,
-		tokens: number
+		tokens: number,
+		inputTokens = tokens
 	): PriceInfo {
 		const modelSchema = this.getModelSchema(model, credentials)
 		if (!modelSchema || !modelSchema.pricing) {
@@ -47,26 +49,7 @@ export abstract class AIModel implements IAIModel {
 			}
 		}
 
-		const { pricing } = modelSchema
-		const unitPrice = priceType === PriceType.INPUT ? pricing.input : pricing.output
-
-		if (unitPrice === undefined) {
-			return {
-				unitPrice: 0,
-				unit: 0,
-				totalAmount: 0,
-				currency: 'USD'
-			}
-		}
-
-		const totalAmount = Number((tokens * unitPrice * pricing.unit).toFixed(7))
-
-		return {
-			unitPrice,
-			unit: pricing.unit,
-			totalAmount,
-			currency: pricing.currency
-		}
+		return calculateModelPrice(modelSchema.pricing, priceType, tokens, inputTokens)
 	}
 
 	protected getModelPath() {

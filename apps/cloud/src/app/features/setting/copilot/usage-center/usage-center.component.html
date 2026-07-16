@@ -143,6 +143,9 @@
           <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
             {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
           </th>
+          <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
+            {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
+          </th>
           @if (dimension() === 'organization') {
             <th z-table-head class="sticky top-0 z-10 w-32 bg-background-default-subtle p-3">
               {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
@@ -247,6 +250,13 @@
             <td z-table-cell class="px-4 py-2 truncate">{{ item.provider || '-' }}</td>
             <td z-table-cell class="px-4 py-2 truncate">{{ item.model || '-' }}</td>
             <td z-table-cell class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
+            <td z-table-cell class="px-4 py-2">
+              @if (item.membershipPointsUsed === null || item.membershipPointsUsed === undefined) {
+                -
+              } @else {
+                {{ item.membershipPointsUsed | number: '1.0-10' }}
+              }
+            </td>
             @if (dimension() === 'organization') {
               <td z-table-cell class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
             }
@@ -303,7 +313,7 @@
 
           @if (isExpanded(item)) {
             <tr z-table-row class="border-b border-divider-regular bg-background-default-subtle">
-              <td z-table-cell [attr.colspan]="dimension() === 'model' ? 10 : 11" class="p-0">
+              <td z-table-cell [attr.colspan]="dimension() === 'model' ? 11 : 12" class="p-0">
                 <div class="px-12 py-3">
                   @if (isLoadingDetails(item)) {
                     <div class="flex justify-center py-4"><ngm-spin /></div>

@@ -27,10 +27,10 @@
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
-                {{ membership()?.pointsUsed | number }} /
+                {{ membership()?.pointsUsed | number: '1.0-10' }} /
                 {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
               } @else {
-                {{ membership()?.pointsUsed | number }} / {{ membership()?.pointsGranted | number }}
+                {{ membership()?.pointsUsed | number: '1.0-10' }} / {{ membership()?.pointsGranted | number: '1.0-10' }}
               }
             </div>
           </div>
