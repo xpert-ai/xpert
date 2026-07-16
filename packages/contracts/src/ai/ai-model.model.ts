@@ -3,6 +3,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
 
+
 export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
   /**
    * Model name
@@ -60,17 +61,17 @@ export interface ICopilotWithProvider extends ICopilot {
 }
 
 export interface IAiProviderEntity {
-  provider: string
-  label: I18nObject
-  description: I18nObject
-  icon_small: I18nObject
-  icon_large: I18nObject
-  background: string
-  help: ProviderHelpInfo
-  supported_model_types: AiModelTypeEnum[]
-  configurate_methods: ConfigurateMethod[]
-  model_credential_schema: ModelCredentialSchema
-  provider_credential_schema: ProviderCredentialSchema
+  provider: string;
+  label: I18nObject;
+  description: I18nObject;
+  icon_small: I18nObject;
+  icon_large: I18nObject;
+  background: string;
+  help: ProviderHelpInfo;
+  supported_model_types: AiModelTypeEnum[];
+  configurate_methods: ConfigurateMethod[];
+  model_credential_schema: ModelCredentialSchema;
+  provider_credential_schema: ProviderCredentialSchema;
   models: ProviderModel[]
   /**
    * Not yet implemented, your contribution is needed
@@ -79,48 +80,48 @@ export interface IAiProviderEntity {
 }
 
 export interface ProviderHelpInfo {
-  title: I18nObject
-  url: I18nObject
+  title: I18nObject;
+  url: I18nObject;
 }
 
 export interface ProviderModel {
-  model: string
-  label: I18nObject
-  model_type: AiModelTypeEnum
-  features?: ModelFeature[]
-  fetch_from: FetchFrom
-  model_properties: Partial<Record<ModelPropertyKey, any>>
-  deprecated?: boolean
-  modelConfig?: any
+  model: string;
+  label: I18nObject;
+  model_type: AiModelTypeEnum;
+  features?: ModelFeature[];
+  fetch_from: FetchFrom;
+  model_properties: Partial<Record<ModelPropertyKey, any>>;
+  deprecated?: boolean;
+  modelConfig?: any;
 }
 
 export interface ProviderCredentialSchema {
-  credential_form_schemas: CredentialFormSchema[]
+  credential_form_schemas: CredentialFormSchema[];
 }
 
 /**
  * @todo Use JSON Schema to implement
  */
 export enum CredentialFormTypeEnum {
-  TEXT_INPUT = 'text-input',
-  SECRET_INPUT = 'secret-input',
-  SELECT = 'select',
-  RADIO = 'radio'
+  TEXT_INPUT = "text-input",
+  SECRET_INPUT = "secret-input",
+  SELECT = "select",
+  RADIO = "radio",
   // SWITCH = "switch", // use ParameterType.BOOLEAN
 }
 
 export interface CredentialFormSchema {
-  variable: string
-  label: I18nObject
+  variable: string;
+  label: I18nObject;
   type: CredentialFormTypeEnum | ParameterType
-  required: boolean
+  required: boolean;
   default?: number | string | boolean
   options?: {
     label: I18nObject
     value: number | string | boolean
     show_on?: FormShowOnObject[]
   }[]
-  placeholder: I18nObject
+  placeholder: I18nObject;
 
   max_length?: number
   show_on?: FormShowOnObject[]
@@ -132,32 +133,32 @@ export interface FormShowOnObject {
 }
 
 export enum FetchFrom {
-  PREDEFINED_MODEL = 'predefined-model',
-  CUSTOMIZABLE_MODEL = 'customizable-model'
+  PREDEFINED_MODEL = "predefined-model",
+  CUSTOMIZABLE_MODEL = "customizable-model"
 }
 
 export enum ModelFeature {
-  TOOL_CALL = 'tool-call',
-  MULTI_TOOL_CALL = 'multi-tool-call',
-  AGENT_THOUGHT = 'agent-thought',
-  VISION = 'vision',
-  STREAM_TOOL_CALL = 'stream-tool-call',
-  VIDEO = 'video',
-  STRUCTURED_OUTPUT = 'structured-output'
+  TOOL_CALL = "tool-call",
+  MULTI_TOOL_CALL = "multi-tool-call",
+  AGENT_THOUGHT = "agent-thought",
+  VISION = "vision",
+  STREAM_TOOL_CALL = "stream-tool-call",
+  VIDEO = "video",
+  STRUCTURED_OUTPUT = "structured-output"
 }
 
 export enum ModelPropertyKey {
-  MODE = 'mode',
-  CONTEXT_SIZE = 'context_size',
-  MAX_CHUNKS = 'max_chunks',
-  FILE_UPLOAD_LIMIT = 'file_upload_limit',
-  SUPPORTED_FILE_EXTENSIONS = 'supported_file_extensions',
-  MAX_CHARACTERS_PER_CHUNK = 'max_characters_per_chunk',
-  DEFAULT_VOICE = 'default_voice',
-  VOICES = 'voices',
-  WORD_LIMIT = 'word_limit',
-  AUDIO_TYPE = 'audio_type',
-  MAX_WORKERS = 'max_workers'
+  MODE = "mode",
+  CONTEXT_SIZE = "context_size",
+  MAX_CHUNKS = "max_chunks",
+  FILE_UPLOAD_LIMIT = "file_upload_limit",
+  SUPPORTED_FILE_EXTENSIONS = "supported_file_extensions",
+  MAX_CHARACTERS_PER_CHUNK = "max_characters_per_chunk",
+  DEFAULT_VOICE = "default_voice",
+  VOICES = "voices",
+  WORD_LIMIT = "word_limit",
+  AUDIO_TYPE = "audio_type",
+  MAX_WORKERS = "max_workers"
 }
 
 export enum ConfigurateMethod {
@@ -169,42 +170,42 @@ export enum ConfigurateMethod {
  * @todo Use JSON Schema to implement
  */
 export enum ParameterType {
-  FLOAT = 'float',
-  INT = 'int',
-  STRING = 'string',
-  BOOLEAN = 'boolean',
-  TEXT = 'text'
+  FLOAT = "float",
+  INT = "int",
+  STRING = "string",
+  BOOLEAN = "boolean",
+  TEXT = "text"
 }
 
 /**
  * @todo Use JSON Schema to implement
  */
 export interface ParameterRule {
-  name?: string
-  useTemplate?: string
-  label: I18nObject
-  type: ParameterType
-  help?: I18nObject
-  required?: boolean
-  default?: any
-  min?: number
-  max?: number
-  precision?: number
-  options?: string[]
+  name?: string;
+  useTemplate?: string;
+  label: I18nObject;
+  type: ParameterType;
+  help?: I18nObject;
+  required?: boolean;
+  default?: any;
+  min?: number;
+  max?: number;
+  precision?: number;
+  options?: string[];
 }
 
 export interface PriceTierConfig {
-  input: number
-  output?: number
-  max_tokens: number
+  input: number;
+  output?: number;
+  max_tokens: number;
 }
 
 export interface PriceConfig {
-  input: number
-  output?: number
-  unit: number
-  currency: string
-  tiered_pricing?: PriceTierConfig[]
+  input: number;
+  output?: number;
+  unit: number;
+  currency: string;
+  tiered_pricing?: PriceTierConfig[];
 }
 
 export interface AIModelEntity extends ProviderModel {
@@ -216,22 +217,23 @@ export interface FieldModelSchema {
   label: I18nObject
   placeholder?: I18nObject
 }
+    
 
 export interface ModelCredentialSchema {
   model: FieldModelSchema
   credential_form_schemas: CredentialFormSchema[]
 }
 
-export const AI_MODEL_TYPE_VARIABLE = '__model_type'
+export const AI_MODEL_TYPE_VARIABLE = "__model_type"
 
 export enum PriceType {
-  INPUT = 'input',
-  OUTPUT = 'output'
+  INPUT = "input",
+  OUTPUT = "output"
 }
 
 export interface PriceInfo {
-  unitPrice: number
-  unit: number
-  totalAmount: number
-  currency: string
+  unitPrice: number;
+  unit: number;
+  totalAmount: number;
+  currency: string;
 }
