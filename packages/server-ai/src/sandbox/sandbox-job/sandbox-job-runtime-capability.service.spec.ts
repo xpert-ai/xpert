@@ -5,6 +5,7 @@ import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.r
 const PROFILE = 'browser/playwright-1.61/v1'
 const ACTION = 'document.export'
 const ACTION_VERSION = '9.1.0'
+const SANDBOX_RUNTIME_VERSION = new SandboxRuntimeDefinitionRegistry().require(PROFILE).sandboxRuntimeVersion
 
 describe('SandboxJobRuntimeCapabilityService action validation', () => {
     beforeEach(() => {
@@ -19,7 +20,8 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         repository: object = {},
         healthOverrides: object = {},
         providerRegistry: object = { get: jest.fn() },
-        volumeClient: object = {}
+        volumeClient: object = {},
+        workspaceFiles: object = {}
     ) {
         const actions = {
             get: jest.fn().mockResolvedValue({
@@ -53,7 +55,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                     ...healthOverrides
                 })
             } as never,
-            {} as never,
+            workspaceFiles as never,
             {} as never,
             volumeClient as never
         )
@@ -85,6 +87,61 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 outputs: outputs()
             })
         ).rejects.toMatchObject({ code: 'EXPORT_INPUT_INVALID', retryable: false })
+    })
+
+    it('rejects an unknown input access mode before selecting a Runtime', async () => {
+        await expect(
+            createService().run({
+                action: ACTION,
+                actionVersion: ACTION_VERSION,
+                idempotencyKey: 'document-export:export-1:invalid-access',
+                scope: scope(),
+                payload: {},
+                files: [{ ...inputFile('assets/image.png'), access: 'stream-from-url' as never }],
+                outputs: outputs()
+            })
+        ).rejects.toMatchObject({ code: 'EXPORT_INPUT_INVALID', retryable: false })
+    })
+
+    it('rejects duplicate normalized input aliases before selecting a Runtime', async () => {
+        await expect(
+            createService().run({
+                action: ACTION,
+                actionVersion: ACTION_VERSION,
+                idempotencyKey: 'document-export:export-1:duplicate-input',
+                scope: scope(),
+                payload: {},
+                files: [inputFile('assets/image.png'), inputFile('assets/./image.png')],
+                outputs: outputs()
+            })
+        ).rejects.toMatchObject({ code: 'EXPORT_INPUT_INVALID', retryable: false })
+    })
+
+    it('does not read or upload seekable Workspace media during input materialization', async () => {
+        const readBuffer = jest.fn()
+        const uploadFiles = jest.fn().mockResolvedValue([{ path: '/workspace/input/job.json', error: null }])
+        const service = createService({}, {}, {}, { get: jest.fn() }, {}, { readBuffer })
+        const definition = new SandboxRuntimeDefinitionRegistry().require(PROFILE)
+
+        await (
+            service as unknown as {
+                materializeInputs: (...args: unknown[]) => Promise<void>
+            }
+        ).materializeInputs(
+            { uploadFiles },
+            '/workspace',
+            {
+                scope: scope(),
+                payload: {},
+                files: [{ ...inputFile('media/source.mov'), access: 'read-only-seekable' }],
+                outputs: outputs()
+            },
+            { name: ACTION, version: ACTION_VERSION },
+            definition
+        )
+
+        expect(readBuffer).not.toHaveBeenCalled()
+        expect(uploadFiles).toHaveBeenCalledWith([['/workspace/input/job.json', expect.any(Buffer)]])
     })
 
     it('rejects Action and Runtime contract mismatch as non-retryable', async () => {
@@ -121,7 +178,11 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 action: ACTION,
                 actionVersion: ACTION_VERSION
             })
-        ).resolves.toMatchObject({ available: true, runtimeProfile: PROFILE, sandboxRuntimeVersion: '1.0.0' })
+        ).resolves.toMatchObject({
+            available: true,
+            runtimeProfile: PROFILE,
+            sandboxRuntimeVersion: SANDBOX_RUNTIME_VERSION
+        })
     })
 
     it('scopes public job lookup to the active tenant', async () => {
@@ -196,6 +257,22 @@ function outputs() {
             destination: { tenantId: 'tenant-1', userId: 'user-1', catalog: 'users' as const, folder: 'exports' }
         }
     ]
+}
+
+function inputFile(targetPath: string) {
+    return {
+        reference: {
+            source: 'platform.workspace.files' as const,
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            catalog: 'users' as const,
+            filePath: 'assets/image.png',
+            workspacePath: '/workspace/assets/image.png'
+        },
+        targetPath,
+        size: 1,
+        sha256: 'a'.repeat(64)
+    }
 }
 
 function sandboxJob(overrides: object) {

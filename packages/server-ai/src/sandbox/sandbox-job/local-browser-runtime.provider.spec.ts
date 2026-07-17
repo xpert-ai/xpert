@@ -1,4 +1,4 @@
-import { mkdtemp, rm, symlink } from 'node:fs/promises'
+import { mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
@@ -27,7 +27,8 @@ describe('LocalBrowserRuntimeProvider', () => {
             ephemeral: true,
             resourceLimits: false,
             networkPolicy: false,
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: false,
+            readOnlyFileMounts: true
         })
         expect(provider.listBindings()).toEqual([
             expect.objectContaining({
@@ -83,6 +84,41 @@ describe('LocalBrowserRuntimeProvider', () => {
             artifact: options.binding.artifact,
             runtimeRef: runtime.id
         })
+    })
+
+    it('exposes an authorized Workspace file as a read-only copy-on-write seekable Job input', async () => {
+        const provider = new LocalBrowserRuntimeProvider()
+        const sourceRoot = await temporaryRoot()
+        const sourcePath = path.join(sourceRoot, 'source.mov')
+        await writeFile(sourcePath, Buffer.from('seekable-media'))
+        const source = await stat(sourcePath)
+        const options = await createOptions(provider)
+        options.readOnlyFiles = [
+            {
+                source: {
+                    serverPath: sourcePath,
+                    hostPath: sourcePath,
+                    size: source.size,
+                    mtimeMs: source.mtimeMs,
+                    device: source.dev,
+                    inode: source.ino
+                },
+                targetPath: 'input/media/asset/source.mov',
+                size: source.size,
+                sha256: 'a'.repeat(64)
+            }
+        ]
+
+        const runtime = await provider.create(options)
+        const targetPath = path.join(runtime.workspaceRoot, 'input/media/asset/source.mov')
+        const target = await stat(targetPath)
+
+        expect(target.dev).toBe(source.dev)
+        expect(target.ino).not.toBe(source.ino)
+        expect(target.mode & 0o222).toBe(0)
+        await expect(runtime.downloadFiles(['input/media/asset/source.mov'])).resolves.toEqual([
+            { path: 'input/media/asset/source.mov', content: Buffer.from('seekable-media'), error: null }
+        ])
     })
 
     it('executes the fixed Runner Host against a materialized Action', async () => {

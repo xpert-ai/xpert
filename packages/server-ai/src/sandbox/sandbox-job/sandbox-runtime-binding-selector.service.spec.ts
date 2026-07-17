@@ -48,6 +48,16 @@ describe('SandboxRuntimeBindingSelector', () => {
         })
     })
 
+    it('selects only Providers that support read-only seekable file mappings when required', async () => {
+        const materializing = provider('a-provider', [binding('materializing', 'a-provider', 0)])
+        const seekable = provider('b-provider', [binding('seekable', 'b-provider', 1)])
+        seekable.capabilities = { ...seekable.capabilities, readOnlyFileMounts: true }
+
+        await expect(
+            createSelector([materializing, seekable]).require(definition, undefined, { readOnlyFileMounts: true })
+        ).resolves.toMatchObject({ provider: { type: 'b-provider' }, binding: { id: 'seekable' } })
+    })
+
     it('rejects mutable OCI references in production', async () => {
         process.env.NODE_ENV = 'production'
         const selector = createSelector([provider('docker-runtime', [binding('mutable', 'docker-runtime', 0)])])

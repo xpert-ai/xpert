@@ -136,6 +136,24 @@ interface SandboxJobsApi {
 
 调用中没有 `profile`、image、command、entrypoint、environment 或 Docker 参数。平台根据 `scope.pluginName + action + actionVersion` 找到已安装 Action，再由 Action 找到 Runtime Profile。
 
+需要随机访问的大型媒体可以显式请求 Job 级可 seek 映射：
+
+```ts
+files: [
+  {
+    reference,
+    targetPath: 'media/asset-id/source.mov',
+    size,
+    sha256,
+    access: 'read-only-seekable'
+  }
+]
+```
+
+Core 只在可信服务端解析 portable Workspace reference，将其规范化为当前 scope 内的普通文件并记录文件系统身份，然后只选择声明 `readOnlyFileMounts` 能力的 Provider。Provider 仅把这一个文件映射为 `/workspace/input/<targetPath>`，不会把 Workspace 路径或 reference 暴露给 Action。生产 Docker Provider 使用精确的嵌套只读 bind mount；仅开发使用的 Local Provider 强制创建同文件系统 copy-on-write clone 并设为只读，因此仍保持其文档所述的弱隔离定位。Runner 看到的是普通本地路径，媒体解码器通过操作系统 page cache 按 seek/read 请求读取实际所需字节，不再要求 Core 先把整个文件读入内存或预先复制全部数据块到 Job Volume。
+
+执行结束后，Core 会再次按 size、mtime、device 和 inode 检查源文件是否发生原地变化。业务插件必须提交不可变 reference 与持久化 SHA-256；Core 不在每次 Job 前重新顺序读取并哈希整个 seekable 文件，否则会重新退化为全量读取。Provider 只能暴露逐文件授权的源，禁止挂载 Workspace 目录。没有该能力的 Provider 仍可执行旧的 materialized 输入，但不能承载请求 seekable 映射的 Job。
+
 Health 依次检查 Action 是否存在、bundle 是否有效、Runtime contract/Playwright 是否兼容、Definition 是否存在、API 本地 Binding、不可变 artifact、Provider 和实际 Runtime manifest。`RUNTIME_UNBOUND` 表示 API 执行器没有兼容 Binding；`PROVIDER_UNAVAILABLE` 表示已注册 Provider 无法枚举 Binding。
 
 ## 关键代码契约
@@ -203,7 +221,7 @@ sequenceDiagram
     Jobs-->>Plugin: portable output references + runtime evidence
 ```
 
-`runtime-jobs` Volume 按 tenant/jobId 隔离，Sandbox 内统一映射为 `/workspace`。当前输入和输出各限制 350 MiB；队列消息不保存 buffer/base64。输入拒绝跨租户 reference、绝对路径、空字节和 `..`。PDF 校验 header 与页数；PPTX 校验 ZIP、`[Content_Types].xml`、`ppt/presentation.xml` 和 slides。
+`runtime-jobs` Volume 按 tenant/jobId 隔离，Sandbox 内统一映射为 `/workspace`。350 MiB 输入总量限制只作用于 `materialized` 输入；`read-only-seekable` 文件不进入 API 内存和 Job Volume 全量复制，由所属 Action 与 Runtime 资源限制控制。输出总量仍限制为 350 MiB。队列消息不保存 buffer/base64。输入拒绝跨租户 reference、绝对路径、空字节、重复 target alias 和 `..`。PDF 校验 header 与页数；PPTX 校验 ZIP、`[Content_Types].xml`、`ppt/presentation.xml` 和 slides。
 
 ## Browser Runtime 安全基线
 

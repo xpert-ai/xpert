@@ -31,8 +31,17 @@ export type SandboxJobFileInput = {
   targetPath: string
   /** Expected immutable byte length checked during materialization. */
   size: number
-  /** Expected lowercase SHA-256 checked during materialization. */
+  /** Expected immutable lowercase SHA-256; materialized inputs are re-hashed before execution. */
   sha256: string
+  /**
+   * Input access semantics required by the Action.
+   *
+   * `materialized` preserves the v1 behavior: Core verifies and copies the
+   * complete file into the Job workspace before execution. `read-only-seekable`
+   * asks Core to expose the exact Workspace file through a Provider-owned,
+   * Job-scoped read-only mapping so media decoders can perform on-demand reads.
+   */
+  access?: 'materialized' | 'read-only-seekable'
 }
 
 /** Declares one output to validate and persist back into Workspace Files. */

@@ -23,13 +23,21 @@ export type SandboxRuntimeSelectionHealth = {
     resolution?: SandboxRuntimeResolution
 }
 
+/** Per-Job capabilities that are stricter than the static Runtime Definition. */
+export type SandboxRuntimeSelectionRequirements = {
+    readOnlyFileMounts?: boolean
+}
+
 /** Deterministically selects the first healthy Binding that satisfies a Definition's guarantees. */
 @Injectable()
 export class SandboxRuntimeBindingSelector {
     constructor(private readonly providers: SandboxRuntimeProviderRegistry) {}
 
     /** Inspects all eligible Providers without creating a Job Runtime. */
-    async inspect(definition: SandboxRuntimeDefinition): Promise<SandboxRuntimeSelectionHealth> {
+    async inspect(
+        definition: SandboxRuntimeDefinition,
+        requirements: SandboxRuntimeSelectionRequirements = {}
+    ): Promise<SandboxRuntimeSelectionHealth> {
         const providers = this.providers.list()
         if (!providers.length) {
             return {
@@ -49,6 +57,7 @@ export class SandboxRuntimeBindingSelector {
                         binding.runtimeProfile === definition.name &&
                         binding.provider === provider.type &&
                         isBindingEligible(provider, binding, definition) &&
+                        (!requirements.readOnlyFileMounts || provider.capabilities.readOnlyFileMounts === true) &&
                         isArtifactAllowed(binding)
                     ) {
                         candidates.push({ provider, binding })
@@ -107,8 +116,12 @@ export class SandboxRuntimeBindingSelector {
     }
 
     /** Resolves a healthy Binding or converts selection failure into the stable Job error contract. */
-    async require(definition: SandboxRuntimeDefinition, jobId?: string): Promise<SandboxRuntimeResolution> {
-        const health = await this.inspect(definition)
+    async require(
+        definition: SandboxRuntimeDefinition,
+        jobId?: string,
+        requirements: SandboxRuntimeSelectionRequirements = {}
+    ): Promise<SandboxRuntimeResolution> {
+        const health = await this.inspect(definition, requirements)
         if (health.resolution) return health.resolution
         if (health.reason === 'RUNTIME_UNBOUND') {
             throw new SandboxJobRuntimeError(
