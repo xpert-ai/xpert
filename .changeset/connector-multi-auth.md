@@ -1,5 +1,5 @@
 ---
-'@xpert-ai/plugin-sdk': minor
+'@xpert-ai/plugin-sdk': patch
 ---
 
 Add opt-in multi-auth connector strategies, provider-neutral runtime credentials, and legacy credential mapping.
