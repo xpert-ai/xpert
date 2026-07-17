@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.15
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+
 ## 3.15.14
 
 ### Patch Changes

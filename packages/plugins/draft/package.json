@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-draft",
-  "version": "9.0.15",
+  "version": "9.0.16",
   "private": true,
   "xpert": {
     "plugin": {
