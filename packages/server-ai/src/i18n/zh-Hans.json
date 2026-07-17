@@ -75,7 +75,13 @@
         "ConnectorStoredCredentialDataMissing": "已保存的连接器凭据缺少凭据数据。",
         "ConnectorCredentialValuesInvalid": "连接器凭据字段无效。",
         "ConnectorCredentialValuesNotAccepted": "该连接器认证方式不接受凭据字段。",
-        "ConnectorCredentialValuesRequired": "连接器缺少必填凭据字段：{{fields}}。"
+        "ConnectorCredentialValuesRequired": "连接器缺少必填凭据字段：{{fields}}。",
+        "WorkspaceFileAccessSessionRequired": "需要 Workspace 文件访问会话。",
+        "WorkspaceFileAccessInvalidSession": "Workspace 文件访问会话无效。",
+        "WorkspaceFileAccessNotFound": "未找到 Workspace 文件。",
+        "WorkspaceFileAccessDenied": "Workspace 文件访问被拒绝。",
+        "WorkspaceFileAccessInvalidReference": "View 文件访问需要限定作用域的 Workspace Files 引用。",
+        "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。"
     },
     "tools": {
         "ListFiles": "列出文件",

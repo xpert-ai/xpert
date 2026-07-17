@@ -75,6 +75,25 @@ describe('view extension utils', () => {
 		expect(normalized.actions?.[0].transport).toBe('json')
 	})
 
+	it('normalizes declared view file access purposes and rejects unsupported purposes', () => {
+		const normalized = normalizeManifest(
+			{ ...manifest, fileAccess: { purposes: ['preview', 'preview', 'download'] } },
+			'provider_a',
+			context,
+			'detail.main_tabs'
+		)
+
+		expect(normalized.fileAccess).toEqual({ purposes: ['preview', 'download'] })
+		expect(() =>
+			normalizeManifest(
+				{ ...manifest, fileAccess: { purposes: ['stream' as 'preview'] } },
+				'provider_a',
+				context,
+				'detail.main_tabs'
+			)
+		).toThrow("Unsupported view file access purpose 'stream'")
+	})
+
 	it('normalizes host event subscriptions', () => {
 		const normalized = normalizeManifest(
 			{

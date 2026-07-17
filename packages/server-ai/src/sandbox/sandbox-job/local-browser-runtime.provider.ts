@@ -1,7 +1,8 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { constants as fsConstants } from 'node:fs'
-import { access, lstat, mkdir, open, readFile, realpath } from 'node:fs/promises'
+import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'node:fs/promises'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { Injectable } from '@nestjs/common'
 import {
     isDevelopmentSandboxRuntimeEnvironment,
@@ -17,6 +18,7 @@ import {
     type SandboxRuntimeFileOperationError,
     type SandboxRuntimeFileUploadResponse,
     type SandboxRuntimeInstance,
+    type SandboxRuntimeReadOnlyFile,
     type SandboxRuntimeTerminationReason
 } from '@xpert-ai/plugin-sdk'
 import { DEFAULT_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
@@ -31,6 +33,7 @@ const HEALTH_TIMEOUT_MS = 15_000
 const HEALTH_CACHE_TTL_MS = 30_000
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
+const execFileAsync = promisify(execFile)
 
 /**
  * Development-only Browser Runtime backed by a child process on the Xpert host.
@@ -49,7 +52,8 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         ephemeral: true,
         resourceLimits: false,
         networkPolicy: false,
-        readOnlyRootFilesystem: false
+        readOnlyRootFilesystem: false,
+        readOnlyFileMounts: true
     } as const
 
     private readonly instances = new Map<string, LocalBrowserRuntimeInstance>()
@@ -136,6 +140,9 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
                 mkdir(path.join(workspaceRoot, directory), { recursive: true })
             )
         )
+        for (const file of options.readOnlyFiles ?? []) {
+            await exposeLocalReadOnlyFile(workspaceRoot, file)
+        }
         const instance = new LocalBrowserRuntimeInstance({
             id: runtimeId,
             workspaceRoot: await realpath(workspaceRoot),
@@ -155,6 +162,51 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         await instance.dispose()
         this.instances.delete(runtimeId)
     }
+}
+
+/**
+ * Development-only copy-on-write mapping. A forced filesystem clone creates a
+ * distinct read-only inode without eagerly copying media blocks, so the Action
+ * can seek it without learning or mutating the original Workspace file.
+ * Production relies on a hardened Provider bind mount instead.
+ */
+async function exposeLocalReadOnlyFile(workspaceRoot: string, file: SandboxRuntimeReadOnlyFile): Promise<void> {
+    const source = await lstat(file.source.serverPath)
+    if (
+        !source.isFile() ||
+        source.size !== file.source.size ||
+        source.mtimeMs !== file.source.mtimeMs ||
+        source.dev !== file.source.device ||
+        source.ino !== file.source.inode ||
+        source.size !== file.size
+    ) {
+        throw new Error(`Local Browser Runtime read-only input changed: ${file.targetPath}`)
+    }
+    const target = resolveWorkspaceFile(workspaceRoot, file.targetPath)
+    await ensureSafeDirectory(workspaceRoot, path.dirname(target))
+    const existing = await lstat(target).catch(() => null)
+    if (existing?.isSymbolicLink() || (existing && !existing.isFile())) {
+        throw invalidPathError('Runtime read-only input target is invalid.')
+    }
+    if (existing) await unlink(target)
+    await cloneLocalFile(file.source.serverPath, target).catch((error) => {
+        throw new Error(
+            `Local Browser Runtime could not clone read-only input ${file.targetPath}; ` +
+                `the Workspace and Job volume must share a clone-capable filesystem: ${error instanceof Error ? error.message : String(error)}`
+        )
+    })
+    await chmod(target, 0o444)
+}
+
+async function cloneLocalFile(source: string, target: string): Promise<void> {
+    const args =
+        process.platform === 'darwin'
+            ? ['-c', '--', source, target]
+            : process.platform === 'linux'
+              ? ['--reflink=always', '--', source, target]
+              : null
+    if (!args) throw new Error(`copy-on-write file cloning is unsupported on ${process.platform}`)
+    await execFileAsync('cp', args, { windowsHide: true })
 }
 
 type LocalBrowserRuntimeInstanceOptions = {

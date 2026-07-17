@@ -82,6 +82,24 @@ const result = await sandboxJobs.run({
 })
 ```
 
+Large media and other random-access inputs can opt into a Job-scoped seekable mapping:
+
+```ts
+files: [
+  {
+    reference,
+    targetPath: 'media/asset-id/source.mov',
+    size,
+    sha256,
+    access: 'read-only-seekable'
+  }
+]
+```
+
+Core resolves the portable Workspace reference on the trusted server side, canonicalizes the scoped regular file, records its filesystem identity, and selects only a Provider that advertises `readOnlyFileMounts`. The Provider exposes that exact file at `/workspace/input/<targetPath>` without exposing its Workspace path or reference to the Action. A production Docker Provider creates an exact nested read-only bind mount; the development-only local Provider uses a forced same-filesystem copy-on-write clone with a read-only mode and therefore retains its documented reduced-isolation status. The Runner opens the ordinary local alias, so media decoders seek and read only the byte ranges they need through the operating-system page cache instead of forcing Core to allocate or eagerly copy the whole file.
+
+Seekable sources are checked again after execution by size, modification time, device, and inode. The owning plugin must supply an immutable reference plus its persisted SHA-256; Core deliberately does not hash the complete source on every run because that would turn on-demand access back into a full-file read. Providers must expose only the individually authorized file, never a Workspace directory. Providers without this capability remain valid for legacy materialized inputs but are not eligible for a Job that requests a seekable mapping.
+
 There is no caller-supplied profile, image, command, entrypoint, environment, or Docker configuration. The platform resolves `pluginName + action + actionVersion`, validates bundle and Runtime compatibility, and then resolves the Action's Runtime Profile.
 
 ## Key code contracts
@@ -116,7 +134,7 @@ Every execution uses `workFor: { type: 'job', id }`. `SandboxJob` records Runtim
 
 Uniqueness on `(tenantId, idempotencyKey)` returns prior successful outputs, reattaches to active work, and lets a later Managed Queue attempt create a new container for failed/lost work. Capacity leases default to 20 global, 4 per tenant, and 2 per user; quota saturation remains `waiting` without creating a container or spending a business retry.
 
-Inputs are Workspace Files portable references with declared size and SHA-256. The platform rejects cross-tenant references and unsafe paths, materializes request and Action under the Job-only `/workspace`, runs only the Profile's fixed Runner Host, validates outputs, persists them to declared Workspace destinations, and returns portable references. Current aggregate input and output limits are 350 MiB each.
+Inputs are Workspace Files portable references with declared size and SHA-256. The platform rejects cross-tenant references and unsafe paths, materializes the request, ordinary inputs, and Action under the Job-only `/workspace`, runs only the Profile's fixed Runner Host, validates outputs, persists them to declared Workspace destinations, and returns portable references. The 350 MiB aggregate input limit applies to `materialized` inputs; `read-only-seekable` files bypass full-file buffering and use the limits enforced by their owning Action and Runtime resources. The aggregate output limit remains 350 MiB.
 
 Containers enforce non-root execution, read-only root, no-new-privileges, dropped Linux capabilities, job-only writable paths, no public network by default, bounded CPU/memory/shared memory/temp storage, a 300-second action timeout, and 360-second hard deadline. Completion, failure, cancellation, and orphan cleanup reclaim containers and Job volumes.
 

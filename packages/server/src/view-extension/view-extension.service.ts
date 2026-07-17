@@ -7,6 +7,8 @@ import {
 	XpertViewActionRequest,
 	XpertViewActionResult,
 	XpertViewDataResult,
+	XpertViewFileAccessPurpose,
+	XpertViewFileAccessRequest,
 	XpertViewParameterOptionsQuery,
 	XpertViewParameterOptionsResult,
 	XpertViewQuery
@@ -238,6 +240,56 @@ export class ViewExtensionService {
 		}
 
 		return result
+	}
+
+	async resolveViewFileAccessContext(hostType: string, hostId: string, viewKey: string) {
+		const context = await this.resolveHostContext(hostType, hostId)
+		const resolved = await this.resolveProviderManifest(context, viewKey)
+
+		this.permissionService.ensureManifestVisible(resolved.manifest)
+		if (!resolved.manifest.fileAccess?.purposes.length) {
+			throw new NotFoundException(`File access is not available for view '${viewKey}'`)
+		}
+
+		return {
+			context,
+			manifest: resolved.manifest
+		}
+	}
+
+	async resolveViewFileResource(
+		hostType: string,
+		hostId: string,
+		viewKey: string,
+		request: XpertViewFileAccessRequest
+	) {
+		const context = await this.resolveHostContext(hostType, hostId)
+		const resolved = await this.resolveProviderManifest(context, viewKey)
+
+		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.ensureFileAccessPurpose(resolved.manifest.fileAccess?.purposes, request.purpose, viewKey)
+		if (!resolved.provider.resolveViewFile) {
+			throw new NotFoundException(`File access is not supported for view '${viewKey}'`)
+		}
+
+		const resource = await Promise.resolve(
+			resolved.provider.resolveViewFile(context, resolved.manifestKey, request)
+		)
+		if (!resource?.reference || !resource.fileName?.trim() || !resource.mimeType?.trim()) {
+			throw new BadRequestException(`View '${viewKey}' returned an invalid file resource`)
+		}
+
+		return { context, manifest: resolved.manifest, resource }
+	}
+
+	private ensureFileAccessPurpose(
+		purposes: XpertViewFileAccessPurpose[] | undefined,
+		purpose: XpertViewFileAccessPurpose,
+		viewKey: string
+	) {
+		if (!purposes?.includes(purpose)) {
+			throw new NotFoundException(`File access purpose '${purpose}' is not available for view '${viewKey}'`)
+		}
 	}
 
 	private async resolveProviderManifest(context: XpertResolvedViewHostContext, publicViewKey: string) {

@@ -19,6 +19,8 @@ export type XpertViewActionType = 'invoke' | 'navigate' | 'open_detail' | 'refre
 
 export type XpertViewActionTransport = 'json' | 'file'
 
+export type XpertViewFileAccessPurpose = 'preview' | 'download'
+
 export type XpertViewSortDirection = 'asc' | 'desc'
 
 export type XpertViewFilterOperator =
@@ -286,6 +288,29 @@ export interface XpertViewClientCommandDefinition {
   permissions?: string[]
 }
 
+export interface XpertViewFileAccessDefinition {
+  purposes: XpertViewFileAccessPurpose[]
+}
+
+export interface XpertViewFileAccessRequest {
+  fileKey: string
+  targetId?: string
+  purpose: XpertViewFileAccessPurpose
+}
+
+export interface XpertViewFileAccessSessionResult {
+  sessionId: string
+  expiresAt: string
+}
+
+export interface XpertViewFileAccessGrantResult {
+  url: string
+  expiresAt: string
+  fileName: string
+  mimeType: string
+  size?: number
+}
+
 export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
 export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
 export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
@@ -474,6 +499,7 @@ export interface XpertExtensionViewManifest {
   parameters?: XpertViewParameterDefinition[]
   actions?: XpertViewActionDefinition[]
   clientCommands?: XpertViewClientCommandDefinition[]
+  fileAccess?: XpertViewFileAccessDefinition
   hostEvents?: XpertViewHostEvents
 }
 

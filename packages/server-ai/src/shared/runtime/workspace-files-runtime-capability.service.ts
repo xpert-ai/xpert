@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
+import { realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import {
     RequestContext,
@@ -38,6 +39,19 @@ const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
 export type WorkspaceFilesRuntimeDefaults = WorkspaceFileScope & {
     workspaceRoot?: string | null
     workspacePath?: string | null
+}
+
+/**
+ * Internal, server-only source evidence used by Sandbox Jobs when a system
+ * Runtime Provider supports read-only seekable inputs.
+ */
+export type WorkspaceReadOnlyFileSource = {
+    serverPath: string
+    hostPath: string
+    size: number
+    mtimeMs: number
+    device: number
+    inode: number
 }
 
 @Injectable()
@@ -202,6 +216,45 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             catalog,
             scopeId,
             buffer
+        }
+    }
+
+    /**
+     * Resolve one portable Workspace reference to the exact underlying regular
+     * file without returning the path through the public WorkspaceFilesApi.
+     * Sandbox Jobs Core is the only intended caller.
+     */
+    async resolveReadOnlyFileSource(input: WorkspaceFileReference): Promise<WorkspaceReadOnlyFileSource> {
+        const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
+        const { volumeScope } = this.resolveVolumeScope(input)
+        const volume = this.volumeClient.resolve(volumeScope)
+        const serverRoot = await realpath(volume.serverRoot).catch(() => null)
+        const requestedPath = volume.path(filePath)
+        const serverPath = await realpath(requestedPath).catch(() => null)
+        if (!serverRoot || !serverPath) {
+            throw new BadRequestException('Workspace file not found')
+        }
+        const relativePath = path.relative(serverRoot, serverPath)
+        if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            throw new BadRequestException('Workspace file path is outside of its scoped volume')
+        }
+        const fileStat = await stat(serverPath).catch(() => null)
+        if (!fileStat?.isFile()) {
+            throw new BadRequestException('Workspace file not found')
+        }
+        const hostRoot = path.resolve(volume.hostRoot)
+        const hostPath = path.resolve(hostRoot, relativePath)
+        const hostRelativePath = path.relative(hostRoot, hostPath)
+        if (!hostRelativePath || hostRelativePath.startsWith('..') || path.isAbsolute(hostRelativePath)) {
+            throw new BadRequestException('Workspace Provider path is outside of its scoped volume')
+        }
+        return {
+            serverPath,
+            hostPath,
+            size: fileStat.size,
+            mtimeMs: fileStat.mtimeMs,
+            device: fileStat.dev,
+            inode: fileStat.ino
         }
     }
 

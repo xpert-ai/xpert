@@ -6,15 +6,24 @@ import {
   XpertViewActionRequest,
   XpertViewActionResult,
   XpertViewDataResult,
+  XpertViewFileAccessRequest,
   XpertViewParameterOptionsQuery,
   XpertViewParameterOptionsResult,
   XpertViewQuery
 } from '@xpert-ai/contracts'
+import type { WorkspacePortableFileReference } from '../runtime/capabilities/workspace-files'
 
 export interface XpertViewFileActionFile {
   buffer: Buffer
   originalname?: string
   mimetype?: string
+  size?: number
+}
+
+export interface XpertViewFileResource {
+  reference: WorkspacePortableFileReference
+  fileName: string
+  mimeType: string
   size?: number
 }
 
@@ -46,6 +55,12 @@ export interface IXpertViewExtensionProvider {
     request: XpertViewActionRequest,
     file: XpertViewFileActionFile
   ): Promise<XpertViewActionResult> | XpertViewActionResult
+
+  resolveViewFile?(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    request: XpertViewFileAccessRequest
+  ): Promise<XpertViewFileResource> | XpertViewFileResource
 
   getViewParameterOptions?(
     context: XpertResolvedViewHostContext,
