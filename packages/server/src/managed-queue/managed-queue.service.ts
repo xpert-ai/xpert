@@ -12,9 +12,10 @@ import type {
 	ManagedQueueRedis,
 	ManagedQueueService as ManagedQueueServiceContract
 } from '@xpert-ai/plugin-sdk'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { JobsOptions, Queue } from 'bullmq'
 import { MANAGED_QUEUE_PHYSICAL_QUEUE_NAME, MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME } from './constants'
-import type { ManagedQueueEnvelope } from './constants'
+import type { ManagedQueueActorSnapshot, ManagedQueueDelegationSnapshot, ManagedQueueEnvelope } from './constants'
 
 @Injectable()
 export class ManagedQueueService implements ManagedQueueServiceContract {
@@ -28,6 +29,7 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 
 	async enqueue<TPayload = unknown>(input: ManagedQueueEnqueueInput<TPayload>): Promise<ManagedQueueEnqueueResult> {
 		const executionPool = input.executionPool ?? 'default'
+		const identity = this.captureCurrentIdentity(input)
 		const envelope: ManagedQueueEnvelope<TPayload> = {
 			pluginName: this.requireValue(input.pluginName, 'pluginName'),
 			queueName: this.requireValue(input.queueName, 'queueName'),
@@ -36,7 +38,9 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			tenantId: input.tenantId ?? null,
 			organizationId: input.organizationId ?? null,
 			scopeKey: input.scopeKey ?? null,
-			userId: input.userId ?? null,
+			userId: identity.actor?.userId ?? input.userId ?? null,
+			...(identity.actor ? { actor: identity.actor } : {}),
+			...(identity.delegation ? { delegation: identity.delegation } : {}),
 			executionPool,
 			enqueuedAt: new Date().toISOString()
 		}
@@ -179,6 +183,82 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			} as JobsOptions['removeOnComplete']
 		}
 		return option as JobsOptions['removeOnComplete']
+	}
+
+	private captureCurrentIdentity(input: ManagedQueueEnqueueInput): {
+		actor?: ManagedQueueActorSnapshot
+		delegation?: ManagedQueueDelegationSnapshot
+	} {
+		const currentUser = RequestContext.currentUser()
+		const principal = RequestContext.currentApiPrincipal()
+		const actorUserId = this.normalizeId(currentUser?.id)
+		const declaredUserId = this.normalizeId(input.userId)
+		if (actorUserId && declaredUserId && actorUserId !== declaredUserId) {
+			throw new Error('ManagedQueue actor user does not match the requested job user')
+		}
+
+		const currentTenantId =
+			this.normalizeId(currentUser?.tenantId) ||
+			this.normalizeId(principal?.tenantId) ||
+			this.normalizeId(principal?.apiKey?.tenantId)
+		const jobTenantId = this.normalizeId(input.tenantId)
+		if (currentTenantId && jobTenantId && jobTenantId !== currentTenantId) {
+			throw new Error('ManagedQueue actor tenant does not match the job tenant')
+		}
+
+		const currentOrganizationId =
+			this.normalizeId(principal?.requestedOrganizationId) ||
+			this.normalizeId(RequestContext.getOrganizationId()) ||
+			this.normalizeId(principal?.apiKey?.organizationId)
+		const jobOrganizationId = this.normalizeId(input.organizationId)
+		if (currentOrganizationId && jobOrganizationId && jobOrganizationId !== currentOrganizationId) {
+			throw new Error('ManagedQueue actor organization does not match the job organization')
+		}
+
+		const actor =
+			actorUserId && currentTenantId
+				? ({
+						userId: actorUserId,
+						tenantId: currentTenantId,
+						organizationId: currentOrganizationId || null,
+						type: principal ? (principal.requestedUserId ? 'delegated_user' : 'service') : 'user'
+					} satisfies ManagedQueueActorSnapshot)
+				: undefined
+
+		const apiKey = principal?.apiKey
+		if (!principal || !apiKey || !currentTenantId) {
+			return { actor }
+		}
+
+		const delegation: ManagedQueueDelegationSnapshot = {
+			tenantId: currentTenantId,
+			organizationId: currentOrganizationId || null,
+			principalType: principal.principalType,
+			ownerUserId: this.normalizeId(principal.ownerUserId),
+			apiKeyUserId: this.normalizeId(principal.apiKeyUserId),
+			requestedUserId: this.normalizeId(principal.requestedUserId),
+			requestedOrganizationId: this.normalizeId(principal.requestedOrganizationId),
+			clientSecretBindingType: principal.clientSecretBindingType ?? null,
+			clientSecretId: this.normalizeId(principal.clientSecretId),
+			apiKey: {
+				...(apiKey.type ? { type: apiKey.type } : {}),
+				entityId: this.normalizeId(apiKey.entityId),
+				tenantId: this.normalizeId(apiKey.tenantId) || currentTenantId,
+				organizationId: this.normalizeId(apiKey.organizationId),
+				userId: this.normalizeId(apiKey.userId)
+			}
+		}
+		return { actor, delegation }
+	}
+
+	private normalizeId(value: unknown): string | null {
+		if (typeof value === 'number' && Number.isFinite(value)) {
+			return String(value)
+		}
+		if (typeof value !== 'string') {
+			return null
+		}
+		return value.trim() || null
 	}
 
 	private requireValue(value: string | null | undefined, field: string): string {

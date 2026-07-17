@@ -15,20 +15,13 @@ import {
     SpeechToTextTranscribeInput,
     SpeechToTextTranscribeResult
 } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, Injectable } from '@nestjs/common'
-import type { IApiKey, IApiPrincipal } from '@xpert-ai/contracts'
-import { ApiKeyBindingType } from '@xpert-ai/contracts'
-import type { IncomingMessage } from 'node:http'
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
+import type { IApiPrincipal } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { SpeechToTextService } from './speech-to-text.service'
-import { XpertPrincipalService } from '../xpert'
-import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
+import { PublishedXpertAccessService } from '../xpert'
 
 const SPEECH_TO_TEXT_ALL_OPERATIONS = ['transcribe'] as const
-type SpeechToTextContextRequest = Partial<IncomingMessage> & {
-    headers: Record<string, string>
-    user: IApiPrincipal
-}
-
 function resolveSpeechToTextOperations(permissions: Permissions): Set<SpeechToTextPermissionOperation> {
     return resolvePermissionOperations<SpeechToTextPermissionOperation>(
         permissions,
@@ -56,7 +49,7 @@ function createGuardedSpeechToTextPermissionService(
 export class PluginSpeechToTextPermissionService implements SpeechToTextPermissionService {
     constructor(
         private readonly speechToTextService: SpeechToTextService,
-        private readonly xpertPrincipalService: XpertPrincipalService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService
     ) {}
 
     @RequirePermissionOperation('speech_to_text', 'transcribe')
@@ -66,73 +59,21 @@ export class PluginSpeechToTextPermissionService implements SpeechToTextPermissi
             return this.speechToTextService.transcribe(input)
         }
 
-        const request = await this.createAssistantRequestContext(input, tenantId)
-        return this.runInRequestContext(request, () => this.speechToTextService.transcribe(input))
-    }
-
-    private async runInRequestContext<T>(request: SpeechToTextContextRequest, callback: () => Promise<T>): Promise<T> {
-        const context = captureRequestContext({
-            user: request.user,
-            tenantId: request.headers['tenant-id'],
-            organizationId: request.headers['organization-id'],
-            headers: request.headers
-        })
-        return runWithCapturedRequestContext(context, callback)
-    }
-
-    private async createAssistantRequestContext(
-        input: SpeechToTextTranscribeInput,
-        tenantId: string
-    ): Promise<SpeechToTextContextRequest> {
-        const currentPrincipal = this.resolveCurrentApiPrincipal()
-        if (!currentPrincipal?.apiKey) {
-            throw new BadRequestException('speech_to_text_principal_required')
+        const actor = PluginRequestContext.currentUser()
+        if (!actor?.id) {
+            throw new BadRequestException('speech_to_text_actor_required')
+        }
+        if (this.normalizeString(actor.tenantId) !== tenantId) {
+            throw new ForbiddenException('speech_to_text_actor_tenant_mismatch')
+        }
+        const organizationId = this.normalizeString(input.organizationId)
+        const currentOrganizationId = this.normalizeString(PluginRequestContext.getOrganizationId())
+        if (organizationId && currentOrganizationId && organizationId !== currentOrganizationId) {
+            throw new ForbiddenException('speech_to_text_actor_organization_mismatch')
         }
 
-        this.validateTargetXpertId(input)
-        const { xpert, user: principalUser } = await this.xpertPrincipalService.ensurePrincipalUserByXpertId({
-            xpertId: input.xpertId,
-            tenantId,
-            organizationId: this.normalizeString(input.organizationId) || null
-        })
-        const organizationId = this.normalizeString(xpert.organizationId) || this.normalizeString(input.organizationId)
-        const headers: Record<string, string> = {
-            'tenant-id': tenantId,
-            'x-scope-level': organizationId ? 'organization' : 'tenant'
-        }
-        if (organizationId) {
-            headers['organization-id'] = organizationId
-        }
-
-        const apiKey = {
-            token: `plugin-speech-to-text:${input.xpertId}`,
-            type: ApiKeyBindingType.ASSISTANT,
-            entityId: input.xpertId,
-            tenantId,
-            organizationId: organizationId || null,
-            createdById: currentPrincipal.ownerUserId ?? currentPrincipal.id ?? principalUser.id,
-            userId: principalUser.id,
-            user: principalUser
-        } as IApiKey & { createdById?: string | null }
-
-        return {
-            headers,
-            user: {
-                ...principalUser,
-                id: principalUser.id,
-                tenantId,
-                apiKey: {
-                    ...apiKey
-                },
-                ownerUserId: currentPrincipal.ownerUserId ?? apiKey.createdById ?? principalUser.id,
-                apiKeyUserId: principalUser.id,
-                requestedUserId: currentPrincipal.requestedUserId ?? null,
-                requestedOrganizationId: (currentPrincipal.requestedOrganizationId ?? organizationId) || null,
-                principalType: currentPrincipal.principalType ?? 'api_key',
-                clientSecretBindingType: currentPrincipal.clientSecretBindingType ?? null,
-                clientSecretId: currentPrincipal.clientSecretId ?? null
-            }
-        }
+        await this.assertTargetXpertAccess(input, organizationId)
+        return this.speechToTextService.transcribe(input)
     }
 
     private validateTargetXpertId(input: SpeechToTextTranscribeInput): void {
@@ -143,6 +84,32 @@ export class PluginSpeechToTextPermissionService implements SpeechToTextPermissi
 
     private resolveCurrentApiPrincipal(): IApiPrincipal | null {
         return PluginRequestContext.currentApiPrincipal() as IApiPrincipal | null
+    }
+
+    private async assertTargetXpertAccess(input: SpeechToTextTranscribeInput, organizationId: string): Promise<void> {
+        this.validateTargetXpertId(input)
+        const xpertId = this.normalizeString(input.xpertId)
+        const principal = this.resolveCurrentApiPrincipal()
+        const apiKey = principal?.apiKey
+
+        if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId) {
+            if (this.normalizeString(apiKey.entityId) !== xpertId) {
+                throw new ForbiddenException('speech_to_text_xpert_delegation_mismatch')
+            }
+
+            const isPublicXpertSession =
+                principal.principalType === 'client_secret' &&
+                principal.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
+            if (!principal.requestedUserId && !isPublicXpertSession) {
+                const xpert = await this.publishedXpertAccessService.getPublishedXpertInTenant(xpertId)
+                if (organizationId && this.normalizeString(xpert.organizationId) !== organizationId) {
+                    throw new ForbiddenException('speech_to_text_xpert_organization_mismatch')
+                }
+                return
+            }
+        }
+
+        await this.publishedXpertAccessService.getAccessiblePublishedXpert(xpertId)
     }
 
     private normalizeString(value: unknown): string {

@@ -1,6 +1,6 @@
 import { QueryBus } from '@nestjs/cqrs'
 import { UploadedFile } from '@xpert-ai/contracts'
-import { SpeechToTextService } from './speech-to-text.service'
+import { normalizeSpeechToTextFileName, SpeechToTextService } from './speech-to-text.service'
 
 describe('SpeechToTextService', () => {
     const uploadedFile: UploadedFile = {
@@ -24,6 +24,13 @@ describe('SpeechToTextService', () => {
             service: new SpeechToTextService(queryBus as unknown as QueryBus)
         }
     }
+
+    it('preserves real media extensions when staging plugin speech-to-text bytes', () => {
+        expect(normalizeSpeechToTextFileName('NG7A4524.MOV', 'video/quicktime')).toBe('NG7A4524.MOV')
+        expect(normalizeSpeechToTextFileName('interview', 'video/mp4')).toBe('interview.mp4')
+        expect(normalizeSpeechToTextFileName('voice', 'audio/mpeg; charset=binary')).toBe('voice.mp3')
+        expect(normalizeSpeechToTextFileName('../speech', undefined)).toBe('speech.wav')
+    })
 
     it('returns clear error when the target Xpert has no speech-to-text model', async () => {
         const { service, queryBus } = createService()

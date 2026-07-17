@@ -1,6 +1,11 @@
 import { ManagedQueueService } from './managed-queue.service'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 describe('ManagedQueueService', () => {
+	afterEach(() => {
+		jest.restoreAllMocks()
+	})
+
 	function createQueue() {
 		const redis = { get: jest.fn() }
 		const job = {
@@ -71,6 +76,152 @@ describe('ManagedQueueService', () => {
 				}
 			})
 		)
+	})
+
+	it('captures a non-secret API principal delegation for background permission checks', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+			id: 'business-user-1',
+			tenantId: 'tenant-1'
+		} as never)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+			id: 'business-user-1',
+			tenantId: 'tenant-1',
+			principalType: 'api_key',
+			ownerUserId: 'owner-user-1',
+			apiKeyUserId: 'assistant-user-1',
+			requestedUserId: 'business-user-1',
+			requestedOrganizationId: 'org-1',
+			apiKey: {
+				token: 'must-not-enter-redis',
+				type: 'assistant',
+				entityId: 'xpert-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				userId: 'assistant-user-1'
+			}
+		} as never)
+
+		await service.enqueue({
+			pluginName: 'plugin-cut',
+			queueName: 'analysis',
+			jobName: 'transcribe',
+			payload: { mediaAssetId: 'asset-1' },
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+
+		const envelope = queue.add.mock.calls[0]?.[1]
+		expect(envelope).toMatchObject({
+			actor: {
+				userId: 'business-user-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				type: 'delegated_user'
+			},
+			delegation: {
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				ownerUserId: 'owner-user-1',
+				requestedUserId: 'business-user-1',
+				apiKey: {
+					type: 'assistant',
+					entityId: 'xpert-1',
+					tenantId: 'tenant-1',
+					organizationId: 'org-1',
+					userId: 'assistant-user-1'
+				}
+			}
+		})
+		expect(JSON.stringify(envelope)).not.toContain('must-not-enter-redis')
+		expect(envelope?.delegation?.apiKey).not.toHaveProperty('token')
+	})
+
+	it('captures a logged-in user as the actor without inventing an xpert principal', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+
+		await service.enqueue({
+			pluginName: 'plugin-cut',
+			queueName: 'analysis',
+			jobName: 'transcribe',
+			payload: {},
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'user-1'
+		})
+
+		const envelope = queue.add.mock.calls[0]?.[1]
+		expect(envelope).toMatchObject({
+			userId: 'user-1',
+			actor: {
+				userId: 'user-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				type: 'user'
+			}
+		})
+		expect(envelope).not.toHaveProperty('delegation')
+		expect(envelope).not.toHaveProperty('principal')
+	})
+
+	it('rejects a delegated principal that does not match the requested queue scope', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+			id: 'assistant-user-1',
+			tenantId: 'tenant-1'
+		} as never)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+			id: 'assistant-user-1',
+			tenantId: 'tenant-1',
+			principalType: 'api_key',
+			requestedOrganizationId: 'org-1',
+			apiKey: {
+				token: 'secret',
+				type: 'assistant',
+				entityId: 'xpert-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1'
+			}
+		} as never)
+
+		await expect(
+			service.enqueue({
+				pluginName: 'plugin-cut',
+				queueName: 'analysis',
+				jobName: 'transcribe',
+				payload: {},
+				tenantId: 'tenant-1',
+				organizationId: 'org-2'
+			})
+		).rejects.toThrow('actor organization')
+		expect(queue.add).not.toHaveBeenCalled()
+	})
+
+	it('rejects a plugin-supplied user that differs from the authenticated actor', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+
+		await expect(
+			service.enqueue({
+				pluginName: 'plugin-cut',
+				queueName: 'analysis',
+				jobName: 'transcribe',
+				payload: {},
+				tenantId: 'tenant-1',
+				userId: 'another-user'
+			})
+		).rejects.toThrow('actor user')
+		expect(queue.add).not.toHaveBeenCalled()
 	})
 
 	it('routes sandbox browser jobs to the dedicated execution pool', async () => {
