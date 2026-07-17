@@ -50,10 +50,14 @@ export class OrganizationController extends CrudController<Organization> {
 	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	@Get()
 	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<Organization>> {
-		const { relations, findInput } = data
+		const { relations, findInput, take, skip, order, select } = data
 		return await this.organizationService.findAll({
 			where: findInput,
-			relations
+			relations,
+			take,
+			skip,
+			order,
+			select
 		})
 	}
 
