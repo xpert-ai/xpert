@@ -35,7 +35,13 @@
         "XpertMarketplaceRequesterNotFound": "未找到申请用户。",
         "XpertMarketplaceNotFound": "未找到该广场智能体。",
         "UnsupportedTaskSummarySection": "不支持的任务摘要分区",
-        "XpertMarketplaceRequestNotFound": "未找到该访问申请。"
+        "XpertMarketplaceRequestNotFound": "未找到该访问申请。",
+        "WorkspaceFileAccessSessionRequired": "需要 Workspace 文件访问会话。",
+        "WorkspaceFileAccessInvalidSession": "Workspace 文件访问会话无效。",
+        "WorkspaceFileAccessNotFound": "未找到 Workspace 文件。",
+        "WorkspaceFileAccessDenied": "Workspace 文件访问被拒绝。",
+        "WorkspaceFileAccessInvalidReference": "View 文件访问需要限定作用域的 Workspace Files 引用。",
+        "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。"
     },
     "tools": {
         "ListFiles": "列出文件",

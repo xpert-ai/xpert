@@ -54,6 +54,7 @@ import { MobileModule } from './mobile'
 import { MembershipModule } from './membership'
 import { ArtifactsModule } from './artifacts'
 import { CollaborationModule } from './collaboration'
+import { WorkspaceFileAccessModule } from './workspace-file-access'
 
 @Module({
     imports: [
@@ -110,7 +111,8 @@ import { CollaborationModule } from './collaboration'
         RagWebModule,
         SandboxModule,
         ArtifactsModule,
-        CollaborationModule
+        CollaborationModule,
+        WorkspaceFileAccessModule
     ],
     controllers: [],
     providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]

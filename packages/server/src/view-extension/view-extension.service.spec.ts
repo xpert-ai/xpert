@@ -17,6 +17,9 @@ describe('ViewExtensionService file actions', () => {
 		dataSource: {
 			mode: 'platform'
 		},
+		fileAccess: {
+			purposes: ['preview']
+		},
 		actions: [
 			{
 				key: 'preview_material_excel',
@@ -48,6 +51,16 @@ describe('ViewExtensionService file actions', () => {
 			supports: jest.fn(async () => true),
 			getViewManifests: jest.fn(async () => [manifest]),
 			getViewData: jest.fn(),
+			resolveViewFile: jest.fn(async () => ({
+				reference: {
+					source: 'platform.workspace.files',
+					filePath: '/tenant-1/xperts/assistant-1/video.mp4',
+					tenantId: 'tenant-1'
+				},
+				fileName: 'video.mp4',
+				mimeType: 'video/mp4',
+				size: 1024
+			})),
 			executeViewFileAction: jest.fn(async () => ({ success: true, refresh: true })),
 			getRemoteComponentEntry: jest.fn(async () => ({
 				html: '<!doctype html><html><body><div id="root"></div><script type="module"></script></body></html>'
@@ -178,5 +191,34 @@ describe('ViewExtensionService file actions', () => {
 				{ buffer: Buffer.from('excel') }
 			)
 		).rejects.toThrow("Action 'json_action' does not support file transport")
+	})
+
+	it('resolves declared view file access through the provider with the scoped host context', async () => {
+		const { service, provider } = createService()
+
+		const result = await service.resolveViewFileResource('agent', 'assistant-1', 'provider__review', {
+			fileKey: 'asset-1',
+			targetId: 'project-1',
+			purpose: 'preview'
+		})
+
+		expect(result.resource).toMatchObject({ fileName: 'video.mp4', mimeType: 'video/mp4', size: 1024 })
+		expect(provider.resolveViewFile).toHaveBeenCalledWith(
+			expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1', hostId: 'assistant-1' }),
+			'review',
+			{ fileKey: 'asset-1', targetId: 'project-1', purpose: 'preview' }
+		)
+	})
+
+	it('rejects a file access purpose that the view did not declare', async () => {
+		const { service, provider } = createService()
+
+		await expect(
+			service.resolveViewFileResource('agent', 'assistant-1', 'provider__review', {
+				fileKey: 'asset-1',
+				purpose: 'download'
+			})
+		).rejects.toThrow("File access purpose 'download' is not available")
+		expect(provider.resolveViewFile).not.toHaveBeenCalled()
 	})
 })

@@ -11,6 +11,8 @@ import {
 	XpertViewDataSource,
 	XpertViewFilter,
 	XpertViewFilterOperator,
+	XpertViewFileAccessDefinition,
+	XpertViewFileAccessPurpose,
 	XpertViewHostContext,
 	XpertViewHostEventSubscriptionActionType,
 	XpertViewHostEvents,
@@ -35,6 +37,7 @@ const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>([
 const ALLOWED_ACTION_TYPES = new Set<XpertViewActionType>(['invoke', 'navigate', 'open_detail', 'refresh'])
 const ALLOWED_ACTION_PLACEMENTS = new Set<XpertViewActionPlacement>(['toolbar', 'row'])
 const ALLOWED_ACTION_TRANSPORTS = new Set<XpertViewActionTransport>(['json', 'file'])
+const ALLOWED_FILE_ACCESS_PURPOSES = new Set<XpertViewFileAccessPurpose>(['preview', 'download'])
 const ALLOWED_REMOTE_COMPONENT_RUNTIMES = new Set<XpertRemoteComponentRuntime>(['react', 'vue', 'esm'])
 const ALLOWED_HOST_EVENT_ACTION_TYPES = new Set<XpertViewHostEventSubscriptionActionType>([
 	'refresh',
@@ -119,6 +122,7 @@ export function normalizeManifest(
 		dataSource: normalizeDataSource(manifest.dataSource),
 		actions: normalizeActions(manifest.actions),
 		clientCommands: normalizeClientCommands(manifest.clientCommands),
+		fileAccess: normalizeFileAccess(manifest.fileAccess),
 		hostEvents: normalizeHostEvents(manifest.hostEvents)
 	}
 }
@@ -390,6 +394,24 @@ function normalizeClientCommands(clientCommands?: XpertViewClientCommandDefiniti
 
 		return command
 	})
+}
+
+function normalizeFileAccess(fileAccess?: XpertViewFileAccessDefinition): XpertViewFileAccessDefinition | undefined {
+	if (!fileAccess) {
+		return undefined
+	}
+
+	const purposes = [...new Set(fileAccess.purposes ?? [])]
+	if (!purposes.length) {
+		throw new BadRequestException('View file access must declare at least one purpose')
+	}
+	for (const purpose of purposes) {
+		if (!ALLOWED_FILE_ACCESS_PURPOSES.has(purpose)) {
+			throw new BadRequestException(`Unsupported view file access purpose '${purpose}'`)
+		}
+	}
+
+	return { purposes }
 }
 
 function normalizeHostEvents(hostEvents?: XpertViewHostEvents) {

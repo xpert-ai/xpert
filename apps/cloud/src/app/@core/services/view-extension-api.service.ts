@@ -5,6 +5,9 @@ import {
   XpertExtensionViewManifest,
   XpertViewActionResult,
   XpertViewDataResult,
+  XpertViewFileAccessGrantResult,
+  XpertViewFileAccessRequest,
+  XpertViewFileAccessSessionResult,
   XpertViewQuery
 } from '@xpert-ai/contracts'
 import { injectApiBaseUrl } from '../providers'
@@ -14,6 +17,7 @@ export class ViewExtensionApiService {
   private readonly httpClient = inject(HttpClient)
   private readonly apiBaseUrl = injectApiBaseUrl()
   private readonly baseUrl = `${this.apiBaseUrl}${API_PREFIX}/view-hosts`
+  private readonly workspaceFilesBaseUrl = `${this.apiBaseUrl}${API_PREFIX}/workspace-files`
 
   getSlotViews(hostType: string, hostId: string, slot: string) {
     return this.httpClient.get<XpertExtensionViewManifest[]>(
@@ -62,6 +66,32 @@ export class ViewExtensionApiService {
     return this.httpClient.get(
       `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/remote-component/entry`,
       { responseType: 'text' }
+    )
+  }
+
+  createViewFileAccessSession(hostType: string, hostId: string, viewKey: string) {
+    return this.httpClient.post<XpertViewFileAccessSessionResult>(
+      `${this.workspaceFilesBaseUrl}/view-sessions`,
+      {
+        hostType,
+        hostId,
+        viewKey
+      },
+      { withCredentials: true }
+    )
+  }
+
+  createViewFileAccessGrant(sessionId: string, request: XpertViewFileAccessRequest) {
+    return this.httpClient.post<XpertViewFileAccessGrantResult>(
+      `${this.workspaceFilesBaseUrl}/view-sessions/${encodeURIComponent(sessionId)}/grants`,
+      request
+    )
+  }
+
+  revokeViewFileAccessSession(sessionId: string) {
+    return this.httpClient.delete<{ success: boolean }>(
+      `${this.workspaceFilesBaseUrl}/view-sessions/${encodeURIComponent(sessionId)}`,
+      { withCredentials: true }
     )
   }
 

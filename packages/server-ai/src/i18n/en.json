@@ -34,7 +34,13 @@
         "XpertMarketplaceRequesterNotFound": "The request user was not found.",
         "XpertMarketplaceNotFound": "The marketplace assistant was not found.",
         "UnsupportedTaskSummarySection": "Unsupported task summary section",
-        "XpertMarketplaceRequestNotFound": "The access request was not found."
+        "XpertMarketplaceRequestNotFound": "The access request was not found.",
+        "WorkspaceFileAccessSessionRequired": "Workspace file access session is required.",
+        "WorkspaceFileAccessInvalidSession": "Workspace file access session is invalid.",
+        "WorkspaceFileAccessNotFound": "Workspace file was not found.",
+        "WorkspaceFileAccessDenied": "Workspace file access was denied.",
+        "WorkspaceFileAccessInvalidReference": "View file access requires a scoped Workspace Files reference.",
+        "WorkspaceFileAccessUnavailable": "Workspace file access is not configured."
     },
     "tools": {
         "ListFiles": "List files",

@@ -50,6 +50,7 @@ import {
     VolumeClient,
     VolumeHandle,
     getMediaTypeWithCharset,
+    resolveHttpByteRange,
     WorkspacePathMapperFactory
 } from '../shared'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
@@ -85,6 +86,7 @@ export class SandboxController {
         @Param('path') paths: string[],
         @Query('tenant') tenant: string,
         @Query('download') download: string,
+        @Req() req: Request,
         @Res() res: Response
     ) {
         let subpath = paths.join('/')
@@ -104,6 +106,19 @@ export class SandboxController {
         const filePath = join(volume, subpath)
         // Extract the file extension
         const fileName = subpath.split('?')[0].split('/').pop() || ''
+        let fileStat: fs.Stats
+        try {
+            fileStat = await fs.promises.stat(filePath)
+            if (!fileStat.isFile()) {
+                res.status(404).send('File not found')
+                return
+            }
+        } catch (err) {
+            this.#logger.error(`Error reading file ${filePath}:`, err)
+            res.status(404).send('File not found')
+            return
+        }
+
         const mediaType = getMediaTypeWithCharset(filePath) || 'text/plain; charset=utf-8'
         const shouldForceDownload = ['1', 'true', 'yes'].includes((download ?? '').trim().toLowerCase())
 
@@ -121,22 +136,44 @@ export class SandboxController {
             mediaType === 'application/pdf'
         if (shouldForceDownload || !isPlainText) {
             const encodedFilename = encodeURIComponent(fileName)
-            const disposition = shouldForceDownload ? 'attachment' : 'inline; attachment'
+            const disposition = shouldForceDownload ? 'attachment' : 'inline'
             res.setHeader(
                 'Content-Disposition',
                 `${disposition}; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
             )
         }
 
-        const fileStream = fs.createReadStream(filePath)
+        res.setHeader('Accept-Ranges', 'bytes')
+        const range = resolveHttpByteRange(req.headers.range, fileStat.size)
+        if (range.kind === 'unsatisfiable') {
+            res.setHeader('Content-Range', `bytes */${fileStat.size}`)
+            res.status(416).end()
+            return
+        }
+
+        let fileStream: fs.ReadStream
+        if (range.kind === 'partial') {
+            const contentLength = range.end - range.start + 1
+            res.status(206)
+            res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${fileStat.size}`)
+            res.setHeader('Content-Length', contentLength)
+            fileStream = fs.createReadStream(filePath, { start: range.start, end: range.end })
+        } else {
+            res.setHeader('Content-Length', fileStat.size)
+            fileStream = fs.createReadStream(filePath)
+        }
+
         fileStream.on('error', (err) => {
             this.#logger.error(`Error reading file ${filePath}:`, err)
-            res.status(404).send('File not found')
+            if (!res.headersSent) {
+                res.status(404).send('File not found')
+            } else {
+                res.destroy(err)
+            }
         })
         fileStream.pipe(res)
         res.on('error', (err) => {
             this.#logger.error(`Error sending file ${filePath}:`, err)
-            res.status(500).send('Internal server error')
         })
     }
 
