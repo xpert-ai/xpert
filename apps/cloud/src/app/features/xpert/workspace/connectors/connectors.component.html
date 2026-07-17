@@ -4,6 +4,9 @@
       @for (definition of definitions(); track definition.provider) {
         @let connector = connectorFor(definition);
         @let status = statusLabelFor(connector);
+        @let authMethods = authMethodsFor(definition);
+        @let authMethod = selectedAuthMethod(definition);
+        @let credentialForm = credentialFormFor(authMethod);
 
         <div
           class="relative flex w-full items-start gap-3 rounded-lg border border-divider-regular bg-components-card-bg p-3 shadow-sm"
@@ -58,6 +61,64 @@
               </div>
             }
 
+            @if (canManageWorkspace() && connector?.status !== 'active' && connector?.status !== 'pending') {
+              <form class="mt-3 grid gap-3" [formGroup]="formFor(definition)">
+                @if (authMethods.length > 1) {
+                  <z-form-field>
+                    <z-form-label>
+                      {{ 'PAC.Xpert.ConnectorAuthenticationMethod' | translate: { Default: 'Authentication method' } }}
+                    </z-form-label>
+                    <z-select
+                      class="w-full"
+                      formControlName="authMethodId"
+                      (zSelectionChange)="selectAuthMethod(definition, $event)"
+                    >
+                      @for (method of authMethods; track method.id) {
+                        <z-select-item [zValue]="method.id">{{ method.label | i18n }}</z-select-item>
+                      }
+                    </z-select>
+                  </z-form-field>
+                }
+
+                @for (field of credentialFieldsFor(authMethod); track field.name) {
+                  <z-form-field>
+                    <z-form-label>{{ field.label | i18n }}</z-form-label>
+                    <input
+                      z-input
+                      [attr.data-credential-field]="field.name"
+                      [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
+                      [formControlName]="field.name"
+                      [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+                      [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
+                    />
+                    @if (field.description) {
+                      <z-form-message>{{ field.description | i18n }}</z-form-message>
+                    }
+                    @if (
+                      fieldControl(definition, field)?.touched && fieldControl(definition, field)?.hasError('required')
+                    ) {
+                      <z-form-message>
+                        {{
+                          'PAC.Xpert.ConnectorCredentialRequired' | translate: { Default: 'This field is required.' }
+                        }}
+                      </z-form-message>
+                    }
+                  </z-form-field>
+                }
+
+                @if (credentialForm?.help; as help) {
+                  <a
+                    class="w-fit text-xs text-text-secondary underline underline-offset-2"
+                    [href]="help.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ help.label | i18n }}
+                  </a>
+                }
+              </form>
+            }
+
             @if (connector?.status === 'pending' && canManageWorkspace()) {
               <div class="mt-3 flex flex-wrap items-center gap-2">
                 @if (pendingAuthorizationUrl(connector)) {
@@ -83,7 +144,6 @@
                 }
               </div>
             }
-
           </div>
 
           @if (connector?.status === 'active') {

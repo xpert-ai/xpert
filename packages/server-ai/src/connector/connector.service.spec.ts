@@ -1,7 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
 import { PARAMTYPES_METADATA, SELF_DECLARED_DEPS_METADATA } from '@nestjs/common/constants'
-import { RequestContext } from '@xpert-ai/server-core'
-import type { ConnectorStrategy } from '@xpert-ai/plugin-sdk'
+import { RequestContext, encryptSecret } from '@xpert-ai/server-core'
+import { environment } from '@xpert-ai/server-config'
+import type { ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
+import { FindOperator, type FindOptionsWhere } from 'typeorm'
 import { ConnectorOAuthSession } from './connector-oauth-session.entity'
 import { Connector } from './connector.entity'
 import { ConnectorService } from './connector.service'
@@ -10,7 +12,7 @@ describe('ConnectorService', () => {
     let connectors: InMemoryRepository<Connector>
     let sessions: InMemoryRepository<ConnectorOAuthSession>
     let service: ConnectorService
-	let strategy: ConnectorStrategy
+    let strategy: ConnectorStrategyRuntime
 
     beforeEach(() => {
         connectors = new InMemoryRepository<Connector>()
@@ -65,28 +67,26 @@ describe('ConnectorService', () => {
                 assertCanRun: jest.fn()
             },
             {
-                get: jest.fn().mockReturnValue(strategy),
-                list: jest.fn().mockReturnValue([strategy])
+                getRuntime: jest.fn().mockReturnValue(strategy),
+                listRuntime: jest.fn().mockReturnValue([strategy])
             }
-		)
-	})
+        )
+    })
 
     afterEach(() => {
         jest.restoreAllMocks()
     })
 
-	it('rejects legacy app integration ids instead of resolving system integrations', async () => {
+    it('rejects legacy app integration ids instead of resolving system integrations', async () => {
         const input = {
             appIntegrationId: 'integration-1',
             redirectUri: 'https://xpert.test/api/connector/oauth/callback'
         }
 
-        await expect(
-            service.startOAuth('workspace-1', 'example', input)
-        ).rejects.toBeInstanceOf(BadRequestException)
+        await expect(service.startOAuth('workspace-1', 'example', input)).rejects.toBeInstanceOf(BadRequestException)
 
-		expect(strategy.buildAuthorizationUrl).not.toHaveBeenCalled()
-	})
+        expect(strategy.buildAuthorizationUrl).not.toHaveBeenCalled()
+    })
 
     it('activates a connector without exposing encrypted or plaintext credentials', async () => {
         const start = await service.startOAuth('workspace-1', 'example', {
@@ -101,6 +101,9 @@ describe('ConnectorService', () => {
         const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
         expect(sessions.items[0]).not.toHaveProperty('state')
         expect(sessions.items[0].stateHash).toBeTruthy()
+        await expect(service.getOAuthCallbackContext(state)).resolves.toEqual({
+            workspaceId: 'workspace-1'
+        })
         const activated = await service.completeOAuthCallback({ state, code: 'code-1' })
 
         expect(activated.status).toBe('active')
@@ -109,6 +112,7 @@ describe('ConnectorService', () => {
         expect(JSON.stringify(connectors.items[0])).not.toContain('uat_secret')
         expect(JSON.stringify(connectors.items[0])).not.toContain('urt_secret')
 
+        connectors.items[0].authMethodId = null
         const runtime = await service.getRuntimeConnector({
             workspaceId: 'workspace-1',
             provider: 'example',
@@ -122,6 +126,18 @@ describe('ConnectorService', () => {
                 provider: 'example',
                 appId: 'example_app_id',
                 accessToken: 'uat_secret'
+            })
+        )
+        await expect(
+            service.getRuntimeConnectorCredential({
+                workspaceId: 'workspace-1',
+                provider: 'example',
+                connectorId: activated.id
+            })
+        ).resolves.toEqual(
+            expect.objectContaining({
+                authMethodId: 'oauth2',
+                credentials: expect.objectContaining({ accessToken: 'uat_secret' })
             })
         )
     })
@@ -166,9 +182,9 @@ describe('ConnectorService', () => {
         })
 
         expect(sessions.items[1].consumedAt).toBeInstanceOf(Date)
-        await expect(service.completeOAuthCallback({ state: firstReconnectState, code: 'code-2' })).rejects.toBeInstanceOf(
-            BadRequestException
-        )
+        await expect(
+            service.completeOAuthCallback({ state: firstReconnectState, code: 'code-2' })
+        ).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('clears public credential state when disconnecting', async () => {
@@ -226,12 +242,9 @@ describe('ConnectorService', () => {
     })
 
     it('does not expose unannotated Object dependencies to Nest injection', () => {
-        const paramTypes = ((Reflect as any).getMetadata(PARAMTYPES_METADATA, ConnectorService) ??
-            []) as unknown[]
-        const explicitDeps = ((Reflect as any).getMetadata(
-            SELF_DECLARED_DEPS_METADATA,
-            ConnectorService
-        ) ?? []) as Array<{ index: number }>
+        const paramTypes = ((Reflect as any).getMetadata(PARAMTYPES_METADATA, ConnectorService) ?? []) as unknown[]
+        const explicitDeps = ((Reflect as any).getMetadata(SELF_DECLARED_DEPS_METADATA, ConnectorService) ??
+            []) as Array<{ index: number }>
 
         expect(explicitDeps.map((dependency) => dependency.index).sort()).toEqual(paramTypes.map((_, index) => index))
     })
@@ -255,9 +268,9 @@ describe('ConnectorService', () => {
         )
     })
 
-	it('starts a connector flow without app integration when the strategy manages credentials', async () => {
-		strategy.definition = {
-			provider: 'managed-example',
+    it('starts a connector flow without app integration when the strategy manages credentials', async () => {
+        strategy.definition = {
+            provider: 'managed-example',
             label: 'Managed Example',
             auth: { type: 'oauth2' }
         }
@@ -277,43 +290,45 @@ describe('ConnectorService', () => {
                 app: undefined,
                 redirectUri: 'https://xpert.test/callback'
             })
-		)
-	})
+        )
+    })
 
-	it('starts with default app credentials when no credential fields require user input', async () => {
-		strategy.definition = {
-			provider: 'managed-example',
-			label: 'Managed Example',
+    it('starts with default app credentials when no credential fields require user input', async () => {
+        strategy.definition = {
+            provider: 'managed-example',
+            label: 'Managed Example',
             appCredentials: {
                 defaultValues: {
                     appId: 'default_app_id',
                     appSecret: 'default_app_secret'
                 }
             },
-			auth: { type: 'oauth2' }
-		}
-		;(strategy.buildAuthorizationUrl as jest.Mock).mockResolvedValueOnce({
-			authorizationUrl: 'https://oauth.example.com/managed?state=state-1',
-			scopes: ['drive:read']
-		})
+            auth: { type: 'oauth2' }
+        }
+        ;(strategy.buildAuthorizationUrl as jest.Mock).mockResolvedValueOnce({
+            authorizationUrl: 'https://oauth.example.com/managed?state=state-1',
+            scopes: ['drive:read']
+        })
 
-		const start = await service.startOAuth('workspace-1', 'managed-example', {
-			redirectUri: 'https://xpert.test/callback'
-		})
+        const start = await service.startOAuth('workspace-1', 'managed-example', {
+            redirectUri: 'https://xpert.test/callback'
+        })
 
-		expect(start.authorizationUrl).toContain('managed')
-		expect(strategy.buildAuthorizationUrl).toHaveBeenCalledWith(
-			expect.objectContaining({
-				app: {
+        expect(start.authorizationUrl).toContain('managed')
+        expect(strategy.buildAuthorizationUrl).toHaveBeenCalledWith(
+            expect.objectContaining({
+                app: {
                     appId: 'default_app_id',
                     appSecret: 'default_app_secret'
                 }
-			})
-		)
-	})
+            })
+        )
+    })
 
-	it('marks the connector error when the strategy cannot start authorization', async () => {
-        ;(strategy.buildAuthorizationUrl as jest.Mock).mockRejectedValueOnce(new Error('Feishu registration unavailable'))
+    it('marks the connector error when the strategy cannot start authorization', async () => {
+        ;(strategy.buildAuthorizationUrl as jest.Mock).mockRejectedValueOnce(
+            new Error('Feishu registration unavailable')
+        )
 
         await expect(
             service.startOAuth('workspace-1', 'example', {
@@ -366,9 +381,9 @@ describe('ConnectorService', () => {
             redirectUri: 'https://xpert.test/callback'
         }
 
-        await expect(
-            service.startOAuth('workspace-1', 'managed-example', input)
-        ).rejects.toBeInstanceOf(BadRequestException)
+        await expect(service.startOAuth('workspace-1', 'managed-example', input)).rejects.toBeInstanceOf(
+            BadRequestException
+        )
 
         expect(strategy.buildAuthorizationUrl).not.toHaveBeenCalled()
     })
@@ -397,9 +412,7 @@ describe('ConnectorService', () => {
             }
         }
 
-        await expect(
-            service.completeOAuthCallback(callbackInput)
-        ).rejects.toBeInstanceOf(BadRequestException)
+        await expect(service.completeOAuthCallback(callbackInput)).rejects.toBeInstanceOf(BadRequestException)
         expect(connectors.items.find((item) => item.id === start.connector.id)?.status).toBe('pending')
         expect(strategy.exchangeOAuthCode).not.toHaveBeenCalled()
     })
@@ -841,7 +854,377 @@ describe('ConnectorService', () => {
     })
 
     it('returns connector definitions from registered strategies', async () => {
-        await expect(service.definitions('workspace-1')).resolves.toEqual([strategy.definition])
+        await expect(service.definitions('workspace-1')).resolves.toEqual([
+            expect.objectContaining({
+                provider: 'example',
+                authMethods: [expect.objectContaining({ id: 'oauth2', type: 'oauth2' })]
+            })
+        ])
+    })
+
+    it('requires an explicit authentication method when a provider declares more than one', async () => {
+        strategy.definition = {
+            provider: 'multi',
+            label: 'Multi',
+            authMethods: [
+                { id: 'oauth', type: 'oauth2', label: 'OAuth' },
+                { id: 'pat', type: 'api_key', label: 'PAT', credentials: {} }
+            ]
+        }
+        strategy.connect = jest.fn()
+
+        await expect(
+            service.connect('workspace-1', 'multi', {
+                redirectUri: 'https://xpert.test/callback'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(strategy.connect).not.toHaveBeenCalled()
+    })
+
+    it('activates an API key connector and exposes only the plugin runtime projection', async () => {
+        strategy.definition = {
+            provider: 'github',
+            label: 'GitHub',
+            authMethods: [
+                { id: 'github-app-oauth', type: 'oauth2', label: 'GitHub App OAuth' },
+                {
+                    id: 'pat',
+                    type: 'api_key',
+                    label: 'PAT',
+                    credentials: {
+                        fields: [{ name: 'token', label: 'Token', required: true, type: 'password', secret: true }]
+                    }
+                }
+            ]
+        }
+        strategy.connect = jest.fn().mockResolvedValue({
+            status: 'active',
+            credential: {
+                data: {
+                    accessToken: 'github_pat_secret',
+                    tokenType: 'bearer',
+                    clientSecret: 'must_not_reach_runtime'
+                },
+                profile: { name: 'octocat' }
+            }
+        })
+        strategy.resolveRuntimeCredential = jest.fn(({ credential }) => ({
+            accessToken: credential.data.accessToken,
+            tokenType: credential.data.tokenType
+        }))
+
+        const connected = await service.connect('workspace-1', 'github', {
+            authMethodId: 'pat',
+            values: { token: 'github_pat_secret' },
+            redirectUri: 'https://xpert.test/callback'
+        })
+
+        expect(connected).toEqual(
+            expect.objectContaining({
+                status: 'active',
+                connector: expect.objectContaining({ status: 'active', authMethodId: 'pat' })
+            })
+        )
+        expect(sessions.items).toHaveLength(0)
+        expect(JSON.stringify(connectors.items[0])).not.toContain('github_pat_secret')
+
+        const runtime = await service.getRuntimeConnectorCredential({
+            workspaceId: 'workspace-1',
+            provider: 'github'
+        })
+        expect(runtime).toEqual(
+            expect.objectContaining({
+                authMethodId: 'pat',
+                credentials: {
+                    accessToken: 'github_pat_secret',
+                    tokenType: 'bearer'
+                }
+            })
+        )
+        expect(JSON.stringify(runtime)).not.toContain('must_not_reach_runtime')
+    })
+
+    it('marks an API key connection as error when its strategy returns pending', async () => {
+        strategy.definition = {
+            provider: 'github',
+            label: 'GitHub',
+            authMethods: [{ id: 'pat', type: 'api_key', label: 'PAT', credentials: {} }]
+        }
+        strategy.connect = jest.fn().mockResolvedValue({
+            status: 'pending',
+            authorizationUrl: 'https://github.test/invalid-pending'
+        })
+
+        await expect(
+            service.connect('workspace-1', 'github', {
+                authMethodId: 'pat',
+                redirectUri: 'https://xpert.test/callback'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(connectors.items[0]).toEqual(
+            expect.objectContaining({
+                status: 'error',
+                lastError: expect.stringMatching(/\S/)
+            })
+        )
+        expect(sessions.items).toHaveLength(0)
+    })
+
+    it('does not let an in-flight refresh overwrite a reconnected credential', async () => {
+        strategy.definition = {
+            provider: 'github',
+            label: 'GitHub',
+            authMethods: [{ id: 'pat', type: 'api_key', label: 'PAT', credentials: {} }]
+        }
+        strategy.connect = jest
+            .fn()
+            .mockResolvedValueOnce({
+                status: 'active',
+                credential: {
+                    data: { accessToken: 'old_token', refreshToken: 'old_refresh' },
+                    expiresAt: pastIsoDate(),
+                    refreshExpiresAt: futureIsoDate(7)
+                }
+            })
+            .mockResolvedValueOnce({
+                status: 'active',
+                credential: {
+                    data: { accessToken: 'new_token', refreshToken: 'new_refresh' },
+                    expiresAt: futureIsoDate(1),
+                    refreshExpiresAt: futureIsoDate(7)
+                }
+            })
+        strategy.resolveRuntimeCredential = jest.fn(({ credential }) => ({
+            accessToken: credential.data.accessToken
+        }))
+        let markRefreshStarted: (() => void) | undefined
+        let releaseRefresh: (() => void) | undefined
+        const refreshStarted = new Promise<void>((resolve) => {
+            markRefreshStarted = resolve
+        })
+        const refreshCanFinish = new Promise<void>((resolve) => {
+            releaseRefresh = resolve
+        })
+        strategy.refreshConnectionCredential = jest.fn(async () => {
+            markRefreshStarted?.()
+            await refreshCanFinish
+            return {
+                data: { accessToken: 'stale_refreshed_token', refreshToken: 'stale_refresh' },
+                expiresAt: futureIsoDate(1),
+                refreshExpiresAt: futureIsoDate(7)
+            }
+        })
+
+        await service.connect('workspace-1', 'github', {
+            authMethodId: 'pat',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        const staleRuntime = service.getRuntimeConnectorCredential({
+            workspaceId: 'workspace-1',
+            provider: 'github'
+        })
+        await refreshStarted
+        await service.connect('workspace-1', 'github', {
+            authMethodId: 'pat',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        releaseRefresh?.()
+
+        await expect(staleRuntime).rejects.toBeInstanceOf(BadRequestException)
+        await expect(
+            service.getRuntimeConnectorCredential({
+                workspaceId: 'workspace-1',
+                provider: 'github'
+            })
+        ).resolves.toEqual(
+            expect.objectContaining({
+                credentials: { accessToken: 'new_token' }
+            })
+        )
+        expect(connectors.items[0]).toEqual(expect.objectContaining({ status: 'active', lastError: null }))
+    })
+
+    it('binds concurrent OAuth callbacks to the current connection attempt and authentication method', async () => {
+        strategy.definition = {
+            provider: 'multi-oauth',
+            label: 'Multi OAuth',
+            authMethods: [
+                { id: 'oauth-a', type: 'oauth2', label: 'OAuth A' },
+                { id: 'oauth-b', type: 'oauth2', label: 'OAuth B' }
+            ]
+        }
+        let firstState = ''
+        let secondState = ''
+        let releaseFirst: (() => void) | undefined
+        let markFirstStarted: (() => void) | undefined
+        const firstStarted = new Promise<void>((resolve) => {
+            markFirstStarted = resolve
+        })
+        const firstCanFinish = new Promise<void>((resolve) => {
+            releaseFirst = resolve
+        })
+        let connectCall = 0
+        strategy.connect = jest.fn(async (input) => {
+            connectCall += 1
+            if (connectCall === 1) {
+                firstState = input.state
+                markFirstStarted?.()
+                await firstCanFinish
+                return {
+                    status: 'pending' as const,
+                    authorizationUrl: 'https://oauth-a.test/authorize'
+                }
+            }
+            secondState = input.state
+            return {
+                status: 'pending' as const,
+                authorizationUrl: 'https://oauth-b.test/authorize'
+            }
+        })
+        strategy.exchangeAuthorizationCode = jest.fn(async ({ authMethodId }) => ({
+            data: { accessToken: `${authMethodId}_token` }
+        }))
+
+        const firstConnection = service.connect('workspace-1', 'multi-oauth', {
+            authMethodId: 'oauth-a',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        await firstStarted
+        const secondConnection = await service.connect('workspace-1', 'multi-oauth', {
+            authMethodId: 'oauth-b',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        releaseFirst?.()
+
+        await expect(firstConnection).rejects.toBeInstanceOf(BadRequestException)
+        await expect(service.completeOAuthCallback({ state: firstState, code: 'code-a' })).rejects.toBeInstanceOf(
+            BadRequestException
+        )
+        const activated = await service.completeOAuthCallback({ state: secondState, code: 'code-b' })
+
+        expect(secondConnection.connector.authMethodId).toBe('oauth-b')
+        expect(activated).toEqual(expect.objectContaining({ status: 'active', authMethodId: 'oauth-b' }))
+        expect(strategy.exchangeAuthorizationCode).toHaveBeenCalledTimes(1)
+        expect(strategy.exchangeAuthorizationCode).toHaveBeenCalledWith(
+            expect.objectContaining({ authMethodId: 'oauth-b', code: 'code-b' })
+        )
+    })
+
+    it('resolves a real legacy ciphertext through an explicit multi-auth legacy mapping', async () => {
+        strategy.definition = {
+            provider: 'legacy-multi',
+            label: 'Legacy Multi',
+            legacyAuthMethodId: 'oauth',
+            authMethods: [
+                { id: 'oauth', type: 'oauth2', label: 'OAuth' },
+                { id: 'pat', type: 'api_key', label: 'PAT', credentials: {} }
+            ]
+        }
+        await connectors.save(
+            connectors.create({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                provider: 'legacy-multi',
+                authMethodId: null,
+                status: 'active',
+                credentialCiphertext: encryptSecret(
+                    JSON.stringify({
+                        appId: 'legacy_app_id',
+                        accessToken: 'legacy_access_token',
+                        scopes: ['legacy:read']
+                    }),
+                    environment.secretsEncryptionKey
+                )
+            })
+        )
+
+        await expect(
+            service.getRuntimeConnectorCredential({
+                workspaceId: 'workspace-1',
+                provider: 'legacy-multi'
+            })
+        ).resolves.toEqual(
+            expect.objectContaining({
+                authMethodId: 'oauth',
+                credentials: expect.objectContaining({
+                    appId: 'legacy_app_id',
+                    accessToken: 'legacy_access_token'
+                })
+            })
+        )
+    })
+
+    it('preserves OAuth session scopes when callback credentials omit them', async () => {
+        ;(strategy.exchangeOAuthCode as jest.Mock).mockResolvedValueOnce({
+            appId: 'example_app_id',
+            accessToken: 'uat_secret'
+        })
+        const start = await service.startOAuth('workspace-1', 'example', {
+            app: connectorApp(),
+            redirectUri: 'https://xpert.test/callback'
+        })
+        const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+
+        const activated = await service.completeOAuthCallback({ state, code: 'code-1' })
+
+        expect(activated.scopes).toEqual(['docs:doc:read'])
+        expect(connectors.items[0].scopes).toEqual(['docs:doc:read'])
+        expect(start.connector.status).toBe('pending')
+    })
+
+    it('preserves OAuth session scopes when polled credentials omit them', async () => {
+        strategy.pollAuthorization = jest.fn().mockResolvedValueOnce({
+            status: 'complete',
+            credential: {
+                appId: 'example_app_id',
+                accessToken: 'uat_secret'
+            }
+        })
+        const start = await service.startOAuth('workspace-1', 'example', {
+            app: connectorApp(),
+            redirectUri: 'https://xpert.test/callback'
+        })
+
+        const result = await service.authorizationStatus('workspace-1', start.connector.id)
+
+        expect(result.connector.scopes).toEqual(['docs:doc:read'])
+        expect(connectors.items[0].scopes).toEqual(['docs:doc:read'])
+    })
+
+    it('reuses the provider instance when switching authentication methods', async () => {
+        strategy.definition = {
+            provider: 'github',
+            label: 'GitHub',
+            authMethods: [
+                { id: 'github-app-oauth', type: 'oauth2', label: 'GitHub App OAuth' },
+                { id: 'pat', type: 'api_key', label: 'PAT', credentials: {} }
+            ]
+        }
+        strategy.connect = jest
+            .fn()
+            .mockResolvedValueOnce({
+                status: 'active',
+                credential: { data: { accessToken: 'pat', tokenType: 'bearer' } }
+            })
+            .mockResolvedValueOnce({
+                status: 'active',
+                credential: { data: { accessToken: 'oauth', tokenType: 'bearer' } }
+            })
+
+        const first = await service.connect('workspace-1', 'github', {
+            authMethodId: 'pat',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        const second = await service.connect('workspace-1', 'github', {
+            authMethodId: 'github-app-oauth',
+            redirectUri: 'https://xpert.test/callback'
+        })
+
+        expect(second.connector.id).toBe(first.connector.id)
+        expect(second.connector.authMethodId).toBe('github-app-oauth')
+        expect(connectors.items).toHaveLength(1)
     })
 
     it('returns connector provider options from registered strategy definitions', async () => {
@@ -949,6 +1332,16 @@ class InMemoryRepository<T extends { id?: string }> {
         return input
     }
 
+    async update(criteria: FindOptionsWhere<T>, input: Partial<T>) {
+        const matches = this.items.filter((item) =>
+            Object.entries(criteria).every(([key, expected]) => matchesFindValue(Reflect.get(item, key), expected))
+        )
+        for (const item of matches) {
+            Object.assign(item, input)
+        }
+        return { affected: matches.length }
+    }
+
     async findOne(options: { where: Partial<T> }): Promise<T | null> {
         return (
             this.items.find((item) =>
@@ -967,8 +1360,15 @@ class InMemoryRepository<T extends { id?: string }> {
     }
 }
 
+function matchesFindValue(actual: unknown, expected: unknown) {
+    if (expected instanceof FindOperator) {
+        return expected.type === 'isNull' ? actual == null : actual === expected.value
+    }
+    return actual === expected
+}
+
 function futureIsoDate(days: number) {
-	return new Date(Date.now() + days * 24 * 60 * 60 * 1_000).toISOString()
+    return new Date(Date.now() + days * 24 * 60 * 60 * 1_000).toISOString()
 }
 
 function connectorApp() {
@@ -980,5 +1380,5 @@ function connectorApp() {
 }
 
 function pastIsoDate() {
-	return new Date(Date.now() - 60 * 60 * 1_000).toISOString()
+    return new Date(Date.now() - 60 * 60 * 1_000).toISOString()
 }

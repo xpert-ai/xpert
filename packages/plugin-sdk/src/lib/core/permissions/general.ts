@@ -77,6 +77,9 @@ export const INTEGRATION_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_INTEGRATION_PE
 export interface IntegrationPermissionService {
   read<TIntegration = IIntegration>(id: string, options?: Record<string, any>): Promise<TIntegration | null>
   findAll<TIntegration = IIntegration>(options?: Record<string, any>): Promise<IPagination<TIntegration>>
+  findAllWithInheritance?<TIntegration = IIntegration>(
+    options?: Record<string, any>
+  ): Promise<IPagination<TIntegration>>
   ensureWebhookCredential?(
     id: string,
     options?: {
