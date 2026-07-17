@@ -16,6 +16,12 @@ export class Connector extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar' })
     provider: string
 
+    @Column({ type: 'varchar', nullable: true })
+    authMethodId?: string | null
+
+    @Column({ type: 'uuid', nullable: true })
+    connectionAttemptId?: string | null
+
     @Column({ type: 'varchar' })
     status: ConnectorStatus
 

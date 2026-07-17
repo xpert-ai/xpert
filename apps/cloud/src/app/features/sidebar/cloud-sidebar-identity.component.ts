@@ -27,8 +27,12 @@ import { NgmHighlightDirective, NgmSearchComponent } from '@xpert-ai/ocap-angula
 import { debouncedSignal } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
-import { IOrganization, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../@core'
+import { firstValueFrom } from 'rxjs'
+import { IOrganization, OrganizationsService, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../@core'
 import { OrgAvatarComponent } from '../../@shared/organization'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+
+const ORGANIZATION_PAGE_SIZE = 10
 
 @Component({
   standalone: true,
@@ -40,6 +44,7 @@ import { OrgAvatarComponent } from '../../@shared/organization'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
+    ZardButtonComponent,
     NgmSearchComponent,
     OrgAvatarComponent,
     NgmHighlightDirective
@@ -56,6 +61,7 @@ export class CloudSidebarIdentityComponent {
   readonly #store = inject(Store)
   readonly #scopeService = inject(ScopeService)
   readonly #usersService = inject(UsersService)
+  readonly #organizationsService = inject(OrganizationsService)
   readonly #currentUserHydrationService = inject(CurrentUserHydrationService)
   readonly #i18nService = injectI18nService()
 
@@ -63,21 +69,37 @@ export class CloudSidebarIdentityComponent {
   readonly search = debouncedSignal(this.searchTerm, 300)
   readonly organizationsLoadedKey = signal<string | null>(null)
   readonly organizationsLoading = signal(false)
+  readonly organizationsLoadingMore = signal(false)
+  readonly tenantOrganizations = signal<{
+    loadKey: string
+    search: string
+    items: IOrganization[]
+    total: number
+  } | null>(null)
   readonly activeScope = this.#scopeService.activeScope
   readonly canUseTenantScope = this.#scopeService.canUseTenantScope
   readonly currentUser = toSignal(this.#store.user$, {
     initialValue: this.#store.user
   })
 
-  readonly #organizations = computed(() =>
-    uniqBy(
-      (this.currentUser()?.organizations ?? [])
-        .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
-        .map((membership) => membership.organization)
-        .filter(nonNullable),
+  readonly #organizations = computed(() => {
+    const user = this.currentUser()
+    const loadKey = getCurrentUserOrganizationsLoadKey(user)
+    const tenantOrganizations = this.tenantOrganizations()
+    const membershipOrganizations = (user?.organizations ?? [])
+      .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
+      .map((membership) => membership.organization)
+      .filter(nonNullable)
+    const organizations =
+      user?.role?.name === RolesEnum.SUPER_ADMIN && tenantOrganizations?.loadKey === loadKey
+        ? tenantOrganizations.items
+        : membershipOrganizations
+
+    return uniqBy(
+      organizations.filter((organization) => organization?.isActive !== false),
       (item) => item.id
     ).sort((a, b) => a.name.localeCompare(b.name))
-  )
+  })
 
   readonly organizations = computed(() => {
     if (this.search()) {
@@ -124,7 +146,18 @@ export class CloudSidebarIdentityComponent {
   readonly showTenantScopeItem = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
   readonly hasOrganizations = computed(() => this.#organizations().length > 0)
   readonly hasVisibleOrganizations = computed(() => this.organizations().length > 0)
+  readonly hasMoreOrganizations = computed(() => {
+    const user = this.currentUser()
+    const page = this.tenantOrganizations()
+    return (
+      user?.role?.name === RolesEnum.SUPER_ADMIN &&
+      page?.loadKey === getCurrentUserOrganizationsLoadKey(user) &&
+      page.search === this.search().trim() &&
+      page.items.length < page.total
+    )
+  })
   readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
+  private tenantOrganizationsRequestId = 0
 
   constructor() {
     effect(() => {
@@ -133,11 +166,28 @@ export class CloudSidebarIdentityComponent {
 
     effect(() => {
       const user = this.currentUser()
-      if (!user || !Array.isArray(user.organizations)) {
+      if (!user || user.role?.name === RolesEnum.SUPER_ADMIN || !Array.isArray(user.organizations)) {
         return
       }
 
       this.#scopeService.ensureValidScope(this.#organizations())
+    })
+
+    effect(() => {
+      const user = this.currentUser()
+      const loadKey = getCurrentUserOrganizationsLoadKey(user)
+      const search = this.search().trim()
+      const page = this.tenantOrganizations()
+      if (
+        user?.role?.name !== RolesEnum.SUPER_ADMIN ||
+        !loadKey ||
+        this.organizationsLoadedKey() !== loadKey ||
+        page?.search === search
+      ) {
+        return
+      }
+
+      void this.loadTenantOrganizations({ loadKey, search, append: false })
     })
   }
 
@@ -192,7 +242,22 @@ export class CloudSidebarIdentityComponent {
   async loadOrganizations() {
     const user = this.currentUser()
     const loadKey = getCurrentUserOrganizationsLoadKey(user)
-    if (!loadKey || this.organizationsLoadedKey() === loadKey || this.organizationsLoading()) {
+    if (!loadKey) {
+      return
+    }
+
+    if (user.role?.name === RolesEnum.SUPER_ADMIN) {
+      const search = this.search().trim()
+      const page = this.tenantOrganizations()
+      if (page?.loadKey === loadKey && page.search === search) {
+        return
+      }
+
+      await this.loadTenantOrganizations({ loadKey, search, append: false })
+      return
+    }
+
+    if (this.organizationsLoadedKey() === loadKey || this.organizationsLoading()) {
       return
     }
 
@@ -221,6 +286,74 @@ export class CloudSidebarIdentityComponent {
       void this.#currentUserHydrationService.getFeatureHydration({ force: true }).catch((error) => {
         console.warn('Refresh current-user feature hydration after loading organizations failed', error)
       })
+    }
+  }
+
+  async loadMoreOrganizations() {
+    const user = this.currentUser()
+    const loadKey = getCurrentUserOrganizationsLoadKey(user)
+    if (
+      user?.role?.name !== RolesEnum.SUPER_ADMIN ||
+      !loadKey ||
+      !this.hasMoreOrganizations() ||
+      this.organizationsLoading() ||
+      this.organizationsLoadingMore()
+    ) {
+      return
+    }
+
+    await this.loadTenantOrganizations({ loadKey, search: this.search().trim(), append: true })
+  }
+
+  private async loadTenantOrganizations({
+    loadKey,
+    search,
+    append
+  }: {
+    loadKey: string
+    search: string
+    append: boolean
+  }) {
+    const currentPage = this.tenantOrganizations()
+    const skip =
+      append && currentPage?.loadKey === loadKey && currentPage.search === search ? currentPage.items.length : 0
+    const requestId = ++this.tenantOrganizationsRequestId
+    this.organizationsLoading.set(!append)
+    this.organizationsLoadingMore.set(append)
+
+    try {
+      const { items, total } = await firstValueFrom(
+        this.#organizationsService.getPage({
+          take: ORGANIZATION_PAGE_SIZE,
+          skip,
+          search,
+          relations: ['featureOrganizations', 'featureOrganizations.feature']
+        })
+      )
+      const currentUser = this.#store.user
+      if (
+        requestId !== this.tenantOrganizationsRequestId ||
+        !currentUser ||
+        getCurrentUserOrganizationsLoadKey(currentUser) !== loadKey
+      ) {
+        return
+      }
+
+      const pageItems =
+        append && currentPage?.loadKey === loadKey && currentPage.search === search
+          ? uniqBy([...currentPage.items, ...items], (item) => item.id)
+          : items
+      this.tenantOrganizations.set({ loadKey, search, items: pageItems, total })
+      this.organizationsLoadedKey.set(loadKey)
+    } catch (error) {
+      if (requestId === this.tenantOrganizationsRequestId) {
+        console.warn('Load tenant organizations failed', error)
+      }
+    } finally {
+      if (requestId === this.tenantOrganizationsRequestId) {
+        this.organizationsLoading.set(false)
+        this.organizationsLoadingMore.set(false)
+      }
     }
   }
 }

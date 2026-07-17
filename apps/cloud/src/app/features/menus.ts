@@ -108,7 +108,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'System Integration',
       icon: 'hub',
       pathMatch: 'prefix',
-      scopeContext: 'organization-only',
+      scopeContext: 'dual-scope',
       data: {
         featureKey: FeatureEnum.FEATURE_INTEGRATION,
         permissionKeys: [PermissionsEnum.INTEGRATION_EDIT]

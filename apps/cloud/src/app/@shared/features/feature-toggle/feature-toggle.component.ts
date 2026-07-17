@@ -61,7 +61,7 @@ const STATUS_FILTERS: Array<{ value: FeatureStatusFilter; labelKey: string; labe
 const FEATURE_SCOPE_BY_CODE: Record<string, FeatureToggleScope> = {
   [FeatureEnum.FEATURE_ROLES_PERMISSION]: 'tenant-only',
   [AnalyticsFeatures.FEATURE_BUSINESS_AREA]: 'organization-only',
-  [FeatureEnum.FEATURE_INTEGRATION]: 'organization-only'
+  [FeatureEnum.FEATURE_INTEGRATION]: 'dual-scope'
 }
 
 const DEPRECATED_FEATURE_CODES = new Set<string>([AnalyticsFeatures.FEATURE_BUSINESS_AREA])

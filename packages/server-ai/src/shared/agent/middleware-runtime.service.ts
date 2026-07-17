@@ -557,7 +557,8 @@ export class AgentMiddlewareRuntimeService {
             [
                 ConnectorRuntimeCapability,
                 {
-                    getConnector: (input) => this.connectors.getRuntimeConnector(input)
+                    getConnector: (input) => this.connectors.getRuntimeConnector(input),
+                    getConnectorCredential: (input) => this.connectors.getRuntimeConnectorCredential(input)
                 }
             ],
             [ArtifactsRuntimeCapability, artifactsApi],

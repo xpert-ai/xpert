@@ -975,21 +975,26 @@ function portableReference(
 function classifyRunnerFailure(output: string, jobId: string): SandboxJobRuntimeError {
     const normalized = output.toUpperCase()
     if (normalized.includes('SANDBOX_ACTION_INVALID')) {
-        return new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', truncate(output), false, jobId)
+        return new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }
     if (normalized.includes('BROWSER_LAUNCH_FAILED') || normalized.includes('CHROMIUM')) {
-        return new SandboxJobRuntimeError('BROWSER_LAUNCH_FAILED', truncate(output), true, jobId)
+        return new SandboxJobRuntimeError('BROWSER_LAUNCH_FAILED', truncateSandboxRunnerOutput(output), true, jobId)
     }
     if (normalized.includes('ENOMEM') || normalized.includes('OUT OF MEMORY') || normalized.includes('OOM')) {
-        return new SandboxJobRuntimeError('EXPORT_OOM', truncate(output), true, jobId)
+        return new SandboxJobRuntimeError('EXPORT_OOM', truncateSandboxRunnerOutput(output), true, jobId)
     }
     if (normalized.includes('EXPORT_OUTPUT_INVALID')) {
-        return new SandboxJobRuntimeError('EXPORT_OUTPUT_INVALID', truncate(output), false, jobId)
+        return new SandboxJobRuntimeError('EXPORT_OUTPUT_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }
     if (normalized.includes('EXPORT_INPUT_INVALID') || normalized.includes('GOAL SPEC VALIDATION FAILED')) {
-        return new SandboxJobRuntimeError('EXPORT_INPUT_INVALID', truncate(output), false, jobId)
+        return new SandboxJobRuntimeError('EXPORT_INPUT_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }
-    return new SandboxJobRuntimeError('SANDBOX_START_FAILED', truncate(output) || 'Sandbox runner failed.', true, jobId)
+    return new SandboxJobRuntimeError(
+        'SANDBOX_START_FAILED',
+        truncateSandboxRunnerOutput(output) || 'Sandbox runner failed.',
+        true,
+        jobId
+    )
 }
 
 function normalizeRuntimeError(error: unknown, jobId: string): SandboxJobRuntimeError {
@@ -1022,8 +1027,15 @@ function messageOf(error: unknown): string {
     return error instanceof Error ? error.message : String(error)
 }
 
-function truncate(value: string): string {
-    return value.trim().slice(0, 4000)
+export function truncateSandboxRunnerOutput(value: string): string {
+    const normalized = value.trim()
+    const limit = 4_000
+    if (normalized.length <= limit) return normalized
+
+    const marker = '\n...[middle of runner output omitted]...\n'
+    const available = limit - marker.length
+    const headLength = Math.floor(available * 0.45)
+    return `${normalized.slice(0, headLength)}${marker}${normalized.slice(-(available - headLength))}`
 }
 
 function wait(milliseconds: number): Promise<void> {

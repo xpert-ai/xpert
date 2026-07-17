@@ -93,10 +93,24 @@
           </div>
         </div>
       }
-    } @else if (hasOrganizations()) {
+    } @else if (hasOrganizations() || search()) {
       <div class="px-3 py-2 text-sm text-text-secondary">
         {{ 'PAC.Organization.EmptySearch' | translate: { Default: 'No matching organizations.' } }}
       </div>
+    }
+
+    @if (hasMoreOrganizations()) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        type="button"
+        class="mt-1 w-full rounded-none"
+        [zLoading]="organizationsLoadingMore()"
+        (click)="loadMoreOrganizations()"
+      >
+        {{ 'PAC.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
+      </button>
     }
   </div>
 </ng-template>

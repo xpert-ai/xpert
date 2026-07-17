@@ -1,11 +1,25 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { SandboxJobRuntimeCapabilityService } from './sandbox-job-runtime-capability.service'
+import {
+    SandboxJobRuntimeCapabilityService,
+    truncateSandboxRunnerOutput
+} from './sandbox-job-runtime-capability.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 
 const PROFILE = 'browser/playwright-1.61/v1'
 const ACTION = 'document.export'
 const ACTION_VERSION = '9.1.0'
 const SANDBOX_RUNTIME_VERSION = new SandboxRuntimeDefinitionRegistry().require(PROFILE).sandboxRuntimeVersion
+
+describe('sandbox runner output formatting', () => {
+    it('preserves the beginning and root-cause tail of long runner output', () => {
+        const result = truncateSandboxRunnerOutput(`START:${'worker-log\n'.repeat(600)}ROOT_CAUSE_END`)
+
+        expect(result.length).toBeLessThanOrEqual(4_000)
+        expect(result).toContain('START:')
+        expect(result).toContain('runner output omitted')
+        expect(result).toContain('ROOT_CAUSE_END')
+    })
+})
 
 describe('SandboxJobRuntimeCapabilityService action validation', () => {
     beforeEach(() => {
