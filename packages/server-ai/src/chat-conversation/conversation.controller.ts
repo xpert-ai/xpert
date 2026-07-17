@@ -266,10 +266,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Param('id', UUIDValidationPipe) id: string,
         @Query('path') path: string,
         @Query('organizationId') organizationId?: string,
-        @Query('fileAssetId') fileAssetId?: string
+        @Query('fileAssetId') fileAssetId?: string,
+        @Query('metadataOnly') metadataOnly?: string
     ) {
         return this.organizationScopeService.run(organizationId, () =>
-            this.service.readWorkspaceFile(id, path, fileAssetId)
+            this.service.readWorkspaceFile(id, path, fileAssetId, metadataOnly === 'true')
         )
     }
 

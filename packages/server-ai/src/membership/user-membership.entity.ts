@@ -9,6 +9,11 @@ const bigintNumberTransformer = {
     from: (value: string | null) => (value !== null ? Number(value) : null)
 }
 
+const numericNumberTransformer = {
+    to: (value?: number | null) => value,
+    from: (value: string | number | null) => (value !== null ? Number(value) : null)
+}
+
 @Entity('user_membership')
 @Index('IDX_user_membership_scope_user_status', ['tenantId', 'organizationId', 'userId', 'status'])
 @Index('IDX_user_membership_scope_plan', ['tenantId', 'organizationId', 'planId'])
@@ -58,11 +63,11 @@ export class UserMembership extends TenantOrganizationBaseEntity implements IUse
     pointsGranted: number | null
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
+    @Column({ type: 'numeric', precision: 28, scale: 10, default: 0, transformer: numericNumberTransformer })
     pointsUsed: number
 
     @ApiPropertyOptional({ type: () => Number })
-    @Column({ type: 'bigint', default: 0, transformer: bigintNumberTransformer })
+    @Column({ type: 'numeric', precision: 28, scale: 10, default: 0, transformer: numericNumberTransformer })
     pointsTotalUsed: number
 
     @ApiProperty({ type: () => User })

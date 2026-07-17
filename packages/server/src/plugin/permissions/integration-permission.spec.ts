@@ -100,4 +100,40 @@ describe('PluginIntegrationPermissionService', () => {
 			total: 1
 		})
 	})
+
+	it('exposes tenant and organization integrations for inherited plugin configuration', async () => {
+		const tenantIntegration = {
+			id: 'tenant-integration',
+			provider: 'github',
+			organizationId: null
+		}
+		const organizationIntegration = {
+			id: 'organization-integration',
+			provider: 'github',
+			organizationId: 'organization-1'
+		}
+		const integrationService = {
+			findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({
+				items: [organizationIntegration, tenantIntegration],
+				total: 2
+			})
+		}
+		const moduleRef = {
+			get: jest.fn((token) => {
+				if (token === IntegrationService) {
+					return integrationService
+				}
+				throw new Error('provider not found')
+			})
+		}
+		const service = new PluginIntegrationPermissionService(moduleRef as never)
+
+		await expect(service.findAllWithInheritance({ where: { provider: 'github' } })).resolves.toEqual({
+			items: [organizationIntegration, tenantIntegration],
+			total: 2
+		})
+		expect(integrationService.findAllInOrganizationOrTenant).toHaveBeenCalledWith({
+			where: { provider: 'github' }
+		})
+	})
 })

@@ -21,7 +21,7 @@ jest.mock('@xpert-ai/contracts', () => {
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { UploadFileCommand } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
@@ -1442,7 +1442,7 @@ describe('XpertChatHandler', () => {
 
     it('persists steer follow-ups while an interrupted conversation has a waiting operation', async () => {
         const commands: any[] = []
-        queryBus.execute.mockResolvedValue({
+        const conversation = {
             id: 'conversation-1',
             threadId: 'thread-1',
             status: 'interrupted',
@@ -1462,6 +1462,15 @@ describe('XpertChatHandler', () => {
                     executionId: 'execution-1'
                 }
             ]
+        }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: query.id,
+                    status: XpertAgentExecutionStatusEnum.INTERRUPTED
+                }
+            }
+            return conversation
         })
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -1515,11 +1524,16 @@ describe('XpertChatHandler', () => {
                 })
             })
         )
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'execution-1'
+            })
+        )
     })
 
     it('targets steer follow-ups by ai message before a stale execution id', async () => {
         const commands: unknown[] = []
-        queryBus.execute.mockResolvedValue({
+        const conversation = {
             id: 'conversation-1',
             threadId: 'thread-1',
             status: 'busy',
@@ -1538,6 +1552,15 @@ describe('XpertChatHandler', () => {
                     executionId: 'execution-old'
                 }
             ]
+        }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: query.id,
+                    status: XpertAgentExecutionStatusEnum.RUNNING
+                }
+            }
+            return conversation
         })
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -1582,11 +1605,174 @@ describe('XpertChatHandler', () => {
                 targetExecutionId: 'execution-current'
             })
         )
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'execution-current'
+            })
+        )
+    })
+
+    it('rejects stale steer follow-ups when the target execution has already completed', async () => {
+        const commands: unknown[] = []
+        const conversation = {
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            status: 'busy',
+            operation: null,
+            messages: [
+                {
+                    id: 'ai-current',
+                    role: 'ai',
+                    content: 'Completed answer',
+                    executionId: 'execution-current'
+                }
+            ]
+        }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: query.id,
+                    status: XpertAgentExecutionStatusEnum.SUCCESS
+                }
+            }
+            return conversation
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            return null
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'follow_up',
+                        conversationId: 'conversation-1',
+                        mode: 'steer',
+                        target: {
+                            aiMessageId: 'ai-current',
+                            executionId: 'execution-current'
+                        },
+                        message: {
+                            clientMessageId: 'client-follow-up-stale',
+                            input: {
+                                input: 'Use this as guidance'
+                            }
+                        }
+                    },
+                    {
+                        xpertId: 'xpert-1'
+                    } satisfies XpertChatCommandOptions
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('Steer follow-up target execution is no longer running'))
+
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'execution-current'
+            })
+        )
+        expect(commands.some((command) => command instanceof ChatMessageUpsertCommand)).toBe(false)
+    })
+
+    it('rejects a steer that completes between the preflight check and pending-message insert', async () => {
+        const commands: unknown[] = []
+        let executionRead = 0
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                executionRead += 1
+                return {
+                    id: query.id,
+                    status:
+                        executionRead === 1
+                            ? XpertAgentExecutionStatusEnum.RUNNING
+                            : XpertAgentExecutionStatusEnum.SUCCESS
+                }
+            }
+            return {
+                id: 'conversation-1',
+                threadId: 'thread-1',
+                status: 'busy',
+                operation: null,
+                messages: [{ id: 'ai-current', role: 'ai', executionId: 'execution-current' }]
+            }
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            return command instanceof ChatMessageUpsertCommand ? command.entity : null
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'follow_up',
+                        conversationId: 'conversation-1',
+                        mode: 'steer',
+                        target: { aiMessageId: 'ai-current' },
+                        message: {
+                            clientMessageId: 'client-race',
+                            input: { input: 'Do not lose this message' }
+                        }
+                    },
+                    { xpertId: 'xpert-1' } satisfies XpertChatCommandOptions
+                )
+            )
+        ).rejects.toThrow('Steer follow-up target execution is no longer running')
+
+        expect(executionRead).toBe(2)
+        expect(commands.some((command) => command instanceof ChatMessageUpsertCommand)).toBe(true)
+    })
+
+    it('maps a missing steer execution to the machine-readable stale-target error before file side effects', async () => {
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                throw new NotFoundException('execution missing')
+            }
+            return {
+                id: 'conversation-1',
+                threadId: 'thread-1',
+                status: 'busy',
+                operation: null,
+                messages: [{ id: 'ai-current', role: 'ai', executionId: 'execution-missing' }]
+            }
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'follow_up',
+                        conversationId: 'conversation-1',
+                        mode: 'steer',
+                        target: { aiMessageId: 'ai-current' },
+                        message: {
+                            clientMessageId: 'client-missing',
+                            input: {
+                                input: 'Use this file',
+                                files: [
+                                    {
+                                        fileName: 'note.txt',
+                                        mimeType: 'text/plain',
+                                        fileUrl: 'data:text/plain;base64,aGVsbG8='
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    { xpertId: 'xpert-1' } satisfies XpertChatCommandOptions
+                )
+            )
+        ).rejects.toMatchObject({
+            response: expect.objectContaining({ code: 'steer_target_not_running' })
+        })
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 
     it('promotes an existing pending queue follow-up to steer by client message id', async () => {
         const commands: unknown[] = []
-        queryBus.execute.mockResolvedValue({
+        const conversation = {
             id: 'conversation-1',
             threadId: 'thread-1',
             status: 'busy',
@@ -1613,6 +1799,15 @@ describe('XpertChatHandler', () => {
                     }
                 }
             ]
+        }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: query.id,
+                    status: XpertAgentExecutionStatusEnum.RUNNING
+                }
+            }
+            return conversation
         })
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)

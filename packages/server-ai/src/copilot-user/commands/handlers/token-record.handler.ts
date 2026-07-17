@@ -65,6 +65,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     provider: copilot.modelProvider.providerName,
                     model,
                     tokenUsed,
+                    usageHour,
                     xpertId,
                     threadId,
                     copilotId

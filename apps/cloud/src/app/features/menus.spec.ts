@@ -67,6 +67,22 @@ describe('getSettingsMenuItems', () => {
     expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
     expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
   })
+
+  it('exposes system integrations in tenant and organization settings', () => {
+    const tenantIntegration = getSettingsMenuItems(RequestScopeLevel.TENANT).find((item) => item.path === 'integration')
+    const organizationIntegration = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find(
+      (item) => item.path === 'integration'
+    )
+
+    expect(tenantIntegration).toMatchObject({
+      scopeContext: 'dual-scope',
+      data: { permissionKeys: [PermissionsEnum.INTEGRATION_EDIT] }
+    })
+    expect(organizationIntegration).toMatchObject({
+      scopeContext: 'dual-scope',
+      data: { permissionKeys: [PermissionsEnum.INTEGRATION_EDIT] }
+    })
+  })
 })
 
 describe('getFeatureMenus', () => {

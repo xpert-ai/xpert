@@ -1,5 +1,12 @@
+/**
+ * Invariants:
+ * - Workspace plugins are restaged only when their copied inputs change.
+ * - Runtime dependencies are reused only while their install fingerprint matches.
+ * - Cache state is published only after copying and dependency installation succeed.
+ */
 import { getConfig } from '@xpert-ai/server-config'
 import { execSync } from 'child_process'
+import { createHash, type Hash } from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import chalk from 'chalk'
@@ -60,9 +67,28 @@ type WorkspacePluginProjectJson = {
 	targets?: Record<string, { options?: { outputPath?: string } }>
 }
 
+type WorkspaceBuildOutput = {
+	distPath: string
+	relativeDistPath: string
+}
+
+type WorkspaceStageState = {
+	schemaVersion: 1
+	packageName: string
+	workspacePath: string
+	/** All trees copied into the staged plugin, excluding ignored development directories. */
+	sourceFingerprint: string
+	/** The runtime-only package manifest plus local file dependency contents and host runtime. */
+	runtimeDependenciesFingerprint: string
+	relativeDistPath: string | null
+}
+
 export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
 const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
+const WORKSPACE_STAGE_STATE_SCHEMA_VERSION = 1 as const
+const WORKSPACE_STAGE_STATE_FILE = '.xpert-workspace-stage.json'
+const STAGING_IGNORED_NAMES = new Set(['node_modules', '.git', '.DS_Store'])
 
 function ensureDir(dir: string) {
 	if (!fs.existsSync(dir)) {
@@ -138,21 +164,34 @@ function installStagedWorkspaceRuntimeDependencies(targetPackageDir: string, pac
 		return
 	}
 
+	const startedAt = Date.now()
+	const packageName = packageJson.name ?? targetPackageDir
 	const packageJsonPath = path.join(targetPackageDir, 'package.json')
 	const originalPackageJson = fs.readFileSync(packageJsonPath, 'utf8')
 	const runtimePackageJson = createRuntimeInstallPackageJson(packageJson)
 
+	console.log(chalk.gray(`Installing staged runtime dependencies for ${packageName}...`))
 	try {
 		fs.writeFileSync(packageJsonPath, JSON.stringify(runtimePackageJson, null, 2))
-		execSync('npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps', {
-			cwd: targetPackageDir,
-			stdio: 'pipe',
-			env: {
-				...process.env,
-				npm_config_package_lock: 'false',
-				npm_config_lockfile: 'false'
+		// Startup staging is not an update workflow: avoid audit/funding network work and
+		// prefer the local npm cache while still allowing a registry fallback on cache miss.
+		execSync(
+			'npm install --omit=dev --omit=peer --ignore-scripts --no-save --legacy-peer-deps --no-audit --no-fund --prefer-offline',
+			{
+				cwd: targetPackageDir,
+				stdio: 'pipe',
+				env: {
+					...process.env,
+					npm_config_package_lock: 'false',
+					npm_config_lockfile: 'false',
+					npm_config_audit: 'false',
+					npm_config_fund: 'false'
+				}
 			}
-		})
+		)
+		console.log(
+			chalk.gray(`Installed staged runtime dependencies for ${packageName} in ${Date.now() - startedAt}ms.`)
+		)
 	} catch (error) {
 		const details =
 			readExecFailureOutput((error as { stderr?: unknown })?.stderr) ||
@@ -206,6 +245,188 @@ function readJsonFile<T>(filePath: string): T | null {
 		return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T
 	} catch {
 		return null
+	}
+}
+
+function isWorkspaceStageState(value: unknown): value is WorkspaceStageState {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'schemaVersion' in value &&
+		value.schemaVersion === WORKSPACE_STAGE_STATE_SCHEMA_VERSION &&
+		'packageName' in value &&
+		typeof value.packageName === 'string' &&
+		'workspacePath' in value &&
+		typeof value.workspacePath === 'string' &&
+		'sourceFingerprint' in value &&
+		typeof value.sourceFingerprint === 'string' &&
+		'runtimeDependenciesFingerprint' in value &&
+		typeof value.runtimeDependenciesFingerprint === 'string' &&
+		'relativeDistPath' in value &&
+		(value.relativeDistPath === null || typeof value.relativeDistPath === 'string')
+	)
+}
+
+function readWorkspaceStageState(statePath: string): WorkspaceStageState | null {
+	const value = readJsonFile<unknown>(statePath)
+	return isWorkspaceStageState(value) ? value : null
+}
+
+function writeWorkspaceStageState(statePath: string, state: WorkspaceStageState) {
+	const temporaryPath = `${statePath}.${process.pid}.${Date.now()}.tmp`
+	try {
+		fs.writeFileSync(temporaryPath, JSON.stringify(state, null, 2))
+		fs.renameSync(temporaryPath, statePath)
+	} finally {
+		fs.rmSync(temporaryPath, { force: true })
+	}
+}
+
+function appendFileToFingerprint(hash: Hash, filePath: string) {
+	const file = fs.openSync(filePath, 'r')
+	const buffer = Buffer.allocUnsafe(64 * 1024)
+	try {
+		let bytesRead = 0
+		do {
+			bytesRead = fs.readSync(file, buffer, 0, buffer.length, null)
+			if (bytesRead > 0) {
+				hash.update(buffer.subarray(0, bytesRead))
+			}
+		} while (bytesRead > 0)
+	} finally {
+		fs.closeSync(file)
+	}
+}
+
+function appendPathToFingerprint(hash: Hash, inputPath: string, label: string, activeDirectories = new Set<string>()) {
+	const stats = fs.statSync(inputPath)
+	hash.update(`${label}\0${stats.mode & 0o777}\0${stats.size}\0`)
+
+	if (stats.isFile()) {
+		appendFileToFingerprint(hash, inputPath)
+		return
+	}
+
+	if (!stats.isDirectory()) {
+		return
+	}
+
+	// Staging dereferences symlinks, so the fingerprint must follow them too. Track
+	// only the active recursion chain to stop cycles without collapsing valid repeats.
+	const realPath = fs.realpathSync.native(inputPath)
+	if (activeDirectories.has(realPath)) {
+		hash.update('directory-cycle\0')
+		return
+	}
+
+	activeDirectories.add(realPath)
+	try {
+		const entries = fs
+			.readdirSync(inputPath, { withFileTypes: true })
+			.filter((entry) => !STAGING_IGNORED_NAMES.has(entry.name))
+			.sort((left, right) => left.name.localeCompare(right.name))
+		for (const entry of entries) {
+			appendPathToFingerprint(hash, path.join(inputPath, entry.name), `${label}/${entry.name}`, activeDirectories)
+		}
+	} finally {
+		activeDirectories.delete(realPath)
+	}
+}
+
+function computeWorkspaceSourceFingerprint(workspacePath: string, workspaceDist: WorkspaceBuildOutput | null) {
+	const hash = createHash('sha256')
+	hash.update(`workspace-stage-v${WORKSPACE_STAGE_STATE_SCHEMA_VERSION}\0${workspacePath}\0`)
+	// Keep this traversal aligned with fs.cpSync below: workspace source and an
+	// optional Nx output tree are the complete set of copied staging inputs.
+	appendPathToFingerprint(hash, workspacePath, 'workspace')
+	if (workspaceDist) {
+		hash.update(`workspace-dist\0${workspaceDist.relativeDistPath}\0`)
+		appendPathToFingerprint(hash, workspaceDist.distPath, 'workspace-dist')
+	}
+	return hash.digest('hex')
+}
+
+function getRuntimeDependencyEntries(packageJson: WorkspacePluginPackageJson) {
+	return [
+		...Object.entries(packageJson.dependencies ?? {}),
+		...Object.entries(packageJson.optionalDependencies ?? {})
+	].sort(([left], [right]) => left.localeCompare(right))
+}
+
+function computeRuntimeDependenciesFingerprint(workspacePath: string, packageJson: WorkspacePluginPackageJson) {
+	const hash = createHash('sha256')
+	hash.update(
+		JSON.stringify({
+			runtimePackage: createRuntimeInstallPackageJson(packageJson),
+			platform: process.platform,
+			architecture: process.arch,
+			node: process.versions.node
+		})
+	)
+
+	// Registry dependencies are identified by their manifest specs. A file: spec can
+	// keep the same path while its package changes, so include that tree's contents.
+	for (const [dependencyName, dependencySpec] of getRuntimeDependencyEntries(packageJson)) {
+		if (!dependencySpec.startsWith('file:')) {
+			continue
+		}
+
+		const dependencyPath = path.resolve(workspacePath, dependencySpec.slice('file:'.length))
+		hash.update(`file-dependency\0${dependencyName}\0${dependencyPath}\0`)
+		if (fs.existsSync(dependencyPath)) {
+			appendPathToFingerprint(hash, dependencyPath, `file-dependency/${dependencyName}`)
+		} else {
+			hash.update('missing\0')
+		}
+	}
+
+	return hash.digest('hex')
+}
+
+function hasLoadablePluginEntry(packageDir: string) {
+	return (
+		fs.existsSync(path.join(packageDir, 'dist')) ||
+		fs.existsSync(path.join(packageDir, 'src', 'index.ts')) ||
+		COMPILED_PLUGIN_ENTRY_FILES.some((fileName) => fs.existsSync(path.join(packageDir, fileName)))
+	)
+}
+
+function isWorkspaceStageCacheHit(
+	state: WorkspaceStageState | null,
+	expectedState: WorkspaceStageState,
+	targetPackageDir: string,
+	hasDependencies: boolean
+) {
+	// Do not trust state alone: an operator or failed cleanup may have removed the
+	// staged entry or runtime dependencies after the state was written.
+	return (
+		state?.packageName === expectedState.packageName &&
+		state.workspacePath === expectedState.workspacePath &&
+		state.sourceFingerprint === expectedState.sourceFingerprint &&
+		state.runtimeDependenciesFingerprint === expectedState.runtimeDependenciesFingerprint &&
+		state.relativeDistPath === expectedState.relativeDistPath &&
+		hasLoadablePluginEntry(targetPackageDir) &&
+		(!hasDependencies || fs.existsSync(path.join(targetPackageDir, 'node_modules')))
+	)
+}
+
+function clearDirectoryExcept(directoryPath: string, preservedNames: Set<string>) {
+	ensureDir(directoryPath)
+	for (const name of fs.readdirSync(directoryPath)) {
+		if (!preservedNames.has(name)) {
+			fs.rmSync(path.join(directoryPath, name), { recursive: true, force: true })
+		}
+	}
+}
+
+function removePreviousBuildOutput(pluginDir: string, relativeDistPath: string | null) {
+	if (!relativeDistPath) {
+		return
+	}
+
+	const outputPath = path.resolve(pluginDir, relativeDistPath)
+	if (outputPath !== pluginDir && isWithinRoot(outputPath, pluginDir)) {
+		fs.rmSync(outputPath, { recursive: true, force: true })
 	}
 }
 
@@ -336,11 +557,34 @@ export function readOrganizationManifest(organizationId: string, opts?: Organiza
 		return []
 	}
 	try {
-		return JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as string[]
+		const manifest: unknown = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+		return Array.isArray(manifest) ? manifest.filter((plugin): plugin is string => typeof plugin === 'string') : []
 	} catch (err) {
 		console.warn(`Failed to parse plugin manifest for org ${organizationId} at ${manifestPath}:`, err)
 		return []
 	}
+}
+
+function normalizeManifestPlugins(plugins: string[]) {
+	// Last spec wins so a current versioned install replaces a stale unversioned (or
+	// older-version) entry for the same package without changing unrelated ordering.
+	const byPackageName = new Map<string, string>()
+	for (const plugin of plugins) {
+		const packageName = normalizePluginName(plugin)
+		byPackageName.delete(packageName)
+		byPackageName.set(packageName, plugin)
+	}
+	return Array.from(byPackageName.values())
+}
+
+function replaceManifestPlugin(manifest: Set<string>, plugin: string) {
+	const packageName = normalizePluginName(plugin)
+	for (const existing of manifest) {
+		if (normalizePluginName(existing) === packageName) {
+			manifest.delete(existing)
+		}
+	}
+	manifest.add(plugin)
 }
 
 export function writeOrganizationManifest(
@@ -350,10 +594,11 @@ export function writeOrganizationManifest(
 ) {
 	const manifestPath = getOrganizationManifestPath(organizationId, opts)
 	ensureDir(path.dirname(manifestPath))
-	fs.writeFileSync(manifestPath, JSON.stringify(Array.from(new Set(plugins)), null, 2))
+	fs.writeFileSync(manifestPath, JSON.stringify(normalizeManifestPlugins(plugins), null, 2))
 }
 
 export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string {
+	const startedAt = Date.now()
 	if (!opts.workspacePath) {
 		throw new Error('workspacePath is required')
 	}
@@ -386,12 +631,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 		)
 	}
 
-	const hasDist = fs.existsSync(path.join(workspacePath, 'dist'))
-	const hasSrcEntry = fs.existsSync(path.join(workspacePath, 'src', 'index.ts'))
-	const hasCompiledRootEntry = COMPILED_PLUGIN_ENTRY_FILES.some((fileName) =>
-		fs.existsSync(path.join(workspacePath, fileName))
-	)
-	if (!hasDist && !hasSrcEntry && !hasCompiledRootEntry) {
+	if (!hasLoadablePluginEntry(workspacePath)) {
 		throw new Error(
 			`Plugin "${opts.pluginName}" (expected package "${normalizedPackageName}") has an invalid workspacePath "${workspacePath}": ` +
 				`workspacePath must contain 'dist/', 'src/index.ts', or a compiled root entry (${COMPILED_PLUGIN_ENTRY_FILES.join(
@@ -403,20 +643,68 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 	const pluginDir = getOrganizationPluginPath(opts.organizationId, opts.pluginName, opts)
 	const targetPackageDir = path.join(pluginDir, 'node_modules', normalizedPackageName)
 	const targetBaseDir = path.dirname(targetPackageDir)
+	const statePath = path.join(pluginDir, WORKSPACE_STAGE_STATE_FILE)
+	const previousState = readWorkspaceStageState(statePath)
+	const workspaceDist = resolveWorkspaceBuildOutput(workspacePath)
+	const sourceFingerprint = computeWorkspaceSourceFingerprint(workspacePath, workspaceDist)
+	const runtimeDependenciesFingerprint = computeRuntimeDependenciesFingerprint(workspacePath, packageJson)
+	const expectedState: WorkspaceStageState = {
+		schemaVersion: WORKSPACE_STAGE_STATE_SCHEMA_VERSION,
+		packageName: normalizedPackageName,
+		workspacePath,
+		sourceFingerprint,
+		runtimeDependenciesFingerprint,
+		relativeDistPath: workspaceDist?.relativeDistPath ?? null
+	}
+	const scopeLabel = getPluginScopeLogLabel({
+		tenantId: opts.tenantId,
+		organizationId: opts.organizationId,
+		defaultTenantId: opts.defaultTenantId,
+		scopeKey: opts.scopeKey
+	})
+	const runtimeDependenciesExist = fs.existsSync(path.join(targetPackageDir, 'node_modules'))
+	const hasDependencies = hasRuntimeDependencies(packageJson)
+	// Never reuse state from another logical package or workspace, even if two
+	// dependency manifests happen to produce the same fingerprint.
+	const stateMatchesWorkspace =
+		previousState?.packageName === normalizedPackageName && previousState.workspacePath === workspacePath
 
-	fs.rmSync(pluginDir, { recursive: true, force: true })
+	if (isWorkspaceStageCacheHit(previousState, expectedState, targetPackageDir, hasDependencies)) {
+		console.log(
+			chalk.gray(
+				`Plugin ${normalizedPackageName} staging cache hit for scope ${scopeLabel} (${Date.now() - startedAt}ms).`
+			)
+		)
+		return pluginDir
+	}
+
+	// Source and dependency fingerprints are separate so ordinary code/asset edits
+	// can refresh the staged package without paying for another npm install.
+	const reuseRuntimeDependencies =
+		stateMatchesWorkspace &&
+		hasDependencies &&
+		runtimeDependenciesExist &&
+		previousState?.runtimeDependenciesFingerprint === runtimeDependenciesFingerprint
+	console.log(chalk.gray(`Staging code plugin ${normalizedPackageName} for scope ${scopeLabel}...`))
+	if (stateMatchesWorkspace) {
+		fs.rmSync(statePath, { force: true })
+	} else {
+		// A missing or incompatible state predates this cache contract, so clean the
+		// whole staging directory once to avoid retaining unknown legacy build output.
+		fs.rmSync(pluginDir, { recursive: true, force: true })
+	}
 	ensureDir(targetBaseDir)
-
+	clearDirectoryExcept(targetPackageDir, reuseRuntimeDependencies ? new Set(['node_modules']) : new Set())
 	fs.cpSync(workspacePath, targetPackageDir, {
 		recursive: true,
 		dereference: true,
 		filter: (source) => {
 			const base = path.basename(source)
-			return !['node_modules', '.git', '.DS_Store'].includes(base)
+			return !STAGING_IGNORED_NAMES.has(base)
 		}
 	})
 
-	const workspaceDist = resolveWorkspaceBuildOutput(workspacePath)
+	removePreviousBuildOutput(pluginDir, stateMatchesWorkspace ? (previousState?.relativeDistPath ?? null) : null)
 	if (workspaceDist) {
 		// Keep staged root-relative dist paths available for package-level `index.cjs` fallback files.
 		const targetDistPath = path.join(pluginDir, workspaceDist.relativeDistPath)
@@ -428,7 +716,24 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 		})
 	}
 
-	installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
+	let dependencyAction = 'no runtime dependencies'
+	if (hasDependencies) {
+		if (reuseRuntimeDependencies) {
+			dependencyAction = 'runtime dependencies reused'
+		} else {
+			installStagedWorkspaceRuntimeDependencies(targetPackageDir, packageJson)
+			dependencyAction = 'runtime dependencies installed'
+		}
+	}
+
+	// Publish the cache marker only after copying and dependency installation finish.
+	// Any earlier failure leaves no valid marker, forcing a clean retry next startup.
+	writeWorkspaceStageState(statePath, expectedState)
+	console.log(
+		chalk.gray(
+			`Staged code plugin ${normalizedPackageName} for scope ${scopeLabel} in ${Date.now() - startedAt}ms (${dependencyAction}).`
+		)
+	)
 
 	return pluginDir
 }
@@ -536,7 +841,7 @@ export function installOrganizationPlugins(
 		const pluginDir = getOrganizationPluginPath(organizationId, plugin, opts)
 		if (isPluginInstalled(pluginDir, plugin)) {
 			console.log(chalk.yellow(`Plugin ${plugin} already installed at ${pluginDir}, skipping install.`))
-			manifest.add(plugin)
+			replaceManifestPlugin(manifest, plugin)
 			continue
 		}
 		ensureDir(pluginDir)
@@ -564,7 +869,7 @@ export function installOrganizationPlugins(
 				}
 			})
 			console.log(chalk.green(`Installed plugin ${plugin} for scope ${scopeLabel} at ${pluginDir}`))
-			manifest.add(plugin)
+			replaceManifestPlugin(manifest, plugin)
 		} catch (error) {
 			console.error(`Failed to install plugin ${plugin} for scope ${scopeLabel}:`, error)
 		}

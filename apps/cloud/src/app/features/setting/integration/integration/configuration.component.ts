@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { IsDirty } from '@xpert-ai/core'
-import { IIntegration } from '@xpert-ai/contracts'
+import type { IIntegration, TIntegrationProvider } from '@xpert-ai/contracts'
 import { NgmInputComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { DisplayBehaviour } from '@xpert-ai/ocap-core'
@@ -31,6 +31,14 @@ import {
   type IntegrationTestProbe,
   type IntegrationTestResult
 } from '../../../../@core'
+
+export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
+  if (provider?.helpLinks?.length) {
+    return provider.helpLinks
+  }
+
+  return provider?.helpUrl ? [{ url: provider.helpUrl, label: provider.helpLabel }] : []
+}
 
 @Component({
   standalone: true,
@@ -104,6 +112,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
   readonly integrationProvider = computed(() =>
     this.providersResource().find((provider) => provider.name === this.provider())
   )
+  readonly providerHelpLinks = computed(() => resolveProviderHelpLinks(this.integrationProvider()))
   readonly schema = computed(() => this.integrationProvider()?.schema)
 
   readonly integration = derivedFrom(

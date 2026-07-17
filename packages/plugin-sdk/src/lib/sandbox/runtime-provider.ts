@@ -30,6 +30,32 @@ export type SandboxRuntimeFileDownloadResponse = {
   error: SandboxRuntimeFileOperationError | null
 }
 
+/**
+ * Core-resolved Workspace file source that a system Runtime Provider may expose
+ * read-only to one Job. These paths are never part of plugin payloads or Action
+ * manifests and must not be persisted as business data.
+ */
+export type SandboxRuntimeReadOnlyFileSource = {
+  /** Canonical path visible to the API process. */
+  serverPath: string
+  /** Equivalent source path visible to the Provider engine, for example Docker. */
+  hostPath: string
+  size: number
+  mtimeMs: number
+  device: number
+  inode: number
+}
+
+/** Exact Job-workspace alias for one authorized, seekable Workspace file. */
+export type SandboxRuntimeReadOnlyFile = {
+  source: SandboxRuntimeReadOnlyFileSource
+  /** Safe relative path below the Runtime workspace root. */
+  targetPath: string
+  /** Immutable identity asserted by the system plugin that owns the Action. */
+  size: number
+  sha256: string
+}
+
 /** Resource policy requested by a provider-neutral Runtime Definition. */
 export type SandboxRuntimeResources = {
   memoryMb: number
@@ -59,6 +85,8 @@ export type SandboxRuntimeProviderCapabilities = {
   resourceLimits: boolean
   networkPolicy: boolean
   readOnlyRootFilesystem: boolean
+  /** Supports Job-scoped, read-only, seekable Workspace file mappings. */
+  readOnlyFileMounts?: boolean
 }
 
 /** Minimum Provider guarantees required by a Runtime Definition. */
@@ -145,6 +173,12 @@ export type SandboxRuntimeCreateOptions = {
   networkPolicy: SandboxRuntimeNetworkPolicy
   security: SandboxRuntimeSecurity
   hardDeadlineMs: number
+  /**
+   * Core-authorized read-only inputs resolved from portable Workspace
+   * references. Providers must expose each source only at its targetPath and
+   * must not make any broader Workspace subtree visible to the Runtime.
+   */
+  readOnlyFiles?: readonly SandboxRuntimeReadOnlyFile[]
 }
 
 /** Persisted evidence required to destroy a Runtime even after Provider reload. */

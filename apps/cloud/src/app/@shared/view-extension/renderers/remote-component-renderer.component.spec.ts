@@ -78,6 +78,9 @@ describe('RemoteComponentRendererComponent', () => {
     getViewParameterOptions: jest.Mock
     executeAction: jest.Mock
     executeFileAction: jest.Mock
+    createViewFileAccessSession: jest.Mock
+    createViewFileAccessGrant: jest.Mock
+    revokeViewFileAccessSession: jest.Mock
   }
   let registry: ViewClientCommandRegistry
   let hostEvents: ViewHostEventBus
@@ -103,7 +106,18 @@ describe('RemoteComponentRendererComponent', () => {
       getViewData: jest.fn(),
       getViewParameterOptions: jest.fn(),
       executeAction: jest.fn(),
-      executeFileAction: jest.fn()
+      executeFileAction: jest.fn(),
+      createViewFileAccessSession: jest.fn(() => of({ sessionId: 'session-1', expiresAt: '2099-01-01T00:00:00.000Z' })),
+      createViewFileAccessGrant: jest.fn(() =>
+        of({
+          url: 'https://api.example.test/api/workspace-files/content/session-1/grant-1/video.mp4',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+          fileName: 'video.mp4',
+          mimeType: 'video/mp4',
+          size: 1024
+        })
+      ),
+      revokeViewFileAccessSession: jest.fn(() => of({ success: true }))
     }
 
     TestBed.resetTestingModule()
@@ -204,6 +218,7 @@ describe('RemoteComponentRendererComponent', () => {
     expect(frame.getAttribute('sandbox')?.split(/\s+/).sort()).toEqual(
       ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-same-origin', 'allow-scripts'].sort()
     )
+    expect(frame.getAttribute('allow')).toBe('autoplay')
   })
 
   it('passes the current host theme to the iframe init message', async () => {
@@ -399,6 +414,45 @@ describe('RemoteComponentRendererComponent', () => {
     ).rejects.toThrow("Client command 'assistant.chat.send_message' is not available")
 
     expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('creates one host-bound file session and grants only declared purposes', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      fileAccess: { purposes: ['preview'] }
+    })
+    await flushRemoteEntry(fixture)
+
+    const component = fixture.componentInstance as unknown as {
+      handleFileAccessRequest(message: Record<string, unknown>): Promise<unknown>
+    }
+    await expect(
+      component.handleFileAccessRequest({
+        fileKey: 'asset-1',
+        targetId: 'project-1',
+        purpose: 'preview'
+      })
+    ).resolves.toMatchObject({ mimeType: 'video/mp4', size: 1024 })
+    await component.handleFileAccessRequest({ fileKey: 'asset-2', targetId: 'project-1', purpose: 'preview' })
+
+    expect(api.createViewFileAccessSession).toHaveBeenCalledTimes(1)
+    expect(api.createViewFileAccessSession).toHaveBeenCalledWith('agent', 'assistant-1', manifest.key)
+    expect(api.createViewFileAccessGrant).toHaveBeenNthCalledWith(1, 'session-1', {
+      fileKey: 'asset-1',
+      targetId: 'project-1',
+      purpose: 'preview'
+    })
+    await expect(component.handleFileAccessRequest({ fileKey: 'asset-1', purpose: 'download' })).rejects.toThrow(
+      "File access purpose 'download' is not available"
+    )
+    expect(api.createViewFileAccessGrant).toHaveBeenCalledTimes(2)
+
+    fixture.destroy()
+    await Promise.resolve()
+    expect(api.revokeViewFileAccessSession).toHaveBeenCalledWith('session-1')
   })
 
   it('ignores postMessage events from a different iframe source', async () => {

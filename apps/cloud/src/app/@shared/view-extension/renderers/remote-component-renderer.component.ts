@@ -16,6 +16,8 @@ import {
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
   XpertViewActionDefinition,
+  XpertViewFileAccessPurpose,
+  XpertViewFileAccessSessionResult,
   XpertViewHostEventSubscription,
   XpertViewParameterDefinition,
   XpertViewQuery
@@ -74,6 +76,7 @@ type RemoteComponentMessage = {
           [style.height.px]="fillAvailableHeight() ? null : height()"
           [attr.title]="manifest().title.en_US"
           [src]="entryUrl() | safe: 'resourceUrl'"
+          allow="autoplay"
           sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
           (load)="handleFrameLoad()"
         ></iframe>
@@ -124,6 +127,9 @@ export class RemoteComponentRendererComponent {
   #srcdocFallbackTimer: number | null = null
   #viewportUpdateFrame: number | null = null
   readonly #hostEventDebounces = new Map<string, number>()
+  #fileAccessSession: XpertViewFileAccessSessionResult | null = null
+  #fileAccessSessionPromise: Promise<XpertViewFileAccessSessionResult> | null = null
+  #fileAccessEpoch = 0
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
@@ -138,6 +144,7 @@ export class RemoteComponentRendererComponent {
       window.removeEventListener('resize', onViewportChange)
       window.removeEventListener('scroll', onViewportChange, true)
       this.#hostEventDebounces.clear()
+      this.resetFileAccessSession()
       this.cancelViewportHeightUpdate()
       this.clearEntryUrl()
     })
@@ -172,6 +179,7 @@ export class RemoteComponentRendererComponent {
     this.viewportBound.set(false)
     this.updateViewportHeight()
     this.#instanceNonce.set(createInstanceNonce())
+    this.resetFileAccessSession()
 
     try {
       const html = await firstValueFrom(this.#api.getRemoteComponentEntry(hostType, hostId, viewKey))
@@ -254,6 +262,9 @@ export class RemoteComponentRendererComponent {
       case 'executeFileAction':
         void this.handleRequest(message, 'fileActionResult', () => this.handleFileActionRequest(message))
         return
+      case 'requestFileAccess':
+        void this.handleRequest(message, 'fileAccessResult', () => this.handleFileAccessRequest(message))
+        return
       case XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE:
         void this.handleRequest(message, 'clientCommandResult', () => this.handleClientCommandRequest(message))
         return
@@ -324,6 +335,66 @@ export class RemoteComponentRendererComponent {
         file
       })
     )
+  }
+
+  private async handleFileAccessRequest(message: RemoteComponentMessage) {
+    const fileKey = getString(message.fileKey)
+    const purpose = toFileAccessPurpose(message.purpose)
+    if (!fileKey) {
+      throw new Error('fileKey is required')
+    }
+    if (!purpose || !this.manifest().fileAccess?.purposes.includes(purpose)) {
+      throw new Error(`File access purpose '${getString(message.purpose) || ''}' is not available`)
+    }
+
+    const session = await this.ensureFileAccessSession()
+    return firstValueFrom(
+      this.#api.createViewFileAccessGrant(session.sessionId, {
+        fileKey,
+        targetId: getString(message.targetId) ?? undefined,
+        purpose
+      })
+    )
+  }
+
+  private async ensureFileAccessSession(): Promise<XpertViewFileAccessSessionResult> {
+    const current = this.#fileAccessSession
+    if (current && new Date(current.expiresAt).getTime() > Date.now() + 60_000) {
+      return current
+    }
+    if (this.#fileAccessSessionPromise) {
+      return this.#fileAccessSessionPromise
+    }
+
+    const epoch = this.#fileAccessEpoch
+    const promise = firstValueFrom(
+      this.#api.createViewFileAccessSession(this.hostType(), this.hostId(), this.manifest().key)
+    ).then(async (session) => {
+      if (epoch !== this.#fileAccessEpoch) {
+        await firstValueFrom(this.#api.revokeViewFileAccessSession(session.sessionId)).catch(() => undefined)
+        throw new Error('Remote view file access session is no longer active')
+      }
+      this.#fileAccessSession = session
+      return session
+    })
+    this.#fileAccessSessionPromise = promise
+    try {
+      return await promise
+    } finally {
+      if (this.#fileAccessSessionPromise === promise) {
+        this.#fileAccessSessionPromise = null
+      }
+    }
+  }
+
+  private resetFileAccessSession() {
+    this.#fileAccessEpoch += 1
+    const session = this.#fileAccessSession
+    this.#fileAccessSession = null
+    this.#fileAccessSessionPromise = null
+    if (session) {
+      void firstValueFrom(this.#api.revokeViewFileAccessSession(session.sessionId)).catch(() => undefined)
+    }
   }
 
   private async handleClientCommandRequest(message: RemoteComponentMessage) {
@@ -607,6 +678,10 @@ function toRemoteFile(value: unknown): { name?: string; type?: string; size?: nu
 
 function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function toFileAccessPurpose(value: unknown): XpertViewFileAccessPurpose | null {
+  return value === 'preview' || value === 'download' ? value : null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

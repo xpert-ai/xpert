@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { mkdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -20,6 +21,7 @@ import {
     type SandboxRuntimeCreateOptions,
     type SandboxRuntimeDefinition,
     type SandboxRuntimeInstance,
+    type SandboxRuntimeReadOnlyFile,
     type WorkspacePortableFileReference,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
@@ -101,7 +103,9 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             }
         }
         if (job?.cleanupPending) await this.requirePreviousAttemptCleanup(job)
-        const resolution = await this.bindingSelector.require(definition, job?.id as string | undefined)
+        const resolution = await this.bindingSelector.require(definition, job?.id as string | undefined, {
+            readOnlyFileMounts: hasReadOnlySeekableInputs(input)
+        })
         const prepared = await this.prepareAttempt(job, input, action, definition, resolution)
         if (prepared.attached) return this.waitForAttachedJob(prepared.job.id as string, definition.hardDeadlineMs)
         job = prepared.job
@@ -236,7 +240,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             requiredText(input.scope.businessResourceType, 'scope.businessResourceType')
             requiredText(input.scope.businessResourceId, 'scope.businessResourceId')
             requiredText(input.idempotencyKey, 'idempotencyKey')
-            input.files?.forEach((file) => validateInputFile(file, input.scope.tenantId))
+            validateInputFiles(input.files ?? [], input.scope.tenantId)
             if (!Array.isArray(input.outputs) || !input.outputs.length)
                 throw new Error('Sandbox job outputs are required.')
             input.outputs.forEach((output) => validateOutputRequest(output, input.scope.tenantId))
@@ -355,18 +359,6 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         const volume = await this.volumeClient
             .resolve({ tenantId: input.scope.tenantId, catalog: 'runtime-jobs', jobId })
             .ensureRoot()
-        const createOptions: SandboxRuntimeCreateOptions = {
-            ephemeral: true,
-            tenantId: input.scope.tenantId,
-            workFor: { type: 'job', id: jobId },
-            definition,
-            binding: resolution.binding,
-            volume: { serverRoot: volume.serverRoot, hostRoot: volume.hostRoot },
-            resources: definition.resources,
-            networkPolicy: definition.networkPolicy,
-            security: definition.security,
-            hardDeadlineMs: definition.hardDeadlineMs
-        }
         let runtime: SandboxRuntimeInstance | undefined
         try {
             job.status = 'starting'
@@ -375,6 +367,20 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             job.errorCode = null
             job.errorMessage = null
             await this.repository.save(job)
+            const readOnlyFiles = await this.prepareReadOnlyInputs(input, volume)
+            const createOptions: SandboxRuntimeCreateOptions = {
+                ephemeral: true,
+                tenantId: input.scope.tenantId,
+                workFor: { type: 'job', id: jobId },
+                definition,
+                binding: resolution.binding,
+                volume: { serverRoot: volume.serverRoot, hostRoot: volume.hostRoot },
+                resources: definition.resources,
+                networkPolicy: definition.networkPolicy,
+                security: definition.security,
+                hardDeadlineMs: definition.hardDeadlineMs,
+                ...(readOnlyFiles.length ? { readOnlyFiles } : {})
+            }
             runtime = await resolution.provider.create(createOptions)
             this.active.set(jobId, { runtime, resolution })
             job.runtimeRef = runtime.id
@@ -420,6 +426,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 throw new SandboxJobRuntimeError('SANDBOX_CANCELLED', 'Sandbox export was cancelled.', false, jobId)
             }
             if (response.exitCode !== 0) throw classifyRunnerFailure(response.output, jobId)
+            await this.assertReadOnlyInputsUnchanged(readOnlyFiles, jobId)
             const outputs = await this.collectOutputs(runtime, runtime.workspaceRoot, input.outputs)
             job.outputs = outputs
             job.status = 'succeeded'
@@ -464,8 +471,17 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         definition: SandboxRuntimeDefinition
     ): Promise<void> {
         const uploads: Array<[string, Uint8Array]> = []
+        const materializedFiles = (input.files ?? []).filter((file) => file.access !== 'read-only-seekable')
+        const declaredBytes = materializedFiles.reduce((total, file) => total + file.size, 0)
+        if (declaredBytes > MAX_JOB_INPUT_BYTES) {
+            throw new SandboxJobRuntimeError(
+                'EXPORT_INPUT_INVALID',
+                'Sandbox materialized inputs exceed the allowed size.',
+                false
+            )
+        }
         let totalBytes = 0
-        for (const file of input.files ?? []) {
+        for (const file of materializedFiles) {
             const read = await this.workspaceFiles.readBuffer(file.reference).catch((error) => {
                 throw new SandboxJobRuntimeError(
                     'EXPORT_INPUT_INVALID',
@@ -510,6 +526,63 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 `Failed to materialize ${failed.path}: ${failed.error}`,
                 false
             )
+    }
+
+    /**
+     * Resolve seekable inputs before Provider creation. Core keeps the portable
+     * reference and host paths on the trusted side of the Runtime boundary;
+     * only the exact target alias becomes visible inside the Job workspace.
+     */
+    private async prepareReadOnlyInputs(
+        input: SandboxJobRunInput,
+        volume: ReturnType<VolumeClient['resolve']>
+    ): Promise<SandboxRuntimeReadOnlyFile[]> {
+        const files: SandboxRuntimeReadOnlyFile[] = []
+        for (const file of input.files ?? []) {
+            if (file.access !== 'read-only-seekable') continue
+            const source = await this.workspaceFiles.resolveReadOnlyFileSource(file.reference).catch((error) => {
+                throw new SandboxJobRuntimeError(
+                    'EXPORT_INPUT_INVALID',
+                    `Unable to resolve seekable input ${file.targetPath}: ${messageOf(error)}`,
+                    false
+                )
+            })
+            if (source.size !== file.size) {
+                throw new SandboxJobRuntimeError(
+                    'EXPORT_INPUT_INVALID',
+                    `Sandbox seekable input changed: ${file.targetPath}`,
+                    false
+                )
+            }
+            const targetPath = path.posix.join('input', validateRelativePath(file.targetPath, 'input targetPath'))
+            await mkdir(path.dirname(volume.path(targetPath)), { recursive: true })
+            files.push({ source, targetPath, size: file.size, sha256: file.sha256 })
+        }
+        return files
+    }
+
+    /** Reject successful output when a mounted Workspace file changed in place. */
+    private async assertReadOnlyInputsUnchanged(
+        files: readonly SandboxRuntimeReadOnlyFile[],
+        jobId: string
+    ): Promise<void> {
+        for (const file of files) {
+            const current = await stat(file.source.serverPath).catch(() => null)
+            if (
+                !current?.isFile() ||
+                current.size !== file.source.size ||
+                current.mtimeMs !== file.source.mtimeMs ||
+                current.dev !== file.source.device ||
+                current.ino !== file.source.inode
+            ) {
+                throw new SandboxJobRuntimeError(
+                    'EXPORT_INPUT_INVALID',
+                    `Sandbox seekable input changed during execution: ${file.targetPath}`,
+                    false,
+                    jobId
+                )
+            }
+        }
     }
 
     private async materializeAction(
@@ -749,14 +822,32 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
     }
 }
 
-function validateInputFile(file: SandboxJobFileInput, tenantId: string): void {
-    validateRelativePath(file.targetPath, 'input targetPath')
+function validateInputFiles(files: readonly SandboxJobFileInput[], tenantId: string): void {
+    const targetPaths = new Set<string>()
+    for (const file of files) {
+        const targetPath = validateInputFile(file, tenantId)
+        if (targetPaths.has(targetPath)) throw new Error(`Sandbox input targetPath is duplicated: ${targetPath}`)
+        targetPaths.add(targetPath)
+    }
+}
+
+function validateInputFile(file: SandboxJobFileInput, tenantId: string): string {
+    const targetPath = validateRelativePath(file.targetPath, 'input targetPath')
+    if (targetPath === 'job.json') throw new Error('Sandbox input targetPath is reserved by Core.')
+    if (file.access && file.access !== 'materialized' && file.access !== 'read-only-seekable') {
+        throw new Error('Sandbox input access mode is invalid.')
+    }
     if (!Number.isInteger(file.size) || file.size <= 0)
         throw new Error('Sandbox input size must be a positive integer.')
     if (!/^[a-f0-9]{64}$/i.test(file.sha256)) throw new Error('Sandbox input sha256 is invalid.')
     if (file.reference.source !== 'platform.workspace.files')
         throw new Error('Sandbox input must use a portable workspace reference.')
     if (file.reference.tenantId !== tenantId) throw new Error('Sandbox input reference belongs to another tenant.')
+    return targetPath
+}
+
+function hasReadOnlySeekableInputs(input: SandboxJobRunInput): boolean {
+    return input.files?.some((file) => file.access === 'read-only-seekable') ?? false
 }
 
 function validateOutputRequest(output: SandboxJobOutputRequest, tenantId: string): void {

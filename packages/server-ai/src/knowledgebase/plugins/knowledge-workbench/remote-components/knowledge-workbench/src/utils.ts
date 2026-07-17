@@ -83,6 +83,19 @@ export function getStringValue(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
+export function normalizeFileSize(value: string | number | null | undefined) {
+    if (typeof value === 'number') {
+        return Number.isSafeInteger(value) && value >= 0 ? value : undefined
+    }
+
+    if (typeof value !== 'string' || !/^\d+$/.test(value.trim())) {
+        return undefined
+    }
+
+    const size = Number(value)
+    return Number.isSafeInteger(size) ? size : undefined
+}
+
 export function formatListTime(value?: string | null) {
     if (!value) {
         return '-'

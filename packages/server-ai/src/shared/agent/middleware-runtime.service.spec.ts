@@ -147,7 +147,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
             {
-                getRuntimeConnector: jest.fn().mockResolvedValue(undefined)
+                getRuntimeConnector: jest.fn().mockResolvedValue(undefined),
+                getRuntimeConnectorCredential: jest.fn().mockResolvedValue(undefined)
             } as any,
             workspaceFiles,
             artifacts as any,
@@ -200,6 +201,13 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         await expect(
             connectorApi?.getConnector({
+                workspaceId: 'workspace-1',
+                provider: 'lark',
+                connectorId: 'connector-1'
+            })
+        ).resolves.toBeUndefined()
+        await expect(
+            connectorApi?.getConnectorCredential?.({
                 workspaceId: 'workspace-1',
                 provider: 'lark',
                 connectorId: 'connector-1'

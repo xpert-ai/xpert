@@ -30,6 +30,39 @@ describe('SandboxActionRegistry', () => {
         }
     })
 
+    it('re-resolves an Action after a local-workspace runtime directory is replaced', async () => {
+        const firstRoot = createPlugin('system')
+        const secondRoot = createPlugin('system')
+        const plugins = [loadedPlugin(firstRoot, 'system')]
+        try {
+            const registry = new SandboxActionRegistry(plugins)
+            const staleAction = await registry.get({
+                pluginName: '@acme/plugin-export',
+                action: 'document.export',
+                actionVersion: '1.0.0'
+            })
+            fs.rmSync(firstRoot, { recursive: true, force: true })
+            plugins.splice(0, 1, loadedPlugin(secondRoot, 'system'))
+
+            await expect(registry.getCachedBundle(staleAction!)).rejects.toThrow('no such file or directory')
+
+            const currentAction = await registry.get({
+                pluginName: '@acme/plugin-export',
+                action: 'document.export',
+                actionVersion: '1.0.0'
+            })
+            expect(currentAction?.bundleRoot).toBe(
+                fs.realpathSync(path.join(secondRoot, 'dist', 'sandbox-actions', 'document-export', 'bundle'))
+            )
+            await expect(registry.getCachedBundle(currentAction!)).resolves.toEqual([
+                expect.objectContaining({ relativePath: 'runner.mjs' })
+            ])
+        } finally {
+            fs.rmSync(firstRoot, { recursive: true, force: true })
+            fs.rmSync(secondRoot, { recursive: true, force: true })
+        }
+    })
+
     it('does not expose organization plugin actions', async () => {
         const root = createPlugin('organization')
         try {

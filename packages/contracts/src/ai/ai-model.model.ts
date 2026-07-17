@@ -194,11 +194,18 @@ export interface ParameterRule {
   options?: string[];
 }
 
+export interface PriceTierConfig {
+  input: number;
+  output?: number;
+  max_tokens: number;
+}
+
 export interface PriceConfig {
   input: number;
   output?: number;
   unit: number;
   currency: string;
+  tiered_pricing?: PriceTierConfig[];
 }
 
 export interface AIModelEntity extends ProviderModel {

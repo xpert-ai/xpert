@@ -204,7 +204,7 @@ class MockStore {
 }
 
 describe('FeatureToggleComponent', () => {
-  it('shows tenant-only feature toggles in tenant feature management', async () => {
+  it('shows tenant and dual-scope feature toggles in tenant feature management', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [
@@ -233,17 +233,17 @@ describe('FeatureToggleComponent', () => {
       .map((group) => group.id)
 
     expect(groupIds).toContain(FeatureEnum.FEATURE_ROLES_PERMISSION)
+    expect(groupIds).toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(groupIds).toContain(AiFeatureEnum.FEATURE_XPERT)
     expect(groupIds).not.toContain(AnalyticsFeatures.FEATURE_BUSINESS_AREA)
-    expect(groupIds).not.toContain(FeatureEnum.FEATURE_INTEGRATION)
     expect(
       fixture.componentInstance
         .summaryCards([rolePermissionFeature, businessAreaFeature, integrationFeature, parentFeature])
         .find((summary) => summary.id === 'groups')?.value
-    ).toBe(2)
+    ).toBe(3)
   })
 
-  it('shows organization-only feature toggles in organization feature management', async () => {
+  it('shows organization and dual-scope feature toggles in organization feature management', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [FeatureToggleComponent, TranslateModule.forRoot()],
       providers: [

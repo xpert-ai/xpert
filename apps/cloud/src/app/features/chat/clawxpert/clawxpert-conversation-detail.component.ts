@@ -1405,7 +1405,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     try {
-      this.isChatMinimizedToPet.set(false)
+      this.revealChatkitForConversationOpen()
       if (conversation.id) {
         this.syncResolvedConversation(conversation.id, conversation)
       }
@@ -1433,7 +1433,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       throw new Error('Chat is not ready yet.')
     }
 
-    this.isChatMinimizedToPet.set(false)
+    this.revealChatkitForConversationOpen()
     if (conversation) {
       this.syncResolvedConversation(request.conversationId, {
         ...conversation,
@@ -1444,6 +1444,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     await control.setThreadId(threadId)
     this.facade.onChatThreadChange(threadId)
     this.markConversationRead(request.conversationId)
+  }
+
+  private revealChatkitForConversationOpen() {
+    this.workspaceMaximized.set(false)
+    if (this.isChatMinimizedToPet()) {
+      this.restoreChatkitFromPet()
+    }
+    this.isChatMinimizedToPet.set(false)
   }
 
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
@@ -1554,7 +1562,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             throw new Error('Conversation context is required to open a workspace file.')
           }
           const file = await firstValueFrom(
-            this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId)
+            this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId, true)
           )
           const url = readHttpUrl(file.fileUrl ?? file.url)
           if (!url) {
@@ -1566,6 +1574,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             storageFileId: target.storageFileId,
             name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
             mimeType: file.mimeType,
+            size: file.size,
             url,
             previewUrl: url
           })
@@ -1588,6 +1597,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             id: link.artifactId,
             name: title,
             mimeType,
+            size: version?.size ?? undefined,
             url,
             previewUrl: url
           })

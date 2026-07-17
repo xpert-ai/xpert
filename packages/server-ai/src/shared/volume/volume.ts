@@ -327,11 +327,16 @@ abstract class BaseRuntimeVolumeClient extends VolumeClient {
         const roots = this.resolveRoot(tenantId)
         const subpath = getVolumeSubpath(subscope)
         const flattened = usesFlattenedSandboxVolumeLayout()
+        // The legacy dev layout keeps durable catalogs directly under ~/data,
+        // but a runtime job must still own a deletable subtree. Otherwise
+        // cleanupVolume(job) would delete the shared root together with durable
+        // project/Xpert files and outputs that the job just persisted.
+        const isolateRuntimeJob = flattened && scope.catalog === 'runtime-jobs'
 
         return new VolumeHandle(
             scope,
-            flattened ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
-            flattened ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
+            flattened && !isolateRuntimeJob ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
+            flattened && !isolateRuntimeJob ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
             getVolumePublicBaseUrl(subscope)
         )
     }

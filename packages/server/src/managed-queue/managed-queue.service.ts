@@ -94,6 +94,7 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			attemptsMade: job.attemptsMade,
 			opts: job.opts as Record<string, unknown>,
 			state: await job.getState().catch(() => undefined),
+			failedReason: job.failedReason || undefined,
 			timestamp: job.timestamp,
 			processedOn: job.processedOn,
 			finishedOn: job.finishedOn

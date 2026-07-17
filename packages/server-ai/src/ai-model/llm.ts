@@ -114,7 +114,7 @@ export abstract class LargeLanguageModel extends AIModel {
 		const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens)
 
 		// Get completed price information
-		const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens)
+		const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens, promptTokens)
 
 		// Conversion usage
 		const usage: ILLMUsage = {
