@@ -1,5 +1,21 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.15
+
+### Patch Changes
+
+- a26a776: Add opt-in multi-auth connector strategies, provider-neutral runtime credentials, and legacy credential mapping.
+
+  Integration-enabled plugins can also opt into inherited tenant and organization configuration reads for connector-owned OAuth apps.
+
+  Existing `ConnectorDefinition`, `ConnectorStrategy`, `ConnectorRuntimeCredential`, `ConnectorRuntimeApi.getConnector()`, and legacy registry accessors remain available unchanged. New providers can implement `ConnectorMultiAuthStrategy`, while runtime consumers can adopt `getConnectorCredential()` when the host exposes it.
+
+- 8a0eba3: Calculate membership points proportionally, constrain tokens-per-point settings to safe presets, expose non-duplicated point usage by runtime organization in Copilot usage summaries, and support tiered model pricing.
+- e3d3c26: Add a machine-readable stale steer callback error and close the execution-completion race before channel follow-ups are persisted.
+- Updated dependencies [8a0eba3]
+- Updated dependencies [5d4a308]
+  - @xpert-ai/contracts@3.15.15
+
 ## 3.15.14
 
 ### Patch Changes

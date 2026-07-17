@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.14
+
+### Patch Changes
+
+- 5d4a308: Support multiple provider help links in integration configuration while preserving the legacy single-link fallback.
+
 ## 3.15.13
 
 ### Patch Changes

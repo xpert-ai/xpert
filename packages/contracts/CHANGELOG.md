@@ -1,5 +1,12 @@
 # @xpert-ai/contracts
 
+## 3.15.15
+
+### Patch Changes
+
+- 8a0eba3: Calculate membership points proportionally, constrain tokens-per-point settings to safe presets, expose non-duplicated point usage by runtime organization in Copilot usage summaries, and support tiered model pricing.
+- 5d4a308: Support multiple provider help links in integration configuration while preserving the legacy single-link fallback.
+
 ## 3.15.14
 
 ### Patch Changes

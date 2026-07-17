@@ -1,5 +1,20 @@
 # @xpert-ai/server-ai
 
+## 3.9.18
+
+### Patch Changes
+
+- 8a0eba3: Calculate membership points proportionally, constrain tokens-per-point settings to safe presets, expose non-duplicated point usage by runtime organization in Copilot usage summaries, and support tiered model pricing.
+- e3d3c26: Add a machine-readable stale steer callback error and close the execution-completion race before channel follow-ups are persisted.
+- Updated dependencies [a26a776]
+- Updated dependencies [8a0eba3]
+- Updated dependencies [5d4a308]
+- Updated dependencies [e3d3c26]
+    - @xpert-ai/plugin-sdk@3.15.15
+    - @xpert-ai/contracts@3.15.15
+    - @xpert-ai/server-core@3.9.33
+    - @xpert-ai/copilot@3.9.30
+
 ## 3.9.17
 
 ### Patch Changes
