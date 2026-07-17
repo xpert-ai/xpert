@@ -1,5 +1,16 @@
 # @xpert-ai/server-ai
 
+## 3.9.19
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+- Updated dependencies [90a268b]
+    - @xpert-ai/contracts@3.15.16
+    - @xpert-ai/plugin-sdk@3.15.16
+    - @xpert-ai/copilot@3.9.31
+    - @xpert-ai/server-core@3.9.34
+
 ## 3.9.18
 
 ### Patch Changes

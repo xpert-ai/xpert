@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.16
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+- Updated dependencies [90a268b]
+  - @xpert-ai/contracts@3.15.16
+
 ## 3.15.15
 
 ### Patch Changes
