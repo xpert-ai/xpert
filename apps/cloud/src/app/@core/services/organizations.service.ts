@@ -35,6 +35,24 @@ export class OrganizationsService {
     })
   }
 
+  getPage({ take, skip, search, relations }: { take: number; skip: number; search?: string; relations?: string[] }) {
+    const findInput = {
+      isActive: true,
+      ...(search ? { name: { $ilike: `%${search}%` } } : {})
+    }
+    const data = JSON.stringify({
+      relations,
+      findInput,
+      take,
+      skip,
+      order: { name: 'ASC' }
+    })
+
+    return this.http.get<{ items: IOrganization[]; total: number }>(`${API_PREFIX}/organization`, {
+      params: { data }
+    })
+  }
+
   getById(id: string = '', select?: OrganizationSelectInput[], relations?: string[]): Observable<IOrganization> {
     const data = JSON.stringify({ relations })
     return this.http.get<IOrganization>(`${API_PREFIX}/organization/${id}/${JSON.stringify(select || '')}`, {

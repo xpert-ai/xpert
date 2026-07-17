@@ -11,7 +11,10 @@
       "options": {
         "outputPath": "packages/plugin-sdk/dist",
         "main": "packages/plugin-sdk/src/index.ts",
-        "additionalEntryPoints": ["packages/plugin-sdk/src/collaboration-client.ts"],
+        "additionalEntryPoints": [
+          "packages/plugin-sdk/src/collaboration-client.ts",
+          "packages/plugin-sdk/src/connector.ts"
+        ],
         "generateExportsField": true,
         "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
         "assets": [
