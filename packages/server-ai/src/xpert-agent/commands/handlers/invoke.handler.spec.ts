@@ -73,12 +73,13 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { Command } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
+import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
 import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -725,20 +726,30 @@ describe('XpertAgentInvokeHandler', () => {
 
     it('downgrades stale steer follow-ups to queue when the run completes without another model call', async () => {
         const graph = createGraph()
+        const completionOrder: string[] = []
 
-        chatMessageRepository.find.mockResolvedValueOnce([
-            {
-                id: 'db-message-2',
-                followUpMode: 'steer',
-                followUpStatus: 'pending',
-                targetExecutionId: 'execution-1',
-                conversationId: 'conversation-1'
-            }
-        ])
+        chatMessageRepository.find.mockImplementationOnce(async () => {
+            completionOrder.push('drain')
+            return [
+                {
+                    id: 'db-message-2',
+                    followUpMode: 'steer',
+                    followUpStatus: 'pending',
+                    targetExecutionId: 'execution-1',
+                    conversationId: 'conversation-1'
+                }
+            ]
+        })
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof CompileGraphCommand) {
                 return createCompiledGraph(graph)
+            }
+            if (
+                command instanceof XpertAgentExecutionUpsertCommand &&
+                command.execution.status === XpertAgentExecutionStatusEnum.SUCCESS
+            ) {
+                completionOrder.push('status')
             }
             return null
         })
@@ -774,6 +785,7 @@ describe('XpertAgentInvokeHandler', () => {
 
         await consumeStream(stream)
 
+        expect(completionOrder).toEqual(['status', 'drain'])
         expect(chatMessageRepository.save).toHaveBeenCalledWith(
             expect.arrayContaining([
                 expect.objectContaining({
