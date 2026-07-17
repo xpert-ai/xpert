@@ -1121,7 +1121,8 @@ describe('XpertNewBlankComponent', () => {
           title: 'Template Agent',
           workspaceId: 'workspace-1'
         })
-      })
+      }),
+      { templateId: '@xpert-ai/plugin-salesclaw:salesclaw-business-assistant' }
     )
   })
 
@@ -2334,7 +2335,8 @@ describe('XpertNewBlankComponent', () => {
             })
           })
         ])
-      })
+      }),
+      { templateId: 'template-agent' }
     )
 
     expect(dialogRef.close).toHaveBeenCalledWith({
@@ -2543,7 +2545,8 @@ describe('XpertNewBlankComponent', () => {
           title: 'Template Agent',
           workspaceId: undefined
         })
-      })
+      }),
+      { templateId: 'template-agent' }
     )
     expect(xpertService.saveDraft).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
@@ -2613,7 +2616,8 @@ describe('XpertNewBlankComponent', () => {
             }
           }
         })
-      })
+      }),
+      { templateId: 'template-agent' }
     )
   })
 

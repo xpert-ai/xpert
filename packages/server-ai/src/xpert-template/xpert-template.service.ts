@@ -13,6 +13,7 @@ import {
     WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
     TAvatar,
     TKnowledgePipelineTemplate,
+    type TPromptWorkflow,
     TXpertExportedTemplate,
     TXpertTemplate,
     XpertTemplatePluginDependencies,
@@ -77,6 +78,7 @@ type TXpertTemplateDescriptor = {
     order?: number
     default?: boolean
     startPrompts?: string[]
+    promptWorkflows?: TPromptWorkflow[]
     releaseNotes?: string
     xpertName?: string
     dependencies?: XpertTemplatePluginDependencies
