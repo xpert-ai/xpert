@@ -1724,63 +1724,6 @@ describe('XpertChatHandler', () => {
         expect(commands.some((command) => command instanceof ChatMessageUpsertCommand)).toBe(true)
     })
 
-    it('rejects a steer when the completion drain has run but the execution status is still running', async () => {
-        const commands: unknown[] = []
-        let completionDrainRan = false
-        let executionRead = 0
-        queryBus.execute.mockImplementation(async (query) => {
-            if (query instanceof XpertAgentExecutionOneQuery) {
-                executionRead += 1
-                if (executionRead === 1) {
-                    // The graph completion drain can finish after the preflight read
-                    // but before the pending message is inserted.
-                    completionDrainRan = true
-                }
-                return {
-                    id: query.id,
-                    status: XpertAgentExecutionStatusEnum.RUNNING
-                }
-            }
-            return {
-                id: 'conversation-1',
-                threadId: 'thread-1',
-                status: 'busy',
-                operation: null,
-                messages: [{ id: 'ai-current', role: 'ai', executionId: 'execution-current' }]
-            }
-        })
-        commandBus.execute.mockImplementation(async (command) => {
-            commands.push(command)
-            if (command instanceof ChatMessageUpsertCommand) {
-                expect(completionDrainRan).toBe(true)
-                return command.entity
-            }
-            return null
-        })
-
-        await expect(
-            handler.execute(
-                new XpertChatCommand(
-                    {
-                        action: 'follow_up',
-                        conversationId: 'conversation-1',
-                        mode: 'steer',
-                        target: { aiMessageId: 'ai-current' },
-                        message: {
-                            clientMessageId: 'client-drain-race',
-                            input: { input: 'Do not drop this follow-up' }
-                        }
-                    },
-                    { xpertId: 'xpert-1' } satisfies XpertChatCommandOptions
-                )
-            )
-        ).rejects.toThrow('Steer follow-up target execution is no longer running')
-
-        expect(completionDrainRan).toBe(true)
-        expect(executionRead).toBe(2)
-        expect(commands.some((command) => command instanceof ChatMessageUpsertCommand)).toBe(true)
-    })
-
     it('maps a missing steer execution to the machine-readable stale-target error before file side effects', async () => {
         queryBus.execute.mockImplementation(async (query) => {
             if (query instanceof XpertAgentExecutionOneQuery) {

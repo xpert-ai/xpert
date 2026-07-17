@@ -442,6 +442,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         } as MessageEvent)
                         throw new NodeInterrupt(`Confirm tool calls`)
                     }
+                    await this.commandBus.execute(
+                        new XpertAgentExecutionUpsertCommand({
+                            id: execution.id,
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        })
+                    )
                     await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
                     return null
                 })
