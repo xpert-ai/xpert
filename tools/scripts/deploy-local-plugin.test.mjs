@@ -32,6 +32,10 @@ function runCli(scriptPath, args, env = {}) {
         XPERT_SCOPE: '',
         XPERT_TENANT_ID: '',
         XPERT_TOKEN: '',
+        XPERT_USERNAME: '',
+        XPERT_PASSWORD: '',
+        XPERT_USERNAME_KEYCHAIN_SERVICE: '',
+        XPERT_PASSWORD_KEYCHAIN_SERVICE: '',
         ...env
       },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -109,6 +113,82 @@ test('refreshes and verifies an existing local plugin without printing the token
   assert.equal(requests[0].body.pluginName, '@xpert-ai/plugin-test-deploy')
   assert.doesNotMatch(result.stdout + result.stderr, /secret-test-token/)
   assert.match(result.stdout, /refreshed and verified successfully/)
+})
+
+test('logs in with configured credentials, infers tenant scope, and never prints secrets', async (t) => {
+  const workspacePath = createPluginWorkspace()
+  t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
+  const requests = []
+  const server = await listen(async (request, response) => {
+    requests.push({
+      authorization: request.headers.authorization,
+      body: await readRequestBody(request),
+      path: request.url,
+      tenantId: request.headers['tenant-id']
+    })
+    response.setHeader('content-type', 'application/json')
+    if (request.url === '/api/auth/login') {
+      response.end(
+        JSON.stringify({
+          token: 'fresh-login-jwt',
+          refreshToken: 'unused-refresh-token',
+          user: { id: 'user-test', tenantId: 'tenant-from-login' }
+        })
+      )
+      return
+    }
+    if (request.url === '/api/plugin/refresh') {
+      response.end(JSON.stringify({ success: true }))
+      return
+    }
+    response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-deploy' }]))
+  })
+  t.after(() => server.close())
+
+  const result = await runCli(
+    DEPLOY_SCRIPT_PATH,
+    [workspacePath, '--skip-build', '--skip-test', '--no-keychain', '--api-url', server.url],
+    {
+      XPERT_PASSWORD: 'login-password-secret',
+      XPERT_TOKEN: 'legacy-token-must-not-win',
+      XPERT_USERNAME: 'developer@example.com'
+    }
+  )
+
+  assert.equal(result.code, 0, result.stderr)
+  assert.deepEqual(
+    requests.map((item) => item.path),
+    ['/api/auth/login', '/api/plugin/refresh', '/api/plugin/by-names']
+  )
+  assert.deepEqual(requests[0].body, { email: 'developer@example.com', password: 'login-password-secret' })
+  assert.equal(requests[1].authorization, 'Bearer fresh-login-jwt')
+  assert.equal(requests[1].tenantId, 'tenant-from-login')
+  assert.equal(requests[2].tenantId, 'tenant-from-login')
+  assert.doesNotMatch(
+    result.stdout + result.stderr,
+    /developer@example\.com|login-password-secret|fresh-login-jwt|legacy-token-must-not-win|unused-refresh-token/
+  )
+  assert.match(result.stdout, /Authentication source: username\/password environment/)
+})
+
+test('fails safely when configured credentials do not produce a login token', async (t) => {
+  const workspacePath = createPluginWorkspace()
+  t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
+  const server = await listen(async (_request, response) => {
+    response.setHeader('content-type', 'application/json')
+    response.end('null')
+  })
+  t.after(() => server.close())
+
+  const result = await runCli(
+    DEPLOY_SCRIPT_PATH,
+    [workspacePath, '--skip-build', '--skip-test', '--no-keychain', '--api-url', server.url],
+    { XPERT_USERNAME: 'developer@example.com', XPERT_PASSWORD: 'wrong-password-secret' }
+  )
+
+  assert.equal(result.code, 2)
+  assert.match(result.stderr, /login did not return an access token/i)
+  assert.doesNotMatch(result.stdout + result.stderr, /developer@example\.com|wrong-password-secret/)
 })
 
 test('falls back to a source-code install when no refreshable registration exists', async (t) => {
@@ -193,39 +273,53 @@ test('installs directly and applies config when deploy receives a config file', 
   assert.doesNotMatch(result.stdout + result.stderr, /request-secret/)
 })
 
-test('keeps install as a low-level entry and redacts request and response secrets', async (t) => {
+test('keeps install as a low-level entry, logs in, and redacts request and response secrets', async (t) => {
   const workspacePath = createPluginWorkspace()
   t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
   const requests = []
   const server = await listen(async (request, response) => {
-    requests.push({ body: await readRequestBody(request), path: request.url })
+    requests.push({
+      authorization: request.headers.authorization,
+      body: await readRequestBody(request),
+      path: request.url
+    })
     response.setHeader('content-type', 'application/json')
+    if (request.url === '/api/auth/login') {
+      response.end(JSON.stringify({ token: 'install-login-jwt', user: { tenantId: 'tenant-test' } }))
+      return
+    }
     response.end(
       JSON.stringify({ success: true, config: { apiKey: 'response-secret' }, internalToken: 'response-token' })
     )
   })
   t.after(() => server.close())
 
-  const result = await runCli(INSTALL_SCRIPT_PATH, [
-    workspacePath,
-    '--no-keychain',
-    '--api-url',
-    server.url,
-    '--org-id',
-    'org-test',
-    '--token',
-    'cli-secret-token',
-    '--config',
-    '{"apiKey":"request-secret"}'
-  ])
+  const result = await runCli(
+    INSTALL_SCRIPT_PATH,
+    [
+      workspacePath,
+      '--no-keychain',
+      '--api-url',
+      server.url,
+      '--org-id',
+      'org-test',
+      '--config',
+      '{"apiKey":"request-secret"}'
+    ],
+    { XPERT_USERNAME: 'installer@example.com', XPERT_PASSWORD: 'install-password-secret' }
+  )
 
   assert.equal(result.code, 0, result.stderr)
   assert.deepEqual(
     requests.map((item) => item.path),
-    ['/api/plugin']
+    ['/api/auth/login', '/api/plugin']
   )
-  assert.equal(requests[0].body.config.apiKey, 'request-secret')
-  assert.doesNotMatch(result.stdout + result.stderr, /cli-secret-token|request-secret|response-secret|response-token/)
+  assert.equal(requests[1].authorization, 'Bearer install-login-jwt')
+  assert.equal(requests[1].body.config.apiKey, 'request-secret')
+  assert.doesNotMatch(
+    result.stdout + result.stderr,
+    /installer@example\.com|install-password-secret|install-login-jwt|request-secret|response-secret|response-token/
+  )
   assert.match(result.stdout, /installed successfully/)
 })
 
@@ -265,7 +359,7 @@ test('reinstall is a token-safe compatibility alias for forced deploy', async (t
   assert.doesNotMatch(result.stdout + result.stderr, /reinstall-secret-token/)
 })
 
-test('stops with secure setup instructions when no token is available', async (t) => {
+test('stops with secure credential setup instructions when no authentication is available', async (t) => {
   const workspacePath = createPluginWorkspace()
   t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
 
@@ -279,7 +373,9 @@ test('stops with secure setup instructions when no token is available', async (t
   ])
 
   assert.equal(result.code, 2)
-  assert.match(result.stderr, /No Xpert authentication token was found/)
-  assert.match(result.stderr, /Do not paste a token into chat/)
+  assert.match(result.stderr, /No complete Xpert login credentials or authentication token were found/)
+  assert.match(result.stderr, /Do not paste a password or token into chat/)
   assert.match(result.stderr, /security add-generic-password/)
+  assert.match(result.stderr, /xpert-local-plugin-username/)
+  assert.match(result.stderr, /xpert-local-plugin-password/)
 })

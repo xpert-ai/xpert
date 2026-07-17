@@ -4,6 +4,8 @@ import process from 'node:process'
 import {
   DEFAULT_API_URL,
   DEFAULT_KEYCHAIN_SERVICE,
+  DEFAULT_PASSWORD_KEYCHAIN_SERVICE,
+  DEFAULT_USERNAME_KEYCHAIN_SERVICE,
   assertResponseOk,
   createRequestHeaders,
   handleCliError,
@@ -33,8 +35,13 @@ Options:
   --tenant-id <id>           Tenant scope identifier
   --scope <scope>            organization or tenant
   --token <jwt>              Bearer token; environment or Keychain is safer
+  --username <identifier>    Xpert email or username; Keychain is preferred
+  --password <password>      Xpert password; prefer Keychain or process environment
+  --login-endpoint <url>     Login endpoint, default: <api-url>/api/auth/login
   --keychain-service <name>  Default: ${DEFAULT_KEYCHAIN_SERVICE}
   --keychain-account <name>  Default: current OS user
+  --username-keychain-service <name>  Default: ${DEFAULT_USERNAME_KEYCHAIN_SERVICE}
+  --password-keychain-service <name>  Default: ${DEFAULT_PASSWORD_KEYCHAIN_SERVICE}
   --no-keychain              Do not read macOS Keychain
   --api-url <url>            API origin, default: ${DEFAULT_API_URL}
   --endpoint <url>           Full plugin install endpoint
@@ -45,8 +52,14 @@ Options:
   --help                     Show this help
 
 Environment fallbacks:
-  XPERT_API_URL, XPERT_TOKEN, XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
+  XPERT_API_URL, XPERT_TOKEN, XPERT_USERNAME, XPERT_PASSWORD
+  XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
   XPERT_KEYCHAIN_SERVICE, XPERT_KEYCHAIN_ACCOUNT
+  XPERT_USERNAME_KEYCHAIN_SERVICE, XPERT_PASSWORD_KEYCHAIN_SERVICE
+
+Store login credentials in macOS Keychain so every installation obtains a fresh JWT:
+  security add-generic-password -a "$USER" -s ${DEFAULT_USERNAME_KEYCHAIN_SERVICE} -U -w "<xpert-username>"
+  security add-generic-password -a "<xpert-username>" -s ${DEFAULT_PASSWORD_KEYCHAIN_SERVICE} -U -w
 `)
 }
 
@@ -62,8 +75,8 @@ async function main() {
 
   const { pluginName, workspacePath } = resolvePluginInput(args)
   const config = parsePluginConfig(args)
-  const authentication = requireAuthentication(args, { dryRun: args.dryRun })
-  const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token')
+  const authentication = await requireAuthentication(args, { dryRun: args.dryRun })
+  const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token', authentication?.tenantId)
   const endpoint = resolvePluginEndpoint(args)
   const body = {
     pluginName,
