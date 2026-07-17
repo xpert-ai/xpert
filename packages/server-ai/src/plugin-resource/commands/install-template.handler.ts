@@ -22,6 +22,7 @@ import { Repository } from 'typeorm'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertDraftDslDTO } from '../../xpert/dto'
 import { XpertService } from '../../xpert/xpert.service'
+import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
@@ -47,6 +48,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         private readonly installer: PluginResourceInstallerService,
         private readonly workspaceAccess: XpertWorkspaceAccessService,
         private readonly xpertTemplateService: XpertTemplateService,
+        private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
         private readonly commandBus: CommandBus,
         private readonly xpertService: XpertService,
         @InjectRepository(XpertToolset)
@@ -76,6 +78,11 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             if (toolsets.length) {
                 await this.attachTemplateToolsetsToXpert(xpert.id, toolsets)
             }
+            await this.templateWorkspaceInitializer.initializeByTemplateId(
+                command.templateId,
+                xpert.workspaceId ?? command.workspaceId,
+                command.language
+            )
             return {
                 ...result,
                 xpert

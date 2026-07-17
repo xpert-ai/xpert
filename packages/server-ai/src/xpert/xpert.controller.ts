@@ -4,6 +4,7 @@ import {
     IIntegration,
     IXpert,
     LanguagesEnum,
+    LanguagesMap,
     LongTermMemoryTypeEnum,
     TChatApi,
     TChatApp,
@@ -130,6 +131,7 @@ import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import { XpertPrincipalService } from './xpert-principal.service'
 import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
+import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -150,6 +152,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly agentChatRealtime: AgentChatRealtimeService,
         private readonly xpertPrincipalService: XpertPrincipalService,
         private readonly frequentQuestionsService: XpertFrequentQuestionsService,
+        private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -206,9 +209,22 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseValidationPipe({ transform: true })
     @Post('import')
-    async importDSL(@Body() dsl: XpertDraftDslDTO) {
+    async importDSL(
+        @Body() dsl: XpertDraftDslDTO,
+        @Query('templateId') templateId?: string,
+        @I18nLang() language: LanguagesEnum = LanguagesEnum.English
+    ) {
         try {
-            return await this.commandBus.execute(new XpertImportCommand(dsl))
+            const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(dsl))
+            const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
+            if (normalizedTemplateId && xpert.workspaceId) {
+                await this.templateWorkspaceInitializer.initializeByTemplateId(
+                    normalizedTemplateId,
+                    xpert.workspaceId,
+                    LanguagesMap[language] ?? language
+                )
+            }
+            return xpert
         } catch (error) {
             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
         }

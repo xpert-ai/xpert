@@ -39,6 +39,7 @@ import { XpertFrequentQuestionCache } from './xpert-frequent-question-cache.enti
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import { XpertPrincipalService } from './xpert-principal.service'
 import { ScheduleTriggerStrategies } from './plugins'
+import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 
 @Module({
     imports: [
@@ -81,10 +82,11 @@ import { ScheduleTriggerStrategies } from './plugins'
         RuntimeCommandService,
         RuntimeCapabilitiesService,
         XpertFrequentQuestionsService,
+        XpertTemplateWorkspaceInitializer,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [XpertService, XpertPrincipalService, PublishedXpertAccessService]
+    exports: [XpertService, XpertPrincipalService, PublishedXpertAccessService, XpertTemplateWorkspaceInitializer]
 })
 export class XpertModule {}

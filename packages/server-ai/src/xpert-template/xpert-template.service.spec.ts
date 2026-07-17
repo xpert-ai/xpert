@@ -579,6 +579,13 @@ describe('XpertTemplateService', () => {
                                 category: 'Plugin',
                                 type: XpertTypeEnum.Agent,
                                 dslContent: 'team:\n  name: Plugin Business\n',
+                                promptWorkflows: [
+                                    {
+                                        name: 'presentation-create',
+                                        template: 'Create a presentation from {{args}}.',
+                                        visibility: 'team'
+                                    }
+                                ],
                                 order: 1
                             }
                         ]
@@ -609,7 +616,14 @@ describe('XpertTemplateService', () => {
             type: XpertTypeEnum.Agent,
             source: 'plugin',
             pluginDisplayName: 'Demo Plugin',
-            export_data: 'team:\n  name: Plugin Business'
+            export_data: 'team:\n  name: Plugin Business',
+            promptWorkflows: [
+                {
+                    name: 'presentation-create',
+                    template: 'Create a presentation from {{args}}.',
+                    visibility: 'team'
+                }
+            ]
         })
         expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')
     })

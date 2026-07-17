@@ -10,7 +10,8 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindOptionsWhere, IsNull, Repository } from 'typeorm'
+import { RequestContext } from '@xpert-ai/server-core'
+import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
 import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Xpert } from '../xpert/xpert.entity'
 import { PromptWorkflow } from './prompt-workflow.entity'
@@ -43,6 +44,11 @@ export type PromptWorkflowKeyMutationResult = {
 	workflow: PromptWorkflow
 }
 
+export type PromptWorkflowDefaultsInitializationResult = {
+	created: PromptWorkflow[]
+	skipped: string[]
+}
+
 @Injectable()
 export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkflow> {
 	constructor(
@@ -60,6 +66,50 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
 		return this.create({
 			...workflow,
 			workspaceId
+		})
+	}
+
+	async initializeDefaultsInWorkspace(
+		workspaceId: string,
+		inputs: TPromptWorkflow[]
+	): Promise<PromptWorkflowDefaultsInitializationResult> {
+		if (!inputs.length) {
+			return { created: [], skipped: [] }
+		}
+
+		const { workspace } = await this.assertWorkspaceWriteAccess(workspaceId)
+		const workflows = inputs.map((input) => this.normalizePromptWorkflowInput(input))
+		const names = workflows.map(({ name }) => name)
+		if (new Set(names).size !== names.length) {
+			throw new BadRequestException('Template prompt workflow names must be unique')
+		}
+		const userId = RequestContext.currentUserId()
+
+		return this.repository.manager.transaction(async (manager) => {
+			const repository = manager.getRepository(PromptWorkflow)
+			const existing = await repository.find({
+				where: {
+					workspaceId: workspace.id,
+					name: In(names)
+				} as FindOptionsWhere<PromptWorkflow>
+			})
+			const existingNames = new Set(existing.map(({ name }) => name))
+			const missing = workflows.filter(({ name }) => !existingNames.has(name))
+			const entities = missing.map((workflow) =>
+				repository.create({
+					...workflow,
+					workspaceId: workspace.id,
+					tenantId: workspace.tenantId,
+					organizationId: workspace.organizationId ?? null,
+					...(userId ? { createdById: userId, updatedById: userId } : {})
+				})
+			)
+			const created = entities.length ? await repository.save(entities) : []
+
+			return {
+				created,
+				skipped: names.filter((name) => existingNames.has(name))
+			}
 		})
 	}
 

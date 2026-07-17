@@ -16,6 +16,8 @@ import { XpertController } from './xpert.controller'
 import type { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import type { XpertPrincipalService } from './xpert-principal.service'
 import type { XpertService } from './xpert.service'
+import type { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
+import type { XpertDraftDslDTO } from './dto'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -80,6 +82,10 @@ jest.mock('./xpert-frequent-questions.service', () => ({
 
 jest.mock('./xpert-principal.service', () => ({
     XpertPrincipalService: class {}
+}))
+
+jest.mock('./template-workspace-initializer.service', () => ({
+    XpertTemplateWorkspaceInitializer: class {}
 }))
 
 jest.mock('../copilot-store/copilot-store.service', () => ({
@@ -178,6 +184,9 @@ describe('XpertController', () => {
     let xpertPrincipalService: {
         ensurePrincipalUser: jest.Mock
     }
+    let templateWorkspaceInitializer: {
+        initializeByTemplateId: jest.Mock
+    }
     let commandBus: {
         execute: jest.Mock
     }
@@ -211,6 +220,13 @@ describe('XpertController', () => {
         xpertPrincipalService = {
             ensurePrincipalUser: jest.fn()
         }
+        templateWorkspaceInitializer = {
+            initializeByTemplateId: jest.fn(async () => ({
+                status: 'initialized',
+                created: [],
+                skipped: []
+            }))
+        }
         commandBus = {
             execute: jest.fn()
         }
@@ -232,6 +248,7 @@ describe('XpertController', () => {
             agentChatRealtime as unknown as AgentChatRealtimeService,
             xpertPrincipalService as unknown as XpertPrincipalService,
             {} as unknown as XpertFrequentQuestionsService,
+            templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )
@@ -248,6 +265,44 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('initializes workspace prompt workflows after importing a trusted template', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            workspaceId: 'workspace-1'
+        }
+        commandBus.execute.mockResolvedValue(xpert)
+
+        await expect(
+            controller.importDSL(
+                { team: { name: 'presentation-assistant' } } as XpertDraftDslDTO,
+                '  @xpert-ai/plugin-presentation-studio:presentation-studio-assistant  ',
+                LanguagesEnum.English
+            )
+        ).resolves.toEqual(xpert)
+        expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledWith(
+            '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
+            'workspace-1',
+            LanguagesEnum.English
+        )
+    })
+
+    it('keeps plain DSL imports unchanged when no template id is provided', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            workspaceId: 'workspace-1'
+        }
+        commandBus.execute.mockResolvedValue(xpert)
+
+        await expect(
+            controller.importDSL(
+                { team: { name: 'plain-assistant' } } as XpertDraftDslDTO,
+                undefined,
+                LanguagesEnum.English
+            )
+        ).resolves.toEqual(xpert)
+        expect(templateWorkspaceInitializer.initializeByTemplateId).not.toHaveBeenCalled()
     })
 
     it('initializes the xpert principal user when enabling Chat API', async () => {
