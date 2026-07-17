@@ -150,4 +150,23 @@ export class PluginIntegrationPermissionService implements IntegrationPermission
 			return { items: [], total: 0 }
 		}
 	}
+
+	async findAllWithInheritance<TIntegration = IIntegration>(
+		options?: FindManyOptions<Integration>
+	): Promise<IPagination<TIntegration>> {
+		const integrationService = this.resolveIntegrationService()
+		if (!integrationService) {
+			return { items: [], total: 0 }
+		}
+
+		try {
+			const result = await integrationService.findAllInOrganizationOrTenant(options)
+			return {
+				items: (result?.items ?? []) as TIntegration[],
+				total: result?.total ?? 0
+			}
+		} catch {
+			return { items: [], total: 0 }
+		}
+	}
 }

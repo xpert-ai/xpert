@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import type {
-  ConnectorDefinition,
+  ConnectorConnectRequest,
+  ConnectorConnectResponse,
   ConnectorInstance,
   ConnectorOAuthStatusResponse,
-  ConnectorOAuthStartRequest,
-  ConnectorOAuthStartResponse,
-  ConnectorSelectOption
+  ConnectorSelectOption,
+  ConnectorStrategyDefinition
 } from '@xpert-ai/plugin-sdk'
 import { API_CONNECTOR } from '../constants/app.constants'
 
@@ -19,7 +19,7 @@ export class XpertConnectorService {
   }
 
   definitions(workspaceId: string) {
-    return this.#http.get<ConnectorDefinition[]>(`${API_CONNECTOR}/${workspaceId}/definitions`)
+    return this.#http.get<ConnectorStrategyDefinition[]>(`${API_CONNECTOR}/${workspaceId}/definitions`)
   }
 
   selectOptions(workspaceId: string, provider: string) {
@@ -28,11 +28,8 @@ export class XpertConnectorService {
     })
   }
 
-  connect(workspaceId: string, provider: string, input: ConnectorOAuthStartRequest) {
-    return this.#http.post<ConnectorOAuthStartResponse>(
-      `${API_CONNECTOR}/${workspaceId}/${provider}/connect`,
-      input
-    )
+  connect(workspaceId: string, provider: string, input: ConnectorConnectRequest) {
+    return this.#http.post<ConnectorConnectResponse>(`${API_CONNECTOR}/${workspaceId}/${provider}/connect`, input)
   }
 
   pollAuthorization(workspaceId: string, connectorId: string) {
