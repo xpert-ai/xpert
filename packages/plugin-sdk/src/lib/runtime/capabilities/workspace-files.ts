@@ -179,6 +179,12 @@ export interface WorkspaceFilesApi {
   /** Register an existing workspace file with the platform understanding pipeline. */
   understandFile(input: WorkspaceUnderstandFileInput): Promise<WorkspaceUnderstoodFile>
 
+  /**
+   * Resolve metadata and an openable URL for an explicitly scoped workspace
+   * file without reading its bytes into the API process.
+   */
+  resolveFile(input: WorkspaceFileReference): Promise<WorkspaceFile>
+
   /** Read raw bytes from an explicitly scoped workspace file reference. */
   readBuffer(input: WorkspaceFileReference): Promise<WorkspaceFileBuffer>
 
@@ -209,5 +215,5 @@ export interface WorkspaceFilesApi {
 }
 
 export const WorkspaceFilesRuntimeCapability = createRuntimeCapability<WorkspaceFilesApi>('platform.workspace.files', {
-  description: 'Upload, understand, read, and delete raw files in Xpert workspace volumes.'
+  description: 'Upload, understand, resolve, read, and delete raw files in Xpert workspace volumes.'
 })
