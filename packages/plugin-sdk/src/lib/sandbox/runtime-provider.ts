@@ -2,6 +2,17 @@
 export type SandboxRuntimeExecutionOptions = {
   timeoutMs?: number
   maxOutputBytes?: number
+  /**
+   * Streams normalized process output to Core while execution is active.
+   * Providers must treat observers as best-effort and must not let them fail the Runtime.
+   */
+  onOutput?: (output: SandboxRuntimeOutputChunk) => void
+}
+
+/** One provider-neutral stdout/stderr chunk observed during Runtime execution. */
+export type SandboxRuntimeOutputChunk = {
+  stream: 'stdout' | 'stderr'
+  text: string
 }
 
 /** Provider-observed reason why a Runtime execution stopped without a normal exit. */

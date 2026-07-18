@@ -7,12 +7,14 @@ import JSZip from 'jszip'
 import pdfParse from 'pdf-parse'
 import { In, LessThan, Repository } from 'typeorm'
 import {
+    SANDBOX_JOB_PROGRESS_PREFIX,
     SandboxJobRuntimeError,
     SandboxRuntimeProviderRegistry,
     type SandboxJobErrorCode,
     type SandboxJobFileInput,
     type SandboxJobOutput,
     type SandboxJobOutputRequest,
+    type SandboxJobProgress,
     type SandboxJobActionHealth,
     type SandboxJobRunInput,
     type SandboxJobRunResult,
@@ -29,6 +31,11 @@ import { VOLUME_CLIENT, VolumeClient } from '../../shared/volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { SandboxJobCapacityService, type SandboxJobCapacityLease } from './sandbox-job-capacity.service'
 import { SandboxJobEntity } from './sandbox-job.entity'
+import {
+    lifecycleSandboxJobProgress,
+    SandboxJobProgressDecoder,
+    timestampSandboxJobProgress
+} from './sandbox-job-progress'
 import { RegisteredSandboxAction, SandboxActionRegistry } from './sandbox-action.registry'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 import {
@@ -129,6 +136,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         const active = this.active.get(input.jobId)
         if (active?.runtime.terminate) await Promise.resolve(active.runtime.terminate()).catch(() => undefined)
         job.status = 'cancelled'
+        job.progress = lifecycleSandboxJobProgress(job.progress, 'cancelled')
         job.errorCode = 'SANDBOX_CANCELLED'
         job.errorMessage = 'Sandbox job was cancelled.'
         job.finishedAt = new Date()
@@ -277,6 +285,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         job.runtimeArtifactDigest =
             artifactDigest(resolution.binding.artifact.reference, resolution.binding.artifact.digest) ?? null
         job.status = 'waiting'
+        job.progress = lifecycleSandboxJobProgress(null, 'waiting')
         job.attempt = (existing?.attempt ?? 0) + 1
         job.runtimeRef = null
         job.containerRef = null
@@ -306,7 +315,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         const jobId = job.id as string
         let lastCapacityMessage: string | null = null
         let nextHeartbeatAt = 0
-        while (true) {
+        for (;;) {
             const current = await this.repository.findOne({ where: { id: jobId } })
             if (!current || current.status === 'cancelled') {
                 throw new SandboxJobRuntimeError(
@@ -362,6 +371,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         let runtime: SandboxRuntimeInstance | undefined
         try {
             job.status = 'starting'
+            job.progress = lifecycleSandboxJobProgress(job.progress, 'starting')
             job.startedAt = new Date()
             job.hardDeadlineAt = new Date(Date.now() + definition.hardDeadlineMs)
             job.errorCode = null
@@ -386,18 +396,35 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             job.runtimeRef = runtime.id
             job.cleanupPending = true
             job.status = 'running'
+            job.progress = lifecycleSandboxJobProgress(job.progress, 'running')
             await this.repository.save(job)
 
-            await this.materializeAction(runtime, runtime.workspaceRoot, action)
-            await this.materializeInputs(runtime, runtime.workspaceRoot, input, action, definition)
+            const materializedAction = await this.materializeAction(runtime, runtime.workspaceRoot, action, definition)
+            await this.materializeInputs(runtime, runtime.workspaceRoot, input, materializedAction, definition)
             const timeoutMs = Math.min(
                 normalizeTimeout(input.timeoutMs, definition.timeoutMs),
                 definition.hardDeadlineMs
             )
+            const progressDecoder = new SandboxJobProgressDecoder()
+            let progressWrites = Promise.resolve()
+            const scheduleProgress = (progress: SandboxJobProgress) => {
+                const persisted = timestampSandboxJobProgress(progress)
+                progressWrites = progressWrites
+                    .then(async () => {
+                        job.progress = persisted
+                        await this.repository.update({ id: jobId, status: 'running' }, { progress: persisted })
+                    })
+                    .catch((error) => {
+                        this.logger.warn(`Failed to persist sandbox job progress ${jobId}: ${messageOf(error)}`)
+                    })
+            }
             const response = await runtime.execute(buildRunnerCommand(definition, runtime.workspaceRoot), {
                 timeoutMs,
-                maxOutputBytes: 4 * 1024 * 1024
+                maxOutputBytes: 4 * 1024 * 1024,
+                onOutput: (output) => progressDecoder.push(output).forEach(scheduleProgress)
             })
+            progressDecoder.flush().forEach(scheduleProgress)
+            await progressWrites
             if (response.timedOut) {
                 throw new SandboxJobRuntimeError(
                     'EXPORT_TIMEOUT',
@@ -430,6 +457,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             const outputs = await this.collectOutputs(runtime, runtime.workspaceRoot, input.outputs)
             job.outputs = outputs
             job.status = 'succeeded'
+            job.progress = lifecycleSandboxJobProgress(job.progress, 'complete', 1)
             job.errorCode = null
             job.errorMessage = null
             job.finishedAt = new Date()
@@ -451,6 +479,10 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 throw runtimeError
             }
             job.status = runtimeError.code === 'SANDBOX_CANCELLED' ? 'cancelled' : 'failed'
+            job.progress = lifecycleSandboxJobProgress(
+                job.progress,
+                runtimeError.code === 'SANDBOX_CANCELLED' ? 'cancelled' : 'failed'
+            )
             job.errorCode = runtimeError.code
             job.errorMessage = runtimeError.message
             job.finishedAt = new Date()
@@ -588,23 +620,50 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
     private async materializeAction(
         backend: SandboxRuntimeInstance,
         workspaceRoot: string,
-        action: RegisteredSandboxAction
-    ): Promise<void> {
+        action: RegisteredSandboxAction,
+        definition: SandboxRuntimeDefinition
+    ): Promise<RegisteredSandboxAction> {
         const uploads: Array<[string, Uint8Array]> = []
-        const bundle = await this.actions.getCachedBundle(action).catch((error) => {
-            throw new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', messageOf(error), false)
-        })
+        let materializedAction = action
+        let bundle: Awaited<ReturnType<SandboxActionRegistry['getCachedBundle']>>
+        try {
+            bundle = await this.actions.getCachedBundle(materializedAction)
+        } catch (initialError) {
+            // A local plugin refresh replaces its immutable runtime directory. The
+            // registry evicts the stale absolute paths after the failed read, so
+            // resolve the trusted Action identity once more and finish this Job
+            // against the replacement bundle instead of failing the first export.
+            this.logger.warn(
+                `Sandbox Action ${action.pluginName}:${action.name}@${action.version} changed during materialization; resolving the current bundle and retrying once: ${messageOf(initialError)}`
+            )
+            try {
+                const refreshedAction = await this.actions.get({
+                    pluginName: action.pluginName,
+                    action: action.name,
+                    actionVersion: action.version
+                })
+                if (!refreshedAction) throw initialError
+                const compatibility = actionCompatibilityError(refreshedAction, definition)
+                if (compatibility) throw new Error(compatibility)
+                materializedAction = refreshedAction
+                bundle = await this.actions.getCachedBundle(materializedAction)
+            } catch (retryError) {
+                throw new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', messageOf(retryError), false)
+            }
+        }
         for (const file of bundle) {
             uploads.push([runtimePath(workspaceRoot, 'action', file.relativePath), file.content])
         }
         const actionManifest = Buffer.from(
             JSON.stringify({
-                name: action.name,
-                version: action.version,
-                runtimeContractVersion: action.runtimeContractVersion,
-                ...(action.playwrightVersion ? { playwrightVersion: action.playwrightVersion } : {}),
-                entrypoint: action.entrypoint,
-                bundleSha256: action.bundleSha256
+                name: materializedAction.name,
+                version: materializedAction.version,
+                runtimeContractVersion: materializedAction.runtimeContractVersion,
+                ...(materializedAction.playwrightVersion
+                    ? { playwrightVersion: materializedAction.playwrightVersion }
+                    : {}),
+                entrypoint: materializedAction.entrypoint,
+                bundleSha256: materializedAction.bundleSha256
             })
         )
         uploads.unshift([runtimePath(workspaceRoot, '', 'action-manifest.json'), actionManifest])
@@ -617,6 +676,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 false
             )
         }
+        return materializedAction
     }
 
     private async collectOutputs(
@@ -779,6 +839,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         })
         for (const job of expired) {
             job.status = 'lost'
+            job.progress = lifecycleSandboxJobProgress(job.progress, 'lost')
             job.errorCode = 'SANDBOX_START_FAILED'
             job.errorMessage = 'Sandbox job exceeded its hard deadline and was reclaimed.'
             job.finishedAt = new Date()
@@ -806,6 +867,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             action: job.action,
             actionVersion: job.actionVersion,
             status: job.status,
+            progress: job.progress,
             attempt: job.attempt,
             provider: job.provider,
             runtimeBindingId: job.runtimeBindingId,
@@ -972,22 +1034,25 @@ function portableReference(
     }
 }
 
-function classifyRunnerFailure(output: string, jobId: string): SandboxJobRuntimeError {
+export function classifyRunnerFailure(output: string, jobId: string): SandboxJobRuntimeError {
     const normalized = output.toUpperCase()
     if (normalized.includes('SANDBOX_ACTION_INVALID')) {
         return new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }
-    if (normalized.includes('BROWSER_LAUNCH_FAILED') || normalized.includes('CHROMIUM')) {
-        return new SandboxJobRuntimeError('BROWSER_LAUNCH_FAILED', truncateSandboxRunnerOutput(output), true, jobId)
-    }
-    if (normalized.includes('ENOMEM') || normalized.includes('OUT OF MEMORY') || normalized.includes('OOM')) {
-        return new SandboxJobRuntimeError('EXPORT_OOM', truncateSandboxRunnerOutput(output), true, jobId)
+    if (normalized.includes('EXPORT_MEDIA_FAILED')) {
+        return new SandboxJobRuntimeError('EXPORT_MEDIA_FAILED', truncateSandboxRunnerOutput(output), false, jobId)
     }
     if (normalized.includes('EXPORT_OUTPUT_INVALID')) {
         return new SandboxJobRuntimeError('EXPORT_OUTPUT_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }
     if (normalized.includes('EXPORT_INPUT_INVALID') || normalized.includes('GOAL SPEC VALIDATION FAILED')) {
         return new SandboxJobRuntimeError('EXPORT_INPUT_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
+    }
+    if (normalized.includes('BROWSER_LAUNCH_FAILED') || normalized.includes('CHROMIUM')) {
+        return new SandboxJobRuntimeError('BROWSER_LAUNCH_FAILED', truncateSandboxRunnerOutput(output), true, jobId)
+    }
+    if (normalized.includes('ENOMEM') || normalized.includes('OUT OF MEMORY') || normalized.includes('OOM')) {
+        return new SandboxJobRuntimeError('EXPORT_OOM', truncateSandboxRunnerOutput(output), true, jobId)
     }
     return new SandboxJobRuntimeError(
         'SANDBOX_START_FAILED',
@@ -1028,7 +1093,7 @@ function messageOf(error: unknown): string {
 }
 
 export function truncateSandboxRunnerOutput(value: string): string {
-    const normalized = value.trim()
+    const normalized = withoutSandboxProgress(value).trim()
     const limit = 4_000
     if (normalized.length <= limit) return normalized
 
@@ -1036,6 +1101,17 @@ export function truncateSandboxRunnerOutput(value: string): string {
     const available = limit - marker.length
     const headLength = Math.floor(available * 0.45)
     return `${normalized.slice(0, headLength)}${marker}${normalized.slice(-(available - headLength))}`
+}
+
+function withoutSandboxProgress(value: string): string {
+    return value
+        .split(/\r?\n/)
+        .map((line) => {
+            const marker = line.indexOf(SANDBOX_JOB_PROGRESS_PREFIX)
+            return marker < 0 ? line : line.slice(0, marker).trimEnd()
+        })
+        .filter(Boolean)
+        .join('\n')
 }
 
 function wait(milliseconds: number): Promise<void> {

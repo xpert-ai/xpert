@@ -262,17 +262,23 @@ class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
             let output = ''
             let truncated = false
             let timedOut = false
-            const append = (chunk: Buffer | string) => {
+            const append = (stream: 'stdout' | 'stderr', chunk: Buffer | string) => {
+                const text = String(chunk)
                 const next = `${output}${String(chunk)}`
                 if (Buffer.byteLength(next) <= maxOutputBytes) {
                     output = next
-                    return
+                } else {
+                    truncated = true
+                    output = Buffer.from(next).subarray(-maxOutputBytes).toString()
                 }
-                truncated = true
-                output = Buffer.from(next).subarray(-maxOutputBytes).toString()
+                try {
+                    options.onOutput?.({ stream, text })
+                } catch {
+                    // Output observers are diagnostic and must never fail execution.
+                }
             }
-            child.stdout.on('data', append)
-            child.stderr.on('data', append)
+            child.stdout.on('data', (chunk: Buffer) => append('stdout', chunk))
+            child.stderr.on('data', (chunk: Buffer) => append('stderr', chunk))
             const timeout = setTimeout(() => {
                 timedOut = true
                 this.killActiveChild()

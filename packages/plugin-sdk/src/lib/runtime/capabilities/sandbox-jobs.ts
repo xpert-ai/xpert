@@ -14,6 +14,7 @@ export const SANDBOX_JOB_ERROR_CODES = [
   'BROWSER_LAUNCH_FAILED',
   'EXPORT_TIMEOUT',
   'EXPORT_OOM',
+  'EXPORT_MEDIA_FAILED',
   'EXPORT_INPUT_INVALID',
   'EXPORT_OUTPUT_INVALID',
   'SANDBOX_CANCELLED'
@@ -22,6 +23,25 @@ export const SANDBOX_JOB_ERROR_CODES = [
 export type SandboxJobErrorCode = (typeof SANDBOX_JOB_ERROR_CODES)[number]
 /** Persisted lifecycle states for a generic isolated background execution. */
 export type SandboxJobStatus = 'waiting' | 'starting' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'lost'
+
+/** Line prefix used by trusted Actions to report structured, provider-neutral progress. */
+export const SANDBOX_JOB_PROGRESS_PREFIX = 'XPERT_SANDBOX_PROGRESS '
+
+/** Latest structured progress reported by a Sandbox Action or Core lifecycle stage. */
+export type SandboxJobProgress = {
+  /** Normalized completion ratio from 0 through 1. */
+  progress: number
+  /** Stable machine-readable stage such as `rendering`, `packaging`, or `complete`. */
+  stage?: string
+  /** Optional bounded diagnostic intended for operational UIs and logs. */
+  message?: string
+  /** Optional current work unit, for example the rendered frame number. */
+  current?: number
+  /** Optional total work units corresponding to `current`. */
+  total?: number
+  /** Platform timestamp of the latest accepted update. */
+  updatedAt?: Date | string | null
+}
 
 /** Portable Workspace Files input materialized under `/workspace/input`. */
 export type SandboxJobFileInput = {
@@ -99,6 +119,8 @@ export type SandboxJobSnapshot = {
   action: string
   actionVersion: string
   status: SandboxJobStatus
+  /** Latest persisted Action/Core progress, available while a Job is running and after reload. */
+  progress?: SandboxJobProgress | null
   /** Attempt number; a new failed-job attempt may select a newly healthy Binding. */
   attempt: number
   /** Provider and Binding are persisted so cleanup never depends on current selection. */

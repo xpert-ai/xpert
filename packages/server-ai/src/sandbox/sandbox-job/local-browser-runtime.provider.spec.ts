@@ -130,6 +130,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 const outputIndex = process.argv.indexOf('--output')
 const output = process.argv[outputIndex + 1]
+process.stdout.write('XPERT_SANDBOX_PROGRESS {"progress":0.5,"stage":"rendering"}\\n')
 await mkdir(output, { recursive: true })
 await writeFile(path.join(output, 'result.txt'), 'runner-ok')
 `
@@ -155,6 +156,7 @@ await writeFile(path.join(output, 'result.txt'), 'runner-ok')
             expect.objectContaining({ error: null })
         ])
 
+        const streamed: string[] = []
         await expect(
             runtime.execute(
                 [
@@ -168,9 +170,10 @@ await writeFile(path.join(output, 'result.txt'), 'runner-ok')
                     '--action-manifest',
                     path.join(runtime.workspaceRoot, 'runtime', 'action-manifest.json')
                 ],
-                { timeoutMs: 10_000 }
+                { timeoutMs: 10_000, onOutput: (output) => streamed.push(output.text) }
             )
         ).resolves.toMatchObject({ exitCode: 0 })
+        expect(streamed.join('')).toContain('XPERT_SANDBOX_PROGRESS {"progress":0.5,"stage":"rendering"}')
         await expect(runtime.downloadFiles(['output/result.txt'])).resolves.toEqual([
             { path: 'output/result.txt', content: Buffer.from('runner-ok'), error: null }
         ])

@@ -154,9 +154,11 @@ function execute(command, args, cwd) {
     let output = ''
     child.stdout.on('data', (chunk) => {
       output = appendOutput(output, chunk)
+      process.stdout.write(chunk)
     })
     child.stderr.on('data', (chunk) => {
       output = appendOutput(output, chunk)
+      process.stderr.write(chunk)
     })
     child.once('error', reject)
     child.once('exit', (code, signal) => {
@@ -187,6 +189,7 @@ function classify(message) {
   const normalized = message.toUpperCase()
   if (normalized.includes('SANDBOX_ACTION_INVALID')) return 'SANDBOX_ACTION_INVALID'
   if (normalized.includes('EXPORT_OUTPUT_INVALID')) return 'EXPORT_OUTPUT_INVALID'
+  if (normalized.includes('EXPORT_MEDIA_FAILED')) return 'EXPORT_MEDIA_FAILED'
   if (normalized.includes('EXPORT_INPUT_INVALID')) return 'EXPORT_INPUT_INVALID'
   if (normalized.includes('BROWSER') || normalized.includes('CHROMIUM') || normalized.includes('PLAYWRIGHT'))
     return 'BROWSER_LAUNCH_FAILED'
