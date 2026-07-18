@@ -131,6 +131,7 @@ export class CloudSidebarAssistantsComponent {
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
+  readonly selectedWorkspace = toSignal(this.#store.selectedWorkspace$, { initialValue: null })
   readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
     initialValue: this.#store.featureContextHydrated
   })
@@ -421,6 +422,13 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
   }
 
+  openCreateDigitalExpert(event: Event) {
+    event.stopPropagation()
+    const workspaceId = this.selectedWorkspace()?.id?.trim()
+
+    void this.#router.navigate(workspaceId ? ['/xpert/w', workspaceId, 'xperts'] : ['/xpert/w'])
+  }
+
   isActive(xpert: IXpert) {
     return isAssistantRouteActive(this.currentUrl(), xpert)
   }
@@ -445,6 +453,10 @@ export class CloudSidebarAssistantsComponent {
     }
 
     return !xpert.workspaceId
+  }
+
+  canCreateDigitalExpert() {
+    return this.hasXpertEditPermission()
   }
 
   clawXpertLabel() {

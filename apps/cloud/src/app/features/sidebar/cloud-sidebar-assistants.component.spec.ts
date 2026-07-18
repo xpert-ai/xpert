@@ -2,7 +2,7 @@ import { Component, signal, type WritableSignal } from '@angular/core'
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { of, Subject } from 'rxjs'
+import { Observable, of, Subject } from 'rxjs'
 import { AiFeatureEnum, AssistantBindingService, ChatConversationService, ScopeService, Store } from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import {
@@ -257,6 +257,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     userId: string
     organizationId: string | null
     selectOrganizationId: jest.Mock
+    selectedWorkspace$: Observable<{ id: string } | null>
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
@@ -323,6 +324,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       selectOrganizationId: jest.fn(() => of('org-1')),
+      selectedWorkspace$: of({ id: 'workspace-1' }),
       featureContextHydrated$: of(true),
       featureContextHydrated: true,
       hasFeatureEnabled: jest.fn((feature: string) =>
@@ -909,6 +911,33 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantSettingsButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
+  })
+
+  it('routes the create shortcut to the selected workspace digital experts page', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const createButton = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')
+
+    expect(createButton).not.toBeNull()
+    createButton.click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/w', 'workspace-1', 'xperts'])
+  })
+
+  it('hides the create shortcut without xpert edit permission', async () => {
+    store.hasPermission.mockReturnValue(false)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')).toBeNull()
   })
 
   it('hides assistant settings when the current user cannot edit the xpert workspace', async () => {

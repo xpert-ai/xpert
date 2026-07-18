@@ -1981,6 +1981,7 @@
     },
     "Xpert": {
       "Xpert": "Xpert",
+      "CreateDigitalExpert": "Create digital expert",
       "CreateXpertFromTemplate": "Create a digital expert from template {{value}}",
       "SelectAWorkspace": "Select a workspace",
       "HowtoCreate": "How to create",
