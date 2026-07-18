@@ -75,6 +75,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         return {
             uploadBuffer: (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
             understandFile: (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
+            resolveFile: (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
             readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
             deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
             resolveRuntimeReference: (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
@@ -216,6 +217,29 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             catalog,
             scopeId,
             buffer
+        }
+    }
+
+    /**
+     * Resolve one workspace file for browser preview or download without
+     * loading the file bytes into the API process.
+     */
+    async resolveFile(input: WorkspaceFileReference): Promise<WorkspaceFile> {
+        const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
+        const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
+        const volume = this.volumeClient.resolve(volumeScope)
+        const source = await this.resolveReadOnlyFileSource(input)
+        const fileUrl = volume.publicUrl(filePath)
+
+        return {
+            name: filePath.split('/').filter(Boolean).pop() ?? filePath,
+            filePath,
+            workspacePath: filePath,
+            fileUrl,
+            url: fileUrl,
+            size: source.size,
+            catalog,
+            scopeId
         }
     }
 
