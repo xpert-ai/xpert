@@ -28,7 +28,8 @@ for (const entry of catalog.images) {
     if (typeof reference !== 'string' || !/@sha256:[a-f0-9]{64}$/i.test(reference))
       fail(`${entry.family} base images must be digest pinned.`)
   }
-  const runner = await readFile(path.join(packageRoot, 'images', entry.family, 'runtime', 'runner-host.mjs'))
+  const runnerPath = image.runner ?? path.join('images', entry.family, 'runtime', 'runner-host.mjs')
+  const runner = await readFile(path.join(packageRoot, runnerPath))
   const runnerSha256 = createHash('sha256').update(runner).digest('hex')
   const manifest = await readJson(image.manifest)
   const runtimeDefinition = await readJson(image.runtimeDefinition)
@@ -49,7 +50,7 @@ for (const entry of catalog.images) {
     )
   if ('provider' in runtimeDefinition || 'image' in runtimeDefinition)
     fail(`${entry.family} Runtime Definition must be provider-neutral.`)
-  if (JSON.stringify({ image, manifest, runtimeDefinition }).toLowerCase().includes('presentation'))
+  if (/presentation|motion|hyperframes/i.test(JSON.stringify({ image, manifest, runtimeDefinition })))
     fail(`${entry.family} runtime contains plugin-specific identifiers.`)
   runtimeDefinitions.push(runtimeDefinition)
   matrix.push({ family: entry.family, definition: entry.definition, version: packageJson.version })

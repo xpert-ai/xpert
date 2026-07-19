@@ -1,10 +1,11 @@
 {
   "sandboxRuntimeVersion": "1.0.0",
-  "imageFamily": "browser",
-  "profileName": "browser/playwright-1.61/v1",
+  "imageFamily": "browser-video",
+  "profileName": "browser/video-playwright-1.61/v1",
   "contractVersion": "1",
-  "nodeVersion": "20.20.2",
+  "nodeVersion": "22.17.1",
   "playwrightVersion": "1.61.0",
   "browserRevision": "1228",
+  "ffmpegVersion": "6.1",
   "runnerHostSha256": "20311f24de4b8800e282eaafb29a3e08a0b5551728f59d555a55ebdd009b5310"
 }

@@ -17,7 +17,8 @@ for (const entry of catalog.images) {
   imageLock.version = suite.version
   if (imageLock.packages?.['']) imageLock.packages[''].version = suite.version
   await writeJson(imageLockPath, imageLock)
-  const runner = await readFile(path.join(packageRoot, 'images', entry.family, 'runtime', 'runner-host.mjs'))
+  const runnerPath = image.runner ?? path.join('images', entry.family, 'runtime', 'runner-host.mjs')
+  const runner = await readFile(path.join(packageRoot, runnerPath))
   const runnerHostSha256 = createHash('sha256').update(runner).digest('hex')
   const manifest = await readJson(image.manifest)
   manifest.sandboxRuntimeVersion = suite.version

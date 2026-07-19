@@ -2,7 +2,7 @@
 
 This private package is the single source of truth for Xpert Sandbox OCI images, local Runtime assets, immutable Runtime Artifact catalogs, build metadata, and smoke tests. Provider-neutral Runtime Definitions are embedded in OSS Core so production API processes can perform capability discovery without installing this package. Runtime Suite tooling consumes those Definitions when validating images and producing release catalogs.
 
-The first image family is the Browser Runtime profile `browser/playwright-1.61/v1`. It supplies Node.js 20.20.2, Playwright 1.61.0, matching Chromium, CJK/Emoji fonts, and a generic Runner Host. Plugins contribute versioned Sandbox Action Bundles; they never select an image or pass a command.
+The suite contains two provider-neutral profiles. `browser/playwright-1.61/v1` supplies Node.js 20.20.2 for general browser automation. `browser/video-playwright-1.61/v1` supplies Node.js 22.17.1, Playwright 1.61.0 with matching Chromium, FFmpeg 6.1, CJK/Emoji fonts, and larger media-oriented resource limits. Both use the same generic Runner Host. Plugins contribute versioned Sandbox Action Bundles; they never select an image or pass a command.
 
 ## Add an image family
 
@@ -17,6 +17,8 @@ corepack pnpm nx test sandbox-runtime
 node packages/sandbox-runtime/scripts/build-matrix.mjs
 docker build -f packages/sandbox-runtime/images/browser/Dockerfile -t xpert-sandbox-browser:local .
 node packages/sandbox-runtime/scripts/verify-image.mjs --family browser --image xpert-sandbox-browser:local
+docker build -f packages/sandbox-runtime/images/browser-video/Dockerfile -t xpert-sandbox-browser-video:local .
+node packages/sandbox-runtime/scripts/verify-image.mjs --family browser-video --image xpert-sandbox-browser-video:local
 ```
 
 The OSS Core always loads the Browser Runtime Definition, and the API consumes `sandbox-browser` at concurrency one. In `development` or `test`, it also registers the process-isolated `local-browser-runtime` Binding. No profile, image, `CHROME_PATH`, or feature switch is required. If the pinned Playwright browser is missing, health reports the `install:browser` command above. In production, this Binding is not registered and its methods fail closed; OSS correctly has no Browser Provider, while Pro registers its Docker Runtime Provider in the API process.

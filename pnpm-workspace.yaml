@@ -28,6 +28,7 @@ allowBuilds:
   cypress: true
   es5-ext: true
   esbuild: true
+  ffmpeg-ffprobe-static: true
   isolated-vm: true
   less: true
   lmdb: true

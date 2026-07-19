@@ -21,19 +21,45 @@ import {
     type SandboxRuntimeReadOnlyFile,
     type SandboxRuntimeTerminationReason
 } from '@xpert-ai/plugin-sdk'
-import { DEFAULT_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
+import { DEFAULT_BROWSER_RUNTIME_PROFILE, VIDEO_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
 
 export const LOCAL_BROWSER_RUNTIME_PROVIDER = 'local-browser-runtime'
 export const LOCAL_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-playwright-1.61-v1'
+export const LOCAL_VIDEO_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-video-playwright-1.61-v1'
 
-const LOCAL_RUNTIME_ARTIFACT = 'xpert-source://sandbox-runtime/browser-playwright-1.61-v1'
 const LOCAL_PROVIDER_VERSION = '1.0.0'
 const LOCAL_BINDING_PRIORITY = 10_000
 const HEALTH_TIMEOUT_MS = 15_000
 const HEALTH_CACHE_TTL_MS = 30_000
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
+const LOCAL_VIDEO_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:video'
 const execFileAsync = promisify(execFile)
+
+type LocalRuntimeConfiguration = {
+    bindingId: string
+    imageFamily: 'browser' | 'browser-video'
+    artifactReference: string
+    installCommand: string
+    requiresFfmpeg: boolean
+}
+
+const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfiguration>> = {
+    [DEFAULT_BROWSER_RUNTIME_PROFILE]: {
+        bindingId: LOCAL_BROWSER_RUNTIME_BINDING,
+        imageFamily: 'browser',
+        artifactReference: 'xpert-source://sandbox-runtime/browser-playwright-1.61-v1',
+        installCommand: LOCAL_BROWSER_INSTALL_COMMAND,
+        requiresFfmpeg: false
+    },
+    [VIDEO_BROWSER_RUNTIME_PROFILE]: {
+        bindingId: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
+        imageFamily: 'browser-video',
+        artifactReference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1',
+        installCommand: LOCAL_VIDEO_INSTALL_COMMAND,
+        requiresFfmpeg: true
+    }
+}
 
 /**
  * Development-only Browser Runtime backed by a child process on the Xpert host.
@@ -59,10 +85,12 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
     private readonly instances = new Map<string, LocalBrowserRuntimeInstance>()
     private healthCache?: { key: string; expiresAt: number; health: SandboxRuntimeBindingHealth }
 
-    /** Publishes one last-resort Binding only in explicit development/test mode. */
+    /** Publishes last-resort Bindings only in explicit development/test mode. */
     listBindings(): readonly SandboxRuntimeBinding[] {
         if (!isDevelopmentSandboxRuntimeEnvironment()) return []
-        return [localBrowserBinding()]
+        return Object.entries(LOCAL_RUNTIME_CONFIGURATIONS).map(([runtimeProfile, configuration]) =>
+            localBrowserBinding(runtimeProfile, configuration)
+        )
     }
 
     /** Verifies the pinned local Runner, Runtime manifest, and Playwright browser artifact. */
@@ -92,11 +120,12 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         definition: SandboxRuntimeCreateOptions['definition']
     ): Promise<SandboxRuntimeBindingHealth> {
         try {
-            const runtime = await resolveLocalRuntimeAssets()
-            const manifestResult = await runProcess(process.execPath, [runtime.runnerPath, '--manifest'], {
+            const runtime = await resolveLocalRuntimeAssets(definition)
+            const manifestResult = await runProcess(runtime.nodePath, [runtime.runnerPath, '--manifest'], {
                 timeoutMs: HEALTH_TIMEOUT_MS,
                 maxOutputBytes: 256 * 1024,
-                cwd: runtime.root
+                cwd: runtime.root,
+                env: runtime.environment
             })
             if (manifestResult.exitCode !== 0) {
                 return { available: false, reason: manifestResult.output || 'Local Runtime manifest probe failed.' }
@@ -105,15 +134,16 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             const mismatch = manifestMismatch(definition.expectedManifest, manifest)
             if (mismatch) return { available: false, reason: mismatch, manifest }
 
-            const browserResult = await runProcess(process.execPath, [runtime.runnerPath, '--browser-health'], {
+            const browserResult = await runProcess(runtime.nodePath, [runtime.runnerPath, '--browser-health'], {
                 timeoutMs: HEALTH_TIMEOUT_MS,
                 maxOutputBytes: 256 * 1024,
-                cwd: runtime.root
+                cwd: runtime.root,
+                env: runtime.environment
             })
             if (browserResult.exitCode !== 0) {
                 return {
                     available: false,
-                    reason: `${browserResult.output || 'Playwright Chromium is not installed.'} Run "${LOCAL_BROWSER_INSTALL_COMMAND}" from the Xpert repository.`
+                    reason: `${browserResult.output || 'Playwright Chromium is not installed.'} Run "${localRuntimeConfiguration(definition.name).installCommand}" from the Xpert repository.`
                 }
             }
             return { available: true, manifest }
@@ -132,7 +162,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         const existing = this.instances.get(runtimeId)
         if (existing) return existing
 
-        const assets = await resolveLocalRuntimeAssets()
+        const assets = await resolveLocalRuntimeAssets(options.definition)
         const workspaceRoot = path.resolve(options.volume.serverRoot)
         await mkdir(workspaceRoot, { recursive: true })
         await Promise.all(
@@ -147,6 +177,8 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             id: runtimeId,
             workspaceRoot: await realpath(workspaceRoot),
             runnerPath: assets.runnerPath,
+            nodePath: assets.nodePath,
+            environment: assets.environment,
             trustedCommand: options.definition.command,
             hardDeadlineMs: options.hardDeadlineMs
         })
@@ -213,6 +245,8 @@ type LocalBrowserRuntimeInstanceOptions = {
     id: string
     workspaceRoot: string
     runnerPath: string
+    nodePath: string
+    environment: NodeJS.ProcessEnv
     trustedCommand: readonly string[]
     hardDeadlineMs: number
 }
@@ -223,6 +257,8 @@ class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
     readonly workspaceRoot: string
 
     private readonly runnerPath: string
+    private readonly nodePath: string
+    private readonly environment: NodeJS.ProcessEnv
     private readonly trustedCommand: readonly string[]
     private readonly hardDeadlineTimer: ReturnType<typeof setTimeout>
     private activeChild?: ChildProcessWithoutNullStreams
@@ -232,6 +268,8 @@ class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
         this.id = options.id
         this.workspaceRoot = options.workspaceRoot
         this.runnerPath = options.runnerPath
+        this.nodePath = options.nodePath
+        this.environment = options.environment
         this.trustedCommand = options.trustedCommand
         this.hardDeadlineTimer = setTimeout(() => {
             this.terminationReason = 'deadline'
@@ -252,9 +290,9 @@ class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
         const maxOutputBytes = positiveInteger(options.maxOutputBytes, DEFAULT_OUTPUT_LIMIT)
 
         return new Promise<SandboxRuntimeExecuteResponse>((resolve, reject) => {
-            const child = spawn(process.execPath, [this.runnerPath, ...runnerArgs], {
+            const child = spawn(this.nodePath, [this.runnerPath, ...runnerArgs], {
                 cwd: this.workspaceRoot,
-                env: localRuntimeEnvironment(),
+                env: this.environment,
                 detached: process.platform !== 'win32',
                 stdio: ['ignore', 'pipe', 'pipe']
             })
@@ -369,27 +407,35 @@ class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
     }
 }
 
-function localBrowserBinding(): SandboxRuntimeBinding {
+function localBrowserBinding(runtimeProfile: string, configuration: LocalRuntimeConfiguration): SandboxRuntimeBinding {
     return {
-        id: LOCAL_BROWSER_RUNTIME_BINDING,
-        runtimeProfile: DEFAULT_BROWSER_RUNTIME_PROFILE,
+        id: configuration.bindingId,
+        runtimeProfile,
         provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
         priority: LOCAL_BINDING_PRIORITY,
         providerVersion: LOCAL_PROVIDER_VERSION,
-        artifact: { kind: 'filesystem', reference: LOCAL_RUNTIME_ARTIFACT },
+        artifact: { kind: 'filesystem', reference: configuration.artifactReference },
         developmentOnly: true
     }
 }
 
 function isLocalBinding(binding: SandboxRuntimeBinding, runtimeProfile: string): boolean {
+    const configuration = LOCAL_RUNTIME_CONFIGURATIONS[runtimeProfile]
+    if (!configuration) return false
     return (
-        binding.id === LOCAL_BROWSER_RUNTIME_BINDING &&
+        binding.id === configuration.bindingId &&
         binding.provider === LOCAL_BROWSER_RUNTIME_PROVIDER &&
         binding.runtimeProfile === runtimeProfile &&
         binding.artifact.kind === 'filesystem' &&
-        binding.artifact.reference === LOCAL_RUNTIME_ARTIFACT &&
+        binding.artifact.reference === configuration.artifactReference &&
         binding.developmentOnly === true
     )
+}
+
+function localRuntimeConfiguration(runtimeProfile: string): LocalRuntimeConfiguration {
+    const configuration = LOCAL_RUNTIME_CONFIGURATIONS[runtimeProfile]
+    if (!configuration) throw new Error(`Local Browser Runtime does not support profile ${runtimeProfile}.`)
+    return configuration
 }
 
 function requireDevelopmentRuntime(): void {
@@ -402,26 +448,99 @@ function localRuntimeId(jobId: string): string {
     return `${LOCAL_BROWSER_RUNTIME_PROVIDER}:${jobId}`
 }
 
-async function resolveLocalRuntimeAssets(): Promise<{ root: string; runnerPath: string }> {
-    const roots = [
-        path.resolve(process.cwd(), 'packages/sandbox-runtime/images/browser/runtime'),
-        path.resolve(__dirname, '../../../../sandbox-runtime/images/browser/runtime')
+type LocalRuntimeAssets = {
+    root: string
+    runnerPath: string
+    nodePath: string
+    environment: NodeJS.ProcessEnv
+}
+
+async function resolveLocalRuntimeAssets(
+    definition: SandboxRuntimeCreateOptions['definition']
+): Promise<LocalRuntimeAssets> {
+    const configuration = localRuntimeConfiguration(definition.name)
+    const packageRoots = [
+        path.resolve(process.cwd(), 'packages/sandbox-runtime'),
+        path.resolve(__dirname, '../../../../sandbox-runtime')
     ]
-    for (const root of roots) {
-        const runnerPath = path.join(root, 'runner-host.mjs')
+    for (const packageRoot of packageRoots) {
+        const root = path.join(packageRoot, 'images', configuration.imageFamily, 'runtime')
+        const runnerPath = path.join(packageRoot, 'images', 'browser', 'runtime', 'runner-host.mjs')
+        const manifestPath = path.join(root, 'manifest.json')
         try {
-            await Promise.all([
-                access(runnerPath, fsConstants.R_OK),
-                access(path.join(root, 'manifest.json'), fsConstants.R_OK)
-            ])
-            return { root, runnerPath }
+            await Promise.all([access(runnerPath, fsConstants.R_OK), access(manifestPath, fsConstants.R_OK)])
+            const nodePath = await resolveNodeExecutable(definition.expectedManifest.nodeVersion)
+            const environmentAdditions: NodeJS.ProcessEnv = {
+                XPERT_SANDBOX_RUNTIME_MANIFEST_PATH: manifestPath
+            }
+            if (configuration.requiresFfmpeg) {
+                const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
+                environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
+            }
+            return {
+                root,
+                runnerPath,
+                nodePath,
+                environment: localRuntimeEnvironment(environmentAdditions)
+            }
         } catch {
             // Try the next deterministic source-tree location.
         }
     }
     throw new Error(
-        'Local Browser Runtime assets were not found. Run Xpert from a source checkout containing packages/sandbox-runtime.'
+        `Local Browser Runtime assets for ${definition.name} were not found or are incomplete. Run "${configuration.installCommand}" from the Xpert repository.`
     )
+}
+
+async function resolveLocalFfmpeg(packageRoot: string): Promise<string> {
+    const candidates = [
+        path.join(packageRoot, 'node_modules', 'ffmpeg-ffprobe-static', 'ffmpeg'),
+        path.resolve(packageRoot, '../../node_modules/ffmpeg-ffprobe-static/ffmpeg')
+    ]
+    for (const candidate of candidates) {
+        try {
+            await access(candidate, fsConstants.X_OK)
+            return candidate
+        } catch {
+            // Try the next pnpm layout.
+        }
+    }
+    throw new Error(
+        `Local Browser Video Runtime FFmpeg is not installed. Run "${LOCAL_VIDEO_INSTALL_COMMAND}" from the Xpert repository.`
+    )
+}
+
+async function resolveNodeExecutable(expectedVersion: string | undefined): Promise<string> {
+    if (!expectedVersion) throw new Error('Local Browser Runtime Definition does not declare nodeVersion.')
+    const executableName = process.platform === 'win32' ? 'node.exe' : 'node'
+    const nvmRoot = process.env.NVM_DIR ?? (process.env.HOME ? path.join(process.env.HOME, '.nvm') : undefined)
+    const candidates = [
+        process.execPath,
+        ...(process.env.PATH ?? '').split(path.delimiter).map((directory) => path.join(directory, executableName)),
+        ...(nvmRoot ? [path.join(nvmRoot, 'versions', 'node', `v${expectedVersion}`, 'bin', executableName)] : []),
+        ...(process.env.HOME
+            ? [path.join(process.env.HOME, '.volta', 'tools', 'image', 'node', expectedVersion, 'bin', executableName)]
+            : [])
+    ]
+    for (const candidate of Array.from(new Set(candidates))) {
+        try {
+            await access(candidate, fsConstants.X_OK)
+            const { stdout } = await execFileAsync(candidate, ['--version'], {
+                timeout: 5_000,
+                windowsHide: true
+            })
+            if (stdout.trim() === `v${expectedVersion}`) return candidate
+        } catch {
+            // Try the next installed Node executable.
+        }
+    }
+    throw new Error(
+        `Local Browser Runtime requires Node ${expectedVersion}. Install it with "nvm install ${expectedVersion}" and restart the API.`
+    )
+}
+
+function prependPath(directory: string, currentPath: string | undefined): string {
+    return currentPath ? `${directory}${path.delimiter}${currentPath}` : directory
 }
 
 function validateRunnerCommand(
@@ -502,7 +621,7 @@ async function writeRegularFile(target: string, content: Uint8Array): Promise<vo
     }
 }
 
-function localRuntimeEnvironment(): NodeJS.ProcessEnv {
+function localRuntimeEnvironment(additions: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     const names = [
         'PATH',
         'HOME',
@@ -515,20 +634,23 @@ function localRuntimeEnvironment(): NodeJS.ProcessEnv {
         'LC_ALL',
         'TZ'
     ] as const
-    return Object.fromEntries(
-        names.flatMap((name) => (process.env[name] === undefined ? [] : [[name, process.env[name]]]))
-    )
+    return {
+        ...Object.fromEntries(
+            names.flatMap((name) => (process.env[name] === undefined ? [] : [[name, process.env[name]]]))
+        ),
+        ...additions
+    }
 }
 
 async function runProcess(
     command: string,
     args: string[],
-    options: { timeoutMs: number; maxOutputBytes: number; cwd: string }
+    options: { timeoutMs: number; maxOutputBytes: number; cwd: string; env: NodeJS.ProcessEnv }
 ): Promise<SandboxRuntimeExecuteResponse> {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
             cwd: options.cwd,
-            env: localRuntimeEnvironment(),
+            env: options.env,
             stdio: ['ignore', 'pipe', 'pipe']
         })
         let output = ''

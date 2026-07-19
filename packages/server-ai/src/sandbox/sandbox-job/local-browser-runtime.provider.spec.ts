@@ -2,8 +2,12 @@ import { mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
-import { LOCAL_BROWSER_RUNTIME_PROVIDER, LocalBrowserRuntimeProvider } from './local-browser-runtime.provider'
-import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
+import {
+    LOCAL_BROWSER_RUNTIME_PROVIDER,
+    LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
+    LocalBrowserRuntimeProvider
+} from './local-browser-runtime.provider'
+import { SandboxRuntimeDefinitionRegistry, VIDEO_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
 
 describe('LocalBrowserRuntimeProvider', () => {
     const originalNodeEnv = process.env.NODE_ENV
@@ -18,7 +22,7 @@ describe('LocalBrowserRuntimeProvider', () => {
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
     })
 
-    it('publishes only a low-priority development Binding with honest process capabilities', () => {
+    it('publishes low-priority development Bindings for browser and browser-video profiles', () => {
         const provider = new LocalBrowserRuntimeProvider()
 
         expect(provider.type).toBe(LOCAL_BROWSER_RUNTIME_PROVIDER)
@@ -36,6 +40,17 @@ describe('LocalBrowserRuntimeProvider', () => {
                 priority: 10_000,
                 developmentOnly: true,
                 artifact: expect.objectContaining({ kind: 'filesystem' })
+            }),
+            expect.objectContaining({
+                id: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
+                runtimeProfile: VIDEO_BROWSER_RUNTIME_PROFILE,
+                provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
+                priority: 10_000,
+                developmentOnly: true,
+                artifact: expect.objectContaining({
+                    kind: 'filesystem',
+                    reference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1'
+                })
             })
         ])
     })
