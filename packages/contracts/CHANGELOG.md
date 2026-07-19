@@ -1,5 +1,30 @@
 # @xpert-ai/contracts
 
+## 3.15.16
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+
+## 3.15.15
+
+### Patch Changes
+
+- 8a0eba3: Calculate membership points proportionally, constrain tokens-per-point settings to safe presets, expose non-duplicated point usage by runtime organization in Copilot usage summaries, and support tiered model pricing.
+- 5d4a308: Support multiple provider help links in integration configuration while preserving the legacy single-link fallback.
+
+## 3.15.14
+
+### Patch Changes
+
+- 8a46f00: Expose shared marketplace categories and recommended template metadata through the Xpert marketplace contracts.
+
+## 3.15.13
+
+### Patch Changes
+
+- 25664c9: Persist and aggregate conversation task summaries and enable the responsive summary card with resource opening in ClawXpert.
+
 ## 3.15.12
 
 ### Patch Changes

@@ -1,5 +1,41 @@
 # @xpert-ai/adapter
 
+## 12.0.16
+
+### Patch Changes
+
+- Updated dependencies [90a268b]
+  - @xpert-ai/contracts@3.15.16
+  - @xpert-ai/plugin-sdk@3.15.16
+
+## 12.0.15
+
+### Patch Changes
+
+- Updated dependencies [a26a776]
+- Updated dependencies [8a0eba3]
+- Updated dependencies [5d4a308]
+- Updated dependencies [e3d3c26]
+  - @xpert-ai/plugin-sdk@3.15.15
+  - @xpert-ai/contracts@3.15.15
+
+## 12.0.14
+
+### Patch Changes
+
+- Updated dependencies [8a46f00]
+  - @xpert-ai/contracts@3.15.14
+  - @xpert-ai/plugin-sdk@3.15.14
+
+## 12.0.13
+
+### Patch Changes
+
+- Updated dependencies [25664c9]
+- Updated dependencies [b269a84]
+  - @xpert-ai/contracts@3.15.13
+  - @xpert-ai/plugin-sdk@3.15.13
+
 ## 12.0.12
 
 ### Patch Changes

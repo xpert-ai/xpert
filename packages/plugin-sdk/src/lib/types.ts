@@ -5,6 +5,7 @@ import {
   PluginTargetApp,
   PluginTargetAppMeta,
   TAvatar,
+  type TPromptWorkflow,
   XpertTemplatePluginDependencies,
   XpertTypeEnum
 } from '@xpert-ai/contracts'
@@ -120,6 +121,7 @@ export interface XpertTemplateContribution {
   order?: number
   default?: boolean
   startPrompts?: string[]
+  promptWorkflows?: TPromptWorkflow[]
   releaseNotes?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies

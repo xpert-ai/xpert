@@ -1,5 +1,23 @@
 # @xpert-ai/xpert-ui
 
+## 3.15.15
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+
+## 3.15.14
+
+### Patch Changes
+
+- 5d4a308: Support multiple provider help links in integration configuration while preserving the legacy single-link fallback.
+
+## 3.15.13
+
+### Patch Changes
+
+- 25664c9: Persist and aggregate conversation task summaries and enable the responsive summary card with resource opening in ClawXpert.
+
 ## 3.15.12
 
 ### Patch Changes

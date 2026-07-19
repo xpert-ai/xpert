@@ -1194,7 +1194,11 @@ export class XpertNewBlankComponent {
       this.buildTemplateImportDraftWithTemplateToolsets(draft, defaultSandboxProvider),
       primaryAgentPrompt
     )
-    const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
+    const xpert = await firstValueFrom(
+      this.xpertService.importDSL(nextDraft, {
+        templateId: this.selectedTemplate()?.id ?? this.selectedTemplateId() ?? undefined
+      })
+    )
     const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)
     const preparedXpert = await this.provisionKnowledgebaseIfNeeded(hydratedXpert)
     return this.completeImportedCreation(preparedXpert)

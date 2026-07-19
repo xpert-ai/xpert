@@ -24,6 +24,10 @@ jest.mock('../../xpert-template/xpert-template.service', () => ({
     XpertTemplateService: class XpertTemplateService {}
 }))
 
+jest.mock('../../xpert/template-workspace-initializer.service', () => ({
+    XpertTemplateWorkspaceInitializer: class XpertTemplateWorkspaceInitializer {}
+}))
+
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({
     XpertToolset: class XpertToolset {}
 }))
@@ -38,6 +42,7 @@ jest.mock('../plugin-resource-installer.service', () => ({
 
 import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
+import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
 
@@ -92,6 +97,26 @@ connections:
 `
 
 describe('PluginTemplateInstallHandler', () => {
+    it('initializes template prompt workflows after plugin dependencies are installed', async () => {
+        const { handler, templateWorkspaceInitializer } = createHandler({
+            templateDsl: createSandboxTemplateDsl()
+        })
+
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
+                'workspace-1',
+                LanguagesEnum.English
+            )
+        )
+
+        expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledWith(
+            '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
+            'workspace-1',
+            LanguagesEnum.English
+        )
+    })
+
     it('attaches template builtin toolset dependencies to the imported xpert draft', async () => {
         const { handler, xpertService, toolsetRepo } = createHandler({
             toolsets: [createSeedreamToolset()]
@@ -163,15 +188,20 @@ describe('PluginTemplateInstallHandler', () => {
         })
 
         await handler.execute(
-            new PluginTemplateInstallCommand('@xpert-ai/plugin-canvas:canvas-assistant', 'workspace-1', LanguagesEnum.English, {
-                name: 'clawxpert-abc123',
-                title: 'clawxpert-abc123',
-                copilotModel: {
-                    copilotId: 'copilot-deepseek',
-                    model: 'deepseek-v4-flash',
-                    modelType: AiModelTypeEnum.LLM
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-canvas:canvas-assistant',
+                'workspace-1',
+                LanguagesEnum.English,
+                {
+                    name: 'clawxpert-abc123',
+                    title: 'clawxpert-abc123',
+                    copilotModel: {
+                        copilotId: 'copilot-deepseek',
+                        model: 'deepseek-v4-flash',
+                        modelType: AiModelTypeEnum.LLM
+                    }
                 }
-            })
+            )
         )
 
         const importCommand = commandBus.execute.mock.calls[0]?.[0]
@@ -378,6 +408,13 @@ function createHandler(options?: {
     const commandBus = {
         execute: jest.fn((_command: unknown) => Promise.resolve(importedXpert))
     }
+    const templateWorkspaceInitializer = {
+        initializeByTemplateId: jest.fn(async () => ({
+            status: 'initialized',
+            created: [],
+            skipped: []
+        }))
+    }
     const xpertService = {
         getSandboxProviders: jest.fn(() =>
             Promise.resolve(options?.sandboxProviders ?? [{ type: 'local-shell-sandbox' }])
@@ -393,6 +430,7 @@ function createHandler(options?: {
         installer as any,
         workspaceAccess as any,
         templateService as any,
+        templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
         commandBus as any,
         xpertService as any,
         toolsetRepo as any
@@ -403,6 +441,7 @@ function createHandler(options?: {
         installer,
         workspaceAccess,
         templateService,
+        templateWorkspaceInitializer,
         commandBus,
         xpertService,
         toolsetRepo

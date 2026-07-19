@@ -262,8 +262,13 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/export/template`).pipe(tap(() => this.refresh()))
   }
 
-  importDSL(dslObject: Record<string, any>) {
-    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/import`, dslObject)
+  importDSL(dslObject: Record<string, any>, options?: { templateId?: string }) {
+    const templateId = options?.templateId?.trim()
+    return this.httpClient.post<IXpert>(
+      this.apiBaseUrl + `/import`,
+      dslObject,
+      templateId ? { params: { templateId } } : undefined
+    )
   }
 
   duplicate(id: string, options: { basic: Partial<IXpert>; isDraft: boolean }) {

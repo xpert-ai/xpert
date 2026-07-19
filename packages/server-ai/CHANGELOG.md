@@ -1,5 +1,53 @@
 # @xpert-ai/server-ai
 
+## 3.9.19
+
+### Patch Changes
+
+- 90a268b: Initialize assistant template prompt workflows as reusable workspace commands.
+- Updated dependencies [90a268b]
+    - @xpert-ai/contracts@3.15.16
+    - @xpert-ai/plugin-sdk@3.15.16
+    - @xpert-ai/copilot@3.9.31
+    - @xpert-ai/server-core@3.9.34
+
+## 3.9.18
+
+### Patch Changes
+
+- 8a0eba3: Calculate membership points proportionally, constrain tokens-per-point settings to safe presets, expose non-duplicated point usage by runtime organization in Copilot usage summaries, and support tiered model pricing.
+- e3d3c26: Add a machine-readable stale steer callback error and close the execution-completion race before channel follow-ups are persisted.
+- Updated dependencies [a26a776]
+- Updated dependencies [8a0eba3]
+- Updated dependencies [5d4a308]
+- Updated dependencies [e3d3c26]
+    - @xpert-ai/plugin-sdk@3.15.15
+    - @xpert-ai/contracts@3.15.15
+    - @xpert-ai/server-core@3.9.33
+    - @xpert-ai/copilot@3.9.30
+
+## 3.9.17
+
+### Patch Changes
+
+- Updated dependencies [8a46f00]
+    - @xpert-ai/contracts@3.15.14
+    - @xpert-ai/copilot@3.9.29
+    - @xpert-ai/plugin-sdk@3.15.14
+    - @xpert-ai/server-core@3.9.32
+
+## 3.9.16
+
+### Patch Changes
+
+- 25664c9: Persist and aggregate conversation task summaries and enable the responsive summary card with resource opening in ClawXpert.
+- Updated dependencies [25664c9]
+- Updated dependencies [b269a84]
+    - @xpert-ai/contracts@3.15.13
+    - @xpert-ai/plugin-sdk@3.15.13
+    - @xpert-ai/copilot@3.9.28
+    - @xpert-ai/server-core@3.9.31
+
 ## 3.9.15
 
 ### Patch Changes

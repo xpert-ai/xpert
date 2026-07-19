@@ -3,6 +3,7 @@ import { IconDefinition, TAvatar } from '../types'
 import { TCopilotModel } from './copilot-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
+import type { TPromptWorkflow } from './prompt-workflow.model'
 import { PluginTargetApp, PluginTargetAppMeta, XpertTemplatePluginDependencies } from '../plugin'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
@@ -102,6 +103,7 @@ export type TTemplate = {
   order?: number
   default?: boolean
   startPrompts?: string[]
+  promptWorkflows?: TPromptWorkflow[]
   releaseNotes?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies

@@ -588,6 +588,13 @@ describe('XpertTemplateService', () => {
                                 category: 'Plugin',
                                 type: XpertTypeEnum.Agent,
                                 dslContent: pluginDsl,
+                                promptWorkflows: [
+                                    {
+                                        name: 'presentation-create',
+                                        template: 'Create a presentation from {{args}}.',
+                                        visibility: 'team'
+                                    }
+                                ],
                                 order: 1
                             }
                         ]
@@ -630,7 +637,14 @@ describe('XpertTemplateService', () => {
             pluginDisplayName: 'Demo Plugin',
             description: 'English plugin description',
             avatar: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' },
-            export_data: pluginDsl
+            export_data: pluginDsl,
+            promptWorkflows: [
+                {
+                    name: 'presentation-create',
+                    template: 'Create a presentation from {{args}}.',
+                    visibility: 'team'
+                }
+            ]
         })
         expect(chineseDetail.description).toBe('中文插件描述')
         expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')
