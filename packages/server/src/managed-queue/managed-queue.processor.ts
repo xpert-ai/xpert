@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Injectable, Logger } from '@nestjs/common'
 import type { IApiKey, IApiPrincipal, IUser } from '@xpert-ai/contracts'
 import { runWithRequestContext } from '@xpert-ai/plugin-sdk'
-import type { ManagedQueueExecutionPool, ManagedQueueJob } from '@xpert-ai/plugin-sdk'
+import type { ManagedQueueExecutionPool, ManagedQueueJob, ManagedQueueJobContext } from '@xpert-ai/plugin-sdk'
 import type { Job } from 'bullmq'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
@@ -65,12 +65,21 @@ export class ManagedQueueProcessor extends WorkerHost {
 			attemptsMade: job.attemptsMade,
 			opts: job.opts as Record<string, unknown>
 		}
+		const jobContext: ManagedQueueJobContext = {
+			pluginName: envelope.pluginName,
+			queueName: envelope.queueName,
+			jobName: envelope.jobName,
+			scopeKey: envelope.scopeKey ?? null,
+			tenantId: envelope.tenantId ?? null,
+			organizationId: envelope.organizationId ?? null,
+			userId: envelope.actor?.userId ?? envelope.userId ?? envelope.principal?.id ?? null
+		}
 
 		await this.runWithJobContext(envelope, async () => {
 			this.logger.debug(
 				`Processing managed queue job ${managedJob.id} ${envelope.pluginName}/${envelope.queueName}/${envelope.jobName}`
 			)
-			await handler(managedJob)
+			await handler(managedJob, jobContext)
 		})
 	}
 

@@ -118,4 +118,19 @@ describe('RequestContext scope parsing', () => {
 
     expect(hasRole).toBe(true)
   })
+
+  it('shares the async context store across separately evaluated SDK modules', () => {
+    let first: typeof import('./request-context').als | undefined
+    let second: typeof import('./request-context').als | undefined
+
+    jest.isolateModules(() => {
+      first = require('./request-context').als
+    })
+    jest.isolateModules(() => {
+      second = require('./request-context').als
+    })
+
+    expect(first).toBeDefined()
+    expect(second).toBe(first)
+  })
 })

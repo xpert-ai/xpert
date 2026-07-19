@@ -121,13 +121,24 @@ describe('ManagedQueueProcessor', () => {
 			relations: ['role', 'role.rolePermissions', 'employee']
 		})
 		expect(runWithLegacyRequestContext).toHaveBeenCalled()
-		expect(handler).toHaveBeenCalledWith({
-			id: 'job-1',
-			name: 'job-a',
-			data: { hello: 'world' },
-			attemptsMade: 1,
-			opts: { attempts: 3 }
-		})
+		expect(handler).toHaveBeenCalledWith(
+			{
+				id: 'job-1',
+				name: 'job-a',
+				data: { hello: 'world' },
+				attemptsMade: 1,
+				opts: { attempts: 3 }
+			},
+			{
+				pluginName: 'plugin-a',
+				queueName: 'queue-a',
+				jobName: 'job-a',
+				scopeKey: 'org-1',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				userId: 'business-user-1'
+			}
+		)
 	})
 
 	it('restores a logged-in actor without attaching an xpert API principal', async () => {

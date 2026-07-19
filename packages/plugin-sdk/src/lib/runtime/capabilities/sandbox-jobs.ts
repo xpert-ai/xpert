@@ -197,9 +197,32 @@ export class SandboxJobRuntimeError extends Error {
   }
 }
 
+type SandboxJobRuntimeErrorCandidate = {
+  name?: unknown
+  message?: unknown
+  code?: unknown
+  retryable?: unknown
+  jobId?: unknown
+}
+
+const SANDBOX_JOB_ERROR_CODE_SET: ReadonlySet<string> = new Set(SANDBOX_JOB_ERROR_CODES)
+
 /** Narrows an unknown failure to the structured Sandbox Jobs runtime error contract. */
 export function isSandboxJobRuntimeError(error: unknown): error is SandboxJobRuntimeError {
-  return error instanceof SandboxJobRuntimeError
+  if (error instanceof SandboxJobRuntimeError) return true
+  if (typeof error !== 'object' || error === null) return false
+
+  // Dynamically loaded plugins may resolve another Plugin SDK module instance,
+  // so class identity is not a reliable runtime boundary. Validate the stable shape.
+  const candidate = error as SandboxJobRuntimeErrorCandidate
+  return (
+    candidate.name === 'SandboxJobRuntimeError' &&
+    typeof candidate.message === 'string' &&
+    typeof candidate.code === 'string' &&
+    SANDBOX_JOB_ERROR_CODE_SET.has(candidate.code) &&
+    typeof candidate.retryable === 'boolean' &&
+    (candidate.jobId === undefined || typeof candidate.jobId === 'string')
+  )
 }
 
 /** Runtime capability key used to resolve SandboxJobsApi from the platform registry. */

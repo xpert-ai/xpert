@@ -97,10 +97,10 @@ export class ManagedQueueHandlerRegistryService implements ManagedQueueHandlerRe
 			active = Math.max(0, active - 1)
 		}
 
-		return async (job) => {
+		return async (job, context) => {
 			await acquire()
 			try {
-				await handler(job)
+				await handler(job, context)
 			} finally {
 				release()
 			}

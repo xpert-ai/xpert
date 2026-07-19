@@ -86,7 +86,7 @@ export class ManagedQueueHandlerExplorerService implements OnModuleInit, OnModul
 
 		const scopeKey = this.resolveScopeKey(instance, target)
 		const registrations = metadata.map((processor) => {
-			const context: ManagedQueueJobContext = {
+			const registeredContext: ManagedQueueJobContext = {
 				pluginName: processor.pluginName,
 				queueName: processor.queueName,
 				jobName: processor.jobName,
@@ -98,7 +98,8 @@ export class ManagedQueueHandlerExplorerService implements OnModuleInit, OnModul
 				jobName: processor.jobName,
 				scopeKey,
 				concurrency: processor.concurrency,
-				handler: (job: ManagedQueueJob) => handlerMethod.call(instance, job, context)
+				handler: (job: ManagedQueueJob, context: ManagedQueueJobContext) =>
+					handlerMethod.call(instance, job, { ...context, ...registeredContext })
 			})
 
 			this.logger.debug(

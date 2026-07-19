@@ -1,6 +1,13 @@
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
 
 describe('ManagedQueueHandlerRegistryService', () => {
+	const context = {
+		pluginName: 'plugin-a',
+		queueName: 'queue-a',
+		jobName: 'job-a',
+		tenantId: 'tenant-1'
+	}
+
 	it('resolves scoped handlers before global handlers', async () => {
 		const registry = new ManagedQueueHandlerRegistryService()
 		const globalHandler = jest.fn()
@@ -92,9 +99,9 @@ describe('ManagedQueueHandlerRegistryService', () => {
 			jobName: 'job-a'
 		})
 
-		const first = registered?.({ id: 'job-1', name: 'job-a', data: {}, attemptsMade: 0 })
+		const first = registered?.({ id: 'job-1', name: 'job-a', data: {}, attemptsMade: 0 }, context)
 		await Promise.resolve()
-		const second = registered?.({ id: 'job-2', name: 'job-a', data: {}, attemptsMade: 0 })
+		const second = registered?.({ id: 'job-2', name: 'job-a', data: {}, attemptsMade: 0 }, context)
 		await Promise.resolve()
 
 		expect(starts).toEqual(['job-1'])
@@ -103,5 +110,7 @@ describe('ManagedQueueHandlerRegistryService', () => {
 		await Promise.all([first, second])
 
 		expect(starts).toEqual(['job-1', 'job-2'])
+		expect(handler).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: 'job-1' }), context)
+		expect(handler).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: 'job-2' }), context)
 	})
 })
