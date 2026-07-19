@@ -90,6 +90,58 @@
   </div>
 </div>
 
+@if (runtimeRestart.pending()) {
+  <div
+    class="mx-8 mb-3 flex items-center justify-between gap-4 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 shadow-sm"
+    role="status"
+  >
+    <div class="flex min-w-0 items-start gap-3">
+      <div
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background-default-subtle text-text-warning"
+      >
+        <i class="ri-restart-line text-lg"></i>
+      </div>
+      <div class="min-w-0">
+        <div class="system-sm-semibold text-text-primary">
+          {{ 'PAC.Plugin.RestartRequiredTitle' | translate: { Default: 'API restart required' } }}
+        </div>
+        <div class="mt-0.5 text-sm text-text-secondary">
+          @if (runtimeRestart.pendingPluginNames().length) {
+            {{
+              'PAC.Plugin.RestartRequiredDescription'
+                | translate
+                  : {
+                      Default: 'Plugin changes for {{pluginNames}}
+            are staged.', pluginNames: runtimeRestart.pendingPluginNames().join(', ') } }}
+          } @else {
+            {{
+              'PAC.Plugin.RestartRequiredGenericDescription'
+                | translate: { Default: 'System plugin changes are staged. Restart the API service to activate them.' }
+            }}
+          }
+        </div>
+        @if (!runtimeRestart.canRestart()) {
+          <div class="mt-1 text-xs text-text-tertiary">
+            {{
+              runtimeRestart.restartUnavailableMessageKey()
+                | translate
+                  : {
+                      Default: 'Ask a SuperAdmin in the default tenant scope to restart the API service.'
+                    }
+            }}
+          </div>
+        }
+      </div>
+    </div>
+    @if (runtimeRestart.canRestart()) {
+      <button type="button" class="btn btn-primary btn-medium shrink-0" (click)="runtimeRestart.prompt()">
+        <i class="ri-restart-line mr-1"></i>
+        {{ 'PAC.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+      </button>
+    }
+  </div>
+}
+
 @if (category() === 'marketplace') {
   <xp-plugins-marketplace />
 } @else {

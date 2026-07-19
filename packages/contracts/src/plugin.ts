@@ -619,12 +619,27 @@ export interface IPluginInstallResult {
   packageName: string
   organizationId: string
   currentVersion?: string
+  /**
+   * The plugin package was installed and persisted, but the running API process
+   * intentionally did not activate it. System-level plugins require a graceful
+   * API restart (or a blue-green process replacement) before this version takes effect.
+   */
+  restartRequired?: boolean
 }
 
 export interface IPluginUpdateResult extends IPluginInstallResult {
   latestVersion?: string
   updated: boolean
   previousVersion?: string
+}
+
+export interface IPluginUninstallResult {
+  success: boolean
+  /**
+   * The persisted registration was removed, but process-global Nest artifacts
+   * remain active until the API process is gracefully replaced.
+   */
+  restartRequired?: boolean
 }
 
 export interface IPluginDescriptor {

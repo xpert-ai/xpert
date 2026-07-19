@@ -351,9 +351,13 @@ export class PluginController {
 		if (!body?.names || body.names.length === 0) {
 			throw new BadRequestException(t('server:Error.PluginNamesRequired'))
 		}
-		await this.pluginManagementService.uninstallByNamesWithGuard(body.names, body.organizationId, body.scopeKey)
+		const result = await this.pluginManagementService.uninstallByNamesWithGuard(
+			body.names,
+			body.organizationId,
+			body.scopeKey
+		)
 
-		return { success: true }
+		return { success: true, ...result }
 	}
 
 	private getCurrentOrganizationId() {

@@ -177,7 +177,7 @@ async function deployPlugin({ args, config, headers, pluginEndpoint, pluginName,
     console.log(`[plugin:deploy:local] Refreshing ${pluginName} from its stored workspace path...`)
     const refreshResponse = await postJson(`${pluginEndpoint}/refresh`, headers, { pluginName })
     if (refreshResponse.ok) {
-      return 'refreshed'
+      return { action: 'refreshed', result: refreshResponse.body }
     }
     if (!canFallBackToInstall(refreshResponse)) {
       assertResponseOk('Plugin refresh', refreshResponse)
@@ -200,7 +200,7 @@ async function deployPlugin({ args, config, headers, pluginEndpoint, pluginName,
   }
   const installResponse = await postJson(pluginEndpoint, headers, body)
   assertResponseOk('Plugin install', installResponse)
-  return 'installed'
+  return { action: 'installed', result: installResponse.body }
 }
 
 async function main() {
@@ -265,14 +265,20 @@ async function main() {
     return
   }
 
-  const action = await deployPlugin({ args, config, headers, pluginEndpoint, pluginName, workspacePath })
+  const deployment = await deployPlugin({ args, config, headers, pluginEndpoint, pluginName, workspacePath })
   const verifyResponse = await postJson(`${pluginEndpoint}/by-names`, headers, { names: [pluginName] })
   assertResponseOk('Plugin verification', verifyResponse)
   if (!isVerifiedPluginList(verifyResponse.body)) {
     throw new LocalPluginCliError(`Plugin verification returned no descriptor for ${pluginName}.`)
   }
 
-  console.log(`[plugin:deploy:local] ${pluginName} ${action} and verified successfully.`)
+  if (deployment.result?.restartRequired === true) {
+    console.log(
+      `[plugin:deploy:local] ${pluginName} ${deployment.action} and staged successfully. API restart required before activation.`
+    )
+  } else {
+    console.log(`[plugin:deploy:local] ${pluginName} ${deployment.action} and verified successfully.`)
+  }
 }
 
 main().catch((error) => handleCliError('plugin:deploy:local', error))

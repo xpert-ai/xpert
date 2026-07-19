@@ -19,6 +19,7 @@ services:
       IS_DOCKER: true
       NODE_OPTIONS: '--max-old-space-size=8192'
       NODE_ENV: ${NODE_ENV:-production}
+      XPERT_RUNTIME_RESTART_MODE: ${XPERT_RUNTIME_RESTART_MODE:-self-signal}
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -30,14 +31,14 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health/ready']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     entrypoint: './entrypoint.compose.sh'
     command: ['pm2-runtime', 'main.js']
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - db
       - redis
