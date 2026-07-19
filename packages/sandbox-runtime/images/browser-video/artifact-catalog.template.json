@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeSuiteVersion": "1.1.0",
+  "runtimeSuiteVersion": "1.2.0",
   "artifacts": [
     {
       "runtimeProfile": "browser/video-playwright-1.61/v1",

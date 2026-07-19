@@ -1,5 +1,13 @@
 # @xpert-ai/adapter
 
+## 12.0.17
+
+### Patch Changes
+
+- Updated dependencies [0a90701]
+  - @xpert-ai/plugin-sdk@3.15.17
+  - @xpert-ai/contracts@3.15.17
+
 ## 12.0.16
 
 ### Patch Changes

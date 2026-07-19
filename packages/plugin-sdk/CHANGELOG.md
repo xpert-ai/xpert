@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.15.17
+
+### Patch Changes
+
+- 0a90701: release 3.15.17
+- Updated dependencies [0a90701]
+  - @xpert-ai/contracts@3.15.17
+
 ## 3.15.16
 
 ### Patch Changes
