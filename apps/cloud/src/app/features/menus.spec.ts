@@ -92,7 +92,7 @@ describe('getFeatureMenus', () => {
 
     expect(plugins).toMatchObject({
       title: 'Plugins',
-      icon: 'ri-puzzle-2-line',
+      icon: 'ri-plug-line',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
@@ -108,12 +108,12 @@ describe('getFeatureMenus', () => {
 
     expect(chat).toBeUndefined()
     expect(tasks).toMatchObject({
-      title: 'Tasks',
-      icon: 'ri-list-check-3',
+      title: 'Scheduled',
+      icon: 'ri-time-line',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
-    expect(tasks?.data?.translationKey).toBe('Tasks')
+    expect(tasks?.data?.translationKey).toBe('Scheduled')
   })
 
   it('adds MCP Monitor beside Plugins for super admins', () => {
