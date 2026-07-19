@@ -1,0 +1,26 @@
+{
+  "imageFamily": "browser-ai",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-browser-ai",
+    "dockerhub": "metadc/xpert-sandbox-browser-ai",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-browser-ai"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "browser/ai-playwright-1.61/v1",
+  "nodeVersion": "20.20.2",
+  "playwrightVersion": "1.61.0",
+  "browserRevision": "1228",
+  "platforms": ["linux/amd64"],
+  "capabilities": ["browser.chromium", "browser.ai", "ai.whisper", "sandbox.action.v1"],
+  "dockerfile": "images/browser-ai/Dockerfile",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "manifest": "images/browser-ai/runtime/manifest.json",
+  "resourceCatalog": "images/browser-ai/resources/resource-catalog.json",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/browser-ai-playwright-1.61-v1.json",
+  "artifactCatalogTemplate": "images/browser-ai/artifact-catalog.template.json",
+  "smokeCommand": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs", "--browser-smoke"],
+  "baseImages": {
+    "node": "node:20.20.2-bookworm-slim@sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c",
+    "playwright": "mcr.microsoft.com/playwright:v1.61.0-noble@sha256:111dde95859f2c659291cb60e698f9048a8fc30b35b4ddb7c90f9cb5b73062d9"
+  }
+}

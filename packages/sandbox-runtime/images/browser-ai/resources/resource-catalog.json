@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "runtimeSuiteVersion": "1.1.0",
+  "resources": [
+    {
+      "key": "onnxruntime-web-1.26.0-dev.20260416-b7804b056c",
+      "type": "onnxruntime",
+      "version": "1.26.0-dev.20260416-b7804b056c",
+      "path": "onnxruntime/1.26.0-dev.20260416-b7804b056c",
+      "treeSha256": "13637a36fe6c1b1e75ce6259680e9a266963b9b5097b9934cf663994dd938f73",
+      "files": [
+        {
+          "path": "ort-wasm-simd-threaded.mjs",
+          "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0-dev.20260416-b7804b056c/dist/ort-wasm-simd-threaded.mjs",
+          "size": 24180,
+          "sha256": "5f2cd914554830762579c372d0211614c1e3f40ab3f6c0cfcf0900343229071d"
+        },
+        {
+          "path": "ort-wasm-simd-threaded.wasm",
+          "url": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0-dev.20260416-b7804b056c/dist/ort-wasm-simd-threaded.wasm",
+          "size": 12942611,
+          "sha256": "f4f290847a4df02d0b93cdbf39b4b0e71acefbe80573e7e6b9342a7abd7b290a"
+        }
+      ]
+    },
+    {
+      "key": "xenova-whisper-tiny-q4",
+      "type": "model",
+      "modelId": "Xenova/whisper-tiny",
+      "revision": "5332fcc35e32a33b86612b9a57a89be7906102b1",
+      "dtype": "q4",
+      "path": "models/xenova-whisper-tiny-q4",
+      "treeSha256": "fb301a8e78eb7a65ff62168d2a2229c93b1cf658267b06ac7447604a17e40f16",
+      "files": [
+        {
+          "path": "config.json",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/config.json",
+          "size": 2248,
+          "sha256": "2b2e4e519084e0ea028b19b153f95202735a971870d6844aa26e559edd292e94"
+        },
+        {
+          "path": "generation_config.json",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/generation_config.json",
+          "size": 3716,
+          "sha256": "68ac791fcb4999461a313472125042934656240ba1cba7d1c2627fcbb19ac24c"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/preprocessor_config.json",
+          "size": 339,
+          "sha256": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d"
+        },
+        {
+          "path": "tokenizer.json",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/tokenizer.json",
+          "size": 2480466,
+          "sha256": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/tokenizer_config.json",
+          "size": 282683,
+          "sha256": "2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce"
+        },
+        {
+          "path": "onnx/encoder_model_q4.onnx",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/onnx/encoder_model_q4.onnx",
+          "size": 9006044,
+          "sha256": "f895af36f57fec9cbeac8d29a982ae47b2e81e461d98320fbd30c47d01a6a13f"
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx",
+          "url": "https://huggingface.co/Xenova/whisper-tiny/resolve/5332fcc35e32a33b86612b9a57a89be7906102b1/onnx/decoder_model_merged_q4.onnx",
+          "size": 86739474,
+          "sha256": "462a65ea8459402cded5e6f22a378ac410ec7e0aad9367ebb08431906c237660"
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import {
+    AI_BROWSER_RUNTIME_PROFILE,
     DEFAULT_BROWSER_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE,
     SandboxRuntimeDefinitionRegistry
@@ -12,6 +13,15 @@ describe('SandboxRuntimeDefinitionRegistry', () => {
         expect(definition.requirements.isolation).toBe('hardened')
         expect(definition).not.toHaveProperty('provider')
         expect(definition).not.toHaveProperty('image')
+    })
+
+    it('loads the generic Browser AI Runtime Definition with immutable model catalog evidence', () => {
+        const definition = new SandboxRuntimeDefinitionRegistry().require(AI_BROWSER_RUNTIME_PROFILE)
+        expect(definition.expectedManifest.imageFamily).toBe('browser-ai')
+        expect(definition.expectedManifest.onnxRuntimeVersion).toBe('1.26.0-dev.20260416-b7804b056c')
+        expect(definition.expectedManifest.modelCatalogSha256).toMatch(/^[a-f0-9]{64}$/)
+        expect(definition.hardDeadlineMs).toBe(900_000)
+        expect(definition.networkPolicy.mode).toBe('none')
     })
 
     it('loads the generic Node 22 Browser Video Runtime Definition', () => {

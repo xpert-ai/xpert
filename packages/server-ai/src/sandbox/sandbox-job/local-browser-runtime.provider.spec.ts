@@ -3,11 +3,16 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
 import {
+    LOCAL_AI_BROWSER_RUNTIME_BINDING,
     LOCAL_BROWSER_RUNTIME_PROVIDER,
     LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
     LocalBrowserRuntimeProvider
 } from './local-browser-runtime.provider'
-import { SandboxRuntimeDefinitionRegistry, VIDEO_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
+import {
+    AI_BROWSER_RUNTIME_PROFILE,
+    SandboxRuntimeDefinitionRegistry,
+    VIDEO_BROWSER_RUNTIME_PROFILE
+} from './sandbox-runtime-definition.registry'
 
 describe('LocalBrowserRuntimeProvider', () => {
     const originalNodeEnv = process.env.NODE_ENV
@@ -22,7 +27,7 @@ describe('LocalBrowserRuntimeProvider', () => {
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
     })
 
-    it('publishes low-priority development Bindings for browser and browser-video profiles', () => {
+    it('publishes low-priority development Bindings for browser, browser-ai, and browser-video profiles', () => {
         const provider = new LocalBrowserRuntimeProvider()
 
         expect(provider.type).toBe(LOCAL_BROWSER_RUNTIME_PROVIDER)
@@ -40,6 +45,17 @@ describe('LocalBrowserRuntimeProvider', () => {
                 priority: 10_000,
                 developmentOnly: true,
                 artifact: expect.objectContaining({ kind: 'filesystem' })
+            }),
+            expect.objectContaining({
+                id: LOCAL_AI_BROWSER_RUNTIME_BINDING,
+                runtimeProfile: AI_BROWSER_RUNTIME_PROFILE,
+                provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
+                priority: 10_000,
+                developmentOnly: true,
+                artifact: expect.objectContaining({
+                    kind: 'filesystem',
+                    reference: 'xpert-source://sandbox-runtime/browser-ai-playwright-1.61-v1'
+                })
             }),
             expect.objectContaining({
                 id: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,

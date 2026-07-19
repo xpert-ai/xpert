@@ -18,6 +18,7 @@
       "options": {
         "commands": [
           "node packages/sandbox-runtime/scripts/verify-catalog.mjs",
+          "node packages/sandbox-runtime/scripts/install-ai-resources.test.mjs",
           "node packages/sandbox-runtime/images/browser/tests/runner-host.test.mjs",
           "node packages/sandbox-runtime/images/browser-video/tests/runtime-contract.test.mjs"
         ],

@@ -1,6 +1,7 @@
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { constants as fsConstants } from 'node:fs'
 import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { Injectable } from '@nestjs/common'
@@ -21,10 +22,15 @@ import {
     type SandboxRuntimeReadOnlyFile,
     type SandboxRuntimeTerminationReason
 } from '@xpert-ai/plugin-sdk'
-import { DEFAULT_BROWSER_RUNTIME_PROFILE, VIDEO_BROWSER_RUNTIME_PROFILE } from './sandbox-runtime-definition.registry'
+import {
+    AI_BROWSER_RUNTIME_PROFILE,
+    DEFAULT_BROWSER_RUNTIME_PROFILE,
+    VIDEO_BROWSER_RUNTIME_PROFILE
+} from './sandbox-runtime-definition.registry'
 
 export const LOCAL_BROWSER_RUNTIME_PROVIDER = 'local-browser-runtime'
 export const LOCAL_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-playwright-1.61-v1'
+export const LOCAL_AI_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-ai-playwright-1.61-v1'
 export const LOCAL_VIDEO_BROWSER_RUNTIME_BINDING = 'local-browser-runtime:browser-video-playwright-1.61-v1'
 
 const LOCAL_PROVIDER_VERSION = '1.0.0'
@@ -33,15 +39,17 @@ const HEALTH_TIMEOUT_MS = 15_000
 const HEALTH_CACHE_TTL_MS = 30_000
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
+const LOCAL_AI_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai'
 const LOCAL_VIDEO_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:video'
 const execFileAsync = promisify(execFile)
 
 type LocalRuntimeConfiguration = {
     bindingId: string
-    imageFamily: 'browser' | 'browser-video'
+    imageFamily: 'browser' | 'browser-ai' | 'browser-video'
     artifactReference: string
     installCommand: string
     requiresFfmpeg: boolean
+    requiresAiResources: boolean
 }
 
 const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfiguration>> = {
@@ -50,14 +58,24 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         imageFamily: 'browser',
         artifactReference: 'xpert-source://sandbox-runtime/browser-playwright-1.61-v1',
         installCommand: LOCAL_BROWSER_INSTALL_COMMAND,
-        requiresFfmpeg: false
+        requiresFfmpeg: false,
+        requiresAiResources: false
+    },
+    [AI_BROWSER_RUNTIME_PROFILE]: {
+        bindingId: LOCAL_AI_BROWSER_RUNTIME_BINDING,
+        imageFamily: 'browser-ai',
+        artifactReference: 'xpert-source://sandbox-runtime/browser-ai-playwright-1.61-v1',
+        installCommand: LOCAL_AI_INSTALL_COMMAND,
+        requiresFfmpeg: false,
+        requiresAiResources: true
     },
     [VIDEO_BROWSER_RUNTIME_PROFILE]: {
         bindingId: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
         imageFamily: 'browser-video',
         artifactReference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1',
         installCommand: LOCAL_VIDEO_INSTALL_COMMAND,
-        requiresFfmpeg: true
+        requiresFfmpeg: true,
+        requiresAiResources: false
     }
 }
 
@@ -83,6 +101,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
     } as const
 
     private readonly instances = new Map<string, LocalBrowserRuntimeInstance>()
+    private readonly pendingAssetInstalls = new Map<string, Promise<LocalRuntimeAssets>>()
     private healthCache?: { key: string; expiresAt: number; health: SandboxRuntimeBindingHealth }
 
     /** Publishes last-resort Bindings only in explicit development/test mode. */
@@ -107,7 +126,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         if (!isLocalBinding(input.binding, input.definition.name)) {
             return { available: false, reason: 'Local Browser Runtime Binding does not match the Definition.' }
         }
-        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${input.definition.expectedManifest.runnerHostSha256 ?? ''}`
+        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${input.definition.expectedManifest.runnerHostSha256 ?? ''}:${input.definition.expectedManifest.modelCatalogSha256 ?? ''}`
         if (this.healthCache?.key === cacheKey && this.healthCache.expiresAt > Date.now()) {
             return this.healthCache.health
         }
@@ -162,7 +181,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         const existing = this.instances.get(runtimeId)
         if (existing) return existing
 
-        const assets = await resolveLocalRuntimeAssets(options.definition)
+        const assets = await this.resolveAssetsForCreate(options.definition)
         const workspaceRoot = path.resolve(options.volume.serverRoot)
         await mkdir(workspaceRoot, { recursive: true })
         await Promise.all(
@@ -184,6 +203,19 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         })
         this.instances.set(runtimeId, instance)
         return instance
+    }
+
+    private resolveAssetsForCreate(definition: SandboxRuntimeCreateOptions['definition']): Promise<LocalRuntimeAssets> {
+        const configuration = localRuntimeConfiguration(definition.name)
+        if (!configuration.requiresAiResources) return resolveLocalRuntimeAssets(definition)
+        const key = `${definition.name}:${definition.sandboxRuntimeVersion}:${definition.expectedManifest.modelCatalogSha256 ?? ''}`
+        const existing = this.pendingAssetInstalls.get(key)
+        if (existing) return existing
+        const pending = resolveLocalRuntimeAssets(definition, true).finally(() => {
+            if (this.pendingAssetInstalls.get(key) === pending) this.pendingAssetInstalls.delete(key)
+        })
+        this.pendingAssetInstalls.set(key, pending)
+        return pending
     }
 
     /** Idempotently terminates a live local process; persisted stale refs require no host cleanup. */
@@ -456,13 +488,15 @@ type LocalRuntimeAssets = {
 }
 
 async function resolveLocalRuntimeAssets(
-    definition: SandboxRuntimeCreateOptions['definition']
+    definition: SandboxRuntimeCreateOptions['definition'],
+    installAiResources = false
 ): Promise<LocalRuntimeAssets> {
     const configuration = localRuntimeConfiguration(definition.name)
     const packageRoots = [
         path.resolve(process.cwd(), 'packages/sandbox-runtime'),
         path.resolve(__dirname, '../../../../sandbox-runtime')
     ]
+    let lastError: unknown
     for (const packageRoot of packageRoots) {
         const root = path.join(packageRoot, 'images', configuration.imageFamily, 'runtime')
         const runnerPath = path.join(packageRoot, 'images', 'browser', 'runtime', 'runner-host.mjs')
@@ -472,6 +506,18 @@ async function resolveLocalRuntimeAssets(
             const nodePath = await resolveNodeExecutable(definition.expectedManifest.nodeVersion)
             const environmentAdditions: NodeJS.ProcessEnv = {
                 XPERT_SANDBOX_RUNTIME_MANIFEST_PATH: manifestPath
+            }
+            if (configuration.requiresAiResources) {
+                const artifactRoot = localAiArtifactRoot(definition.sandboxRuntimeVersion)
+                environmentAdditions.XPERT_SANDBOX_RUNTIME_ARTIFACT_ROOT = artifactRoot
+                if (installAiResources) {
+                    await installLocalAiResources({
+                        packageRoot,
+                        nodePath,
+                        artifactRoot,
+                        expectedCatalogSha256: definition.expectedManifest.modelCatalogSha256
+                    })
+                }
             }
             if (configuration.requiresFfmpeg) {
                 const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
@@ -483,13 +529,56 @@ async function resolveLocalRuntimeAssets(
                 nodePath,
                 environment: localRuntimeEnvironment(environmentAdditions)
             }
-        } catch {
+        } catch (error) {
+            lastError = error
             // Try the next deterministic source-tree location.
         }
     }
     throw new Error(
-        `Local Browser Runtime assets for ${definition.name} were not found or are incomplete. Run "${configuration.installCommand}" from the Xpert repository.`
+        `Local Browser Runtime assets for ${definition.name} were not found or are incomplete: ${messageOf(lastError)} Run "${configuration.installCommand}" from the Xpert repository.`
     )
+}
+
+async function installLocalAiResources(input: {
+    packageRoot: string
+    nodePath: string
+    artifactRoot: string
+    expectedCatalogSha256?: string
+}): Promise<void> {
+    if (!input.expectedCatalogSha256) {
+        throw new Error('Browser AI Runtime Definition does not declare modelCatalogSha256.')
+    }
+    const installerPath = path.join(input.packageRoot, 'scripts', 'install-ai-resources.mjs')
+    const catalogPath = path.join(input.packageRoot, 'images', 'browser-ai', 'resources', 'resource-catalog.json')
+    await Promise.all([access(installerPath, fsConstants.R_OK), access(catalogPath, fsConstants.R_OK)])
+    const result = await runProcess(
+        input.nodePath,
+        [
+            installerPath,
+            '--catalog',
+            catalogPath,
+            '--catalog-sha256',
+            input.expectedCatalogSha256,
+            '--output',
+            input.artifactRoot
+        ],
+        {
+            timeoutMs: 600_000,
+            maxOutputBytes: 512 * 1024,
+            cwd: input.packageRoot,
+            env: localRuntimeEnvironment()
+        }
+    )
+    if (result.exitCode !== 0) {
+        throw new Error(
+            `${result.output || 'Pinned browser-ai resources could not be installed.'} Run "${LOCAL_AI_INSTALL_COMMAND}" from the Xpert repository to prewarm them.`
+        )
+    }
+}
+
+function localAiArtifactRoot(runtimeSuiteVersion: string): string {
+    const cacheRoot = process.env.XDG_CACHE_HOME?.trim() || path.join(homedir(), '.cache')
+    return path.join(cacheRoot, 'xpert', 'sandbox-runtime', 'browser-ai', runtimeSuiteVersion, 'artifacts')
 }
 
 async function resolveLocalFfmpeg(packageRoot: string): Promise<string> {

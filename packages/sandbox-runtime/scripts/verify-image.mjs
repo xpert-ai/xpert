@@ -51,6 +51,26 @@ if (family === 'browser-video') {
   ])
   void mediaTools
 }
+if (family === 'browser-ai') {
+  const resources = await docker([
+    ...sandboxFlags,
+    '--entrypoint',
+    'node',
+    image,
+    '/opt/xpert/sandbox-runtime/verify-ai-resources.mjs',
+    '--catalog',
+    '/opt/xpert/sandbox-runtime/artifacts/catalog.json',
+    '--catalog-sha256',
+    String(value.modelCatalogSha256),
+    '--output',
+    '/opt/xpert/sandbox-runtime/artifacts',
+    '--verify-only'
+  ])
+  const resourceResult = JSON.parse(resources.trim())
+  if (resourceResult.catalogSha256 !== value.modelCatalogSha256 || resourceResult.resources.length < 2) {
+    throw new Error('browser-ai resource verification did not match the Runtime manifest.')
+  }
+}
 process.stdout.write(`verified ${image}\n`)
 
 async function docker(args) {

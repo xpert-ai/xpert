@@ -7,10 +7,13 @@ import type {
     SandboxRuntimeSecurity
 } from '@xpert-ai/plugin-sdk'
 import browserDefinition from './runtime-definitions/browser-playwright-1.61-v1.json'
+import browserAiDefinition from './runtime-definitions/browser-ai-playwright-1.61-v1.json'
 import browserVideoDefinition from './runtime-definitions/browser-video-playwright-1.61-v1.json'
 
 /** Stable Browser Runtime profile embedded in the provider-neutral OSS Core catalog. */
 export const DEFAULT_BROWSER_RUNTIME_PROFILE = 'browser/playwright-1.61/v1'
+/** Generic browser runtime with pinned, offline AI resources. */
+export const AI_BROWSER_RUNTIME_PROFILE = 'browser/ai-playwright-1.61/v1'
 /** Production media profile with Node 22, matching Chromium and FFmpeg. */
 export const VIDEO_BROWSER_RUNTIME_PROFILE = 'browser/video-playwright-1.61/v1'
 
@@ -26,6 +29,7 @@ export class SandboxRuntimeDefinitionRegistry {
 
     constructor() {
         this.register(parseDefinition(browserDefinition, 'Browser Runtime Definition'))
+        this.register(parseDefinition(browserAiDefinition, 'Browser AI Runtime Definition'))
         this.register(parseDefinition(browserVideoDefinition, 'Browser Video Runtime Definition'))
     }
 

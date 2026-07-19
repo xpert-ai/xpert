@@ -3,8 +3,8 @@
   "runtimeSuiteVersion": "1.1.0",
   "artifacts": [
     {
-      "runtimeProfile": "browser/video-playwright-1.61/v1",
-      "imageFamily": "browser-video",
+      "runtimeProfile": "browser/ai-playwright-1.61/v1",
+      "imageFamily": "browser-ai",
       "kind": "oci-image",
       "reference": "__IMMUTABLE_IMAGE__",
       "digest": "__IMAGE_DIGEST__"
