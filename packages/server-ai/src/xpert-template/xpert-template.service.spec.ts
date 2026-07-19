@@ -536,6 +536,15 @@ describe('XpertTemplateService', () => {
     it('resolves configured plugin templates with namespaced ids and skips unavailable refs', async () => {
         const workspaceRoot = createTempDir()
         const dataRoot = createTempDir()
+        const pluginDsl = [
+            'team:',
+            '  name: Plugin Business',
+            '  description:',
+            '    en_US: English plugin description',
+            '    zh_Hans: 中文插件描述',
+            '  avatar:',
+            '    url: data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='
+        ].join('\n')
         seedBuiltinTemplates(workspaceRoot, {
             templatesJson: {
                 templates: {
@@ -578,7 +587,7 @@ describe('XpertTemplateService', () => {
                                 description: 'Plugin contributed template',
                                 category: 'Plugin',
                                 type: XpertTypeEnum.Agent,
-                                dslContent: 'team:\n  name: Plugin Business\n',
+                                dslContent: pluginDsl,
                                 order: 1
                             }
                         ]
@@ -592,8 +601,14 @@ describe('XpertTemplateService', () => {
             templateType: 'business-assistant'
         }
         const catalog = await service.getAll(LanguagesEnum.English, query)
+        const chineseCatalog = await service.getAll(LanguagesEnum.SimplifiedChinese, query)
         const recommendations = await service.getMarketplaceRecommendedTemplates(LanguagesEnum.English, query)
         const detail = await service.getTemplateDetail('@xpert-ai/plugin-demo:business', LanguagesEnum.English, query)
+        const chineseDetail = await service.getTemplateDetail(
+            '@xpert-ai/plugin-demo:business',
+            LanguagesEnum.SimplifiedChinese,
+            query
+        )
         const legacyVersionedDetail = await service.getTemplateDetail(
             '@xpert-ai/plugin-demo@0.1.0:business',
             LanguagesEnum.English,
@@ -601,6 +616,10 @@ describe('XpertTemplateService', () => {
         )
 
         expect(catalog.recommendedApps.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
+        expect(chineseCatalog.recommendedApps[0]).toMatchObject({
+            description: '中文插件描述',
+            avatar: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' }
+        })
         expect(recommendations.map((template) => template.id)).toEqual(['@xpert-ai/plugin-demo:business'])
         expect(catalog.categories).toEqual(expect.arrayContaining(['Built-in', 'Plugin']))
         expect(detail).toMatchObject({
@@ -609,8 +628,11 @@ describe('XpertTemplateService', () => {
             type: XpertTypeEnum.Agent,
             source: 'plugin',
             pluginDisplayName: 'Demo Plugin',
-            export_data: 'team:\n  name: Plugin Business'
+            description: 'English plugin description',
+            avatar: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' },
+            export_data: pluginDsl
         })
+        expect(chineseDetail.description).toBe('中文插件描述')
         expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')
     })
 

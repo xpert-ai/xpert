@@ -5860,6 +5860,7 @@
       "Conditions": "条件",
       "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
       "MarketplaceInfo": "广场信息",
+      "MarketplaceInfoConfigureHint": "展开进行配置",
       "MarketplaceSummary": "展示摘要",
       "MarketplaceSummaryPlaceholder": "简要说明此智能体最适合处理哪些任务。",
       "MarketplaceBusinessCategories": "市场分类",

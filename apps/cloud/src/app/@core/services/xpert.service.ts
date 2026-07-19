@@ -119,6 +119,10 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     this.#refresh.next()
   }
 
+  onRefresh() {
+    return this.#refresh.asObservable()
+  }
+
   getBySlug(slug: string) {
     return this.httpClient.get<IXpert>(this.apiBaseUrl + `/slug/${slug}`)
   }
@@ -175,9 +179,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     newVersion: boolean,
     body: { environmentId?: string | null; releaseNotes: string; marketplace?: TXpertPublishMarketplaceInput }
   ) {
-    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
-      params: new HttpParams().append('newVersion', newVersion)
-    })
+    return this.httpClient
+      .post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
+        params: new HttpParams().append('newVersion', newVersion)
+      })
+      .pipe(tap(() => this.refresh()))
   }
 
   /**

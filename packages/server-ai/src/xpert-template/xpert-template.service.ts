@@ -40,6 +40,7 @@ import { In, Repository } from 'typeorm'
 import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
 import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
 import { XpertTemplate } from './xpert-template.entity'
+import { readXpertTemplateDslMetadata } from './xpert-template-dsl-metadata'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
@@ -359,7 +360,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     async getAll(language: LanguagesEnum, query?: TXpertTemplateQuery) {
         const [templatesData, pluginTemplates] = await Promise.all([
             this.readTemplatesFile(),
-            this.getPluginTemplates(query)
+            this.getPluginTemplates(language, query)
         ])
         const group = templatesData.templates[language]?.recommendedApps?.length
             ? templatesData.templates[language]
@@ -389,7 +390,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             this.readTemplatesFile(),
             this.readBuiltinTemplatesFile(),
             this.readTemplatesMarketConfig(),
-            this.getPluginTemplates(query)
+            this.getPluginTemplates(language, query)
         ])
 
         return this.resolveRecommendedTemplates(
@@ -417,7 +418,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     async getTemplateDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery) {
-        const pluginTemplate = await this.getPluginTemplateById(id, query)
+        const pluginTemplate = await this.getPluginTemplateById(id, language, query)
         if (pluginTemplate) {
             return pluginTemplate
         }
@@ -821,12 +822,15 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         return resolved
     }
 
-    private async getPluginTemplates(query?: TXpertTemplateQuery): Promise<TXpertTemplateDescriptor[]> {
+    private async getPluginTemplates(
+        language: LanguagesEnum,
+        query?: TXpertTemplateQuery
+    ): Promise<TXpertTemplateDescriptor[]> {
         const plugins = this.getEffectivePluginRecords()
         const templates = await Promise.all(
             plugins.map(async (plugin) => {
                 try {
-                    return await this.readPluginTemplates(plugin, query)
+                    return await this.readPluginTemplates(plugin, language, query)
                 } catch (error) {
                     this.#logger.warn(
                         `Skipping xpert templates from plugin '${plugin.name}': ${getErrorMessage(error)}`
@@ -841,9 +845,10 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
     private async getPluginTemplateById(
         id: string,
+        language: LanguagesEnum,
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor | null> {
-        const templates = await this.getPluginTemplates(query)
+        const templates = await this.getPluginTemplates(language, query)
         return this.findPluginTemplateById(templates, id)
     }
 
@@ -916,6 +921,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
     private async readPluginTemplates(
         plugin: LoadedPluginRecord,
+        language: LanguagesEnum,
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor[]> {
         const source = plugin.instance?.templates
@@ -930,14 +936,15 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
               : []
 
         return (contributions ?? [])
-            .map((contribution) => this.toPluginTemplateDescriptor(plugin, contribution))
+            .map((contribution) => this.toPluginTemplateDescriptor(plugin, contribution, language))
             .filter((template): template is TXpertTemplateDescriptor => !!template)
             .filter((template) => this.matchesTemplateQuery(template, query))
     }
 
     private toPluginTemplateDescriptor(
         plugin: LoadedPluginRecord,
-        contribution: XpertTemplateContribution
+        contribution: XpertTemplateContribution,
+        language: LanguagesEnum
     ): TXpertTemplateDescriptor | null {
         const key = this.normalizeTemplateString(contribution?.key ?? contribution?.id)
         const exportData = this.normalizeTemplateString(contribution?.export_data ?? contribution?.dslContent)
@@ -951,6 +958,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         const namespacedId = `${pluginName}:${key}`
         const targetApps = contribution.targetApps ?? plugin.instance?.meta?.targetApps
         const targetAppMeta = contribution.targetAppMeta ?? plugin.instance?.meta?.targetAppMeta ?? null
+        const dslMetadata = readXpertTemplateDslMetadata(exportData, language)
 
         return {
             ...contribution,
@@ -958,7 +966,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             key: namespacedId,
             name: this.normalizeTemplateString(contribution.name) ?? key,
             title: this.normalizeTemplateString(contribution.title ?? contribution.name) ?? key,
-            description: this.normalizeTemplateString(contribution.description) ?? '',
+            description: dslMetadata.description ?? this.normalizeTemplateString(contribution.description) ?? '',
             category: this.normalizeTemplateString(contribution.category) ?? 'Plugin',
             copyright: contribution.copyright ?? null,
             privacyPolicy: contribution.privacyPolicy ?? null,
@@ -969,6 +977,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             pluginName,
             pluginDisplayName: this.normalizeTemplateString(plugin.instance?.meta?.displayName ?? pluginName),
             dependencies: contribution.dependencies,
+            avatar: contribution.avatar ?? dslMetadata.avatar,
             order: typeof contribution.order === 'number' ? contribution.order : Number.MAX_SAFE_INTEGER
         }
     }

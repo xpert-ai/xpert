@@ -55,79 +55,6 @@
     }
   </div>
 
-  @if (agentMarketplaceEnabled()) {
-    <section class="rounded-lg border border-border bg-background-default-subtle p-3">
-      <div class="text-sm font-semibold text-text-primary">
-        {{ 'PAC.Xpert.MarketplaceInfo' | translate: { Default: 'Marketplace information' } }}
-      </div>
-
-      <label class="mt-3 block text-xs font-medium text-text-secondary">
-        {{ 'PAC.Xpert.MarketplaceSummary' | translate: { Default: 'Display summary' } }}
-      </label>
-      <textarea
-        rows="2"
-        maxlength="240"
-        class="xp-input mt-1 w-full resize-none bg-background text-sm leading-[18px] text-text-primary"
-        [placeholder]="
-          'PAC.Xpert.MarketplaceSummaryPlaceholder'
-            | translate: { Default: 'Briefly describe the tasks this agent is best suited for.' }
-        "
-        [ngModel]="marketplaceSummary()"
-        (ngModelChange)="marketplaceSummary.set($event)"
-      ></textarea>
-
-      <div class="mt-3 text-xs font-medium text-text-secondary">
-        {{ 'PAC.Xpert.MarketplaceBusinessCategories' | translate: { Default: 'Marketplace categories' } }}
-      </div>
-      <div class="mt-2 flex flex-wrap gap-2">
-        @for (category of businessCategories; track category) {
-          <button
-            type="button"
-            [class]="
-              selectedBusinessCategories().includes(category)
-                ? 'rounded-md border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary'
-                : 'rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-text-secondary hover:border-primary/60 hover:text-text-primary'
-            "
-            (click)="toggleBusinessCategory(category)"
-          >
-            {{ businessLabelKey(category) | translate }}
-          </button>
-        }
-      </div>
-
-      <label class="mt-3 block text-xs font-medium text-text-secondary">
-        {{ 'PAC.Xpert.MarketplaceCapabilityTags' | translate: { Default: 'Capability tags' } }}
-      </label>
-      <input
-        class="xp-input mt-1 w-full bg-background text-sm text-text-primary"
-        [placeholder]="
-          'PAC.Xpert.MarketplaceCapabilityTagsPlaceholder' | translate: { Default: 'knowledge, citation, workflow' }
-        "
-        [ngModel]="capabilityTagsText()"
-        (ngModelChange)="capabilityTagsText.set($event)"
-      />
-
-      <div class="mt-3 text-xs font-medium text-text-secondary">
-        {{ 'PAC.Xpert.MarketplaceTechnicalPreview' | translate: { Default: 'Technical categories preview' } }}
-      </div>
-      <div class="mt-2 flex flex-wrap gap-2">
-        @for (category of technicalPreview().categories; track category) {
-          <span
-            class="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-text-secondary"
-          >
-            {{ technicalLabelKey(category) | translate }}
-          </span>
-        } @empty {
-          <span class="rounded-md border border-dashed border-border px-2.5 py-1 text-xs text-text-tertiary">
-            {{
-              'PAC.Xpert.MarketplaceNoTechnicalPreview' | translate: { Default: 'No technical category detected yet' }
-            }}
-          </span>
-        }
-      </div>
-    </section>
-  }
-
   <div>{{ 'PAC.Xpert.VersionHistory' | translate: { Default: 'Version History' } }}</div>
   <ul class="w-full max-h-80 overflow-auto">
     @for (item of versions(); track item.version) {
@@ -189,6 +116,86 @@
         [(ngModel)]="environmentId"
       />
     </div>
+  }
+
+  @if (agentMarketplaceEnabled()) {
+    <z-accordion data-marketplace-section class="mt-3">
+      <z-accordion-item class="rounded-lg border border-border bg-background-default-subtle">
+        <z-accordion-header>
+          <z-accordion-title>
+            {{ 'PAC.Xpert.MarketplaceInfo' | translate: { Default: 'Marketplace information' } }}
+          </z-accordion-title>
+          <z-accordion-description class="text-xs text-text-tertiary">
+            {{ 'PAC.Xpert.MarketplaceInfoConfigureHint' | translate: { Default: 'Expand to configure' } }}
+          </z-accordion-description>
+        </z-accordion-header>
+
+        <label class="block text-xs font-medium text-text-secondary">
+          {{ 'PAC.Xpert.MarketplaceSummary' | translate: { Default: 'Display summary' } }}
+        </label>
+        <textarea
+          rows="2"
+          maxlength="240"
+          class="xp-input mt-1 w-full resize-none bg-background text-sm leading-[18px] text-text-primary"
+          [placeholder]="
+            'PAC.Xpert.MarketplaceSummaryPlaceholder'
+              | translate: { Default: 'Briefly describe the tasks this agent is best suited for.' }
+          "
+          [ngModel]="marketplaceSummary()"
+          (ngModelChange)="marketplaceSummary.set($event)"
+        ></textarea>
+
+        <div class="mt-3 text-xs font-medium text-text-secondary">
+          {{ 'PAC.Xpert.MarketplaceBusinessCategories' | translate: { Default: 'Marketplace categories' } }}
+        </div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          @for (category of businessCategories; track category) {
+            <button
+              type="button"
+              [class]="
+                selectedBusinessCategories().includes(category)
+                  ? 'rounded-md border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary'
+                  : 'rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-text-secondary hover:border-primary/60 hover:text-text-primary'
+              "
+              (click)="toggleBusinessCategory(category)"
+            >
+              {{ businessLabelKey(category) | translate }}
+            </button>
+          }
+        </div>
+
+        <label class="mt-3 block text-xs font-medium text-text-secondary">
+          {{ 'PAC.Xpert.MarketplaceCapabilityTags' | translate: { Default: 'Capability tags' } }}
+        </label>
+        <input
+          class="xp-input mt-1 w-full bg-background text-sm text-text-primary"
+          [placeholder]="
+            'PAC.Xpert.MarketplaceCapabilityTagsPlaceholder' | translate: { Default: 'knowledge, citation, workflow' }
+          "
+          [ngModel]="capabilityTagsText()"
+          (ngModelChange)="capabilityTagsText.set($event)"
+        />
+
+        <div class="mt-3 text-xs font-medium text-text-secondary">
+          {{ 'PAC.Xpert.MarketplaceTechnicalPreview' | translate: { Default: 'Technical categories preview' } }}
+        </div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          @for (category of technicalPreview().categories; track category) {
+            <span
+              class="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-text-secondary"
+            >
+              {{ technicalLabelKey(category) | translate }}
+            </span>
+          } @empty {
+            <span class="rounded-md border border-dashed border-border px-2.5 py-1 text-xs text-text-tertiary">
+              {{
+                'PAC.Xpert.MarketplaceNoTechnicalPreview' | translate: { Default: 'No technical category detected yet' }
+              }}
+            </span>
+          }
+        </div>
+      </z-accordion-item>
+    </z-accordion>
   }
 
   @if (loading()) {

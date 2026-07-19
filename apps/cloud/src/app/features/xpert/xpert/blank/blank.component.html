@@ -89,10 +89,15 @@
         #stepper="zStepper"
         orientation="horizontal"
         zSize="sm"
+        [selectedIndex]="agentInitialStepIndex"
         class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
         (selectionChange)="onAgentStepChange($event)"
       >
-        <z-step [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }">
+        <z-step
+          [label]="'PAC.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+          [completed]="skipTemplateSelectionStep"
+          [editable]="!skipTemplateSelectionStep"
+        >
           <div class="px-4">
             <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
               <div class="text-sm leading-6 text-text-secondary">
@@ -273,6 +278,7 @@
                     class="flex-1"
                     [options]="workspaceOptions()"
                     [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
@@ -867,7 +873,7 @@
             {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
           </button>
 
-          @if (stepper.selectedIndex > 0) {
+          @if (stepper.selectedIndex > agentInitialStepIndex) {
             <button
               type="button"
               class="btn disabled:btn-disabled btn-large"
@@ -1019,6 +1025,7 @@
                     class="flex-1"
                     [options]="workspaceOptions()"
                     [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
@@ -1355,6 +1362,7 @@
                     class="flex-1"
                     [options]="workspaceOptions()"
                     [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button
@@ -1730,6 +1738,7 @@
                     class="flex-1"
                     [options]="workspaceOptions()"
                     [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [searchPlaceholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
                     [(ngModel)]="workspaceId"
                   />
                   <button

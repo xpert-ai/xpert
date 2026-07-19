@@ -19,7 +19,8 @@ import {
   IXpert,
   RequestScopeLevel,
   ScopeService,
-  Store
+  Store,
+  XpertAPIService
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
@@ -84,6 +85,7 @@ export class CloudSidebarAssistantsComponent {
   readonly #router = inject(Router)
   readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
+  readonly #xpertAPI = inject(XpertAPIService)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
   readonly #unreadPoll$ = new Observable<void>((subscriber) =>
     this.#ngZone.runOutsideAngular(() => {
@@ -197,7 +199,7 @@ export class CloudSidebarAssistantsComponent {
         const isTenantListScope = scopeLevel === RequestScopeLevel.TENANT
 
         return merge(
-          of(null),
+          this.#xpertAPI.onRefresh(),
           this.#assistantBindingService.changes$.pipe(
             filter((event) => event.code === AssistantCode.CLAWXPERT && event.scope === AssistantBindingScope.USER)
           )
