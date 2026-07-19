@@ -115,6 +115,37 @@ test('refreshes and verifies an existing local plugin without printing the token
   assert.match(result.stdout, /refreshed and verified successfully/)
 })
 
+test('reports that a staged system plugin requires an API restart', async (t) => {
+  const workspacePath = createPluginWorkspace()
+  t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
+  const requests = []
+  const server = await listen(async (request, response) => {
+    requests.push({ body: await readRequestBody(request), path: request.url })
+    response.setHeader('content-type', 'application/json')
+    if (request.url === '/api/plugin/refresh') {
+      response.end(JSON.stringify({ success: true, restartRequired: true }))
+      return
+    }
+    response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-deploy' }]))
+  })
+  t.after(() => server.close())
+
+  const result = await runCli(
+    DEPLOY_SCRIPT_PATH,
+    [workspacePath, '--skip-build', '--skip-test', '--no-keychain', '--api-url', server.url, '--org-id', 'org-test'],
+    { XPERT_TOKEN: 'secret-test-token' }
+  )
+
+  assert.equal(result.code, 0, result.stderr)
+  assert.deepEqual(
+    requests.map((item) => item.path),
+    ['/api/plugin/refresh', '/api/plugin/by-names']
+  )
+  assert.match(result.stdout, /refreshed and staged successfully/)
+  assert.match(result.stdout, /API restart required before activation/)
+  assert.doesNotMatch(result.stdout, /refreshed and verified successfully/)
+})
+
 test('logs in with configured credentials, infers tenant scope, and never prints secrets', async (t) => {
   const workspacePath = createPluginWorkspace()
   t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))

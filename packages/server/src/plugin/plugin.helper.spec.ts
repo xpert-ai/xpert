@@ -133,6 +133,45 @@ describe('plugin helper registerPluginsAsync', () => {
 		])
 	})
 
+	it('stages system plugin code without importing or registering the Nest module', async () => {
+		await expect(
+			registerPluginsAsync({
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'system:global',
+				stageOnly: true,
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-system-demo',
+						runtimeName: '@xpert-ai/plugin-system-demo@runtime__next',
+						source: 'code',
+						level: 'system',
+						sourceConfig: {
+							workspacePath: '/tmp/workspaces/plugin-system-demo'
+						}
+					}
+				]
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'system:global',
+				modules: [],
+				errors: []
+			})
+		)
+
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-system-demo@runtime__next',
+				expectedPackageName: '@xpert-ai/plugin-system-demo',
+				workspacePath: '/tmp/workspaces/plugin-system-demo',
+				scopeKey: 'system:global'
+			})
+		)
+		expect(loadPlugin).not.toHaveBeenCalled()
+		expect(loaded).toEqual([])
+	})
+
 	it('records sdk compatibility warnings on loaded plugin records', async () => {
 		const warnings = [
 			{

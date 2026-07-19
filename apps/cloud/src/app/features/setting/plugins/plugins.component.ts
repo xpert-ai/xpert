@@ -30,7 +30,7 @@ import { PluginsMarketplaceComponent } from './marketplace/marketplace.component
 import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin } from './types'
-import { PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
+import { IPluginInstallResult, IPluginUninstallResult, PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
 import { PluginResourcesComponent } from './resources/resources.component'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
@@ -46,6 +46,7 @@ import {
 import { getInstalledPluginMarketplaceContributions, toPluginMarketplaceDetails } from './plugin-marketplace-details'
 import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
 import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation'
+import { PluginRuntimeRestartService } from './plugin-runtime-restart.service'
 
 type TPluginComponentSummaryItem = {
   key: 'skills' | 'mcpServers' | 'apps' | 'hooks'
@@ -92,6 +93,7 @@ export class PluginsComponent {
   readonly #agentService = inject(XpertAgentService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toolsetService = inject(XpertToolsetService)
+  readonly runtimeRestart = inject(PluginRuntimeRestartService)
   readonly marketplace = viewChild(PluginsMarketplaceComponent)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
   readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
@@ -478,10 +480,14 @@ export class PluginsComponent {
         return this.pluginAPI.uninstall([plugin.name], plugin.organizationId, plugin.scopeKey)
       }
     ).subscribe({
-      next: () => {
+      next: (result) => {
         this.removing.set('')
         this.reloadInstalledPlugins()
-        this.refreshStrategyCaches()
+        if ((result as IPluginUninstallResult).restartRequired) {
+          this.showRestartRequired(plugin.name)
+        } else {
+          this.refreshStrategyCaches()
+        }
       },
       error: () => {
         this.removing.set('')
@@ -499,6 +505,10 @@ export class PluginsComponent {
       next: (result) => {
         this.updating.set('')
         this.reloadInstalledPlugins()
+        if (result.restartRequired) {
+          this.showRestartRequired(plugin.name)
+          return
+        }
         this.refreshStrategyCaches()
         if (result.updated) {
           this.#toastr.success(
@@ -525,9 +535,13 @@ export class PluginsComponent {
 
     this.refreshing.set(plugin.name)
     this.pluginAPI.refresh(plugin.name).subscribe({
-      next: () => {
+      next: (result) => {
         this.refreshing.set('')
         this.reloadInstalledPlugins()
+        if (result.restartRequired) {
+          this.showRestartRequired(plugin.name)
+          return
+        }
         this.refreshStrategyCaches()
         this.#toastr.success('PAC.Plugin.RefreshPluginSuccess', {
           Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
@@ -623,9 +637,9 @@ export class PluginsComponent {
       })
 
       .subscribe({
-        next: () => {
+        next: (result) => {
           this.npmInstalling.set(false)
-          this.handleInstallSuccess(dialogRef)
+          this.handleInstallSuccess(dialogRef, result)
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
@@ -652,9 +666,9 @@ export class PluginsComponent {
         }
       })
       .subscribe({
-        next: () => {
+        next: (result) => {
           this.localInstalling.set(false)
-          this.handleInstallSuccess(dialogRef)
+          this.handleInstallSuccess(dialogRef, result)
         },
         error: (err) => {
           this.localInstallError.set(getErrorMessage(err))
@@ -672,9 +686,9 @@ export class PluginsComponent {
     this.archiveInstalling.set(true)
     this.archiveInstallError.set(null)
     this.pluginAPI.installArchive(file).subscribe({
-      next: () => {
+      next: (result) => {
         this.archiveInstalling.set(false)
-        this.handleInstallSuccess(dialogRef)
+        this.handleInstallSuccess(dialogRef, result)
       },
       error: (err) => {
         this.archiveInstallError.set(getErrorMessage(err))
@@ -683,10 +697,19 @@ export class PluginsComponent {
     })
   }
 
-  private handleInstallSuccess(dialogRef: DialogRef) {
+  private handleInstallSuccess(dialogRef: DialogRef, result: IPluginInstallResult) {
     dialogRef.close()
     this.reloadInstalledPlugins()
-    this.refreshStrategyCaches()
+    if (result.restartRequired) {
+      this.showRestartRequired(result.packageName || result.name)
+    } else {
+      this.refreshStrategyCaches()
+    }
+  }
+
+  private showRestartRequired(pluginName?: string | null) {
+    this.runtimeRestart.markRequired(pluginName)
+    void this.runtimeRestart.prompt()
   }
 
   private reloadInstalledPlugins() {

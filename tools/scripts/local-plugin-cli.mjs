@@ -419,7 +419,18 @@ export function summarizePluginResponse(body) {
   }
 
   const summary = {}
-  for (const key of ['success', 'name', 'pluginName', 'packageName', 'version', 'source', 'status', 'scopeKey']) {
+  for (const key of [
+    'success',
+    'name',
+    'pluginName',
+    'packageName',
+    'version',
+    'currentVersion',
+    'source',
+    'status',
+    'scopeKey',
+    'restartRequired'
+  ]) {
     const value = body[key]
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       summary[key] = value

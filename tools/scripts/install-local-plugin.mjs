@@ -114,7 +114,13 @@ async function main() {
 
   const response = await postJson(endpoint, headers, body)
   assertResponseOk('Plugin install', response)
-  console.log(`[plugin:install:local] ${pluginName} installed successfully (HTTP ${response.status}).`)
+  if (response.body?.restartRequired === true) {
+    console.log(
+      `[plugin:install:local] ${pluginName} staged successfully (HTTP ${response.status}). API restart required before activation.`
+    )
+  } else {
+    console.log(`[plugin:install:local] ${pluginName} installed successfully (HTTP ${response.status}).`)
+  }
   const summary = summarizePluginResponse(response.body)
   if (summary) {
     console.log('[plugin:install:local] Result:', JSON.stringify(summary, null, 2))

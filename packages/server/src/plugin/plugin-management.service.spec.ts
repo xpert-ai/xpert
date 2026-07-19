@@ -82,6 +82,13 @@ jest.mock('./plugin-http-routes', () => ({
 }))
 
 jest.mock('./plugin-sdk-versioning', () => ({
+	assertInstalledPluginSdkCompatibility: jest.fn(() => ({
+		hostVersion: '3.8.4',
+		peerRange: '^3.8.0',
+		warnings: [],
+		level: 'organization',
+		version: '1.0.0'
+	})),
 	assertPluginSdkCompatibility: jest.fn(() => ({
 		hostVersion: '3.8.4',
 		peerRange: '^3.8.0',
@@ -138,7 +145,11 @@ const { t } = require('i18next')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
-const { assertPluginSdkCompatibility, assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
+const {
+	assertInstalledPluginSdkCompatibility,
+	assertPluginSdkCompatibility,
+	assertPluginSdkInstallCandidate
+} = require('./plugin-sdk-versioning')
 const {
 	collectProvidersWithMetadata,
 	getEntitiesFromPlugins,
@@ -163,6 +174,7 @@ describe('PluginManagementService', () => {
 	const pluginInstanceService = {
 		findOneByPluginName: jest.fn(),
 		getDefaultTenantId: jest.fn(),
+		deactivate: jest.fn(),
 		uninstall: jest.fn(),
 		uninstallByPackageName: jest.fn(),
 		removePlugins: jest.fn(),
@@ -252,6 +264,13 @@ describe('PluginManagementService', () => {
 			hostVersion: '3.8.4',
 			peerRange: '^3.8.0',
 			warnings: []
+		})
+		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'organization',
+			version: '1.0.0'
 		})
 		;(readPluginPackageJson as jest.Mock).mockReturnValue({
 			name: '@xpert-ai/plugin-uploaded-demo',
@@ -977,24 +996,28 @@ describe('PluginManagementService', () => {
 		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
 	})
 
-	it('installs system-level plugins once in the singleton system scope', async () => {
+	it('stages system-level plugins without mutating the live Nest module graph', async () => {
 		RequestContext.getScope.mockReturnValue({
 			tenantId: 'tenant-1',
 			organizationId: '__global__'
 		})
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
 			hostVersion: '3.8.4',
 			peerRange: '^3.8.0',
 			warnings: [],
-			level: 'system'
+			level: 'system',
+			version: '1.0.0',
+			artifactNamespace: 'system_demo'
 		})
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-system-demo',
-				version: '1.0.0',
-				level: 'system'
-			}
+		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'system',
+			version: '1.0.0',
+			artifactNamespace: 'system_demo'
 		})
 
 		await expect(
@@ -1005,23 +1028,18 @@ describe('PluginManagementService', () => {
 			expect.objectContaining({
 				success: true,
 				name: '@xpert-ai/plugin-system-demo',
-				organizationId: '__global__'
+				organizationId: '__global__',
+				restartRequired: true
 			})
 		)
 
-		expect((pluginInstanceService as any).uninstallByPackageName).toHaveBeenCalledWith(
-			null,
-			'__global__',
-			'@xpert-ai/plugin-system-demo',
-			{
-				scopeKey: 'system:global'
-			}
-		)
+		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
 		expect(registerPluginsAsync).toHaveBeenCalledWith(
 			expect.objectContaining({
 				tenantId: null,
 				organizationId: '__global__',
 				scopeKey: 'system:global',
+				stageOnly: true,
 				plugins: [
 					expect.objectContaining({
 						name: '@xpert-ai/plugin-system-demo',
@@ -1031,6 +1049,10 @@ describe('PluginManagementService', () => {
 			}),
 			expect.anything()
 		)
+		expect(loadPlugin).not.toHaveBeenCalled()
+		expect(lazyLoader.load).not.toHaveBeenCalled()
+		expect(dataSource.setOptions).not.toHaveBeenCalled()
+		expect(registerPluginControllerRoutes).not.toHaveBeenCalled()
 		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				tenantId: null,
@@ -1038,8 +1060,62 @@ describe('PluginManagementService', () => {
 				scopeKey: 'system:global',
 				pluginName: '@xpert-ai/plugin-system-demo',
 				level: 'system'
-			})
+			}),
+			{ syncLoadedConfig: false }
 		)
+	})
+
+	it('stages code updates for system plugins in a new immutable runtime directory', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-1',
+			organizationId: '__global__'
+		})
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
+		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'system',
+			version: '1.0.1',
+			artifactNamespace: 'system_demo'
+		})
+		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'system',
+			version: '1.0.1',
+			artifactNamespace: 'system_demo'
+		})
+
+		await service.installPlugin({
+			pluginName: '@xpert-ai/plugin-system-demo',
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-system-demo',
+				runtimeName: '@xpert-ai/plugin-system-demo@runtime__active'
+			}
+		})
+
+		const stagedPlugin = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0]
+		expect(stagedPlugin.runtimeName).toMatch(/^@xpert-ai\/plugin-system-demo@runtime__/)
+		expect(stagedPlugin.runtimeName).not.toBe('@xpert-ai/plugin-system-demo@runtime__active')
+		expect(stagedPlugin.sourceConfig).toEqual({
+			workspacePath: '/tmp/workspaces/plugin-system-demo',
+			runtimeName: stagedPlugin.runtimeName
+		})
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-system-demo',
+					runtimeName: stagedPlugin.runtimeName
+				}
+			}),
+			{ syncLoadedConfig: false }
+		)
+		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
 	})
 
 	it('rejects system-level installs from non-default tenants before touching the singleton scope', async () => {
@@ -1141,7 +1217,7 @@ describe('PluginManagementService', () => {
 
 		await expect(
 			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
-		).resolves.toBeUndefined()
+		).resolves.toEqual({})
 
 		expect((pluginInstanceService as any).uninstall).toHaveBeenCalledWith(
 			'tenant-1',
@@ -1159,5 +1235,27 @@ describe('PluginManagementService', () => {
 		)
 
 		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
+	})
+
+	it('deactivates system plugins persistently and requires a process restart to unload them', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-1',
+			organizationId: '__global__'
+		})
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
+		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
+
+		await expect(
+			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-system-demo'], '__global__', 'system:global')
+		).resolves.toEqual({ restartRequired: true })
+
+		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
+			'tenant-1',
+			'__global__',
+			['@xpert-ai/plugin-system-demo'],
+			{ scopeKey: 'system:global' }
+		)
+		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
 	})
 })

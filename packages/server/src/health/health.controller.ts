@@ -1,17 +1,15 @@
-import { Controller, Get } from '@nestjs/common'
-import {
-	DiskHealthIndicator,
-	HealthCheckService,
-	TypeOrmHealthIndicator
-} from '@nestjs/terminus'
+import { Controller, Get, HttpStatus, Res } from '@nestjs/common'
+import { DiskHealthIndicator, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as path from 'path'
+import { Response } from 'express'
 import { EntityManager, Repository } from 'typeorm'
 import { v4 as uuid } from 'uuid'
 import { User } from '../core/entities/internal'
 import { Public } from '../shared/decorators'
 import { CacheHealthIndicator } from './indicators/cache-health.indicator'
 import { RedisHealthIndicator } from './indicators/redis-health.indicator'
+import { RuntimeLifecycleService } from '../runtime-control'
 
 @Controller('health')
 export class HealthController {
@@ -21,6 +19,7 @@ export class HealthController {
 		private readonly disk: DiskHealthIndicator,
 		private readonly cacheHealthIndicator: CacheHealthIndicator,
 		private readonly redisHealthIndicator: RedisHealthIndicator,
+		private readonly runtimeLifecycle: RuntimeLifecycleService,
 		@InjectRepository(User)
 		private readonly userRepository: Repository<User>
 	) {}
@@ -29,6 +28,17 @@ export class HealthController {
 	private readonly checkStorage = true
 	private readonly checkCache = true
 	private readonly checkRedis = true
+
+	@Public()
+	@Get('ready')
+	readiness(@Res({ passthrough: true }) response: Response) {
+		const readiness = this.runtimeLifecycle.readiness()
+		if (readiness.status === 'draining') {
+			response.status(HttpStatus.SERVICE_UNAVAILABLE)
+		}
+		response.setHeader('Cache-Control', 'no-store')
+		return readiness
+	}
 
 	// Note: we disable by default because we notice some connection
 	// related issues with Terminus DB checks (in MikroORM)

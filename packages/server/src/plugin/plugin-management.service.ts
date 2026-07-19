@@ -34,7 +34,11 @@ import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
 import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
-import { assertPluginSdkCompatibility, assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
+import {
+	assertInstalledPluginSdkCompatibility,
+	assertPluginSdkCompatibility,
+	assertPluginSdkInstallCandidate
+} from './plugin-sdk-versioning'
 import {
 	cleanupExtractedPluginArchive,
 	extractPluginArchive,
@@ -297,6 +301,126 @@ export class PluginManagementService {
 				}
 			}
 
+			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
+			const runtimePluginName =
+				source === 'code'
+					? level === PLUGIN_LEVEL.SYSTEM
+						? this.createCodeRuntimePluginName(packageName)
+						: (getCodeRuntimeName(sourceConfig) ?? this.createCodeRuntimePluginName(packageName))
+					: packageNameWithVersion
+			if (
+				source === 'code' &&
+				(packageDir || level === PLUGIN_LEVEL.SYSTEM) &&
+				getCodeRuntimeName(sourceConfig) !== runtimePluginName
+			) {
+				sourceConfig = {
+					...sourceConfig,
+					runtimeName: runtimePluginName
+				}
+			}
+			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
+			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
+
+			if (level === PLUGIN_LEVEL.SYSTEM) {
+				// A system plugin can own controllers, ORM metadata and other process-global
+				// Nest artifacts. Stage and persist it, but never mutate the live module graph.
+				// The next API process loads the staged runtime during normal bootstrap.
+				const { errors } = await registerPluginsAsync(
+					{
+						module: this.moduleRef,
+						tenantId: targetTenantId,
+						organizationId: targetOrganizationId,
+						defaultTenantId,
+						scopeKey: scope.scopeKey,
+						plugins: [
+							{
+								name: source === 'code' ? packageName : packageNameWithVersion,
+								runtimeName: source === 'code' ? runtimePluginName : undefined,
+								source,
+								level,
+								sourceConfig
+							}
+						],
+						baseDir: organizationBaseDir,
+						allowSystemPlugins,
+						stageOnly: true
+					},
+					this.logger
+				)
+
+				if (errors.length) {
+					throw new BadRequestException(errors[0].error)
+				}
+
+				const pluginBaseDir = getOrganizationPluginPath(
+					targetOrganizationId,
+					runtimePluginName,
+					scopeStoreOptions
+				)
+				const stagedCompatibility = assertInstalledPluginSdkCompatibility(packageName, pluginBaseDir)
+				const stagedLevel = resolvePluginLevel(stagedCompatibility.level)
+				if (stagedLevel !== PLUGIN_LEVEL.SYSTEM) {
+					throw new BadRequestException(
+						`Plugin "${packageName}" was staged in ${SYSTEM_GLOBAL_SCOPE} but does not declare level=system`
+					)
+				}
+				const artifactNamespace = stagedCompatibility.artifactNamespace
+				if (!artifactNamespace) {
+					throw new BadRequestException(
+						`System-level plugin "${packageName}" must declare artifactNamespace in package.json`
+					)
+				}
+				if (!isPluginArtifactNamespace(artifactNamespace)) {
+					throw new BadRequestException(
+						`Plugin "${packageName}" artifactNamespace must contain only lowercase letters, numbers, and underscores`
+					)
+				}
+				this.assertPluginArtifactNamespaceAvailable({
+					artifactNamespace,
+					pluginName: normalizePluginName(packageName),
+					packageName
+				})
+
+				const existingSystemPlugin = await this.pluginInstanceService.findOneByPluginName(
+					normalizePluginName(packageName),
+					targetOrganizationId,
+					targetTenantId,
+					scope.scopeKey
+				)
+				const persistedConfig =
+					body.config ??
+					(existingSystemPlugin ? this.pluginInstanceService.getConfig(existingSystemPlugin) : {})
+				await this.pluginInstanceService.upsert(
+					{
+						tenantId: targetTenantId,
+						organizationId: targetOrganizationId,
+						scopeKey: scope.scopeKey,
+						pluginName: normalizePluginName(packageName),
+						packageName: normalizePluginName(packageName),
+						version: stagedCompatibility.version ?? body.version,
+						source,
+						sourceConfig: persistedSourceConfig,
+						level: PLUGIN_LEVEL.SYSTEM,
+						config: persistedConfig,
+						configurationStatus: existingSystemPlugin?.configurationStatus ?? null,
+						configurationError: existingSystemPlugin?.configurationError ?? null
+					},
+					{ syncLoadedConfig: false }
+				)
+
+				this.logger.log(
+					`Staged system plugin ${packageName}@${stagedCompatibility.version ?? body.version ?? 'latest'}; API restart required for activation`
+				)
+				return {
+					success: true,
+					name: normalizePluginName(packageName),
+					packageName: normalizePluginName(packageName),
+					organizationId: targetOrganizationId,
+					currentVersion: stagedCompatibility.version ?? body.version,
+					restartRequired: true
+				}
+			}
+
 			await this.uninstallByPackageNameWithGuard(
 				targetTenantId,
 				targetOrganizationId,
@@ -305,20 +429,6 @@ export class PluginManagementService {
 				scope.scopeKey
 			)
 			shouldCleanupPlugin = true
-
-			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
-			const runtimePluginName =
-				source === 'code'
-					? (getCodeRuntimeName(sourceConfig) ?? this.createCodeRuntimePluginName(packageName))
-					: packageNameWithVersion
-			if (source === 'code' && packageDir && !getCodeRuntimeName(sourceConfig)) {
-				sourceConfig = {
-					...sourceConfig,
-					runtimeName: runtimePluginName
-				}
-			}
-			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
-			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
 			shouldPersistFailureState = true
 
 			const { modules, errors } = await registerPluginsAsync(
@@ -605,7 +715,11 @@ export class PluginManagementService {
 		}
 	}
 
-	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string, targetScopeKey?: string) {
+	async uninstallByNamesWithGuard(
+		names: string[],
+		targetOrganizationId?: string,
+		targetScopeKey?: string
+	): Promise<{ restartRequired?: boolean }> {
 		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
 		const currentOrganizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
@@ -615,14 +729,27 @@ export class PluginManagementService {
 			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			canManageSystemPlugins(currentOrganizationId, defaultTenantId)
+		const targetsLoadedSystemPlugin = !targetScopeKey && !!this.findLoadedSystemPlugin(names)
 		const scopeKey =
 			targetScopeKey ??
-			(organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId)
+			(targetsLoadedSystemPlugin
+				? SYSTEM_GLOBAL_SCOPE
+				: organizationId === GLOBAL_ORGANIZATION_SCOPE
+					? resolveTenantGlobalScopeKey(tenantId)
+					: organizationId)
 		if (scopeKey === SYSTEM_GLOBAL_SCOPE && !canManageSystemPlugins(GLOBAL_ORGANIZATION_SCOPE, defaultTenantId)) {
 			throw new ForbiddenException('Only super admins can uninstall system plugins')
 		}
 		this.assertNoSystemPlugins(names, allowSystemPlugins, scopeKey)
+		if (scopeKey === SYSTEM_GLOBAL_SCOPE) {
+			await this.pluginInstanceService.deactivate(tenantId, organizationId, names, { scopeKey })
+			this.logger.log(
+				`Deactivated persisted registrations for system plugins ${names.join(', ')}; API restart required for unload`
+			)
+			return { restartRequired: true }
+		}
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, { scopeKey })
+		return {}
 	}
 
 	readLoadedPluginBundleComponents(plugin: LoadedPluginRecord) {
@@ -660,12 +787,16 @@ export class PluginManagementService {
 	}
 
 	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false, scopeKey?: string) {
-		if (allowSystemPlugins) {
-			return
-		}
+		const matched = this.findLoadedSystemPlugin(pluginNamesOrPackages, scopeKey)
 
+		if (matched && !allowSystemPlugins) {
+			throw new BadRequestException(t('server:Error.PluginSystemUninstallForbidden', { name: matched.name }))
+		}
+	}
+
+	private findLoadedSystemPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
 		const normalizedTargets = new Set(pluginNamesOrPackages.map((name) => normalizePluginName(name)))
-		const matched = this.loadedPlugins.find((plugin) => {
+		return this.loadedPlugins.find((plugin) => {
 			if (scopeKey && (plugin.scopeKey ?? plugin.organizationId) !== scopeKey) {
 				return false
 			}
@@ -678,10 +809,6 @@ export class PluginManagementService {
 				.map((candidate) => normalizePluginName(candidate as string))
 			return candidates.some((candidate) => normalizedTargets.has(candidate))
 		})
-
-		if (matched) {
-			throw new BadRequestException(t('server:Error.PluginSystemUninstallForbidden', { name: matched.name }))
-		}
 	}
 
 	/**

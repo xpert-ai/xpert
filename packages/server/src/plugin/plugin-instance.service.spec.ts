@@ -148,6 +148,27 @@ describe('PluginInstanceService', () => {
 		})
 	})
 
+	it('deactivates system plugins without deleting runtime files or live strategies', async () => {
+		const removePluginsSpy = jest.spyOn(service, 'removePlugins').mockResolvedValue(undefined)
+
+		await service.deactivate(null, '__global__', ['@xpert-ai/plugin-system-demo'], {
+			scopeKey: 'system:global'
+		})
+
+		expect(repo.delete).toHaveBeenCalledWith({
+			scopeKey: 'system:global',
+			pluginName: expect.anything()
+		})
+		expect(repo.delete).toHaveBeenCalledWith({
+			scopeKey: IsNull(),
+			level: 'system',
+			pluginName: expect.anything()
+		})
+		expect(removePluginsSpy).not.toHaveBeenCalled()
+		expect(strategyBus.remove).not.toHaveBeenCalled()
+		expect(rmSync).not.toHaveBeenCalled()
+	})
+
 	it('clears failure cache when removing plugins', async () => {
 		loadedPlugins.push({
 			organizationId: 'org-1',

@@ -649,12 +649,13 @@ describe('PluginController', () => {
 	})
 
 	it('passes plugin scope through uninstall requests', async () => {
+		;(pluginManagementService as any).uninstallByNamesWithGuard.mockResolvedValue({ restartRequired: true })
 		await expect(
 			controller.uninstall({
 				names: ['@xpert-ai/plugin-global-demo'],
 				organizationId: GLOBAL_ORGANIZATION_SCOPE
 			})
-		).resolves.toEqual({ success: true })
+		).resolves.toEqual({ success: true, restartRequired: true })
 
 		expect((pluginManagementService as any).uninstallByNamesWithGuard).toHaveBeenCalledWith(
 			['@xpert-ai/plugin-global-demo'],

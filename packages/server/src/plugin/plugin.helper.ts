@@ -348,6 +348,12 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	configs?: Record<string, unknown>
 	/** Runtime install guard: false rejects system-level plugins before plugin.register() is called. */
 	allowSystemPlugins?: boolean
+	/**
+	 * Copy/install the package into its immutable runtime directory without importing
+	 * or registering its Nest module. Used for system-level plugins that only become
+	 * active after the API process restarts.
+	 */
+	stageOnly?: boolean
 }
 
 /**
@@ -470,8 +476,32 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		scopeOpts
 	)
 
-	const modules: DynamicModule[] = []
 	const errors: PluginLoadFailureRecord[] = []
+	const modules: DynamicModule[] = []
+
+	if (opts.stageOnly) {
+		for (const plugin of pluginNames) {
+			if (!plugin.stageError) {
+				continue
+			}
+			errors.push({
+				tenantId: scope.tenantId,
+				organizationId,
+				scopeKey,
+				pluginName: normalizePluginName(plugin.name),
+				packageName: normalizePluginName(plugin.name),
+				error: plugin.stageError
+			})
+		}
+
+		return {
+			tenantId: scope.tenantId,
+			organizationId,
+			scopeKey,
+			modules,
+			errors
+		}
+	}
 
 	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {

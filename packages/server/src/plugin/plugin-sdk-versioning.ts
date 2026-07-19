@@ -35,6 +35,7 @@ const HOST_RUNTIME_PACKAGES: Record<string, HostRuntimePackageConfig> = {
 type PluginPackageManifest = {
 	name?: string
 	version?: string
+	artifactNamespace?: string
 	dependencies?: Record<string, string>
 	peerDependencies?: Record<string, string>
 	xpert?: {
@@ -49,6 +50,19 @@ export interface PluginSdkCompatibilityInfo {
 	peerRange: string
 	warnings: PluginSdkCompatibilityWarning[]
 	level?: PluginLevel
+	version?: string
+	artifactNamespace?: string
+}
+
+function createCompatibilityInfo(
+	manifest: PluginPackageManifest,
+	input: Omit<PluginSdkCompatibilityInfo, 'version' | 'artifactNamespace'>
+): PluginSdkCompatibilityInfo {
+	return {
+		...input,
+		version: manifest.version,
+		artifactNamespace: manifest.artifactNamespace
+	}
 }
 
 export interface PluginInstallValidationOptions {
@@ -375,12 +389,12 @@ export function assertPluginSdkCompatibility(
 			)
 		)
 
-		return {
+		return createCompatibilityInfo(manifest, {
 			hostVersion,
 			peerRange,
 			warnings,
 			level: readPluginLevelFromManifest(manifest)
-		}
+		})
 	}
 
 	if (!validRange(peerRange)) {
@@ -394,12 +408,12 @@ export function assertPluginSdkCompatibility(
 			)
 		)
 
-		return {
+		return createCompatibilityInfo(manifest, {
 			hostVersion,
 			peerRange,
 			warnings,
 			level: readPluginLevelFromManifest(manifest)
-		}
+		})
 	}
 
 	const isHostVersionInPeerRange = satisfies(hostVersion, peerRange, { includePrerelease: true })
@@ -422,12 +436,12 @@ export function assertPluginSdkCompatibility(
 		}
 	}
 
-	return {
+	return createCompatibilityInfo(manifest, {
 		hostVersion,
 		peerRange,
 		warnings,
 		level: readPluginLevelFromManifest(manifest)
-	}
+	})
 }
 
 export function warnPluginSdkCompatibility(info: PluginSdkCompatibilityInfo | undefined) {
@@ -574,7 +588,17 @@ async function fetchRegistryPluginManifest(
 ): Promise<PluginPackageManifest> {
 	const normalizedPluginName = normalizePluginName(pluginName)
 	const spec = version ? `${normalizedPluginName}@${version}` : normalizedPluginName
-	const args = ['view', spec, 'name', 'version', 'dependencies', 'peerDependencies', 'xpert', '--json']
+	const args = [
+		'view',
+		spec,
+		'name',
+		'version',
+		'artifactNamespace',
+		'dependencies',
+		'peerDependencies',
+		'xpert',
+		'--json'
+	]
 	const effectiveRegistry = registry ?? process.env.npm_config_registry ?? process.env.NPM_CONFIG_REGISTRY
 
 	if (effectiveRegistry) {
