@@ -29,6 +29,44 @@ function getExpectedHostContractsDirs() {
 }
 
 describe('plugin sdk versioning', () => {
+	it('uses nested Xpert artifact metadata and supports the legacy top-level fallback', () => {
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-demo',
+					xpert: { plugin: { level: 'system', artifactNamespace: 'nested_demo' } },
+					peerDependencies: { '@xpert-ai/plugin-sdk': '^3.8.0' }
+				},
+				{ hostVersion: '3.8.4' }
+			)
+		).toEqual(expect.objectContaining({ level: 'system', artifactNamespace: 'nested_demo' }))
+
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-legacy-demo',
+					artifactNamespace: 'legacy_demo',
+					peerDependencies: { '@xpert-ai/plugin-sdk': '^3.8.0' }
+				},
+				{ hostVersion: '3.8.4' }
+			)
+		).toEqual(expect.objectContaining({ artifactNamespace: 'legacy_demo' }))
+	})
+
+	it('rejects conflicting nested and legacy artifact namespaces', () => {
+		expect(() =>
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-demo',
+					artifactNamespace: 'legacy_demo',
+					xpert: { plugin: { artifactNamespace: 'nested_demo' } },
+					peerDependencies: { '@xpert-ai/plugin-sdk': '^3.8.0' }
+				},
+				{ hostVersion: '3.8.4' }
+			)
+		).toThrow('does not match legacy top-level artifactNamespace')
+	})
+
 	it('accepts an explicit single-major peer range compatible with the host sdk', () => {
 		expect(
 			assertPluginSdkCompatibility(

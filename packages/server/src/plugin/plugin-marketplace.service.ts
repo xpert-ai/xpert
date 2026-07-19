@@ -1590,7 +1590,8 @@ export class PluginMarketplaceService {
 		return {
 			name: plugin.name ?? packageJson.name,
 			version: plugin.version ?? packageJson.version,
-			artifactNamespace: plugin.artifactNamespace ?? packageJson.artifactNamespace,
+			artifactNamespace:
+				this.readMarketplaceArtifactNamespace(plugin) ?? this.readMarketplaceArtifactNamespace(packageJson),
 			displayName:
 				plugin.displayName ??
 				plugin.title ??
@@ -1629,7 +1630,7 @@ export class PluginMarketplaceService {
 			name,
 			packageName: this.normalizeOptionalString(input.packageName) ?? name,
 			version: this.normalizeOptionalString(input.version) ?? null,
-			artifactNamespace: this.normalizeOptionalString(input.artifactNamespace) ?? null,
+			artifactNamespace: this.readMarketplaceArtifactNamespace(input) ?? null,
 			displayName: input.displayName ?? input.title ?? pluginInterface.displayName ?? name,
 			description: input.description ?? pluginInterface.shortDescription ?? pluginInterface.longDescription ?? '',
 			level: this.readMarketplacePluginLevel(input),
@@ -1657,6 +1658,13 @@ export class PluginMarketplaceService {
 			this.normalizePluginLevel(input.level) ??
 			this.normalizePluginLevel(readRecord(input.meta)?.level) ??
 			this.normalizePluginLevel(readRecord(readRecord(input.xpert)?.plugin)?.level)
+		)
+	}
+
+	private readMarketplaceArtifactNamespace(input: JsonRecord) {
+		return (
+			this.normalizeOptionalString(readRecord(readRecord(input.xpert)?.plugin)?.artifactNamespace) ??
+			this.normalizeOptionalString(input.artifactNamespace)
 		)
 	}
 

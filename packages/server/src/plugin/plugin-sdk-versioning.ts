@@ -35,12 +35,13 @@ const HOST_RUNTIME_PACKAGES: Record<string, HostRuntimePackageConfig> = {
 type PluginPackageManifest = {
 	name?: string
 	version?: string
-	artifactNamespace?: string
+	artifactNamespace?: unknown
 	dependencies?: Record<string, string>
 	peerDependencies?: Record<string, string>
 	xpert?: {
 		plugin?: {
 			level?: unknown
+			artifactNamespace?: unknown
 		}
 	}
 }
@@ -61,7 +62,7 @@ function createCompatibilityInfo(
 	return {
 		...input,
 		version: manifest.version,
-		artifactNamespace: manifest.artifactNamespace
+		artifactNamespace: readPluginArtifactNamespaceFromManifest(manifest)
 	}
 }
 
@@ -297,6 +298,20 @@ function createWarning(
 function readPluginLevelFromManifest(manifest: PluginPackageManifest): PluginLevel | undefined {
 	const level = manifest.xpert?.plugin?.level
 	return level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.ORGANIZATION ? level : undefined
+}
+
+function readPluginArtifactNamespaceFromManifest(manifest: PluginPackageManifest) {
+	const nestedValue = manifest.xpert?.plugin?.artifactNamespace
+	const legacyValue = manifest.artifactNamespace
+	const nested = typeof nestedValue === 'string' ? nestedValue.trim() || undefined : undefined
+	const legacy = typeof legacyValue === 'string' ? legacyValue.trim() || undefined : undefined
+	if (nested && legacy && nested !== legacy) {
+		throw new PluginSdkValidationError(
+			manifest.name ?? 'unknown-plugin',
+			`package.json xpert.plugin.artifactNamespace="${nested}" does not match legacy top-level artifactNamespace="${legacy}"`
+		)
+	}
+	return nested ?? legacy
 }
 
 function getSingleMajorRangeWarning(pluginName: string, range: string, hostVersion: string, rawRange: string) {

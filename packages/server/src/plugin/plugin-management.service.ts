@@ -367,7 +367,7 @@ export class PluginManagementService {
 				const artifactNamespace = stagedCompatibility.artifactNamespace
 				if (!artifactNamespace) {
 					throw new BadRequestException(
-						`System-level plugin "${packageName}" must declare artifactNamespace in package.json`
+						`System-level plugin "${packageName}" must declare xpert.plugin.artifactNamespace in package.json`
 					)
 				}
 				if (!isPluginArtifactNamespace(artifactNamespace)) {
