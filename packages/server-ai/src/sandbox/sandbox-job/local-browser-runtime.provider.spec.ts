@@ -2,8 +2,17 @@ import { mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
-import { LOCAL_BROWSER_RUNTIME_PROVIDER, LocalBrowserRuntimeProvider } from './local-browser-runtime.provider'
-import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
+import {
+    LOCAL_AI_BROWSER_RUNTIME_BINDING,
+    LOCAL_BROWSER_RUNTIME_PROVIDER,
+    LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
+    LocalBrowserRuntimeProvider
+} from './local-browser-runtime.provider'
+import {
+    AI_BROWSER_RUNTIME_PROFILE,
+    SandboxRuntimeDefinitionRegistry,
+    VIDEO_BROWSER_RUNTIME_PROFILE
+} from './sandbox-runtime-definition.registry'
 
 describe('LocalBrowserRuntimeProvider', () => {
     const originalNodeEnv = process.env.NODE_ENV
@@ -18,7 +27,7 @@ describe('LocalBrowserRuntimeProvider', () => {
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
     })
 
-    it('publishes only a low-priority development Binding with honest process capabilities', () => {
+    it('publishes low-priority development Bindings for browser, browser-ai, and browser-video profiles', () => {
         const provider = new LocalBrowserRuntimeProvider()
 
         expect(provider.type).toBe(LOCAL_BROWSER_RUNTIME_PROVIDER)
@@ -36,6 +45,28 @@ describe('LocalBrowserRuntimeProvider', () => {
                 priority: 10_000,
                 developmentOnly: true,
                 artifact: expect.objectContaining({ kind: 'filesystem' })
+            }),
+            expect.objectContaining({
+                id: LOCAL_AI_BROWSER_RUNTIME_BINDING,
+                runtimeProfile: AI_BROWSER_RUNTIME_PROFILE,
+                provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
+                priority: 10_000,
+                developmentOnly: true,
+                artifact: expect.objectContaining({
+                    kind: 'filesystem',
+                    reference: 'xpert-source://sandbox-runtime/browser-ai-playwright-1.61-v1'
+                })
+            }),
+            expect.objectContaining({
+                id: LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
+                runtimeProfile: VIDEO_BROWSER_RUNTIME_PROFILE,
+                provider: LOCAL_BROWSER_RUNTIME_PROVIDER,
+                priority: 10_000,
+                developmentOnly: true,
+                artifact: expect.objectContaining({
+                    kind: 'filesystem',
+                    reference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1'
+                })
             })
         ])
     })
@@ -130,6 +161,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 const outputIndex = process.argv.indexOf('--output')
 const output = process.argv[outputIndex + 1]
+process.stdout.write('XPERT_SANDBOX_PROGRESS {"progress":0.5,"stage":"rendering"}\\n')
 await mkdir(output, { recursive: true })
 await writeFile(path.join(output, 'result.txt'), 'runner-ok')
 `
@@ -155,6 +187,7 @@ await writeFile(path.join(output, 'result.txt'), 'runner-ok')
             expect.objectContaining({ error: null })
         ])
 
+        const streamed: string[] = []
         await expect(
             runtime.execute(
                 [
@@ -168,9 +201,10 @@ await writeFile(path.join(output, 'result.txt'), 'runner-ok')
                     '--action-manifest',
                     path.join(runtime.workspaceRoot, 'runtime', 'action-manifest.json')
                 ],
-                { timeoutMs: 10_000 }
+                { timeoutMs: 10_000, onOutput: (output) => streamed.push(output.text) }
             )
         ).resolves.toMatchObject({ exitCode: 0 })
+        expect(streamed.join('')).toContain('XPERT_SANDBOX_PROGRESS {"progress":0.5,"stage":"rendering"}')
         await expect(runtime.downloadFiles(['output/result.txt'])).resolves.toEqual([
             { path: 'output/result.txt', content: Buffer.from('runner-ok'), error: null }
         ])

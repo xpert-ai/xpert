@@ -2,18 +2,20 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { getErrorMessage, injectHelpWebsite, injectToastr } from '@cloud/app/@core'
+import { getErrorMessage, injectHelpWebsite } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
 import { injectActiveScope, injectPluginAPI, injectScopeLevel } from '@xpert-ai/cloud/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { PluginRuntimeRestartService } from '../plugin-runtime-restart.service'
 
 export type PluginInstallResult = {
   action: 'installed'
   pluginName?: string
   packageName?: string | null
+  restartRequired?: boolean
 }
 
 type PluginInstallDialogData = {
@@ -36,7 +38,7 @@ export class PluginInstallComponent {
   readonly pluginAPI = injectPluginAPI()
   readonly #activeScope = injectActiveScope()
   readonly scopeLevel = injectScopeLevel()
-  readonly #toastr = injectToastr()
+  readonly runtimeRestart = inject(PluginRuntimeRestartService)
 
   readonly plugin = signal(this.#data.plugin)
   readonly pluginName = computed(() => this.plugin()?.name)
@@ -61,6 +63,7 @@ export class PluginInstallComponent {
 
   readonly status = signal<'idle' | 'installing' | 'installed' | 'error'>('idle')
   readonly error = signal<string | null>(null)
+  readonly restartRequired = signal(false)
 
   constructor() {
     effect((onCleanup) => {
@@ -108,17 +111,28 @@ export class PluginInstallComponent {
         version: this.pluginVersion()
       })
       .subscribe({
-        next: () => {
+        next: (result) => {
           this.status.set('installed')
+          this.restartRequired.set(result.restartRequired === true)
+          if (result.restartRequired) {
+            this.runtimeRestart.markRequired(result.packageName || result.name || this.pluginName())
+          }
           this.#installedPlugin.reload()
           this.#data.reload()
-          this.#data.refreshStrategies?.()
+          if (!result.restartRequired) {
+            this.#data.refreshStrategies?.()
+          }
         },
         error: (err) => {
           this.error.set(getErrorMessage(err))
           this.status.set('error')
         }
       })
+  }
+
+  restartNow() {
+    this.close()
+    setTimeout(() => void this.runtimeRestart.confirmAndRestart())
   }
 
   private hasInstalledPlugin() {
@@ -130,7 +144,8 @@ export class PluginInstallComponent {
     return {
       action: 'installed',
       pluginName: this.pluginName(),
-      packageName: plugin?.packageName ?? plugin?.name ?? null
+      packageName: plugin?.packageName ?? plugin?.name ?? null,
+      restartRequired: this.restartRequired()
     }
   }
 }

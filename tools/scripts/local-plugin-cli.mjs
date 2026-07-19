@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process'
 
 export const DEFAULT_API_URL = 'http://localhost:3333'
 export const DEFAULT_KEYCHAIN_SERVICE = 'xpert-local-plugin-token'
+export const DEFAULT_USERNAME_KEYCHAIN_SERVICE = 'xpert-local-plugin-username'
+export const DEFAULT_PASSWORD_KEYCHAIN_SERVICE = 'xpert-local-plugin-password'
 export const ORGANIZATION_SCOPE = 'organization'
 export const TENANT_SCOPE = 'tenant'
 
@@ -144,7 +146,7 @@ export function parsePluginConfig(args) {
   }
 }
 
-function readTokenFromKeychain(account, service) {
+function readSecretFromKeychain(account, service) {
   if (process.platform !== 'darwin') {
     return null
   }
@@ -159,45 +161,133 @@ function readTokenFromKeychain(account, service) {
   return result.stdout.trim() || null
 }
 
-export function resolveAuthentication(args) {
+function resolveExplicitTokenAuthentication(args) {
   if (args.token) {
     return { source: '--token', token: args.token }
   }
+  return null
+}
+
+function resolveLoginCredentials(args) {
+  const keychainAccount = args.keychainAccount || process.env.XPERT_KEYCHAIN_ACCOUNT || os.userInfo().username
+  const usernameService =
+    args.usernameKeychainService || process.env.XPERT_USERNAME_KEYCHAIN_SERVICE || DEFAULT_USERNAME_KEYCHAIN_SERVICE
+  const passwordService =
+    args.passwordKeychainService || process.env.XPERT_PASSWORD_KEYCHAIN_SERVICE || DEFAULT_PASSWORD_KEYCHAIN_SERVICE
+  const username =
+    args.username ||
+    process.env.XPERT_USERNAME ||
+    (!args.noKeychain ? readSecretFromKeychain(keychainAccount, usernameService) : null)
+  const password =
+    args.password ||
+    process.env.XPERT_PASSWORD ||
+    (username && !args.noKeychain ? readSecretFromKeychain(username, passwordService) : null)
+
+  if (!username && !password) {
+    return null
+  }
+  if (!username || !password) {
+    throw new LocalPluginCliError(missingCredentialsMessage(args), 2)
+  }
+  return {
+    password,
+    source:
+      args.username || args.password
+        ? 'username/password options'
+        : process.env.XPERT_USERNAME || process.env.XPERT_PASSWORD
+          ? 'username/password environment'
+          : 'username/password from macOS Keychain',
+    username
+  }
+}
+
+async function loginWithCredentials(args, credentials) {
+  const headers = {
+    accept: 'application/json',
+    'content-type': 'application/json'
+  }
+  const requestedTenantId = args.tenantId || process.env.XPERT_TENANT_ID
+  if (requestedTenantId) {
+    headers['tenant-id'] = requestedTenantId
+  }
+  const response = await postJson(resolveLoginEndpoint(args), headers, {
+    email: credentials.username,
+    password: credentials.password
+  })
+  assertResponseOk('Xpert login', response)
+  const body = response.body
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.token !== 'string') {
+    throw new LocalPluginCliError(
+      'Xpert login did not return an access token. Check the configured username and password.',
+      2
+    )
+  }
+  const tenantId =
+    body.user && typeof body.user === 'object' && typeof body.user.tenantId === 'string'
+      ? body.user.tenantId
+      : undefined
+  return { source: credentials.source, tenantId, token: body.token }
+}
+
+export async function resolveAuthentication(args, options = {}) {
+  const explicitToken = resolveExplicitTokenAuthentication(args)
+  if (explicitToken) {
+    return explicitToken
+  }
+
+  const credentials = resolveLoginCredentials(args)
+  if (credentials) {
+    if (options.dryRun) {
+      return { source: `${credentials.source} (dry run)`, token: 'dry-run-token' }
+    }
+    return await loginWithCredentials(args, credentials)
+  }
+
   if (process.env.XPERT_TOKEN) {
     return { source: 'XPERT_TOKEN', token: process.env.XPERT_TOKEN }
   }
+
   if (args.noKeychain) {
     return null
   }
 
   const account = args.keychainAccount || process.env.XPERT_KEYCHAIN_ACCOUNT || os.userInfo().username
   const service = args.keychainService || process.env.XPERT_KEYCHAIN_SERVICE || DEFAULT_KEYCHAIN_SERVICE
-  const token = readTokenFromKeychain(account, service)
+  const token = readSecretFromKeychain(account, service)
   return token ? { account, service, source: 'macOS Keychain', token } : null
 }
 
-export function missingTokenMessage(args) {
+export function missingCredentialsMessage(args) {
   const account = args.keychainAccount || process.env.XPERT_KEYCHAIN_ACCOUNT || os.userInfo().username
-  const service = args.keychainService || process.env.XPERT_KEYCHAIN_SERVICE || DEFAULT_KEYCHAIN_SERVICE
-  return `No Xpert authentication token was found.
+  const usernameService =
+    args.usernameKeychainService || process.env.XPERT_USERNAME_KEYCHAIN_SERVICE || DEFAULT_USERNAME_KEYCHAIN_SERVICE
+  const passwordService =
+    args.passwordKeychainService || process.env.XPERT_PASSWORD_KEYCHAIN_SERVICE || DEFAULT_PASSWORD_KEYCHAIN_SERVICE
+  const username = '<xpert-username>'
+  return `No complete Xpert login credentials or authentication token were found.
 
-Do not paste a token into chat or commit it to a repository. Ask the user to store it locally, then rerun:
-  security add-generic-password -a "${account}" -s "${service}" -U -w
+Do not paste a password or token into chat or commit it to a repository. Configure the username and password in macOS Keychain, then rerun:
+  security add-generic-password -a "${account}" -s "${usernameService}" -U -w "${username}"
+  security add-generic-password -a "${username}" -s "${passwordService}" -U -w
 
-The command prompts for the token securely. Alternatively set XPERT_TOKEN only in the local process environment.`
+The second command prompts for the password securely. Alternatively set XPERT_USERNAME and XPERT_PASSWORD only in the local process environment. Legacy XPERT_TOKEN authentication remains supported.`
 }
 
-export function requireAuthentication(args, options = {}) {
-  const authentication = resolveAuthentication(args)
+export function missingTokenMessage(args) {
+  return missingCredentialsMessage(args)
+}
+
+export async function requireAuthentication(args, options = {}) {
+  const authentication = await resolveAuthentication(args, options)
   if (!authentication && !options.dryRun) {
-    throw new LocalPluginCliError(missingTokenMessage(args), 2)
+    throw new LocalPluginCliError(missingCredentialsMessage(args), 2)
   }
   return authentication
 }
 
-export function createRequestHeaders(args, token) {
+export function createRequestHeaders(args, token, authenticatedTenantId) {
   const organizationId = args.orgId || process.env.XPERT_ORG_ID
-  const tenantId = args.tenantId || process.env.XPERT_TENANT_ID
+  const tenantId = args.tenantId || process.env.XPERT_TENANT_ID || authenticatedTenantId
   const scope = args.scope || process.env.XPERT_SCOPE || (organizationId ? ORGANIZATION_SCOPE : TENANT_SCOPE)
   const headers = {
     accept: 'application/json',
@@ -250,6 +340,21 @@ export function resolvePluginEndpoint(args) {
   return `${input}/api/plugin`
 }
 
+export function resolveLoginEndpoint(args) {
+  if (args.loginEndpoint) {
+    return args.loginEndpoint.replace(/\/+$/, '')
+  }
+
+  const input = (args.apiUrl || process.env.XPERT_API_URL || DEFAULT_API_URL).replace(/\/+$/, '')
+  if (input.endsWith('/api/plugin')) {
+    return `${input.slice(0, -'/plugin'.length)}/auth/login`
+  }
+  if (input.endsWith('/api')) {
+    return `${input}/auth/login`
+  }
+  return `${input}/api/auth/login`
+}
+
 export async function postJson(url, headers, body) {
   let response
   try {
@@ -297,8 +402,11 @@ export function assertResponseOk(action, response) {
     return
   }
   if (response.status === 401) {
+    if (action === 'Xpert login') {
+      throw new LocalPluginCliError('Xpert login returned 401. Check the configured username and password, then retry.')
+    }
     throw new LocalPluginCliError(
-      `${action} returned 401. The Xpert token is missing, expired, or invalid. Replace XPERT_TOKEN or update the Keychain item.`
+      `${action} returned 401. The Xpert token is missing, expired, or invalid. Retry username/password login or replace the legacy token credential.`
     )
   }
   const message = readResponseMessage(response.body)
@@ -311,7 +419,18 @@ export function summarizePluginResponse(body) {
   }
 
   const summary = {}
-  for (const key of ['success', 'name', 'pluginName', 'packageName', 'version', 'source', 'status', 'scopeKey']) {
+  for (const key of [
+    'success',
+    'name',
+    'pluginName',
+    'packageName',
+    'version',
+    'currentVersion',
+    'source',
+    'status',
+    'scopeKey',
+    'restartRequired'
+  ]) {
     const value = body[key]
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       summary[key] = value

@@ -201,7 +201,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
     const workspaceRead = tool(
         async ({ fileId, path, chunkId, orderNo }) => {
             // This reads parsed chunks by file id/path. Raw original files should
-            // be read with sandbox_file or shell using the returned workspacePath.
+            // be read with sandbox_read_file, or sandbox_shell only when command execution is needed.
             const file = fileId ? null : await findConversationFileByPath(path)
             const resolvedFileId = fileId ?? file?.id
             if (!resolvedFileId) {
@@ -213,7 +213,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         {
             name: 'parsed_file_read_by_path',
             description:
-                'Read a parsed chunk from the conversation-linked parsed file index by fileId or workspacePath. This does not read raw file bytes; use sandbox_file or shell with the returned workspacePath for original files.',
+                'Read a parsed chunk from the conversation-linked parsed file index by fileId or workspacePath. This does not read raw file bytes; use sandbox_read_file with the returned workspacePath for original files, or sandbox_shell only when command execution is necessary.',
             schema: z.object({
                 fileId: z.string().optional(),
                 path: z.string().optional().describe('workspacePath returned by parsed_file_list or the file card.'),

@@ -9,7 +9,10 @@ import { fileURLToPath } from 'node:url'
 const hostFile = fileURLToPath(import.meta.url)
 const runtimeRoot = path.dirname(hostFile)
 const requireFromHost = createRequire(import.meta.url)
-const manifest = JSON.parse(await readFile(path.join(runtimeRoot, 'manifest.json'), 'utf8'))
+const manifestPath = process.env.XPERT_SANDBOX_RUNTIME_MANIFEST_PATH
+  ? path.resolve(process.env.XPERT_SANDBOX_RUNTIME_MANIFEST_PATH)
+  : path.join(runtimeRoot, 'manifest.json')
+const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 if (process.argv.includes('--manifest')) {
   process.stdout.write(`${JSON.stringify(await runtimeManifest())}\n`)
@@ -86,7 +89,7 @@ async function runtimeManifest() {
     ? (browsers.browsers.find((entry) => entry?.name === 'chromium-headless-shell') ??
       browsers.browsers.find((entry) => entry?.name === 'chromium'))
     : undefined
-  return {
+  const result = {
     ...manifest,
     nodeVersion: process.versions.node,
     playwrightVersion: String(packageJson.version ?? 'unknown'),
@@ -95,6 +98,34 @@ async function runtimeManifest() {
       .update(await readFile(hostFile))
       .digest('hex')
   }
+  if (manifest.ffmpegVersion) result.ffmpegVersion = await ffmpegVersion(manifest.ffmpegVersion)
+  return result
+}
+
+async function ffmpegVersion(declaredVersion) {
+  const output = await commandOutput('ffmpeg', ['-version'])
+  const version = /^ffmpeg version n?(\d+(?:\.\d+)+)/m.exec(output)?.[1]
+  if (!version) throw new Error('EXPORT_MEDIA_FAILED: FFmpeg version could not be determined.')
+  const precision = String(declaredVersion).split('.').length
+  return version.split('.').slice(0, precision).join('.')
+}
+
+function commandOutput(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    child.stdout.on('data', (chunk) => {
+      output = appendOutput(output, chunk)
+    })
+    child.stderr.on('data', (chunk) => {
+      output = appendOutput(output, chunk)
+    })
+    child.once('error', reject)
+    child.once('exit', (code) => {
+      if (code === 0) resolve(output)
+      else reject(new Error(output.trim() || `${command} exited with code ${code ?? 'null'}.`))
+    })
+  })
 }
 
 async function browserSmoke() {
@@ -154,9 +185,11 @@ function execute(command, args, cwd) {
     let output = ''
     child.stdout.on('data', (chunk) => {
       output = appendOutput(output, chunk)
+      process.stdout.write(chunk)
     })
     child.stderr.on('data', (chunk) => {
       output = appendOutput(output, chunk)
+      process.stderr.write(chunk)
     })
     child.once('error', reject)
     child.once('exit', (code, signal) => {
@@ -187,6 +220,7 @@ function classify(message) {
   const normalized = message.toUpperCase()
   if (normalized.includes('SANDBOX_ACTION_INVALID')) return 'SANDBOX_ACTION_INVALID'
   if (normalized.includes('EXPORT_OUTPUT_INVALID')) return 'EXPORT_OUTPUT_INVALID'
+  if (normalized.includes('EXPORT_MEDIA_FAILED')) return 'EXPORT_MEDIA_FAILED'
   if (normalized.includes('EXPORT_INPUT_INVALID')) return 'EXPORT_INPUT_INVALID'
   if (normalized.includes('BROWSER') || normalized.includes('CHROMIUM') || normalized.includes('PLAYWRIGHT'))
     return 'BROWSER_LAUNCH_FAILED'

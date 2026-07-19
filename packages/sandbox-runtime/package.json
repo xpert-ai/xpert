@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/sandbox-runtime",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "Versioned OCI image suite for Xpert Sandbox workloads.",
   "license": "AGPL-3.0",
@@ -12,9 +12,13 @@
     "verify:image": "node scripts/verify-image.mjs",
     "render:artifacts": "node scripts/render-artifact-catalog.mjs",
     "install:browser": "playwright-core install chromium chromium-headless-shell",
-    "verify:local-browser": "node images/browser/runtime/runner-host.mjs --browser-smoke"
+    "install:ai": "playwright-core install chromium chromium-headless-shell && node scripts/install-ai-resources.mjs --catalog images/browser-ai/resources/resource-catalog.json",
+    "install:video": "playwright-core install chromium chromium-headless-shell && node scripts/install-local-video.mjs && node scripts/verify-local-video.mjs",
+    "verify:local-browser": "node images/browser/runtime/runner-host.mjs --browser-smoke",
+    "verify:local-video": "node scripts/verify-local-video.mjs"
   },
   "dependencies": {
+    "ffmpeg-ffprobe-static": "6.1.2-rc.1",
     "playwright-core": "1.61.0"
   }
 }

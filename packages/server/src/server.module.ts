@@ -43,6 +43,7 @@ import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin/plugin-webhook
 import { PLUGIN_WEBHOOK_AUTH_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { ManagedConnectionModule } from './managed-connection'
 import { ManagedQueueModule } from './managed-queue'
+import { RuntimeControlModule } from './runtime-control'
 
 @Module({
 	imports: [
@@ -60,6 +61,7 @@ import { ManagedQueueModule } from './managed-queue'
 				children: [{ path: '/', module: HomeModule }]
 			}
 		]),
+		RuntimeControlModule,
 		HealthModule,
 		CqrsModule,
 		CoreModule,

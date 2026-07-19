@@ -12,6 +12,7 @@ import {
   IPluginInstallInput,
   IPluginInstallResult,
   IPluginLatestVersionStatus,
+  IPluginUninstallResult,
   IPluginUpdateResult,
   PluginResourceInstallWorkspaceInput,
   PluginResourceInstallXpertInput,
@@ -226,7 +227,7 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   }
 
   uninstall(names: string[], organizationId?: string, scopeKey?: string) {
-    return this.httpClient.delete<void>(`${this.apiBaseUrl}/uninstall`, {
+    return this.httpClient.delete<IPluginUninstallResult>(`${this.apiBaseUrl}/uninstall`, {
       body: { names, ...(organizationId ? { organizationId } : {}), ...(scopeKey ? { scopeKey } : {}) }
     })
   }

@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process'
 import {
   DEFAULT_API_URL,
   DEFAULT_KEYCHAIN_SERVICE,
+  DEFAULT_PASSWORD_KEYCHAIN_SERVICE,
+  DEFAULT_USERNAME_KEYCHAIN_SERVICE,
   LocalPluginCliError,
   assertResponseOk,
   createRequestHeaders,
@@ -55,8 +57,13 @@ API and scope options:
 
 Authentication options:
   --token <jwt>              Bearer token; environment or Keychain is safer
+  --username <identifier>    Xpert email or username; Keychain is preferred
+  --password <password>      Xpert password; prefer Keychain or process environment
+  --login-endpoint <url>     Login endpoint, default: <api-url>/api/auth/login
   --keychain-service <name>  Default: ${DEFAULT_KEYCHAIN_SERVICE}
   --keychain-account <name>  Default: current OS user
+  --username-keychain-service <name>  Default: ${DEFAULT_USERNAME_KEYCHAIN_SERVICE}
+  --password-keychain-service <name>  Default: ${DEFAULT_PASSWORD_KEYCHAIN_SERVICE}
   --no-keychain              Do not read macOS Keychain
 
 Other options:
@@ -64,13 +71,16 @@ Other options:
   --help                     Show this help
 
 Environment fallbacks:
-  XPERT_API_URL, XPERT_TOKEN, XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
+  XPERT_API_URL, XPERT_TOKEN, XPERT_USERNAME, XPERT_PASSWORD
+  XPERT_ORG_ID, XPERT_TENANT_ID, XPERT_SCOPE
   XPERT_PLUGIN_BUILD_COMMAND, XPERT_PLUGIN_BUILD_CWD
   XPERT_PLUGIN_TEST_COMMAND, XPERT_PLUGIN_TEST_CWD
   XPERT_KEYCHAIN_SERVICE, XPERT_KEYCHAIN_ACCOUNT
+  XPERT_USERNAME_KEYCHAIN_SERVICE, XPERT_PASSWORD_KEYCHAIN_SERVICE
 
-Store a token in macOS Keychain without putting it in shell history:
-  security add-generic-password -a "$USER" -s ${DEFAULT_KEYCHAIN_SERVICE} -U -w
+Store login credentials in macOS Keychain so every deployment obtains a fresh JWT:
+  security add-generic-password -a "$USER" -s ${DEFAULT_USERNAME_KEYCHAIN_SERVICE} -U -w "<xpert-username>"
+  security add-generic-password -a "<xpert-username>" -s ${DEFAULT_PASSWORD_KEYCHAIN_SERVICE} -U -w
 `)
 }
 
@@ -167,7 +177,7 @@ async function deployPlugin({ args, config, headers, pluginEndpoint, pluginName,
     console.log(`[plugin:deploy:local] Refreshing ${pluginName} from its stored workspace path...`)
     const refreshResponse = await postJson(`${pluginEndpoint}/refresh`, headers, { pluginName })
     if (refreshResponse.ok) {
-      return 'refreshed'
+      return { action: 'refreshed', result: refreshResponse.body }
     }
     if (!canFallBackToInstall(refreshResponse)) {
       assertResponseOk('Plugin refresh', refreshResponse)
@@ -190,7 +200,7 @@ async function deployPlugin({ args, config, headers, pluginEndpoint, pluginName,
   }
   const installResponse = await postJson(pluginEndpoint, headers, body)
   assertResponseOk('Plugin install', installResponse)
-  return 'installed'
+  return { action: 'installed', result: installResponse.body }
 }
 
 async function main() {
@@ -205,13 +215,13 @@ async function main() {
 
   const { packageJson, pluginName, workspacePath } = resolvePluginInput(args)
   const config = parsePluginConfig(args)
-  const authentication = requireAuthentication(args, { dryRun: args.dryRun })
+  const authentication = await requireAuthentication(args, { dryRun: args.dryRun })
   if (!authentication) {
     console.log('[plugin:deploy:local] Dry run: no token found; a real deployment would stop and request secure setup.')
   } else {
     console.log(`[plugin:deploy:local] Authentication source: ${authentication.source}`)
   }
-  const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token')
+  const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token', authentication?.tenantId)
 
   const buildPlan = args.skipBuild
     ? null
@@ -255,14 +265,20 @@ async function main() {
     return
   }
 
-  const action = await deployPlugin({ args, config, headers, pluginEndpoint, pluginName, workspacePath })
+  const deployment = await deployPlugin({ args, config, headers, pluginEndpoint, pluginName, workspacePath })
   const verifyResponse = await postJson(`${pluginEndpoint}/by-names`, headers, { names: [pluginName] })
   assertResponseOk('Plugin verification', verifyResponse)
   if (!isVerifiedPluginList(verifyResponse.body)) {
     throw new LocalPluginCliError(`Plugin verification returned no descriptor for ${pluginName}.`)
   }
 
-  console.log(`[plugin:deploy:local] ${pluginName} ${action} and verified successfully.`)
+  if (deployment.result?.restartRequired === true) {
+    console.log(
+      `[plugin:deploy:local] ${pluginName} ${deployment.action} and staged successfully. API restart required before activation.`
+    )
+  } else {
+    console.log(`[plugin:deploy:local] ${pluginName} ${deployment.action} and verified successfully.`)
+  }
 }
 
 main().catch((error) => handleCliError('plugin:deploy:local', error))

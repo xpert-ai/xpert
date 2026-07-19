@@ -87,24 +87,48 @@
       }
     } @else {
       @if (!collapsed()) {
-        <button
-          type="button"
-          class="cloud-sidebar-assistants__header"
-          [class.is-open]="expanded()"
-          [attr.aria-expanded]="expanded()"
-          (click)="toggleExpanded()"
-        >
-          <span class="cloud-sidebar-assistants__header-icon">
-            <i class="ri-robot-2-line"></i>
-          </span>
-          <span class="cloud-sidebar-assistants__header-copy">
-            <span class="cloud-sidebar-assistants__title">
-              {{ 'PAC.MENU.Assistants' | translate: { Default: 'Assistants' } }}
+        <div class="cloud-sidebar-assistants__header" [class.is-open]="expanded()">
+          <button
+            type="button"
+            class="cloud-sidebar-assistants__header-main"
+            [attr.aria-expanded]="expanded()"
+            (click)="toggleExpanded()"
+          >
+            <span class="cloud-sidebar-assistants__header-icon">
+              <i class="ri-robot-2-line"></i>
             </span>
-          </span>
+            <span class="cloud-sidebar-assistants__header-copy">
+              <span class="cloud-sidebar-assistants__title">
+                {{ 'PAC.MENU.Assistants' | translate: { Default: 'Assistants' } }}
+              </span>
+            </span>
+          </button>
+
           <span class="cloud-sidebar-assistants__subtitle">{{ assistantCount() }}</span>
-          <i class="ri-arrow-down-s-line cloud-sidebar-assistants__chevron" [class.is-open]="expanded()"></i>
-        </button>
+
+          @if (canCreateDigitalExpert()) {
+            <button
+              type="button"
+              class="cloud-sidebar-assistants__create"
+              [attr.aria-label]="'PAC.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
+              [zTooltip]="'PAC.Xpert.CreateDigitalExpert' | translate: { Default: 'Create digital expert' }"
+              zPosition="right"
+              (click)="openCreateDigitalExpert($event)"
+            >
+              <i class="ri-add-line"></i>
+            </button>
+          }
+
+          <button
+            type="button"
+            class="cloud-sidebar-assistants__header-toggle"
+            [attr.aria-label]="'PAC.MENU.Assistants' | translate: { Default: 'Assistants' }"
+            [attr.aria-expanded]="expanded()"
+            (click)="toggleExpanded()"
+          >
+            <i class="ri-arrow-down-s-line cloud-sidebar-assistants__chevron" [class.is-open]="expanded()"></i>
+          </button>
+        </div>
 
         @if (expanded()) {
           <label class="cloud-sidebar-assistants__search">
@@ -218,7 +242,7 @@
             <li>
               <button
                 type="button"
-                class="cloud-sidebar-assistants__more"
+                class="cloud-sidebar-assistants__more mx-auto"
                 [class.is-open]="moreExpanded()"
                 [attr.aria-expanded]="moreExpanded()"
                 (click)="toggleMore($event)"

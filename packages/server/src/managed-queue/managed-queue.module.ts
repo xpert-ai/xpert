@@ -5,6 +5,7 @@ import { MANAGED_QUEUE_HANDLER_REGISTRY_TOKEN, MANAGED_QUEUE_SERVICE_TOKEN } fro
 import type { RedisOptions } from 'ioredis'
 import { RedisModule } from '../core/redis'
 import { REDIS_OPTIONS } from '../core/redis/types'
+import { UserModule } from '../user/user.module'
 import {
 	MANAGED_QUEUE_PHYSICAL_QUEUE_NAME,
 	MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX,
@@ -31,6 +32,7 @@ const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
 @Module({
 	imports: [
 		RedisModule,
+		UserModule,
 		DiscoveryModule,
 		BullModule.forRootAsync({
 			imports: [RedisModule],

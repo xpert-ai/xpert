@@ -49,6 +49,7 @@ import {
   IXpertWorkspace,
   KnowledgebaseService,
   OrderTypeEnum,
+  resolveI18nText,
   SkillPackageService,
   SkillRepositoryService,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
@@ -232,6 +233,7 @@ export type BlankXpertDialogData = {
   initialTemplateId?: string | null
   lockStartMode?: boolean
   lockType?: boolean
+  skipTemplateSelectionStep?: boolean
 }
 
 type DraftPreparationResult = {
@@ -382,6 +384,11 @@ export class XpertNewBlankComponent {
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly lockStartMode = !!this.#dialogData.lockStartMode
   readonly lockType = !!this.#dialogData.lockType
+  readonly skipTemplateSelectionStep =
+    !!this.#dialogData.skipTemplateSelectionStep &&
+    this.#dialogData.initialStartMode === 'template' &&
+    !!this.#dialogData.initialTemplateId
+  readonly agentInitialStepIndex = this.skipTemplateSelectionStep ? 1 : 0
   readonly initialMode = getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)
   readonly availableModes = computed(() =>
     this.lockType ? [this.initialMode] : getBlankWizardAvailableModes(this.requestedType(), this.allowedModes)
@@ -1502,13 +1509,13 @@ export class XpertNewBlankComponent {
   private applyTemplateBasicInfo(basic: {
     name?: string
     title?: string
-    description?: string
+    description?: string | I18nObject
     avatar?: TAvatar
     copilotModel?: ICopilotModel
   }) {
     this.name.set(basic.name)
     this.title.set(basic.title)
-    this.description.set(basic.description)
+    this.description.set(resolveI18nText(basic.description, this.#translate.currentLang) ?? undefined)
     this.avatar.set(basic.avatar)
     this.copilotModel.set(basic.copilotModel)
   }

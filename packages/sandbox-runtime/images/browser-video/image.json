@@ -1,0 +1,26 @@
+{
+  "imageFamily": "browser-video",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-browser-video",
+    "dockerhub": "metadc/xpert-sandbox-browser-video",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-browser-video"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "browser/video-playwright-1.61/v1",
+  "nodeVersion": "22.17.1",
+  "playwrightVersion": "1.61.0",
+  "browserRevision": "1228",
+  "ffmpegVersion": "6.1",
+  "platforms": ["linux/amd64"],
+  "capabilities": ["browser.chromium", "browser.screenshot", "media.ffmpeg", "sandbox.action.v1"],
+  "dockerfile": "images/browser-video/Dockerfile",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "manifest": "images/browser-video/runtime/manifest.json",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/browser-video-playwright-1.61-v1.json",
+  "artifactCatalogTemplate": "images/browser-video/artifact-catalog.template.json",
+  "smokeCommand": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs", "--browser-smoke"],
+  "baseImages": {
+    "node": "node:22.17.1-bookworm-slim@sha256:2fa754a9ba4d7adbd2a51d182eaabbe355c82b673624035a38c0d42b08724854",
+    "playwright": "mcr.microsoft.com/playwright:v1.61.0-noble@sha256:111dde95859f2c659291cb60e698f9048a8fc30b35b4ddb7c90f9cb5b73062d9"
+  }
+}

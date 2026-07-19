@@ -18,8 +18,9 @@ import {
 } from '@cloud/app/@core'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
-import { ExploreAgentInstallComponent } from './install/install.component'
 import { ExploreXpertCardComponent } from './xpert-card.component'
+import { createAgentTemplateWizardData } from './agent-template-wizard'
+import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
 
 type ExploreViewMode = 'square' | 'mine'
 
@@ -159,9 +160,16 @@ export class ExploreAgentsComponent {
 
   install(item: TXpertTemplate) {
     if (item.type === XpertTypeEnum.Agent || item.type === XpertTypeEnum.Copilot) {
-      this.#dialog.open(ExploreAgentInstallComponent, {
-        data: item
-      })
+      this.#dialog
+        .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+          disableClose: true,
+          data: createAgentTemplateWizardData(item.id, this.workspace())
+        })
+        .closed.subscribe((result) => {
+          if (result?.xpert?.id) {
+            void this.#router.navigate(['/xpert/x', result.xpert.id])
+          }
+        })
       return
     }
 
@@ -183,7 +191,9 @@ export class ExploreAgentsComponent {
   }
 
   openMineItem(item: IXpert) {
-    this.#router.navigate(item.type === XpertTypeEnum.Copilot ? ['/xpert/x', item.id, 'copilot'] : ['/xpert/x', item.id])
+    this.#router.navigate(
+      item.type === XpertTypeEnum.Copilot ? ['/xpert/x', item.id, 'copilot'] : ['/xpert/x', item.id]
+    )
   }
 
   openMineWorkspace(event?: Event) {

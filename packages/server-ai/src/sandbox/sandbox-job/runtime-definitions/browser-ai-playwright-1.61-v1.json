@@ -1,0 +1,42 @@
+{
+    "name": "browser/ai-playwright-1.61/v1",
+    "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+    "contractVersion": "1",
+    "sandboxRuntimeVersion": "1.1.0",
+    "timeoutMs": 300000,
+    "hardDeadlineMs": 900000,
+    "resources": {
+        "cpu": 4,
+        "memoryMb": 8192,
+        "shmSizeMb": 2048,
+        "tempDiskMb": 4096
+    },
+    "networkPolicy": {
+        "mode": "none"
+    },
+    "security": {
+        "runAsNonRoot": true,
+        "readOnlyRootFilesystem": true,
+        "noNewPrivileges": true,
+        "dropCapabilities": "all"
+    },
+    "requirements": {
+        "isolation": "hardened",
+        "ephemeral": true,
+        "resourceLimits": true,
+        "networkPolicy": true,
+        "readOnlyRootFilesystem": true
+    },
+    "expectedManifest": {
+        "sandboxRuntimeVersion": "1.1.0",
+        "imageFamily": "browser-ai",
+        "profileName": "browser/ai-playwright-1.61/v1",
+        "contractVersion": "1",
+        "nodeVersion": "20.20.2",
+        "playwrightVersion": "1.61.0",
+        "browserRevision": "1228",
+        "onnxRuntimeVersion": "1.26.0-dev.20260416-b7804b056c",
+        "modelCatalogSha256": "4b8344e62b18ef86798cb005e704757fb67357c1e264dbd4d4f8cec42a81ba2b",
+        "runnerHostSha256": "20311f24de4b8800e282eaafb29a3e08a0b5551728f59d555a55ebdd009b5310"
+    }
+}

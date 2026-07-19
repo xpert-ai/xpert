@@ -19,7 +19,8 @@ import {
   IXpert,
   RequestScopeLevel,
   ScopeService,
-  Store
+  Store,
+  XpertAPIService
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
@@ -84,6 +85,7 @@ export class CloudSidebarAssistantsComponent {
   readonly #router = inject(Router)
   readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
+  readonly #xpertAPI = inject(XpertAPIService)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
   readonly #unreadPoll$ = new Observable<void>((subscriber) =>
     this.#ngZone.runOutsideAngular(() => {
@@ -131,6 +133,7 @@ export class CloudSidebarAssistantsComponent {
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
+  readonly selectedWorkspace = toSignal(this.#store.selectedWorkspace$, { initialValue: null })
   readonly featureContextHydrated = toSignal(this.#store.featureContextHydrated$, {
     initialValue: this.#store.featureContextHydrated
   })
@@ -196,7 +199,7 @@ export class CloudSidebarAssistantsComponent {
         const isTenantListScope = scopeLevel === RequestScopeLevel.TENANT
 
         return merge(
-          of(null),
+          this.#xpertAPI.onRefresh(),
           this.#assistantBindingService.changes$.pipe(
             filter((event) => event.code === AssistantCode.CLAWXPERT && event.scope === AssistantBindingScope.USER)
           )
@@ -421,6 +424,13 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
   }
 
+  openCreateDigitalExpert(event: Event) {
+    event.stopPropagation()
+    const workspaceId = this.selectedWorkspace()?.id?.trim()
+
+    void this.#router.navigate(workspaceId ? ['/xpert/w', workspaceId, 'xperts'] : ['/xpert/w'])
+  }
+
   isActive(xpert: IXpert) {
     return isAssistantRouteActive(this.currentUrl(), xpert)
   }
@@ -445,6 +455,10 @@ export class CloudSidebarAssistantsComponent {
     }
 
     return !xpert.workspaceId
+  }
+
+  canCreateDigitalExpert() {
+    return this.hasXpertEditPermission()
   }
 
   clawXpertLabel() {

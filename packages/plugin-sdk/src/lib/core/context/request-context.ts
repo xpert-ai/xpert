@@ -302,7 +302,29 @@ export class RequestContext {
   }
 }
 
-export const als = new AsyncLocalStorage<RequestContext>()
+const REQUEST_CONTEXT_STORAGE_KEY = Symbol.for('xpert.plugin-sdk.request-context.storage.v1')
+
+function getSharedRequestContextStorage(): AsyncLocalStorage<RequestContext> {
+  const existing: unknown = Reflect.get(globalThis, REQUEST_CONTEXT_STORAGE_KEY)
+  if (existing instanceof AsyncLocalStorage) {
+    return existing as AsyncLocalStorage<RequestContext>
+  }
+
+  const storage = new AsyncLocalStorage<RequestContext>()
+  Reflect.defineProperty(globalThis, REQUEST_CONTEXT_STORAGE_KEY, {
+    value: storage,
+    configurable: false,
+    enumerable: false,
+    writable: false
+  })
+  return storage
+}
+
+/**
+ * One process-wide context store shared by source, built, and dynamically loaded
+ * copies of the Plugin SDK. Plugin class identity may differ; the async scope must not.
+ */
+export const als = getSharedRequestContextStorage()
 
 export function getRequestContext() {
   return als.getStore()

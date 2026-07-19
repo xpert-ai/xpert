@@ -32,7 +32,8 @@ import {
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ZardButtonComponent, ZardCheckboxComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ExploreAgentsComponent } from '../agents/agents.component'
-import { ExploreAgentInstallComponent } from '../agents/install/install.component'
+import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
+import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dialog.component'
 
@@ -235,7 +236,7 @@ export class ExploreAgentSquareComponent {
   async handlePrimaryAction(item: AgentSquareDisplayItem, event?: Event) {
     event?.stopPropagation()
     if (item.kind === 'template') {
-      this.#dialog.open(ExploreAgentInstallComponent, { data: item.template })
+      this.openTemplateWizard(item.template)
       return
     }
 
@@ -280,6 +281,19 @@ export class ExploreAgentSquareComponent {
 
   openChat(item: IXpertMarketplaceItem) {
     this.#router.navigate(['/chat/x', item.xpert.slug, 'c'])
+  }
+
+  private openTemplateWizard(template: TXpertTemplate) {
+    this.#dialog
+      .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        disableClose: true,
+        data: createAgentTemplateWizardData(template.id, this.workspace())
+      })
+      .closed.subscribe((result) => {
+        if (result?.xpert?.id) {
+          void this.#router.navigate(['/xpert/x', result.xpert.id])
+        }
+      })
   }
 
   canUse(item: AgentSquareDisplayItem) {

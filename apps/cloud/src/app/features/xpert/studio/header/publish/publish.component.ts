@@ -25,7 +25,7 @@ import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
-import { injectConfirm, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { injectConfirm, ZardAccordionImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -34,6 +34,7 @@ import { injectConfirm, ZardSwitchComponent, ZardTooltipImports } from '@xpert-a
     ReactiveFormsModule,
     DragDropModule,
     TranslateModule,
+    ...ZardAccordionImports,
     ...ZardTooltipImports,
     NgmSpinComponent,
     NgmSelectComponent,

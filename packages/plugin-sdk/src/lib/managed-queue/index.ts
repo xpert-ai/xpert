@@ -110,6 +110,11 @@ export type ManagedQueueJobContext = {
   queueName: string
   jobName: string
   scopeKey?: string | null
+  /** Persisted queue ownership restored independently of ambient request context. */
+  tenantId?: string | null
+  organizationId?: string | null
+  /** Business actor captured when the logical job was enqueued. */
+  userId?: string | null
 }
 
 export type ManagedQueueJobSnapshot<TPayload = unknown> = ManagedQueueJob<TPayload> & {
@@ -121,7 +126,10 @@ export type ManagedQueueJobSnapshot<TPayload = unknown> = ManagedQueueJob<TPaylo
   finishedOn?: number
 }
 
-export type ManagedQueueJobHandler<TPayload = unknown> = (job: ManagedQueueJob<TPayload>) => Promise<void> | void
+export type ManagedQueueJobHandler<TPayload = unknown> = (
+  job: ManagedQueueJob<TPayload>,
+  context: ManagedQueueJobContext
+) => Promise<void> | void
 
 export interface ManagedQueueJobProcessor<TPayload = unknown> {
   handle(job: ManagedQueueJob<TPayload>, context: ManagedQueueJobContext): Promise<void> | void

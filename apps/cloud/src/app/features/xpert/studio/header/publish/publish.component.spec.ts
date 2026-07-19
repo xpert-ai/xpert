@@ -17,6 +17,17 @@ describe('XpertPublishVersionComponent layout', () => {
     expect(actionsClasses).toContain('shrink-0')
   })
 
+  it('keeps marketplace information last and collapsed by default', () => {
+    const marketplaceIndex = template.indexOf('data-marketplace-section')
+    const versionHistoryIndex = template.indexOf('PAC.Xpert.VersionHistory')
+    const publishBindingIndex = template.indexOf('PAC.Xpert.PublishBinding')
+
+    expect(marketplaceIndex).toBeGreaterThan(versionHistoryIndex)
+    expect(marketplaceIndex).toBeGreaterThan(publishBindingIndex)
+    expect(template.slice(marketplaceIndex, marketplaceIndex + 240)).toContain('<z-accordion-item')
+    expect(template.slice(marketplaceIndex, marketplaceIndex + 240)).not.toContain('expanded')
+  })
+
   function classAttributeFor(fragment: string) {
     const start = template.indexOf(fragment)
     if (start < 0) {

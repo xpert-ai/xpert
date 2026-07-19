@@ -40,7 +40,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		super(repo)
 	}
 
-	async upsert(input: PluginInstance) {
+	async upsert(input: PluginInstance, options: { syncLoadedConfig?: boolean } = {}) {
 		const requestTenantId = input.tenantId ?? this.getCurrentTenantId()
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({
@@ -82,7 +82,9 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			existing.organizationId = this.getOrganizationValue(organizationId)
 			existing.scopeKey = scope.scopeKey
 			const entity = await this.repo.save(existing)
-			this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
+			if (options.syncLoadedConfig !== false) {
+				this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
+			}
 			return entity
 		}
 
@@ -101,7 +103,9 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			configurationError: input.configurationError ?? null
 		})
 		const created = await this.create(entity)
-		this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
+		if (options.syncLoadedConfig !== false) {
+			this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
+		}
 		return created
 	}
 
@@ -180,6 +184,24 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		options: { scopeKey?: string | null } = {}
 	) {
 		const normalizedNames = names.map((name) => normalizePluginName(name))
+		await this.deactivate(tenantId, organizationId, normalizedNames, options)
+		const defaultTenantId = await this.getDefaultTenantId()
+		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
+		await this.removePlugins(organizationId, normalizedNames, { tenantId, scopeKey: scope.scopeKey })
+	}
+
+	/**
+	 * Remove persisted plugin registrations without mutating the live Nest module graph
+	 * or deleting runtime files. System plugins use this path and finish deactivation
+	 * when the API process is restarted or replaced.
+	 */
+	async deactivate(
+		tenantId: string | null,
+		organizationId: string,
+		names: string[],
+		options: { scopeKey?: string | null } = {}
+	) {
+		const normalizedNames = names.map((name) => normalizePluginName(name))
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
 		await this.repo.delete({
@@ -192,7 +214,6 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 				level: PLUGIN_LEVEL.SYSTEM,
 				pluginName: In(normalizedNames)
 			})
-			await this.removePlugins(organizationId, normalizedNames, { tenantId, scopeKey: scope.scopeKey })
 			return
 		}
 		for (const tenantWhere of await this.buildTenantWhereVariants(tenantId)) {
@@ -204,8 +225,6 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 				pluginName: In(normalizedNames)
 			})
 		}
-
-		await this.removePlugins(organizationId, normalizedNames, { tenantId, scopeKey: scope.scopeKey })
 	}
 
 	async uninstallByPackageName(

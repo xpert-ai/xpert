@@ -216,7 +216,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     // Xpert AI Features
     {
       title: 'Scheduled',
-      icon: 'ri-list-check-3',
+      icon: 'ri-time-line',
       link: '/chat/tasks',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -285,59 +285,6 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         onboardingTarget: 'workspace'
       }
     },
-
-    // BI Features
-    // {
-    //   title: 'Dashboard',
-    //   icon: 'leaderboard',
-    //   link: '/dashboard',
-    //   pathMatch: 'prefix',
-    //   // home: true,
-    //   data: {
-    //     translationKey: 'Dashboard',
-    //     featureKey: FeatureEnum.FEATURE_HOME
-    //   },
-    //   children: [
-    //     {
-    //       title: 'Today',
-    //       icon: 'today',
-    //       link: '/dashboard',
-    //       data: {
-    //         translationKey: 'Today',
-    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
-    //       }
-    //     },
-    //     {
-    //       title: 'Catalog',
-    //       icon: 'subscriptions',
-    //       link: '/dashboard/catalog',
-    //       data: {
-    //         translationKey: 'Catalog',
-    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
-    //       }
-    //     },
-    //     {
-    //       title: 'Trending',
-    //       icon: 'timeline',
-    //       link: '/dashboard/trending',
-    //       data: {
-    //         translationKey: 'Trending',
-    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
-    //       }
-    //     }
-    //   ]
-    // },
-    // {
-    //   title: 'Data Factory',
-    //   icon: 'data_table',
-    //   link: '/data',
-    //   pathMatch: 'prefix',
-    //   data: {
-    //     translationKey: 'DataFactory',
-    //     featureKey: AnalyticsFeatures.FEATURE_COPILOT_CHATBI,
-    //     permissionKeys: [AnalyticsPermissionsEnum.DATA_FACTORY_VIEW]
-    //   }
-    // },
     {
       title: 'Data',
       icon: 'ri-database-2-line',
@@ -400,7 +347,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     },
     {
       title: 'Plugins',
-      icon: 'ri-puzzle-2-line',
+      icon: 'ri-plug-line',
       link: '/plugins',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',

@@ -6,6 +6,7 @@ import { DatabaseModule } from '../database/database.module'
 import { HealthController } from './health.controller'
 import { CacheHealthIndicator } from './indicators/cache-health.indicator'
 import { RedisHealthIndicator } from './indicators/redis-health.indicator'
+import { RuntimeControlModule } from '../runtime-control'
 
 @Module({
 	controllers: [HealthController],
@@ -13,6 +14,7 @@ import { RedisHealthIndicator } from './indicators/redis-health.indicator'
 		// We need to import the TypeOrmModule here to use Repositories in Health Service
 		TypeOrmModule.forFeature([User]),
 		DatabaseModule,
+		RuntimeControlModule,
 		TerminusModule
 	],
 	providers: [CacheHealthIndicator, RedisHealthIndicator]

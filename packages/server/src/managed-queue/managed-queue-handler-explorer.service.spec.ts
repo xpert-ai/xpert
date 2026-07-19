@@ -84,13 +84,24 @@ describe('ManagedQueueHandlerExplorerService', () => {
 
 		const registration = registry.register.mock.calls[0][0]
 		const job = { id: 'job-1', name: 'job-a', data: { ok: true }, attemptsMade: 0 }
-		await registration.handler(job)
+		await registration.handler(job, {
+			pluginName: 'plugin-a',
+			queueName: 'queue-a',
+			jobName: 'job-a',
+			scopeKey: 'org-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'user-1'
+		})
 
 		expect(processor.handle).toHaveBeenCalledWith(job, {
 			pluginName: 'plugin-a',
 			queueName: 'queue-a',
 			jobName: 'job-a',
-			scopeKey: 'org-1'
+			scopeKey: 'org-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'user-1'
 		})
 
 		explorer.onModuleDestroy()

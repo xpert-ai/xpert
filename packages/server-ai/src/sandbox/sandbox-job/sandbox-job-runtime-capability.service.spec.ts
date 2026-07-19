@@ -1,11 +1,48 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { SandboxJobRuntimeCapabilityService } from './sandbox-job-runtime-capability.service'
+import {
+    classifyRunnerFailure,
+    SandboxJobRuntimeCapabilityService,
+    truncateSandboxRunnerOutput
+} from './sandbox-job-runtime-capability.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 
 const PROFILE = 'browser/playwright-1.61/v1'
 const ACTION = 'document.export'
 const ACTION_VERSION = '9.1.0'
 const SANDBOX_RUNTIME_VERSION = new SandboxRuntimeDefinitionRegistry().require(PROFILE).sandboxRuntimeVersion
+
+describe('sandbox runner output formatting', () => {
+    it('preserves the beginning and root-cause tail of long runner output', () => {
+        const result = truncateSandboxRunnerOutput(`START:${'worker-log\n'.repeat(600)}ROOT_CAUSE_END`)
+
+        expect(result.length).toBeLessThanOrEqual(4_000)
+        expect(result).toContain('START:')
+        expect(result).toContain('runner output omitted')
+        expect(result).toContain('ROOT_CAUSE_END')
+    })
+
+    it('classifies deterministic media decode and seek failures as non-retryable', () => {
+        expect(
+            classifyRunnerFailure('EXPORT_MEDIA_FAILED: CUT_MEDIA_SEEK_FAILED in Chromium decoder', 'job-1')
+        ).toMatchObject({
+            code: 'EXPORT_MEDIA_FAILED',
+            retryable: false,
+            jobId: 'job-1'
+        })
+    })
+
+    it('removes provider-neutral progress events from persisted runner errors', () => {
+        const result = truncateSandboxRunnerOutput(
+            [
+                'XPERT_SANDBOX_PROGRESS {"progress":0.1,"stage":"rendering"}',
+                'XPERT_SANDBOX_PROGRESS {"progress":0.2,"stage":"rendering"}',
+                'EXPORT_MEDIA_FAILED: CUT_MEDIA_SEEK_FAILED {"targetTime":60.15}'
+            ].join('\n')
+        )
+
+        expect(result).toBe('EXPORT_MEDIA_FAILED: CUT_MEDIA_SEEK_FAILED {"targetTime":60.15}')
+    })
+})
 
 describe('SandboxJobRuntimeCapabilityService action validation', () => {
     beforeEach(() => {
@@ -21,7 +58,8 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         healthOverrides: object = {},
         providerRegistry: object = { get: jest.fn() },
         volumeClient: object = {},
-        workspaceFiles: object = {}
+        workspaceFiles: object = {},
+        actionRegistryOverrides: object = {}
     ) {
         const actions = {
             get: jest.fn().mockResolvedValue({
@@ -37,7 +75,8 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 files: [],
                 ...actionOverrides
             }),
-            getCachedBundle: jest.fn().mockResolvedValue([])
+            getCachedBundle: jest.fn().mockResolvedValue([]),
+            ...actionRegistryOverrides
         }
         return new SandboxJobRuntimeCapabilityService(
             repository as never,
@@ -142,6 +181,56 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
 
         expect(readBuffer).not.toHaveBeenCalled()
         expect(uploadFiles).toHaveBeenCalledWith([['/workspace/input/job.json', expect.any(Buffer)]])
+    })
+
+    it('re-resolves a refreshed local Action before failing the current Job', async () => {
+        const staleAction = {
+            pluginName: '@acme/plugin-document-export',
+            name: ACTION,
+            version: ACTION_VERSION,
+            runtimeProfile: PROFILE,
+            runtimeContractVersion: '1',
+            playwrightVersion: '1.61.0',
+            bundleSha256: 'c'.repeat(64),
+            bundleRoot: '/plugins/stale/action',
+            entrypoint: 'runner.mjs',
+            files: []
+        }
+        const refreshedAction = {
+            ...staleAction,
+            bundleSha256: 'd'.repeat(64),
+            bundleRoot: '/plugins/current/action'
+        }
+        const missing = Object.assign(new Error('no such file or directory'), { code: 'ENOENT' })
+        const get = jest.fn().mockResolvedValue(refreshedAction)
+        const getCachedBundle = jest
+            .fn()
+            .mockRejectedValueOnce(missing)
+            .mockResolvedValueOnce([{ relativePath: 'runner.mjs', content: Buffer.from('ok') }])
+        const uploadFiles = jest.fn().mockResolvedValue([])
+        const service = createService({}, {}, {}, { get: jest.fn() }, {}, {}, { get, getCachedBundle })
+        const definition = new SandboxRuntimeDefinitionRegistry().require(PROFILE)
+
+        const result = await (
+            service as unknown as {
+                materializeAction: (...args: unknown[]) => Promise<typeof refreshedAction>
+            }
+        ).materializeAction({ uploadFiles }, '/workspace', staleAction, definition)
+
+        expect(result).toBe(refreshedAction)
+        expect(get).toHaveBeenCalledWith({
+            pluginName: staleAction.pluginName,
+            action: ACTION,
+            actionVersion: ACTION_VERSION
+        })
+        expect(getCachedBundle).toHaveBeenNthCalledWith(1, staleAction)
+        expect(getCachedBundle).toHaveBeenNthCalledWith(2, refreshedAction)
+        const uploads = uploadFiles.mock.calls[0][0] as Array<[string, Buffer]>
+        expect(JSON.parse(uploads[0][1].toString('utf8'))).toMatchObject({
+            bundleSha256: refreshedAction.bundleSha256,
+            entrypoint: refreshedAction.entrypoint
+        })
+        expect(uploads[1]).toEqual(['/workspace/runtime/action/runner.mjs', Buffer.from('ok')])
     })
 
     it('rejects Action and Runtime contract mismatch as non-retryable', async () => {

@@ -40,6 +40,15 @@
       @if (error()) {
         <p class="text-text-destructive">{{ error() }}</p>
       }
+      @if (restartRequired()) {
+        <p class="text-text-warning">
+          {{
+            'PAC.Plugin.RestartRequired'
+              | translate
+                : { Default: 'Plugin changes were staged successfully. Restart the API service to activate them.' }
+          }}
+        </p>
+      }
     }
   </div>
   <div
@@ -64,7 +73,31 @@
   </div>
 </div>
 <div class="flex items-center justify-end gap-2 self-stretch p-6 pt-5">
-  @if (systemPluginUnavailableInCurrentScope() || status() === 'installed' || installedVersion() === pluginVersion()) {
+  @if (status() === 'installed' && restartRequired()) {
+    @if (!runtimeRestart.canRestart()) {
+      <div class="mr-auto max-w-sm text-sm text-text-tertiary">
+        {{
+          runtimeRestart.restartUnavailableMessageKey()
+            | translate: { Default: 'Ask a SuperAdmin in the default tenant scope to restart the API service.' }
+        }}
+      </div>
+    }
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large min-w-[72px]" (click)="close()">
+      {{ 'PAC.Plugin.RestartLater' | translate: { Default: 'Later' } }}
+    </button>
+    @if (runtimeRestart.canRestart()) {
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[112px] items-center justify-center"
+        (click)="restartNow()"
+      >
+        <i class="ri-restart-line mr-1"></i>
+        {{ 'PAC.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+      </button>
+    }
+  } @else if (
+    systemPluginUnavailableInCurrentScope() || status() === 'installed' || installedVersion() === pluginVersion()
+  ) {
     <button
       type="button"
       class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"

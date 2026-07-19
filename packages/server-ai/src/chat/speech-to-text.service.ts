@@ -96,13 +96,12 @@ export class SpeechToTextService {
             throw new BadRequestException('speech_to_text_file_empty')
         }
 
-        const originalName = this.safeFileName(input.file.originalName || 'speech.wav')
-        const extension = originalName.toLowerCase().endsWith('.wav') ? '' : '.wav'
+        const originalName = normalizeSpeechToTextFileName(input.file.originalName || 'speech', input.file.mimeType)
         const relativePath = [
             'files',
             'speech-to-text',
             this.safePathSegment(input.tenantId || RequestContext.currentTenantId() || 'tenant'),
-            `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${originalName}${extension}`
+            `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${originalName}`
         ].join('/')
         const storedFile = await new FileStorage().getProvider().putFile(buffer, relativePath)
         const uploadedFile: UploadedFile = {
@@ -145,9 +144,33 @@ export class SpeechToTextService {
     private safePathSegment(value: string): string {
         return value.replace(/[^a-zA-Z0-9._-]/g, '_') || 'tenant'
     }
+}
 
-    private safeFileName(value: string): string {
-        const name = value.split(/[\\/]/).pop() || 'speech.wav'
-        return name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'speech.wav'
+const SPEECH_TO_TEXT_MIME_EXTENSIONS: Readonly<Record<string, string>> = {
+    'audio/aac': 'aac',
+    'audio/flac': 'flac',
+    'audio/mp4': 'm4a',
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/opus': 'opus',
+    'audio/wav': 'wav',
+    'audio/webm': 'webm',
+    'video/avi': 'avi',
+    'video/mp4': 'mp4',
+    'video/mpeg': 'mpeg',
+    'video/ogg': 'ogg',
+    'video/quicktime': 'mov',
+    'video/webm': 'webm',
+    'video/x-flv': 'flv',
+    'video/x-matroska': 'mkv'
+}
+
+export function normalizeSpeechToTextFileName(value: string, mimeType?: string): string {
+    const sourceName = value.split(/[\\/]/).pop() || 'speech'
+    const safeName = sourceName.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^\.+/, '') || 'speech'
+    if (/\.[a-zA-Z0-9]{1,10}$/.test(safeName)) {
+        return safeName
     }
+    const normalizedMimeType = mimeType?.split(';', 1)[0]?.trim().toLowerCase() || ''
+    return `${safeName}.${SPEECH_TO_TEXT_MIME_EXTENSIONS[normalizedMimeType] ?? 'wav'}`
 }

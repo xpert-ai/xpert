@@ -5,6 +5,14 @@
     {
       "family": "browser",
       "definition": "images/browser/image.json"
+    },
+    {
+      "family": "browser-video",
+      "definition": "images/browser-video/image.json"
+    },
+    {
+      "family": "browser-ai",
+      "definition": "images/browser-ai/image.json"
     }
   ]
 }

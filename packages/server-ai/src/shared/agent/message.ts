@@ -372,7 +372,7 @@ function buildFileUnderstandingPrompt(file: ResolvedFile, preview: FilePreviewRe
         asset?.summary ? `summary: ${truncatePromptText(asset.summary, MAX_FILE_PROMPT_SUMMARY_LENGTH)}` : '',
         anchors.length ? `availableAnchors: ${anchors.join(', ')}` : '',
         pageImages.length ? `pageImages:\n${pageImages.map((image) => `- ${image}`).join('\n')}` : '',
-        'Do not assume the summary is exhaustive. Use parsed_file_search/parsed_file_read when the user asks about parsed file contents. If workspacePath is present and sandbox_file or shell tools are available, you may read the original file by that path. If pageImages are present, use parsed_file_page_images for the complete or page-specific image list, then use a view-image tool on the listed image path or URL when visual layout, charts, screenshots, tables, or OCR are needed. Cite page/sheet/slide/path anchors when available.',
+        'Do not assume the summary is exhaustive. Use parsed_file_search/parsed_file_read when the user asks about parsed file contents. If workspacePath is present and sandbox_read_file is available, use it to read the original file by that path; use sandbox_shell only when command execution is necessary. If pageImages are present, use parsed_file_page_images for the complete or page-specific image list, then use a view-image tool on the listed image path or URL when visual layout, charts, screenshots, tables, or OCR are needed. Cite page/sheet/slide/path anchors when available.',
         '</file_understanding>'
     ]
         .filter(Boolean)

@@ -39,6 +39,32 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         )
     })
 
+    it('resolves metadata and a public URL without reading file bytes', async () => {
+        const serverRoot = await temporaryRoot()
+        const filePath = 'drawings/source.pdf'
+        await mkdir(path.join(serverRoot, 'drawings'), { recursive: true })
+        await writeFile(path.join(serverRoot, filePath), Buffer.from('pdf-content'))
+        const service = createService(serverRoot, '/host/project-1')
+
+        await expect(service.resolveFile(reference(filePath))).resolves.toEqual({
+            name: 'source.pdf',
+            filePath,
+            workspacePath: filePath,
+            fileUrl: `http://localhost/files/${filePath}`,
+            url: `http://localhost/files/${filePath}`,
+            size: 11,
+            catalog: 'projects',
+            scopeId: 'project-1'
+        })
+    })
+
+    it('reports a missing workspace file with a storage-specific error', async () => {
+        const serverRoot = await temporaryRoot()
+        const service = createService(serverRoot, '/host/project-1')
+
+        await expect(service.resolveFile(reference('drawings/missing.pdf'))).rejects.toThrow('Workspace file not found')
+    })
+
     function createService(serverRoot: string, hostRoot: string) {
         const volume = new VolumeHandle(
             { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1', userId: 'user-1' },

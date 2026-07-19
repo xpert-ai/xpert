@@ -1981,6 +1981,7 @@
     },
     "Xpert": {
       "Xpert": "Xpert",
+      "CreateDigitalExpert": "Create digital expert",
       "CreateXpertFromTemplate": "Create a digital expert from template {{value}}",
       "SelectAWorkspace": "Select a workspace",
       "HowtoCreate": "How to create",
@@ -2168,6 +2169,7 @@
       "EndTool": "End point tool. The conversation ends when the tool completes.",
       "XpertUserGroups": "Xpert User Groups",
       "MarketplaceInfo": "Marketplace information",
+      "MarketplaceInfoConfigureHint": "Expand to configure",
       "MarketplaceSummary": "Display summary",
       "MarketplaceSummaryPlaceholder": "Briefly describe the tasks this agent is best suited for.",
       "MarketplaceBusinessCategories": "Marketplace categories",

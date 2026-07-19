@@ -1,5 +1,5 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
-import type { SandboxJobErrorCode, SandboxJobOutput, SandboxJobStatus } from '@xpert-ai/plugin-sdk'
+import type { SandboxJobErrorCode, SandboxJobOutput, SandboxJobProgress, SandboxJobStatus } from '@xpert-ai/plugin-sdk'
 import { Column, Entity, Index } from 'typeorm'
 
 /**
@@ -42,6 +42,9 @@ export class SandboxJobEntity extends TenantOrganizationBaseEntity {
 
     @Column({ type: 'varchar' })
     status: SandboxJobStatus
+
+    @Column({ type: 'json', nullable: true })
+    progress?: SandboxJobProgress | null
 
     @Column({ type: 'int', default: 0 })
     attempt: number

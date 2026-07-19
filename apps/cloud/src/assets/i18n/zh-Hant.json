@@ -3907,6 +3907,7 @@
       "AlreadyExistsOrg": "已存在此組織內",
       "InputXpertDescription": "輸入專家描述",
       "CreateXpert": "創建專家",
+      "CreateDigitalExpert": "創建數字專家",
       "Schema": "架構",
       "ImportFromURL": "從鏈接導入",
       "Ok": "確認",

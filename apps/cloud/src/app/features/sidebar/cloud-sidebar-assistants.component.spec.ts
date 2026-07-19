@@ -2,8 +2,15 @@ import { Component, signal, type WritableSignal } from '@angular/core'
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { of, Subject } from 'rxjs'
-import { AiFeatureEnum, AssistantBindingService, ChatConversationService, ScopeService, Store } from '../../@core'
+import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
+import {
+  AiFeatureEnum,
+  AssistantBindingService,
+  ChatConversationService,
+  ScopeService,
+  Store,
+  XpertAPIService
+} from '../../@core'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
@@ -49,6 +56,7 @@ jest.mock('../../@core', () => {
   class AssistantBindingService {}
   class ChatConversationService {}
   class Store {}
+  class XpertAPIService {}
 
   return {
     AiFeatureEnum: {
@@ -77,7 +85,8 @@ jest.mock('../../@core', () => {
     AssistantBindingService,
     ChatConversationService,
     ScopeService: class ScopeService {},
-    Store
+    Store,
+    XpertAPIService
   }
 })
 
@@ -248,6 +257,10 @@ describe('CloudSidebarAssistantsComponent', () => {
     getAvailableXperts: jest.Mock
   }
   let assistantBindingChanges$: Subject<{ code: string; scope: string }>
+  let xpertRefresh$: BehaviorSubject<void>
+  let xpertAPI: {
+    onRefresh: jest.Mock
+  }
   let conversationService: {
     getUnreadByXperts: jest.Mock
     unreadRefresh$: Subject<void>
@@ -257,6 +270,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     userId: string
     organizationId: string | null
     selectOrganizationId: jest.Mock
+    selectedWorkspace$: Observable<{ id: string } | null>
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
@@ -274,6 +288,10 @@ describe('CloudSidebarAssistantsComponent', () => {
       get: () => documentVisibilityState
     })
     assistantBindingChanges$ = new Subject<{ code: string; scope: string }>()
+    xpertRefresh$ = new BehaviorSubject<void>(undefined)
+    xpertAPI = {
+      onRefresh: jest.fn(() => xpertRefresh$.asObservable())
+    }
     assistantBindingService = {
       changes$: assistantBindingChanges$.asObservable(),
       get: jest.fn(() => of({ assistantId: 'bound-xpert' })),
@@ -323,6 +341,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       selectOrganizationId: jest.fn(() => of('org-1')),
+      selectedWorkspace$: of({ id: 'workspace-1' }),
       featureContextHydrated$: of(true),
       featureContextHydrated: true,
       hasFeatureEnabled: jest.fn((feature: string) =>
@@ -353,6 +372,10 @@ describe('CloudSidebarAssistantsComponent', () => {
         {
           provide: Store,
           useValue: store
+        },
+        {
+          provide: XpertAPIService,
+          useValue: xpertAPI
         }
       ]
     }).compileComponents()
@@ -384,6 +407,43 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
+  })
+
+  it('reloads available assistants after an xpert publish refresh event', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        {
+          id: 'published-xpert',
+          slug: 'published-assistant',
+          title: 'Published Assistant',
+          latest: true
+        },
+        {
+          id: 'bound-xpert',
+          slug: 'personal-assistant',
+          title: 'Personal Assistant',
+          latest: true
+        }
+      ])
+    )
+
+    xpertRefresh$.next()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const names = Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__name')).map((item) =>
+      item.textContent.trim()
+    )
+
+    expect(names).toEqual(['Published Assistant'])
+    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledTimes(2)
   })
 
   it('renders the latest conversation title in the assistant description row', async () => {
@@ -909,6 +969,33 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantSettingsButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
+  })
+
+  it('routes the create shortcut to the selected workspace digital experts page', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const router = TestBed.inject(Router)
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const createButton = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')
+
+    expect(createButton).not.toBeNull()
+    createButton.click()
+    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/w', 'workspace-1', 'xperts'])
+  })
+
+  it('hides the create shortcut without xpert edit permission', async () => {
+    store.hasPermission.mockReturnValue(false)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')).toBeNull()
   })
 
   it('hides assistant settings when the current user cannot edit the xpert workspace', async () => {

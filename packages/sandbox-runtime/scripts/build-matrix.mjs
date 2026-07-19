@@ -43,9 +43,11 @@ async function listChangedFiles(reference) {
 function familyChanged(family, image, files) {
   const familyPrefix = `packages/sandbox-runtime/images/${family}/`
   const runtimeDefinition = path.posix.normalize(`packages/sandbox-runtime/${image.runtimeDefinition}`)
+  const sharedRunner = image.runner ? path.posix.normalize(`packages/sandbox-runtime/${image.runner}`) : undefined
   return files.some(
     (file) =>
       file.startsWith(familyPrefix) ||
+      file === sharedRunner ||
       file === runtimeDefinition ||
       file.startsWith('packages/sandbox-runtime/scripts/') ||
       [

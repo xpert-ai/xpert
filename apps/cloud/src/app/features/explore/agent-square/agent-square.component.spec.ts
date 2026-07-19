@@ -36,8 +36,8 @@ jest.mock('../agents/agents.component', () => ({
   ExploreAgentsComponent: class ExploreAgentsComponent {}
 }))
 
-jest.mock('../agents/install/install.component', () => ({
-  ExploreAgentInstallComponent: class ExploreAgentInstallComponent {}
+jest.mock('../../xpert/xpert', () => ({
+  XpertNewBlankComponent: class XpertNewBlankComponent {}
 }))
 
 jest.mock('./access-request-dialog.component', () => ({
@@ -56,7 +56,7 @@ import {
   XpertMarketplaceService,
   XpertTypeEnum
 } from '@cloud/app/@core'
-import { ExploreAgentInstallComponent } from '../agents/install/install.component'
+import { XpertNewBlankComponent } from '../../xpert/xpert'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { ExploreAgentSquareComponent } from './agent-square.component'
 
@@ -167,13 +167,27 @@ describe('ExploreAgentSquareComponent', () => {
     ])
   })
 
-  it('opens the existing agent install dialog for a recommended template', async () => {
+  it('opens the digital expert wizard at basic information for a recommended template', async () => {
     const template = createTemplate('template-1')
     fixture.componentInstance.recommendedTemplates.set([template])
 
     await fixture.componentInstance.handlePrimaryAction(fixture.componentInstance.recommendedItems()[0])
 
-    expect(dialog.open).toHaveBeenCalledWith(ExploreAgentInstallComponent, { data: template })
+    expect(dialog.open).toHaveBeenCalledWith(XpertNewBlankComponent, {
+      disableClose: true,
+      data: {
+        workspace: null,
+        type: XpertTypeEnum.Agent,
+        allowedModes: [XpertTypeEnum.Agent],
+        allowWorkspaceSelection: true,
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: template.id,
+        lockStartMode: true,
+        lockType: true,
+        skipTemplateSelectionStep: true
+      }
+    })
     expect(service.requestAccess).not.toHaveBeenCalled()
   })
 

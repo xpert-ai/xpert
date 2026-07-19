@@ -498,6 +498,7 @@ async function createComponent(
     createdXpert?: any
     importedXpert?: any
     installedSkillPackage?: any
+    language?: string
     pluginSkillInstallError?: unknown
     pluginSkillInstallResult?: any
     copilotModels?: any[]
@@ -645,6 +646,7 @@ async function createComponent(
     warning: jest.fn()
   }
   const translate = {
+    currentLang: options?.language ?? 'en-US',
     instant: jest.fn((key: string, params?: Record<string, string>) => params?.Default ?? key)
   }
   const store = {
@@ -924,6 +926,29 @@ describe('XpertNewBlankComponent', () => {
     expect(component.agentLastStepIndex()).toBe(5)
   })
 
+  it('starts on basic information when a marketplace template skips the locked template selection step', async () => {
+    const { component } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        lockStartMode: true,
+        lockType: true,
+        skipTemplateSelectionStep: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: createAgentTemplateYaml() }
+      }
+    )
+
+    expect(component.skipTemplateSelectionStep).toBe(true)
+    expect(component.agentInitialStepIndex).toBe(1)
+    expect(component.selectedTemplateId()).toBe('template-agent')
+  })
+
   it('does not add the model provider setup step for non-ClawXpert Agent creation', async () => {
     const { component } = await createComponent(
       {
@@ -1082,6 +1107,26 @@ describe('XpertNewBlankComponent', () => {
     expect(component.selectedSkills()).toEqual(['writer'])
     expect(component.selectedRepositoryDefault()).toBeNull()
     expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('resolves the template description for the current language before populating basic information', async () => {
+    const localizedTemplateYaml = createAgentTemplateYaml().replace(
+      'description: Template agent description',
+      ['description:', '    en_US: Template agent description', '    zh_Hans: 模板智能体描述'].join('\n')
+    )
+    const { component } = await createComponent(
+      {
+        initialStartMode: 'template',
+        initialTemplateId: 'template-agent',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: { export_data: localizedTemplateYaml },
+        language: 'zh-Hans'
+      }
+    )
+
+    expect(component.description()).toBe('模板智能体描述')
   })
 
   it('loads an initial template from dialog data and creates through importDSL', async () => {

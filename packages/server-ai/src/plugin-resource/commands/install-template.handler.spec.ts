@@ -188,15 +188,20 @@ describe('PluginTemplateInstallHandler', () => {
         })
 
         await handler.execute(
-            new PluginTemplateInstallCommand('@xpert-ai/plugin-canvas:canvas-assistant', 'workspace-1', LanguagesEnum.English, {
-                name: 'clawxpert-abc123',
-                title: 'clawxpert-abc123',
-                copilotModel: {
-                    copilotId: 'copilot-deepseek',
-                    model: 'deepseek-v4-flash',
-                    modelType: AiModelTypeEnum.LLM
+            new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-canvas:canvas-assistant',
+                'workspace-1',
+                LanguagesEnum.English,
+                {
+                    name: 'clawxpert-abc123',
+                    title: 'clawxpert-abc123',
+                    copilotModel: {
+                        copilotId: 'copilot-deepseek',
+                        model: 'deepseek-v4-flash',
+                        modelType: AiModelTypeEnum.LLM
+                    }
                 }
-            })
+            )
         )
 
         const importCommand = commandBus.execute.mock.calls[0]?.[0]
