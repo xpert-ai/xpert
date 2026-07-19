@@ -13,8 +13,8 @@ FROM ${PLAYWRIGHT_BASE_IMAGE}
 
 USER root
 LABEL org.xpert.sandbox.runtime-profile="browser/ai-playwright-1.61/v1" \
-    org.xpert.sandbox.runtime-suite-version="1.1.0" \
-    org.xpert.sandbox.model-catalog-sha256="4b8344e62b18ef86798cb005e704757fb67357c1e264dbd4d4f8cec42a81ba2b"
+    org.xpert.sandbox.runtime-suite-version="1.2.0" \
+    org.xpert.sandbox.model-catalog-sha256="9a462f1e5b6a6b69e4023fc43e97af9ace45a5e63746fc97e790993dd5800d7b"
 ENV NODE_ENV=production \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     XPERT_SANDBOX_RUNTIME_ROOT=/opt/xpert/sandbox-runtime \

@@ -1,5 +1,11 @@
 # @xpert-ai/sandbox-runtime
 
+## 1.2.0
+
+### Minor Changes
+
+- 0a90701: release 3.15.17
+
 ## 1.0.1
 
 ### Patch Changes
