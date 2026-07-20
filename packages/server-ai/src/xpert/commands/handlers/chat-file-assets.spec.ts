@@ -1,4 +1,5 @@
 import { UploadFileCommand } from '@xpert-ai/server-core'
+import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
     AttachFileToConversationCommand,
     CreateFileAssetCommand,
@@ -10,6 +11,7 @@ import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
     normalizeChatHumanInputFiles,
+    resolveChatReferenceFileAssets,
     toChatFileAssetReferences,
     toLegacyChatStorageFileAttachments
 } from './chat-file-assets'
@@ -272,6 +274,70 @@ describe('normalizeChatHumanInputFiles', () => {
 })
 
 describe('chat file asset persistence helpers', () => {
+    it('resolves pasted image references through their StorageFile ids', async () => {
+        const storageFile = {
+            id: 'storage-file-reference-1',
+            url: 'https://files.example.com/diagram.png',
+            mimetype: 'image/png',
+            size: 857
+        }
+        const fileAsset = {
+            id: 'file-asset-reference-1',
+            storageFileId: storageFile.id,
+            originalName: 'diagram.png',
+            mimeType: storageFile.mimetype,
+            size: storageFile.size,
+            purpose: 'chat_attachment',
+            parseMode: 'auto',
+            status: 'ready',
+            capabilities: ['preview', 'vision']
+        } as FileAsset
+        const commandBus = {
+            execute: jest.fn()
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                expect(query).toBeInstanceOf(GetFileAssetByStorageFileQuery)
+                return fileAsset
+            })
+        }
+
+        const files = await resolveChatReferenceFileAssets(
+            [
+                {
+                    type: 'image',
+                    text: 'Pasted image: diagram.png',
+                    fileId: storageFile.id,
+                    url: storageFile.url,
+                    mimeType: storageFile.mimetype,
+                    name: 'diagram.png',
+                    size: storageFile.size
+                },
+                {
+                    type: 'image',
+                    text: 'Duplicate pasted image',
+                    fileId: storageFile.id
+                }
+            ],
+            {
+                commandBus: commandBus as unknown as CommandBus,
+                queryBus: queryBus as unknown as QueryBus
+            }
+        )
+
+        expect(files).toEqual([
+            expect.objectContaining({
+                id: fileAsset.id,
+                fileId: fileAsset.id,
+                fileAssetId: fileAsset.id,
+                storageFileId: storageFile.id,
+                originalName: 'diagram.png'
+            })
+        ])
+        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
     it('extracts FileAsset relation stubs and ignores duplicate or legacy-only ids', () => {
         expect(
             toChatFileAssetReferences([
@@ -354,6 +420,7 @@ describe('chat file asset persistence helpers', () => {
             {
                 projectId: 'project-1',
                 xpertId: 'xpert-1',
+                sandboxEnvironmentId: 'environment-1',
                 sandboxProvider: 'local'
             }
         )
@@ -368,6 +435,7 @@ describe('chat file asset persistence helpers', () => {
             threadId: 'thread-1',
             projectId: 'project-1',
             xpertId: 'xpert-1',
+            sandboxEnvironmentId: 'environment-1',
             sandboxProvider: 'local'
         })
     })

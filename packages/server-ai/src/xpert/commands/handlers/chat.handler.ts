@@ -76,6 +76,7 @@ import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
     normalizeChatHumanInputFiles,
+    resolveChatReferenceFileAssets,
     toChatFileAssetReferences,
     toLegacyChatStorageFileAttachments
 } from './chat-file-assets'
@@ -226,6 +227,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             if (!conversation) {
                 throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
             }
+            const followUpSandboxScope = resolveAgentSandboxScope(request, conversation, options)
             const hasInterruptedWaitList =
                 Array.isArray(conversation.operation?.tasks) && conversation.operation.tasks.length > 0
             const canPersistInterruptedSteerFollowUp =
@@ -266,6 +268,20 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 STATE_VARIABLE_HUMAN
             ]
             const references = normalizeReferences(followUpInput.references)
+            const referenceFileAssets = await resolveChatReferenceFileAssets(references, {
+                commandBus: this.commandBus,
+                queryBus: this.queryBus,
+                context: {
+                    conversationId: conversation.id,
+                    threadId: conversation.threadId,
+                    projectId: options.projectId ?? conversation.projectId,
+                    xpertId
+                }
+            })
+            const followUpFiles = [
+                ...(Array.isArray(followUpInput.files) ? followUpInput.files : []),
+                ...referenceFileAssets
+            ]
 
             if (
                 !hydratedFollowUpInput?.input?.trim() &&
@@ -280,8 +296,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 request.message.clientMessageId
             )
 
-            const followUpFileAssets = toChatFileAssetReferences(followUpInput.files)
-            const followUpLegacyAttachments = toLegacyChatStorageFileAttachments(followUpInput.files)
+            const followUpFileAssets = toChatFileAssetReferences(followUpFiles)
+            const followUpLegacyAttachments = toLegacyChatStorageFileAttachments(followUpFiles)
 
             await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
@@ -326,9 +342,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             const followUpXpert = xpertId
                 ? await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent'] }).catch(() => null)
                 : null
-            await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpInput.files, {
+            await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
                 xpertId: followUpXpert?.id ?? xpertId,
-                projectId: options.projectId ?? conversation.projectId,
+                projectId: followUpSandboxScope.projectId,
+                sandboxEnvironmentId: followUpSandboxScope.sandboxEnvironmentId,
                 sandboxProvider: followUpXpert
                     ? figureOutXpert(followUpXpert as IXpert, Boolean(options?.isDraft)).features?.sandbox?.provider
                     : undefined
@@ -515,6 +532,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             }
 
+            const attachmentSandboxScope = resolveAgentSandboxScope(request, conversation, options)
             if (request.action === 'send' && input) {
                 // Conversation must exist first so new FileAssets can be linked
                 // with conversation/thread/project context before execution.
@@ -677,11 +695,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const persistedInput = rawSendInput ?? input
                     const visibleInput = isGoalRun ? goalRunVisibleInput : persistedInput?.input
                     const references = normalizeReferences(persistedInput?.references)
+                    const referenceFileAssets = await resolveChatReferenceFileAssets(references, {
+                        commandBus: this.commandBus,
+                        queryBus: this.queryBus,
+                        context: {
+                            conversationId: conversation.id,
+                            threadId: conversation.threadId,
+                            projectId: options.projectId ?? resolveRequestProjectId(request) ?? conversation.projectId,
+                            xpertId: xpert.id
+                        }
+                    })
+                    const persistedFiles = [
+                        ...(Array.isArray(persistedInput?.files) ? persistedInput.files : []),
+                        ...referenceFileAssets
+                    ]
                     const persistedRuntimeCapabilities =
                         getRuntimeCapabilitiesFromState(state) ??
                         normalizeRuntimeCapabilitiesSelection(persistedInput?.runtimeCapabilities)
-                    const fileAssets = toChatFileAssetReferences(persistedInput?.files)
-                    const legacyAttachments = toLegacyChatStorageFileAttachments(persistedInput?.files)
+                    const fileAssets = toChatFileAssetReferences(persistedFiles)
+                    const legacyAttachments = toLegacyChatStorageFileAttachments(persistedFiles)
                     const thirdPartyMessage =
                         persistedRuntimeCapabilities || persistedInput?.commandSource || isGoalRun
                             ? {
@@ -729,9 +761,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             : {})
                     }
                     userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
-                    await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedInput?.files, {
+                    await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedFiles, {
                         xpertId: xpert.id,
-                        projectId: options.projectId ?? resolveRequestProjectId(request) ?? conversation.projectId,
+                        projectId: attachmentSandboxScope.projectId,
+                        sandboxEnvironmentId: attachmentSandboxScope.sandboxEnvironmentId,
                         sandboxProvider: figureOutXpert(xpert as IXpert, Boolean(options?.isDraft)).features?.sandbox
                             ?.provider
                     })

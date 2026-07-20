@@ -7,6 +7,30 @@ import {
 } from './workspace-file'
 
 describe('file-understanding workspace file helpers', () => {
+    it('resolves sandbox environment metadata without falling back to the xpert volume', () => {
+        expect(
+            resolveFileAssetWorkspaceVolumeScope(
+                {
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    xpertId: 'xpert-1',
+                    metadata: {
+                        workspace: {
+                            catalog: 'environment',
+                            scopeId: 'environment-1'
+                        }
+                    }
+                },
+                {}
+            )
+        ).toEqual({
+            tenantId: 'tenant-1',
+            catalog: 'environment',
+            environmentId: 'environment-1',
+            userId: 'user-1'
+        })
+    })
+
     it('resolves relative workspace paths from metadata before entity and fallback paths', () => {
         expect(
             resolveFileAssetWorkspaceRelativePath(
