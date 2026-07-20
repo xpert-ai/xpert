@@ -36,8 +36,6 @@ export class PluginRuntimeRestartService {
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
   readonly restartUnavailableMessageKey = computed(() => {
     switch (this.restartCapability()?.reason) {
-      case 'restart-disabled':
-        return 'PAC.Plugin.RestartDisabled'
       case 'default-tenant-required':
         return 'PAC.Plugin.RestartDefaultTenantRequired'
       default:
