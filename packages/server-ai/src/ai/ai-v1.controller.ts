@@ -9,7 +9,6 @@ import {
 } from '@xpert-ai/contracts'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import {
-    ApiKeyAuthGuard,
     ApiKeyOrClientSecretAuthGuard,
     ApiKeyDecorator,
     Public,
@@ -48,6 +47,10 @@ import { CreateKnowledgebaseDTO, KnowledgebaseService } from '../knowledgebase'
 import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgeDocument } from '../core/entities/internal'
+import { PublishedXpertAccessService } from '../xpert'
+
+const DEFAULT_CHATKIT_SESSION_EXPIRES_AFTER = 600
+const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
 
 @ApiTags('AI/v1')
 @ApiBearerAuth()
@@ -62,7 +65,8 @@ export class AIV1Controller {
         private readonly commandBus: CommandBus,
         private readonly kbService: KnowledgebaseService,
         private readonly docService: KnowledgeDocumentService,
-        private readonly secretTokenService: SecretTokenService
+        private readonly secretTokenService: SecretTokenService,
+        private readonly publishedXpertAccessService: PublishedXpertAccessService
     ) {}
 
     @Header('content-type', 'text/event-stream')
@@ -196,11 +200,12 @@ export class AIV1Controller {
     }
 
     @Post('chatkit/sessions')
-    @UseGuards(ApiKeyAuthGuard)
     async createChatkitSession(
         @ApiKeyDecorator() apiKey: IApiKey,
         @Body()
         body: {
+            assistant?: { id?: string }
+            user?: string
             /**
              * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
              */
@@ -209,17 +214,57 @@ export class AIV1Controller {
     ) {
         const token = `cs-x-${randomBytes(32).toString('hex')}`
 
-        const expires_after = body.expires_after && body.expires_after > 0 ? body.expires_after : 600
+        const requestedSessionLifetime = body?.expires_after
+        const requestedExpiresAfter =
+            typeof requestedSessionLifetime === 'number' &&
+            Number.isFinite(requestedSessionLifetime) &&
+            requestedSessionLifetime > 0
+                ? Math.floor(requestedSessionLifetime)
+                : DEFAULT_CHATKIT_SESSION_EXPIRES_AFTER
+        const expires_after = apiKey?.id
+            ? requestedExpiresAfter
+            : Math.min(requestedExpiresAfter, MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER)
         const validUntil = new Date(Date.now() + 1000 * expires_after)
 
-        await this.secretTokenService.create({
-            entityId: apiKey?.id,
-            type: SecretTokenBindingType.API_KEY,
-            tenantId: apiKey?.tenantId,
-            organizationId: apiKey?.organizationId,
-            token,
-            validUntil
-        })
+        // Keep service callers on the existing API-key grant. A user session
+        // needs a different binding because it must restore the real user and
+        // constrain the resulting client secret to one assistant.
+        if (apiKey?.id) {
+            await this.secretTokenService.create({
+                entityId: apiKey.id,
+                type: SecretTokenBindingType.API_KEY,
+                tenantId: apiKey.tenantId,
+                organizationId: apiKey.organizationId,
+                token,
+                validUntil
+            })
+        } else {
+            const currentUser = RequestContext.currentUser()
+            const assistantId = body?.assistant?.id?.trim()
+            if (!currentUser?.id || !currentUser.tenantId) {
+                throw new BadRequestException('Current user context is required to create a ChatKit session.')
+            }
+            if (!assistantId) {
+                throw new BadRequestException('assistant.id is required to create a user ChatKit session.')
+            }
+            if (body?.user?.trim() && body.user.trim() !== currentUser.id) {
+                throw new BadRequestException('ChatKit session user must match the authenticated user.')
+            }
+
+            await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId)
+            await this.secretTokenService.create({
+                // USER_XPERT makes entityId an assistant audience and makes
+                // createdById the acting user. createdById alone is not enough
+                // because API_KEY and PUBLIC_XPERT secrets also have creators.
+                entityId: assistantId,
+                type: SecretTokenBindingType.USER_XPERT,
+                tenantId: currentUser.tenantId,
+                organizationId: RequestContext.getOrganizationId() ?? null,
+                createdById: currentUser.id,
+                token,
+                validUntil
+            })
+        }
 
         return {
             client_secret: token,

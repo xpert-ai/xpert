@@ -358,7 +358,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
         const _xpert = await this.xpertService.save(xpert)
-        await this.ensurePrincipalUserForScheduledTriggers(_xpert)
+        // USER_XPERT sessions run as the real user, but scheduled/background
+        // execution still needs a stable assistant principal prepared at publish.
+        await this.ensurePrincipalUser(_xpert)
 
         // Publish triggers
         await this.commandBus.execute(
@@ -373,44 +375,13 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         return _xpert
     }
 
-    private async ensurePrincipalUserForScheduledTriggers(xpert: Xpert) {
-        if (xpert.userId || !this.xpertPrincipalService || !this.hasEnabledScheduleTrigger(xpert.graph)) {
+    private async ensurePrincipalUser(xpert: Xpert) {
+        if (xpert.userId || !this.xpertPrincipalService) {
             return
         }
 
         const principalUser = await this.xpertPrincipalService.ensurePrincipalUser(xpert)
         xpert.userId = principalUser.id
-    }
-
-    private hasEnabledScheduleTrigger(graph?: TXpertGraph | null) {
-        return (
-            graph?.nodes?.some((node) => {
-                const entity = node.entity
-                if (node.type !== 'workflow' || !this.isTriggerEntity(entity)) {
-                    return false
-                }
-
-                const config = entity.config
-                return (
-                    entity.from === 'schedule' &&
-                    typeof config === 'object' &&
-                    config !== null &&
-                    'enabled' in config &&
-                    config.enabled === true
-                )
-            }) ?? false
-        )
-    }
-
-    private isTriggerEntity(
-        entity: unknown
-    ): entity is { type: WorkflowNodeTypeEnum.TRIGGER; from?: unknown; config?: unknown } {
-        return (
-            typeof entity === 'object' &&
-            entity !== null &&
-            'type' in entity &&
-            entity.type === WorkflowNodeTypeEnum.TRIGGER
-        )
     }
 
     check(draft: TXpertTeamDraft) {

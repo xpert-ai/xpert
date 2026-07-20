@@ -47,11 +47,7 @@ describe('SecretTokenStrategy', () => {
 		}
 
 		return {
-			strategy: new SecretTokenStrategy(
-				secretTokenService as any,
-				apiKeyService as any,
-				userService as any
-			),
+			strategy: new SecretTokenStrategy(secretTokenService as any, apiKeyService as any, userService as any),
 			secretTokenService,
 			apiKeyService,
 			userService
@@ -162,6 +158,60 @@ describe('SecretTokenStrategy', () => {
 			apiKey: {
 				type: 'assistant',
 				entityId: 'xpert-1'
+			}
+		})
+		expect(req.headers).toMatchObject({
+			'organization-id': 'org-1',
+			'x-scope-level': ORGANIZATION_SCOPE
+		})
+	})
+
+	it('resolves user xpert client secrets as an assistant-scoped delegated user', async () => {
+		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
+		secretTokenService.findOneByOptions.mockResolvedValue({
+			id: 'secret-token-user-1',
+			type: SecretTokenBindingType.USER_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdById: 'end-user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false
+		})
+		userService.findOneByIdWithinTenant.mockResolvedValue({
+			id: 'end-user-1',
+			tenantId: 'tenant-1',
+			type: 'user'
+		})
+		const req = {
+			headers: {
+				'x-client-secret': 'cs-x-user',
+				'organization-id': 'org-other'
+			}
+		}
+
+		const principal = await authenticate(strategy, req)
+
+		expect(apiKeyService.findOneOrFailByIdString).not.toHaveBeenCalled()
+		expect(userService.findOneByIdWithinTenant).toHaveBeenCalledWith(
+			'end-user-1',
+			'tenant-1',
+			expect.objectContaining({
+				relations: ['role', 'role.rolePermissions', 'employee']
+			})
+		)
+		expect(principal).toMatchObject({
+			id: 'end-user-1',
+			tenantId: 'tenant-1',
+			principalType: 'client_secret',
+			clientSecretBindingType: 'user_xpert',
+			clientSecretId: 'secret-token-user-1',
+			requestedUserId: 'end-user-1',
+			requestedOrganizationId: 'org-1',
+			apiKey: {
+				type: 'assistant',
+				entityId: 'xpert-1',
+				userId: 'end-user-1'
 			}
 		})
 		expect(req.headers).toMatchObject({

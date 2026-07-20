@@ -25,17 +25,28 @@ jest.mock('@xpert-ai/contracts', () => {
     }
 })
 
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-    RequestContext: {
-        currentApiKey: jest.fn(),
-        currentRequest: jest.fn(),
-        currentUser: jest.fn(),
-        isOrganizationScope: jest.fn()
+jest.mock('@xpert-ai/plugin-sdk', () => {
+    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
+
+    return {
+        ...actual,
+        RequestContext: {
+            currentApiKey: jest.fn(),
+            currentApiPrincipal: jest.fn(),
+            currentRequest: jest.fn(),
+            currentUser: jest.fn(),
+            isOrganizationScope: jest.fn()
+        }
     }
-}))
+})
 
 import { EMPTY, of } from 'rxjs'
-import { ApiKeyBindingType, ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
+import {
+    ApiKeyBindingType,
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
+    SecretTokenBindingType
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -681,7 +692,7 @@ describe('RunCreateStreamHandler environment resolution', () => {
 
     it('merges run context env into the resolved environment', async () => {
         const environmentService = {
-            findOne: jest.fn().mockResolvedValue({
+            findOneForRuntime: jest.fn().mockResolvedValue({
                 id: 'environment-1',
                 name: 'Default Environment',
                 workspaceId: 'workspace-from-environment',
@@ -715,7 +726,7 @@ describe('RunCreateStreamHandler environment resolution', () => {
             } as any
         )
 
-        expect(environmentService.findOne).toHaveBeenCalledWith('environment-1')
+        expect(environmentService.findOneForRuntime).toHaveBeenCalledWith('environment-1')
         expect(result).toEqual(
             expect.objectContaining({
                 workspaceId: 'workspace-from-environment',
@@ -733,6 +744,7 @@ describe('RunCreateStreamHandler environment resolution', () => {
 describe('RunCreateStreamHandler assistant principal', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
     })
 
     it('ensures the target xpert principal user before returning the assistant runtime context', async () => {
@@ -775,11 +787,59 @@ describe('RunCreateStreamHandler assistant principal', () => {
             })
         )
     })
+
+    it('runs a delegated user session as the current user without creating an assistant principal', async () => {
+        const currentUser = {
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        }
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'xpert-1'
+        })
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            ...currentUser,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            requestedUserId: 'user-1'
+        })
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue(currentUser)
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                userId: null,
+                user: null
+            })
+        }
+        const xpertPrincipalService = {
+            ensurePrincipalUser: jest.fn()
+        }
+        const handler = new RunCreateStreamHandler(
+            {} as any,
+            {} as any,
+            {} as any,
+            publishedXpertAccessService as any,
+            xpertPrincipalService as any
+        )
+
+        await expect(handler['resolveAssistantForRun']('xpert-1')).resolves.toMatchObject({
+            id: 'xpert-1',
+            userId: 'user-1',
+            user: currentUser
+        })
+
+        expect(xpertPrincipalService.ensurePrincipalUser).not.toHaveBeenCalled()
+    })
 })
 
 describe('RunCreateStreamHandler execute', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
         ;(RequestContext.isOrganizationScope as jest.Mock).mockReturnValue(false)
     })
 
@@ -832,7 +892,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -953,7 +1013,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1090,7 +1150,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1199,7 +1259,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1304,7 +1364,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1377,7 +1437,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1452,7 +1512,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             publishedXpertAccessService as any
         )
@@ -1517,7 +1577,7 @@ describe('RunCreateStreamHandler execute', () => {
             commandBus as any,
             queryBus as any,
             {
-                findOne: jest.fn().mockResolvedValue(undefined)
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
             {
                 getAccessiblePublishedXpert: jest.fn().mockResolvedValue({

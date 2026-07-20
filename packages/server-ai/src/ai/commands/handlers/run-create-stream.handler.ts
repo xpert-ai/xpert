@@ -401,6 +401,15 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
+        const apiPrincipal = RequestContext.currentApiPrincipal() as IApiPrincipal | null
+        // USER_XPERT is an interactive delegation: run with the authenticated
+        // business user. Other assistant bindings use the stable technical
+        // principal required by background/service execution.
+        const delegatedUser =
+            apiPrincipal?.principalType === 'client_secret' &&
+            apiPrincipal.clientSecretBindingType === SecretTokenBindingType.USER_XPERT
+                ? (RequestContext.currentUser() as IUser | null)
+                : null
 
         if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId && apiKey.entityId !== assistantId) {
             throw new ForbiddenException('API key is not allowed to access this assistant.')
@@ -412,6 +421,16 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
             throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
+        }
+
+        if (delegatedUser) {
+            // Do not call ensurePrincipalUser here; doing so would replace the
+            // user's permissions and audit identity with the assistant user.
+            return {
+                ...xpert,
+                user: delegatedUser,
+                userId: delegatedUser.id
+            }
         }
 
         if (this.xpertPrincipalService) {
@@ -435,7 +454,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         let environment: IEnvironment | undefined
         if (environmentId) {
-            environment = await this.environmentService.findOne(environmentId)
+            environment = await this.environmentService.findOneForRuntime(environmentId)
         }
 
         return mergeEnvironmentWithEnvState(environment, getContextEnvState(runtimeContext))

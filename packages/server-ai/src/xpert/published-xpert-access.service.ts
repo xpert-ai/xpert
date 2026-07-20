@@ -88,6 +88,29 @@ export class PublishedXpertAccessService {
         return apiKey.entityId.trim()
     }
 
+    /**
+     * Return the assistant audience carried by a delegated user client secret.
+     * The user still goes through normal tenant/organization access checks, and
+     * this additional audience check prevents reusing the secret for another
+     * assistant in the same scope.
+     */
+    private currentUserXpertId() {
+        const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
+        if (
+            apiPrincipal?.principalType !== 'client_secret' ||
+            apiPrincipal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT
+        ) {
+            return null
+        }
+
+        const apiKey = apiPrincipal.apiKey
+        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !apiKey.entityId?.trim()) {
+            throw new ForbiddenException('User assistant session is not bound to an assistant.')
+        }
+
+        return apiKey.entityId.trim()
+    }
+
     private currentRequestedUserId() {
         const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
         const userId = apiPrincipal?.requestedUserId?.trim()
@@ -237,6 +260,7 @@ export class PublishedXpertAccessService {
         const tenantId = this.currentTenantId()
         const organizationId = this.currentOrganizationId()
         const userId = this.currentUserId()
+        const userXpertId = this.currentUserXpertId()
         const qb = this.repository
             .createQueryBuilder('xpert')
             .leftJoin('xpert.workspace', 'workspace')
@@ -259,6 +283,10 @@ export class PublishedXpertAccessService {
                 tenantId
             })
             .andWhere('xpert.publishAt IS NOT NULL')
+
+        if (userXpertId) {
+            qb.andWhere('xpert.id = :userXpertId', { userXpertId })
+        }
 
         if (workspaceId) {
             qb.andWhere('xpert.workspaceId = :workspaceApiKeyWorkspaceId', {
@@ -419,6 +447,13 @@ export class PublishedXpertAccessService {
             const xpert = await this.getPublishedXpertInTenant(id, options)
             this.assertPublicChatAppXpert(xpert)
             return xpert
+        }
+
+        const userXpertId = this.currentUserXpertId()
+        // Enforce the token audience before loading the requested assistant so
+        // a USER_XPERT secret cannot be replayed against another Xpert id.
+        if (userXpertId && userXpertId !== id) {
+            throw new ForbiddenException('You do not have access to this assistant.')
         }
 
         const xpert = await this.getPublishedXpertInTenant(id, options)
