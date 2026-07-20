@@ -12,6 +12,7 @@ import { CopilotModelNotFoundException, ExceedingLimitException } from '../../..
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ensureCopilotModelContextSize } from '../../utils/context-size'
+import { resolveModelVisionSupport, setModelVisionSupport } from '../../model-capabilities'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -75,7 +76,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 
         ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
 
-        return modelProvider.getModelInstance(
+        const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
                 ...copilotModel,
@@ -127,6 +128,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                     }
                 }
             }
+        )
+
+        return setModelVisionSupport(
+            model,
+            resolveModelVisionSupport(modelName, customModels, modelProvider.getProviderModels(copilotModel.modelType))
         )
     }
 }

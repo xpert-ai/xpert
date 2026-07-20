@@ -1,5 +1,6 @@
 import { IRuntimeReadiness } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
+import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 
 export interface RuntimeDrainState {
@@ -9,7 +10,7 @@ export interface RuntimeDrainState {
 
 @Injectable()
 export class RuntimeLifecycleService {
-	readonly instanceId = process.env.XPERT_INSTANCE_ID || process.env.HOSTNAME || `${hostname()}-${process.pid}`
+	readonly instanceId = `${hostname()}-${process.pid}-${randomUUID()}`
 
 	private activeRequests = 0
 	private drainState: RuntimeDrainState | null = null

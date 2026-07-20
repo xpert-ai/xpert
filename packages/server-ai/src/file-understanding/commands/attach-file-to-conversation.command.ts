@@ -12,6 +12,7 @@ export class AttachFileToConversationCommand extends Command<ConversationFileLin
             threadId?: string
             projectId?: string
             xpertId?: string
+            sandboxEnvironmentId?: string
             sandboxProvider?: string | null
             metadata?: Record<string, unknown>
         }

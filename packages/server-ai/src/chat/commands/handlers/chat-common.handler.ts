@@ -95,6 +95,7 @@ import {
     PlanInstruction,
     PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
+import { prepareMessagesForModel } from '../../../copilot-model/model-capabilities'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
@@ -921,19 +922,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
         stateVariables.push(...toolsetVarirables)
         // Find an available copilot
-        let copilot = project?.copilotModel?.copilot
-        let copilotModel = project?.copilotModel
-        if (!copilotModel) {
+        const configuredSupervisorModel = project?.copilotModel
+        let copilot = configuredSupervisorModel?.copilot
+        if (!configuredSupervisorModel) {
             copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
-            copilotModel = copilot.copilotModel
         }
+        const supervisorModel = configuredSupervisorModel ?? copilot?.copilotModel
         execution.metadata = {
             provider: copilot.modelProvider?.providerName,
-            model: copilotModel?.model
+            model: supervisorModel?.model
         }
 
         const llm = await this.queryBus.execute(
-            new CopilotModelGetChatModelQuery(copilot, null, {
+            new CopilotModelGetChatModelQuery(copilot, supervisorModel, {
                 abortController,
                 usageCallback: assignExecutionUsage(execution)
             })
@@ -1058,7 +1059,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             }).format(parameters)
 
             this.#logger.verbose(`System message of project general agent:`, systemMessage.content)
-            return { messages: [await supervisorLLM.invoke([systemMessage, ...state.messages], config)] }
+            const messages = prepareMessagesForModel(state.messages, llm)
+            return { messages: [await supervisorLLM.invoke([systemMessage, ...messages], config)] }
         }
 
         let builder = new StateGraph(stateAnnotation)
