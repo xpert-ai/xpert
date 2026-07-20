@@ -1544,7 +1544,6 @@
       "RestartRetry": "重试",
       "RestartDefaultTenantRequired": "只能从默认租户重启 API 服务。",
       "RestartInteractiveSessionRequired": "请先使用超级管理员交互式会话登录，再重启 API 服务。",
-      "RestartDisabled": "当前部署未启用受控 API 重启，请通过运维流程重启服务。",
       "RestartCoordinationUnavailable": "重启协调服务暂时不可用，请稍后重试。",
       "RestartAlreadyInProgress": "已有 API 重启正在执行，请等待服务恢复。",
       "RestartTimeout": "API 服务在两分钟内仍未恢复，请检查服务进程后重试。",

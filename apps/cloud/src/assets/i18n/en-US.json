@@ -182,7 +182,6 @@
       "RestartRetry": "Try again",
       "RestartDefaultTenantRequired": "The API service can only be restarted from the default tenant.",
       "RestartInteractiveSessionRequired": "Sign in with an interactive SuperAdmin session before restarting the API service.",
-      "RestartDisabled": "Controlled API restart is disabled for this deployment. Restart the service through operations.",
       "RestartCoordinationUnavailable": "Restart coordination is temporarily unavailable. Try again shortly.",
       "RestartAlreadyInProgress": "Another API restart is already in progress. Wait for the service to recover.",
       "RestartTimeout": "The API service did not recover within two minutes. Check the server process and try again.",

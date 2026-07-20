@@ -5,7 +5,7 @@ jest.mock('yargs', () => ({
     })
 }))
 
-import { AIMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
@@ -24,6 +24,7 @@ import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
+import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'
 import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
@@ -176,15 +177,33 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             } as any
         )
 
-        const expectedMessageContent = ['steer input 1', '', 'Referenced content:', '[Quoted text]', '> ref-1'].join(
-            '\n'
-        )
+        const expectedMessageContent = [
+            'Attachment File: attachment',
+            '<file_content>',
+            'No local file path available.',
+            '</file_content>',
+            'steer input 1',
+            '',
+            'Referenced content:',
+            '[Quoted text]',
+            '> ref-1'
+        ].join('\n')
         const getMessageContent = (message: unknown) => {
             if (!message || typeof message !== 'object') {
                 return undefined
             }
             if ('content' in message && typeof message.content === 'string') {
                 return message.content
+            }
+            if ('content' in message && Array.isArray(message.content)) {
+                return message.content
+                    .map((part) =>
+                        part && typeof part === 'object' && 'text' in part && typeof part.text === 'string'
+                            ? part.text
+                            : ''
+                    )
+                    .filter(Boolean)
+                    .join('\n')
             }
             if ('kwargs' in message && message.kwargs && typeof message.kwargs === 'object') {
                 if ('content' in message.kwargs && typeof message.kwargs.content === 'string') {
@@ -255,6 +274,292 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
                 })
             })
         )
+    })
+})
+
+describe('XpertAgentSubgraphHandler model image preparation', () => {
+    function createFixture(options: {
+        primarySupportsVision: boolean
+        primaryError?: Error
+        fallbackSupportsVision?: boolean
+        middlewareReplacementSupportsVision?: boolean
+    }) {
+        const primaryInvoke = jest.fn(async (_messages: unknown) => {
+            if (options.primaryError) {
+                throw options.primaryError
+            }
+            return new AIMessage('primary response')
+        })
+        const primaryModel = setModelVisionSupport(RunnableLambda.from(primaryInvoke), options.primarySupportsVision)
+        const fallbackInvoke = jest.fn(async (_messages: unknown) => new AIMessage('fallback response'))
+        const fallbackModel = setModelVisionSupport(
+            RunnableLambda.from(fallbackInvoke),
+            options.fallbackSupportsVision ?? false
+        )
+        const replacementInvoke = jest.fn(async (_messages: unknown) => new AIMessage('replacement response'))
+        const replacementModel = setModelVisionSupport(
+            RunnableLambda.from(replacementInvoke),
+            options.middlewareReplacementSupportsVision ?? false
+        )
+        const configuredModels = [primaryModel, fallbackModel]
+        const agent = {
+            key: 'agent-1',
+            name: 'Image Agent',
+            prompt: 'Handle the user request.',
+            toolsetIds: [],
+            knowledgebaseIds: [],
+            options: {
+                fileUnderstanding: {
+                    enabled: false
+                },
+                ...(options.primaryError
+                    ? {
+                          fallback: {
+                              enabled: true,
+                              copilotModel: {
+                                  model: 'fallback-model'
+                              }
+                          }
+                      }
+                    : {})
+            },
+            team: {
+                id: 'xpert-1',
+                workspaceId: 'workspace-1',
+                agentConfig: {},
+                copilotModel: {
+                    model: 'primary-model',
+                    copilot: {
+                        modelProvider: {
+                            providerName: 'fake-provider'
+                        },
+                        copilotModel: {
+                            model: 'primary-model'
+                        }
+                    }
+                }
+            }
+        }
+        const middlewareEnabled = options.middlewareReplacementSupportsVision !== undefined
+        const graphDefinition = {
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'agent-1',
+                    entity: agent
+                },
+                ...(middlewareEnabled
+                    ? [
+                          {
+                              type: 'workflow',
+                              key: 'middleware-1',
+                              entity: {
+                                  type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                  provider: 'test-model-replacement'
+                              }
+                          }
+                      ]
+                    : [])
+            ],
+            connections: middlewareEnabled
+                ? [
+                      {
+                          type: 'workflow',
+                          from: 'agent-1',
+                          to: 'middleware-1'
+                      }
+                  ]
+                : []
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                switch (command?.constructor.name) {
+                    case 'ToolsetGetToolsCommand':
+                        return []
+                    case 'CreateNodeStagePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({
+                            [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
+                        }))
+                    case 'CreateNodeConsumePendingSteerFollowUpsCommand':
+                        return RunnableLambda.from(() => ({}))
+                    default:
+                        throw new Error(`Unexpected command: ${command?.constructor.name}`)
+                }
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                switch (query?.constructor.name) {
+                    case 'GetXpertWorkflowQuery':
+                        return {
+                            agent,
+                            graph: graphDefinition,
+                            next: [],
+                            fail: []
+                        }
+                    case 'GetXpertChatModelQuery':
+                        return configuredModels.shift()
+                    default:
+                        throw new Error(`Unexpected query: ${query?.constructor.name}`)
+                }
+            })
+        }
+        const handler = new XpertAgentSubgraphHandler(
+            null,
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            { t: jest.fn(), translate: jest.fn() } as never,
+            null,
+            {
+                createScopedApi: jest.fn().mockReturnValue({})
+            } as unknown as AgentMiddlewareRuntimeService
+        )
+        Object.defineProperty(handler, 'agentMiddlewareRegistry', {
+            value: {
+                get: jest.fn().mockReturnValue({
+                    createMiddleware: jest.fn().mockReturnValue({
+                        name: 'test-model-replacement',
+                        wrapModelCall: (request, next) =>
+                            next({
+                                ...request,
+                                model: replacementModel
+                            })
+                    })
+                })
+            }
+        })
+
+        return {
+            command: new XpertAgentSubgraphCommand(
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    tenantId: 'tenant-1',
+                    workspaceId: 'workspace-1'
+                },
+                {
+                    isStart: true,
+                    isDraft: true,
+                    mute: [],
+                    store: null,
+                    subscriber: null,
+                    execution: {
+                        id: 'execution-1'
+                    } as IXpertAgentExecution,
+                    rootController: new AbortController(),
+                    signal: new AbortController().signal,
+                    channel: channelName('agent-1'),
+                    thread_id: 'thread-1',
+                    disableCheckpointer: true,
+                    environment: {
+                        variables: []
+                    } as IEnvironment,
+                    partners: []
+                }
+            ),
+            fallbackInvoke,
+            handler,
+            primaryInvoke,
+            replacementInvoke
+        }
+    }
+
+    async function invokeGraph(fixture: ReturnType<typeof createFixture>) {
+        const { graph } = await fixture.handler.execute(fixture.command)
+        return graph.invoke(
+            {
+                input: 'describe the image',
+                [STATE_VARIABLE_HUMAN]: {
+                    input: 'describe the image'
+                },
+                [STATE_VARIABLE_SYS]: {
+                    language: 'en-US',
+                    user_email: 'user@example.com',
+                    timezone: 'UTC',
+                    date: '2026-07-20',
+                    datetime: '2026-07-20 10:00:00',
+                    common_times: ''
+                },
+                [channelName('agent-1')]: {
+                    messages: [
+                        new HumanMessage({
+                            content: [
+                                { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+                                { type: 'text', text: 'Describe this image' }
+                            ]
+                        })
+                    ]
+                }
+            },
+            {
+                configurable: {
+                    thread_id: 'thread-1',
+                    checkpoint_ns: '',
+                    checkpoint_id: 'checkpoint-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'organization-1',
+                    language: 'en-US',
+                    userId: 'user-1',
+                    agentKey: 'agent-1',
+                    executionId: 'execution-1'
+                },
+                recursionLimit: 5
+            }
+        )
+    }
+
+    it('filters images before invoking a text-only primary model', async () => {
+        const fixture = createFixture({ primarySupportsVision: false })
+
+        await invokeGraph(fixture)
+
+        expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
+    })
+
+    it('keeps images when invoking a vision primary model', async () => {
+        const fixture = createFixture({ primarySupportsVision: true })
+
+        await invokeGraph(fixture)
+
+        expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).toContain('image_url')
+    })
+
+    it('filters images for a text-only fallback after a vision primary model fails', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            primaryError: new Error('primary unavailable'),
+            fallbackSupportsVision: false
+        })
+
+        await invokeGraph(fixture)
+
+        expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).toContain('image_url')
+        expect(JSON.stringify(fixture.fallbackInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
+    })
+
+    it('keeps images for a vision fallback after a text-only primary model fails', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: false,
+            primaryError: new Error('primary unavailable'),
+            fallbackSupportsVision: true
+        })
+
+        await invokeGraph(fixture)
+
+        expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
+        expect(JSON.stringify(fixture.fallbackInvoke.mock.calls[0]?.[0])).toContain('image_url')
+    })
+
+    it('uses the replacement model capability when middleware changes the model', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            middlewareReplacementSupportsVision: false
+        })
+
+        await invokeGraph(fixture)
+
+        expect(fixture.primaryInvoke).not.toHaveBeenCalled()
+        expect(JSON.stringify(fixture.replacementInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
     })
 })
 
@@ -333,7 +638,7 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             null,
             {
-                api: {}
+                createScopedApi: jest.fn().mockReturnValue({})
             } as unknown as AgentMiddlewareRuntimeService
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
@@ -463,7 +768,7 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             null,
             {
-                api: {}
+                createScopedApi: jest.fn().mockReturnValue({})
             } as unknown as AgentMiddlewareRuntimeService
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
@@ -639,7 +944,7 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             null,
             null,
             {
-                api: {}
+                createScopedApi: jest.fn().mockReturnValue({})
             } as unknown as AgentMiddlewareRuntimeService
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
@@ -824,7 +1129,7 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
             null,
             null,
             {
-                api: {}
+                createScopedApi: jest.fn().mockReturnValue({})
             } as unknown as AgentMiddlewareRuntimeService
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {

@@ -6,6 +6,7 @@ import type {
     IFileAsset,
     IStorageFile,
     IUploadFileTarget,
+    TChatReference,
     TChatRequestHuman
 } from '@xpert-ai/contracts'
 import { getFileAssetDestination, getStorageFileFromAsset, UploadFileCommand } from '@xpert-ai/server-core'
@@ -87,6 +88,40 @@ export async function normalizeChatRequestFiles(
     return { files: normalizedFiles, changed }
 }
 
+export async function resolveChatReferenceFileAssets(
+    references: TChatReference[],
+    deps: {
+        commandBus: CommandBus
+        queryBus: QueryBus
+        context?: NormalizeChatRequestFilesContext
+    }
+): Promise<unknown[]> {
+    const seen = new Set<string>()
+    const files = references.flatMap((reference) => {
+        if (reference.type !== 'image' || !reference.fileId || seen.has(reference.fileId)) {
+            return []
+        }
+
+        seen.add(reference.fileId)
+        return [
+            {
+                storageFileId: reference.fileId,
+                name: reference.name,
+                originalName: reference.name,
+                mimeType: reference.mimeType,
+                size: reference.size,
+                url: reference.url
+            }
+        ]
+    })
+
+    if (!files.length) {
+        return []
+    }
+
+    return (await normalizeChatRequestFiles(files, deps)).files
+}
+
 export function toChatFileAssetReferences(files: unknown): Array<{ id: string }> {
     return toFileAssetHandles(files).map((file) => ({ id: file.id }))
 }
@@ -154,6 +189,7 @@ export async function attachChatFileAssetsToConversation(
     context?: {
         xpertId?: string
         projectId?: string
+        sandboxEnvironmentId?: string
         sandboxProvider?: string | null
     }
 ) {
@@ -174,6 +210,7 @@ export async function attachChatFileAssetsToConversation(
                     threadId: conversation.threadId,
                     projectId: context?.projectId,
                     xpertId: context?.xpertId,
+                    sandboxEnvironmentId: context?.sandboxEnvironmentId,
                     sandboxProvider: context?.sandboxProvider
                 })
             )

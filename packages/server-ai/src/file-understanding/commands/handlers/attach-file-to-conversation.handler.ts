@@ -67,6 +67,7 @@ export class AttachFileToConversationHandler implements ICommandHandler<AttachFi
                 threadId: input.threadId,
                 projectId: input.projectId,
                 xpertId: input.xpertId,
+                environmentId: input.sandboxEnvironmentId,
                 sandboxProvider: input.sandboxProvider
             })
             .catch((error) => {

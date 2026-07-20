@@ -19,7 +19,6 @@ services:
       IS_DOCKER: true
       NODE_OPTIONS: '--max-old-space-size=8192'
       NODE_ENV: ${NODE_ENV:-production}
-      XPERT_RUNTIME_RESTART_MODE: ${XPERT_RUNTIME_RESTART_MODE:-self-signal}
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_PORT: 6379

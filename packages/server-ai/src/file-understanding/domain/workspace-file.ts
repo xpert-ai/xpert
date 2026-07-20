@@ -51,6 +51,17 @@ export function resolveFileAssetWorkspaceVolumeScope(
     }
 
     const userId = normalizeOptionalString(fileAsset?.userId) ?? normalizeOptionalString(defaults.userId)
+    if (normalizeOptionalString(workspaceRecord.catalog) === 'environment') {
+        const environmentId = normalizeOptionalString(workspaceRecord.scopeId)
+        return environmentId
+            ? {
+                  tenantId,
+                  catalog: 'environment',
+                  environmentId,
+                  userId
+              }
+            : inferFileAssetWorkspaceVolumeScope(fileAsset, tenantId, defaults)
+    }
     const resolved = resolveWorkspaceVolumeScope(
         {
             tenantId,
