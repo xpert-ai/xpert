@@ -162,6 +162,10 @@ docker compose -f docker-compose.cn.yml up -d
 
 运行后，您可以在浏览器中访问 Xpert 仪表盘，地址为 [http://localhost/onboarding](http://localhost/onboarding)，并开始初始化过程。
 
+有关安装与启动说明，请参阅[官方文档](https://docs.xpertai.cn/zh-Hans/ai/getting-started/community)。
+
+更多信息请访问 [Xpert AI 官方网站](https://xpertai.cn/)。
+
 请查看我们的 [Wiki - 开发](https://github.com/xpert-ai/xpert/wiki/Development) 以快速入门。
 
 ## 演示、云服务与生产
