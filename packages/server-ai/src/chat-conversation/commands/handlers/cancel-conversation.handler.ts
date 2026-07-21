@@ -11,7 +11,7 @@ import { StopHandoffMessageCommand } from '../../../handoff/commands'
  * Handler to cancel
  * 1. a chat conversation and its associated executions.
  * 2. a thread's specific execution.
- * 
+ *
  * mark status of ChatMessages as 'aborted'
  * mark status of XpertAgentExecutions as 'interrupted'
  * mark status of ChatConversation as 'interrupted'
@@ -19,88 +19,99 @@ import { StopHandoffMessageCommand } from '../../../handoff/commands'
  */
 @CommandHandler(CancelConversationCommand)
 export class CancelConversationHandler implements ICommandHandler<CancelConversationCommand> {
-	private readonly logger = new Logger(CancelConversationHandler.name)
+    private readonly logger = new Logger(CancelConversationHandler.name)
 
-	constructor(
-		private readonly service: ChatConversationService,
-		private readonly executionService: XpertAgentExecutionService,
-		private readonly executionCancelService: ExecutionCancelService,
-		private readonly commandBus: CommandBus
-	) {}
+    constructor(
+        private readonly service: ChatConversationService,
+        private readonly executionService: XpertAgentExecutionService,
+        private readonly executionCancelService: ExecutionCancelService,
+        private readonly commandBus: CommandBus
+    ) {}
 
-	public async execute(command: CancelConversationCommand) {
-		const { conversationId, threadId, executionId } = command.input
-		const conversation = conversationId
-			? await this.service.findOne(conversationId, { relations: ['messages'] })
-			: await this.service.findOneByOptions({ where: { threadId }, relations: ['messages'] })
+    public async execute(command: CancelConversationCommand) {
+        const { conversationId, threadId, executionId } = command.input
+        const conversation = conversationId
+            ? await this.service.findOne(conversationId, { relations: ['messages'] })
+            : await this.service.findOneByOptions({ where: { threadId }, relations: ['messages'] })
 
-		if (!conversation) {
-			return { canceledExecutionIds: [] }
-		}
-		const messages = (conversation.messages ?? []) as IChatMessage[]
-		const aiMessages = messages.filter((message) => message.role === 'ai' && message.executionId)
+        if (!conversation && !executionId) {
+            return { canceledExecutionIds: [] }
+        }
+        const messages = (conversation?.messages ?? []) as IChatMessage[]
+        const aiMessages = messages.filter((message) => message.role === 'ai' && message.executionId)
 
-		if (!aiMessages.length) {
-			return { canceledExecutionIds: [] }
-		}
+        const targetMessages = executionId
+            ? aiMessages.filter((message) => message.executionId === executionId)
+            : aiMessages.length
+              ? (() => {
+                    const runningMessages = aiMessages.filter((message) =>
+                        ['thinking', 'reasoning', 'answering'].includes(message.status as string)
+                    )
+                    const sortedMessages = [...aiMessages].sort((a, b) => {
+                        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                        return aTime - bTime
+                    })
+                    const fallbackMessage = sortedMessages[sortedMessages.length - 1]
+                    return runningMessages.length ? runningMessages : [fallbackMessage]
+                })()
+              : []
 
-		const targetMessages = executionId
-			? aiMessages.filter((message) => message.executionId === executionId)
-			: (() => {
-				const runningMessages = aiMessages.filter((message) =>
-					['thinking', 'reasoning', 'answering'].includes(message.status as string)
-				)
-				const sortedMessages = [...aiMessages].sort((a, b) => {
-					const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
-					const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
-					return aTime - bTime
-				})
-				const fallbackMessage = sortedMessages[sortedMessages.length - 1]
-				return runningMessages.length ? runningMessages : [fallbackMessage]
-			})()
+        const executionIds = executionId
+            ? [executionId]
+            : (Array.from(new Set(targetMessages.map((message) => message.executionId).filter(Boolean))) as string[])
 
-		if (!targetMessages.length) {
-			return { canceledExecutionIds: [] }
-		}
-		const executionIds = Array.from(
-			new Set(targetMessages.map((message) => message.executionId).filter(Boolean))
-		) as string[]
-		const messagesToUpdate = aiMessages.filter((message) => executionIds.includes(message.executionId))
+        if (!executionIds.length) {
+            return { canceledExecutionIds: [] }
+        }
+        const messagesToUpdate = aiMessages.filter((message) => executionIds.includes(message.executionId))
 
-		messagesToUpdate.forEach((message) => {
-			message.status = 'aborted' as any
-			message.error = 'Canceled by user'
-		})
+        messagesToUpdate.forEach((message) => {
+            message.status = 'aborted' as any
+            message.error = 'Canceled by user'
+        })
 
-		for (const id of executionIds) {
-			await this.executionService.update(id, {
-				status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-				error: 'Canceled by user'
-			})
-		}
+        for (const id of executionIds) {
+            await this.executionService.update(id, {
+                status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+                error: 'Canceled by user'
+            })
+        }
 
-		if (executionIds.length) {
-			await this.executionCancelService.cancelExecutions(executionIds, 'Canceled by user')
-			try {
-				await this.commandBus.execute(
-					new StopHandoffMessageCommand({
-						executionIds,
-						reason: 'Canceled by user'
-					})
-				)
-			} catch (error) {
-				this.logger.warn(
-					`Failed to stop handoff messages for executions [${executionIds.join(', ')}]: ${
-						(error as Error)?.message ?? error
-					}`
-				)
-			}
-		}
+        if (executionIds.length) {
+            await this.executionCancelService.cancelExecutions(executionIds, 'Canceled by user')
+            try {
+                await this.commandBus.execute(
+                    new StopHandoffMessageCommand({
+                        executionIds,
+                        reason: 'Canceled by user'
+                    })
+                )
+            } catch (error) {
+                this.logger.warn(
+                    `Failed to stop handoff messages for executions [${executionIds.join(', ')}]: ${
+                        (error as Error)?.message ?? error
+                    }`
+                )
+            }
+        }
 
-		conversation.status = 'interrupted' as any
-		conversation.error = 'Canceled by user'
-		await this.service.repository.save(conversation)
+        if (conversation) {
+            conversation.status = 'interrupted' as any
+            conversation.error = 'Canceled by user'
+            await this.service.repository.save(conversation)
+        }
 
-		return { canceledExecutionIds: executionIds }
-	}
+        // Stream finalization can race cancellation and attempt to persist a
+        // terminal success/error after the first update. Reassert interruption
+        // after aborting and saving the conversation so cancellation wins.
+        for (const id of executionIds) {
+            await this.executionService.update(id, {
+                status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+                error: 'Canceled by user'
+            })
+        }
+
+        return { canceledExecutionIds: executionIds }
+    }
 }

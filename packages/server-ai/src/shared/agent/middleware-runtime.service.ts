@@ -18,6 +18,7 @@ import { Observable } from 'rxjs'
 import {
     AIModelProviderNotFoundException,
     AgentMiddlewareAssistantTaskFile,
+    AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskInput,
     AgentMiddlewareAssistantTaskResult,
     AgentMiddlewareAssistantTaskStatus,
@@ -58,6 +59,7 @@ import {
     KnowledgebaseRuntimeCapability,
     RequestContext,
     ArtifactsRuntimeCapability,
+    CancelConversationCommand,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
@@ -403,6 +405,25 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
+    async cancelAssistantTask(
+        input: AgentMiddlewareAssistantTaskStatusInput
+    ): Promise<AgentMiddlewareAssistantTaskCancelResult> {
+        const result = await this.commandBus.execute<
+            CancelConversationCommand,
+            { canceledExecutionIds?: string[] } | undefined
+        >(
+            new CancelConversationCommand({
+                conversationId: normalizeOptionalString(input.conversationId),
+                threadId: normalizeOptionalString(input.threadId),
+                executionId: normalizeOptionalString(input.executionId)
+            })
+        )
+
+        return {
+            canceledExecutionIds: result?.canceledExecutionIds ?? []
+        }
+    }
+
     async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
         const xpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
@@ -545,7 +566,8 @@ export class AgentMiddlewareRuntimeService {
                 AssistantTaskRuntimeCapability,
                 {
                     startTask: (input) => this.startAssistantTask(input),
-                    getTaskStatus: (input) => this.getAssistantTaskStatus(input)
+                    getTaskStatus: (input) => this.getAssistantTaskStatus(input),
+                    cancelTask: (input) => this.cancelAssistantTask(input)
                 }
             ],
             [

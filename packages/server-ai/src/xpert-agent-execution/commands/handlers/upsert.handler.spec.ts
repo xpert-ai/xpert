@@ -45,4 +45,37 @@ describe('XpertAgentExecutionUpsertHandler', () => {
         expect(service.update).toHaveBeenCalledWith('execution-1', expect.objectContaining({ id: 'execution-1' }))
         expect(service.create).not.toHaveBeenCalled()
     })
+
+    it('does not let late stream finalization overwrite an interrupted execution', async () => {
+        const service = {
+            findOneOrFailByIdString: jest.fn(async () => ({
+                success: true,
+                record: {
+                    id: 'execution-1',
+                    status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+                    error: 'Canceled by user'
+                }
+            })),
+            create: jest.fn(),
+            update: jest.fn(async () => undefined),
+            findOne: jest.fn(async () => ({ id: 'execution-1', status: XpertAgentExecutionStatusEnum.INTERRUPTED }))
+        }
+        const handler = new XpertAgentExecutionUpsertHandler(service as never, {} as never, {} as never)
+
+        await handler.execute(
+            new XpertAgentExecutionUpsertCommand({
+                id: 'execution-1',
+                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                outputs: { output: 'late result' }
+            })
+        )
+
+        expect(service.update).toHaveBeenCalledWith(
+            'execution-1',
+            expect.objectContaining({
+                status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+                error: 'Canceled by user'
+            })
+        )
+    })
 })
