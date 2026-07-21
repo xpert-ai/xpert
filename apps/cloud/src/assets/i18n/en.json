@@ -1709,7 +1709,7 @@
         "Close": "Close",
         "EvidenceLocation": "Evidence location",
         "EvidenceText": "Evidence text",
-        "EvidenceHint": "The host preview overlays the evidence box using the rendered PDF page dimensions. An external browser tab can only open the original file and cannot render this evidence box.",
+        "EvidenceHint": "The host preview overlays the evidence box on PDF pages and images. An external browser tab can only open the original file and cannot render this evidence box.",
         "RenderingEvidencePage": "Rendering evidence page…",
         "EvidencePageUnavailable": "Evidence page unavailable",
         "Evidence": "Evidence",

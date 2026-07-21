@@ -1205,7 +1205,7 @@
         "Close": "关闭",
         "EvidenceLocation": "证据位置",
         "EvidenceText": "证据原文",
-        "EvidenceHint": "宿主预览会按 PDF 页面实际渲染尺寸叠加证据框；外部浏览器标签页只能打开原文件，不能渲染该证据框。",
+        "EvidenceHint": "宿主预览会在 PDF 页面和图片上叠加证据框；外部浏览器标签页只能打开原文件，不能渲染该证据框。",
         "RenderingEvidencePage": "正在渲染证据页…",
         "EvidencePageUnavailable": "证据页无法预览",
         "Evidence": "证据",

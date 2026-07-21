@@ -114,6 +114,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                           size: fileSizeLabel(),
                           limit: previewSizeLimitLabel(),
                           Default: 'File size: {{size
+
                 }}. File preview limit: {{ limit }}.' } }}
               </p>
             }
@@ -142,6 +143,27 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                 [searchTerms]="evidenceSearchTerms()"
                 [url]="basePreviewUrl()"
               />
+            } @else if (imageEvidenceBox(); as box) {
+              <div class="flex h-full min-h-0 items-start justify-center overflow-auto bg-components-panel-bg p-6">
+                <div class="relative m-auto inline-block max-w-full shrink-0">
+                  <img
+                    [src]="basePreviewUrl()"
+                    [alt]="
+                      file.name ||
+                      ('PAC.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                    "
+                    class="block h-auto max-w-full rounded-xl object-contain shadow-sm"
+                  />
+                  <div
+                    data-workbench-image-evidence-box="true"
+                    class="pointer-events-none absolute z-10 border-[3px] border-text-destructive bg-status-error-bg shadow-[0_0_0_9999px_color-mix(in_oklab,var(--color-status-error-bg)_16%,transparent)]"
+                    [style.left.%]="box.x * 100"
+                    [style.top.%]="box.y * 100"
+                    [style.width.%]="box.width * 100"
+                    [style.height.%]="box.height * 100"
+                  ></div>
+                </div>
+              </div>
             } @else {
               <pac-file-preview-content
                 class="flex h-full min-h-0 flex-col overflow-hidden bg-components-card-bg"
@@ -220,7 +242,7 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
                   | translate
                     : {
                         Default:
-                          'The host preview overlays the evidence box using the rendered PDF page dimensions. An external browser tab can only open the original file and cannot render this evidence box.'
+                          'The host preview overlays the evidence box on PDF pages and images. An external browser tab can only open the original file and cannot render this evidence box.'
                       }
               }}
             </p>
@@ -265,6 +287,7 @@ export class WorkbenchFilePreviewDialogComponent {
   readonly basePreviewUrl = computed(() => this.file.previewUrl || this.file.url)
   readonly previewUrl = computed(() => appendPdfPageAnchor(this.basePreviewUrl(), this.evidencePage()))
   readonly controlledPdfEvidence = computed(() => this.previewKind() === 'pdf' && !!this.evidenceBox())
+  readonly imageEvidenceBox = computed(() => (this.previewKind() === 'image' ? this.evidenceBox() : null))
   readonly rawPreviewSource = computed(() =>
     toFilePreviewSource({
       mimeType: this.file.mimeType,
