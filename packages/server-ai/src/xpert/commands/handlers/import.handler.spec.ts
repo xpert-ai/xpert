@@ -113,6 +113,7 @@ jest.mock('i18next', () => ({
 
 import { XpertImportHandler } from './import.handler'
 import { XpertImportCommand } from '../import.command'
+import { XpertDraftDslDTO } from '../../dto'
 import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../../../copilot/queries'
 import { WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import type { IWFNMiddleware } from '@xpert-ai/contracts'
@@ -135,6 +136,7 @@ describe('XpertImportHandler', () => {
                 }
             }),
             validateName: jest.fn().mockResolvedValue(true),
+            getSandboxProviders: jest.fn().mockResolvedValue([]),
             saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
             createBulkMemories: jest.fn().mockResolvedValue(undefined),
             repository: {
@@ -217,6 +219,53 @@ describe('XpertImportHandler', () => {
             ]
         })
         expect(result.id).toBe('new-xpert')
+    })
+
+    it('replaces an unavailable imported sandbox provider with the first available provider', async () => {
+        const { handler, xpertService } = buildHandler({
+            getSandboxProviders: jest.fn().mockResolvedValue([{ type: 'local-shell-sandbox' }])
+        })
+
+        await handler.execute(
+            new XpertImportCommand({
+                team: {
+                    name: 'Imported Expert',
+                    title: 'Imported Expert',
+                    type: 'agent',
+                    features: {
+                        sandbox: {
+                            enabled: true,
+                            provider: 'docker-sandbox'
+                        }
+                    },
+                    agent: {
+                        key: 'Agent_imported'
+                    }
+                },
+                nodes: [
+                    {
+                        type: 'agent',
+                        key: 'Agent_imported',
+                        entity: {
+                            key: 'Agent_imported',
+                            name: 'Imported Expert'
+                        }
+                    }
+                ],
+                connections: []
+            } as unknown as XpertDraftDslDTO)
+        )
+
+        expect(xpertService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                features: {
+                    sandbox: {
+                        enabled: true,
+                        provider: 'local-shell-sandbox'
+                    }
+                }
+            })
+        )
     })
 
     it('overwrites the current xpert draft without creating a new xpert', async () => {

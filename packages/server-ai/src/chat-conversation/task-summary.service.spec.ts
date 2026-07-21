@@ -61,7 +61,15 @@ describe('ChatTaskSummaryService', () => {
                 Promise.resolve({
                     items: [
                         {
+                            id: 'root-agent',
+                            agentKey: 'Agent_primary',
+                            title: 'Primary agent',
+                            status: 'running',
+                            updatedAt: new Date('2026-07-13T05:00:00.000Z')
+                        },
+                        {
                             id: 'agent-1',
+                            parentId: 'root-agent',
                             agentKey: 'Agent_researcher',
                             title: 'Researcher',
                             status: 'error',
@@ -69,6 +77,7 @@ describe('ChatTaskSummaryService', () => {
                         },
                         {
                             id: 'agent-2',
+                            parentId: 'root-agent',
                             agentKey: 'Agent_researcher',
                             title: 'Researcher',
                             status: 'success',
@@ -76,6 +85,7 @@ describe('ChatTaskSummaryService', () => {
                         },
                         {
                             id: 'agent-3',
+                            parentId: 'root-agent',
                             agentKey: 'Agent_writer',
                             title: 'Writer',
                             status: 'success',
@@ -128,6 +138,7 @@ describe('ChatTaskSummaryService', () => {
             ],
             total: 2
         })
+        expect(result.agents.items).not.toContainEqual(expect.objectContaining({ id: 'root-agent' }))
         expect(result.pending.items[0]).toMatchObject({
             id: 'follow-up:message-2',
             kind: 'follow_up',

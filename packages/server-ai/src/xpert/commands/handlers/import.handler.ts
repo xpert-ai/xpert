@@ -31,6 +31,7 @@ import {
 } from '../../copilot-model-sync.util'
 import { XpertService } from '../../xpert.service'
 import { XpertDraftDslDTO } from '../../dto'
+import { normalizeImportedSandboxFeatures } from '../../import-draft.utils'
 import { XpertImportCommand } from '../import.command'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
@@ -95,6 +96,13 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         const draft = command.draft as XpertDraftDslDTO
         if (!draft?.team) {
             throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
+        }
+
+        if (draft.team.features?.sandbox?.enabled) {
+            draft.team.features = normalizeImportedSandboxFeatures(
+                draft.team.features,
+                await this.xpertService.getSandboxProviders()
+            )
         }
 
         if (command.options?.targetXpertId) {
