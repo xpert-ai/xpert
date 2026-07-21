@@ -8,6 +8,13 @@ import { finalize, tap } from 'rxjs/operators'
 import { getChatEventName, isControlledRunStreamEvent, serializeRunStreamPayload } from './run-stream-payload'
 
 const SSE_COMPLETE_EVENT = 'complete'
+const APPEND_EVENT_SCRIPT = `
+local id = redis.call('XADD', KEYS[1], 'MAXLEN', '~', ARGV[1], '*', 'data', ARGV[2])
+if tonumber(ARGV[3]) > 0 then
+    redis.call('EXPIRE', KEYS[1], ARGV[3])
+end
+return id
+`
 
 interface StreamEntry {
     id: string
@@ -86,11 +93,10 @@ export class RedisSseStreamService {
         try {
             const persistedData = serializeRunStreamPayload(data)
             const payload = JSON.stringify(persistedData ?? null)
-            const args = ['XADD', streamKey, 'MAXLEN', '~', `${maxLen}`, '*', 'data', payload]
-            const id = (await this.redis.sendCommand(args)) as string
-            if (ttlSeconds > 0) {
-                await this.redis.sendCommand(['EXPIRE', streamKey, `${ttlSeconds}`, 'NX'])
-            }
+            const id = (await this.redis.eval(APPEND_EVENT_SCRIPT, {
+                keys: [streamKey],
+                arguments: [`${maxLen}`, payload, `${ttlSeconds}`]
+            })) as string
             return id
         } catch (error) {
             this.#logger.warn(`Failed to append SSE event: ${error}`)
