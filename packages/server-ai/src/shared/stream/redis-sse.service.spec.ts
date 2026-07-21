@@ -174,7 +174,6 @@ describe('RedisSseStreamService', () => {
     it('serializes ON_AGENT_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
         redis.sendCommand.mockResolvedValue('1-0')
-        redis.expire.mockResolvedValue(true)
         const service = new RedisSseStreamService(redis as never)
         const data = {
             type: ChatMessageTypeEnum.EVENT,
@@ -257,7 +256,6 @@ describe('RedisSseStreamService', () => {
     it('serializes ON_MESSAGE_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
         redis.sendCommand.mockResolvedValue('1-0')
-        redis.expire.mockResolvedValue(true)
         const service = new RedisSseStreamService(redis as never)
         const data = {
             type: ChatMessageTypeEnum.EVENT,
@@ -315,6 +313,31 @@ describe('RedisSseStreamService', () => {
         ])
     })
 
+    it('sets the stream TTL without extending an existing expiry', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockResolvedValueOnce('1-0').mockResolvedValueOnce(1)
+        const service = new RedisSseStreamService(redis as never)
+
+        await service.appendEvent('thread-1', 'run-1', { type: 'message' })
+
+        expect(redis.sendCommand).toHaveBeenNthCalledWith(1, [
+            'XADD',
+            'ai:sse:thread:thread-1:run:run-1',
+            'MAXLEN',
+            '~',
+            '10000',
+            '*',
+            'data',
+            JSON.stringify({ type: 'message' })
+        ])
+        expect(redis.sendCommand).toHaveBeenNthCalledWith(2, [
+            'EXPIRE',
+            'ai:sse:thread:thread-1:run:run-1',
+            '86400',
+            'NX'
+        ])
+    })
+
     it('persists a chat error event and complete marker when the stream errors', async () => {
         const service = new RedisSseStreamService(createRedisMock() as any)
         const appendEvent = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
@@ -369,7 +392,6 @@ function createRedisMock() {
         get: jest.fn(),
         pTTL: jest.fn(),
         pExpire: jest.fn(),
-        expire: jest.fn(),
         eval: jest.fn(),
         sendCommand: jest.fn()
     }

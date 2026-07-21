@@ -89,7 +89,7 @@ export class RedisSseStreamService {
             const args = ['XADD', streamKey, 'MAXLEN', '~', `${maxLen}`, '*', 'data', payload]
             const id = (await this.redis.sendCommand(args)) as string
             if (ttlSeconds > 0) {
-                await this.redis.expire(streamKey, ttlSeconds)
+                await this.redis.sendCommand(['EXPIRE', streamKey, `${ttlSeconds}`, 'NX'])
             }
             return id
         } catch (error) {
