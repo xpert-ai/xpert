@@ -1419,6 +1419,7 @@
       "SelectEnv": "选择环境"
     },
     "Plugin": {
+      "ArtifactNamespace": "制品命名空间",
       "Plugins": "插件",
       "AllCategories": "所有类别",
       "AllKeywords": "所有标签",

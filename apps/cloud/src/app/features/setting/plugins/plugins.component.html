@@ -322,12 +322,12 @@
                               [class.line-through]="plugin.meta.deprecated"
                               [class.decoration-2]="plugin.meta.deprecated"
                               [class.decoration-current]="plugin.meta.deprecated"
-                              [title]="plugin.meta.displayName"
+                              [title]="plugin.meta.displayName | i18n"
                               [ngmHighlight]="searchText()"
-                              [content]="plugin.meta.displayName"
+                              [content]="plugin.meta.displayName | i18n"
                               (click)="openPluginPage(plugin)"
                             >
-                              {{ plugin.meta.displayName }}
+                              {{ plugin.meta.displayName | i18n }}
                             </button>
                             @if (plugin.meta.deprecated) {
                               <i
@@ -389,11 +389,11 @@
                             <div class="min-w-0 grow">
                               <div
                                 class="text-sm text-text-tertiary font-body truncate"
-                                [title]="plugin.meta.description"
+                                [title]="plugin.meta.description | i18n"
                                 [ngmHighlight]="searchText()"
-                                [content]="plugin.meta.description"
+                                [content]="plugin.meta.description | i18n"
                               >
-                                {{ plugin.meta.description }}
+                                {{ plugin.meta.description | i18n }}
                               </div>
                               @if (plugin.loadStatus === 'failed') {
                                 <div class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2">

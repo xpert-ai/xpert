@@ -3,7 +3,7 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, shareReplay, switchMap } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
-import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TXpertAgentChatRequest } from '../types'
+import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareDescriptor, TXpertAgentChatRequest } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
@@ -38,7 +38,7 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
   }
 
   getAgentMiddlewareStrategies() {
-    return this.httpClient.get<{ meta: TAgentMiddlewareMeta }[]>(this.apiBaseUrl + `/middlewares`)
+    return this.httpClient.get<TAgentMiddlewareDescriptor[]>(this.apiBaseUrl + `/middlewares`)
   }
 
   getAgentMiddleware(provider: string, options: any, xpertId?: string) {

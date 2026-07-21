@@ -100,6 +100,7 @@
       "CurrentScopeActiveRuntimes": "当前租户和组织内的活跃 runtime"
     },
     "Plugin": {
+      "ArtifactNamespace": "制品命名空间",
       "MarketplaceContentType_app": "应用",
       "MarketplaceContentType_view": "视图",
       "MarketplaceContentType_feature": "功能",

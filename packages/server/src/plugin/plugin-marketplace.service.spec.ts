@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -158,6 +159,79 @@ function createMarketplaceServiceWithPlatformItems(items: Array<Record<string, u
 	})
 	return service
 }
+
+describe('PluginMarketplaceService localized registry metadata', () => {
+	it('normalizes and preserves localized display names and descriptions', async () => {
+		jest.mocked(RequestContext.hasRole).mockReturnValueOnce(true)
+		const registryRepository = {
+			findOne: jest.fn().mockResolvedValue(null),
+			create: jest.fn((value) => ({ id: 'registry-bom', ...value })),
+			save: jest.fn((value) => Promise.resolve(value))
+		}
+		const service = new PluginMarketplaceService({} as any, registryRepository as any, [], {} as any)
+
+		const item = await service.createRegistryItem({
+			packageName: '@xpert-ai/plugin-bom',
+			displayName: {
+				en_US: 'BOM Document Intake',
+				zh_Hans: 'BOM 文档接入'
+			},
+			description: {
+				en_US: 'Parse and review BOM documents.',
+				zh_Hans: '解析并复核 BOM 文档。'
+			},
+			category: 'middleware',
+			author: 'XpertAI',
+			targetApps: ['data-xpert'],
+			enabled: false
+		})
+
+		expect(item.displayName).toEqual({
+			en_US: 'BOM Document Intake',
+			zh_Hans: 'BOM 文档接入'
+		})
+		expect(item.description).toEqual({
+			en_US: 'Parse and review BOM documents.',
+			zh_Hans: '解析并复核 BOM 文档。'
+		})
+		expect(registryRepository.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				displayName: 'BOM Document Intake',
+				displayNameI18n: {
+					en_US: 'BOM Document Intake',
+					zh_Hans: 'BOM 文档接入'
+				},
+				description: 'Parse and review BOM documents.',
+				descriptionI18n: {
+					en_US: 'Parse and review BOM documents.',
+					zh_Hans: '解析并复核 BOM 文档。'
+				}
+			})
+		)
+	})
+
+	it('rejects localized metadata without the required English fallback', async () => {
+		jest.mocked(RequestContext.hasRole).mockReturnValueOnce(true)
+		const service = new PluginMarketplaceService(
+			{} as any,
+			{ findOne: jest.fn().mockResolvedValue(null) } as any,
+			[],
+			{} as any
+		)
+
+		await expect(
+			service.createRegistryItem({
+				packageName: '@xpert-ai/plugin-bom',
+				displayName: { en_US: '', zh_Hans: 'BOM 文档接入' },
+				description: 'Parse and review BOM documents.',
+				category: 'middleware',
+				author: 'XpertAI',
+				targetApps: ['data-xpert'],
+				enabled: false
+			})
+		).rejects.toThrow('displayName is required')
+	})
+})
 
 describe('PluginMarketplaceService README detail', () => {
 	let tempRoot: string

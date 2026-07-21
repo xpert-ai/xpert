@@ -54,6 +54,7 @@ import {
   SkillRepositoryService,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
   TKnowledgePipelineTemplate,
+  TAgentMiddlewareDescriptor,
   TAgentMiddlewareMeta,
   TAvatar,
   ToastrService,
@@ -501,7 +502,7 @@ export class XpertNewBlankComponent {
     initialValue: [] as TWorkflowTriggerMeta[]
   })
   readonly middlewareProviders = toSignal(this.xpertAgentService.agentMiddlewares$, {
-    initialValue: [] as { meta: TAgentMiddlewareMeta }[]
+    initialValue: [] as TAgentMiddlewareDescriptor[]
   })
   readonly dataSourceProviders = toSignal(this.knowledgebaseService.documentSourceStrategies$, {
     initialValue: [] as { meta: IDocumentSourceProvider; integration: { service: string } }[]

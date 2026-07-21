@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, No
 import { InjectRepository } from '@nestjs/typeorm'
 import {
 	type I18nObject,
+	type I18nText,
 	PLUGIN_LEVEL,
 	PluginMarketplaceContribution,
 	type PluginMarketplaceDetailItem,
@@ -880,8 +881,8 @@ export class PluginMarketplaceService {
 			packageName: item.packageName,
 			version: item.version ?? null,
 			artifactNamespace: this.normalizeOptionalString(item.artifactNamespace) ?? null,
-			displayName: item.displayName,
-			description: item.description,
+			displayName: this.readRegistryI18nText(item.displayName, item.displayNameI18n),
+			description: this.readRegistryI18nText(item.description, item.descriptionI18n),
 			category: item.category,
 			author: item.author,
 			icon: item.icon ?? undefined,
@@ -1039,7 +1040,9 @@ export class PluginMarketplaceService {
 			| 'version'
 			| 'artifactNamespace'
 			| 'displayName'
+			| 'displayNameI18n'
 			| 'description'
+			| 'descriptionI18n'
 			| 'category'
 			| 'author'
 			| 'icon'
@@ -1054,8 +1057,18 @@ export class PluginMarketplaceService {
 		>
 	> {
 		const packageName = this.normalizeOptionalString(this.inputOrExisting(input.packageName, existing?.packageName))
-		const displayName = this.normalizeOptionalString(this.inputOrExisting(input.displayName, existing?.displayName))
-		const description = this.normalizeOptionalString(this.inputOrExisting(input.description, existing?.description))
+		const displayName = this.normalizeI18nText(
+			this.inputOrExisting(
+				input.displayName,
+				existing ? this.readRegistryI18nText(existing.displayName, existing.displayNameI18n) : undefined
+			)
+		)
+		const description = this.normalizeI18nText(
+			this.inputOrExisting(
+				input.description,
+				existing ? this.readRegistryI18nText(existing.description, existing.descriptionI18n) : undefined
+			)
+		)
 		const category = this.normalizeOptionalString(this.inputOrExisting(input.category, existing?.category))
 		const author = this.normalizeOptionalString(this.inputOrExisting(input.author, existing?.author))
 		const targetApps = this.uniqueStrings(this.inputOrExisting(input.targetApps, existing?.targetApps ?? []))
@@ -1102,8 +1115,10 @@ export class PluginMarketplaceService {
 			packageName: normalizePluginName(packageName),
 			version: this.normalizeOptionalString(this.inputOrExisting(input.version, existing?.version)) ?? null,
 			artifactNamespace,
-			displayName,
-			description,
+			displayName: this.readI18nEnglishFallback(displayName),
+			displayNameI18n: typeof displayName === 'string' ? null : displayName,
+			description: this.readI18nEnglishFallback(description),
+			descriptionI18n: typeof description === 'string' ? null : description,
 			category,
 			author,
 			icon: this.inputOrExisting(input.icon, existing?.icon) ?? null,
@@ -1166,8 +1181,8 @@ export class PluginMarketplaceService {
 			artifactNamespace:
 				this.normalizeOptionalString(item.artifactNamespace) ??
 				this.resolveMarketplaceArtifactNamespace({ name: item.packageName, packageName: item.packageName }),
-			displayName: item.displayName,
-			description: item.description,
+			displayName: this.readRegistryI18nText(item.displayName, item.displayNameI18n),
+			description: this.readRegistryI18nText(item.description, item.descriptionI18n),
 			category: item.category,
 			author: item.author,
 			icon: item.icon,
@@ -2298,6 +2313,10 @@ export class PluginMarketplaceService {
 	}
 
 	private normalizeTrialShortcutLabel(value: unknown): string | I18nObject | null {
+		return this.normalizeI18nText(value)
+	}
+
+	private normalizeI18nText(value: unknown): I18nText | null {
 		const label = this.normalizeOptionalString(value)
 		if (label) {
 			return label
@@ -2315,6 +2334,14 @@ export class PluginMarketplaceService {
 			normalized.zh_Hans = zh_Hans
 		}
 		return normalized
+	}
+
+	private readRegistryI18nText(value: string, localized?: I18nObject | null): I18nText {
+		return localized?.en_US ? localized : value
+	}
+
+	private readI18nEnglishFallback(value: I18nText): string {
+		return typeof value === 'string' ? value : value.en_US
 	}
 
 	private countOperations(contributions: PluginMarketplaceContribution[]) {

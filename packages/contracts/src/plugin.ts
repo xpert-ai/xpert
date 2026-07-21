@@ -401,8 +401,8 @@ export interface PluginMeta {
     | 'datasource'
     | 'database'
     | 'middleware'
-  displayName: string
-  description: string
+  displayName: string | I18nObject
+  description: string | I18nObject
   keywords?: string[]
   author: string
   homepage?: string
@@ -456,8 +456,8 @@ export interface PluginMarketplaceRegistryItem {
    * When omitted, marketplace views may derive a default from the package name.
    */
   artifactNamespace?: string | null
-  displayName: string
-  description: string
+  displayName: string | I18nObject
+  description: string | I18nObject
   category: string
   author: string
   icon?: IconDefinition | null
@@ -487,8 +487,8 @@ export interface PluginMarketplaceRegistryItemInput {
    * Keep it aligned with the plugin manifest/meta when the plugin declares one.
    */
   artifactNamespace?: string | null
-  displayName?: string
-  description?: string
+  displayName?: string | I18nObject
+  description?: string | I18nObject
   category?: string
   author?: string
   icon?: IconDefinition | null
