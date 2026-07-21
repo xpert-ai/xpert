@@ -55,6 +55,26 @@ import {
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
 
+const SSE_HEARTBEAT_INTERVAL_MS = 30000
+const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
+
+function startSseHeartbeat(res: Response) {
+    if (res.destroyed || res.writableEnded) {
+        return
+    }
+
+    const heartbeatInterval = setInterval(() => {
+        if (res.destroyed || res.writableEnded) {
+            clearInterval(heartbeatInterval)
+            return
+        }
+        res.write(SSE_HEARTBEAT_COMMENT)
+    }, SSE_HEARTBEAT_INTERVAL_MS)
+
+    res.once('close', () => clearInterval(heartbeatInterval))
+    res.once('finish', () => clearInterval(heartbeatInterval))
+}
+
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
 @Public()
@@ -205,6 +225,7 @@ export class ThreadsController {
                 new RunCreateStreamCommand(thread_id, body)
             )
             if (streamTransport === 'direct') {
+                startSseHeartbeat(res)
                 return stream
             }
 
@@ -229,6 +250,7 @@ export class ThreadsController {
                 this.redisSseStreamService.releaseConnection(thread_id, execution.id, connectionId).catch(() => null)
             })
 
+            startSseHeartbeat(res)
             return sseStream
         } catch (error) {
             console.error('Error starting run stream:')
@@ -313,6 +335,7 @@ export class ThreadsController {
             this.redisSseStreamService.releaseConnection(thread_id, run_id, connectionId).catch(() => null)
         })
 
+        startSseHeartbeat(res)
         return stream
     }
 

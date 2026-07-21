@@ -47,19 +47,128 @@ describe('ThreadsController', () => {
             createSseStream: jest.fn(),
             releaseConnection: jest.fn()
         }
-        const controller = new ThreadsController({} as any, {} as any, commandBus as any, redisSseStreamService as any)
+        const response = Object.assign(new EventEmitter(), {
+            destroyed: false,
+            writableEnded: false,
+            write: jest.fn()
+        })
+        const controller = new ThreadsController(
+            {} as never,
+            {} as never,
+            commandBus as never,
+            redisSseStreamService as never
+        )
 
-        const result = await controller.runStream({} as any, new EventEmitter() as any, 'thread-1', {
-            assistant_id: 'xpert-1',
-            input: {
-                action: 'follow_up'
+        try {
+            const result = await controller.runStream({} as never, response as never, 'thread-1', {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'follow_up'
+                }
+            } as never)
+
+            expect(result).toBe(stream)
+            expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
+            expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
+            expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
+        } finally {
+            response.emit('close')
+        }
+    })
+
+    it('writes SSE comments while a Redis-backed run has no new events', async () => {
+        jest.useFakeTimers()
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue({
+                execution: { id: 'run-1' },
+                stream: EMPTY,
+                streamTransport: 'redis'
+            })
+        }
+        const redisSseStreamService = {
+            createSseStream: jest.fn().mockResolvedValue({
+                connectionId: 'connection-1',
+                stream: EMPTY
+            }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const response = Object.assign(new EventEmitter(), {
+            destroyed: false,
+            writableEnded: false,
+            write: jest.fn()
+        })
+        const controller = new ThreadsController(
+            {} as never,
+            {} as never,
+            commandBus as never,
+            redisSseStreamService as never
+        )
+
+        try {
+            await controller.runStream({ headers: {} } as never, response as never, 'thread-1', {
+                assistant_id: 'xpert-1',
+                input: { action: 'send' }
+            } as never)
+
+            jest.advanceTimersByTime(30000)
+            expect(response.write).toHaveBeenCalledWith(': keep-alive\n\n')
+
+            response.emit('close')
+            jest.advanceTimersByTime(30000)
+            expect(response.write).toHaveBeenCalledTimes(1)
+        } finally {
+            response.emit('close')
+            jest.useRealTimers()
+        }
+    })
+
+    it('does not start a heartbeat after the response closes during stream setup', async () => {
+        jest.useFakeTimers()
+        type RunStreamResult = {
+            execution: { id: string }
+            stream: typeof EMPTY
+            streamTransport: 'direct'
+        }
+        let resolveExecute: ((value: RunStreamResult) => void) | null = null
+        const commandBus = {
+            execute: jest.fn().mockImplementation(
+                () =>
+                    new Promise<RunStreamResult>((resolve) => {
+                        resolveExecute = resolve
+                    })
+            )
+        }
+        const response = Object.assign(new EventEmitter(), {
+            destroyed: false,
+            writableEnded: false,
+            write: jest.fn()
+        })
+        const controller = new ThreadsController({} as never, {} as never, commandBus as never, {} as never)
+
+        try {
+            const pendingStream = controller.runStream({} as never, response as never, 'thread-1', {
+                assistant_id: 'xpert-1',
+                input: { action: 'follow_up' }
+            } as never)
+
+            response.destroyed = true
+            response.emit('close')
+            if (!resolveExecute) {
+                throw new Error('Expected stream setup to start')
             }
-        } as any)
+            resolveExecute({
+                execution: { id: 'execution-1' },
+                stream: EMPTY,
+                streamTransport: 'direct'
+            })
+            await pendingStream
 
-        expect(result).toBe(stream)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
-        expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
-        expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
+            jest.advanceTimersByTime(30000)
+            expect(response.write).not.toHaveBeenCalled()
+        } finally {
+            response.emit('close')
+            jest.useRealTimers()
+        }
     })
 
     it('allows multiple clients to join the same run stream', async () => {

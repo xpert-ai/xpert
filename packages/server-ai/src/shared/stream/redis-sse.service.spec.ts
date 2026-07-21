@@ -173,8 +173,7 @@ describe('RedisSseStreamService', () => {
 
     it('serializes ON_AGENT_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
-        redis.sendCommand.mockResolvedValue('1-0')
-        redis.expire.mockResolvedValue(true)
+        redis.eval.mockResolvedValue('1-0')
         const service = new RedisSseStreamService(redis as never)
         const data = {
             type: ChatMessageTypeEnum.EVENT,
@@ -242,22 +241,15 @@ describe('RedisSseStreamService', () => {
         await service.appendEvent('thread-1', 'run-1', data)
 
         const payload = JSON.stringify(persistedData)
-        expect(redis.sendCommand).toHaveBeenCalledWith([
-            'XADD',
-            'ai:sse:thread:thread-1:run:run-1',
-            'MAXLEN',
-            '~',
-            '10000',
-            '*',
-            'data',
-            payload
-        ])
+        expect(redis.eval).toHaveBeenCalledWith(expect.any(String), {
+            keys: ['ai:sse:thread:thread-1:run:run-1'],
+            arguments: ['10000', payload, '86400']
+        })
     })
 
     it('serializes ON_MESSAGE_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
-        redis.sendCommand.mockResolvedValue('1-0')
-        redis.expire.mockResolvedValue(true)
+        redis.eval.mockResolvedValue('1-0')
         const service = new RedisSseStreamService(redis as never)
         const data = {
             type: ChatMessageTypeEnum.EVENT,
@@ -303,16 +295,27 @@ describe('RedisSseStreamService', () => {
         await service.appendEvent('thread-1', 'run-1', data)
 
         const payload = JSON.stringify(persistedData)
-        expect(redis.sendCommand).toHaveBeenCalledWith([
-            'XADD',
-            'ai:sse:thread:thread-1:run:run-1',
-            'MAXLEN',
-            '~',
-            '10000',
-            '*',
-            'data',
-            payload
-        ])
+        expect(redis.eval).toHaveBeenCalledWith(expect.any(String), {
+            keys: ['ai:sse:thread:thread-1:run:run-1'],
+            arguments: ['10000', payload, '86400']
+        })
+    })
+
+    it('atomically appends an event and refreshes the stream TTL', async () => {
+        const redis = createRedisMock()
+        redis.eval.mockResolvedValue('1-0')
+        const service = new RedisSseStreamService(redis as never)
+
+        const id = await service.appendEvent('thread-1', 'run-1', { type: 'message' })
+
+        expect(id).toBe('1-0')
+        expect(redis.eval).toHaveBeenCalledTimes(1)
+        expect(redis.eval).toHaveBeenCalledWith(expect.stringContaining("redis.call('XADD'"), {
+            keys: ['ai:sse:thread:thread-1:run:run-1'],
+            arguments: ['10000', JSON.stringify({ type: 'message' }), '86400']
+        })
+        expect(redis.eval.mock.calls[0][0]).toContain("redis.call('EXPIRE', KEYS[1], ARGV[3])")
+        expect(redis.sendCommand).not.toHaveBeenCalled()
     })
 
     it('persists a chat error event and complete marker when the stream errors', async () => {
@@ -369,7 +372,6 @@ function createRedisMock() {
         get: jest.fn(),
         pTTL: jest.fn(),
         pExpire: jest.fn(),
-        expire: jest.fn(),
         eval: jest.fn(),
         sendCommand: jest.fn()
     }
