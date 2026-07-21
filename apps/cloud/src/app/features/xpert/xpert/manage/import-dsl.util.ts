@@ -45,7 +45,11 @@ const OVERWRITABLE_TEAM_FIELDS = [
 const AGENT_PROMPT_TEMPLATE_ROLES = ['ai', 'human'] as const
 const AGENT_OUTPUT_VARIABLE_OPERATIONS = ['append', 'extends', 'overwrite', 'clear'] as const
 
-export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: TImportedXpertDsl): TXpertTeamDraft {
+export function createOverwriteDraftFromDsl(
+  currentXpert: IXpert,
+  importedDsl: TImportedXpertDsl,
+  sandboxProviders: Array<{ type: string }> = []
+): TXpertTeamDraft {
   if (!currentXpert?.agent?.key) {
     throw new Error('Current xpert primary agent not found')
   }
@@ -94,6 +98,7 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
   for (const field of OVERWRITABLE_TEAM_FIELDS) {
     team[field] = importedDsl.team?.[field] as any
   }
+  team.features = normalizeImportedSandboxFeatures(team.features, sandboxProviders)
 
   return replaceAgentInDraft(
     {
@@ -106,6 +111,34 @@ export function createOverwriteDraftFromDsl(currentXpert: IXpert, importedDsl: T
     targetPrimaryAgent,
     { requireNode: false }
   )
+}
+
+function normalizeImportedSandboxFeatures(
+  features: TXpertTeamDraft['team']['features'],
+  sandboxProviders: Array<{ type: string }>
+) {
+  const sandbox = features?.sandbox
+  if (!sandbox?.enabled) {
+    return features
+  }
+
+  const providerTypes = Array.from(
+    new Set(sandboxProviders.map(({ type }) => type.trim()).filter((type) => !!type))
+  )
+  const provider = sandbox.provider?.trim()
+  if (provider && providerTypes.includes(provider)) {
+    return features
+  }
+
+  return providerTypes[0]
+    ? {
+        ...features,
+        sandbox: {
+          ...sandbox,
+          provider: providerTypes[0]
+        }
+      }
+    : features
 }
 
 function parseImportedPrimaryAgentPatch(value: unknown): Partial<IXpertAgent> {

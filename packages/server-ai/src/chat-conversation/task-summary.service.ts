@@ -136,22 +136,24 @@ export class ChatTaskSummaryService {
             messages.flatMap((message) => (message.executionId ? [[message.executionId, message.id] as const] : []))
         )
         const agents = this.mergeAgents(
-            executionResult.items.map((execution) => ({
-                id: execution.id,
-                parentId: execution.parentId,
-                level: this.executionLevel(execution.parentId, executionsById),
-                agentKey: execution.agentKey,
-                title:
-                    (execution.agentKey ? agentNames.get(execution.agentKey)?.trim() : undefined) ||
-                    execution.title?.trim() ||
-                    execution.agentKey?.trim() ||
-                    t('server-ai:ChatTaskSummary.Agent', { defaultValue: 'Agent' }),
-                status: execution.status,
-                elapsedTime: execution.elapsedTime,
-                error: execution.error ? this.compact(execution.error, 160) : undefined,
-                messageId: messageByExecutionId.get(execution.id),
-                updatedAt: this.toIso(execution.updatedAt)
-            }))
+            executionResult.items
+                .filter((execution) => Boolean(execution.parentId))
+                .map((execution) => ({
+                    id: execution.id,
+                    parentId: execution.parentId,
+                    level: this.executionLevel(execution.parentId, executionsById),
+                    agentKey: execution.agentKey,
+                    title:
+                        (execution.agentKey ? agentNames.get(execution.agentKey)?.trim() : undefined) ||
+                        execution.title?.trim() ||
+                        execution.agentKey?.trim() ||
+                        t('server-ai:ChatTaskSummary.Agent', { defaultValue: 'Agent' }),
+                    status: execution.status,
+                    elapsedTime: execution.elapsedTime,
+                    error: execution.error ? this.compact(execution.error, 160) : undefined,
+                    messageId: messageByExecutionId.get(execution.id),
+                    updatedAt: this.toIso(execution.updatedAt)
+                }))
         )
         const pending = this.collectPending(conversation, messages)
         const updatedAt = this.latestDate([
