@@ -3,6 +3,9 @@
 		"PluginPackageNameRequired": "Plugin package name is required",
 		"PluginSystemLevelInstallForbidden": "Plugin {{name}} is system-level and cannot be installed from this API",
 		"PluginSystemLevelDefaultTenantRequired": "System-level plugin {{name}} can only be installed from the Default tenant",
+		"PluginTenantLevelInstallForbidden": "Tenant-level plugin {{name}} can only be installed by a Super Admin in the current tenant",
+		"PluginTenantLevelAlreadyOwned": "Tenant-level plugin {{name}} already belongs to tenant {{tenantId}} and cannot be installed in another tenant",
+		"PluginProcessLevelConflict": "Plugin {{name}} is already registered at level {{existingLevel}}. Uninstall that registration and restart the API before installing it at level {{requestedLevel}}",
 		"PluginInstallFailed": "Failed to install plugin {{pluginName}}: {{errorMessage}}",
 		"PluginNamesRequired": "Plugin names are required",
 		"PluginSystemUninstallForbidden": "Plugin {{name}} is a system plugin and cannot be uninstalled"

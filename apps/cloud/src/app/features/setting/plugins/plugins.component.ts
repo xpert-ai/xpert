@@ -30,7 +30,13 @@ import { PluginsMarketplaceComponent } from './marketplace/marketplace.component
 import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin } from './types'
-import { IPluginInstallResult, IPluginUninstallResult, PluginMarketplaceCategory, RolesEnum } from '@xpert-ai/contracts'
+import {
+  type I18nText,
+  IPluginInstallResult,
+  IPluginUninstallResult,
+  PluginMarketplaceCategory,
+  RolesEnum
+} from '@xpert-ai/contracts'
 import { PluginResourcesComponent } from './resources/resources.component'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
@@ -198,8 +204,8 @@ export class PluginsComponent {
     if (searchText) {
       plugins = plugins.filter(
         (plugin) =>
-          plugin.meta.description?.toLowerCase().includes(searchText) ||
-          plugin.meta.displayName?.toLowerCase().includes(searchText) ||
+          collectI18nTextValues(plugin.meta.description).some((value) => value.toLowerCase().includes(searchText)) ||
+          collectI18nTextValues(plugin.meta.displayName).some((value) => value.toLowerCase().includes(searchText)) ||
           (typeof plugin.name === 'string' && plugin.name.toLowerCase().includes(searchText)) ||
           plugin.meta.keywords?.some((keyword) => keyword.toLowerCase().includes(searchText))
       )
@@ -770,4 +776,11 @@ export class PluginsComponent {
     this.#knowledgebaseService.refresh()
     this.#toolsetService.refresh()
   }
+}
+
+function collectI18nTextValues(value: I18nText | null | undefined) {
+  if (typeof value === 'string') {
+    return value.trim() ? [value.trim()] : []
+  }
+  return value ? Object.values(value).filter((item) => item.trim()) : []
 }

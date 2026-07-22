@@ -52,9 +52,14 @@ export type AgentMiddlewareAssistantTaskStatusInput = {
   xpertId?: string
 }
 
+export type AgentMiddlewareAssistantTaskCancelResult = {
+  canceledExecutionIds: string[]
+}
+
 export interface AgentMiddlewareAssistantTaskApi {
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
   getTaskStatus?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskResult | null>
+  cancelTask?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskCancelResult>
 }
 
 export const AssistantTaskRuntimeCapability = createRuntimeCapability<AgentMiddlewareAssistantTaskApi>(

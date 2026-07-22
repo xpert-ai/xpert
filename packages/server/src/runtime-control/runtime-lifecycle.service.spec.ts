@@ -1,6 +1,14 @@
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 
 describe('RuntimeLifecycleService', () => {
+	it('generates a new instance ID for each application boot', () => {
+		const firstBoot = new RuntimeLifecycleService()
+		const secondBoot = new RuntimeLifecycleService()
+
+		expect(firstBoot.instanceId).not.toBe(secondBoot.instanceId)
+		expect(firstBoot.readiness().instanceId).toBe(firstBoot.instanceId)
+	})
+
 	it('tracks active requests and resolves drain waiting after they finish', async () => {
 		const service = new RuntimeLifecycleService()
 		const release = service.trackRequest()

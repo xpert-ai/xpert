@@ -25,6 +25,7 @@ import {
   IWFNMiddleware,
   SkillPackageService,
   ToastrService,
+  TAgentMiddlewareDescriptor,
   TAgentMiddlewareMeta,
   TXpertTeamDraft,
   TXpertTeamNode,
@@ -357,7 +358,6 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           <button
                             z-button
                             zType="default"
-
                             type="button"
                             [disabled]="busy() || !skillWorkspaceId()"
                             (click)="openSkillInstallDialog()"
@@ -531,7 +531,7 @@ export class ClawXpertToolPreferencesComponent {
   readonly installingSkillPackage = signal(false)
   readonly skillRefreshTick = signal(0)
   readonly middlewareProviders = toSignal(this.#xpertAgentService.agentMiddlewares$, {
-    initialValue: [] as { meta: TAgentMiddlewareMeta }[]
+    initialValue: [] as TAgentMiddlewareDescriptor[]
   })
   readonly toolState = toSignal(
     toObservable(
@@ -569,18 +569,18 @@ export class ClawXpertToolPreferencesComponent {
             return this.#xpertAgentService
               .getAgentMiddleware(middleware.provider, middleware.options ?? {}, this.facade.xpertId())
               .pipe(
-              take(1),
-              map((response) => buildMiddlewarePreferenceState(node.key, middleware, meta, response.tools ?? [])),
-              catchError((error) =>
-                of(
-                  buildSourceErrorState(
-                    node.key,
-                    meta?.label ?? middleware.provider,
-                    getErrorMessage(error) || 'Failed to load middleware tools.'
+                take(1),
+                map((response) => buildMiddlewarePreferenceState(node.key, middleware, meta, response.tools ?? [])),
+                catchError((error) =>
+                  of(
+                    buildSourceErrorState(
+                      node.key,
+                      meta?.label ?? middleware.provider,
+                      getErrorMessage(error) || 'Failed to load middleware tools.'
+                    )
                   )
                 )
               )
-            )
           })
         ]
 

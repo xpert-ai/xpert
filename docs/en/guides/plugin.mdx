@@ -103,7 +103,11 @@ Do not use `organizationId` to encode synthetic scopes. The canonical scope iden
 
 ### `level` and scope are related, but not identical
 
-`meta.level = 'system'` means the plugin is a platform-level singleton. Use it only for plugins that provide system-wide module/entity capabilities and cannot safely exist in multiple tenant or organization copies.
+Plugins support three levels:
+
+- `system`: a platform singleton shared by every tenant.
+- `tenant`: a process-level plugin owned by one tenant. It may register Nest modules, controllers, TypeORM entities, and other process-level artifacts like a system plugin, while its business visibility and provider resolution remain limited to the owning tenant.
+- `organization`: a regular organization/tenant plugin that may be loaded per organization or tenant-global scope.
 
 System plugins follow these rules:
 
@@ -113,7 +117,38 @@ System plugins follow these rules:
 - ordinary tenant and organization users can see system plugin capability results, but cannot install, uninstall, or configure the system instance
 - system plugins are defaults in the provider fallback chain; they are not stronger than organization or tenant-global overrides
 
-Non-system plugins keep their requested organization or tenant-global scope. If a package's marketplace/package metadata says `level=system`, the installer routes it to `system:global` before loading. After the plugin is loaded, the host checks `plugin.meta.level` again as a defensive guard and rejects any mismatch between the final level and the resolved scope.
+Tenant plugins follow these rules:
+
+- only a Super Admin in the owning tenant may install, update, configure, or uninstall one; the tenant does not need to be the Default tenant
+- installation is forced into the owning tenant's global scope: `global` for the Default tenant or `tenant:<tenantId>:global` otherwise
+- install and update stage the new runtime for activation after an API restart; uninstall also completes after restart
+- a tenant-level plugin name may belong to only one tenant, preventing duplicate registration of controllers, entities, and process-level providers
+- other tenants cannot see it through plugin listings, provider/strategy resolution, or bundle resource discovery
+- plugin controllers carry installation-scope metadata, and the global `PluginScopeGuard` rejects HTTP requests from other tenants or organizations
+- tenant plugins must declare a stable `xpert.plugin.artifactNamespace`
+- do not change a plugin from system to tenant while the old system registration still exists; uninstall it and restart the API before installing the new level so two process-level module/entity copies cannot load together
+
+Package metadata and runtime metadata must agree:
+
+```json
+{
+  "xpert": {
+    "plugin": {
+      "level": "tenant",
+      "artifactNamespace": "bom"
+    }
+  }
+}
+```
+
+```ts
+meta: {
+  level: 'tenant',
+  artifactNamespace: 'bom'
+}
+```
+
+`organization` plugins keep their requested organization or tenant-global scope. The installer reads marketplace/package metadata before routing by `level`, and the host validates runtime metadata again before activation. A final level/scope mismatch is rejected.
 
 ### Provider and strategy resolution
 
@@ -134,7 +169,7 @@ This means:
 
 ### `plugin_instance` persistence
 
-`plugin_instance.scopeKey` is the source of truth for plugin scope. New rows use a unique constraint on `(scopeKey, pluginName)` so the same plugin can exist once per explicit scope but system plugins can exist only once platform-wide.
+`plugin_instance.scopeKey` is the source of truth for plugin scope. New rows use a unique constraint on `(scopeKey, pluginName)`. Regular organization plugins may exist in multiple explicit scopes, system plugins exist once platform-wide, and a tenant plugin has exactly one owning tenant.
 
 The legacy `(tenantId, organizationId, pluginName)` fields remain for compatibility, display, and old-row fallback. They must not be used to invent synthetic scope values such as `organizationId = 'system:global'`.
 
@@ -145,7 +180,7 @@ During startup restore, old rows are backfilled into explicit scope keys:
 - non-Default tenant global rows become `tenant:<tenantId>:global`
 - Default tenant or legacy global rows remain `global`
 
-Restore and runtime install converge on the same scope model. System plugins are loaded once under `system:global` and then become visible to every tenant through the provider fallback chain.
+Restore and runtime install converge on the same scope model. System plugins are loaded once under `system:global` and become visible to every tenant through the provider fallback chain. Tenant plugins load once under their owning tenant-global scope.
 
 ### Storage and bundle resources
 
@@ -304,7 +339,7 @@ export const plugin: XpertPlugin = {
   meta: {
     name: '@xpert-ai/plugin-bom-document-intake',
     version: '0.0.1',
-    level: 'system',
+    level: 'tenant',
     category: 'middleware',
     displayName: 'BOM Document Intake',
     description: 'Parse BOM change documents and expose review views.',

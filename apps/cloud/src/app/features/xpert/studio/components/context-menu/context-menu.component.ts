@@ -1,17 +1,7 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectorRef,
-  Component,
-  computed,
-  effect,
-  inject,
-  model,
-  signal,
-  TemplateRef,
-  ViewChild
-} from '@angular/core'
+import { ChangeDetectorRef, Component, computed, inject, model, signal, TemplateRef, ViewChild } from '@angular/core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -74,9 +64,8 @@ import {
   genXpertSkillKey,
   IWFNMiddleware,
   genXpertMiddlewareKey,
-  isUserAddableAgentMiddleware,
   injectXpertAgentAPI,
-  TAgentMiddlewareMeta,
+  TAgentMiddlewareDescriptor,
   TXpertTeamNode,
   genXpertIteratorKey,
   genXpertStartKey
@@ -109,6 +98,7 @@ import { FormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { groupAgentMiddlewares } from './middleware-groups'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -185,22 +175,13 @@ export class XpertStudioContextMenuComponent {
   readonly agentMiddlewares = toSignal(this.agentAPI.agentMiddlewares$)
   readonly searchMiddlewares = model<string>('')
   readonly #searchMiddlewaresTerm = debouncedSignal(this.searchMiddlewares, 300)
-  readonly filteredAgentMiddlewares = computed(
-    () =>
-      this.agentMiddlewares()?.filter((middleware) => {
-        const term = this.#searchMiddlewaresTerm()?.toLowerCase().trim()
-        if (!isUserAddableAgentMiddleware(middleware.meta)) {
-          return false
-        }
-        return term
-          ? middleware.meta.name.toLowerCase().includes(term) ||
-              this.i18n.transform(middleware.meta.label).toLowerCase().includes(term)
-          : true
-      }) ?? []
+  readonly middlewareGroups = computed(() =>
+    groupAgentMiddlewares(this.agentMiddlewares(), this.#searchMiddlewaresTerm(), (value) => this.i18n.transform(value))
   )
+  readonly collapsedMiddlewareGroups = signal<ReadonlySet<string>>(new Set<string>())
   readonly middlewareDetailTrigger = signal<CdkOverlayOrigin | null>(null)
   readonly middlewareDetailOpen = signal(false)
-  readonly middlewareDetail = signal<{ meta: TAgentMiddlewareMeta } | null>(null)
+  readonly middlewareDetail = signal<TAgentMiddlewareDescriptor | null>(null)
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -250,7 +231,26 @@ export class XpertStudioContextMenuComponent {
     this.root.insertConnection = null
   }
 
-  openMiddlewareDetail(middleware: { meta: TAgentMiddlewareMeta }, overlayTrigger: CdkOverlayOrigin) {
+  isMiddlewareGroupCollapsed(groupKey: string) {
+    return !this.#searchMiddlewaresTerm()?.trim() && this.collapsedMiddlewareGroups().has(groupKey)
+  }
+
+  toggleMiddlewareGroup(groupKey: string) {
+    if (this.#searchMiddlewaresTerm()?.trim()) {
+      return
+    }
+
+    const collapsed = new Set(this.collapsedMiddlewareGroups())
+    if (collapsed.has(groupKey)) {
+      collapsed.delete(groupKey)
+    } else {
+      collapsed.add(groupKey)
+    }
+    this.collapsedMiddlewareGroups.set(collapsed)
+    this.closeMiddlewareDetail()
+  }
+
+  openMiddlewareDetail(middleware: TAgentMiddlewareDescriptor, overlayTrigger: CdkOverlayOrigin) {
     if (!middleware?.meta?.name) {
       this.closeMiddlewareDetail()
       return
@@ -264,7 +264,7 @@ export class XpertStudioContextMenuComponent {
     this.middlewareDetailOpen.set(false)
   }
 
-  middlewareConfigEntries(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+  middlewareConfigEntries(middleware: TAgentMiddlewareDescriptor | null | undefined) {
     const properties = middleware?.meta?.configSchema?.properties
     return properties
       ? Object.entries(properties).map(([key, property]) => ({
@@ -274,11 +274,11 @@ export class XpertStudioContextMenuComponent {
       : []
   }
 
-  middlewareConfigPreview(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+  middlewareConfigPreview(middleware: TAgentMiddlewareDescriptor | null | undefined) {
     return this.middlewareConfigEntries(middleware).slice(0, 3)
   }
 
-  middlewareRemainingConfigCount(middleware: { meta: TAgentMiddlewareMeta } | null | undefined) {
+  middlewareRemainingConfigCount(middleware: TAgentMiddlewareDescriptor | null | undefined) {
     return Math.max(
       0,
       this.middlewareConfigEntries(middleware).length - this.middlewareConfigPreview(middleware).length

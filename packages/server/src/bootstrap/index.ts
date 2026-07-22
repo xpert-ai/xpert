@@ -18,7 +18,7 @@ import { AppService } from '../app.service'
 import { resolveNestLogLevels } from '../logger'
 import { collectPluginOrmMetadata, mergeEntityClasses, mergeSubscriberClasses } from '../plugin/plugin-orm-metadata'
 import { ServerAppModule } from '../server.module'
-import { AuthGuard } from './../shared/guards'
+import { AuthGuard, PluginScopeGuard } from './../shared/guards'
 
 export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestApplication> {
 	const config = await registerPluginConfig(pluginConfig)
@@ -33,7 +33,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 
 	// This will lockdown all routes and make them accessible by authenticated users only.
 	const reflector = app.get(Reflector)
-	app.useGlobalGuards(new AuthGuard(reflector))
+	app.useGlobalGuards(new AuthGuard(reflector), new PluginScopeGuard(reflector))
 
 	// app.useLogger(app.get(SentryService));
 	app.use(json({ limit: '50mb' }))

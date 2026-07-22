@@ -13,12 +13,25 @@ import { IsOptional, IsString } from 'class-validator'
 import { TenantOrganizationBaseEntity } from '../core/entities/internal'
 
 export function resolvePluginLevel(level?: string | null): PluginLevel {
-	return level === PLUGIN_LEVEL.SYSTEM ? PLUGIN_LEVEL.SYSTEM : PLUGIN_LEVEL.ORGANIZATION
+	if (level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.TENANT) {
+		return level
+	}
+
+	return PLUGIN_LEVEL.ORGANIZATION
+}
+
+export function isRestartRequiredPluginLevel(level?: string | null): boolean {
+	const resolvedLevel = resolvePluginLevel(level)
+	return resolvedLevel === PLUGIN_LEVEL.SYSTEM || resolvedLevel === PLUGIN_LEVEL.TENANT
 }
 
 @Entity('plugin_instance')
 @Index(['scopeKey', 'pluginName'], { unique: true })
 @Index(['tenantId', 'organizationId', 'pluginName'], { unique: true })
+@Index('IDX_plugin_instance_tenant_level_plugin_name', ['pluginName'], {
+	unique: true,
+	where: `"level" = 'tenant'`
+})
 export class PluginInstance extends TenantOrganizationBaseEntity implements IPlugin {
 	@ApiProperty({ type: () => String, required: false })
 	@Column({ type: 'varchar', nullable: true })

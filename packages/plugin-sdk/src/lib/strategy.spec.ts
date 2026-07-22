@@ -282,4 +282,26 @@ describe('BaseStrategyRegistry', () => {
     expect(registry.get('dynamic', 'org-1')).toBe(strategy)
     expect(registry.list('org-1')).toEqual([strategy])
   })
+
+  it('exposes explicit built-in and plugin provenance for registered strategies', () => {
+    class BuiltinStrategy {}
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'builtin', BuiltinStrategy)
+
+    class PluginStrategy {}
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'plugin', PluginStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/plugin', PluginStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'org-1', PluginStrategy)
+
+    const registry = new TestStrategyRegistry<object>()
+
+    expect(registry.getSource(new BuiltinStrategy())).toEqual({
+      kind: 'builtin',
+      scopeKey: 'builtin:global'
+    })
+    expect(registry.getSource(new PluginStrategy())).toEqual({
+      kind: 'plugin',
+      pluginName: '@xpert/plugin',
+      scopeKey: 'org-1'
+    })
+  })
 })

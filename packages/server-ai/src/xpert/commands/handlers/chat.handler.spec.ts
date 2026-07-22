@@ -670,6 +670,7 @@ describe('XpertChatHandler', () => {
                 {
                     action: 'send',
                     projectId: 'project-1',
+                    sandboxEnvironmentId: 'environment-1',
                     message: {
                         clientMessageId: 'client-1',
                         input: {
@@ -700,9 +701,10 @@ describe('XpertChatHandler', () => {
             fileAssetId: 'file-asset-workspace-1',
             conversationId: 'conversation-1',
             threadId: 'thread-1',
-            projectId: 'project-1',
-            xpertId: 'xpert-1'
+            xpertId: 'xpert-1',
+            sandboxEnvironmentId: 'environment-1'
         })
+        expect(attachCommand.input.projectId).toBeUndefined()
         expect(attachCommand.input.storageFileId).toBeUndefined()
     })
 

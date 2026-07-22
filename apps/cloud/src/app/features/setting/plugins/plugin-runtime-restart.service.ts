@@ -36,8 +36,6 @@ export class PluginRuntimeRestartService {
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
   readonly restartUnavailableMessageKey = computed(() => {
     switch (this.restartCapability()?.reason) {
-      case 'restart-disabled':
-        return 'PAC.Plugin.RestartDisabled'
       case 'default-tenant-required':
         return 'PAC.Plugin.RestartDefaultTenantRequired'
       default:
@@ -163,7 +161,7 @@ export class PluginRuntimeRestartService {
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
-        reason: 'Activate staged system plugin changes'
+        reason: 'Activate staged process-level plugin changes'
       })
     )
 

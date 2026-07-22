@@ -19,6 +19,7 @@ jest.mock('@xpert-ai/contracts', () => ({
 	},
 	PLUGIN_LEVEL: {
 		SYSTEM: 'system',
+		TENANT: 'tenant',
 		ORGANIZATION: 'organization'
 	}
 }))
@@ -128,11 +129,15 @@ jest.mock('./plugin-instance.service', () => ({
 
 jest.mock('./plugin-update.utils', () => ({
 	canManageGlobalPlugins: jest.fn(() => false),
-	canManageSystemPlugins: jest.fn(() => true)
+	canManageSystemPlugins: jest.fn(() => true),
+	canManageTenantPlugins: jest.fn(() => true)
 }))
 
 jest.mock('./plugin-instance.entity', () => ({
-	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
+	resolvePluginLevel: jest.fn((level?: string) =>
+		level === 'system' || level === 'tenant' ? level : 'organization'
+	),
+	isRestartRequiredPluginLevel: jest.fn((level?: string) => level === 'system' || level === 'tenant')
 }))
 
 const {
@@ -142,7 +147,7 @@ const {
 	resolveTenantGlobalScopeKey
 } = require('@xpert-ai/plugin-sdk')
 const { t } = require('i18next')
-const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
+const { canManageGlobalPlugins, canManageSystemPlugins, canManageTenantPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
 const {
@@ -164,7 +169,7 @@ const {
 	stagePackageDirectoryPlugin
 } = require('./organization-plugin.store')
 const { cleanupExtractedPluginArchive, extractPluginArchive, readPluginPackageJson } = require('./plugin-archive')
-const { resolvePluginLevel } = require('./plugin-instance.entity')
+const { isRestartRequiredPluginLevel, resolvePluginLevel } = require('./plugin-instance.entity')
 const { PluginManagementService } = require('./plugin-management.service')
 
 class ExistingEntity {}
@@ -173,6 +178,8 @@ class ExistingSubscriber {}
 describe('PluginManagementService', () => {
 	const pluginInstanceService = {
 		findOneByPluginName: jest.fn(),
+		findSystemLevelRegistration: jest.fn(),
+		findTenantLevelOwner: jest.fn(),
 		getDefaultTenantId: jest.fn(),
 		deactivate: jest.fn(),
 		uninstall: jest.fn(),
@@ -230,13 +237,19 @@ describe('PluginManagementService', () => {
 			error instanceof Error ? error.message : String(error)
 		)
 		;(resolvePluginLevel as jest.Mock).mockImplementation((level?: string) =>
-			level === 'system' ? 'system' : 'organization'
+			level === 'system' || level === 'tenant' ? level : 'organization'
+		)
+		;(isRestartRequiredPluginLevel as jest.Mock).mockImplementation(
+			(level?: string) => level === 'system' || level === 'tenant'
 		)
 		resolveTenantGlobalScopeKey.mockImplementation((tenantId?: string | null) =>
 			tenantId && tenantId !== 'tenant-1' ? `tenant:${tenantId}:global` : '__global__'
 		)
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
+		;(canManageTenantPlugins as jest.Mock).mockReturnValue(true)
+		;(pluginInstanceService as any).findTenantLevelOwner.mockResolvedValue(null)
+		;(pluginInstanceService as any).findSystemLevelRegistration.mockResolvedValue(null)
 		dataSource.options = {
 			entities: [ExistingEntity],
 			subscribers: [ExistingSubscriber],
@@ -1065,6 +1078,110 @@ describe('PluginManagementService', () => {
 		)
 	})
 
+	it('stages tenant-level plugins in the owning tenant global scope', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-bom',
+			organizationId: 'org-bom'
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'tenant',
+			version: '1.0.0',
+			artifactNamespace: 'bom'
+		})
+		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'tenant',
+			version: '1.0.0',
+			artifactNamespace: 'bom'
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-bom'
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-bom',
+				organizationId: '__global__',
+				restartRequired: true
+			})
+		)
+
+		expect((pluginInstanceService as any).findTenantLevelOwner).toHaveBeenCalledWith('@xpert-ai/plugin-bom')
+		expect(registerPluginsAsync).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-bom',
+				organizationId: '__global__',
+				scopeKey: 'tenant:tenant-bom:global',
+				allowSystemPlugins: false,
+				stageOnly: true,
+				plugins: [expect.objectContaining({ level: 'tenant' })]
+			}),
+			expect.anything()
+		)
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				tenantId: 'tenant-bom',
+				organizationId: '__global__',
+				scopeKey: 'tenant:tenant-bom:global',
+				level: 'tenant'
+			}),
+			{ syncLoadedConfig: false }
+		)
+		expect(loadPlugin).not.toHaveBeenCalled()
+		expect(lazyLoader.load).not.toHaveBeenCalled()
+	})
+
+	it('rejects tenant-level installation when the plugin belongs to another tenant', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-bom',
+			organizationId: '__global__'
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'tenant'
+		})
+		;(pluginInstanceService as any).findTenantLevelOwner.mockResolvedValue({ tenantId: 'tenant-other' })
+
+		await expect(service.installPlugin({ pluginName: '@xpert-ai/plugin-bom' })).rejects.toBeInstanceOf(Error)
+
+		expect(registerPluginsAsync).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+	})
+
+	it('requires the old system registration to be removed before changing a plugin to tenant level', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-bom',
+			organizationId: '__global__'
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0',
+			warnings: [],
+			level: 'tenant'
+		})
+		;(pluginInstanceService as any).findSystemLevelRegistration.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-bom',
+			level: 'system'
+		})
+
+		await expect(service.installPlugin({ pluginName: '@xpert-ai/plugin-bom' })).rejects.toBeInstanceOf(Error)
+
+		expect(registerPluginsAsync).not.toHaveBeenCalled()
+		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+	})
+
 	it('stages code updates for system plugins in a new immutable runtime directory', async () => {
 		RequestContext.getScope.mockReturnValue({
 			tenantId: 'tenant-1',
@@ -1257,5 +1374,34 @@ describe('PluginManagementService', () => {
 		)
 		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
 		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
+	})
+
+	it('deactivates tenant-level plugins in their owning tenant and requires a restart', async () => {
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-bom',
+			organizationId: '__global__'
+		})
+		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
+		loadedPlugins.push({
+			tenantId: 'tenant-bom',
+			organizationId: '__global__',
+			scopeKey: 'tenant:tenant-bom:global',
+			name: '@xpert-ai/plugin-bom',
+			packageName: '@xpert-ai/plugin-bom',
+			level: 'tenant'
+		})
+
+		await expect(
+			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-bom'], '__global__', 'tenant:tenant-bom:global')
+		).resolves.toEqual({ restartRequired: true })
+
+		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
+			'tenant-bom',
+			'__global__',
+			['@xpert-ai/plugin-bom'],
+			{ scopeKey: 'tenant:tenant-bom:global' }
+		)
+		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
 	})
 })

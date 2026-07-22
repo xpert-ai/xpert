@@ -42,7 +42,7 @@ function getRequire(basedir?: string) {
 
 function parsePluginLevel(level: unknown): PluginLevel | undefined {
 	level = typeof level === 'string' ? level.toLowerCase() : undefined
-	if (level === 'system' || level === 'organization') {
+	if (level === 'system' || level === 'tenant' || level === 'organization') {
 		return level
 	}
 	return undefined

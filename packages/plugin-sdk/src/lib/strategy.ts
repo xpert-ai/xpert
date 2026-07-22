@@ -12,6 +12,17 @@ import {
   resolveTenantGlobalScopeKey
 } from './types'
 
+export type StrategySource =
+  | {
+      kind: 'builtin'
+      scopeKey: string
+    }
+  | {
+      kind: 'plugin'
+      pluginName: string
+      scopeKey: string
+    }
+
 export class BaseStrategyRegistry<S> implements OnModuleInit {
   private readonly logger = new Logger(BaseStrategyRegistry.name)
 
@@ -54,10 +65,9 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
     }
     const type = this.reflector.get<string>(this.strategyKey, target)
     if (type) {
-      const pluginName = this.reflector.get<string>(PLUGIN_METADATA_KEY, target)
-      const organizationId =
-        this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ??
-        (pluginName ? GLOBAL_ORGANIZATION_SCOPE : BUILTIN_GLOBAL_SCOPE)
+      const source = this.getSource(instance as S)
+      const pluginName = source.kind === 'plugin' ? source.pluginName : undefined
+      const organizationId = source.scopeKey
       const orgMap = this.strategies.get(organizationId) ?? new Map<string, S>()
       orgMap.set(type, instance as S)
       this.strategies.set(organizationId, orgMap)
@@ -67,6 +77,31 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
         pluginStrategies.add(type)
         this.pluginStrategies.set(pluginName, pluginStrategies)
       }
+    }
+  }
+
+  /** Returns the explicit registry provenance attached by the plugin loader. */
+  getSource(instance: S): StrategySource {
+    const target = resolveStrategyMetadataTarget(instance)
+    if (!target) {
+      return {
+        kind: 'builtin',
+        scopeKey: BUILTIN_GLOBAL_SCOPE
+      }
+    }
+
+    const pluginName = this.reflector.get<string>(PLUGIN_METADATA_KEY, target)
+    if (!pluginName) {
+      return {
+        kind: 'builtin',
+        scopeKey: this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ?? BUILTIN_GLOBAL_SCOPE
+      }
+    }
+
+    return {
+      kind: 'plugin',
+      pluginName,
+      scopeKey: this.reflector.get<string>(ORGANIZATION_METADATA_KEY, target) ?? GLOBAL_ORGANIZATION_SCOPE
     }
   }
 

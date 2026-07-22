@@ -1,5 +1,5 @@
 import { IWorkflowNode, WorkflowNodeTypeEnum } from './xpert-workflow.model'
-import { I18nObject, IconDefinition, letterStartSUID } from '../types'
+import { I18nObject, I18nText, IconDefinition, letterStartSUID } from '../types'
 import { TXpertFeatureKey, TXpertGraph, TXpertTeamNode } from './xpert.model'
 import { JsonSchemaObjectType } from './types'
 import type { SkillSlashCommand } from './skill.model'
@@ -86,6 +86,22 @@ export type TAgentMiddlewareMeta = {
    * Optional user-facing migration guidance shown when the middleware is deprecated.
    */
   deprecationMessage?: I18nObject
+}
+
+export type TAgentMiddlewareSource =
+  | {
+      kind: 'builtin'
+    }
+  | {
+      kind: 'plugin'
+      pluginName: string
+      displayName: I18nText
+      icon?: IconDefinition
+    }
+
+export type TAgentMiddlewareDescriptor = {
+  meta: TAgentMiddlewareMeta
+  source: TAgentMiddlewareSource
 }
 
 export function isUserAddableAgentMiddleware(meta?: Pick<TAgentMiddlewareMeta, 'builtin'> | null) {

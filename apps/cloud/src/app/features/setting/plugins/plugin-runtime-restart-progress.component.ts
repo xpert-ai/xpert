@@ -144,10 +144,6 @@ export class PluginRuntimeRestartProgressComponent implements OnInit {
         key: 'PAC.Plugin.RestartInteractiveSessionRequired',
         fallback: 'Sign in with an interactive SuperAdmin session before restarting the API service.'
       },
-      RUNTIME_RESTART_DISABLED: {
-        key: 'PAC.Plugin.RestartDisabled',
-        fallback: 'Controlled API restart is disabled for this deployment. Restart the service through operations.'
-      },
       RUNTIME_RESTART_COORDINATION_UNAVAILABLE: {
         key: 'PAC.Plugin.RestartCoordinationUnavailable',
         fallback: 'Restart coordination is temporarily unavailable. Try again shortly.'

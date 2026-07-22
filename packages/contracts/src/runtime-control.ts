@@ -1,13 +1,12 @@
 export const RUNTIME_RESTART_CONFIRMATION = 'RESTART' as const
 
-export type RuntimeRestartMode = 'disabled' | 'self-signal'
+export type RuntimeRestartMode = 'self-signal'
 
 export type RuntimeRestartCapabilityReason =
   | 'allowed'
   | 'interactive-auth-required'
   | 'super-admin-required'
   | 'default-tenant-required'
-  | 'restart-disabled'
 
 export interface IRuntimeRestartCapability {
   allowed: boolean
@@ -25,7 +24,7 @@ export interface IRuntimeRestartRequest {
 export interface IRuntimeRestartResponse {
   accepted: true
   restartId: string
-  mode: Exclude<RuntimeRestartMode, 'disabled'>
+  mode: RuntimeRestartMode
   instanceId: string
   requestedAt: string
   signalAfterMs: number

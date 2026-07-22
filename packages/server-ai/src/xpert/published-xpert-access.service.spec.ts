@@ -1,19 +1,24 @@
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-    RequestContext: {
-        currentTenantId: jest.fn(),
-        currentUserId: jest.fn(),
-        getOrganizationId: jest.fn(),
-        currentApiPrincipal: jest.fn(),
-        isTenantScope: jest.fn()
+jest.mock('@xpert-ai/plugin-sdk', () => {
+    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
+
+    return {
+        ...actual,
+        RequestContext: {
+            currentTenantId: jest.fn(),
+            currentUserId: jest.fn(),
+            getOrganizationId: jest.fn(),
+            currentApiPrincipal: jest.fn(),
+            isTenantScope: jest.fn()
+        }
     }
-}))
+})
 
 jest.mock('./xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
-import { ApiKeyBindingType, XpertTypeEnum } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, SecretTokenBindingType, XpertTypeEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
@@ -166,6 +171,30 @@ describe('PublishedXpertAccessService', () => {
         const service = new PublishedXpertAccessService(asXpertRepository(repository))
 
         await expect(service.getAccessiblePublishedXpert('xpert-public-2')).rejects.toThrow(ForbiddenException)
+        expect(repository.findOne).not.toHaveBeenCalled()
+    })
+
+    it('rejects a user xpert session for another assistant', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            requestedOrganizationId: 'org-requested',
+            requestedUserId: 'user-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-user-1'
+            }
+        })
+
+        const repository = {
+            findOne: jest.fn(),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-user-2')).rejects.toThrow(ForbiddenException)
         expect(repository.findOne).not.toHaveBeenCalled()
     })
 

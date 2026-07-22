@@ -106,6 +106,7 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "ArtifactNamespace": "Artifact namespace",
       "MarketplaceContentType_app": "App",
       "MarketplaceContentType_view": "View",
       "MarketplaceContentType_feature": "Feature",
@@ -155,7 +156,7 @@
       "ReadmeSource_npm-package": "NPM package",
       "ReadmeSource_marketplace-metadata": "Marketplace metadata",
       "ReadmeSource_description": "Description",
-      "SystemPluginTenantScopeRequired": "System plugins can only be installed from tenant scope.",
+      "SystemPluginTenantScopeRequired": "System and tenant-level plugins can only be installed from tenant scope.",
       "ArchiveSource": "Archive file",
       "InstallFromArchive": "Install from Archive",
       "ArchiveInstallHint": "Upload a plugin package archive (.zip, .tgz, .tar.gz, or .tar). The archive must contain one package.json and a built dist/ or src/index.ts entry.",
@@ -1709,7 +1710,7 @@
         "Close": "Close",
         "EvidenceLocation": "Evidence location",
         "EvidenceText": "Evidence text",
-        "EvidenceHint": "The host preview overlays the evidence box using the rendered PDF page dimensions. An external browser tab can only open the original file and cannot render this evidence box.",
+        "EvidenceHint": "The host preview overlays the evidence box on PDF pages and images. An external browser tab can only open the original file and cannot render this evidence box.",
         "RenderingEvidencePage": "Rendering evidence page…",
         "EvidencePageUnavailable": "Evidence page unavailable",
         "Evidence": "Evidence",

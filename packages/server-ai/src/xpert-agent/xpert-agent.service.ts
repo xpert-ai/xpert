@@ -1,17 +1,24 @@
 import {
     IXpert,
     IWFNMiddleware,
+    PluginMeta,
     STATE_VARIABLE_HUMAN,
+    TAgentMiddlewareSource,
     TChatOptions,
     TXpertAgentChatRequest,
     isUserAddableAgentMiddleware,
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
-import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import {
+    LOADED_PLUGINS,
+    LoadedPluginRecord,
+    normalizePluginName,
+    TenantOrganizationAwareCrudService
+} from '@xpert-ai/server-core'
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, type IAgentMiddlewareStrategy, RequestContext } from '@xpert-ai/plugin-sdk'
 import { assign } from 'lodash'
 import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
@@ -33,7 +40,10 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         repository: Repository<XpertAgent>,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService
+        private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService,
+        @Optional()
+        @Inject(LOADED_PLUGINS)
+        private readonly loadedPlugins: LoadedPluginRecord[] = []
     ) {
         super(repository)
     }
@@ -80,9 +90,33 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
             .filter((strategy) => isUserAddableAgentMiddleware(strategy.meta))
             .map((strategy) => {
                 return {
-                    meta: strategy.meta
+                    meta: strategy.meta,
+                    source: this.resolveMiddlewareSource(strategy)
                 }
             })
+    }
+
+    private resolveMiddlewareSource(strategy: IAgentMiddlewareStrategy): TAgentMiddlewareSource {
+        const source = this.agentMiddlewareRegistry.getSource(strategy)
+        if (source.kind === 'builtin') {
+            return { kind: 'builtin' }
+        }
+
+        const plugin = [...this.loadedPlugins]
+            .reverse()
+            .find(
+                (candidate) =>
+                    (candidate.scopeKey ?? candidate.organizationId) === source.scopeKey &&
+                    normalizePluginName(candidate.packageName ?? candidate.name) === source.pluginName
+            )
+        const pluginMeta: PluginMeta | undefined = plugin?.instance?.meta
+
+        return {
+            kind: 'plugin',
+            pluginName: source.pluginName,
+            displayName: pluginMeta?.displayName ?? source.pluginName,
+            ...(pluginMeta?.icon ? { icon: pluginMeta.icon } : {})
+        }
     }
 
     private createMiddlewareNode(provider: string, options: any): IWFNMiddleware {

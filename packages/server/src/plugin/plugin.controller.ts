@@ -51,6 +51,7 @@ import { PluginManagementService } from './plugin-management.service'
 import { getCodeWorkspacePath } from './source-config'
 import {
 	canManageSystemPlugins,
+	canManageTenantPlugins,
 	canUninstallPlugin,
 	canUpdatePlugin,
 	hasNewerVersion,
@@ -132,9 +133,11 @@ export class PluginController {
 			throw new BadRequestException(`Plugin "${body.pluginName}" is not configurable in the current scope`)
 		}
 		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
+		const level = resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level)
 		if (
-			resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level) === PLUGIN_LEVEL.SYSTEM &&
-			!canManageSystemPlugins(organizationId, defaultTenantId)
+			(level === PLUGIN_LEVEL.SYSTEM && !canManageSystemPlugins(organizationId, defaultTenantId)) ||
+			(level === PLUGIN_LEVEL.TENANT &&
+				(organizationId !== GLOBAL_ORGANIZATION_SCOPE || !canManageTenantPlugins(plugin.tenantId)))
 		) {
 			throw new BadRequestException(`Plugin "${body.pluginName}" cannot be configured from the current scope`)
 		}
@@ -178,9 +181,11 @@ export class PluginController {
 			throw new BadRequestException(`Plugin "${body.pluginName}" is not configurable in the current scope`)
 		}
 		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
+		const level = resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level)
 		if (
-			resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level) === PLUGIN_LEVEL.SYSTEM &&
-			!canManageSystemPlugins(organizationId, defaultTenantId)
+			(level === PLUGIN_LEVEL.SYSTEM && !canManageSystemPlugins(organizationId, defaultTenantId)) ||
+			(level === PLUGIN_LEVEL.TENANT &&
+				(organizationId !== GLOBAL_ORGANIZATION_SCOPE || !canManageTenantPlugins(plugin.tenantId)))
 		) {
 			throw new BadRequestException(`Plugin "${body.pluginName}" cannot be configured from the current scope`)
 		}
@@ -445,7 +450,11 @@ export class PluginController {
 		const canConfigure =
 			level === PLUGIN_LEVEL.SYSTEM
 				? canManageSystemPlugins(organizationId, defaultTenantId) && !!configSchema
-				: plugin.organizationId === organizationId && !!configSchema
+				: level === PLUGIN_LEVEL.TENANT
+					? organizationId === GLOBAL_ORGANIZATION_SCOPE &&
+						canManageTenantPlugins(plugin.tenantId) &&
+						!!configSchema
+					: plugin.organizationId === organizationId && !!configSchema
 		const instance = await this.pluginInstanceService.findOneByPluginName(
 			plugin.name,
 			plugin.organizationId,
@@ -526,7 +535,7 @@ export class PluginController {
 			loadedScopeStates
 		)
 		const canUninstall = canUninstallPlugin(
-			{ organizationId: scope, level: plugin.level },
+			{ tenantId: plugin.tenantId, organizationId: scope, level: plugin.level },
 			organizationId,
 			defaultTenantId
 		)

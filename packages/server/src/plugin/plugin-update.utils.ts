@@ -2,7 +2,7 @@ import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@xpert-ai/co
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { LoadedPluginRecord } from './types'
 
-type PluginScopeRecord = Pick<LoadedPluginRecord, 'organizationId' | 'source'> & {
+type PluginScopeRecord = Pick<LoadedPluginRecord, 'tenantId' | 'organizationId' | 'source'> & {
 	level?: PluginLevel
 	instance?: {
 		meta?: {
@@ -28,6 +28,11 @@ export function canManageSystemPlugins(organizationId: string, defaultTenantId: 
 	)
 }
 
+export function canManageTenantPlugins(tenantId: string | null | undefined) {
+	const currentTenantId = RequestContext.getScope?.()?.tenantId ?? RequestContext.currentTenantId()
+	return !!tenantId && tenantId === currentTenantId && canManageGlobalPlugins()
+}
+
 export function canUpdatePlugin(
 	plugin: LoadedPluginRecord,
 	organizationId: string,
@@ -40,6 +45,9 @@ export function canUpdatePlugin(
 	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
 	if (level === PLUGIN_LEVEL.SYSTEM) {
 		return canManageSystemPlugins(organizationId, defaultTenantId)
+	}
+	if (level === PLUGIN_LEVEL.TENANT) {
+		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageTenantPlugins(plugin.tenantId)
 	}
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
@@ -57,6 +65,9 @@ export function canUninstallPlugin(
 	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
 	if (level === PLUGIN_LEVEL.SYSTEM) {
 		return canManageSystemPlugins(organizationId, defaultTenantId)
+	}
+	if (level === PLUGIN_LEVEL.TENANT) {
+		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageTenantPlugins(plugin.tenantId)
 	}
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {

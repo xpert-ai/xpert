@@ -152,7 +152,7 @@ describe('XpertPublishHandler', () => {
         )
     })
 
-    it('ensures the xpert principal user before publishing enabled schedule triggers', async () => {
+    it('ensures the xpert principal user before publishing any runnable xpert', async () => {
         const { handler, xpert, xpertPrincipalService, commandBus } = createHandler({
             userId: null,
             draft: {
@@ -189,5 +189,28 @@ describe('XpertPublishHandler', () => {
         expect(xpertPrincipalService.ensurePrincipalUser.mock.invocationCallOrder[0]).toBeLessThan(
             commandBus.execute.mock.invocationCallOrder[0]
         )
+    })
+
+    it('ensures the xpert principal user even when no schedule trigger exists', async () => {
+        const { handler, xpert, xpertPrincipalService } = createHandler({
+            userId: null
+        })
+
+        await handler.publish(xpert, '1', xpert.draft)
+
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'xpert-1' })
+        )
+        expect(xpert.userId).toBe('assistant-user-1')
+    })
+
+    it('does not recreate an existing xpert principal user', async () => {
+        const { handler, xpert, xpertPrincipalService } = createHandler({
+            userId: 'assistant-user-existing'
+        })
+
+        await handler.publish(xpert, '1', xpert.draft)
+
+        expect(xpertPrincipalService.ensurePrincipalUser).not.toHaveBeenCalled()
     })
 })

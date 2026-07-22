@@ -1,3 +1,8 @@
+/**
+ * Invariants: production API processes run under Docker restart policies.
+ * This module only signals SIGTERM; the process supervisor starts the replacement.
+ * Local development must run through a watcher such as nodemon for restart recovery.
+ */
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { RedisModule } from '../core/redis'
 import { RuntimeControlController } from './runtime-control.controller'

@@ -50,15 +50,9 @@ export interface RuntimeRestartAuditContext {
 @Injectable()
 export class RuntimeControlService {
 	private readonly logger = new Logger(RuntimeControlService.name)
-	private readonly mode = resolveRuntimeRestartMode()
-	private readonly signalDelayMs = positiveInteger(
-		process.env.XPERT_RUNTIME_RESTART_SIGNAL_DELAY_MS,
-		DEFAULT_SIGNAL_DELAY_MS
-	)
-	private readonly drainTimeoutMs = positiveInteger(
-		process.env.XPERT_RUNTIME_RESTART_DRAIN_TIMEOUT_MS,
-		DEFAULT_DRAIN_TIMEOUT_MS
-	)
+	private readonly mode: RuntimeRestartMode = 'self-signal'
+	private readonly signalDelayMs = DEFAULT_SIGNAL_DELAY_MS
+	private readonly drainTimeoutMs = DEFAULT_DRAIN_TIMEOUT_MS
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -80,10 +74,6 @@ export class RuntimeControlService {
 		if (!defaultTenantId || RequestContext.currentTenantId() !== defaultTenantId) {
 			return { allowed: false, mode: this.mode, reason: 'default-tenant-required' }
 		}
-		if (this.mode === 'disabled') {
-			return { allowed: false, mode: this.mode, reason: 'restart-disabled' }
-		}
-
 		return { allowed: true, mode: this.mode, reason: 'allowed' }
 	}
 
@@ -99,14 +89,6 @@ export class RuntimeControlService {
 				message: `confirmation must equal ${RUNTIME_RESTART_CONFIRMATION}`
 			})
 		}
-		if (this.mode === 'disabled') {
-			throw new ServiceUnavailableException({
-				statusCode: 503,
-				errorCode: 'RUNTIME_RESTART_DISABLED',
-				message: 'Controlled API restart is disabled for this deployment'
-			})
-		}
-
 		const currentDrain = this.lifecycle.getDrainState()
 		if (currentDrain) {
 			throw this.restartInProgress(currentDrain.restartId)
@@ -233,19 +215,6 @@ export class RuntimeControlService {
 	private writeAuditLog(event: string, details: Record<string, unknown>): void {
 		this.logger.warn(JSON.stringify({ event, ...details }))
 	}
-}
-
-export function resolveRuntimeRestartMode(environment: NodeJS.ProcessEnv = process.env): RuntimeRestartMode {
-	const configured = environment.XPERT_RUNTIME_RESTART_MODE?.trim().toLowerCase()
-	if (configured === 'self-signal') {
-		return 'self-signal'
-	}
-	return 'disabled'
-}
-
-function positiveInteger(value: string | undefined, fallback: number): number {
-	const parsed = Number.parseInt(value ?? '', 10)
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function describeError(error: unknown): string {

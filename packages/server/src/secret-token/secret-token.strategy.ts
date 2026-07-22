@@ -7,7 +7,7 @@ import { ApiKeyService } from '../api-key/api-key.service'
 import {
 	applyRequestedOrganizationScopeHeaders,
 	buildApiKeyPrincipal,
-	resolveApiKeyRequestedOrganizationId,
+	resolveApiKeyRequestedOrganizationId
 } from '../api-key/api-key-principal'
 import { UserService } from '../user'
 import { SecretTokenService } from './secret-token.service'
@@ -44,8 +44,17 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 
 		this.validateToken(token)
 			.then(async ({ apiKey, secretToken }) => {
+				// Resolve the principal from the explicit binding type. createdById is
+				// shared provenance metadata and cannot tell API_KEY, USER_XPERT and
+				// PUBLIC_XPERT grants apart.
 				if (this.isPublicXpertToken(secretToken)) {
 					const principal = await this.resolvePublicXpertPrincipal(secretToken)
+					applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
+					this.success(principal)
+					return
+				}
+				if (this.isUserXpertToken(secretToken)) {
+					const principal = await this.resolveUserXpertPrincipal(secretToken)
 					applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
 					this.success(principal)
 					return
@@ -77,14 +86,63 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		return secretToken?.type === SecretTokenBindingType.PUBLIC_XPERT
 	}
 
+	private isUserXpertToken(secretToken: ISecretToken) {
+		return secretToken?.type === SecretTokenBindingType.USER_XPERT
+	}
+
+	/**
+	 * Restore an interactive user delegation without loading a long-lived API
+	 * key. The synthetic assistant binding supplies the resource scope expected
+	 * by downstream authorization, while actingUser remains the real user for
+	 * permissions and audit.
+	 */
+	private async resolveUserXpertPrincipal(secretToken: ISecretToken): Promise<IApiPrincipal> {
+		if (!secretToken?.entityId || !secretToken.tenantId || !secretToken.createdById) {
+			throw new UnauthorizedException('Invalid user xpert token')
+		}
+
+		const actingUser = await this.userService.findOneByIdWithinTenant(
+			secretToken.createdById,
+			secretToken.tenantId,
+			{
+				relations: ['role', 'role.rolePermissions', 'employee']
+			}
+		)
+		const apiKey = {
+			id: secretToken.id,
+			token: '',
+			type: ApiKeyBindingType.ASSISTANT,
+			entityId: secretToken.entityId,
+			tenantId: secretToken.tenantId,
+			organizationId: secretToken.organizationId ?? null,
+			createdById: actingUser.id,
+			userId: actingUser.id,
+			user: actingUser
+		} as IApiKey
+
+		const principal = buildApiKeyPrincipal(apiKey, {
+			actingUser,
+			requestedUserId: actingUser.id,
+			requestedOrganizationId: secretToken.organizationId ?? null,
+			principalType: 'client_secret'
+		})
+		principal.clientSecretBindingType = SecretTokenBindingType.USER_XPERT
+		principal.clientSecretId = secretToken.id ?? null
+		return principal
+	}
+
 	private async resolvePublicXpertPrincipal(secretToken: ISecretToken): Promise<IApiPrincipal> {
 		if (!secretToken?.entityId || !secretToken.tenantId || !secretToken.createdById) {
 			throw new UnauthorizedException('Invalid public xpert token')
 		}
 
-		const actingUser = await this.userService.findOneByIdWithinTenant(secretToken.createdById, secretToken.tenantId, {
-			relations: ['role', 'role.rolePermissions', 'employee']
-		})
+		const actingUser = await this.userService.findOneByIdWithinTenant(
+			secretToken.createdById,
+			secretToken.tenantId,
+			{
+				relations: ['role', 'role.rolePermissions', 'employee']
+			}
+		)
 		const apiKey = {
 			id: secretToken.id,
 			token: '',
@@ -117,11 +175,12 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			throw new UnauthorizedException('Token expired')
 		}
 
-		if (this.isPublicXpertToken(secretToken)) {
+		// These bindings point directly at a Xpert; entityId is not an ApiKey id.
+		if (this.isPublicXpertToken(secretToken) || this.isUserXpertToken(secretToken)) {
 			return { apiKey: null, secretToken }
 		}
 
-		const {record: apiKey} = await this.apiKeyService.findOneOrFailByIdString(secretToken.entityId, {
+		const { record: apiKey } = await this.apiKeyService.findOneOrFailByIdString(secretToken.entityId, {
 			relations: ['createdBy', 'user']
 		})
 		if (apiKey) {
@@ -131,6 +190,6 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			await this.apiKeyService.update(apiKey.id, { lastUsedAt: new Date() })
 		}
 
-		return {apiKey, secretToken}
+		return { apiKey, secretToken }
 	}
 }

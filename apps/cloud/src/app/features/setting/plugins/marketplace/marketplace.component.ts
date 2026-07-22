@@ -32,6 +32,8 @@ import {
 } from '@xpert-ai/headless-ui'
 import { ZardAlertComponent } from '@xpert-ai/headless-ui/components/alert'
 import {
+  type I18nObject,
+  type I18nText,
   PluginMarketplaceCategory,
   PluginMarketplaceItem,
   PluginTargetAppMarketplaceMetadata,
@@ -69,6 +71,7 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
     TranslateModule,
     FormsModule,
     NgmSelectComponent,
+    NgmI18nPipe,
     NgmSpinComponent,
     SettingsPluginComponent,
     ZardAlertComponent,
@@ -163,7 +166,9 @@ export class PluginsMarketplaceComponent {
   readonly registryPackageName = model('')
   readonly registryVersion = model('')
   readonly registryDisplayName = model('')
+  readonly registryDisplayNameZhHans = model('')
   readonly registryDescription = model('')
+  readonly registryDescriptionZhHans = model('')
   readonly registryCategory = model('integration')
   readonly registryAuthor = model('XpertAI')
   readonly registrySection = model<IPluginMarketplaceRegistrySection>('marketplace')
@@ -363,7 +368,9 @@ export class PluginsMarketplaceComponent {
     this.registryPackageName.set('')
     this.registryVersion.set('')
     this.registryDisplayName.set('')
+    this.registryDisplayNameZhHans.set('')
     this.registryDescription.set('')
+    this.registryDescriptionZhHans.set('')
     this.registryCategory.set('integration')
     this.registryAuthor.set('XpertAI')
     this.registrySection.set('marketplace')
@@ -382,8 +389,10 @@ export class PluginsMarketplaceComponent {
     this.registryEditingId.set(item.id)
     this.registryPackageName.set(item.packageName ?? '')
     this.registryVersion.set(item.version ?? '')
-    this.registryDisplayName.set(item.displayName ?? '')
-    this.registryDescription.set(item.description ?? '')
+    this.registryDisplayName.set(readI18nLocale(item.displayName, 'en_US'))
+    this.registryDisplayNameZhHans.set(readI18nLocale(item.displayName, 'zh_Hans'))
+    this.registryDescription.set(readI18nLocale(item.description, 'en_US'))
+    this.registryDescriptionZhHans.set(readI18nLocale(item.description, 'zh_Hans'))
     this.registryCategory.set(item.category ?? 'integration')
     this.registryAuthor.set(item.author ?? 'XpertAI')
     this.registrySection.set(item.section ?? 'marketplace')
@@ -401,8 +410,8 @@ export class PluginsMarketplaceComponent {
   saveRegistryItem() {
     this.registryFormSubmitted.set(true)
     const packageName = this.registryPackageName().trim()
-    const displayName = this.registryDisplayName().trim()
-    const description = this.registryDescription().trim()
+    const displayName = buildI18nText(this.registryDisplayName(), this.registryDisplayNameZhHans())
+    const description = buildI18nText(this.registryDescription(), this.registryDescriptionZhHans())
     const category = this.registryCategory()
     const author = this.registryAuthor().trim()
     const targetApps = this.parseCommaList(this.registryTargetApps())
@@ -474,7 +483,7 @@ export class PluginsMarketplaceComponent {
           Default: 'Delete registered plugin'
         }),
         information: this.i18nService.instant('PAC.Plugin.DeleteRegisteredPluginMessage', {
-          Default: `Delete "${item.displayName || item.packageName}" from the platform registry? Installed plugins remain installed.`
+          Default: `Delete "${this.i18n.transform(item.displayName) || item.packageName}" from the platform registry? Installed plugins remain installed.`
         })
       },
       () => {
@@ -697,6 +706,19 @@ function isOptionalStringArray(value: unknown) {
 
 function isPlainObject(value: unknown): value is object {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function readI18nLocale(value: I18nText | null | undefined, locale: keyof I18nObject) {
+  if (typeof value === 'string') {
+    return locale === 'en_US' ? value : ''
+  }
+  return value?.[locale] ?? ''
+}
+
+function buildI18nText(enUS: string, zhHans: string): I18nText {
+  const en_US = enUS.trim()
+  const zh_Hans = zhHans.trim()
+  return zh_Hans ? { en_US, zh_Hans } : en_US
 }
 
 function normalizeAuthor(value: PluginMarketplaceItem['author']): TPlugin['author'] {

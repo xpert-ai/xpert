@@ -43,7 +43,7 @@ export class XpertAgentNodeValidator {
                 node: node.key,
                 ruleCode: 'AGENT_FILE_UNDERSTANDING_EMBEDDING_UNAVAILABLE',
                 field: 'options.fileUnderstanding.enabled',
-                value: String(agent.options.fileUnderstanding?.enabled ?? true),
+                value: String(agent.options?.fileUnderstanding?.enabled ?? true),
                 message: {
                     en_US: 'File understanding is enabled, but no available Embedding model is configured for the current tenant or organization. Configure an enabled Embedding Copilot with a Text Embedding model before relying on file vector search.',
                     zh_Hans:

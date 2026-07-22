@@ -1,4 +1,4 @@
-import { IXpertAgentExecution } from '@xpert-ai/contracts'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { XpertAgentExecutionService } from '../../agent-execution.service'
@@ -19,7 +19,16 @@ export class XpertAgentExecutionUpsertHandler implements ICommandHandler<XpertAg
         if (entity.id) {
             const existing = await this.executionService.findOneOrFailByIdString(entity.id)
             if (existing.success) {
-                await this.executionService.update(entity.id, entity)
+                const update =
+                    existing.record.status === XpertAgentExecutionStatusEnum.INTERRUPTED &&
+                    entity.status !== XpertAgentExecutionStatusEnum.RUNNING
+                        ? {
+                              ...entity,
+                              status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+                              error: existing.record.error ?? entity.error
+                          }
+                        : entity
+                await this.executionService.update(entity.id, update)
                 return await this.executionService.findOne(entity.id)
             }
         }

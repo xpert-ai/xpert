@@ -297,7 +297,9 @@ function createWarning(
 
 function readPluginLevelFromManifest(manifest: PluginPackageManifest): PluginLevel | undefined {
 	const level = manifest.xpert?.plugin?.level
-	return level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.ORGANIZATION ? level : undefined
+	return level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.TENANT || level === PLUGIN_LEVEL.ORGANIZATION
+		? level
+		: undefined
 }
 
 function readPluginArtifactNamespaceFromManifest(manifest: PluginPackageManifest) {

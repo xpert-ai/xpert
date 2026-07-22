@@ -58,8 +58,12 @@ export interface IApiPrincipal extends IUser {
   apiKey?: IApiKey
   /**
    * Binding target kind for short-lived client_secret principals.
+   * This is an authorization discriminator, not creator metadata: ownerUserId/
+   * createdById can be present for every binding type and must not be used to
+   * infer how secret_token.entityId should be resolved.
    * Examples:
    * - api_key => secret_token.entityId is the backing ApiKey id
+   * - user_xpert => secret_token.entityId is the user-authorized xpert id
    * - public_xpert => secret_token.entityId is the public xpert id
    */
   clientSecretBindingType?: SecretTokenBindingType | null

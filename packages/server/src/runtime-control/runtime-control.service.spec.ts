@@ -1,8 +1,8 @@
 import { RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
 import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
-import { ConflictException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common'
+import { ConflictException, ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
-import { resolveRuntimeRestartMode, RuntimeControlService, RuntimeProcessSignaler } from './runtime-control.service'
+import { RuntimeControlService, RuntimeProcessSignaler } from './runtime-control.service'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 
 describe('RuntimeControlService', () => {
@@ -17,9 +17,6 @@ describe('RuntimeControlService', () => {
 		jest.useFakeTimers()
 		jest.resetAllMocks()
 		process.env.NODE_ENV = 'test'
-		process.env.XPERT_RUNTIME_RESTART_MODE = 'self-signal'
-		process.env.XPERT_RUNTIME_RESTART_SIGNAL_DELAY_MS = '10'
-		process.env.XPERT_RUNTIME_RESTART_DRAIN_TIMEOUT_MS = '100'
 		setDefaultTenantId('tenant-default')
 		jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue(null)
 		jest.spyOn(RequestContext, 'hasRole').mockReturnValue(true)
@@ -31,9 +28,6 @@ describe('RuntimeControlService', () => {
 	afterEach(() => {
 		jest.restoreAllMocks()
 		jest.useRealTimers()
-		delete process.env.XPERT_RUNTIME_RESTART_MODE
-		delete process.env.XPERT_RUNTIME_RESTART_SIGNAL_DELAY_MS
-		delete process.env.XPERT_RUNTIME_RESTART_DRAIN_TIMEOUT_MS
 		setDefaultTenantId(null)
 	})
 
@@ -49,8 +43,8 @@ describe('RuntimeControlService', () => {
 		expect(result).toMatchObject({
 			accepted: true,
 			mode: 'self-signal',
-			signalAfterMs: 10,
-			drainTimeoutMs: 100
+			signalAfterMs: 750,
+			drainTimeoutMs: 30_000
 		})
 		expect(redis.set).toHaveBeenCalledWith(
 			'xpert:system:runtime:restart',
@@ -59,7 +53,7 @@ describe('RuntimeControlService', () => {
 		)
 		expect(lifecycle.readiness()).toMatchObject({ status: 'draining', restartId: result.restartId })
 
-		await jest.advanceTimersByTimeAsync(10)
+		await jest.advanceTimersByTimeAsync(750)
 		expect(signaler.signal).toHaveBeenCalledWith('SIGTERM')
 	})
 
@@ -94,16 +88,6 @@ describe('RuntimeControlService', () => {
 		expect(redis.set).not.toHaveBeenCalled()
 	})
 
-	it('fails safely when runtime restart is disabled', async () => {
-		process.env.XPERT_RUNTIME_RESTART_MODE = 'disabled'
-		const service = new RuntimeControlService(redis, signaler, lifecycle)
-
-		await expect(service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })).rejects.toBeInstanceOf(
-			ServiceUnavailableException
-		)
-		expect(redis.set).not.toHaveBeenCalled()
-	})
-
 	it('rejects concurrent restart requests when the distributed lock is held', async () => {
 		redis.set.mockResolvedValue(null)
 		const service = new RuntimeControlService(redis, signaler, lifecycle)
@@ -123,18 +107,12 @@ describe('RuntimeControlService', () => {
 		const service = new RuntimeControlService(redis, signaler, lifecycle)
 
 		await service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })
-		await jest.advanceTimersByTimeAsync(10)
+		await jest.advanceTimersByTimeAsync(750)
 
 		expect(redis.eval).toHaveBeenCalledWith(expect.stringContaining("redis.call('get'"), {
 			keys: ['xpert:system:runtime:restart'],
 			arguments: [expect.stringContaining(lifecycle.instanceId)]
 		})
 		expect(lifecycle.readiness().status).toBe('ready')
-	})
-
-	it('requires self-signal mode to be explicitly enabled by a process supervisor', () => {
-		expect(resolveRuntimeRestartMode({ NODE_ENV: 'production' })).toBe('disabled')
-		expect(resolveRuntimeRestartMode({ NODE_ENV: 'development' })).toBe('disabled')
-		expect(resolveRuntimeRestartMode({ XPERT_RUNTIME_RESTART_MODE: 'self-signal' })).toBe('self-signal')
 	})
 })

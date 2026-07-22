@@ -326,6 +326,64 @@ describe('plugin helper registerPluginsAsync', () => {
 		expect(loadFailures).toEqual([])
 	})
 
+	it('loads tenant-level plugins only from the owning tenant global scope', async () => {
+		class TenantRuntimePluginController {}
+		class TenantRuntimePluginModule {}
+		Reflect.defineMetadata('controllers', [TenantRuntimePluginController], TenantRuntimePluginModule)
+		const register = jest.fn(() => ({ module: TenantRuntimePluginModule }))
+		const tenantPlugin = {
+			meta: {
+				name: '@xpert-ai/plugin-bom',
+				version: '1.0.0',
+				level: 'tenant'
+			},
+			register
+		}
+		;(loadPlugin as jest.Mock).mockResolvedValueOnce(tenantPlugin).mockResolvedValueOnce(tenantPlugin)
+
+		await expect(
+			registerPluginsAsync({
+				tenantId: 'tenant-bom',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				defaultTenantId: 'tenant-default',
+				scopeKey: 'tenant:tenant-bom:global',
+				plugins: [{ name: '@xpert-ai/plugin-bom', source: 'npm', level: 'tenant' }]
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				scopeKey: 'tenant:tenant-bom:global',
+				errors: [],
+				modules: [expect.any(Object)]
+			})
+		)
+		expect(loaded).toEqual([
+			expect.objectContaining({
+				tenantId: 'tenant-bom',
+				scopeKey: 'tenant:tenant-bom:global',
+				level: 'tenant'
+			})
+		])
+		expect(Reflect.getMetadata('organization-metadata', TenantRuntimePluginController)).toBe(
+			'tenant:tenant-bom:global'
+		)
+		expect(Reflect.getMetadata('plugin-metadata', TenantRuntimePluginController)).toBe('@xpert-ai/plugin-bom')
+
+		loaded.length = 0
+		await expect(
+			registerPluginsAsync({
+				tenantId: 'tenant-bom',
+				organizationId: 'org-bom',
+				defaultTenantId: 'tenant-default',
+				plugins: [{ name: '@xpert-ai/plugin-bom', source: 'npm', level: 'tenant' }]
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				modules: [],
+				errors: [expect.objectContaining({ pluginName: '@xpert-ai/plugin-bom' })]
+			})
+		)
+	})
+
 	it('restages monorepo code plugins even when no workspacePath is persisted', async () => {
 		await expect(
 			registerPluginsAsync({

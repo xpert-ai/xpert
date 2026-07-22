@@ -169,6 +169,41 @@ describe('PluginInstanceService', () => {
 		expect(rmSync).not.toHaveBeenCalled()
 	})
 
+	it('finds the single owning tenant for a tenant-level plugin', async () => {
+		repo.findOne.mockResolvedValue({
+			tenantId: 'tenant-bom',
+			pluginName: '@xpert-ai/plugin-bom',
+			level: 'tenant'
+		})
+
+		await expect(service.findTenantLevelOwner('@xpert-ai/plugin-bom@1.0.0')).resolves.toEqual(
+			expect.objectContaining({ tenantId: 'tenant-bom' })
+		)
+		expect(repo.findOne).toHaveBeenCalledWith({
+			where: [
+				{ level: 'tenant', pluginName: '@xpert-ai/plugin-bom' },
+				{ level: 'tenant', packageName: '@xpert-ai/plugin-bom' }
+			]
+		})
+	})
+
+	it('finds an existing system-level registration before a tenant-level migration', async () => {
+		repo.findOne.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-bom',
+			level: 'system'
+		})
+
+		await expect(service.findSystemLevelRegistration('@xpert-ai/plugin-bom')).resolves.toEqual(
+			expect.objectContaining({ level: 'system' })
+		)
+		expect(repo.findOne).toHaveBeenCalledWith({
+			where: [
+				{ level: 'system', pluginName: '@xpert-ai/plugin-bom' },
+				{ level: 'system', packageName: '@xpert-ai/plugin-bom' }
+			]
+		})
+	})
+
 	it('clears failure cache when removing plugins', async () => {
 		loadedPlugins.push({
 			organizationId: 'org-1',

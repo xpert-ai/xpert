@@ -1,4 +1,9 @@
 jest.mock('@xpert-ai/server-core', () => ({
+    LOADED_PLUGINS: 'XPERT_LOADED_PLUGINS',
+    normalizePluginName: (pluginName: string) => {
+        const lastAt = pluginName.lastIndexOf('@')
+        return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName
+    },
     TenantOrganizationAwareCrudService: class {
         protected repository
 
@@ -91,26 +96,37 @@ describe('XpertAgentService', () => {
             queryBus as any,
             agentMiddlewareRuntimeService as any
         )
-        ;(service as any).agentMiddlewareRegistry = {
-            list: jest.fn().mockReturnValue([
-                {
-                    meta: {
-                        name: 'scheduler',
-                        label: {
-                            en_US: 'Scheduler'
-                        }
-                    }
-                },
-                {
-                    meta: {
-                        name: 'ConnectorRuntime:lark',
-                        label: {
-                            en_US: 'Feishu connector runtime'
-                        },
-                        builtin: true
-                    }
+        const scheduler = {
+            meta: {
+                name: 'scheduler',
+                label: {
+                    en_US: 'Scheduler'
                 }
-            ])
+            }
+        }
+        const connectorRuntime = {
+            meta: {
+                name: 'ConnectorRuntime:lark',
+                label: {
+                    en_US: 'Feishu connector runtime'
+                },
+                builtin: true
+            }
+        }
+        ;(service as any).agentMiddlewareRegistry = {
+            list: jest.fn().mockReturnValue([scheduler, connectorRuntime]),
+            getSource: jest.fn().mockImplementation((strategy) => {
+                return strategy === scheduler
+                    ? {
+                          kind: 'builtin',
+                          scopeKey: 'builtin:global'
+                      }
+                    : {
+                          kind: 'plugin',
+                          pluginName: '@xpert/connector',
+                          scopeKey: 'org-1'
+                      }
+            })
         }
     })
 
@@ -223,6 +239,52 @@ describe('XpertAgentService', () => {
                     label: {
                         en_US: 'Scheduler'
                     }
+                },
+                source: {
+                    kind: 'builtin'
+                }
+            }
+        ])
+    })
+
+    it('returns plugin display metadata from the matching loaded plugin scope', () => {
+        const pluginMiddleware = {
+            meta: {
+                name: 'plugin-middleware',
+                label: { en_US: 'Plugin middleware' }
+            }
+        }
+        ;(service as any).loadedPlugins = [
+            {
+                organizationId: 'org-1',
+                scopeKey: 'org-1',
+                name: 'plugin',
+                packageName: '@xpert/plugin@1.0.0',
+                instance: {
+                    meta: {
+                        displayName: { en_US: 'Xpert Plugin' },
+                        icon: { type: 'icon', value: 'ri-plug-line' }
+                    }
+                }
+            }
+        ]
+        ;(service as any).agentMiddlewareRegistry = {
+            list: jest.fn().mockReturnValue([pluginMiddleware]),
+            getSource: jest.fn().mockReturnValue({
+                kind: 'plugin',
+                pluginName: '@xpert/plugin',
+                scopeKey: 'org-1'
+            })
+        }
+
+        expect(service.getMiddlewareStrategies()).toEqual([
+            {
+                meta: pluginMiddleware.meta,
+                source: {
+                    kind: 'plugin',
+                    pluginName: '@xpert/plugin',
+                    displayName: { en_US: 'Xpert Plugin' },
+                    icon: { type: 'icon', value: 'ri-plug-line' }
                 }
             }
         ])

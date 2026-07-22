@@ -582,9 +582,9 @@
 <ng-template #middlewaresMenu let-ref="ref">
   <div
     cdkMenu
-    class="cdk-menu__medium bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[200px]"
+    class="cdk-menu__medium max-h-[70vh] overflow-y-auto bg-components-panel-bg-blur !rounded-2xl backdrop-blur-[5px] shadow-lg !min-w-[360px] !px-1"
   >
-    <div class="flex justify-center items-center px-2 my-1 text-base font-medium text-text-tertiary">
+    <div class="flex justify-between items-center px-1 my-1 text-base font-medium text-text-tertiary">
       <span>{{ 'PAC.Xpert.AgentMiddlewares' | translate: { Default: 'Agent Middlewares' } }}</span>
 
       <div class="relative w-[160px] ml-4">
@@ -604,60 +604,112 @@
         }
       </div>
     </div>
-    @for (middleware of filteredAgentMiddlewares(); track middleware.meta?.name) {
-      <div
-        cdkMenuItem
-        class="group/item flex items-center gap-2 px-4 w-full min-h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
-        [cdkMenuItemDisabled]="!middleware.meta?.name"
-        (click)="addMiddleware(middleware.meta?.name); closeMiddlewareDetail()"
-        (mouseenter)="openMiddlewareDetail(middleware, overlayTrigger)"
-        (mouseleave)="closeMiddlewareDetail()"
-        cdkOverlayOrigin
-        #overlayTrigger="cdkOverlayOrigin"
-      >
-        @if (!middleware.meta?.name) {
-          <div class="text-text-destructive">
-            {{ 'PAC.Xpert.UnknownMiddleware' | translate: { Default: 'Unknown Middleware' } }}
-          </div>
-        } @else {
-          @if (middleware.meta.icon) {
-            <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
-          } @else {
-            <div
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-components-panel-bg text-text-tertiary"
-            >
-              <i class="ri-stack-line text-sm"></i>
-            </div>
-          }
-          @if (middleware.meta.label | i18n; as label) {
-            <div
-              class="grow text-text-primary"
-              [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''"
-              [ngmHighlight]="searchMiddlewares()"
-              [content]="label"
-            >
-              {{ label }}
-            </div>
-          }
-          @if (middleware.meta.deprecated) {
-            <i
-              class="ri-alert-line shrink-0 text-text-warning"
-              [zTooltip]="
-                middleware.meta.deprecationMessage
-                  ? (middleware.meta.deprecationMessage | i18n)
-                  : ('PAC.Xpert.DeprecatedMiddleware'
-                    | translate
-                      : {
-                          Default:
-                            'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
-                        })
-              "
-              zPosition="top"
-            ></i>
-          }
-          <i class="ri-arrow-right-s-line ml-auto text-text-quaternary opacity-0 group-hover/item:opacity-100"></i>
-        }
+    @if (agentMiddlewares() === undefined) {
+      <div class="flex items-center justify-center gap-2 px-4 py-8 text-sm text-text-tertiary">
+        <i class="ri-loader-4-line animate-spin"></i>
+        {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
       </div>
+    } @else {
+      @for (group of middlewareGroups(); track group.key) {
+        <div class="pt-1">
+          <button
+            type="button"
+            class="flex h-9 w-full items-center gap-2 rounded-lg px-1 text-left text-sm font-medium text-text-secondary hover:bg-hover-bg"
+            [attr.aria-expanded]="!isMiddlewareGroupCollapsed(group.key)"
+            (click)="toggleMiddlewareGroup(group.key)"
+          >
+            <span class="min-w-0 flex-1 truncate">
+              @if (group.source.kind === 'builtin') {
+                {{ 'PAC.Xpert.SystemMiddleware' | translate: { Default: 'Built-in Middleware' } }}
+              } @else {
+                {{ group.source.displayName | i18n }}
+              }
+            </span>
+            <span
+              class="inline-flex min-w-5 items-center justify-center rounded-full bg-components-panel-bg px-1.5 text-xs font-normal text-text-tertiary"
+            >
+              {{ group.middlewares.length }}
+            </span>
+            <i
+              class="text-base text-text-quaternary"
+              [class]="isMiddlewareGroupCollapsed(group.key) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"
+            ></i>
+          </button>
+
+          @if (!isMiddlewareGroupCollapsed(group.key)) {
+            <div class="pb-1">
+              @for (middleware of group.middlewares; track middleware.meta?.name) {
+                <div
+                  cdkMenuItem
+                  class="group/item flex items-center gap-2 px-1 w-full min-h-9 rounded-lg hover:bg-hover-bg cursor-pointer"
+                  [cdkMenuItemDisabled]="!middleware.meta?.name"
+                  (click)="addMiddleware(middleware.meta?.name); closeMiddlewareDetail()"
+                  (mouseenter)="openMiddlewareDetail(middleware, overlayTrigger)"
+                  (focus)="openMiddlewareDetail(middleware, overlayTrigger)"
+                  (mouseleave)="closeMiddlewareDetail()"
+                  (blur)="closeMiddlewareDetail()"
+                  cdkOverlayOrigin
+                  #overlayTrigger="cdkOverlayOrigin"
+                >
+                  @if (!middleware.meta?.name) {
+                    <div class="text-text-destructive">
+                      {{ 'PAC.Xpert.UnknownMiddleware' | translate: { Default: 'Unknown Middleware' } }}
+                    </div>
+                  } @else {
+                    @if (middleware.meta.icon) {
+                      <xp-icon [icon]="middleware.meta.icon" class="w-6 h-6 shrink-0 mr-2" />
+                    } @else {
+                      <div
+                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-components-panel-bg text-text-tertiary"
+                      >
+                        <i class="ri-stack-line text-sm"></i>
+                      </div>
+                    }
+                    @if (middleware.meta.label | i18n; as label) {
+                      <div
+                        class="grow text-text-primary"
+                        [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''"
+                        [ngmHighlight]="searchMiddlewares()"
+                        [content]="label"
+                      >
+                        {{ label }}
+                      </div>
+                    }
+                    @if (middleware.meta.deprecated) {
+                      <i
+                        class="ri-alert-line shrink-0 text-text-warning"
+                        [zTooltip]="
+                          middleware.meta.deprecationMessage
+                            ? (middleware.meta.deprecationMessage | i18n)
+                            : ('PAC.Xpert.DeprecatedMiddleware'
+                              | translate
+                                : {
+                                    Default:
+                                      'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                                  })
+                        "
+                        zPosition="top"
+                      ></i>
+                    }
+                    <button
+                      type="button"
+                      class="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-quaternary opacity-0 hover:bg-hover-bg group-hover/item:opacity-100 focus:opacity-100"
+                      [attr.aria-label]="'Pro.ViewDetails' | translate: { Default: 'View details' }"
+                      (click)="$event.stopPropagation(); openMiddlewareDetail(middleware, overlayTrigger)"
+                    >
+                      <i class="ri-arrow-right-s-line"></i>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @empty {
+        <div class="px-4 py-8 text-center text-sm text-text-tertiary">
+          {{ 'PAC.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
+        </div>
+      }
     }
   </div>
 </ng-template>

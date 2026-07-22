@@ -162,6 +162,10 @@ docker compose up -d
 
 After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
 
+For installation and startup instructions, see the [official documentation](https://docs.xpertai.cn/en/ai/getting-started/community).
+
+Visit the [Xpert AI official website](https://xpertai.cn/en/) for more information.
+
 Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.
 
 ## Demo, Cloud, and Production

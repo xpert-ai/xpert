@@ -2,6 +2,7 @@ import {
   IXpert,
   IXpertAgent,
   omitXpertRelations,
+  TXpertFeatures,
   TXpertTeamConnection,
   TXpertTeamNode,
   TXpertTeamDraft
@@ -22,6 +23,35 @@ const OVERWRITE_PROTECTED_TEAM_FIELDS = [
   'publishAt'
 ]
 const OVERWRITE_PROTECTED_AGENT_FIELDS = [...SYSTEM_FIELDS, 'createdAt', 'updatedAt', 'xpertId', 'key']
+
+export function normalizeImportedSandboxFeatures(
+  features: TXpertFeatures | undefined,
+  sandboxProviders: Array<{ type: string }>
+): TXpertFeatures | undefined {
+  const sandbox = features?.sandbox
+  if (!sandbox?.enabled) {
+    return features
+  }
+
+  const providerTypes = Array.from(
+    new Set(sandboxProviders.map(({ type }) => type.trim()).filter((type) => !!type))
+  )
+  const provider = sandbox.provider?.trim()
+  if (provider && providerTypes.includes(provider)) {
+    return features
+  }
+
+  const fallbackProvider = providerTypes[0]
+  return fallbackProvider
+    ? {
+        ...features,
+        sandbox: {
+          ...sandbox,
+          provider: fallbackProvider
+        }
+      }
+    : features
+}
 
 export function getLatestPrimaryAgent(draft: Partial<TXpertTeamDraft>, key: string): IXpertAgent {
   const primaryAgentNode = draft.nodes?.find((node) => node.type === 'agent' && node.key === key)

@@ -476,7 +476,9 @@
                 >
                   <z-icon zType="puzzle" class="mt-0.5 shrink-0 text-text-tertiary" />
                   <span class="min-w-0 grow">
-                    <span class="block truncate system-sm-semibold text-text-primary">{{ item.displayName }}</span>
+                    <span class="block truncate system-sm-semibold text-text-primary">{{
+                      item.displayName | i18n
+                    }}</span>
                     <span class="block truncate text-xs text-text-tertiary">{{ item.packageName }}</span>
                   </span>
                   @if (item.enabled === false) {
@@ -570,7 +572,7 @@
             </z-form-field>
             <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
-                {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }}
+                {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }} (en_US)
               </z-form-label>
               <z-form-control class="col-[1/-1]">
                 <input
@@ -579,6 +581,14 @@
                   aria-required="true"
                   [(ngModel)]="registryDisplayName"
                 />
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
+                {{ 'PAC.Plugin.DisplayName' | translate: { Default: 'Display name' } }} (zh_Hans)
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <input z-input [(ngModel)]="registryDisplayNameZhHans" />
               </z-form-control>
             </z-form-field>
             <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
@@ -645,7 +655,7 @@
             </z-form-field>
             <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
-                {{ 'PAC.Plugin.Description' | translate: { Default: 'Description' } }}
+                {{ 'PAC.Plugin.Description' | translate: { Default: 'Description' } }} (en_US)
               </z-form-label>
               <z-form-control class="col-[1/-1]">
                 <textarea
@@ -656,6 +666,14 @@
                   aria-required="true"
                   [(ngModel)]="registryDescription"
                 ></textarea>
+              </z-form-control>
+            </z-form-field>
+            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+              <z-form-label>
+                {{ 'PAC.Plugin.Description' | translate: { Default: 'Description' } }} (zh_Hans)
+              </z-form-label>
+              <z-form-control class="col-[1/-1]">
+                <textarea z-input rows="2" class="resize-none" [(ngModel)]="registryDescriptionZhHans"></textarea>
               </z-form-control>
             </z-form-field>
             <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">

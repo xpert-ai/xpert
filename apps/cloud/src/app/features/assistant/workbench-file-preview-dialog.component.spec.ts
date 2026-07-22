@@ -125,4 +125,43 @@ describe('WorkbenchFilePreviewDialogComponent', () => {
     expect(fixture.debugElement.query(By.directive(FilePreviewContentComponent))).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-file-preview-too-large="true"]')).not.toBeNull()
   })
+
+  it('overlays normalized evidence coordinates on image previews', () => {
+    const file = {
+      name: 'wiring.jpg',
+      mimeType: 'image/jpeg',
+      url: '/api/files/wiring.jpg',
+      evidence: {
+        locator: {
+          page: 1,
+          coordinateSpace: 'image_normalized_0_1',
+          box: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 }
+        }
+      }
+    } satisfies WorkbenchOpenFile
+    TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), WorkbenchFilePreviewDialogComponent],
+      providers: [
+        { provide: DIALOG_DATA, useValue: file },
+        { provide: DialogRef, useValue: { close: jest.fn() } }
+      ]
+    })
+
+    const fixture = TestBed.createComponent(WorkbenchFilePreviewDialogComponent)
+    fixture.detectChanges()
+
+    const overlay = fixture.nativeElement.querySelector(
+      '[data-workbench-image-evidence-box="true"]'
+    ) as HTMLElement | null
+    expect(fixture.componentInstance.evidencePage()).toBe(1)
+    expect(fixture.componentInstance.imageEvidenceBox()).toEqual(file.evidence.locator.box)
+    expect(overlay).not.toBeNull()
+    expect(overlay?.classList.contains('border-text-destructive')).toBe(true)
+    expect(overlay?.classList.contains('bg-status-error-bg')).toBe(true)
+    expect(overlay?.classList.contains('border-danger-500')).toBe(false)
+    expect(overlay?.style.left).toBe('10%')
+    expect(overlay?.style.top).toBe('20%')
+    expect(overlay?.style.width).toBe('30%')
+    expect(overlay?.style.height).toBe('40%')
+  })
 })

@@ -1,4 +1,3 @@
-import { NodeInterrupt } from '@langchain/langgraph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import {
     ChatMessageEventTypeEnum,
@@ -22,6 +21,7 @@ import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
 import { applicationMetrics } from '../../../metrics'
 import { applicationTracing } from '../../../tracing'
+import { isInterruptedExecutionError } from './execution-error-status'
 
 function isMiddlewareChatEvent(data: unknown) {
     return (
@@ -116,7 +116,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                             } as MessageEvent
                         }),
                         catchError((err) => {
-                            if (err instanceof NodeInterrupt) {
+                            if (isInterruptedExecutionError(err)) {
                                 status = XpertAgentExecutionStatusEnum.INTERRUPTED
                                 error = null
                             } else {

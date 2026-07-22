@@ -65,6 +65,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import {
     AssistantTaskRuntimeCapability,
+    CancelConversationCommand,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgebaseRuntimeCapability,
@@ -1335,6 +1336,30 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(query.conditions).toEqual({
             threadId: 'thread-1',
             xpertId: 'assistant-1'
+        })
+    })
+
+    it('cancels an assistant task through the runtime facade', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CancelConversationCommand) {
+                return { canceledExecutionIds: ['execution-1'] }
+            }
+
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).cancelTask?.({
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            executionId: 'execution-1'
+        })
+
+        expect(result).toEqual({ canceledExecutionIds: ['execution-1'] })
+        const command = commandBus.execute.mock.calls[0][0] as CancelConversationCommand
+        expect(command.input).toEqual({
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            executionId: 'execution-1'
         })
     })
 

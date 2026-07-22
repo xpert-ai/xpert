@@ -208,6 +208,43 @@ describe('import dsl util', () => {
     expect(overwritten.nodes[0].entity).not.toHaveProperty('xpertId', 'imported-xpert')
   })
 
+  it('replaces an unavailable imported sandbox provider with the first available provider', () => {
+    const currentXpert = createCurrentXpert()
+    const importedDsl = {
+      team: {
+        type: XpertTypeEnum.Agent,
+        features: {
+          sandbox: {
+            enabled: true,
+            provider: 'docker-sandbox'
+          }
+        },
+        agent: {
+          key: 'Agent_imported'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_imported',
+          entity: {
+            key: 'Agent_imported'
+          }
+        }
+      ],
+      connections: []
+    } as unknown as TXpertTeamDraft
+
+    const overwritten = createOverwriteDraftFromDsl(currentXpert, importedDsl, [
+      { type: 'local-shell-sandbox' }
+    ])
+
+    expect(overwritten.team.features?.sandbox).toEqual({
+      enabled: true,
+      provider: 'local-shell-sandbox'
+    })
+  })
+
   it('throws when an imported primary agent array field is malformed', () => {
     const currentXpert = createCurrentXpert()
     const importedDsl = {

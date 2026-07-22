@@ -3,6 +3,9 @@
 		"PluginPackageNameRequired": "插件包名不能為空",
 		"PluginSystemLevelInstallForbidden": "插件 {{name}} 為系統級插件，不能透過此 API 安裝",
 		"PluginSystemLevelDefaultTenantRequired": "系統級插件 {{name}} 只能在 Default tenant 中安裝",
+		"PluginTenantLevelInstallForbidden": "租戶級插件 {{name}} 只能由目前 tenant 的 Super Admin 安裝",
+		"PluginTenantLevelAlreadyOwned": "租戶級插件 {{name}} 已歸屬於 tenant {{tenantId}}，不能在其他 tenant 中重複安裝",
+		"PluginProcessLevelConflict": "插件 {{name}} 已按 {{existingLevel}} level 註冊；請先解除安裝舊註冊並重啟 API，再改為 {{requestedLevel}} level 安裝",
 		"PluginInstallFailed": "安裝插件 {{pluginName}} 失敗：{{errorMessage}}",
 		"PluginNamesRequired": "插件名稱不能為空",
 		"PluginSystemUninstallForbidden": "插件 {{name}} 為系統插件，不能卸載"

@@ -35,8 +35,12 @@ export class SettingsPluginComponent {
   readonly installed = computed(() => this.plugin()?.installed === true)
   readonly hasMarketplaceDetails = computed(() => !!this.plugin()?.contributions?.length)
   readonly isSystemPlugin = computed(() => this.plugin()?.level === PLUGIN_LEVEL.SYSTEM)
+  readonly isTenantPlugin = computed(() => this.plugin()?.level === PLUGIN_LEVEL.TENANT)
   readonly systemPluginUnavailableInCurrentScope = computed(
-    () => !this.installed() && this.isSystemPlugin() && this.scopeLevel() !== RequestScopeLevel.TENANT
+    () =>
+      !this.installed() &&
+      (this.isSystemPlugin() || this.isTenantPlugin()) &&
+      this.scopeLevel() !== RequestScopeLevel.TENANT
   )
   readonly canInstall = computed(
     () => !!this.plugin() && !this.installed() && !this.systemPluginUnavailableInCurrentScope()

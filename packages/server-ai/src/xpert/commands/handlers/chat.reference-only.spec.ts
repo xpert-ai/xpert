@@ -26,11 +26,12 @@ import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
+import { AttachFileToConversationCommand, GetFileAssetByStorageFileQuery } from '../../../file-understanding'
 import { XpertChatCommand } from '../chat.command'
 import { XpertChatHandler } from './chat.handler'
 
 describe('XpertChatHandler reference-only inputs', () => {
-    let xpertService: { findOne: jest.Mock }
+    let xpertService: { findOneForRuntime: jest.Mock }
     let assistantBindingService: {
         getBinding: jest.Mock
         getUserPreferenceByAssistantId: jest.Mock
@@ -53,7 +54,7 @@ describe('XpertChatHandler reference-only inputs', () => {
 
     beforeEach(() => {
         xpertService = {
-            findOne: jest.fn().mockResolvedValue(xpert)
+            findOneForRuntime: jest.fn().mockResolvedValue(xpert)
         }
         assistantBindingService = {
             getBinding: jest.fn().mockResolvedValue({
@@ -152,8 +153,119 @@ describe('XpertChatHandler reference-only inputs', () => {
         )
     })
 
+    it('binds pasted image references for reference-only follow-up inputs', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            return command instanceof ChatMessageUpsertCommand ? command.entity : null
+        })
+        queryBus.execute
+            .mockResolvedValueOnce({
+                id: 'conversation-1',
+                threadId: 'thread-1',
+                status: 'busy',
+                messages: [
+                    {
+                        id: 'ai-1',
+                        role: 'ai',
+                        executionId: 'execution-prev'
+                    }
+                ]
+            })
+            .mockResolvedValueOnce({
+                id: 'file-asset-1',
+                storageFileId: 'storage-file-1',
+                originalName: 'diagram.png',
+                mimeType: 'image/png',
+                purpose: 'chat_attachment',
+                parseMode: 'auto',
+                status: 'ready',
+                capabilities: ['preview', 'vision']
+            })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'queue',
+                    message: {
+                        clientMessageId: 'client-follow-up-1',
+                        input: {
+                            input: '',
+                            referenceComposition: 'compose',
+                            references: [
+                                {
+                                    type: 'image',
+                                    fileId: 'storage-file-1',
+                                    url: 'https://example.com/diagram.png',
+                                    mimeType: 'image/png',
+                                    name: 'diagram.png',
+                                    text: 'Pasted image: diagram.png'
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const followUpCommand = commands.find(
+            (command) => command instanceof ChatMessageUpsertCommand
+        ) as ChatMessageUpsertCommand
+
+        expect(followUpCommand.entity).toEqual(
+            expect.objectContaining({
+                role: 'human',
+                content: '',
+                conversationId: 'conversation-1',
+                followUpStatus: 'pending',
+                references: [
+                    expect.objectContaining({
+                        type: 'image',
+                        fileId: 'storage-file-1',
+                        name: 'diagram.png'
+                    })
+                ],
+                fileAssets: [{ id: 'file-asset-1' }]
+            })
+        )
+
+        const attachCommand = commands.find(
+            (command) => command instanceof AttachFileToConversationCommand
+        ) as AttachFileToConversationCommand
+        expect(attachCommand.input).toMatchObject({
+            fileAssetId: 'file-asset-1',
+            storageFileId: 'storage-file-1',
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            xpertId: 'xpert-1'
+        })
+    })
+
     it('accepts reference-only send inputs while hydrating graph state for the agent', async () => {
         const commands: any[] = []
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof GetFileAssetByStorageFileQuery) {
+                return {
+                    id: 'file-asset-1',
+                    storageFileId: 'file-1',
+                    originalName: 'diagram.png',
+                    mimeType: 'image/png',
+                    size: 857,
+                    purpose: 'chat_attachment',
+                    parseMode: 'auto',
+                    status: 'ready',
+                    capabilities: ['preview', 'vision']
+                }
+            }
+            return null
+        })
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
@@ -264,9 +376,21 @@ describe('XpertChatHandler reference-only inputs', () => {
                         fileId: 'file-1',
                         name: 'diagram.png'
                     })
-                ]
+                ],
+                fileAssets: [{ id: 'file-asset-1' }]
             })
         )
+
+        const attachCommand = commands.find(
+            (command) => command instanceof AttachFileToConversationCommand
+        ) as AttachFileToConversationCommand
+        expect(attachCommand.input).toMatchObject({
+            fileAssetId: 'file-asset-1',
+            storageFileId: 'file-1',
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            xpertId: 'xpert-1'
+        })
 
         const agentCommand = commands.find(
             (command) => command instanceof XpertAgentChatCommand
@@ -284,6 +408,7 @@ describe('XpertChatHandler reference-only inputs', () => {
                 ]
             })
         )
+        expect(agentCommand.state.human.files).toBeUndefined()
     })
 
     it('persists raw send input content instead of hydrated reference text from state', async () => {

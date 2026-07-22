@@ -79,6 +79,7 @@ import { t } from 'i18next'
 import z from 'zod'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
+import { prepareMessagesForModel, setModelPreparesOwnMessages } from '../../../copilot-model/model-capabilities'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
@@ -1136,7 +1137,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Execute agent
         const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
             const { structuredChatModel, jsonSchema } = withStructured(chatModel, agent, withTools)
-            let withFallbackModel: Runnable = structuredChatModel
+            let withFallbackModel: Runnable = withModelMessagePreparation(structuredChatModel, chatModel)
             if (agent.options?.retry?.enabled) {
                 withFallbackModel = withFallbackModel.withRetry({
                     stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2
@@ -1163,7 +1164,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     })
                 )
                 const { structuredChatModel: fallbackChatModel } = withStructured(_fallbackChatModel, agent, withTools)
-                withFallbackModel = withFallbackModel.withFallbacks([fallbackChatModel])
+                withFallbackModel = withFallbackModel.withFallbacks([
+                    withModelMessagePreparation(fallbackChatModel, _fallbackChatModel)
+                ])
             }
 
             // Error handling
@@ -1182,6 +1185,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     new FakeStreamingChatModel({ responses: [new AIMessage(errorHandling.defaultValue?.content)] })
                 ])
             }
+            setModelPreparesOwnMessages(withFallbackModel)
 
             const { systemMessage, messageHistory, humanMessages } = await stateModifier(
                 state,
@@ -1213,7 +1217,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const reqMessages = request.messages ?? baseMessages
                 const systemMsg = request.systemMessage ?? systemMessage
                 systemMessageContent = systemMsg.content
-                const finalMessages = systemMsg ? [systemMsg, ...reqMessages] : reqMessages
+                const finalMessages = prepareMessagesForModel(
+                    systemMsg ? [systemMsg, ...reqMessages] : reqMessages,
+                    model
+                )
                 const scopedSignal = createScopedAbortSignal()
                 const invokeConfig = isInternalGoalVerification
                     ? {
@@ -2118,6 +2125,14 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
         structuredChatModel,
         jsonSchema
     }
+}
+
+function withModelMessagePreparation(model: Runnable, capabilityModel: object) {
+    return setModelPreparesOwnMessages(
+        RunnableLambda.from((messages: BaseMessage[], config?: RunnableConfig) =>
+            model.invoke(prepareMessagesForModel(messages, capabilityModel), config)
+        )
+    )
 }
 
 function supportsParallelToolCallsParam(chatModel: BaseChatModel) {

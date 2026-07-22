@@ -406,6 +406,56 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('office_editor')
   })
 
+  it('renders localized plugin, template, and app metadata', async () => {
+    const { fixture } = await createComponent(
+      createPlugin({
+        displayName: {
+          en_US: 'BOM Document Intake',
+          zh_Hans: 'BOM 文档接入'
+        },
+        description: {
+          en_US: 'Parse and review BOM documents.',
+          zh_Hans: '解析并复核 BOM 文档。'
+        },
+        contributions: [
+          {
+            type: 'assistant-template',
+            name: 'bom-contract-assistant',
+            displayName: {
+              en_US: 'BOM Contract Intake Assistant Template',
+              zh_Hans: 'BOM 合同接入助手模板'
+            },
+            description: {
+              en_US: 'Parse BOM contracts.',
+              zh_Hans: '解析 BOM 合同。'
+            }
+          },
+          {
+            type: 'app',
+            name: 'bom-document-intake',
+            displayName: {
+              en_US: 'BOM Document Intake App',
+              zh_Hans: 'BOM 文档接入应用'
+            },
+            description: {
+              en_US: 'Review BOM changes.',
+              zh_Hans: '复核 BOM 变更。'
+            }
+          }
+        ]
+      })
+    )
+
+    const textContent = fixture.nativeElement.textContent
+    expect(textContent).toContain('BOM 文档接入')
+    expect(textContent).toContain('解析并复核 BOM 文档。')
+    expect(textContent).toContain('BOM 合同接入助手模板')
+    expect(textContent).toContain('解析 BOM 合同。')
+    expect(textContent).toContain('BOM 文档接入应用')
+    expect(textContent).toContain('复核 BOM 变更。')
+    expect(textContent).not.toContain('Parse and review BOM documents.')
+  })
+
   it('hides setup actions in read-only detail mode', async () => {
     const { component, fixture } = await createComponent(
       createPlugin({

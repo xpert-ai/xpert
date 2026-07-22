@@ -164,7 +164,10 @@ export class XpertBasicManageComponent {
 
     try {
       importedDsl = await uploadYamlFile<TImportedXpertDsl>(file)
-      overwriteDraft = createOverwriteDraftFromDsl(xpert, importedDsl)
+      const sandboxProviders = importedDsl.team.features?.sandbox?.enabled
+        ? await firstValueFrom(this.#xpertService.getSandboxProviders())
+        : []
+      overwriteDraft = createOverwriteDraftFromDsl(xpert, importedDsl, sandboxProviders)
       groupedMemories = groupImportedDslMemories(importedDsl.memories)
     } catch (error) {
       this.#toastr.error(

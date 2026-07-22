@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator'
+import type { I18nObject } from '@xpert-ai/contracts'
 import { Column, Entity, Index } from 'typeorm'
 import { TenantBaseEntity } from '../core/entities/internal'
 
@@ -38,10 +39,20 @@ export class PluginMarketplaceRegistryItem extends TenantBaseEntity {
 	@Column()
 	displayName: string
 
+	@ApiPropertyOptional({ type: () => Object })
+	@IsOptional()
+	@Column({ type: 'jsonb', nullable: true })
+	displayNameI18n?: I18nObject | null
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column()
 	description: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsOptional()
+	@Column({ type: 'jsonb', nullable: true })
+	descriptionI18n?: I18nObject | null
 
 	@ApiProperty({ type: () => String })
 	@IsString()
