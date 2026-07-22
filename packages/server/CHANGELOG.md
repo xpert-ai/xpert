@@ -1,5 +1,14 @@
 # @xpert-ai/server-core
 
+## 3.9.36
+
+### Patch Changes
+
+- 2f6bf18: Support localized plugin display names and descriptions across plugin metadata, the platform registry, and marketplace dialogs.
+- Updated dependencies [2f6bf18]
+    - @xpert-ai/contracts@3.15.18
+    - @xpert-ai/plugin-sdk@3.15.18
+
 ## 3.9.35
 
 ### Patch Changes
