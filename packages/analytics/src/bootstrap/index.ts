@@ -12,6 +12,7 @@ import {
 	loadOrganizationPluginConfigs,
 	normalizePluginName,
 	PluginModule,
+	PluginScopeGuard,
 	resolveNestLogLevels,
 	registerPluginsAsync,
 	ServerAppModule,
@@ -70,7 +71,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 
 	// This will lockdown all routes and make them accessible by authenticated users only.
 	const reflector = app.get(Reflector)
-	app.useGlobalGuards(new AuthGuard(reflector))
+	app.useGlobalGuards(new AuthGuard(reflector), new PluginScopeGuard(reflector))
 
 	app.use(cookieParser())
 	app.use(

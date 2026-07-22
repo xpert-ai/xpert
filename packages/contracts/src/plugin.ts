@@ -8,6 +8,7 @@ import { IconDefinition, I18nObject } from './types'
 export type PluginName = string
 export const PLUGIN_LEVEL = {
   SYSTEM: 'system',
+  TENANT: 'tenant',
   ORGANIZATION: 'organization'
 } as const
 
@@ -74,6 +75,7 @@ export const PLUGIN_RESOURCE_INSTALLATION_STATUS = {
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
+ * - `tenant`: tenant-owned plugin that may register process-global runtime artifacts and is activated after an API restart.
  * - `organization`: tenant/org-managed plugin that can be installed and removed per organization.
  */
 export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
@@ -621,7 +623,7 @@ export interface IPluginInstallResult {
   currentVersion?: string
   /**
    * The plugin package was installed and persisted, but the running API process
-   * intentionally did not activate it. System-level plugins require a graceful
+   * intentionally did not activate it. Process-level system and tenant plugins require a graceful
    * API restart (or a blue-green process replacement) before this version takes effect.
    */
   restartRequired?: boolean

@@ -152,7 +152,7 @@
       "ReadmeSource_description": "描述",
       "AllDeveloperTools": "全部开发工具",
       "DeveloperToolsSubcategories": "开发工具分类",
-      "SystemPluginTenantScopeRequired": "系统插件只能在租户 scope 下安装。",
+      "SystemPluginTenantScopeRequired": "系统级和租户级插件只能在租户 scope 下安装。",
       "MarketplaceCategory_featured": "精选业务方案",
       "MarketplaceCategory_business-operations": "业务与运营",
       "MarketplaceCategory_communication": "通信",

@@ -280,6 +280,44 @@ describe('plugin instance loader', () => {
 		])
 	})
 
+	it('restores tenant-level plugins only in their owning tenant global scope', () => {
+		const configs = buildOrganizationPluginConfigs(
+			[
+				{
+					tenantId: 'tenant-bom',
+					organizationId: null,
+					scopeKey: 'tenant:tenant-bom:global',
+					pluginName: '@xpert-ai/plugin-bom',
+					packageName: '@xpert-ai/plugin-bom',
+					version: '1.0.0',
+					source: 'marketplace',
+					sourceConfig: null,
+					level: 'tenant',
+					config: {}
+				}
+			],
+			{ defaultTenantId: 'tenant-default' }
+		)
+
+		expect(configs).toEqual([
+			{
+				tenantId: 'tenant-bom',
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				scopeKey: 'tenant:tenant-bom:global',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-bom@1.0.0',
+						version: '1.0.0',
+						source: 'marketplace',
+						sourceConfig: null,
+						level: 'tenant'
+					}
+				],
+				configs: { '@xpert-ai/plugin-bom': {} }
+			}
+		])
+	})
+
 	it('backfills explicit scope keys before restoring from the upgraded plugin_instance table', async () => {
 		mockHasTable.mockResolvedValue(true)
 		mockHasColumn.mockResolvedValue(true)

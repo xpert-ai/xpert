@@ -53,6 +53,19 @@ describe('plugin sdk versioning', () => {
 		).toEqual(expect.objectContaining({ artifactNamespace: 'legacy_demo' }))
 	})
 
+	it('accepts tenant-level plugin package metadata', () => {
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-bom',
+					xpert: { plugin: { level: 'tenant', artifactNamespace: 'bom' } },
+					peerDependencies: { '@xpert-ai/plugin-sdk': '^3.8.0' }
+				},
+				{ hostVersion: '3.8.4' }
+			)
+		).toEqual(expect.objectContaining({ level: 'tenant', artifactNamespace: 'bom' }))
+	})
+
 	it('rejects conflicting nested and legacy artifact namespaces', () => {
 		expect(() =>
 			assertPluginSdkCompatibility(

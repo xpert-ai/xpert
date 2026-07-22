@@ -350,7 +350,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	allowSystemPlugins?: boolean
 	/**
 	 * Copy/install the package into its immutable runtime directory without importing
-	 * or registering its Nest module. Used for system-level plugins that only become
+	 * or registering its Nest module. Used for process-level system and tenant plugins that only become
 	 * active after the API process restarts.
 	 */
 	stageOnly?: boolean
@@ -542,6 +542,11 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					`System-level plugin "${plugin.meta?.name ?? name}" cannot be installed in this scope`
 				)
 			}
+			if (resolvedLevel === PLUGIN_LEVEL.TENANT && !scope.isGlobal) {
+				throw new Error(
+					`Tenant-level plugin "${plugin.meta?.name ?? name}" must be loaded from its tenant-global scope`
+				)
+			}
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 
@@ -555,7 +560,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			const mod = plugin.register(ctx)
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
-			tagModuleWithOrganization(mod, scopeKey, normalizePluginName(name))
+			tagModuleWithPluginScope(mod, scopeKey, normalizePluginName(name))
 			modules.push(mod)
 			const existing = loaded.findIndex(
 				(item) => (item.scopeKey ?? item.organizationId) === scopeKey && item.name === plugin.meta.name
@@ -613,17 +618,17 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	}
 }
 
-function tagModuleWithOrganization(mod: DynamicModule, organizationId: string, pluginName: string) {
+function tagModuleWithPluginScope(mod: DynamicModule, scopeKey: string, pluginName: string) {
 	const target = mod.module
-	Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target)
+	Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, target)
 	Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
-	tagModuleProvidersWithOrganization(mod, organizationId, pluginName)
+	tagModuleProvidersWithPluginScope(mod, scopeKey, pluginName)
 }
 
-function tagModuleProvidersWithOrganization(plugin: DynamicModule, organizationId: string, pluginName: string) {
+function tagModuleProvidersWithPluginScope(plugin: DynamicModule, scopeKey: string, pluginName: string) {
 	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin
-	const { imports, providers, exports } = reflectDynamicModuleMetadata(pluginModule)
-	for (const provider of providers) {
+	const { controllers, providers } = reflectDynamicModuleMetadata(pluginModule)
+	for (const provider of [...controllers, ...providers]) {
 		const target =
 			(typeof provider === 'function' && provider) ||
 			(isClassProvider(provider) && provider.useClass) ||
@@ -631,7 +636,7 @@ function tagModuleProvidersWithOrganization(plugin: DynamicModule, organizationI
 			(isExistingProvider(provider) && provider.useExisting) ||
 			(isValueProvider(provider) && provider.useValue)
 		if (target) {
-			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, organizationId, target)
+			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, target)
 			Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
 		}
 	}

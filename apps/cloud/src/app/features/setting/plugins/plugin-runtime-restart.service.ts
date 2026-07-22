@@ -161,7 +161,7 @@ export class PluginRuntimeRestartService {
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
-        reason: 'Activate staged system plugin changes'
+        reason: 'Activate staged process-level plugin changes'
       })
     )
 

@@ -15,7 +15,7 @@
       <p>
         {{
           'PAC.Plugin.SystemPluginTenantScopeRequired'
-            | translate: { Default: 'System plugins can only be installed from tenant scope.' }
+            | translate: { Default: 'System and tenant-level plugins can only be installed from tenant scope.' }
         }}
       </p>
     } @else if (installedVersion() === pluginVersion()) {

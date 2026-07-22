@@ -29,11 +29,11 @@ import {
 	registerPluginsAsync,
 	upsertPluginLoadFailure
 } from './plugin.helper'
-import { resolvePluginLevel } from './plugin-instance.entity'
+import { isRestartRequiredPluginLevel, resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
-import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
+import { canManageGlobalPlugins, canManageSystemPlugins, canManageTenantPlugins } from './plugin-update.utils'
 import {
 	assertInstalledPluginSdkCompatibility,
 	assertPluginSdkCompatibility,
@@ -279,6 +279,16 @@ export class PluginManagementService {
 			}
 			if (level === PLUGIN_LEVEL.SYSTEM) {
 				this.assertSystemInstallTenant(tenantId, defaultTenantId, packageName)
+				const existingTenantRegistration = await this.pluginInstanceService.findTenantLevelOwner(packageName)
+				if (existingTenantRegistration) {
+					throw new BadRequestException(
+						t('server:Error.PluginProcessLevelConflict', {
+							name: packageName,
+							existingLevel: PLUGIN_LEVEL.TENANT,
+							requestedLevel: PLUGIN_LEVEL.SYSTEM
+						})
+					)
+				}
 				targetTenantId = null
 				targetOrganizationId = GLOBAL_ORGANIZATION_SCOPE
 				scope = resolvePluginScope({
@@ -299,18 +309,61 @@ export class PluginManagementService {
 						t('server:Error.PluginSystemLevelInstallForbidden', { name: packageName })
 					)
 				}
+			} else if (level === PLUGIN_LEVEL.TENANT) {
+				if (!tenantId) {
+					throw new BadRequestException('tenantId is required for tenant-level plugin installation')
+				}
+				if (!canManageTenantPlugins(tenantId)) {
+					shouldPersistFailureState = false
+					throw new ForbiddenException(
+						t('server:Error.PluginTenantLevelInstallForbidden', { name: packageName })
+					)
+				}
+				targetTenantId = tenantId
+				targetOrganizationId = GLOBAL_ORGANIZATION_SCOPE
+				const existingSystemRegistration =
+					await this.pluginInstanceService.findSystemLevelRegistration(packageName)
+				if (existingSystemRegistration) {
+					throw new BadRequestException(
+						t('server:Error.PluginProcessLevelConflict', {
+							name: packageName,
+							existingLevel: PLUGIN_LEVEL.SYSTEM,
+							requestedLevel: PLUGIN_LEVEL.TENANT
+						})
+					)
+				}
+				const existingTenantOwner = await this.pluginInstanceService.findTenantLevelOwner(packageName)
+				if (existingTenantOwner?.tenantId && existingTenantOwner.tenantId !== targetTenantId) {
+					throw new BadRequestException(
+						t('server:Error.PluginTenantLevelAlreadyOwned', {
+							name: packageName,
+							tenantId: existingTenantOwner.tenantId
+						})
+					)
+				}
+				scope = resolvePluginScope({
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
+					defaultTenantId
+				})
+				scopeStoreOptions = {
+					tenantId: targetTenantId,
+					defaultTenantId,
+					scopeKey: scope.scopeKey
+				}
+				allowSystemPlugins = false
 			}
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const runtimePluginName =
 				source === 'code'
-					? level === PLUGIN_LEVEL.SYSTEM
+					? isRestartRequiredPluginLevel(level)
 						? this.createCodeRuntimePluginName(packageName)
 						: (getCodeRuntimeName(sourceConfig) ?? this.createCodeRuntimePluginName(packageName))
 					: packageNameWithVersion
 			if (
 				source === 'code' &&
-				(packageDir || level === PLUGIN_LEVEL.SYSTEM) &&
+				(packageDir || isRestartRequiredPluginLevel(level)) &&
 				getCodeRuntimeName(sourceConfig) !== runtimePluginName
 			) {
 				sourceConfig = {
@@ -321,8 +374,8 @@ export class PluginManagementService {
 			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
 
-			if (level === PLUGIN_LEVEL.SYSTEM) {
-				// A system plugin can own controllers, ORM metadata and other process-global
+			if (isRestartRequiredPluginLevel(level)) {
+				// System and tenant-level plugins can own controllers, ORM metadata and other process-global
 				// Nest artifacts. Stage and persist it, but never mutate the live module graph.
 				// The next API process loads the staged runtime during normal bootstrap.
 				const { errors } = await registerPluginsAsync(
@@ -359,15 +412,15 @@ export class PluginManagementService {
 				)
 				const stagedCompatibility = assertInstalledPluginSdkCompatibility(packageName, pluginBaseDir)
 				const stagedLevel = resolvePluginLevel(stagedCompatibility.level)
-				if (stagedLevel !== PLUGIN_LEVEL.SYSTEM) {
+				if (stagedLevel !== level) {
 					throw new BadRequestException(
-						`Plugin "${packageName}" was staged in ${SYSTEM_GLOBAL_SCOPE} but does not declare level=system`
+						`Plugin "${packageName}" was staged in ${scope.scopeKey} but declares level=${stagedLevel} instead of level=${level}`
 					)
 				}
 				const artifactNamespace = stagedCompatibility.artifactNamespace
 				if (!artifactNamespace) {
 					throw new BadRequestException(
-						`System-level plugin "${packageName}" must declare xpert.plugin.artifactNamespace in package.json`
+						`${level === PLUGIN_LEVEL.SYSTEM ? 'System' : 'Tenant'}-level plugin "${packageName}" must declare xpert.plugin.artifactNamespace in package.json`
 					)
 				}
 				if (!isPluginArtifactNamespace(artifactNamespace)) {
@@ -381,7 +434,7 @@ export class PluginManagementService {
 					packageName
 				})
 
-				const existingSystemPlugin = await this.pluginInstanceService.findOneByPluginName(
+				const existingRestartRequiredPlugin = await this.pluginInstanceService.findOneByPluginName(
 					normalizePluginName(packageName),
 					targetOrganizationId,
 					targetTenantId,
@@ -389,7 +442,9 @@ export class PluginManagementService {
 				)
 				const persistedConfig =
 					body.config ??
-					(existingSystemPlugin ? this.pluginInstanceService.getConfig(existingSystemPlugin) : {})
+					(existingRestartRequiredPlugin
+						? this.pluginInstanceService.getConfig(existingRestartRequiredPlugin)
+						: {})
 				await this.pluginInstanceService.upsert(
 					{
 						tenantId: targetTenantId,
@@ -400,16 +455,16 @@ export class PluginManagementService {
 						version: stagedCompatibility.version ?? body.version,
 						source,
 						sourceConfig: persistedSourceConfig,
-						level: PLUGIN_LEVEL.SYSTEM,
+						level,
 						config: persistedConfig,
-						configurationStatus: existingSystemPlugin?.configurationStatus ?? null,
-						configurationError: existingSystemPlugin?.configurationError ?? null
+						configurationStatus: existingRestartRequiredPlugin?.configurationStatus ?? null,
+						configurationError: existingRestartRequiredPlugin?.configurationError ?? null
 					},
 					{ syncLoadedConfig: false }
 				)
 
 				this.logger.log(
-					`Staged system plugin ${packageName}@${stagedCompatibility.version ?? body.version ?? 'latest'}; API restart required for activation`
+					`Staged ${level}-level plugin ${packageName}@${stagedCompatibility.version ?? body.version ?? 'latest'} in ${scope.scopeKey}; API restart required for activation`
 				)
 				return {
 					success: true,
@@ -730,6 +785,7 @@ export class PluginManagementService {
 			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
 			canManageSystemPlugins(currentOrganizationId, defaultTenantId)
 		const targetsLoadedSystemPlugin = !targetScopeKey && !!this.findLoadedSystemPlugin(names)
+		const tenantGlobalScopeKey = resolveTenantGlobalScopeKey(tenantId)
 		const scopeKey =
 			targetScopeKey ??
 			(targetsLoadedSystemPlugin
@@ -741,10 +797,21 @@ export class PluginManagementService {
 			throw new ForbiddenException('Only super admins can uninstall system plugins')
 		}
 		this.assertNoSystemPlugins(names, allowSystemPlugins, scopeKey)
-		if (scopeKey === SYSTEM_GLOBAL_SCOPE) {
+		const loadedRestartRequiredPlugin = this.findLoadedRestartRequiredPlugin(names, scopeKey)
+		const loadedRestartRequiredLevel = loadedRestartRequiredPlugin
+			? resolvePluginLevel(loadedRestartRequiredPlugin.level ?? loadedRestartRequiredPlugin.instance?.meta?.level)
+			: null
+		if (loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
+			if (scopeKey !== tenantGlobalScopeKey || !canManageTenantPlugins(tenantId)) {
+				throw new ForbiddenException(
+					'Tenant-level plugins can only be uninstalled by a Super Admin in their tenant'
+				)
+			}
+		}
+		if (scopeKey === SYSTEM_GLOBAL_SCOPE || loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
 			await this.pluginInstanceService.deactivate(tenantId, organizationId, names, { scopeKey })
 			this.logger.log(
-				`Deactivated persisted registrations for system plugins ${names.join(', ')}; API restart required for unload`
+				`Deactivated persisted registrations for ${loadedRestartRequiredLevel ?? 'system'}-level plugins ${names.join(', ')}; API restart required for unload`
 			)
 			return { restartRequired: true }
 		}
@@ -795,13 +862,25 @@ export class PluginManagementService {
 	}
 
 	private findLoadedSystemPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
+		return this.findLoadedPluginByLevels(pluginNamesOrPackages, [PLUGIN_LEVEL.SYSTEM], scopeKey)
+	}
+
+	private findLoadedRestartRequiredPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
+		return this.findLoadedPluginByLevels(
+			pluginNamesOrPackages,
+			[PLUGIN_LEVEL.SYSTEM, PLUGIN_LEVEL.TENANT],
+			scopeKey
+		)
+	}
+
+	private findLoadedPluginByLevels(pluginNamesOrPackages: string[], levels: PluginLevel[], scopeKey?: string) {
 		const normalizedTargets = new Set(pluginNamesOrPackages.map((name) => normalizePluginName(name)))
 		return this.loadedPlugins.find((plugin) => {
 			if (scopeKey && (plugin.scopeKey ?? plugin.organizationId) !== scopeKey) {
 				return false
 			}
 			const level = resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level)
-			if (level !== PLUGIN_LEVEL.SYSTEM) {
+			if (!levels.includes(level)) {
 				return false
 			}
 			const candidates = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]

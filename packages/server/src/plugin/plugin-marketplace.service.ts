@@ -1684,7 +1684,7 @@ export class PluginMarketplaceService {
 	}
 
 	private normalizePluginLevel(value: unknown): PluginLevel | undefined {
-		if (value === PLUGIN_LEVEL.SYSTEM || value === PLUGIN_LEVEL.ORGANIZATION) {
+		if (value === PLUGIN_LEVEL.SYSTEM || value === PLUGIN_LEVEL.TENANT || value === PLUGIN_LEVEL.ORGANIZATION) {
 			return value
 		}
 		return undefined

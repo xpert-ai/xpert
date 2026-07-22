@@ -122,6 +122,30 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		})
 	}
 
+	/**
+	 * Tenant-level plugins may contribute process-global Nest modules, controllers and ORM metadata.
+	 * Keep one owning tenant per plugin package so the same runtime is never bootstrapped twice.
+	 */
+	async findTenantLevelOwner(pluginName: string) {
+		const normalized = normalizePluginName(pluginName)
+		return this.repo.findOne({
+			where: [
+				{ level: PLUGIN_LEVEL.TENANT, pluginName: normalized },
+				{ level: PLUGIN_LEVEL.TENANT, packageName: normalized }
+			]
+		})
+	}
+
+	async findSystemLevelRegistration(pluginName: string) {
+		const normalized = normalizePluginName(pluginName)
+		return this.repo.findOne({
+			where: [
+				{ level: PLUGIN_LEVEL.SYSTEM, pluginName: normalized },
+				{ level: PLUGIN_LEVEL.SYSTEM, packageName: normalized }
+			]
+		})
+	}
+
 	async findVisibleInOrganization(organizationId: string) {
 		const tenantId = this.getCurrentTenantId()
 		const defaultTenantId = await this.getDefaultTenantId()

@@ -25,6 +25,7 @@ jest.mock('@xpert-ai/contracts', () => ({
 	},
 	PLUGIN_LEVEL: {
 		SYSTEM: 'system',
+		TENANT: 'tenant',
 		ORGANIZATION: 'organization'
 	},
 	OrganizationContactBudgetTypeEnum: {
@@ -66,7 +67,7 @@ jest.mock('./plugin.helper', () => ({
 }))
 
 jest.mock('./plugin-instance.entity', () => ({
-	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' ? 'system' : 'organization'))
+	resolvePluginLevel: jest.fn((level?: string) => (level === 'system' || level === 'tenant' ? level : 'organization'))
 }))
 
 jest.mock('./plugin-instance.service', () => ({
@@ -152,7 +153,7 @@ describe('PluginController', () => {
 			config: config ?? {}
 		}))
 		;(resolvePluginLevel as jest.Mock).mockImplementation((level?: string) =>
-			level === PLUGIN_LEVEL.SYSTEM ? PLUGIN_LEVEL.SYSTEM : PLUGIN_LEVEL.ORGANIZATION
+			level === PLUGIN_LEVEL.SYSTEM || level === PLUGIN_LEVEL.TENANT ? level : PLUGIN_LEVEL.ORGANIZATION
 		)
 		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue(undefined)
 		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
@@ -1167,6 +1168,53 @@ describe('PluginController', () => {
 		])
 		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-system-demo'] })).resolves.toEqual([])
 		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('shows a tenant-level plugin only to its owning tenant and allows tenant Super Admin management', async () => {
+		RequestContext.getOrganizationId.mockReturnValue(GLOBAL_ORGANIZATION_SCOPE)
+		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-bom',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE
+		})
+		RequestContext.hasRole.mockReturnValue(true)
+		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue({ type: 'object', properties: { enabled: {} } })
+		loadedPlugins.push({
+			tenantId: 'tenant-bom',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: 'tenant:tenant-bom:global',
+			name: '@xpert-ai/plugin-bom',
+			packageName: '@xpert-ai/plugin-bom',
+			source: 'npm',
+			level: PLUGIN_LEVEL.TENANT,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-bom',
+					version: '1.0.0',
+					level: PLUGIN_LEVEL.TENANT
+				},
+				config: { defaults: {} }
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-bom',
+				scopeKey: 'tenant:tenant-bom:global',
+				level: PLUGIN_LEVEL.TENANT,
+				canConfigure: true,
+				canUninstall: true,
+				effectiveInCurrentScope: true
+			})
+		])
+
+		RequestContext.currentTenantId.mockReturnValue('tenant-other')
+		RequestContext.getScope.mockReturnValue({
+			tenantId: 'tenant-other',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE
+		})
+		await expect(controller.getPlugins()).resolves.toEqual([])
 	})
 
 	it('includes persisted plugin instances that failed to load', async () => {

@@ -58,7 +58,9 @@ export class PluginInstallComponent {
   readonly latestVersion = signal<string | null>(null)
   readonly pluginVersion = computed(() => this.latestVersion() ?? this.plugin()?.version)
   readonly systemPluginUnavailableInCurrentScope = computed(
-    () => this.plugin()?.level === PLUGIN_LEVEL.SYSTEM && this.scopeLevel() !== RequestScopeLevel.TENANT
+    () =>
+      (this.plugin()?.level === PLUGIN_LEVEL.SYSTEM || this.plugin()?.level === PLUGIN_LEVEL.TENANT) &&
+      this.scopeLevel() !== RequestScopeLevel.TENANT
   )
 
   readonly status = signal<'idle' | 'installing' | 'installed' | 'error'>('idle')
