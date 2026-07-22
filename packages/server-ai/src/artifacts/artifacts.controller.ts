@@ -132,6 +132,28 @@ export class ArtifactsManagementController {
         })
     }
 
+    @Get(':artifactId/versions/:artifactVersionId/content')
+    async getVersionContent(
+        @Param('artifactId') artifactId: string,
+        @Param('artifactVersionId') artifactVersionId: string,
+        @Res() res: Response
+    ) {
+        const resolved = await this.service.resolveForManagementAccess({ artifactId, artifactVersionId })
+        res.setHeader('Content-Type', resolved.mimeType)
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        res.setHeader('Referrer-Policy', 'no-referrer')
+        res.setHeader('Cache-Control', 'private, no-store')
+        res.setHeader('X-Xpert-Artifact-Version', resolved.version.id)
+        if (resolved.version.sha256) {
+            res.setHeader('X-Xpert-Artifact-SHA256', resolved.version.sha256)
+        }
+        res.setHeader('Content-Disposition', buildContentDisposition('inline', resolved.fileName))
+        if (resolved.mimeType === 'text/html') {
+            res.setHeader('Content-Security-Policy', buildHtmlCsp('interactive'))
+        }
+        res.send(resolved.buffer)
+    }
+
     @Get(':idOrSlug')
     async getArtifact(@Param('idOrSlug') idOrSlug: string) {
         return this.service.getArtifact(idOrSlug)

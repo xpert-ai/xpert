@@ -1,8 +1,41 @@
 import { UnauthorizedException } from '@nestjs/common'
 import type { Request, Response } from 'express'
-import { ArtifactsPublicController, ArtifactsShareSessionController } from './artifacts.controller'
+import {
+    ArtifactsManagementController,
+    ArtifactsPublicController,
+    ArtifactsShareSessionController
+} from './artifacts.controller'
 
 describe('Artifact share controllers', () => {
+    it('serves an authenticated immutable version with no-store and interactive CSP headers', async () => {
+        const service = {
+            resolveForManagementAccess: jest.fn(async () => ({
+                artifact: { id: 'artifact-1' },
+                version: { id: 'version-1', sha256: 'abc123' },
+                buffer: Buffer.from('<!doctype html><script>viewer()</script>'),
+                mimeType: 'text/html',
+                fileName: 'viewer.html'
+            }))
+        }
+        const response = responseFixture()
+
+        await new ArtifactsManagementController(service as never).getVersionContent(
+            'artifact-1',
+            'version-1',
+            response.value
+        )
+
+        expect(service.resolveForManagementAccess).toHaveBeenCalledWith({
+            artifactId: 'artifact-1',
+            artifactVersionId: 'version-1'
+        })
+        expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+        expect(response.headers.get('X-Xpert-Artifact-Version')).toBe('version-1')
+        expect(response.headers.get('X-Xpert-Artifact-SHA256')).toBe('abc123')
+        expect(response.headers.get('Content-Security-Policy')).toContain('sandbox allow-scripts')
+        expect(response.send).toHaveBeenCalledWith(expect.any(Buffer))
+    })
+
     it('serves interactive HTML directly with an opaque sandbox and HTTPS typography access', async () => {
         const service = {
             resolveAccessContextFromRequest: jest.fn(async () => ({ principal: {} })),

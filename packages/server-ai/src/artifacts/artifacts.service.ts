@@ -109,6 +109,14 @@ export type ArtifactResolvedVersion = {
     safeHtmlProfile?: ArtifactSafeHtmlProfile | null
 }
 
+export type ArtifactManagementResolvedVersion = {
+    artifact: ArtifactRecord
+    version: ArtifactVersionRecord
+    buffer: Buffer
+    mimeType: string
+    fileName: string
+}
+
 @Injectable()
 export class ArtifactsService implements ArtifactsApi {
     constructor(
@@ -220,6 +228,29 @@ export class ArtifactsService implements ArtifactsApi {
 
     async revokeArtifactLink(idOrSlug: string): Promise<ArtifactLinkRecord> {
         return this.revokeArtifactLinkWithDefaults(idOrSlug, {})
+    }
+
+    async resolveForManagementAccess(input: {
+        artifactId: string
+        artifactVersionId: string
+    }): Promise<ArtifactManagementResolvedVersion> {
+        const artifact = await this.resolveScopedArtifact(input.artifactId, {}, true)
+        if (artifact.status !== 'active') {
+            throw new GoneException('Artifact is no longer active')
+        }
+        const version = await this.resolveRequestedVersion(artifact, 'version', input.artifactVersionId)
+        const file = await this.readWorkspaceArtifact(version.workspaceFileRef)
+        const sha256 = digestBuffer(file.buffer)
+        if (version.sha256 && !safeEqualString(version.sha256, sha256)) {
+            throw new GoneException('Artifact content checksum mismatch')
+        }
+        return {
+            artifact: serializeArtifact(artifact, version),
+            version: serializeArtifactVersion(version),
+            buffer: file.buffer,
+            mimeType: version.mimeType,
+            fileName: version.fileName ?? file.name
+        }
     }
 
     async resolveForPublicAccess(input: {
@@ -672,6 +703,11 @@ export class ArtifactsService implements ArtifactsApi {
 
         if (scope.organizationId) {
             qb.andWhere('artifact.organizationId = :organizationId', { organizationId: scope.organizationId })
+        } else {
+            qb.andWhere('artifact.organizationId IS NULL')
+        }
+        if (scope.userId) {
+            qb.andWhere('(artifact.userId IS NULL OR artifact.userId = :userId)', { userId: scope.userId })
         }
         if (input.status && input.status !== 'all') {
             qb.andWhere('artifact.status = :status', { status: input.status })
@@ -1020,7 +1056,9 @@ export class ArtifactsService implements ArtifactsApi {
         return (
             candidates.find(
                 (artifact) =>
-                    normalizeOptionalString(artifact.organizationId) === normalizeOptionalString(scope.organizationId)
+                    normalizeOptionalString(artifact.organizationId) ===
+                        normalizeOptionalString(scope.organizationId) &&
+                    normalizeOptionalString(artifact.userId) === normalizeOptionalString(scope.userId)
             ) ?? null
         )
     }
@@ -1044,7 +1082,10 @@ export class ArtifactsService implements ArtifactsApi {
         if (!artifact || artifact.tenantId !== scope.tenantId) {
             throw new NotFoundException('Artifact was not found')
         }
-        if (scope.organizationId && artifact.organizationId !== scope.organizationId) {
+        if (normalizeOptionalString(artifact.organizationId) !== normalizeOptionalString(scope.organizationId)) {
+            throw new NotFoundException('Artifact was not found')
+        }
+        if (artifact.userId && artifact.userId !== scope.userId) {
             throw new NotFoundException('Artifact was not found')
         }
         if (!allowDeleted && artifact.status === 'deleted') {
@@ -1063,6 +1104,11 @@ export class ArtifactsService implements ArtifactsApi {
             .andWhere('link.tenantId = :tenantId', { tenantId: scope.tenantId })
         if (scope.organizationId) {
             qb.andWhere('link.organizationId = :organizationId', { organizationId: scope.organizationId })
+        } else {
+            qb.andWhere('link.organizationId IS NULL')
+        }
+        if (scope.userId) {
+            qb.andWhere('(artifact.userId IS NULL OR artifact.userId = :userId)', { userId: scope.userId })
         }
         const link = await qb.getOne()
         if (!link) {
