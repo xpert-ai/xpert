@@ -1,4 +1,5 @@
 import {
+    IMembershipAllowedModel,
     IMembershipModelMultiplier,
     IMembershipPlan,
     IMembershipRateLimit,
@@ -27,8 +28,8 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     name: string
 
     @ApiPropertyOptional({ type: () => String })
-    @Column({ nullable: true })
-    description?: string
+    @Column({ type: 'varchar', nullable: true })
+    description?: string | null
 
     @ApiPropertyOptional({ enum: MembershipPlanStatusEnum })
     @Column({ type: 'varchar', default: MembershipPlanStatusEnum.Active })
@@ -57,15 +58,19 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
         scale: 4,
         nullable: true,
         transformer: {
-            to: (value?: number) => value,
+            to: (value?: number | null) => value,
             from: (value: string | null) => (value !== null ? parseFloat(value) : null)
         }
     })
-    priceAmount?: number
+    priceAmount?: number | null
 
     @ApiPropertyOptional({ type: () => String })
-    @Column({ nullable: true, length: 12 })
-    priceCurrency?: string
+    @Column({ type: 'varchar', nullable: true, length: 12 })
+    priceCurrency?: string | null
+
+    @ApiPropertyOptional({ type: () => Array })
+    @Column({ type: 'json', nullable: true })
+    allowedModels?: IMembershipAllowedModel[]
 
     @ApiPropertyOptional({ type: () => Array })
     @Column({ type: 'json', nullable: true })

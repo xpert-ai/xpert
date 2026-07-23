@@ -12,12 +12,12 @@ import { OverlayAnimation1 } from '@xpert-ai/core'
 import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  AiFeatureEnum,
   getErrorMessage,
   injectHelpWebsite,
   injectToastr,
   IUser,
   LANGUAGES,
+  MembershipService,
   Store
 } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
@@ -62,6 +62,7 @@ export class HeaderUserComponent {
   readonly #i18n = inject(I18nService)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
+  readonly #membership = inject(MembershipService)
   readonly helpWebsite = injectHelpWebsite()
 
   // Inputs
@@ -77,9 +78,7 @@ export class HeaderUserComponent {
 
   readonly userSignal = toSignal(this.store.user$)
   readonly language$ = toSignal(this.appService.preferredLanguage$)
-  readonly membershipPlanEnabled = toSignal(this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN), {
-    initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
-  })
+  readonly hasActiveMembership = toSignal(this.#membership.hasActiveMembershipInScope(), { initialValue: false })
 
   readonly themesT$ = toSignal(this.#i18n.stream('PAC.Themes'))
 

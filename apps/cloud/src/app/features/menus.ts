@@ -136,7 +136,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       scopeContext: 'dual-scope',
       data: {
         featureKey: AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN,
-        permissionKeys: [AIPermissionsEnum.MEMBERSHIP_EDIT]
+        permissionKeys: [AIPermissionsEnum.COPILOT_EDIT]
       }
     },
     {

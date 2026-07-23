@@ -1,5 +1,6 @@
 import { AiModelTypeEnum, FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
+import { RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AIProvidersService } from '../../../ai-model/index'
@@ -8,6 +9,7 @@ import { CopilotService } from '../../copilot.service'
 import { CopilotWithProviderDto, ProviderWithModelsDto } from '../../dto'
 import { FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
+import { MembershipService } from '../../../membership'
 
 /**
  * Builds the LLM/model catalog visible to the current tenant and organization.
@@ -17,14 +19,14 @@ import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
  */
 @QueryHandler(FindCopilotModelsQuery)
 export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModelsQuery> {
-
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
 
 	constructor(
 		private readonly queryBus: QueryBus,
 		private readonly service: CopilotService,
-		private readonly providersService: AIProvidersService
+		private readonly providersService: AIProvidersService,
+		private readonly membershipService: MembershipService
 	) {}
 
 	/**
@@ -32,7 +34,16 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 	 * for the requested model type.
 	 */
 	public async execute(command: FindCopilotModelsQuery): Promise<CopilotWithProviderDto[]> {
-		const copilots = await this.service.findAllAvailablesCopilots(null, null)
+		const copilots = command.forMembershipManagement
+            ? await this.service.findAllEnabledCopilotsWithoutMembership(
+                  RequestContext.currentTenantId(),
+                  RequestContext.getOrganizationId()
+              )
+			: await this.service.findAllAvailablesCopilots(null, null)
+		const membershipPlanEnabled = command.forMembershipManagement
+			? false
+			: await this.membershipService.isMembershipAccessEnabled()
+		const membershipAccess = membershipPlanEnabled ? await this.membershipService.findModelAccess() : null
 		const copilotSchemas: CopilotWithProviderDto[] = []
 		for (const copilot of copilots) {
 			if (copilot.modelProvider) {
@@ -58,7 +69,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 										features: customFeatures(model.modelProperties),
 										label: {
 											zh_Hans: model.modelName,
-											en_US: model.modelName,
+                                            en_US: model.modelName
 										}
 									}) as ProviderModel
 							)
@@ -75,17 +86,32 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 						models.push(selectedModel)
 					}
 
-					if (models.length) {
+                    const visibleModels = !membershipPlanEnabled
+							? models
+							: membershipAccess
+								? models.filter((model) =>
+										this.membershipService.isModelAllowed(
+											membershipAccess.membership.plan,
+											copilot.modelProvider.providerName,
+											model.model
+										)
+									)
+								: []
+
+					if (visibleModels.length) {
 						const providerSchema = provider.getProviderSchema()
 						const baseUrl = this.configService.get('baseUrl') as string
 						copilotSchemas.push(
 							new CopilotWithProviderDto({
 								...copilot,
 								modelProvider: new CopilotProviderPublicDto(copilot.modelProvider, baseUrl),
-								providerWithModels: new ProviderWithModelsDto({
-									...providerSchema,
-									models
-								}, baseUrl)
+								providerWithModels: new ProviderWithModelsDto(
+									{
+										...providerSchema,
+										models: visibleModels
+									},
+									baseUrl
+								)
 							})
 						)
 					}

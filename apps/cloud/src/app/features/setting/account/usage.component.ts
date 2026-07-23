@@ -1,9 +1,22 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import { IMembershipUsageBucket, IMembershipUsageOverview } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardBadgeComponent, ZardCardImports, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardBadgeComponent,
+  ZardCardImports,
+  ZardIconComponent,
+  ZardProgressBarComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import { forkJoin, map } from 'rxjs'
+import {
+  buildMembershipUsageHeatmap,
+  getMembershipUsageHeatmapRange,
+  MembershipUsageHeatmapCell
+} from './usage-heatmap.utils'
 
 @Component({
   standalone: true,
@@ -14,6 +27,7 @@ import { ZardBadgeComponent, ZardCardImports, ZardIconComponent, ZardProgressBar
     ZardBadgeComponent,
     ZardIconComponent,
     ZardProgressBarComponent,
+    ...ZardTooltipImports,
     ...ZardCardImports
   ],
   templateUrl: './usage.component.html',
@@ -25,7 +39,18 @@ export class PACAccountUsageComponent implements OnInit {
   readonly #translate = inject(TranslateService)
 
   readonly overview = signal<IMembershipUsageOverview | null>(null)
+  readonly activityBuckets = signal<IMembershipUsageBucket[]>([])
   readonly loading = signal(false)
+  readonly #language = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)), {
+    initialValue: this.#translate.currentLang || this.#translate.getDefaultLang() || 'en'
+  })
+  readonly heatmap = computed(() => buildMembershipUsageHeatmap(this.activityBuckets(), new Date(), this.#language()))
+  readonly totalPoints = computed(
+    () => this.overview()?.buckets.reduce((total, bucket) => total + bucket.pointsUsed, 0) ?? 0
+  )
+  readonly peakDailyPoints = computed(
+    () => this.overview()?.buckets.reduce((peak, bucket) => Math.max(peak, bucket.pointsUsed), 0) ?? 0
+  )
 
   ngOnInit() {
     this.load()
@@ -33,9 +58,17 @@ export class PACAccountUsageComponent implements OnInit {
 
   load() {
     this.loading.set(true)
-    this.#membership.getOverview().subscribe({
-      next: (overview) => {
+    const activityRange = getMembershipUsageHeatmapRange(new Date())
+    forkJoin({
+      overview: this.#membership.getOverview(),
+      activity: this.#membership.getOverview({
+        start: activityRange.start.toISOString(),
+        end: activityRange.end.toISOString()
+      })
+    }).subscribe({
+      next: ({ overview, activity }) => {
         this.overview.set(overview)
+        this.activityBuckets.set(activity?.buckets ?? [])
         this.loading.set(false)
       },
       error: (error) => {
@@ -43,10 +76,6 @@ export class PACAccountUsageComponent implements OnInit {
         this.#toastr.error(getErrorMessage(error))
       }
     })
-  }
-
-  buckets() {
-    return this.overview()?.buckets ?? []
   }
 
   usedPercent() {
@@ -62,14 +91,21 @@ export class PACAccountUsageComponent implements OnInit {
     return this.overview()?.pointsGranted === null
   }
 
-  heatmapOpacity(bucket: IMembershipUsageBucket) {
-    const max = Math.max(...this.buckets().map((item) => item.pointsUsed), 1)
-    return bucket.pointsUsed ? Math.max(0.18, bucket.pointsUsed / max) : 0.08
-  }
+  heatmapTitle(bucket: MembershipUsageHeatmapCell) {
+    const locale = this.#language()
+    const date = new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      day: 'numeric'
+    }).format(bucket.dateValue)
+    const tokenUsed = new Intl.NumberFormat(locale, {
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(bucket.tokenUsed)
 
-  heatmapTitle(bucket: IMembershipUsageBucket) {
-    const points = this.#translate.instant('PAC.Membership.Points', { Default: 'points' })
-    const tokens = this.#translate.instant('PAC.Membership.Tokens', { Default: 'tokens' })
-    return `${bucket.date}: ${bucket.pointsUsed} ${points} / ${bucket.tokenUsed} ${tokens}`
+    return this.#translate.instant('PAC.Membership.HeatmapDailyTitle', {
+      date,
+      tokenUsed,
+      Default: `${date}: ${tokenUsed} tokens used`
+    })
   }
 }

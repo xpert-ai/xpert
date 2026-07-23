@@ -5,13 +5,20 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@xpert-ai/cloud/state'
-import { AiFeatureEnum, IUser, UserType } from '@xpert-ai/contracts'
+import { AiFeatureEnum, IUser, PermissionsEnum, UserType } from '@xpert-ai/contracts'
 import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { of } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
+import {
+  AIPermissionsEnum,
+  getErrorMessage,
+  injectToastr,
+  RequestScopeLevel,
+  RolesEnum,
+  routeAnimations
+} from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { ZardBadgeComponent, ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
@@ -21,7 +28,7 @@ type UserDetailTab = 'basic' | 'membership' | 'organizations' | 'security'
 
 const USER_DETAIL_TABS: Array<{ id: UserDetailTab; regularOnly?: boolean }> = [
   { id: 'basic' },
-  { id: 'membership' },
+  { id: 'membership', regularOnly: true },
   { id: 'organizations', regularOnly: true },
   { id: 'security', regularOnly: true }
 ]
@@ -58,6 +65,13 @@ export class PACEditUserComponent {
   readonly confirmDelete = injectConfirmDelete()
 
   readonly me = this.store.user
+  readonly activeScope = toSignal(this.store.selectActiveScope(), {
+    initialValue: this.store.activeScope
+  })
+  readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
+  readonly canManageTenantUser = computed(
+    () => this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
+  )
 
   public readonly userId$ = this.route.params.pipe(
     startWith(this.route.snapshot.params),
@@ -87,7 +101,9 @@ export class PACEditUserComponent {
   readonly availableTabs = computed(() =>
     USER_DETAIL_TABS.filter(
       (tab) =>
-        (tab.id !== 'membership' || this.membershipPlanEnabled()) &&
+        (tab.id !== 'membership' || this.canShowMembershipTab()) &&
+        (tab.id !== 'organizations' || this.isTenantScope()) &&
+        (tab.id !== 'security' || this.canManageTenantUser()) &&
         (!tab.regularOnly || !this.isTechnicalUser(this.user()))
     )
   )
@@ -118,6 +134,11 @@ export class PACEditUserComponent {
   isTechnicalUser(user?: IUser | null) {
     return user?.type === UserType.COMMUNICATION
   }
+
+  readonly canShowMembershipTab = computed(() => {
+    this.activeScope()
+    return this.membershipPlanEnabled() && this.store.hasPermission(AIPermissionsEnum.COPILOT_EDIT as never)
+  })
 
   userTypeLabelKey(type?: UserType) {
     return type === UserType.COMMUNICATION ? 'PAC.Users.UserTypes.Technical' : 'PAC.Users.UserTypes.Regular'
@@ -154,7 +175,13 @@ export class PACEditUserComponent {
   }
 
   private isTabAvailable(tab: UserDetailTab, user?: IUser | null) {
-    if (tab === 'membership' && !this.membershipPlanEnabled()) {
+    if (tab === 'membership' && !this.canShowMembershipTab()) {
+      return false
+    }
+    if (tab === 'organizations' && !this.isTenantScope()) {
+      return false
+    }
+    if (tab === 'security' && !this.canManageTenantUser()) {
       return false
     }
     if (!user) {
@@ -173,6 +200,10 @@ export class PACEditUserComponent {
   }
 
   deleteUser() {
+    if (!this.canManageTenantUser()) {
+      return
+    }
+
     this.confirmDelete(
       {
         value: userLabel(this.user()),
@@ -200,6 +231,10 @@ export class PACEditUserComponent {
   }
 
   async changePassword() {
+    if (!this.canManageTenantUser()) {
+      return
+    }
+
     if (this.newPassword().password && this.newPassword().confirmPassword === this.newPassword().password) {
       this.loading.set(true)
       try {

@@ -71,12 +71,15 @@
     >
       <z-tab [label]="'PAC.Users.Tabs.Basic' | translate: { Default: 'Basic information' }" bodyClass="pt-5">
         <pac-user-basic
-          [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
-          [readOnly]="isTechnicalUser(currentUser)"
+          [allowRoleChange]="
+            canManageTenantUser() && (RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name)
+          "
+          [readOnly]="isTechnicalUser(currentUser) || !canManageTenantUser()"
+          [showLinkedXpert]="isTechnicalUser(currentUser)"
         />
       </z-tab>
 
-      @if (membershipPlanEnabled()) {
+      @if (canShowMembershipTab() && !isTechnicalUser(currentUser)) {
         <z-tab [label]="'PAC.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
           @if (currentUser.id; as userId) {
             <pac-user-membership class="block" [userId]="userId" />
@@ -84,13 +87,13 @@
         </z-tab>
       }
 
-      @if (!isTechnicalUser(currentUser)) {
+      @if (isTenantScope() && !isTechnicalUser(currentUser)) {
         <z-tab [label]="'PAC.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
           <pac-user-organizations />
         </z-tab>
       }
 
-      @if (!isTechnicalUser(currentUser)) {
+      @if (canManageTenantUser() && !isTechnicalUser(currentUser)) {
         <z-tab [label]="'PAC.Users.Tabs.Security' | translate: { Default: 'Security' }" bodyClass="pt-5">
           <section class="flex max-w-5xl flex-col gap-8">
             <div class="max-w-xl">

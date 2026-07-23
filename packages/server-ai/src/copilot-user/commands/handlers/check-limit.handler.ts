@@ -6,8 +6,7 @@ import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { MembershipService } from '../../../membership'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
-import { ExceedingLimitException } from '../../../core/errors'
-import { usesOrganizationCredentials } from '../../../copilot/utils'
+import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 
 @CommandHandler(CopilotCheckLimitCommand)
 export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLimitCommand> {
@@ -22,7 +21,14 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
         const { input } = command
         const { copilot, tenantId, organizationId, userId, xpertId } = input
 
-        if (!usesOrganizationCredentials(copilot, organizationId)) {
+        if (!copilot?.modelProvider) {
+            throw new CopilotModelNotFoundException(
+                await this.i18nService.t('copilot.Error.AIModelNotFound', {
+                    lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+                })
+            )
+        }
+
             await this.membershipService.assertCanUse({
                 tenantId,
                 organizationId,
@@ -32,7 +38,6 @@ export class CopilotCheckLimitHandler implements ICommandHandler<CopilotCheckLim
                 provider: copilot.modelProvider.providerName,
                 model: input.model
             })
-        }
 
         const usage = await this.copilotUserService.getUsageSummary({
             tenantId,

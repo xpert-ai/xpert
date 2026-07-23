@@ -65,7 +65,7 @@ describe('getSettingsMenuItems', () => {
     const membership = menus.find((item) => item.path === 'membership')
 
     expect(membership?.data?.featureKey).toBe(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN)
-    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.MEMBERSHIP_EDIT])
+    expect(membership?.data?.permissionKeys).toEqual([AIPermissionsEnum.COPILOT_EDIT])
   })
 
   it('exposes system integrations in tenant and organization settings', () => {

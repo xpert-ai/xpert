@@ -3,6 +3,7 @@ import {
     convertToUrlPath,
     ICopilotStore,
     IUser,
+    IXpertPrincipalReference,
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
     normalizeMiddlewareNodes,
@@ -67,6 +68,37 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await super.save(_entity)
+    }
+
+    async findByPrincipalUserId(userId: string): Promise<IXpertPrincipalReference | null> {
+        const xpert = await this.repository.findOne({
+            where: {
+                tenantId: RequestContext.currentTenantId(),
+                userId
+            },
+            relations: {
+                organization: true,
+                tenant: true,
+                workspace: true
+            },
+            order: {
+                latest: 'DESC',
+                createdAt: 'DESC'
+            }
+        })
+
+        if (!xpert) {
+            return null
+        }
+
+        return {
+            id: xpert.id,
+            name: xpert.name,
+            title: xpert.title,
+            organizationName: xpert.organization?.name,
+            tenantName: xpert.tenant?.name,
+            workspaceName: xpert.workspace?.name
+        }
     }
 
     async create(entity: DeepPartial<Xpert>, ...options: unknown[]) {

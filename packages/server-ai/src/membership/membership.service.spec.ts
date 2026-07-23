@@ -7,13 +7,18 @@ import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
-import { FeatureOrganization, RequestContext } from '@xpert-ai/server-core'
+import { FeatureOrganization, RequestContext, User } from '@xpert-ai/server-core'
 import {
+    DEFAULT_MEMBERSHIP_TOKENS_PER_POINT,
+    MEMBERSHIP_TOKENS_PER_POINT_SETTING,
     MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
     MembershipPlanStatusEnum,
-    MembershipStatusEnum
+    MembershipRenewalModeEnum,
+    MembershipSourceEnum,
+    MembershipStatusEnum,
+    UserType
 } from '@xpert-ai/contracts'
 import i18next from 'i18next'
 
@@ -27,6 +32,24 @@ describe('MembershipService', () => {
         feature?: {
             parentId?: string | null
         }
+    }
+
+    type MembershipServiceTestAccess = {
+        findUsableMembership: (...args: unknown[]) => Promise<unknown>
+        hasActivePlan: (...args: unknown[]) => Promise<boolean>
+        getPersonalPointsBalance: (...args: unknown[]) => Promise<number>
+        createLedger: (...args: unknown[]) => Promise<MembershipPointLedger>
+        assertRateLimits: (...args: unknown[]) => Promise<void>
+        findActiveMembership: (...args: unknown[]) => Promise<unknown>
+        findMembershipForUpdate: (...args: unknown[]) => Promise<unknown>
+        renewMembership: (...args: unknown[]) => Promise<unknown>
+        createMembershipStatusLedger: (...args: unknown[]) => Promise<void>
+        requireManagedMembership: (...args: unknown[]) => Promise<unknown>
+        findMembershipById: (...args: unknown[]) => Promise<unknown>
+    }
+
+    function getMembershipServiceTestAccess(service: MembershipService): MembershipServiceTestAccess {
+        return service as unknown as MembershipServiceTestAccess
     }
 
     function createQueryBuilder(rawRows: Array<Record<string, unknown>>) {
@@ -47,6 +70,7 @@ describe('MembershipService', () => {
 
     function createMembership(overrides: Partial<UserMembership> = {}): UserMembership & {
         plan: NonNullable<UserMembership['plan']>
+        planId: string
     } {
         return {
             id: 'membership-owner',
@@ -54,6 +78,8 @@ describe('MembershipService', () => {
             userId: 'owner-user',
             planId: 'plan-1',
             status: MembershipStatusEnum.Active,
+            source: MembershipSourceEnum.Admin,
+            renewalMode: MembershipRenewalModeEnum.Auto,
             currentPeriodStart: new Date('2026-07-01T00:00:00.000Z'),
             currentPeriodEnd: new Date('2026-08-01T00:00:00.000Z'),
             pointsGranted: 100,
@@ -72,7 +98,7 @@ describe('MembershipService', () => {
                 rateLimits: []
             },
             ...overrides
-        } as UserMembership & { plan: NonNullable<UserMembership['plan']> }
+        } as UserMembership & { plan: NonNullable<UserMembership['plan']>; planId: string }
     }
 
     function createPlan(overrides: Partial<MembershipPlan> = {}): MembershipPlan {
@@ -135,9 +161,14 @@ describe('MembershipService', () => {
         membershipRepository: never = {} as never,
         ledgerRepository: never = {} as never,
         xpertRepository: never = {} as never,
+        userRepository: never | undefined = {
+            findOne: jest.fn(async ({ where }) => ({ id: where.id, tenantId: where.tenantId, type: UserType.USER })),
+            find: jest.fn().mockResolvedValue([{ id: 'user-1' }, { id: 'user-2' }])
+        } as never,
         userOrganizationRepository: never | undefined = undefined,
         copilotRepository: never | undefined = undefined,
-        featureOrganizationRepository: never = createMembershipFeatureRepository().repository as never
+        featureOrganizationRepository: never | undefined = createMembershipFeatureRepository().repository as never,
+        tenantSettingRepository: never | undefined = undefined
     ) {
         return new MembershipService(
             dataSource,
@@ -145,9 +176,11 @@ describe('MembershipService', () => {
             membershipRepository,
             ledgerRepository,
             xpertRepository,
+            userRepository as never,
             userOrganizationRepository,
             copilotRepository,
-            featureOrganizationRepository
+            featureOrganizationRepository,
+            tenantSettingRepository
         )
     }
 
@@ -155,11 +188,43 @@ describe('MembershipService', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const plan = createPlan({ tokensPerPoint: 100000 })
 
-        expect(service.calculatePoints(28_868_663, plan, 'tongyi', 'qwen3.6-plus')).toBe(288.68663)
-        expect(service.calculatePoints(1, plan, 'tongyi', 'qwen3.6-plus')).toBe(0.00001)
+        expect(service.calculatePoints(28_868_663, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(288.68663)
+        expect(service.calculatePoints(1, plan, 'tongyi', 'qwen3.6-plus', 100000)).toBe(0.00001)
     })
 
-    function createScopeInitializationHarness() {
+    it('matches explicitly allowed membership models and keeps empty rules unrestricted', () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+
+        expect(service.isModelAllowed(createPlan({ allowedModels: [] }), 'tongyi', 'qwen3.6-plus')).toBe(true)
+        expect(
+            service.isModelAllowed(
+                createPlan({ allowedModels: [{ provider: 'tongyi', model: 'qwen3.6-plus' }] }),
+                'tongyi',
+                'qwen3.6-plus'
+            )
+        ).toBe(true)
+        expect(
+            service.isModelAllowed(
+                createPlan({ allowedModels: [{ provider: 'tongyi', model: '*' }] }),
+                'tongyi',
+                'qwen-max'
+            )
+        ).toBe(true)
+        expect(
+            service.isModelAllowed(
+                createPlan({ allowedModels: [{ provider: 'tongyi', model: 'qwen3.6-plus' }] }),
+                'tongyi',
+                'qwen-max'
+            )
+        ).toBe(false)
+    })
+
+    function createScopeInitializationHarness(
+        tokensPerPointSetting?: string,
+        resolveFeatureRows: (
+            organizationId: string | null
+        ) => FeatureToggleFixture[] | Promise<FeatureToggleFixture[]> = () => [{ isEnabled: true }]
+    ) {
         const plans: MembershipPlan[] = []
         const memberships: UserMembership[] = []
         const ledgers: MembershipPointLedger[] = []
@@ -170,7 +235,18 @@ describe('MembershipService', () => {
             const organizationId = typeof where?.organizationId === 'string' ? where.organizationId : null
             return record.tenantId === where?.tenantId && (record.organizationId ?? null) === organizationId
         }
-        const featureOrganizationRepository = createMembershipFeatureRepository().repository
+        const featureOrganizationRepository = createMembershipFeatureRepository(resolveFeatureRows).repository
+        const tenantSettingRepository = {
+            findOne: jest.fn().mockResolvedValue(
+                tokensPerPointSetting
+                    ? {
+                          tenantId: 'tenant-1',
+                          name: MEMBERSHIP_TOKENS_PER_POINT_SETTING,
+                          value: tokensPerPointSetting
+                      }
+                    : null
+            )
+        }
         const updateBuilder = {
             update: jest.fn().mockReturnThis(),
             set: jest.fn().mockReturnThis(),
@@ -188,6 +264,9 @@ describe('MembershipService', () => {
             find: jest.fn(async ({ where }) => plans.filter((plan) => matchesScope(plan, where))),
             findOne: jest.fn(async ({ where }) => {
                 const scopedPlans = plans.filter((plan) => matchesScope(plan, where))
+                if (where?.id) {
+                    return scopedPlans.find((plan) => plan.id === where.id) ?? null
+                }
                 if (where?.status === MembershipPlanStatusEnum.Active && where?.isDefault === true) {
                     return (
                         scopedPlans.find((plan) => plan.status === MembershipPlanStatusEnum.Active && plan.isDefault) ??
@@ -211,24 +290,52 @@ describe('MembershipService', () => {
                     plans.push(saved)
                 }
                 return saved
+            }),
+            remove: jest.fn(async (plan) => {
+                const index = plans.findIndex((item) => item.id === plan.id)
+                if (index >= 0) {
+                    plans.splice(index, 1)
+                }
+                return plan
             })
         }
         const userOrganizationRepository = {
-            find: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }])
+            find: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }]),
+            findOne: jest.fn(async ({ where }) =>
+                ['user-1', 'user-2'].includes(where.userId)
+                    ? {
+                          id: `membership-${where.userId}`,
+                          tenantId: where.tenantId,
+                          organizationId: where.organizationId,
+                          userId: where.userId,
+                          isActive: true
+                      }
+                    : null
+            )
+        }
+        const userRepository = {
+            findOne: jest.fn(async ({ where }) => ({ id: where.id, tenantId: where.tenantId, type: UserType.USER })),
+            find: jest.fn().mockResolvedValue([{ id: 'user-1' }, { id: 'user-2' }])
         }
         const membershipRepository = {
             createQueryBuilder: jest.fn(() => {
                 let tenantId: string | undefined
                 let organizationId: string | null | undefined
                 let userId: string | undefined
+                let planId: string | undefined
                 let status: MembershipStatusEnum | undefined
+                let statuses: MembershipStatusEnum[] | undefined
+                let retainedMembershipId: string | undefined
                 const capture = (
                     condition: string,
                     parameters?: {
                         tenantId?: string
                         organizationId?: string
                         userId?: string
+                        planId?: string
                         status?: MembershipStatusEnum
+                        statuses?: MembershipStatusEnum[]
+                        retainedMembershipId?: string
                     }
                 ) => {
                     if (condition.includes('tenantId = :tenantId')) tenantId = parameters?.tenantId
@@ -237,10 +344,16 @@ describe('MembershipService', () => {
                     }
                     if (condition.includes('organizationId IS NULL')) organizationId = null
                     if (condition.includes('userId = :userId')) userId = parameters?.userId
+                    if (condition.includes('planId = :planId')) planId = parameters?.planId
                     if (condition.includes('status = :status')) status = parameters?.status
+                    if (condition.includes('status IN (:...statuses)')) statuses = parameters?.statuses
+                    if (condition.includes('id != :retainedMembershipId')) {
+                        retainedMembershipId = parameters?.retainedMembershipId
+                    }
                 }
                 const queryBuilder = {
                     leftJoinAndSelect: jest.fn().mockReturnThis(),
+                    innerJoin: jest.fn().mockReturnThis(),
                     where: jest.fn((condition, parameters) => {
                         capture(condition, parameters)
                         return queryBuilder
@@ -249,16 +362,44 @@ describe('MembershipService', () => {
                         capture(condition, parameters)
                         return queryBuilder
                     }),
+                    orderBy: jest.fn().mockReturnThis(),
                     setLock: jest.fn().mockReturnThis(),
-                    getOne: jest.fn(
-                        async () =>
-                            memberships.find(
+                    getOne: jest.fn(async () => {
+                        const candidates = memberships
+                            .filter(
                                 (membership) =>
                                     membership.tenantId === tenantId &&
                                     (membership.organizationId ?? null) === organizationId &&
                                     membership.userId === userId &&
-                                    membership.status === status
-                            ) ?? null
+                                    (status === undefined || membership.status === status) &&
+                                    (!statuses?.length || statuses.includes(membership.status))
+                            )
+                            .sort(
+                                (left, right) =>
+                                    new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime()
+                            )
+                        return candidates[0] ?? null
+                    }),
+                    getCount: jest.fn(
+                        async () =>
+                            memberships.filter(
+                                (membership) =>
+                                    membership.tenantId === tenantId &&
+                                    (planId === undefined || membership.planId === planId)
+                            ).length
+                    ),
+                    getMany: jest.fn(async () =>
+                        memberships.filter(
+                            (membership) =>
+                                membership.tenantId === tenantId &&
+                                (organizationId === undefined ||
+                                    (membership.organizationId ?? null) === organizationId) &&
+                                (userId === undefined || membership.userId === userId) &&
+                                (planId === undefined || membership.planId === planId) &&
+                                (status === undefined || membership.status === status) &&
+                                (!statuses?.length || statuses.includes(membership.status)) &&
+                                (retainedMembershipId === undefined || membership.id !== retainedMembershipId)
+                        )
                     )
                 }
                 return queryBuilder
@@ -267,13 +408,23 @@ describe('MembershipService', () => {
             count: jest.fn(
                 async ({ where }) =>
                     memberships.filter(
-                        (membership) => matchesScope(membership, where) && membership.status === where?.status
+                        (membership) =>
+                            matchesScope(membership, where) &&
+                            (where?.status === undefined || membership.status === where.status) &&
+                            (where?.planId === undefined || membership.planId === where.planId)
                     ).length
             ),
             find: jest.fn(async ({ where }) =>
                 memberships
-                    .filter((membership) => matchesScope(membership, where) && membership.status === where?.status)
+                    .filter(
+                        (membership) =>
+                            matchesScope(membership, where) &&
+                            (where?.status === undefined || membership.status === where.status)
+                    )
                     .map((membership) => ({ userId: membership.userId }))
+            ),
+            findOne: jest.fn(
+                async ({ where }) => memberships.find((membership) => membership.id === where?.id) ?? null
             ),
             save: jest.fn(async (membership) => {
                 const saved = {
@@ -309,6 +460,9 @@ describe('MembershipService', () => {
                 }
                 if (entity === FeatureOrganization) {
                     return featureOrganizationRepository
+                }
+                if (entity === User) {
+                    return userRepository
                 }
                 return userOrganizationRepository
             })
@@ -357,41 +511,143 @@ describe('MembershipService', () => {
             ledgerRepository,
             memberships,
             membershipRepository,
+            userRepository,
             planRepository,
             plans,
             transactionManagers,
+            userOrganizationRepository,
             service: createMembershipService(
                 dataSource as never,
                 planRepository as never,
                 membershipRepository as never,
                 ledgerRepository as never,
                 {} as never,
+                userRepository as never,
                 userOrganizationRepository as never,
                 undefined,
-                featureOrganizationRepository as never
+                featureOrganizationRepository as never,
+                tenantSettingRepository as never
             )
         }
     }
 
-    it('accepts only the configured tokens-per-point options when saving plans', async () => {
+    it('uses the tenant-wide tokens-per-point setting when saving plans', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { plans, service } = createScopeInitializationHarness('100000')
+
+        const firstPlan = await service.createPlan({ code: 'first', name: 'First', tokensPerPoint: 1000000 })
+        await service.createPlan({ code: 'second', name: 'Second', tokensPerPoint: 100 })
+        await service.updatePlan(firstPlan.id, { tokensPerPoint: 1000000 })
+
+        expect(DEFAULT_MEMBERSHIP_TOKENS_PER_POINT).toBe(1000)
+        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1000, 10000, 100000, 1000000])
+        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([100000])
+    })
+
+    it('deletes only archived plans that are not assigned to users', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { memberships, plans, service } = createScopeInitializationHarness()
+
+        const archivedPlan = await service.createPlan({
+            code: 'archived',
+            name: 'Archived',
+            status: MembershipPlanStatusEnum.Archived
+        })
+        await service.deletePlan(archivedPlan.id)
+        expect(plans).toHaveLength(0)
+
+        const activePlan = await service.createPlan({ code: 'active', name: 'Active' })
+        await expect(service.deletePlan(activePlan.id)).rejects.toThrow(
+            'Archive the membership plan before deleting it.'
+        )
+
+        await service.archivePlan(activePlan.id)
+        memberships.push(createMembership({ planId: activePlan.id }))
+        await expect(service.deletePlan(activePlan.id)).rejects.toThrow(
+            'This membership plan is still assigned to users and cannot be deleted.'
+        )
+        expect(plans).toHaveLength(1)
+    })
+
+    it('does not archive plans that are still assigned to users', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        const activePlan = await service.createPlan({ code: 'assigned', name: 'Assigned' })
+        memberships.push(createMembership({ planId: activePlan.id }))
+
+        await expect(service.archivePlan(activePlan.id)).rejects.toThrow(
+            'This membership plan is still assigned to users and cannot be archived.'
+        )
+        await expect(service.updatePlan(activePlan.id, { status: MembershipPlanStatusEnum.Archived })).rejects.toThrow(
+            'This membership plan is still assigned to users and cannot be archived.'
+        )
+        expect(plans[0].status).toBe(MembershipPlanStatusEnum.Active)
+    })
+
+    it('synchronizes active assigned memberships when a plan allowance changes', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { memberships, service } = createScopeInitializationHarness()
+        const plan = await service.createPlan({ code: 'assigned', name: 'Assigned', includedPoints: 1000 })
+        memberships.push(createMembership({ planId: plan.id, pointsGranted: 1000, pointsUsed: 100 }))
+
+        await service.updatePlan(plan.id, { includedPoints: null })
+
+        expect(memberships[0].pointsGranted).toBeNull()
+    })
+
+    it('does not allow an archived plan to remain the default plan', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         const { plans, service } = createScopeInitializationHarness()
 
-        await service.createPlan({ code: 'tokens-per-point-valid', name: 'Valid', tokensPerPoint: 1000000 })
-
         await expect(
-            service.createPlan({ code: 'tokens-per-point-invalid', name: 'Invalid', tokensPerPoint: 100 })
-        ).rejects.toThrow('Tokens per point must be one of: 1k, 10k, 100k, 1M.')
-        expect(MEMBERSHIP_TOKENS_PER_POINT_OPTIONS).toEqual([1000, 10000, 100000, 1000000])
-        expect(plans.map((plan) => plan.tokensPerPoint)).toEqual([1000000])
+            service.createPlan({
+                code: 'archived-default',
+                name: 'Archived default',
+                status: MembershipPlanStatusEnum.Archived,
+                isDefault: true
+            })
+        ).rejects.toThrow('An archived membership plan cannot be the default plan.')
+
+        const activePlan = await service.createPlan({ code: 'default', name: 'Default', isDefault: true })
+        await expect(service.updatePlan(activePlan.id, { status: MembershipPlanStatusEnum.Archived })).rejects.toThrow(
+            'An archived membership plan cannot be the default plan.'
+        )
+        expect(plans[0]).toMatchObject({ status: MembershipPlanStatusEnum.Active, isDefault: true })
+    })
+
+    it('normalizes allowed model rules when saving plans', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { plans, service } = createScopeInitializationHarness()
+
+        await service.createPlan({
+            code: 'restricted-models',
+            name: 'Restricted models',
+            allowedModels: [{ provider: ' tongyi ', model: ' qwen3.6-plus ' }]
+        })
+
+        expect(plans[0].allowedModels).toEqual([{ provider: 'tongyi', model: 'qwen3.6-plus' }])
+        await expect(
+            service.createPlan({
+                code: 'invalid-models',
+                name: 'Invalid models',
+                allowedModels: [{ provider: '', model: 'qwen3.6-plus' }]
+            })
+        ).rejects.toThrow('Allowed models must be an array of provider and model pairs.')
     })
 
     it('locks only membership rows when loading an active membership for update', async () => {
         const queryBuilder = {
             leftJoinAndSelect: jest.fn().mockReturnThis(),
+            innerJoin: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
             andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
             setLock: jest.fn().mockReturnThis(),
             getOne: jest.fn().mockResolvedValue(null)
         }
@@ -408,14 +664,39 @@ describe('MembershipService', () => {
         ).findActiveMembershipForUpdate('tenant-1', null, 'user-1', manager)
 
         expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('membership.plan', 'plan')
+        expect(queryBuilder.innerJoin).toHaveBeenCalledWith('membership.user', 'membershipUser')
         expect(queryBuilder.where).toHaveBeenCalledWith('membership.tenantId = :tenantId', { tenantId: 'tenant-1' })
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.userId = :userId', { userId: 'user-1' })
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.status = :status', {
             status: 'active'
         })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('membershipUser.type = :userType', {
+            userType: UserType.USER
+        })
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('membership.organizationId IS NULL')
         expect(queryBuilder.setLock).toHaveBeenCalledTimes(1)
         expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write', undefined, ['membership'])
+    })
+
+    it('selects the most recently updated active membership for user access', async () => {
+        const queryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            innerJoin: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(null)
+        }
+        const repository = {
+            createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
+        }
+        const service = createMembershipService({} as never, {} as never, repository as never, {} as never, {} as never)
+
+        await (
+            service as unknown as { findActiveMembership: (...args: unknown[]) => Promise<unknown> }
+        ).findActiveMembership('tenant-1', null, 'user-1')
+
+        expect(queryBuilder.orderBy).toHaveBeenCalledWith('membership.updatedAt', 'DESC')
     })
 
     it('summarizes membership usage by hourly thread and model group', async () => {
@@ -479,7 +760,13 @@ describe('MembershipService', () => {
                 copilotId: 'copilot-1'
             }
         })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.source = :source', { source: 'usage' })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.source IN (:...usageSources)', {
+            usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+        })
+        expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+            'COUNT(ledger.id) FILTER (WHERE COALESCE(ledger.tokenUsed, 0) > 0)',
+            'callCount'
+        )
         expect(queryBuilder.leftJoin).toHaveBeenCalledWith(
             'chat_conversation',
             'conversation',
@@ -495,6 +782,133 @@ describe('MembershipService', () => {
         expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.model')
         expect(queryBuilder.addGroupBy).toHaveBeenCalledWith('ledger.threadId')
         expect(queryBuilder.orderBy).toHaveBeenCalledWith('MAX(ledger.createdAt)', 'DESC')
+    })
+
+    it('summarizes all user usage without limiting the overview to the current membership scope', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const queryBuilder = createQueryBuilder([
+            {
+                day: '2026-07-23T00:00:00.000Z',
+                pointsUsed: '1',
+                tokenUsed: '1000'
+            }
+        ])
+        const ledgerRepository = {
+            createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            ledgerRepository as never,
+            {} as never
+        )
+        const membership = createMembership({ organizationId: 'org-1' })
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership
+        })
+        const internals = service as unknown as {
+            getPersonalPointsBalance: () => Promise<number>
+            findTopLedgerRanks: () => Promise<never[]>
+        }
+        jest.spyOn(internals, 'getPersonalPointsBalance').mockResolvedValue(10)
+        jest.spyOn(internals, 'findTopLedgerRanks').mockResolvedValue([])
+
+        const overview = await service.getOverview({
+            start: '2026-07-01T00:00:00.000Z',
+            end: '2026-07-31T23:59:59.999Z'
+        })
+
+        expect(overview?.buckets).toEqual([{ date: '2026-07-23', pointsUsed: 1, tokenUsed: 1000 }])
+        expect(overview).toMatchObject({ totalTokens: 1000, peakDailyTokens: 1000, activeDays: 1 })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.source IN (:...usageSources)', {
+            usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+        })
+        expect(queryBuilder.andWhere).not.toHaveBeenCalledWith(
+            '(ledger.membershipId = :membershipId OR (ledger.membershipId IS NULL AND ledger.source = :personalUsageSource))',
+            expect.anything()
+        )
+        expect(queryBuilder.andWhere).not.toHaveBeenCalledWith('ledger.organizationId = :organizationId', {
+            organizationId: 'org-1'
+        })
+    })
+
+    it('lists the current user usage across membership scopes', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const service = createMembershipService()
+        const membership = createMembership({ organizationId: 'org-1' })
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            membership
+        })
+        const usage = { items: [], total: 0 }
+        const summaries = { items: [], total: 0 }
+        jest.spyOn(service, 'findUserUsage').mockResolvedValue(usage)
+        jest.spyOn(service, 'findUserUsageSummaries').mockResolvedValue(summaries)
+
+        await expect(service.findMyUsage()).resolves.toBe(usage)
+        await expect(service.findMyUsageSummaries()).resolves.toBe(summaries)
+
+        expect(service.findUserUsage).toHaveBeenCalledWith('tenant-1', 'owner-user', undefined, undefined)
+        expect(service.findUserUsageSummaries).toHaveBeenCalledWith('tenant-1', 'owner-user', undefined, undefined)
+    })
+
+    it('uses xpert and conversation titles in usage rankings with id fallback', async () => {
+        const xpertQueryBuilder = createQueryBuilder([
+            { key: 'xpert-1', label: '研究助手', pointsUsed: '2', tokenUsed: '2000' }
+        ])
+        const threadQueryBuilder = createQueryBuilder([
+            { key: 'thread-deleted', label: null, pointsUsed: '1', tokenUsed: '1000' }
+        ])
+        const ledgerRepository = {
+            createQueryBuilder: jest.fn().mockReturnValueOnce(xpertQueryBuilder).mockReturnValueOnce(threadQueryBuilder)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            ledgerRepository as never,
+            {} as never
+        )
+        const findTopLedgerRanks = (
+            service as unknown as {
+                findTopLedgerRanks: (
+                    tenantId: string,
+                    userId: string,
+                    dimension: 'model' | 'xpertId' | 'threadId',
+                    query: undefined,
+                    start: Date,
+                    end: Date
+                ) => Promise<Array<{ key?: string; label?: string }>>
+            }
+        ).findTopLedgerRanks.bind(service)
+        const start = new Date('2026-07-01T00:00:00.000Z')
+        const end = new Date('2026-07-31T23:59:59.999Z')
+
+        await expect(findTopLedgerRanks('tenant-1', 'user-1', 'xpertId', undefined, start, end)).resolves.toMatchObject(
+            [{ key: 'xpert-1', label: '研究助手' }]
+        )
+        await expect(
+            findTopLedgerRanks('tenant-1', 'user-1', 'threadId', undefined, start, end)
+        ).resolves.toMatchObject([{ key: 'thread-deleted', label: 'thread-deleted' }])
+
+        expect(xpertQueryBuilder.leftJoin).toHaveBeenCalledWith(
+            'xpert',
+            'rank_xpert',
+            '"rank_xpert"."tenantId" = ledger."tenantId" AND "rank_xpert"."id"::text = ledger."xpertId" AND "rank_xpert"."deletedAt" IS NULL'
+        )
+        expect(threadQueryBuilder.leftJoin).toHaveBeenCalledWith(
+            'chat_conversation',
+            'rank_conversation',
+            '"rank_conversation"."tenantId" = ledger."tenantId" AND "rank_conversation"."threadId" = ledger."threadId"'
+        )
     })
 
     it('lists plans in the current scope without creating a default plan', async () => {
@@ -533,6 +947,7 @@ describe('MembershipService', () => {
             {} as never,
             undefined,
             undefined,
+            undefined,
             featureOrganizationRepository as never
         )
 
@@ -556,6 +971,7 @@ describe('MembershipService', () => {
             {} as never,
             {} as never,
             {} as never,
+            undefined,
             undefined,
             undefined,
             featureOrganizationRepository as never
@@ -582,6 +998,7 @@ describe('MembershipService', () => {
             {} as never,
             {} as never,
             {} as never,
+            undefined,
             undefined,
             undefined,
             featureOrganizationRepository as never
@@ -611,6 +1028,7 @@ describe('MembershipService', () => {
             {} as never,
             undefined,
             undefined,
+            undefined,
             featureOrganizationRepository as never
         )
 
@@ -626,6 +1044,7 @@ describe('MembershipService', () => {
             {} as never,
             {} as never,
             {} as never,
+            undefined,
             undefined,
             undefined,
             featureOrganizationRepository as never
@@ -658,6 +1077,7 @@ describe('MembershipService', () => {
             {} as never,
             undefined,
             undefined,
+            undefined,
             featureOrganizationRepository as never
         )
 
@@ -688,6 +1108,7 @@ describe('MembershipService', () => {
             xpertRepository as never,
             undefined,
             undefined,
+            undefined,
             featureOrganizationRepository as never
         )
 
@@ -710,6 +1131,7 @@ describe('MembershipService', () => {
             {} as never,
             {} as never,
             {} as never,
+            undefined,
             undefined,
             undefined,
             featureOrganizationRepository as never
@@ -782,6 +1204,54 @@ describe('MembershipService', () => {
         })
     })
 
+    it('does not grant or assign membership plans to technical users', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { dataSource, service, userRepository } = createScopeInitializationHarness()
+        userRepository.findOne.mockResolvedValue(null)
+
+        await expect(
+            service.ensureTenantDefaultMembership({ tenantId: 'tenant-1', userId: 'technical-user' })
+        ).resolves.toBeNull()
+        await expect(
+            service.assignUser('technical-user', {
+                planId: 'plan-1'
+            })
+        ).rejects.toThrow('Technical users cannot have membership plans.')
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+    })
+
+    it('preserves point adjustments with up to three decimal places', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { ledgers, service } = createScopeInitializationHarness()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
+
+        await expect(service.adjustPersonalPoints('user-1', { pointDelta: 1.234 })).resolves.toEqual({
+            userId: 'user-1',
+            balance: 1.234
+        })
+        expect(ledgers).toContainEqual(
+            expect.objectContaining({
+                userId: 'user-1',
+                source: MembershipLedgerSourceEnum.PersonalAdjustment,
+                pointsDelta: 1.234
+            })
+        )
+    })
+
+    it('rejects point adjustments with more than three decimal places', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { dataSource, service } = createScopeInitializationHarness()
+
+        await expect(service.adjustPersonalPoints('user-1', { pointDelta: 1.2345 })).rejects.toThrow(
+            'Point adjustment must be non-zero and use at most three decimal places.'
+        )
+        expect(dataSource.transaction).not.toHaveBeenCalled()
+    })
+
     it('serializes concurrent tenant default membership grants for the same user', async () => {
         const { ledgerRepository, ledgers, memberships, membershipRepository, plans, service, transactionManagers } =
             createScopeInitializationHarness()
@@ -840,6 +1310,27 @@ describe('MembershipService', () => {
         expect(ledgerRepository.save).not.toHaveBeenCalled()
     })
 
+    it('does not regrant a tenant default membership after it was revoked', async () => {
+        const { ledgerRepository, memberships, membershipRepository, plans, service } =
+            createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+        memberships.push(
+            createMembership({
+                id: 'membership-revoked',
+                organizationId: null,
+                userId: 'trial-user',
+                status: MembershipStatusEnum.Expired
+            })
+        )
+
+        await expect(
+            service.ensureTenantDefaultMembership({ tenantId: 'tenant-1', userId: 'trial-user' })
+        ).resolves.toBeNull()
+        expect(memberships).toHaveLength(1)
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
     it('does not create a membership when the tenant has no active default plan', async () => {
         const { ledgerRepository, membershipRepository, planRepository, plans, service } =
             createScopeInitializationHarness()
@@ -875,7 +1366,7 @@ describe('MembershipService', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const organizationMembership = createMembership({ organizationId: 'org-1' })
         const findUsableMembership = jest
-            .spyOn(service as any, 'findUsableMembership')
+            .spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
             .mockResolvedValue(organizationMembership)
 
         const access = await service.findModelAccess({
@@ -897,7 +1388,7 @@ describe('MembershipService', () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
         const tenantMembership = createMembership({ organizationId: null })
         const findUsableMembership = jest
-            .spyOn(service as any, 'findUsableMembership')
+            .spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce(tenantMembership)
 
@@ -930,10 +1421,76 @@ describe('MembershipService', () => {
         )
     })
 
+    it('uses tenant membership when the organization membership feature is disabled', async () => {
+        const { memberships, service } = createScopeInitializationHarness(undefined, (organizationId) =>
+            organizationId === 'org-1' ? [{ isEnabled: false }] : [{ isEnabled: true }]
+        )
+        const tenantMembership = createMembership({ organizationId: null, userId: 'user-1' })
+        memberships.push(tenantMembership)
+
+        await expect(
+            service.findModelAccess({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1'
+            })
+        ).resolves.toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership: tenantMembership
+        })
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: null,
+                userId: 'user-1',
+                provider: 'tongyi',
+                model: 'qwen3.6-plus'
+            })
+        ).resolves.toBeUndefined()
+    })
+
+    it('does not use assigned tenant membership when the tenant membership feature is disabled', async () => {
+        const featureOrganizationRepository = createMembershipFeatureRepository((organizationId) =>
+            organizationId === 'org-1' ? [{ isEnabled: true }] : [{ isEnabled: false }]
+        ).repository
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            undefined,
+            featureOrganizationRepository as never
+        )
+        const findUsableMembership = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
+            .mockResolvedValueOnce(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'hasActivePlan').mockResolvedValue(false)
+
+        await expect(
+            service.findModelAccess({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1'
+            })
+        ).resolves.toBeNull()
+
+        expect(findUsableMembership).toHaveBeenCalledTimes(1)
+        expect(findUsableMembership).toHaveBeenCalledWith('tenant-1', 'org-1', 'user-1', undefined, false)
+    })
+
     it('does not fall back to tenant membership when organization has an active plan', async () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
-        const findUsableMembership = jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
-        jest.spyOn(service as any, 'hasActivePlan').mockResolvedValue(true)
+        const findUsableMembership = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership')
+            .mockResolvedValue(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'hasActivePlan').mockResolvedValue(true)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
 
         const access = await service.findModelAccess({
             tenantId: 'tenant-1',
@@ -1072,6 +1629,49 @@ describe('MembershipService', () => {
         expect(planRepository.save).toHaveBeenCalledTimes(1)
     })
 
+    it('does not reactivate paused or revoked organization memberships during repair', async () => {
+        const { ledgerRepository, memberships, membershipRepository, plans, service } =
+            createScopeInitializationHarness()
+        const plan = createPlan({
+            id: 'plan-org-default',
+            organizationId: 'org-1',
+            isDefault: true
+        })
+        plans.push(plan)
+        memberships.push(
+            createMembership({
+                id: 'membership-paused',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                status: MembershipStatusEnum.Paused,
+                planId: plan.id,
+                plan
+            }),
+            createMembership({
+                id: 'membership-revoked',
+                organizationId: 'org-1',
+                userId: 'user-2',
+                status: MembershipStatusEnum.Expired,
+                planId: plan.id,
+                plan
+            })
+        )
+
+        const status = await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            assignedById: 'admin-1'
+        })
+
+        expect(status).toMatchObject({ initialized: true, needsRepair: false, assignedMemberCount: 2 })
+        expect(memberships.map((membership) => membership.status)).toEqual([
+            MembershipStatusEnum.Paused,
+            MembershipStatusEnum.Expired
+        ])
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
     it('records xpert usage against the xpert creator membership', async () => {
         const xpertRepository = {
             findOne: jest.fn().mockResolvedValue({
@@ -1098,9 +1698,9 @@ describe('MembershipService', () => {
         }
         const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
         const membership = createMembership()
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(membership)
         const createLedger = jest
-            .spyOn(service as any, 'createLedger')
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
             .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
 
         const ledger = await service.recordUsage({
@@ -1126,7 +1726,7 @@ describe('MembershipService', () => {
                 createdById: true
             }
         })
-        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
             'org-1',
             'owner-user',
@@ -1175,7 +1775,7 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ pointsUsed: 0 })
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(membership)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',
@@ -1185,7 +1785,7 @@ describe('MembershipService', () => {
             model: 'qwen3.6-plus'
         })
 
-        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
             null,
             'owner-user',
@@ -1209,7 +1809,7 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ userId: 'assistant-tech-user', pointsUsed: 0 })
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(membership)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',
@@ -1217,7 +1817,7 @@ describe('MembershipService', () => {
             xpertId: 'xpert-1'
         })
 
-        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
             null,
             'assistant-tech-user',
@@ -1234,6 +1834,7 @@ describe('MembershipService', () => {
             save: jest.fn().mockImplementation(async (membership) => membership)
         }
         const manager = {
+            connection: { options: { type: 'sqlite' } },
             getRepository: jest.fn((entity) => {
                 if (entity === UserMembership) {
                     return membershipRepository
@@ -1252,9 +1853,9 @@ describe('MembershipService', () => {
             xpertRepository as never
         )
         const membership = createMembership({ userId: 'assistant-tech-user' })
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(membership)
         const createLedger = jest
-            .spyOn(service as any, 'createLedger')
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
             .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
 
         await service.recordUsage({
@@ -1266,7 +1867,7 @@ describe('MembershipService', () => {
         })
 
         expect(xpertRepository.findOne).not.toHaveBeenCalled()
-        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
             null,
             'assistant-tech-user',
@@ -1287,6 +1888,7 @@ describe('MembershipService', () => {
             save: jest.fn()
         }
         const manager = {
+            connection: { options: { type: 'sqlite' } },
             getRepository: jest.fn((entity) => {
                 if (entity === UserMembership) {
                     return membershipRepository
@@ -1298,8 +1900,9 @@ describe('MembershipService', () => {
             transaction: jest.fn((callback) => callback(manager))
         }
         const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
-        const createLedger = jest.spyOn(service as any, 'createLedger')
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
+        const createLedger = jest.spyOn(getMembershipServiceTestAccess(service), 'createLedger')
 
         await expect(
             service.recordUsage({
@@ -1318,7 +1921,8 @@ describe('MembershipService', () => {
 
     it('rejects membership checks when no membership is assigned', async () => {
         const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
-        jest.spyOn(service as any, 'findUsableMembership').mockResolvedValue(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findUsableMembership').mockResolvedValue(null)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
 
         await expect(
             service.assertCanUse({
@@ -1331,7 +1935,7 @@ describe('MembershipService', () => {
             })
         ).rejects.toThrow('Membership plan is required to use Copilot models.')
 
-        expect((service as any).findUsableMembership).toHaveBeenCalledWith(
+        expect(getMembershipServiceTestAccess(service).findUsableMembership).toHaveBeenCalledWith(
             'tenant-1',
             null,
             'assistant-tech-user',
@@ -1363,7 +1967,9 @@ describe('MembershipService', () => {
             initialized: true,
             needsRepair: false
         })
-        const assertRateLimits = jest.spyOn(service as any, 'assertRateLimits').mockResolvedValue(undefined)
+        const assertRateLimits = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'assertRateLimits')
+            .mockResolvedValue(undefined)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',
@@ -1401,6 +2007,33 @@ describe('MembershipService', () => {
                 userId: 'assistant-tech-user',
                 provider: 'tongyi',
                 model: 'qwen3.6-plus'
+            })
+        ).rejects.toThrow('Copilot model is not available for the current membership plan.')
+    })
+
+    it('rejects models not explicitly allowed by the active membership plan', async () => {
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership: createMembership({
+                organizationId: null,
+                pointsUsed: 0,
+                plan: {
+                    ...createMembership().plan,
+                    allowedModels: [{ provider: 'tongyi', model: 'qwen3.6-plus' }]
+                }
+            } as never)
+        })
+
+        await expect(
+            service.assertCanUse({
+                tenantId: 'tenant-1',
+                organizationId: null,
+                copilotOrganizationId: null,
+                userId: 'assistant-tech-user',
+                provider: 'tongyi',
+                model: 'qwen-max'
             })
         ).rejects.toThrow('Copilot model is not available for the current membership plan.')
     })
@@ -1461,7 +2094,42 @@ describe('MembershipService', () => {
         }
     })
 
-    it('records usage for unlimited memberships without total point limit failures', async () => {
+    it('repairs a stale finite allowance when the assigned plan is unlimited', async () => {
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const membership = createMembership({
+            pointsGranted: 0,
+            plan: {
+                ...createMembership().plan,
+                includedPoints: null
+            }
+        })
+        const internals = service as unknown as {
+            findActiveMembership: () => Promise<ReturnType<typeof createMembership>>
+            createLedger: () => Promise<MembershipPointLedger>
+        }
+        jest.spyOn(internals, 'findActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(internals, 'createLedger').mockResolvedValue(new MembershipPointLedger())
+
+        const access = await service.findModelAccess({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: membership.userId
+        })
+
+        expect(access?.membership.pointsGranted).toBeNull()
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsGranted: null }))
+    })
+
+    it('records usage with the tenant-wide conversion for unlimited memberships', async () => {
         const membershipRepository = {
             save: jest.fn().mockImplementation(async (membership) => membership)
         }
@@ -1476,7 +2144,25 @@ describe('MembershipService', () => {
         const dataSource = {
             transaction: jest.fn((callback) => callback(manager))
         }
-        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const tenantSettingRepository = {
+            findOne: jest.fn().mockResolvedValue({
+                tenantId: 'tenant-1',
+                name: MEMBERSHIP_TOKENS_PER_POINT_SETTING,
+                value: '10000'
+            })
+        }
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            tenantSettingRepository as never
+        )
         const membership = createMembership({
             organizationId: 'org-1',
             pointsGranted: null,
@@ -1492,7 +2178,7 @@ describe('MembershipService', () => {
             membership
         })
         const createLedger = jest
-            .spyOn(service as any, 'createLedger')
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
             .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
 
         const ledger = await service.recordUsage({
@@ -1505,16 +2191,517 @@ describe('MembershipService', () => {
             tokenUsed: 2500
         })
 
-        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 101.5 }))
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 99.25 }))
         expect(createLedger).toHaveBeenCalledWith(
             manager,
             expect.objectContaining({
-                pointsDelta: -2.5,
+                pointsDelta: -0.25,
                 tokenUsed: 2500,
                 organizationId: 'org-1'
             })
         )
-        expect(ledger).toMatchObject({ pointsDelta: -2.5, tokenUsed: 2500 })
+        expect(ledger).toMatchObject({ pointsDelta: -0.25, tokenUsed: 2500 })
+    })
+
+    it('consumes membership points before personal points', async () => {
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const manager = {
+            connection: { options: { type: 'sqlite' } },
+            getRepository: jest.fn((entity) => {
+                if (entity === UserMembership) {
+                    return membershipRepository
+                }
+                return {}
+            })
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const membership = createMembership({ pointsGranted: 10, pointsUsed: 9.5 })
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(5)
+        const createLedger = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
+            .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
+
+        await service.recordUsage({
+            tenantId: 'tenant-1',
+            userId: membership.userId,
+            provider: 'tongyi',
+            model: 'qwen3.6-plus',
+            tokenUsed: 1000
+        })
+
+        expect(membershipRepository.save).toHaveBeenCalledWith(expect.objectContaining({ pointsUsed: 10 }))
+        expect(createLedger).toHaveBeenNthCalledWith(
+            1,
+            manager,
+            expect.objectContaining({
+                membershipId: membership.id,
+                source: MembershipLedgerSourceEnum.Usage,
+                pointsDelta: -0.5,
+                tokenUsed: 1000
+            })
+        )
+        expect(createLedger).toHaveBeenNthCalledWith(
+            2,
+            manager,
+            expect.objectContaining({
+                membershipId: null,
+                source: MembershipLedgerSourceEnum.PersonalUsage,
+                pointsDelta: -0.5,
+                tokenUsed: 0
+            })
+        )
+    })
+
+    it('uses personal points with the default plan after a manual membership expires', async () => {
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const defaultPlan = createPlan({
+            id: 'plan-free',
+            code: 'free',
+            name: 'Free',
+            includedPoints: 100
+        })
+        const planRepository = {
+            findOne: jest.fn().mockResolvedValue(defaultPlan)
+        }
+        const service = createMembershipService(
+            {} as never,
+            planRepository as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const membership = createMembership({
+            renewalMode: MembershipRenewalModeEnum.Manual,
+            currentPeriodEnd: new Date('2020-01-01T00:00:00.000Z')
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findActiveMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findMembershipForUpdate').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(10)
+        const renewMembership = jest.spyOn(getMembershipServiceTestAccess(service), 'renewMembership')
+        jest.spyOn(getMembershipServiceTestAccess(service), 'createMembershipStatusLedger').mockResolvedValue(undefined)
+
+        const access = await service.findModelAccess({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: membership.userId
+        })
+
+        expect(access).toMatchObject({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            personalPointsOnly: true,
+            persistedMembership: membership,
+            membership: {
+                planId: 'plan-free',
+                plan: defaultPlan,
+                pointsGranted: 0,
+                pointsUsed: 0
+            }
+        })
+        expect(membership.status).toBe(MembershipStatusEnum.Expired)
+        expect(membership.planId).toBe('plan-1')
+        expect(membership.pointsGranted).toBe(100)
+        expect(membershipRepository.save).toHaveBeenCalledWith(membership)
+        expect(renewMembership).not.toHaveBeenCalled()
+    })
+
+    it('uses personal points with the default plan even without membership history', async () => {
+        const defaultPlan = createPlan({ id: 'plan-free', code: 'free', name: 'Free' })
+        const membershipRepository = {
+            create: jest.fn((input) => ({ ...input }))
+        }
+        const service = createMembershipService(
+            {} as never,
+            { findOne: jest.fn().mockResolvedValue(defaultPlan) } as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const internals = service as unknown as {
+            findActiveMembership: () => Promise<null>
+            findMembershipForUpdate: () => Promise<null>
+            getPersonalPointsBalance: () => Promise<number>
+        }
+        jest.spyOn(internals, 'findActiveMembership').mockResolvedValue(null)
+        jest.spyOn(internals, 'findMembershipForUpdate').mockResolvedValue(null)
+        jest.spyOn(internals, 'getPersonalPointsBalance').mockResolvedValue(10)
+
+        const access = await service.findModelAccess({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            userId: 'owner-user'
+        })
+
+        expect(access).toMatchObject({
+            personalPointsOnly: true,
+            membership: {
+                userId: 'owner-user',
+                planId: 'plan-free',
+                pointsGranted: 0,
+                pointsUsed: 0
+            }
+        })
+        expect(access?.persistedMembership).toBeUndefined()
+    })
+
+    it('returns an expired membership with zero personal points and falls back when its plan was deleted', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const fallbackPlan = createPlan({ id: 'plan-free', code: 'free', name: 'Free' })
+        const expiredMembership = createMembership({
+            planId: null,
+            plan: undefined,
+            status: MembershipStatusEnum.Expired
+        })
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue(null)
+        const internals = service as unknown as {
+            findMembershipForUpdate: () => Promise<UserMembership>
+            findDefaultPlan: () => Promise<MembershipPlan>
+            getPersonalPointsBalance: () => Promise<number>
+        }
+        jest.spyOn(internals, 'findMembershipForUpdate').mockResolvedValue(expiredMembership)
+        jest.spyOn(internals, 'findDefaultPlan').mockResolvedValue(fallbackPlan)
+        jest.spyOn(internals, 'getPersonalPointsBalance').mockResolvedValue(0)
+
+        const me = await service.getMe()
+
+        expect(me).toMatchObject({
+            membership: {
+                status: MembershipStatusEnum.Expired,
+                planId: 'plan-free',
+                plan: fallbackPlan
+            },
+            plan: fallbackPlan,
+            personalPointsBalance: 0
+        })
+    })
+
+    it('returns the persisted expired membership and personal balance for display', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const service = createMembershipService({} as never, {} as never, {} as never, {} as never, {} as never)
+        const expiredMembership = createMembership({
+            status: MembershipStatusEnum.Expired,
+            pointsGranted: 100,
+            pointsUsed: 0
+        })
+        const accessMembership = createMembership({
+            status: MembershipStatusEnum.Active,
+            pointsGranted: 0,
+            pointsUsed: 0
+        })
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership: accessMembership,
+            persistedMembership: expiredMembership,
+            personalPointsOnly: true
+        })
+        const internals = service as unknown as {
+            getPersonalPointsBalance: (tenantId: string, userId: string) => Promise<number>
+        }
+        jest.spyOn(internals, 'getPersonalPointsBalance').mockResolvedValue(10.673)
+
+        const me = await service.getMe()
+
+        expect(me).toMatchObject({
+            membership: expiredMembership,
+            plan: expiredMembership.plan,
+            personalPointsOnly: true,
+            pointsGranted: 100,
+            pointsUsed: 0,
+            pointsRemaining: 100,
+            personalPointsBalance: 10.673
+        })
+    })
+
+    it('records personal-only usage without consuming expired membership points', async () => {
+        const membershipRepository = {
+            save: jest.fn()
+        }
+        const manager = {
+            connection: { options: { type: 'sqlite' } },
+            getRepository: jest.fn((entity) => (entity === UserMembership ? membershipRepository : {}))
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = createMembershipService(dataSource as never, {} as never, {} as never, {} as never, {} as never)
+        const membership = createMembership({
+            planId: 'plan-free',
+            pointsGranted: 0,
+            pointsUsed: 0,
+            plan: {
+                ...createMembership().plan,
+                id: 'plan-free',
+                code: 'free',
+                name: 'Free',
+                includedPoints: 100
+            }
+        } as never)
+        jest.spyOn(service, 'findModelAccess').mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membership,
+            personalPointsOnly: true
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(10)
+        const createLedger = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'createLedger')
+            .mockImplementation(async (_manager, input) => input as MembershipPointLedger)
+
+        await service.recordUsage({
+            tenantId: 'tenant-1',
+            userId: membership.userId,
+            provider: 'tongyi',
+            model: 'qwen3.6-plus',
+            tokenUsed: 1000
+        })
+
+        expect(membershipRepository.save).not.toHaveBeenCalled()
+        expect(createLedger).toHaveBeenCalledTimes(1)
+        expect(createLedger).toHaveBeenCalledWith(
+            manager,
+            expect.objectContaining({
+                membershipId: null,
+                planId: 'plan-free',
+                source: MembershipLedgerSourceEnum.PersonalUsage,
+                pointsDelta: -1,
+                tokenUsed: 1000
+            })
+        )
+    })
+
+    it('pauses and revokes a managed membership without replacing it', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const manager = {
+            getRepository: jest.fn((entity) => (entity === UserMembership ? membershipRepository : {}))
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const membership = createMembership()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'requireManagedMembership').mockResolvedValue(membership)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'createMembershipStatusLedger').mockResolvedValue(undefined)
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findMembershipById').mockImplementation(
+            async () => membership
+        )
+
+        const paused = await service.pauseUser(membership.userId)
+        expect(paused.status).toBe(MembershipStatusEnum.Paused)
+        expect(paused.id).toBe(membership.id)
+
+        const revoked = await service.revokeUser(membership.userId)
+        expect(revoked.status).toBe(MembershipStatusEnum.Expired)
+        expect(revoked.id).toBe(membership.id)
+        expect(revoked.currentPeriodEnd.getTime()).toBeLessThanOrEqual(Date.now())
+    })
+
+    it('expires an organization membership when the user is removed from that organization', async () => {
+        const membershipRepository = {
+            save: jest.fn().mockImplementation(async (membership) => membership)
+        }
+        const manager = {
+            connection: { options: { type: 'sqlite' } },
+            getRepository: jest.fn((entity) => (entity === UserMembership ? membershipRepository : {}))
+        }
+        const dataSource = {
+            transaction: jest.fn((callback) => callback(manager))
+        }
+        const service = createMembershipService(
+            dataSource as never,
+            {} as never,
+            membershipRepository as never,
+            {} as never,
+            {} as never
+        )
+        const membership = createMembership({
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findMembershipForUpdate').mockResolvedValue(membership)
+        const createStatusLedger = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'createMembershipStatusLedger')
+            .mockResolvedValue(undefined)
+
+        const revoked = await service.revokeOrganizationMembershipForRemovedUser({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+
+        expect(revoked).toMatchObject({
+            id: membership.id,
+            status: MembershipStatusEnum.Expired
+        })
+        expect(membershipRepository.save).toHaveBeenCalledWith(membership)
+        expect(createStatusLedger).toHaveBeenCalledWith(manager, membership, 'Organization membership removed')
+        expect(membership.currentPeriodEnd.getTime()).toBeLessThanOrEqual(Date.now())
+    })
+
+    it('reuses a paused membership record when assigning a new plan', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-target' })
+        plans.push(plan)
+        memberships.push(
+            createMembership({
+                id: 'membership-paused',
+                userId: 'user-1',
+                status: MembershipStatusEnum.Paused,
+                planId: plan.id,
+                plan
+            })
+        )
+
+        const assigned = await service.assignUser('user-1', { planId: plan.id })
+
+        expect(assigned).toMatchObject({
+            id: 'membership-paused',
+            status: MembershipStatusEnum.Active,
+            planId: 'plan-target'
+        })
+        expect(memberships).toHaveLength(1)
+    })
+
+    it('rejects an assignment whose end date is not after its start date', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-target' })
+        plans.push(plan)
+
+        await expect(
+            service.assignUser('user-1', {
+                planId: plan.id,
+                currentPeriodStart: '2026-08-02T00:00:00.000Z',
+                currentPeriodEnd: '2026-08-01T00:00:00.000Z'
+            })
+        ).rejects.toThrow('Membership period end must be later than its start.')
+    })
+
+    it('rejects assigning an organization plan to a user outside the current organization', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { plans, service, userOrganizationRepository } = createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-target', organizationId: 'org-1' }))
+        userOrganizationRepository.findOne.mockResolvedValue(null)
+
+        await expect(service.assignUser('user-1', { planId: 'plan-target' })).rejects.toThrow(
+            'The user is not an active member of the current organization.'
+        )
+    })
+
+    it('expires other current memberships when assigning a plan', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { ledgers, memberships, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-target' })
+        plans.push(plan)
+        memberships.push(
+            createMembership({
+                id: 'membership-old',
+                userId: 'user-1',
+                planId: 'plan-old',
+                updatedAt: new Date('2026-07-01T00:00:00.000Z')
+            }),
+            createMembership({
+                id: 'membership-current',
+                userId: 'user-1',
+                planId: plan.id,
+                plan,
+                updatedAt: new Date('2026-07-02T00:00:00.000Z')
+            })
+        )
+
+        const assigned = await service.assignUser('user-1', { planId: plan.id })
+
+        expect(assigned.id).toBe('membership-current')
+        expect(memberships.find(({ id }) => id === 'membership-old')?.status).toBe(MembershipStatusEnum.Expired)
+        expect(memberships.filter(({ status }) => status === MembershipStatusEnum.Active)).toHaveLength(1)
+        expect(ledgers).toContainEqual(
+            expect.objectContaining({
+                membershipId: 'membership-old',
+                source: MembershipLedgerSourceEnum.StatusChange,
+                reason: 'Duplicate current membership replaced'
+            })
+        )
+    })
+
+    it('extends early renewals from the existing end date and rejects archived plans', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { memberships, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-renew' })
+        plans.push(plan)
+        const membership = createMembership({
+            id: 'membership-renew',
+            userId: 'user-1',
+            planId: plan.id,
+            plan,
+            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z')
+        })
+        memberships.push(membership)
+
+        const renewed = await service.renewUser('user-1')
+
+        expect(renewed.currentPeriodStart).toEqual(new Date('2030-08-10T00:00:00.000Z'))
+        expect(renewed.currentPeriodEnd).toEqual(new Date('2030-09-10T00:00:00.000Z'))
+
+        membership.plan.status = MembershipPlanStatusEnum.Archived
+        await expect(service.renewUser('user-1')).rejects.toThrow('Archived membership plans cannot be renewed.')
+    })
+
+    it('rejects invalid model multiplier and rate-limit plan rules', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { service } = createScopeInitializationHarness()
+
+        await expect(
+            service.createPlan({
+                code: 'bad-multiplier',
+                name: 'Bad multiplier',
+                modelMultipliers: [{ model: '*', multiplier: Number.NaN }]
+            })
+        ).rejects.toThrow('Each model multiplier must be a non-negative number.')
+        await expect(
+            service.createPlan({
+                code: 'bad-limit',
+                name: 'Bad limit',
+                rateLimits: [{ model: '*', period: 'day', pointLimit: 0 }]
+            })
+        ).rejects.toThrow('Each rate limit requires a valid period and a positive point limit.')
     })
 
     it('still evaluates rate limits for unlimited memberships', async () => {
@@ -1525,7 +2712,9 @@ describe('MembershipService', () => {
             organizationId: null,
             membership
         })
-        const assertRateLimits = jest.spyOn(service as any, 'assertRateLimits').mockResolvedValue(undefined)
+        const assertRateLimits = jest
+            .spyOn(getMembershipServiceTestAccess(service), 'assertRateLimits')
+            .mockResolvedValue(undefined)
 
         await service.assertCanUse({
             tenantId: 'tenant-1',

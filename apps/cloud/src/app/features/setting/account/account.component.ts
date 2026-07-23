@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { AiFeatureEnum, Store, routeAnimations } from '../../../@core'
+import { MembershipService, Store, routeAnimations } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserAvatarEditorComponent } from '../../../@shared/user'
 
@@ -25,10 +25,8 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
 })
 export class PACAccountComponent {
   private readonly store = inject(Store)
+  private readonly membership = inject(MembershipService)
 
   public readonly user = toSignal(this.store.user$)
-  public readonly membershipPlanEnabled = toSignal(
-    this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN),
-    { initialValue: this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN) }
-  )
+  public readonly hasActiveMembership = toSignal(this.membership.hasActiveMembershipInScope(), { initialValue: false })
 }

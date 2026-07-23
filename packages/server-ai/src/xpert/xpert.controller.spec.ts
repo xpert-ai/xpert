@@ -44,6 +44,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     },
     SecretTokenService: class {},
     TenantBaseEntity: class {},
+    TenantPermissionGuard: class {},
     TenantOrganizationAwareCrudService: class {},
     TenantOrganizationBaseEntity: class {},
     TimeZone: () => () => undefined,
@@ -165,6 +166,7 @@ type RuntimeCapabilitiesControllerAccess = {
 describe('XpertController', () => {
     let controller: XpertController
     let xpertService: {
+        findByPrincipalUserId: jest.Mock
         findBySlug: jest.Mock
         findOne: jest.Mock
         update: jest.Mock
@@ -196,6 +198,7 @@ describe('XpertController', () => {
 
     beforeEach(() => {
         xpertService = {
+            findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn()
@@ -265,6 +268,26 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('returns the xpert linked to a technical user', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            name: 'Pipeline',
+            tenantName: 'Xpert AI',
+            organizationName: 'Research',
+            workspaceName: 'Automation'
+        }
+        xpertService.findByPrincipalUserId.mockResolvedValue(xpert)
+
+        await expect(controller.getByPrincipalUser('technical-user')).resolves.toBe(xpert)
+        expect(xpertService.findByPrincipalUserId).toHaveBeenCalledWith('technical-user')
+    })
+
+    it('returns null when a technical user no longer has a linked xpert', async () => {
+        xpertService.findByPrincipalUserId.mockResolvedValue(null)
+
+        await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
     })
 
     it('initializes workspace prompt workflows after importing a trusted template', async () => {

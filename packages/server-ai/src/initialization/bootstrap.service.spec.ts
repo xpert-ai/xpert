@@ -236,7 +236,8 @@ describe('ServerAIBootstrapService', () => {
         }
         const membershipService = {
             ensureTenantDefaultMembership: jest.fn().mockResolvedValue(null),
-            ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null)
+            ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null),
+            revokeOrganizationMembershipForRemovedUser: jest.fn().mockResolvedValue(null)
         }
         const pluginManagementService: PluginManagementServiceMock = {
             findLoadedPlugin: jest.fn().mockReturnValue(undefined),
@@ -894,7 +895,7 @@ connections: []`
     })
 
     it('removes the user from non-personal org workspaces on membership deletion', async () => {
-        const { service, workspaceService } = createService()
+        const { membershipService, service, workspaceService } = createService()
 
         await service.cleanupUserInOrganization({
             tenantId: 'tenant-1',
@@ -907,5 +908,10 @@ connections: []`
             'org-1',
             'user-1'
         )
+        expect(membershipService.revokeOrganizationMembershipForRemovedUser).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
     })
 })

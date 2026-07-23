@@ -1,4 +1,11 @@
-import { IMembershipPlan, IUser, IUserMembership, MembershipStatusEnum } from '@xpert-ai/contracts'
+import {
+    IMembershipPlan,
+    IUser,
+    IUserMembership,
+    MembershipRenewalModeEnum,
+    MembershipSourceEnum,
+    MembershipStatusEnum
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
@@ -34,21 +41,29 @@ export class UserMembership extends TenantOrganizationBaseEntity implements IUse
 
     @ApiProperty({ type: () => MembershipPlan })
     @ManyToOne(() => MembershipPlan, {
-        nullable: false,
+        nullable: true,
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
+        onDelete: 'SET NULL'
     })
     @JoinColumn()
     plan?: IMembershipPlan
 
     @ApiProperty({ type: () => String, readOnly: true })
     @RelationId((it: UserMembership) => it.plan)
-    @Column()
-    planId: string
+    @Column({ type: 'uuid', nullable: true })
+    planId?: string | null
 
     @ApiPropertyOptional({ enum: MembershipStatusEnum })
     @Column({ type: 'varchar', default: MembershipStatusEnum.Active })
     status: MembershipStatusEnum
+
+    @ApiPropertyOptional({ enum: MembershipSourceEnum })
+    @Column({ type: 'varchar', default: MembershipSourceEnum.Admin })
+    source: MembershipSourceEnum
+
+    @ApiPropertyOptional({ enum: MembershipRenewalModeEnum })
+    @Column({ type: 'varchar', default: MembershipRenewalModeEnum.Auto })
+    renewalMode: MembershipRenewalModeEnum
 
     @ApiProperty({ type: () => Date })
     @Column()
