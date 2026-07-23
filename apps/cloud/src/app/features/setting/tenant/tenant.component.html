@@ -72,6 +72,20 @@
       {{ 'PAC.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
     </span>
 
+    @if (canViewMembership()) {
+      <span
+        z-tab-link
+        [routerLink]="['./membership']"
+        routerLinkActive
+        #rlaMembership="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="rlaMembership.isActive"
+      >
+        <z-icon zType="credit-card"></z-icon>
+        {{ 'PAC.MENU.TENANT.MEMBERSHIP_MANAGEMENT' | translate: { Default: 'Membership Management' } }}
+      </span>
+    }
+
     <!-- <span z-tab-link [routerLink]="['./demo']"
       routerLinkActive #rla2="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"

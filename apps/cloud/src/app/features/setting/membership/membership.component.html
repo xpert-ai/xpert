@@ -245,7 +245,7 @@
                 </div>
               </div>
 
-              <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div class="mt-4 grid grid-cols-1 gap-2 text-sm">
                 <div class="rounded-lg bg-components-panel-bg px-3 py-2">
                   <div class="text-xs text-text-tertiary">
                     {{ 'PAC.Membership.Points' | translate: { Default: 'Points' } }}
@@ -258,18 +258,12 @@
                     }
                   </div>
                 </div>
-                <div class="rounded-lg bg-components-panel-bg px-3 py-2">
-                  <div class="text-xs text-text-tertiary">
-                    {{ 'PAC.Membership.Ratio' | translate: { Default: 'Ratio' } }}
-                  </div>
-                  <div class="mt-1 font-semibold text-text-primary">1 : {{ plan.tokensPerPoint | number }}</div>
-                </div>
               </div>
 
               <div class="mt-3 flex items-center justify-between gap-2 border-t border-divider-subtle pt-3">
                 <div class="min-w-0 truncate text-sm text-text-tertiary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                    {{ plan.priceCurrency || '' }} {{ plan.priceAmount | number: '1.0-4' }}
+                    {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
                     {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
                   }
@@ -286,17 +280,30 @@
                     <z-icon zType="edit"></z-icon>
                     {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                   </button>
-                  <button
-                    z-button
-                    zType="outline"
-                    zSize="sm"
-                    type="button"
-                    [disabled]="plan.isDefault"
-                    (click)="$event.stopPropagation(); archive(plan)"
-                  >
-                    <z-icon zType="archive"></z-icon>
-                    {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
-                  </button>
+                  @if (plan.status === MembershipPlanStatusEnum.Archived) {
+                    <button
+                      z-button
+                      zType="destructive"
+                      zSize="sm"
+                      type="button"
+                      (click)="$event.stopPropagation(); deletePlan(plan)"
+                    >
+                      <z-icon zType="delete"></z-icon>
+                      {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                    </button>
+                  } @else {
+                    <button
+                      z-button
+                      zType="outline"
+                      zSize="sm"
+                      type="button"
+                      [disabled]="plan.isDefault"
+                      (click)="$event.stopPropagation(); archive(plan)"
+                    >
+                      <z-icon zType="archive"></z-icon>
+                      {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                    </button>
+                  }
                 </div>
               </div>
             </div>
@@ -324,6 +331,7 @@
 
     <div class="min-w-0 xl:col-span-8">
       @if (editing()) {
+        <form [formGroup]="planForm" (ngSubmit)="save()">
         <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
           <z-card-header class="items-center border-b border-divider-regular py-5">
             <div class="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -346,7 +354,7 @@
                 <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="cancel()">
                   {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
                 </button>
-                <button z-button zType="default" type="button" [disabled]="loading()" (click)="save()">
+                  <button z-button zType="default" type="submit" [disabled]="loading() || planForm.invalid">
                   <z-icon zType="save"></z-icon>
                   {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
                 </button>
@@ -361,29 +369,19 @@
               </div>
 
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Code' | translate: { Default: 'Code' }
-                  }}</span>
-                  <input z-input [(ngModel)]="draft.code" />
-                </label>
+                  <z-form-field class="w-full">
+                    <z-form-label>{{ 'PAC.Membership.Code' | translate: { Default: 'Code' } }}</z-form-label>
+                    <input z-input formControlName="code" />
+                  </z-form-field>
 
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Name' | translate: { Default: 'Name' }
-                  }}</span>
-                  <input z-input [(ngModel)]="draft.name" />
-                </label>
+                  <z-form-field class="w-full">
+                    <z-form-label>{{ 'PAC.Membership.Name' | translate: { Default: 'Name' } }}</z-form-label>
+                    <input z-input formControlName="name" />
+                  </z-form-field>
 
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.Status' | translate: { Default: 'Status' }
-                  }}</span>
-                  <z-select
-                    class="w-full"
-                    [zValue]="draft.status || MembershipPlanStatusEnum.Active"
-                    (zSelectionChange)="setDraftStatus($event)"
-                  >
+                  <z-form-field class="w-full">
+                    <z-form-label>{{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
+                    <z-select class="w-full" formControlName="status" (zSelectionChange)="setDraftStatus($event)">
                     <z-select-item [zValue]="MembershipPlanStatusEnum.Active">
                       {{ 'PAC.Membership.Statuses.active' | translate: { Default: 'Active' } }}
                     </z-select-item>
@@ -391,14 +389,15 @@
                       {{ 'PAC.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
                     </z-select-item>
                   </z-select>
-                </label>
+                  </z-form-field>
 
                 <div class="flex items-end">
                   <z-checkbox
                     class="min-h-9 items-center"
                     displayDensity="cosy"
-                    [ngModel]="draft.isDefault"
-                    (checkChange)="draft.isDefault = $event"
+                      formControlName="isDefault"
+                      [zDisabled]="planForm.controls.status.value === MembershipPlanStatusEnum.Archived"
+                      (checkChange)="setDraftDefault($event)"
                   >
                     {{ 'PAC.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
                   </z-checkbox>
@@ -412,55 +411,33 @@
               </div>
 
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">
+                  <z-form-field class="w-full">
+                    <z-form-label>
                     {{ 'PAC.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
-                  </span>
+                    </z-form-label>
                   <input
                     z-input
                     type="number"
-                    min="1"
-                    [disabled]="draft.includedPoints === null"
-                    [(ngModel)]="draft.includedPoints"
+                      min="0"
+                      formControlName="includedPoints"
+                      [disabled]="planForm.controls.unlimited.value"
                   />
                   <z-checkbox
                     class="mt-1 min-h-8 items-center"
                     displayDensity="cosy"
-                    [ngModel]="draft.includedPoints === null"
+                      formControlName="unlimited"
                     (checkChange)="setDraftUnlimited($event)"
                   >
                     {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
                   </z-checkbox>
-                </label>
+                  </z-form-field>
 
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.TokensPerPoint' | translate: { Default: 'Tokens per point' } }}
-                  </span>
-                  <z-select
-                    class="w-full"
-                    [zValue]="draft.tokensPerPoint || 1000"
-                    (zSelectionChange)="setDraftTokensPerPoint($event)"
-                  >
-                    @for (option of tokensPerPointOptions; track option) {
-                      <z-select-item [zValue]="option">{{ tokensPerPointLabel(option) }}</z-select-item>
-                    }
-                  </z-select>
-                </label>
-
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">
+                  <z-form-field class="w-full">
+                    <z-form-label>
                     {{ 'PAC.Membership.PriceAmount' | translate: { Default: 'Display price' } }}
-                  </span>
-                  <input z-input type="number" min="0" [(ngModel)]="draft.priceAmount" />
-                </label>
-
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">{{
-                    'PAC.Membership.PriceCurrency' | translate: { Default: 'Currency' }
-                  }}</span>
-                  <input z-input [(ngModel)]="draft.priceCurrency" />
-                </label>
+                    </z-form-label>
+                    <input z-input type="number" min="0" formControlName="priceAmount" />
+                  </z-form-field>
               </div>
             </section>
 
@@ -468,36 +445,269 @@
               <div class="mb-3 text-sm font-semibold text-text-primary">
                 {{ 'PAC.Membership.Description' | translate: { Default: 'Description' } }}
               </div>
-              <textarea z-input class="min-h-24 resize-y" [(ngModel)]="draft.description"></textarea>
+                <z-form-field class="w-full">
+                  <textarea z-input class="min-h-24 resize-y" formControlName="description"></textarea>
+                </z-form-field>
             </section>
 
             <section class="rounded-lg bg-components-panel-bg p-4">
-              <div class="mb-3 text-sm font-semibold text-text-primary">
-                {{ 'PAC.Membership.JsonConfiguration' | translate: { Default: 'JSON configuration' } }}
+              <div class="mb-1 text-sm font-semibold text-text-primary">
+                {{ 'PAC.Membership.ModelUsageRules' | translate: { Default: 'Model access and usage rules' } }}
+              </div>
+              <div class="mb-4 text-xs text-text-tertiary">
+                {{
+                  'PAC.Membership.ModelUsageRulesHint'
+                    | translate
+                      : {
+                          Default:
+                            'Choose available models and optionally customize point multipliers and usage limits.'
+                        }
+                }}
               </div>
 
-              <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
-                  </span>
-                  <textarea
-                    z-input
-                    class="min-h-40 resize-y font-mono text-xs"
-                    [(ngModel)]="modelMultipliersText"
-                  ></textarea>
-                </label>
+              <div class="space-y-5">
+                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div class="text-sm font-medium text-text-primary">
+                        {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+                      </div>
+                      <div class="mt-1 text-xs text-text-tertiary">
+                        {{
+                          'PAC.Membership.AllowedModelsHint'
+                            | translate: { Default: 'Choose which models members of this plan can use.' }
+                        }}
+                      </div>
+                    </div>
+                    <z-checkbox
+                      class="min-h-8 shrink-0 items-center"
+                      displayDensity="cosy"
+                        formControlName="allowAllModels"
+                      (checkChange)="setAllowAllModels($event)"
+                    >
+                      {{ 'PAC.Membership.AllowAllModels' | translate: { Default: 'Allow all models' } }}
+                    </z-checkbox>
+                  </div>
 
-                <label class="flex flex-col gap-1">
-                  <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Rate limits' } }}
-                  </span>
-                  <textarea z-input class="min-h-40 resize-y font-mono text-xs" [(ngModel)]="rateLimitsText"></textarea>
-                </label>
+                    @if (!planForm.controls.allowAllModels.value) {
+                    <div class="mt-4">
+                      <z-select
+                        class="w-full"
+                        [zMultiple]="true"
+                        [zMaxLabelCount]="3"
+                        [zValue]="allowedModelValues()"
+                          [zPlaceholder]="
+                            'PAC.Membership.SelectModels' | translate: { Default: 'Select allowed models' }
+                          "
+                        (zSelectionChange)="setAllowedModelValues($event)"
+                      >
+                        @for (option of modelOptions(); track option.value) {
+                          <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                        }
+                      </z-select>
+                      @if (!modelOptions().length) {
+                        <div class="mt-2 text-xs text-text-tertiary">
+                          {{
+                            'PAC.Membership.NoModelsAvailable'
+                              | translate: { Default: 'No configured Copilot models are available in this scope.' }
+                          }}
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-medium text-text-primary">
+                        {{ 'PAC.Membership.ModelMultipliers' | translate: { Default: 'Model multipliers' } }}
+                      </div>
+                      <div class="mt-1 text-xs text-text-tertiary">
+                        {{
+                          'PAC.Membership.ModelMultipliersHint'
+                            | translate
+                              : {
+                                  Default:
+                                    'Adjust how many points selected models consume. The default multiplier is 1.'
+                                }
+                        }}
+                      </div>
+                    </div>
+                    <button z-button zType="outline" zSize="sm" type="button" (click)="addModelMultiplier()">
+                      <z-icon zType="add"></z-icon>
+                      {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+                    </button>
+                  </div>
+
+                  @if (modelMultipliers.length) {
+                    <div class="mt-4 space-y-3">
+                      @for (rule of modelMultipliers; track $index) {
+                        <div
+                          class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_10rem_auto]"
+                        >
+                          <label class="flex min-w-0 flex-col gap-1">
+                            <span class="text-xs text-text-tertiary">
+                              {{ 'PAC.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                            </span>
+                            <z-select
+                              class="w-full"
+                              [zValue]="modelMultiplierTargetValue(rule)"
+                              (zSelectionChange)="setModelMultiplierTarget($index, $event)"
+                            >
+                              <z-select-item [zValue]="globalModelTargetValue">
+                                {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
+                              </z-select-item>
+                              @for (option of modelOptions(); track option.value) {
+                                <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                              }
+                            </z-select>
+                          </label>
+
+                          <label class="flex flex-col gap-1">
+                            <span class="text-xs text-text-tertiary">
+                              {{ 'PAC.Membership.Multiplier' | translate: { Default: 'Multiplier' } }}
+                            </span>
+                              <input
+                                z-input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                [attr.value]="rule.multiplier"
+                                (input)="setModelMultiplierValue($index, $event)"
+                              />
+                          </label>
+
+                          <button
+                            z-button
+                            zType="ghost"
+                            zSize="icon"
+                            zShape="circle"
+                            type="button"
+                            class="text-text-tertiary hover:text-text-destructive"
+                            [attr.aria-label]="'PAC.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                            (click)="removeModelMultiplier($index)"
+                          >
+                            <z-icon zType="delete"></z-icon>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div
+                      class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
+                    >
+                      {{
+                        'PAC.Membership.NoModelMultipliers'
+                          | translate: { Default: 'No custom multipliers. All models use a multiplier of 1.' }
+                      }}
+                    </div>
+                  }
+                </div>
+
+                <div class="rounded-lg border border-divider-subtle bg-components-card-bg p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-medium text-text-primary">
+                        {{ 'PAC.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
+                      </div>
+                      <div class="mt-1 text-xs text-text-tertiary">
+                        {{
+                          'PAC.Membership.RateLimitsHint'
+                              | translate
+                                : { Default: 'Limit the number of points members can consume within a period.' }
+                        }}
+                      </div>
+                    </div>
+                    <button z-button zType="outline" zSize="sm" type="button" (click)="addRateLimit()">
+                      <z-icon zType="add"></z-icon>
+                      {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+                    </button>
+                  </div>
+
+                  @if (rateLimits.length) {
+                    <div class="mt-4 space-y-3">
+                      @for (rule of rateLimits; track $index) {
+                        <div
+                          class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 md:grid-cols-[minmax(0,1fr)_9rem_10rem_auto]"
+                        >
+                          <label class="flex min-w-0 flex-col gap-1">
+                            <span class="text-xs text-text-tertiary">
+                              {{ 'PAC.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                            </span>
+                            <z-select
+                              class="w-full"
+                              [zValue]="rateLimitTargetValue(rule)"
+                              (zSelectionChange)="setRateLimitTarget($index, $event)"
+                            >
+                              <z-select-item [zValue]="globalModelTargetValue">
+                                {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
+                              </z-select-item>
+                              @for (option of modelOptions(); track option.value) {
+                                <z-select-item [zValue]="option.value">{{ modelTargetLabel(option) }}</z-select-item>
+                              }
+                            </z-select>
+                          </label>
+
+                          <label class="flex flex-col gap-1">
+                            <span class="text-xs text-text-tertiary">
+                              {{ 'PAC.Membership.Period' | translate: { Default: 'Period' } }}
+                            </span>
+                            <z-select
+                              class="w-full"
+                              [zValue]="rule.period"
+                              (zSelectionChange)="setRateLimitPeriod($index, $event)"
+                            >
+                              @for (period of rateLimitPeriods; track period) {
+                                <z-select-item [zValue]="period">
+                                  {{ 'PAC.Membership.RateLimitPeriods.' + period | translate: { Default: period } }}
+                                </z-select-item>
+                              }
+                            </z-select>
+                          </label>
+
+                          <label class="flex flex-col gap-1">
+                            <span class="text-xs text-text-tertiary">
+                              {{ 'PAC.Membership.PointLimit' | translate: { Default: 'Point limit' } }}
+                            </span>
+                              <input
+                                z-input
+                                type="number"
+                                min="1"
+                                step="1"
+                                [attr.value]="rule.pointLimit"
+                                (input)="setRateLimitValue($index, $event)"
+                              />
+                          </label>
+
+                          <button
+                            z-button
+                            zType="ghost"
+                            zSize="icon"
+                            zShape="circle"
+                            type="button"
+                            class="text-text-tertiary hover:text-text-destructive"
+                            [attr.aria-label]="'PAC.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                            (click)="removeRateLimit($index)"
+                          >
+                            <z-icon zType="delete"></z-icon>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div
+                      class="mt-4 rounded-lg border border-dashed border-divider-regular px-4 py-5 text-center text-sm text-text-tertiary"
+                    >
+                      {{ 'PAC.Membership.NoRateLimits' | translate: { Default: 'No additional usage limits.' } }}
+                    </div>
+                  }
+                </div>
               </div>
             </section>
           </z-card-content>
         </z-card>
+        </form>
       } @else if (selectedPlan(); as plan) {
         <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
           <z-card-header class="items-center border-b border-divider-regular py-5">
@@ -519,16 +729,23 @@
                   <z-icon zType="edit"></z-icon>
                   {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
                 </button>
-                <button z-button zType="outline" type="button" [disabled]="plan.isDefault" (click)="archive(plan)">
-                  <z-icon zType="archive"></z-icon>
-                  {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
-                </button>
+                @if (plan.status === MembershipPlanStatusEnum.Archived) {
+                  <button z-button zType="destructive" type="button" (click)="deletePlan(plan)">
+                    <z-icon zType="delete"></z-icon>
+                    {{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                  </button>
+                } @else {
+                  <button z-button zType="outline" type="button" [disabled]="plan.isDefault" (click)="archive(plan)">
+                    <z-icon zType="archive"></z-icon>
+                    {{ 'PAC.Membership.ArchivePlan' | translate: { Default: 'Archive' } }}
+                  </button>
+                }
               </div>
             </div>
           </z-card-header>
 
           <z-card-content class="space-y-5 p-4">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
                   {{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}
@@ -563,18 +780,11 @@
 
               <div class="rounded-lg bg-components-panel-bg px-4 py-3">
                 <div class="text-xs font-medium text-text-tertiary">
-                  {{ 'PAC.Membership.Ratio' | translate: { Default: 'Ratio' } }}
-                </div>
-                <div class="mt-1 text-xl font-semibold text-text-primary">1 : {{ plan.tokensPerPoint | number }}</div>
-              </div>
-
-              <div class="rounded-lg bg-components-panel-bg px-4 py-3">
-                <div class="text-xs font-medium text-text-tertiary">
                   {{ 'PAC.Membership.Price' | translate: { Default: 'Price' } }}
                 </div>
                 <div class="mt-1 text-xl font-semibold text-text-primary">
                   @if (plan.priceAmount !== null && plan.priceAmount !== undefined) {
-                    {{ plan.priceCurrency || '' }} {{ plan.priceAmount | number: '1.0-4' }}
+                    {{ plan.priceAmount | number: '1.0-4' }}
                   } @else {
                     <span class="text-base font-medium text-text-tertiary">
                       {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
@@ -593,7 +803,26 @@
               </section>
             }
 
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <section class="rounded-lg border border-divider-subtle px-4 py-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm font-semibold text-text-primary">
+                      {{ 'PAC.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+                    </div>
+                    <div class="mt-1 text-sm text-text-tertiary">
+                      @if (allowedModelCount(plan)) {
+                        {{ allowedModelCount(plan) | number }}
+                        {{ 'PAC.KEY_WORDS.Items' | translate: { Default: 'items' } }}
+                      } @else {
+                        {{ 'PAC.Membership.AllModels' | translate: { Default: 'All models' } }}
+                      }
+                    </div>
+                  </div>
+                  <z-icon zType="deployed_code" class="size-6 text-text-tertiary"></z-icon>
+                </div>
+              </section>
+
               <section class="rounded-lg border border-divider-subtle px-4 py-3">
                 <div class="flex items-center justify-between gap-3">
                   <div class="min-w-0">
@@ -624,6 +853,78 @@
                 </div>
               </section>
             </div>
+
+            <section class="overflow-hidden rounded-lg border border-divider-subtle">
+              <div
+                class="flex flex-col gap-3 border-b border-divider-subtle px-4 py-3 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <div class="text-sm font-semibold text-text-primary">
+                    {{ 'PAC.Membership.AssignedUsers' | translate: { Default: 'Assigned users' } }}
+                  </div>
+                  <div class="mt-1 text-xs text-text-tertiary">
+                    {{
+                      'PAC.Membership.AssignedUsersHint'
+                        | translate: { Default: 'Active and paused users currently assigned to this plan.' }
+                    }}
+                  </div>
+                </div>
+
+                @if (planMembers().length && migrationTargets().length) {
+                  <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                    <z-select
+                      class="w-full min-w-56"
+                      [zValue]="migrationTargetPlanId"
+                      (zSelectionChange)="setMigrationTarget($event)"
+                    >
+                      @for (target of migrationTargets(); track target.id) {
+                        <z-select-item [zValue]="target.id">{{ target.name }}</z-select-item>
+                      }
+                    </z-select>
+                    <button
+                      z-button
+                      zType="outline"
+                      type="button"
+                      [disabled]="loading() || !migrationTargetPlanId"
+                      (click)="reassignMembers(plan)"
+                    >
+                      {{ 'PAC.Membership.ReassignUsers' | translate: { Default: 'Reassign users' } }}
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <div class="divide-y divide-divider-subtle">
+                @for (member of planMembers(); track member.id) {
+                  <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="truncate text-sm font-medium text-text-primary" [title]="memberLabel(member)">
+                        {{ memberLabel(member) }}
+                      </div>
+                      @if (member.user?.email) {
+                        <div class="truncate text-xs text-text-tertiary">{{ member.user.email }}</div>
+                      }
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2 text-xs text-text-tertiary">
+                      <z-badge zType="outline" zShape="pill">
+                        {{ 'PAC.Membership.MemberStatuses.' + member.status | translate: { Default: member.status } }}
+                      </z-badge>
+                      <span>{{ member.currentPeriodEnd | date: 'mediumDate' }}</span>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="px-4 py-8 text-center text-sm text-text-tertiary">
+                    @if (planMembersLoading()) {
+                      {{ 'PAC.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+                    } @else {
+                      {{
+                        'PAC.Membership.NoAssignedUsers' | translate: { Default: 'No users are assigned to this plan.' }
+                      }}
+                    }
+                  </div>
+                }
+              </div>
+            </section>
           </z-card-content>
         </z-card>
       } @else {

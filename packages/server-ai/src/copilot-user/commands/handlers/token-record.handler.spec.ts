@@ -77,7 +77,7 @@ describe('CopilotTokenRecordHandler', () => {
         )
     })
 
-    it('does not charge membership points for an organization provider with configured credentials', async () => {
+    it('charges membership points for an organization provider with configured credentials', async () => {
         const copilot = {
             id: 'copilot-1',
             organizationId: 'org-1',
@@ -127,6 +127,18 @@ describe('CopilotTokenRecordHandler', () => {
 
         expect(copilotUserService.upsert).toHaveBeenCalled()
         expect(copilotOrganizationService.upsert).toHaveBeenCalled()
-        expect(membershipService.recordUsage).not.toHaveBeenCalled()
+        expect(membershipService.recordUsage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotOrganizationId: 'org-1',
+                userId: 'user-1',
+                provider: 'deepseek',
+                model: 'deepseek-chat',
+                tokenUsed: 100,
+                usageHour: expect.any(String),
+                copilotId: 'copilot-1'
+            })
+        )
     })
 })

@@ -30,7 +30,7 @@
       </z-card-header>
 
       <z-card-content class="p-5">
-        <div class="grid gap-3 md:grid-cols-2">
+        <div class="grid gap-3 md:grid-cols-3">
           <div class="rounded-lg bg-components-panel-bg p-4">
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'PAC.Membership.PointBalance' | translate: { Default: 'Point balance' } }}
@@ -59,6 +59,21 @@
             <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number: '1.0-10' }}</div>
             <div class="mt-1 text-xs text-text-tertiary">
               {{ usedPercent() | number }}% {{ 'PAC.Membership.PointUsage' | translate: { Default: 'Point usage' } }}
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-components-panel-bg p-4">
+            <div class="text-xs font-medium text-text-tertiary">
+              {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+            </div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">
+              {{ me()?.personalPointsBalance | number: '1.0-10' }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
+              {{
+                'PAC.Membership.PersonalPointsHint'
+                  | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
+              }}
             </div>
           </div>
         </div>

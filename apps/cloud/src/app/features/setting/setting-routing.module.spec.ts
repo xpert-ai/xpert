@@ -5,7 +5,7 @@ jest.mock('../../@core', () => ({
     FEATURE_XPERT_MARKETPLACE: 'FEATURE_XPERT_MARKETPLACE'
   },
   AIPermissionsEnum: {
-    MEMBERSHIP_EDIT: 'MEMBERSHIP_EDIT'
+    COPILOT_EDIT: 'COPILOT_EDIT'
   },
   AnalyticsPermissionsEnum: {
     BUSINESS_AREA_EDIT: 'BUSINESS_AREA_EDIT',
@@ -58,6 +58,10 @@ describe('setting routes', () => {
     const membershipRoute = settingChildren.find((route) => route.path === 'membership')
 
     expect(membershipRoute?.canActivate).toEqual([NgxPermissionsGuard, membershipPlanSettingsGate])
+    expect(membershipRoute?.data?.['permissions']).toEqual({
+      only: ['COPILOT_EDIT'],
+      redirectTo: expect.any(Function)
+    })
   })
 
   it('guards account usage and billing tabs with the membership plan feature gate', () => {

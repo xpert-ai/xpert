@@ -5,16 +5,29 @@ import { Component, computed, effect, HostListener, inject, model, signal } from
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { injectOrganizationId } from '@xpert-ai/cloud/state'
-import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
+import { AiProviderRole, ICopilot, MembershipStatusEnum } from '@xpert-ai/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/core'
 import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardAccordionImports, type ZardAccordionItemLike, ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
+import {
+  ZardAccordionImports,
+  type ZardAccordionItemLike,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import {
+  getErrorMessage,
+  injectCopilots,
+  injectCopilotServer,
+  injectToastr,
+  MembershipService
+} from 'apps/cloud/src/app/@core'
 import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'
-import { map, Observable, switchMap } from 'rxjs'
+import { catchError, map, Observable, of, switchMap } from 'rxjs'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 @Component({
   standalone: true,
@@ -29,6 +42,7 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     CdkMenuModule,
     ...ZardAccordionImports,
     ...ZardTooltipImports,
+    ZardBadgeComponent,
     ZardButtonComponent,
     NgmDensityDirective,
     NgmSpinComponent,
@@ -42,12 +56,28 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 })
 export class CopilotBasicComponent {
   eAiProviderRole = AiProviderRole
+  readonly MembershipStatusEnum = MembershipStatusEnum
 
   readonly copilotServer = injectCopilotServer()
   readonly #toastr = injectToastr()
+  readonly #membership = inject(MembershipService)
   readonly organizationId = injectOrganizationId()
   readonly avaliableCopilots = injectCopilots()
   readonly #dialog = inject(Dialog)
+
+  readonly membership = toSignal(
+    this.copilotServer.getCopilots().pipe(
+      switchMap(() =>
+        this.#membership.getMe().pipe(
+          catchError((error) => {
+            this.#toastr.error(getErrorMessage(error))
+            return of(null)
+          })
+        )
+      )
+    ),
+    { initialValue: null }
+  )
 
   readonly #copilots = toSignal(
     this.copilotServer.refresh$.pipe(
@@ -59,11 +89,27 @@ export class CopilotBasicComponent {
 
   readonly copilots = computed(() => this.#copilots()?.filter((_) => _.role !== AiProviderRole.Primary))
 
-  // Free quota for organizations in tenant
-  readonly quotaCopilots = computed(() => {
+  // Tenant-level Copilots available in organization scope
+  readonly tenantCopilots = computed(() => {
     return this.organizationId()
       ? this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider)
       : []
+  })
+
+  readonly isUnlimitedMembership = computed(() => {
+    const membership = this.membership()
+    return !!membership && membership.pointsGranted === null
+  })
+
+  readonly membershipRemainingPercent = computed(() => {
+    const membership = this.membership()
+    if (!membership || this.isUnlimitedMembership()) {
+      return 100
+    }
+    if (!membership.pointsGranted) {
+      return 0
+    }
+    return Math.max(0, Math.min(100, ((membership.pointsRemaining ?? 0) / membership.pointsGranted) * 100))
   })
 
   readonly providers = signal([

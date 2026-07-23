@@ -41,6 +41,7 @@ export interface ITenantSetting extends S3FileStorageProviderConfig {
   fileStorageProvider?: string
   copilotCheckpointRetentionEnabled?: string | null
   copilotCheckpointRetentionDays?: string | null
+  membershipTokensPerPoint?: string | null
   tenant_title?: string
   tenant_title_en?: string
   tenant_enable_feishu?: boolean

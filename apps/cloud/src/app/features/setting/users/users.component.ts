@@ -72,6 +72,29 @@ export class PACUsersComponent extends TranslationBaseComponent {
     this.permissions()
     return this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
   })
+  readonly canOpenUsers = computed(() => {
+    this.permissions()
+
+    const permissions = this.isTenantScope()
+      ? [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT]
+      : [
+          PermissionsEnum.ORG_USERS_VIEW,
+          PermissionsEnum.ORG_USERS_EDIT,
+          PermissionsEnum.ALL_ORG_VIEW,
+          PermissionsEnum.ALL_ORG_EDIT
+        ]
+
+    return permissions.some((permission) => this.store.hasPermission(permission))
+  })
+  readonly canEditUsers = computed(() => {
+    this.permissions()
+
+    return this.isTenantScope()
+      ? this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
+      : [PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.ALL_ORG_EDIT].some((permission) =>
+          this.store.hasPermission(permission)
+        )
+  })
   readonly canBatchImport = this.canCreateUsers
   readonly canInviteUsers = computed(
     () => !this.isTenantScope() && !!this.organization()?.id && this.canManageInvites()
@@ -88,9 +111,7 @@ export class PACUsersComponent extends TranslationBaseComponent {
         const scopeLevel = this.activeScope().level
         const childPath = this.getChildRoutePath()
 
-        const shouldResetToList =
-          (scopeLevel === RequestScopeLevel.TENANT && childPath === 'invites') ||
-          (scopeLevel === RequestScopeLevel.ORGANIZATION && childPath === ':id')
+        const shouldResetToList = scopeLevel === RequestScopeLevel.TENANT && childPath === 'invites'
 
         if (!shouldResetToList) {
           return
@@ -109,7 +130,7 @@ export class PACUsersComponent extends TranslationBaseComponent {
   }
 
   navUser(user: IUser) {
-    if (!this.isTenantScope()) {
+    if (!this.canOpenUsers()) {
       return
     }
 

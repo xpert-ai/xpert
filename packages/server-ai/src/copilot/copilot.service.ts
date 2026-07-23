@@ -18,7 +18,6 @@ import { CopilotProviderService } from '../copilot-provider/copilot-provider.ser
 import { MembershipService } from '../membership'
 import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
-import { usesOrganizationCredentials } from './utils'
 
 export const ProviderRolePriority = [
     AiProviderRole.Embedding,
@@ -100,7 +99,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (!tenantId) {
             return []
         }
-        if (!(await this.membershipService.isMembershipPlanEnabled({ tenantId, organizationId }))) {
+        if (!(await this.membershipService.isMembershipAccessEnabled({ tenantId, organizationId }))) {
             return this.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId, where, relations)
         }
         if (
@@ -135,14 +134,10 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         })
         const hydratedItems = await this.hydrateVisibleModelProviders(items, tenantId, organizationId ?? null)
 
-        return hydratedItems.filter(
-            (copilot) =>
-                (!!access && (copilot.organizationId ?? null) === access.organizationId) ||
-                usesOrganizationCredentials(copilot, organizationId)
-        )
+        return hydratedItems.filter((copilot) => !!access && (copilot.organizationId ?? null) === access.organizationId)
     }
 
-    private async findAllEnabledCopilotsWithoutMembership(
+    async findAllEnabledCopilotsWithoutMembership(
         tenantId: string,
         organizationId?: string | null,
         where?: FindOptionsWhere<Copilot>,

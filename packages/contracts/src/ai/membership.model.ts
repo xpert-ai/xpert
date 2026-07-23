@@ -16,6 +16,20 @@ export enum MembershipStatusEnum {
   Expired = 'expired'
 }
 
+export enum MembershipSourceEnum {
+  TenantDefault = 'tenant_default',
+  Organization = 'organization',
+  Admin = 'admin',
+  External = 'external'
+}
+
+export enum MembershipRenewalModeEnum {
+  Auto = 'auto',
+  Manual = 'manual'
+}
+
+export const DEFAULT_MEMBERSHIP_TOKENS_PER_POINT = 1000
+export const MEMBERSHIP_TOKENS_PER_POINT_SETTING = 'membershipTokensPerPoint'
 export const MEMBERSHIP_TOKENS_PER_POINT_OPTIONS = [1000, 10000, 100000, 1000000] as const
 
 export enum MembershipLedgerSourceEnum {
@@ -23,7 +37,10 @@ export enum MembershipLedgerSourceEnum {
   Grant = 'grant',
   Renew = 'renew',
   Usage = 'usage',
-  Adjustment = 'adjustment'
+  Adjustment = 'adjustment',
+  StatusChange = 'status_change',
+  PersonalAdjustment = 'personal_adjustment',
+  PersonalUsage = 'personal_usage'
 }
 
 export type TMembershipRateLimitPeriod = 'hour' | 'day' | 'week' | 'cycle'
@@ -32,6 +49,11 @@ export interface IMembershipModelMultiplier {
   provider?: string | null
   model?: string | null
   multiplier: number
+}
+
+export interface IMembershipAllowedModel {
+  provider: string
+  model: string
 }
 
 export interface IMembershipRateLimit {
@@ -52,6 +74,7 @@ export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityMode
   tokensPerPoint: number
   priceAmount?: number | null
   priceCurrency?: string | null
+  allowedModels?: IMembershipAllowedModel[]
   modelMultipliers?: IMembershipModelMultiplier[]
   rateLimits?: IMembershipRateLimit[]
 }
@@ -59,9 +82,11 @@ export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityMode
 export interface IUserMembership extends IBasePerTenantAndOrganizationEntityModel {
   userId: string
   user?: IUser
-  planId: string
+  planId?: string | null
   plan?: IMembershipPlan
   status: MembershipStatusEnum
+  source: MembershipSourceEnum
+  renewalMode: MembershipRenewalModeEnum
   currentPeriodStart: Date
   currentPeriodEnd: Date
   pointsGranted: number | null
@@ -75,7 +100,7 @@ export interface IUserMembership extends IBasePerTenantAndOrganizationEntityMode
 export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   userId: string
   user?: IUser
-  membershipId: string
+  membershipId?: string | null
   membership?: IUserMembership
   planId?: string | null
   plan?: IMembershipPlan
@@ -96,12 +121,19 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
 export interface IMembershipMe {
   membership: IUserMembership
   plan: IMembershipPlan
+  personalPointsOnly: boolean
   pointsGranted: number | null
   pointsUsed: number
   pointsRemaining: number | null
   pointsTotalUsed: number
   currentPeriodStart: Date
   currentPeriodEnd: Date
+  personalPointsBalance: number
+}
+
+export interface IUserPersonalPoints {
+  userId: string
+  balance: number
 }
 
 export interface IMembershipScopeStatus {
@@ -168,12 +200,18 @@ export type TMembershipAssignInput = {
   planId: string
   currentPeriodStart?: string | Date
   currentPeriodEnd?: string | Date
+  source?: MembershipSourceEnum
+  renewalMode?: MembershipRenewalModeEnum
   note?: string | null
 }
 
 export type TMembershipPointAdjustInput = {
   pointDelta: number
   reason?: string | null
+}
+
+export type TMembershipPlanReassignInput = {
+  targetPlanId: string
 }
 
 export interface IMembershipUsageQuery {

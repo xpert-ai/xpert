@@ -133,7 +133,7 @@
             <th z-table-head scope="col" class="sticky top-0 z-10 w-56 bg-background px-4 whitespace-nowrap">
               {{ 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
             </th>
-            @if (isTenantScope()) {
+            @if (canEditUsers()) {
               <th
                 z-table-head
                 zTableStickyEnd
@@ -153,7 +153,7 @@
             <tr
               z-table-row
               class="group bg-components-card-bg"
-              [class.cursor-pointer]="isTenantScope()"
+              [class.cursor-pointer]="canOpenUsers()"
               (click)="openUser(user)"
             >
               <td z-table-cell class="px-4 py-3">
@@ -165,9 +165,13 @@
                       [alt]="userIdentityTitle(user)"
                     />
                     @if (user.deletedAt) {
-                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"></span>
+                      <span
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"
+                      ></span>
                     } @else {
-                      <span class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"></span>
+                      <span
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"
+                      ></span>
                     }
                   </div>
 
@@ -258,7 +262,7 @@
                 }
               </td>
 
-              @if (isTenantScope()) {
+              @if (canEditUsers()) {
                 <td
                   z-table-cell
                   zTableStickyEnd
@@ -281,7 +285,7 @@
                       <z-icon zType="edit"></z-icon>
                     </button>
 
-                    @if (!isTechnicalUser(user)) {
+                    @if (isTenantScope() && !isTechnicalUser(user)) {
                       <button
                         z-button
                         zType="ghost"

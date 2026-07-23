@@ -37,17 +37,17 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
 
     @ApiProperty({ type: () => UserMembership })
     @ManyToOne(() => UserMembership, {
-        nullable: false,
+        nullable: true,
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL'
     })
     @JoinColumn()
     membership?: IUserMembership
 
     @ApiProperty({ type: () => String, readOnly: true })
     @RelationId((it: MembershipPointLedger) => it.membership)
-    @Column()
-    membershipId: string
+    @Column({ type: 'uuid', nullable: true })
+    membershipId?: string | null
 
     @ApiProperty({ type: () => MembershipPlan })
     @ManyToOne(() => MembershipPlan, {
@@ -60,8 +60,8 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
 
     @ApiProperty({ type: () => String, readOnly: true })
     @RelationId((it: MembershipPointLedger) => it.plan)
-    @Column({ nullable: true })
-    planId?: string
+    @Column({ type: 'uuid', nullable: true })
+    planId?: string | null
 
     @ApiPropertyOptional({ enum: MembershipLedgerSourceEnum })
     @Column({ type: 'varchar', default: MembershipLedgerSourceEnum.Usage })

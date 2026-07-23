@@ -2,6 +2,37 @@ import { CopilotCheckLimitCommand } from '../check-limit.command'
 import { CopilotCheckLimitHandler } from './check-limit.handler'
 
 describe('CopilotCheckLimitHandler', () => {
+    it('returns a controlled model error when the configured Copilot no longer exists', async () => {
+        const copilotUserService = {
+            getUsageSummary: jest.fn()
+        }
+        const copilotOrganizationService = {
+            getUsageSummary: jest.fn()
+        }
+        const membershipService = {
+            assertCanUse: jest.fn()
+        }
+        const handler = new CopilotCheckLimitHandler(
+            copilotUserService as never,
+            copilotOrganizationService as never,
+            membershipService as never,
+            { t: jest.fn().mockResolvedValue('No AI model provided') } as never
+        )
+
+        await expect(
+            handler.execute(
+                new CopilotCheckLimitCommand({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    model: 'deepseek-chat'
+                })
+            )
+        ).rejects.toThrow('No AI model provided')
+        expect(membershipService.assertCanUse).not.toHaveBeenCalled()
+        expect(copilotUserService.getUsageSummary).not.toHaveBeenCalled()
+    })
+
     it('passes xpertId to membership checks while keeping runtime user quota checks', async () => {
         const copilotUserService = {
             getUsageSummary: jest.fn().mockResolvedValue({
@@ -62,7 +93,7 @@ describe('CopilotCheckLimitHandler', () => {
         )
     })
 
-    it('skips membership checks for an organization provider with configured credentials', async () => {
+    it('checks membership access for an organization provider with configured credentials', async () => {
         const copilotUserService = {
             getUsageSummary: jest.fn().mockResolvedValue({
                 tokenUsed: 0,
@@ -102,7 +133,15 @@ describe('CopilotCheckLimitHandler', () => {
             })
         )
 
-        expect(membershipService.assertCanUse).not.toHaveBeenCalled()
+        expect(membershipService.assertCanUse).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            copilotOrganizationId: 'org-1',
+            userId: 'user-1',
+            xpertId: undefined,
+            provider: 'deepseek',
+            model: 'deepseek-chat'
+        })
         expect(copilotUserService.getUsageSummary).toHaveBeenCalled()
         expect(copilotOrganizationService.getUsageSummary).toHaveBeenCalled()
     })

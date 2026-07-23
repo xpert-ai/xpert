@@ -5,15 +5,13 @@ import { AiFeatureEnum, AIPermissionsEnum, AnalyticsPermissionsEnum, Permissions
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
 import { PACAccountComponent } from './account/account.component'
+import { membershipPlanAccountGate } from './account/membership-access.guard'
 import { PACAccountPasswordComponent } from './account/password.component'
 import { PACAccountProfileComponent } from './account/profile.component'
 import { PACSettingComponent } from './settings.component'
 
 export const membershipPlanSettingsGate = featureGate([AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN], ['/settings'])
-export const membershipPlanAccountGate = featureGate(
-  [AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN],
-  ['/settings/account/profile']
-)
+export { membershipPlanAccountGate }
 export const routes: Routes = [
   {
     path: '',
@@ -113,7 +111,7 @@ export const routes: Routes = [
           title: 'settings/membership',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [AIPermissionsEnum.MEMBERSHIP_EDIT],
+            only: [AIPermissionsEnum.COPILOT_EDIT],
             redirectTo
           }
         }

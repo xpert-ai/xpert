@@ -245,6 +245,11 @@ export class ServerAIBootstrapService {
     }
 
     async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
+        await this.membershipService.revokeOrganizationMembershipForRemovedUser({
+            tenantId: event.tenantId,
+            organizationId: event.organizationId,
+            userId: event.userId
+        })
         await this.workspaceService.removeMemberFromOrganizationWorkspaces(
             event.tenantId,
             event.organizationId,

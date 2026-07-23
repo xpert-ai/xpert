@@ -15,7 +15,7 @@
     disableRipple
     [tabPanel]="tabPanel"
   >
-    @if (membershipPlanEnabled()) {
+    @if (hasActiveMembership()) {
       <span
         z-tab-link
         [routerLink]="['usage']"

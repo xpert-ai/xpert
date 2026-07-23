@@ -6,6 +6,7 @@ import {
     LanguagesEnum,
     LanguagesMap,
     LongTermMemoryTypeEnum,
+    PermissionsEnum,
     TChatApi,
     TChatApp,
     TChatOptions,
@@ -33,6 +34,7 @@ import {
     Public,
     SecretTokenService,
     TimeZone,
+    TenantPermissionGuard,
     UserService,
     transformWhere
 } from '@xpert-ai/server-core'
@@ -176,6 +178,13 @@ export class XpertController extends CrudController<Xpert> {
             ...result,
             items: result.items.map((item) => new XpertPublicDTO(item))
         }
+    }
+
+    @UseGuards(TenantPermissionGuard, PermissionGuard)
+    @Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
+    @Get('principal-users/:userId')
+    async getByPrincipalUser(@Param('userId', UUIDValidationPipe) userId: string) {
+        return this.service.findByPrincipalUserId(userId)
     }
 
     @UseGuards(WorkspaceAuthoringGuard)

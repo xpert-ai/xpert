@@ -92,7 +92,7 @@
           <i class="ri-user-settings-line"></i>
         </div>
 
-        @if (membershipPlanEnabled()) {
+        @if (hasActiveMembership()) {
           <div
             class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
             cdkMenuItem

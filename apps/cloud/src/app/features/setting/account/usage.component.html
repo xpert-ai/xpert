@@ -22,7 +22,7 @@
           </span>
         </div>
 
-        <div class="mt-6 grid grid-cols-2 gap-3">
+        <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="rounded-lg bg-components-panel-bg p-3">
             <div class="text-xs text-text-tertiary">
               {{ 'PAC.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
@@ -41,6 +41,14 @@
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
               {{ overview()?.pointsUsed | number: '1.0-10' }}
+            </div>
+          </div>
+          <div class="rounded-lg bg-components-panel-bg p-3">
+            <div class="text-xs text-text-tertiary">
+              {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+            </div>
+            <div class="mt-1 text-xl font-semibold text-text-primary">
+              {{ overview()?.personalPointsBalance | number: '1.0-10' }}
             </div>
           </div>
         </div>
@@ -71,9 +79,9 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.TotalTokens' | translate: { Default: 'Total tokens' } }}
+              {{ 'PAC.Membership.TotalPoints' | translate: { Default: 'Total points' } }}
             </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.totalTokens | number }}</div>
+            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ totalPoints() | number: '1.0-10' }}</div>
           </div>
         </z-card-content>
       </z-card>
@@ -103,9 +111,9 @@
           </span>
           <div class="min-w-0">
             <div class="text-xs font-medium text-text-tertiary">
-              {{ 'PAC.Membership.PeakDailyTokens' | translate: { Default: 'Peak daily tokens' } }}
+              {{ 'PAC.Membership.PeakDailyPoints' | translate: { Default: 'Peak daily points' } }}
             </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.peakDailyTokens | number }}</div>
+            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ peakDailyPoints() | number: '1.0-10' }}</div>
           </div>
         </z-card-content>
       </z-card>
@@ -113,43 +121,46 @@
   </div>
 
   <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-    <z-card-header class="border-b border-divider-regular py-4">
-      <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <z-card-title>{{ 'PAC.Membership.TokenActivity' | translate: { Default: 'Token activity' } }}</z-card-title>
-          <z-card-subtitle class="mt-1">
-            {{
-              'PAC.Membership.TokenActivityHint'
-                | translate: { Default: 'Daily point and token usage in the current window.' }
-            }}
-          </z-card-subtitle>
-        </div>
-        <z-badge zType="secondary" zShape="pill">
-          {{ 'PAC.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
-        </z-badge>
-      </div>
+    <z-card-header class="pb-2 pt-4">
+      <z-card-title>{{ 'PAC.Membership.TokenActivity' | translate: { Default: 'Token activity' } }}</z-card-title>
     </z-card-header>
 
-    <z-card-content class="p-4">
-      <div class="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-1 overflow-x-auto">
-        @for (bucket of buckets(); track bucket.date) {
-          <div
-            class="aspect-square min-w-4 rounded-sm bg-primary"
-            [style.opacity]="heatmapOpacity(bucket)"
-            [title]="heatmapTitle(bucket)"
-          ></div>
-        } @empty {
-          <div
-            class="col-span-full flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular bg-components-panel-bg px-4 py-8 text-center"
-          >
-            <span class="flex size-11 items-center justify-center rounded-xl bg-components-card-bg text-text-tertiary">
-              <z-icon zType="activity"></z-icon>
-            </span>
-            <div class="text-sm font-medium text-text-tertiary">
-              {{ 'PAC.Membership.NoUsageYet' | translate: { Default: 'No usage in this period yet.' } }}
-            </div>
+    <z-card-content class="px-4 pb-4 pt-0">
+      <div class="overflow-x-auto pb-1">
+        <div class="min-w-[52rem]">
+          <div class="flex gap-1">
+            @for (week of heatmap().weeks; track week.key) {
+              <div class="grid min-w-0 flex-1 grid-rows-7 gap-1">
+                @for (cell of week.cells; track $index) {
+                  @if (cell) {
+                    <div
+                      class="aspect-square w-full rounded-sm transition-colors"
+                      [ngClass]="{
+                        'bg-divider-subtle': cell.level === 0,
+                        'bg-text-success/20': cell.level === 1,
+                        'bg-text-success/40': cell.level === 2,
+                        'bg-text-success/60': cell.level === 3,
+                        'bg-text-success': cell.level === 4
+                      }"
+                      [zTooltip]="heatmapTitle(cell)"
+                      [attr.aria-label]="heatmapTitle(cell)"
+                    ></div>
+                  } @else {
+                    <div class="aspect-square w-full" aria-hidden="true"></div>
+                  }
+                }
+              </div>
+            }
           </div>
-        }
+
+          <div class="mt-2 flex gap-1">
+            @for (week of heatmap().weeks; track week.key) {
+              <div class="min-w-0 flex-1 overflow-visible whitespace-nowrap text-xs text-text-tertiary">
+                {{ week.monthLabel }}
+              </div>
+            }
+          </div>
+        </div>
       </div>
     </z-card-content>
   </z-card>

@@ -1,13 +1,45 @@
 @if (canManage) {
   <div class="flex max-w-6xl flex-col gap-6">
-    @if (membership()) {
-      <div class="flex flex-col gap-3">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+    @if (membership(); as currentMembership) {
+      <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <div>
             <div class="text-sm text-text-tertiary">
               {{ 'PAC.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
             </div>
-            <div class="font-medium">{{ membership()?.plan?.name }}</div>
+            <div class="font-medium">{{ currentMembership.plan?.name || currentMembership.planId }}</div>
+          </div>
+          <div>
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Membership.Status' | translate: { Default: 'Status' } }}
+            </div>
+            <z-badge zType="outline" zShape="pill" class="mt-1">
+              {{
+                'PAC.Membership.MemberStatuses.' + currentMembership.status
+                  | translate: { Default: currentMembership.status }
+              }}
+            </z-badge>
+          </div>
+          <div>
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Membership.Source' | translate: { Default: 'Source' } }}
+            </div>
+            <div class="font-medium">
+              {{
+                'PAC.Membership.Sources.' + currentMembership.source | translate: { Default: currentMembership.source }
+              }}
+            </div>
+          </div>
+          <div>
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
+            </div>
+            <div class="font-medium">
+              {{
+                'PAC.Membership.RenewalModes.' + currentMembership.renewalMode
+                  | translate: { Default: currentMembership.renewalMode }
+              }}
+            </div>
           </div>
           <div>
             <div class="text-sm text-text-tertiary">
@@ -15,22 +47,37 @@
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                <span
+                  [attr.aria-label]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                  [title]="'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                  >∞</span
+                >
               } @else {
-                {{ remainingPoints() | number }}
+                {{ remainingPoints() | number: '1.0-10' }}
               }
             </div>
           </div>
+          @if (canManagePersonalPoints) {
+          <div>
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
+            </div>
+            <div class="font-medium">{{ personalPointsBalance() | number: '1.0-10' }}</div>
+          </div>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <div class="text-sm text-text-tertiary">
               {{ 'PAC.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="font-medium">
               @if (isUnlimited()) {
-                {{ membership()?.pointsUsed | number: '1.0-10' }} /
-                {{ 'PAC.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+                {{ currentMembership.pointsUsed | number: '1.0-10' }} / ∞
               } @else {
-                {{ membership()?.pointsUsed | number: '1.0-10' }} / {{ membership()?.pointsGranted | number: '1.0-10' }}
+                {{ currentMembership.pointsUsed | number: '1.0-10' }} /
+                {{ currentMembership.pointsGranted | number: '1.0-10' }}
               }
             </div>
           </div>
@@ -38,13 +85,34 @@
             <div class="text-sm text-text-tertiary">
               {{ 'PAC.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
             </div>
-            <div class="font-medium">{{ membership()?.currentPeriodEnd | date: 'mediumDate' }}</div>
+            <div class="font-medium">{{ currentMembership.currentPeriodEnd | date: 'medium' }}</div>
           </div>
         </div>
         <z-progress-bar [progress]="usedPercent()" zShape="square" />
-      </div>
+
+        <div class="flex flex-wrap justify-end gap-2 border-t border-divider-subtle pt-3">
+          @if (currentMembership.status === MembershipStatusEnum.Active) {
+            <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="pause()">
+              {{ 'PAC.Membership.Pause' | translate: { Default: 'Pause' } }}
+            </button>
+          }
+          @if (currentMembership.status === MembershipStatusEnum.Paused) {
+            <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="resume()">
+              {{ 'PAC.Membership.Resume' | translate: { Default: 'Resume' } }}
+            </button>
+          }
+          @if (currentMembership.status !== MembershipStatusEnum.Expired) {
+            <button z-button zType="destructive" type="button" [disabled]="loading()" (click)="revoke()">
+              {{ 'PAC.Membership.Revoke' | translate: { Default: 'Revoke' } }}
+            </button>
+          }
+          <button z-button zType="outline" type="button" [disabled]="loading()" (click)="renew()">
+            {{ 'PAC.Membership.Renew' | translate: { Default: 'Renew' } }}
+          </button>
+        </div>
+      </section>
     } @else {
-      <div class="text-text-tertiary">
+      <div class="rounded-lg border border-dashed border-divider-regular p-5 text-text-tertiary">
         {{
           'PAC.Membership.NoUserMembership'
             | translate: { Default: 'No membership has been created for this user yet.' }
@@ -52,42 +120,152 @@
       </div>
     }
 
-    <div class="flex max-w-5xl flex-col gap-4">
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(220px,320px)_minmax(240px,1fr)_auto]">
-        <select class="h-10 rounded-md border border-divider-regular bg-transparent px-3" [(ngModel)]="selectedPlanId">
+    <form [formGroup]="assignmentForm" class="flex flex-col gap-3 rounded-lg bg-components-panel-bg p-4">
+      <div class="font-semibold text-text-primary">
+        {{ 'PAC.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+      </div>
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_minmax(240px,1fr)_auto]">
+        <z-form-field class="w-full">
+          <z-select class="w-full" formControlName="planId">
           @for (plan of plans(); track plan.id) {
-            <option [value]="plan.id">{{ plan.name }}</option>
+            <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
           }
-        </select>
+        </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
+          <z-select class="w-full" formControlName="renewalMode">
+          <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
+            {{ 'PAC.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+          </z-select-item>
+          <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
+            {{ 'PAC.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+          </z-select-item>
+        </z-select>
+        </z-form-field>
+        <z-form-field class="w-full">
         <input
           z-input
-          [(ngModel)]="note"
+            formControlName="note"
           [placeholder]="'PAC.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
         />
-        <button z-button zType="default" type="button" [disabled]="loading() || !selectedPlanId" (click)="assign()">
-          {{ 'PAC.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+        </z-form-field>
+        <button
+          z-button
+          zType="default"
+          type="button"
+          [disabled]="loading() || assignmentForm.invalid"
+          (click)="assign()"
+        >
+          {{ 'PAC.Membership.Assign' | translate: { Default: 'Assign' } }}
         </button>
       </div>
+    </form>
 
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-[160px_minmax(240px,1fr)_auto_auto]">
-        <input
-          z-input
-          type="number"
-          [(ngModel)]="pointDelta"
-          [placeholder]="'PAC.Membership.PointDelta' | translate: { Default: 'Point delta' }"
-        />
-        <input
-          z-input
-          [(ngModel)]="reason"
-          [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
-        />
-        <button z-button zType="secondary" type="button" [disabled]="loading() || !pointDelta" (click)="adjust()">
-          {{ 'PAC.Membership.AdjustPoints' | translate: { Default: 'Adjust points' } }}
-        </button>
-        <button z-button zType="secondary" type="button" [disabled]="loading() || !membership()" (click)="renew()">
-          {{ 'PAC.Membership.Renew' | translate: { Default: 'Renew' } }}
-        </button>
-      </div>
-    </div>
+    <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <form [formGroup]="cyclePointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
+        <div>
+          <div class="font-semibold text-text-primary">
+            {{ 'PAC.Membership.AdjustCyclePoints' | translate: { Default: 'Adjust cycle points' } }}
+          </div>
+          <div class="text-sm text-text-tertiary">
+            {{
+              'PAC.Membership.CyclePointsHint' | translate: { Default: 'Only affects the current membership period.' }
+            }}
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[110px_110px_minmax(160px,1fr)_auto]">
+          <z-form-field class="w-full">
+            <z-select class="w-full" formControlName="direction">
+              <z-select-item zValue="increase">
+                {{ 'PAC.Membership.Increase' | translate: { Default: 'Increase' } }}
+              </z-select-item>
+              <z-select-item zValue="decrease">
+                {{ 'PAC.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+              </z-select-item>
+            </z-select>
+          </z-form-field>
+          <z-form-field class="w-full">
+            <input
+              z-input
+              type="number"
+              min="0"
+              step="0.001"
+              formControlName="points"
+              [placeholder]="'PAC.Membership.Points' | translate: { Default: 'Points' }"
+            />
+          </z-form-field>
+          <z-form-field class="w-full">
+            <input
+              z-input
+              formControlName="reason"
+              [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+            />
+          </z-form-field>
+          <button
+            z-button
+            zType="secondary"
+            type="button"
+            [disabled]="loading() || cyclePointsForm.invalid || !canAdjustCyclePoints()"
+            (click)="adjust()"
+          >
+            {{ 'PAC.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+          </button>
+        </div>
+      </form>
+
+      @if (canManagePersonalPoints) {
+        <form [formGroup]="personalPointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
+        <div>
+          <div class="font-semibold text-text-primary">
+            {{ 'PAC.Membership.AdjustPersonalPoints' | translate: { Default: 'Adjust personal points' } }}
+          </div>
+          <div class="text-sm text-text-tertiary">
+            {{
+              'PAC.Membership.PersonalPointsHint'
+                | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
+            }}
+          </div>
+        </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[110px_110px_minmax(160px,1fr)_auto]">
+            <z-form-field class="w-full">
+              <z-select class="w-full" formControlName="direction">
+                <z-select-item zValue="increase">
+                  {{ 'PAC.Membership.Increase' | translate: { Default: 'Increase' } }}
+                </z-select-item>
+                <z-select-item zValue="decrease">
+                  {{ 'PAC.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+                </z-select-item>
+              </z-select>
+            </z-form-field>
+            <z-form-field class="w-full">
+              <input
+                z-input
+                type="number"
+                min="0"
+                step="0.001"
+                formControlName="points"
+                [placeholder]="'PAC.Membership.Points' | translate: { Default: 'Points' }"
+              />
+            </z-form-field>
+            <z-form-field class="w-full">
+              <input
+                z-input
+                formControlName="reason"
+                [placeholder]="'PAC.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+              />
+            </z-form-field>
+            <button
+              z-button
+              zType="secondary"
+              type="button"
+              [disabled]="loading() || personalPointsForm.invalid"
+              (click)="adjustPersonal()"
+            >
+            {{ 'PAC.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+          </button>
+        </div>
+        </form>
+      }
+    </section>
   </div>
 }
