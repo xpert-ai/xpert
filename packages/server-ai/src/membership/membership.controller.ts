@@ -34,6 +34,11 @@ export class MembershipController {
         return this.service.getOverview(query)
     }
 
+    @Get('me/periods')
+    async getPeriods() {
+        return this.service.findMyPeriods()
+    }
+
     @Get('me/usage')
     async getUsage(
         @Query() query: IMembershipUsageQuery,
@@ -149,6 +154,20 @@ export class MembershipController {
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)
     async getPersonalPoints(@Param('userId') userId: string) {
         return this.service.getPersonalPoints(userId)
+    }
+
+    @Get('admin/users/:userId/periods')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async getAdminUserPeriods(@Param('userId') userId: string) {
+        return this.service.findAdminUserPeriods(userId)
+    }
+
+    @Post('admin/users/:userId/periods/:periodId/cancel')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async cancelAdminUserPeriod(@Param('userId') userId: string, @Param('periodId') periodId: string) {
+        return this.service.cancelAdminUserPeriod(userId, periodId)
     }
 
     @Post('admin/users/:userId/adjust-personal-points')

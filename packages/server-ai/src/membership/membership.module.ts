@@ -6,6 +6,7 @@ import { FeatureOrganization, TenantModule, TenantSetting, User, UserOrganizatio
 import { MembershipController } from './membership.controller'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
+import { MembershipPeriod } from './membership-period.entity'
 import { MembershipService } from './membership.service'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
@@ -18,6 +19,7 @@ import { Copilot } from '../copilot/copilot.entity'
             MembershipPlan,
             UserMembership,
             MembershipPointLedger,
+            MembershipPeriod,
             Xpert,
             User,
             UserOrganization,

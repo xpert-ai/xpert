@@ -4,6 +4,7 @@ import {
     IMembershipMe,
     IMembershipModelMultiplier,
     IMembershipPlan,
+    IMembershipPlanSnapshot,
     IMembershipRateLimit,
     IMembershipScopeStatus,
     IMembershipUsageSummary,
@@ -15,14 +16,19 @@ import {
     MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
+    MembershipPeriodStatusEnum,
     MembershipPlanStatusEnum,
     MembershipRenewalModeEnum,
     MembershipSourceEnum,
     MembershipStatusEnum,
     UserType,
     TMembershipAssignInput,
+    TMembershipCurrentPeriodUpgradeInput,
+    TMembershipPeriodCancelInput,
+    TMembershipPeriodsAppendInput,
     TMembershipPlanReassignInput,
-    TMembershipPointAdjustInput
+    TMembershipPointAdjustInput,
+    TMembershipPersonalPointsAdjustmentInput
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
@@ -32,6 +38,7 @@ import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
 import { ExceedingLimitException } from '../core/errors'
 import { formatInUTC0 } from '../shared/utils'
 import { MembershipPlan } from './membership-plan.entity'
+import { MembershipPeriod } from './membership-period.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
@@ -60,7 +67,7 @@ type RecordUsageInput = {
 
 type BillableUserInput = Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId'>
 
-type MembershipWithPlan = UserMembership & { plan: IMembershipPlan; planId: string }
+type MembershipWithPlan = UserMembership & { plan: IMembershipPlan }
 
 type MembershipScope = {
     tenantId: string
@@ -118,7 +125,11 @@ function startOfDay(date: Date) {
 
 function addMonths(date: Date, months: number) {
     const value = new Date(date)
+    const day = value.getDate()
+    value.setDate(1)
     value.setMonth(value.getMonth() + months)
+    const lastDay = new Date(value.getFullYear(), value.getMonth() + 1, 0).getDate()
+    value.setDate(Math.min(day, lastDay))
     return value
 }
 
@@ -160,7 +171,9 @@ export class MembershipService {
         private readonly featureOrganizationRepository?: Repository<FeatureOrganization>,
         @Optional()
         @InjectRepository(TenantSetting)
-        private readonly tenantSettingRepository?: Repository<TenantSetting>
+        private readonly tenantSettingRepository?: Repository<TenantSetting>,
+        @InjectRepository(MembershipPeriod)
+        private readonly periodRepository?: Repository<MembershipPeriod>
     ) {}
 
     async isMembershipPlanEnabled(input?: ResolveScopeInput, manager?: EntityManager): Promise<boolean> {
@@ -510,6 +523,8 @@ export class MembershipService {
             membership.currentPeriodEnd = new Date()
             const saved = (await manager.getRepository(UserMembership).save(membership)) as MembershipWithPlan
             saved.plan = membership.plan
+            await this.completeCurrentMembershipPeriod(saved, manager)
+            await this.cancelScheduledMembershipPeriods(saved.id, manager, { preserveExternallyManaged: true })
             await this.createMembershipStatusLedger(manager, saved, 'Organization membership removed')
             return saved
         })
@@ -624,6 +639,17 @@ export class MembershipService {
         ])
     }
 
+    private async acquirePersonalPointsSourceLock(manager: EntityManager, tenantId: string, sourceReference: string) {
+        if (manager.connection.options.type !== 'postgres') {
+            return
+        }
+
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+            tenantId,
+            `personal-membership-points-source:${sourceReference}`
+        ])
+    }
+
     private async getPersonalPointsBalance(tenantId: string, userId: string, manager?: EntityManager) {
         const repository = manager?.getRepository(MembershipPointLedger) ?? this.ledgerRepository
         const row = await repository
@@ -732,6 +758,7 @@ export class MembershipService {
             }
 
             record.planId = plan.id
+            record.plan = plan
             record.status = MembershipStatusEnum.Active
             record.source = input.source ?? MembershipSourceEnum.Admin
             record.renewalMode = input.renewalMode ?? MembershipRenewalModeEnum.Auto
@@ -739,10 +766,12 @@ export class MembershipService {
             record.currentPeriodEnd = end
             record.pointsGranted = plan.includedPoints
             record.pointsUsed = 0
+            record.planSnapshot = null
             record.assignedById = assignedById
             record.note = input.note
 
             const saved = await repository.save(record)
+            await this.synchronizeCurrentPeriodProjection(this.hydrateMembershipPlanSnapshot(saved), manager)
             await this.expireDuplicateManagedMemberships(tenantId, organizationId, userId, saved.id, manager)
             await this.createLedger(manager, {
                 tenantId,
@@ -774,6 +803,7 @@ export class MembershipService {
             membership.pointsGranted = Math.max(0, previousPointsGranted + pointDelta)
             const appliedDelta = membership.pointsGranted - previousPointsGranted
             const saved = await manager.getRepository(UserMembership).save(membership)
+            await this.synchronizeCurrentPeriodProjection(this.hydrateMembershipPlanSnapshot(saved), manager)
             await this.createLedger(manager, {
                 tenantId,
                 organizationId,
@@ -794,9 +824,216 @@ export class MembershipService {
         const { tenantId, organizationId } = scope
         return this.dataSource.transaction(async (manager) => {
             const membership = await this.requireManagedMembership(tenantId, organizationId, userId, manager)
-            const renewed = await this.renewMembership(membership, manager)
-            return this.findMembershipById(renewed.id, manager)
+            if (
+                membership.status === MembershipStatusEnum.Paused &&
+                new Date(membership.currentPeriodEnd).getTime() > Date.now()
+            ) {
+                membership.status = MembershipStatusEnum.Active
+                await manager.getRepository(UserMembership).save(membership)
+                await this.createMembershipStatusLedger(manager, membership, 'Membership resumed by renewal')
+            }
+            await this.appendMembershipPeriods(
+                {
+                    tenantId,
+                    organizationId,
+                    userId,
+                    planId: membership.plan.id,
+                    count: 1,
+                    source: membership.source,
+                    renewalMode: membership.renewalMode
+                },
+                manager
+            )
+            return this.findMembershipById(membership.id, manager)
         })
+    }
+
+    async appendMembershipPeriods(
+        input: TMembershipPeriodsAppendInput,
+        manager?: EntityManager
+    ): Promise<MembershipPeriod[]> {
+        const append = (txManager: EntityManager) => this.appendMembershipPeriodsInTransaction(input, txManager)
+        return manager ? append(manager) : this.dataSource.transaction(append)
+    }
+
+    async upgradeCurrentMembershipPeriod(
+        input: TMembershipCurrentPeriodUpgradeInput,
+        manager?: EntityManager
+    ): Promise<UserMembership> {
+        const upgrade = async (txManager: EntityManager) => {
+            const organizationId = this.normalizeScopeOrganizationId(input.organizationId)
+            const sourceReference = input.sourceReference.trim()
+            if (!sourceReference) {
+                throw new BadRequestException('Membership upgrade source reference is required.')
+            }
+            const pointsDelta = this.requireNonNegativePointDelta(input.pointsDelta)
+            await this.assertMembershipEligibleUser(input.tenantId, input.userId)
+            await this.acquireMembershipAssignmentLock(txManager, input.tenantId, organizationId, input.userId)
+
+            const ledgerRepository = txManager.getRepository(MembershipPointLedger)
+            const existingLedger = await ledgerRepository.findOne({
+                where: {
+                    tenantId: input.tenantId,
+                    sourceReference
+                }
+            })
+            if (
+                existingLedger &&
+                (existingLedger.userId !== input.userId ||
+                    (existingLedger.organizationId ?? null) !== organizationId ||
+                    existingLedger.planId !== input.planId ||
+                    Number(existingLedger.pointsDelta) !== pointsDelta ||
+                    existingLedger.source !== MembershipLedgerSourceEnum.Upgrade ||
+                    !existingLedger.membershipId)
+            ) {
+                throw new BadRequestException('Membership upgrade request does not match the existing fulfillment.')
+            }
+            if (existingLedger?.membershipId) {
+                return this.findMembershipById(existingLedger.membershipId, txManager)
+            }
+
+            const membership = await this.requireActiveMembership(
+                input.tenantId,
+                organizationId,
+                input.userId,
+                txManager,
+                true
+            )
+            const plan = await this.resolvePeriodPlan(
+                input.tenantId,
+                organizationId,
+                input.planId,
+                input.planSnapshot,
+                txManager
+            )
+            const snapshot = input.planSnapshot
+                ? this.copyPlanSnapshot(input.planSnapshot, input.planId)
+                : this.createPlanSnapshot(plan)
+            const period = await this.ensureCurrentPeriodRecord(membership, txManager)
+
+            membership.planId = plan.id
+            membership.plan = plan
+            membership.planSnapshot = snapshot
+            membership.pointsGranted =
+                snapshot.includedPoints === null ? null : Math.max(0, (membership.pointsGranted ?? 0) + pointsDelta)
+            membership.source = input.source ?? MembershipSourceEnum.External
+            membership.renewalMode = input.renewalMode ?? MembershipRenewalModeEnum.Manual
+
+            period.planId = plan.id
+            period.plan = plan
+            period.planSnapshot = snapshot
+            period.pointsGranted = membership.pointsGranted
+            period.source = membership.source
+            period.renewalMode = membership.renewalMode
+
+            await txManager.getRepository(UserMembership).save(membership)
+            await txManager.getRepository(MembershipPeriod).save(period)
+            await this.createLedger(txManager, {
+                tenantId: input.tenantId,
+                organizationId,
+                userId: input.userId,
+                membershipId: membership.id,
+                planId: plan.id,
+                source: MembershipLedgerSourceEnum.Upgrade,
+                sourceReference,
+                pointsDelta,
+                reason: 'Current membership period upgraded'
+            })
+            return this.findMembershipById(membership.id, txManager)
+        }
+
+        return manager ? upgrade(manager) : this.dataSource.transaction(upgrade)
+    }
+
+    async findMyPeriods(): Promise<MembershipPeriod[]> {
+        const scope = this.requireCurrentScope()
+        return this.findMembershipPeriods(scope.tenantId, scope.organizationId, RequestContext.currentUserId())
+    }
+
+    async findAdminUserPeriods(userId: string): Promise<MembershipPeriod[]> {
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        return this.findMembershipPeriods(scope.tenantId, scope.organizationId, userId)
+    }
+
+    async cancelAdminUserPeriod(userId: string, periodId: string): Promise<MembershipPeriod> {
+        const scope = this.requireCurrentScope()
+        await this.assertMembershipPlanFeatureEnabled(scope)
+        return this.cancelScheduledMembershipPeriod({
+            tenantId: scope.tenantId,
+            organizationId: scope.organizationId,
+            userId,
+            periodId
+        })
+    }
+
+    async cancelScheduledMembershipPeriod(
+        input: TMembershipPeriodCancelInput,
+        manager?: EntityManager
+    ): Promise<MembershipPeriod> {
+        const cancel = async (txManager: EntityManager) => {
+            const organizationId = this.normalizeScopeOrganizationId(input.organizationId)
+            const repository = txManager.getRepository(MembershipPeriod)
+            const period = await repository.findOne({
+                where: {
+                    ...this.scopeWhere(input.tenantId, organizationId),
+                    id: input.periodId,
+                    userId: input.userId
+                }
+            })
+            if (!period) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPeriodNotFound',
+                        'Membership period not found.'
+                    )
+                )
+            }
+            if (period.status !== MembershipPeriodStatusEnum.Scheduled) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPeriodNotScheduled',
+                        'Only a scheduled membership period can be cancelled.'
+                    )
+                )
+            }
+            const lastScheduledPeriod = await repository.findOne({
+                where: {
+                    tenantId: input.tenantId,
+                    membershipId: period.membershipId,
+                    status: MembershipPeriodStatusEnum.Scheduled
+                },
+                order: { periodEnd: 'DESC' }
+            })
+            if (lastScheduledPeriod?.id !== period.id) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPeriodCancellationOrder',
+                        'Only the last scheduled membership period can be cancelled.'
+                    )
+                )
+            }
+
+            const expectedSourceReference = period.sourceReference?.trim() || null
+            const sourceReference = input.sourceReference?.trim() || null
+            const isExternallyManaged = period.source === MembershipSourceEnum.External || !!expectedSourceReference
+            if (
+                isExternallyManaged &&
+                (!expectedSourceReference || !sourceReference || sourceReference !== expectedSourceReference)
+            ) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.ExternalMembershipPeriodCancellationRequired',
+                        'Externally managed periods must be refunded and cancelled by the external billing system.'
+                    )
+                )
+            }
+
+            period.status = MembershipPeriodStatusEnum.Cancelled
+            return repository.save(period)
+        }
+
+        return manager ? cancel(manager) : this.dataSource.transaction(cancel)
     }
 
     async pauseUser(userId: string): Promise<UserMembership> {
@@ -854,6 +1091,8 @@ export class MembershipService {
             membership.status = targetStatus
             if (targetStatus === MembershipStatusEnum.Expired) {
                 membership.currentPeriodEnd = new Date()
+                await this.completeCurrentMembershipPeriod(membership, manager)
+                await this.cancelScheduledMembershipPeriods(membership.id, manager)
             }
             await manager.getRepository(UserMembership).save(membership)
             await this.createMembershipStatusLedger(
@@ -911,6 +1150,76 @@ export class MembershipService {
             })
             return { userId, balance: balance + pointDelta }
         })
+    }
+
+    async applyPersonalPointsAdjustment(input: TMembershipPersonalPointsAdjustmentInput, manager?: EntityManager) {
+        const sourceReference = input.sourceReference?.trim()
+        if (!sourceReference || sourceReference.length > 191) {
+            throw new BadRequestException(
+                this.translateMembershipError(
+                    'server-ai:Error.InvalidPersonalPointsSourceReference',
+                    'Personal points adjustment source reference must be between 1 and 191 characters.'
+                )
+            )
+        }
+        const pointDelta = this.requireNonZeroPointDelta(input.pointDelta)
+        await this.assertMembershipEligibleUser(input.tenantId, input.userId)
+
+        const apply = async (txManager: EntityManager) => {
+            await this.acquirePersonalPointsSourceLock(txManager, input.tenantId, sourceReference)
+            await this.acquirePersonalPointsLock(txManager, input.tenantId, input.userId)
+
+            const ledgerRepository = txManager.getRepository(MembershipPointLedger)
+            const existing = await ledgerRepository.findOne({
+                where: {
+                    tenantId: input.tenantId,
+                    sourceReference
+                }
+            })
+            if (existing) {
+                if (
+                    existing.userId !== input.userId ||
+                    (existing.membershipId !== null && existing.membershipId !== undefined) ||
+                    (existing.planId !== null && existing.planId !== undefined) ||
+                    existing.source !== MembershipLedgerSourceEnum.PersonalAdjustment ||
+                    Number(existing.pointsDelta) !== pointDelta
+                ) {
+                    throw new BadRequestException(
+                        this.translateMembershipError(
+                            'server-ai:Error.PersonalPointsAdjustmentMismatch',
+                            'Personal points adjustment does not match the existing fulfillment.'
+                        )
+                    )
+                }
+                return {
+                    userId: input.userId,
+                    balance: await this.getPersonalPointsBalance(input.tenantId, input.userId, txManager)
+                }
+            }
+
+            const balance = await this.getPersonalPointsBalance(input.tenantId, input.userId, txManager)
+            if (balance + pointDelta < 0) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.InsufficientPersonalPoints',
+                        'Personal points balance cannot be negative.'
+                    )
+                )
+            }
+            await this.createLedger(txManager, {
+                tenantId: input.tenantId,
+                userId: input.userId,
+                membershipId: null,
+                planId: null,
+                source: MembershipLedgerSourceEnum.PersonalAdjustment,
+                sourceReference,
+                pointsDelta: pointDelta,
+                reason: input.reason ?? null
+            })
+            return { userId: input.userId, balance: balance + pointDelta }
+        }
+
+        return manager ? apply(manager) : this.dataSource.transaction(apply)
     }
 
     async getMe(): Promise<IMembershipMe | null> {
@@ -1259,6 +1568,7 @@ export class MembershipService {
 
             membership.pointsUsed = (membership.pointsUsed ?? 0) + membershipPointsUsed
             const saved = await manager.getRepository(UserMembership).save(membership)
+            await this.synchronizeCurrentPeriodProjection(this.hydrateMembershipPlanSnapshot(saved), manager)
             const ledger = await this.createLedger(manager, {
                 tenantId: input.tenantId,
                 userId: billableUserId,
@@ -1446,8 +1756,8 @@ export class MembershipService {
             await this.acquirePersonalPointsLock(manager, tenantId, userId)
         }
         if ((await this.getPersonalPointsBalance(tenantId, userId, manager)) <= 0) {
-        return null
-    }
+            return null
+        }
 
         const plan = await this.findDefaultPlan(tenantId, organizationId, manager)
         const previousMembership = await this.findMembershipForUpdate(
@@ -1985,6 +2295,215 @@ export class MembershipService {
         return membership
     }
 
+    private async appendMembershipPeriodsInTransaction(
+        input: TMembershipPeriodsAppendInput,
+        manager: EntityManager
+    ): Promise<MembershipPeriod[]> {
+        if (!Number.isInteger(input.count) || input.count < 1 || input.count > 120) {
+            throw new BadRequestException('Membership period count must be an integer between 1 and 120.')
+        }
+
+        const organizationId = this.normalizeScopeOrganizationId(input.organizationId)
+        const sourceReference = input.sourceReference?.trim() || null
+        const source = input.source ?? MembershipSourceEnum.External
+        if (source === MembershipSourceEnum.External && !sourceReference) {
+            throw new BadRequestException(
+                this.translateMembershipError(
+                    'server-ai:Error.ExternalMembershipPeriodReferenceRequired',
+                    'Externally managed membership periods require a source reference.'
+                )
+            )
+        }
+        await this.assertMembershipEligibleUser(input.tenantId, input.userId)
+        if (organizationId) {
+            await this.assertActiveOrganizationMember(input.tenantId, organizationId, input.userId, manager)
+        }
+        await this.acquireMembershipAssignmentLock(manager, input.tenantId, organizationId, input.userId)
+
+        const periodRepository = manager.getRepository(MembershipPeriod)
+        if (sourceReference) {
+            const existing = await periodRepository.find({
+                where: {
+                    tenantId: input.tenantId,
+                    sourceReference
+                },
+                order: { sourceSequence: 'ASC' }
+            })
+            if (existing.length) {
+                if (
+                    existing[0].userId !== input.userId ||
+                    (existing[0].organizationId ?? null) !== organizationId ||
+                    existing[0].planSnapshot.planId !== input.planId ||
+                    existing.length !== input.count
+                ) {
+                    throw new BadRequestException('Membership period request does not match the existing fulfillment.')
+                }
+                return existing
+            }
+        }
+
+        const plan = await this.resolvePeriodPlan(
+            input.tenantId,
+            organizationId,
+            input.planId,
+            input.planSnapshot,
+            manager
+        )
+        const snapshot = input.planSnapshot
+            ? this.copyPlanSnapshot(input.planSnapshot, input.planId)
+            : this.createPlanSnapshot(plan)
+        let membership = await this.findMembershipForUpdate(
+            input.tenantId,
+            organizationId,
+            input.userId,
+            undefined,
+            manager
+        )
+        const now = new Date()
+        const hasActiveCurrentPeriod =
+            membership?.status === MembershipStatusEnum.Active &&
+            new Date(membership.currentPeriodEnd).getTime() > now.getTime()
+
+        if (membership && hasActiveCurrentPeriod) {
+            membership = this.hydrateMembershipPlanSnapshot(membership)
+            await this.ensureCurrentPeriodRecord(membership, manager)
+        } else if (membership) {
+            const stalePeriod = await periodRepository.findOne({
+                where: {
+                    tenantId: input.tenantId,
+                    membershipId: membership.id,
+                    status: MembershipPeriodStatusEnum.Active
+                }
+            })
+            if (stalePeriod) {
+                stalePeriod.status = MembershipPeriodStatusEnum.Completed
+                stalePeriod.pointsUsed = membership.pointsUsed ?? 0
+                await periodRepository.save(stalePeriod)
+            }
+        }
+
+        const lastPeriod = membership
+            ? await periodRepository.findOne({
+                  where: {
+                      tenantId: input.tenantId,
+                      membershipId: membership.id,
+                      status: In([MembershipPeriodStatusEnum.Active, MembershipPeriodStatusEnum.Scheduled])
+                  },
+                  order: { periodEnd: 'DESC' }
+              })
+            : null
+        const requestedStart = input.startAt ? new Date(input.startAt) : now
+        if (Number.isNaN(requestedStart.getTime())) {
+            throw new BadRequestException('Membership period start is invalid.')
+        }
+
+        const currentEnd = membership ? new Date(membership.currentPeriodEnd) : null
+        const startAt = lastPeriod?.periodEnd ?? (hasActiveCurrentPeriod ? currentEnd : requestedStart)
+        if (!hasActiveCurrentPeriod && !lastPeriod && startAt.getTime() > now.getTime()) {
+            throw new BadRequestException('The first membership period must start immediately.')
+        }
+
+        const membershipRepository = manager.getRepository(UserMembership)
+        if (!membership) {
+            const firstEnd = periodEndFor(startAt, snapshot.period)
+            membership = membershipRepository.create({
+                tenantId: input.tenantId,
+                organizationId,
+                userId: input.userId,
+                planId: plan.id,
+                plan,
+                planSnapshot: snapshot,
+                status: MembershipStatusEnum.Active,
+                source: input.source ?? MembershipSourceEnum.External,
+                renewalMode: input.renewalMode ?? MembershipRenewalModeEnum.Manual,
+                currentPeriodStart: startAt,
+                currentPeriodEnd: firstEnd,
+                pointsGranted: snapshot.includedPoints,
+                pointsUsed: 0,
+                pointsTotalUsed: 0
+            }) as MembershipWithPlan
+            membership = (await membershipRepository.save(membership)) as MembershipWithPlan
+            membership.plan = plan
+        }
+
+        const renewalMode = input.renewalMode ?? MembershipRenewalModeEnum.Manual
+        const startsImmediately = !lastPeriod && !hasActiveCurrentPeriod
+        const periods: MembershipPeriod[] = []
+        let periodStart = startAt
+
+        for (let sequence = 0; sequence < input.count; sequence += 1) {
+            const periodEnd = periodEndFor(periodStart, snapshot.period)
+            const status =
+                startsImmediately && sequence === 0
+                    ? MembershipPeriodStatusEnum.Active
+                    : MembershipPeriodStatusEnum.Scheduled
+            const period = await periodRepository.save(
+                periodRepository.create({
+                    tenantId: input.tenantId,
+                    organizationId,
+                    membershipId: membership.id,
+                    userId: input.userId,
+                    planId: plan.id,
+                    status,
+                    periodStart,
+                    periodEnd,
+                    pointsGranted: snapshot.includedPoints,
+                    pointsUsed: 0,
+                    source,
+                    renewalMode,
+                    sourceReference,
+                    sourceSequence: sequence,
+                    planSnapshot: snapshot
+                })
+            )
+            periods.push(period)
+            periodStart = periodEnd
+        }
+
+        if (startsImmediately) {
+            membership.pointsTotalUsed = (membership.pointsTotalUsed ?? 0) + (membership.pointsUsed ?? 0)
+            membership.planId = plan.id
+            membership.plan = plan
+            membership.planSnapshot = snapshot
+            membership.status = MembershipStatusEnum.Active
+            membership.source = source
+            membership.renewalMode = renewalMode
+            membership.currentPeriodStart = periods[0].periodStart
+            membership.currentPeriodEnd = periods[0].periodEnd
+            membership.pointsGranted = periods[0].pointsGranted
+            membership.pointsUsed = 0
+            await membershipRepository.save(membership)
+            await this.createLedger(manager, {
+                tenantId: input.tenantId,
+                organizationId,
+                userId: input.userId,
+                membershipId: membership.id,
+                planId: plan.id,
+                source: MembershipLedgerSourceEnum.Assignment,
+                pointsDelta: periods[0].pointsGranted ?? 0,
+                reason: 'Membership period activated'
+            })
+        }
+
+        return periods
+    }
+
+    private async findMembershipPeriods(
+        tenantId: string,
+        organizationId: string | null,
+        userId: string
+    ): Promise<MembershipPeriod[]> {
+        const repository = this.requirePeriodRepository()
+        return repository.find({
+            where: {
+                ...this.scopeWhere(tenantId, organizationId),
+                userId
+            },
+            relations: ['plan'],
+            order: { periodStart: 'ASC' }
+        })
+    }
+
     private async findUsableMembership(
         tenantId: string,
         organizationId: string | null,
@@ -2000,9 +2519,7 @@ export class MembershipService {
             return null
         }
 
-        if (!membership.plan) {
-            membership = await this.findMembershipById(membership.id, manager)
-        }
+        membership = this.hydrateMembershipPlanSnapshot(membership)
 
         if (membership.plan.status !== MembershipPlanStatusEnum.Active) {
             return null
@@ -2011,6 +2528,10 @@ export class MembershipService {
         membership = await this.synchronizePlanAllowanceType(membership, manager)
 
         if (new Date(membership.currentPeriodEnd).getTime() <= Date.now()) {
+            const activated = await this.activateScheduledPeriod(membership, manager)
+            if (activated) {
+                return activated
+            }
             if (membership.renewalMode === MembershipRenewalModeEnum.Manual) {
                 membership.status = MembershipStatusEnum.Expired
                 await (manager?.getRepository(UserMembership) ?? this.membershipRepository).save(membership)
@@ -2027,6 +2548,9 @@ export class MembershipService {
         membership: MembershipWithPlan,
         manager?: EntityManager
     ): Promise<MembershipWithPlan> {
+        if (membership.planSnapshot) {
+            return membership
+        }
         const planIsUnlimited = membership.plan.includedPoints === null
         const membershipIsUnlimited = membership.pointsGranted === null
         if (planIsUnlimited === membershipIsUnlimited) {
@@ -2048,6 +2572,351 @@ export class MembershipService {
         return membership
     }
 
+    private async activateScheduledPeriod(
+        membership: MembershipWithPlan,
+        manager?: EntityManager
+    ): Promise<MembershipWithPlan | null> {
+        if (!this.periodRepository) {
+            return null
+        }
+        const activate = async (currentMembership: MembershipWithPlan, txManager: EntityManager) => {
+            const periodRepository = txManager.getRepository(MembershipPeriod)
+            const currentPeriod = await this.ensureCurrentPeriodRecord(currentMembership, txManager)
+            currentPeriod.status = MembershipPeriodStatusEnum.Completed
+            currentPeriod.pointsUsed = currentMembership.pointsUsed ?? 0
+            await periodRepository.save(currentPeriod)
+
+            const now = new Date()
+            const scheduledPeriods = await periodRepository.find({
+                where: {
+                    tenantId: membership.tenantId,
+                    membershipId: currentMembership.id,
+                    status: MembershipPeriodStatusEnum.Scheduled
+                },
+                order: { periodStart: 'ASC' }
+            })
+
+            let nextPeriod: MembershipPeriod | null = null
+            for (const period of scheduledPeriods) {
+                if (new Date(period.periodEnd).getTime() <= now.getTime()) {
+                    period.status = MembershipPeriodStatusEnum.Completed
+                    await periodRepository.save(period)
+                    continue
+                }
+                if (new Date(period.periodStart).getTime() <= now.getTime()) {
+                    nextPeriod = period
+                }
+                break
+            }
+            if (!nextPeriod) {
+                return null
+            }
+
+            nextPeriod.status = MembershipPeriodStatusEnum.Active
+            await periodRepository.save(nextPeriod)
+
+            currentMembership.pointsTotalUsed =
+                (currentMembership.pointsTotalUsed ?? 0) + (currentMembership.pointsUsed ?? 0)
+            currentMembership.planId = nextPeriod.planId
+            currentMembership.planSnapshot = nextPeriod.planSnapshot
+            currentMembership.plan = this.planFromSnapshot(
+                nextPeriod.planSnapshot,
+                currentMembership.tenantId,
+                currentMembership.organizationId ?? null
+            )
+            currentMembership.status = MembershipStatusEnum.Active
+            currentMembership.source = nextPeriod.source
+            currentMembership.renewalMode = nextPeriod.renewalMode
+            currentMembership.currentPeriodStart = nextPeriod.periodStart
+            currentMembership.currentPeriodEnd = nextPeriod.periodEnd
+            currentMembership.pointsGranted = nextPeriod.pointsGranted
+            currentMembership.pointsUsed = nextPeriod.pointsUsed ?? 0
+            const saved = (await txManager.getRepository(UserMembership).save(currentMembership)) as MembershipWithPlan
+            saved.plan = currentMembership.plan
+            await this.createLedger(txManager, {
+                tenantId: saved.tenantId,
+                organizationId: saved.organizationId ?? null,
+                userId: saved.userId,
+                membershipId: saved.id,
+                planId: saved.planId,
+                source: MembershipLedgerSourceEnum.Renew,
+                pointsDelta: saved.pointsGranted ?? 0,
+                reason: 'Scheduled membership period activated'
+            })
+            return saved
+        }
+
+        if (manager) {
+            return activate(membership, manager)
+        }
+        return this.dataSource.transaction(async (txManager) => {
+            await this.acquireMembershipAssignmentLock(
+                txManager,
+                membership.tenantId,
+                membership.organizationId ?? null,
+                membership.userId
+            )
+            const lockedMembership = await this.findMembershipForUpdate(
+                membership.tenantId,
+                membership.organizationId ?? null,
+                membership.userId,
+                [MembershipStatusEnum.Active],
+                txManager
+            )
+            return lockedMembership ? activate(lockedMembership, txManager) : null
+        })
+    }
+
+    private async ensureCurrentPeriodRecord(
+        membership: MembershipWithPlan,
+        manager: EntityManager
+    ): Promise<MembershipPeriod> {
+        const repository = manager.getRepository(MembershipPeriod)
+        const existing = await repository.findOne({
+            where: {
+                tenantId: membership.tenantId,
+                membershipId: membership.id,
+                status: MembershipPeriodStatusEnum.Active
+            },
+            order: { periodStart: 'DESC' }
+        })
+        if (existing) {
+            existing.pointsGranted = membership.pointsGranted
+            existing.pointsUsed = membership.pointsUsed ?? 0
+            return repository.save(existing)
+        }
+
+        const snapshot = membership.planSnapshot ?? this.createPlanSnapshot(membership.plan)
+        return repository.save(
+            repository.create({
+                tenantId: membership.tenantId,
+                organizationId: membership.organizationId ?? null,
+                membershipId: membership.id,
+                userId: membership.userId,
+                planId: membership.planId,
+                status: MembershipPeriodStatusEnum.Active,
+                periodStart: membership.currentPeriodStart,
+                periodEnd: membership.currentPeriodEnd,
+                pointsGranted: membership.pointsGranted,
+                pointsUsed: membership.pointsUsed ?? 0,
+                source: membership.source,
+                renewalMode: membership.renewalMode,
+                sourceReference: null,
+                sourceSequence: 0,
+                planSnapshot: snapshot
+            })
+        )
+    }
+
+    private async synchronizeCurrentPeriodProjection(membership: MembershipWithPlan, manager: EntityManager) {
+        if (!this.periodRepository) {
+            return
+        }
+        const repository = manager.getRepository(MembershipPeriod)
+        let period = await repository.findOne({
+            where: {
+                tenantId: membership.tenantId,
+                membershipId: membership.id,
+                status: MembershipPeriodStatusEnum.Active
+            },
+            order: { periodStart: 'DESC' }
+        })
+        if (!period) {
+            period = repository.create({
+                tenantId: membership.tenantId,
+                organizationId: membership.organizationId ?? null,
+                membershipId: membership.id,
+                userId: membership.userId,
+                planId: membership.planId,
+                status: MembershipPeriodStatusEnum.Active,
+                periodStart: membership.currentPeriodStart,
+                periodEnd: membership.currentPeriodEnd,
+                pointsGranted: membership.pointsGranted,
+                pointsUsed: membership.pointsUsed ?? 0,
+                source: membership.source,
+                renewalMode: membership.renewalMode,
+                sourceReference: null,
+                sourceSequence: 0,
+                planSnapshot: membership.planSnapshot ?? this.createPlanSnapshot(membership.plan)
+            })
+        } else {
+            period.organizationId = membership.organizationId ?? null
+            period.userId = membership.userId
+            period.planId = membership.planId
+            period.periodStart = membership.currentPeriodStart
+            period.periodEnd = membership.currentPeriodEnd
+            period.pointsGranted = membership.pointsGranted
+            period.pointsUsed = membership.pointsUsed ?? 0
+            period.source = membership.source
+            period.renewalMode = membership.renewalMode
+            period.planSnapshot = membership.planSnapshot ?? this.createPlanSnapshot(membership.plan)
+        }
+        await repository.save(period)
+    }
+
+    private async cancelScheduledMembershipPeriods(
+        membershipId: string,
+        manager: EntityManager,
+        options?: { preserveExternallyManaged?: boolean }
+    ) {
+        if (!this.periodRepository) {
+            return
+        }
+        const repository = manager.getRepository(MembershipPeriod)
+        const periods = await repository.find({
+            where: {
+                membershipId,
+                status: MembershipPeriodStatusEnum.Scheduled
+            }
+        })
+        const isExternallyManaged = (period: MembershipPeriod) =>
+            period.source === MembershipSourceEnum.External || !!period.sourceReference?.trim()
+        if (!options?.preserveExternallyManaged && periods.some(isExternallyManaged)) {
+            throw new BadRequestException(
+                this.translateMembershipError(
+                    'server-ai:Error.ExternalMembershipPeriodCancellationRequired',
+                    'Externally managed periods must be refunded and cancelled by the external billing system.'
+                )
+            )
+        }
+        for (const period of periods) {
+            if (options?.preserveExternallyManaged && isExternallyManaged(period)) {
+                continue
+            }
+            period.status = MembershipPeriodStatusEnum.Cancelled
+            await repository.save(period)
+        }
+    }
+
+    private async completeCurrentMembershipPeriod(membership: UserMembership, manager: EntityManager) {
+        if (!this.periodRepository) {
+            return
+        }
+        const repository = manager.getRepository(MembershipPeriod)
+        const period = await repository.findOne({
+            where: {
+                tenantId: membership.tenantId,
+                membershipId: membership.id,
+                status: MembershipPeriodStatusEnum.Active
+            },
+            order: { periodStart: 'DESC' }
+        })
+        if (!period) {
+            return
+        }
+        period.status = MembershipPeriodStatusEnum.Completed
+        period.periodEnd = membership.currentPeriodEnd
+        period.pointsUsed = membership.pointsUsed ?? 0
+        await repository.save(period)
+    }
+
+    private async resolvePeriodPlan(
+        tenantId: string,
+        organizationId: string | null,
+        planId: string,
+        snapshot: IMembershipPlanSnapshot | undefined,
+        manager: EntityManager
+    ): Promise<IMembershipPlan> {
+        if (snapshot?.planId && snapshot.planId !== planId) {
+            throw new BadRequestException('Membership plan snapshot does not match the requested plan.')
+        }
+        const plan = await manager.getRepository(MembershipPlan).findOne({
+            where: {
+                ...this.scopeWhere(tenantId, organizationId),
+                id: planId
+            }
+        })
+        if (plan) {
+            if (!snapshot && plan.status !== MembershipPlanStatusEnum.Active) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.MembershipPlanInactive',
+                        'Archived membership plans cannot be renewed.'
+                    )
+                )
+            }
+            return plan
+        }
+        throw new BadRequestException('Membership plan not found.')
+    }
+
+    private createPlanSnapshot(plan: IMembershipPlan): IMembershipPlanSnapshot {
+        return {
+            planId: plan.id,
+            code: plan.code,
+            name: plan.name,
+            description: plan.description ?? null,
+            period: plan.period,
+            includedPoints: plan.includedPoints,
+            tokensPerPoint: plan.tokensPerPoint,
+            allowedModels: plan.allowedModels?.map((rule) => ({ ...rule })),
+            modelMultipliers: plan.modelMultipliers?.map((rule) => ({ ...rule })),
+            rateLimits: plan.rateLimits?.map((rule) => ({ ...rule }))
+        }
+    }
+
+    private copyPlanSnapshot(snapshot: IMembershipPlanSnapshot, planId: string): IMembershipPlanSnapshot {
+        return {
+            ...snapshot,
+            planId,
+            allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),
+            modelMultipliers: snapshot.modelMultipliers?.map((rule) => ({ ...rule })),
+            rateLimits: snapshot.rateLimits?.map((rule) => ({ ...rule }))
+        }
+    }
+
+    private planFromSnapshot(
+        snapshot: IMembershipPlanSnapshot,
+        tenantId: string,
+        organizationId: string | null
+    ): IMembershipPlan {
+        return {
+            id: snapshot.planId ?? '',
+            tenantId,
+            organizationId,
+            code: snapshot.code,
+            name: snapshot.name,
+            description: snapshot.description ?? null,
+            status: MembershipPlanStatusEnum.Active,
+            isDefault: false,
+            period: snapshot.period,
+            includedPoints: snapshot.includedPoints,
+            tokensPerPoint: snapshot.tokensPerPoint,
+            allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),
+            modelMultipliers: snapshot.modelMultipliers?.map((rule) => ({ ...rule })),
+            rateLimits: snapshot.rateLimits?.map((rule) => ({ ...rule }))
+        }
+    }
+
+    private hydrateMembershipPlanSnapshot(membership: UserMembership): MembershipWithPlan {
+        if (membership.planSnapshot) {
+            membership.plan = this.planFromSnapshot(
+                membership.planSnapshot,
+                membership.tenantId,
+                membership.organizationId ?? null
+            )
+        }
+        if (!membership.plan) {
+            throw new BadRequestException('Membership plan not found.')
+        }
+        return membership as MembershipWithPlan
+    }
+
+    private requirePeriodRepository(): Repository<MembershipPeriod> {
+        if (!this.periodRepository) {
+            throw new Error('Membership period repository is not available.')
+        }
+        return this.periodRepository
+    }
+
+    private requireNonNegativePointDelta(value: unknown) {
+        const numberValue = Number(value)
+        if (!Number.isFinite(numberValue) || numberValue < 0 || !Number.isInteger(numberValue)) {
+            throw new BadRequestException('Membership upgrade points must be a non-negative integer.')
+        }
+        return numberValue
+    }
+
     private async findActiveMembership(
         tenantId: string,
         organizationId: string | null,
@@ -2066,7 +2935,8 @@ export class MembershipService {
             .orderBy('membership.updatedAt', 'DESC')
 
         this.applyScopeFilter(qb, 'membership.organizationId', organizationId)
-        return (await qb.getOne()) as MembershipWithPlan | null
+        const membership = await qb.getOne()
+        return membership?.plan || membership?.planSnapshot ? this.hydrateMembershipPlanSnapshot(membership) : null
     }
 
     private async findActiveMembershipForUpdate(
@@ -2076,7 +2946,7 @@ export class MembershipService {
         manager?: EntityManager
     ): Promise<MembershipWithPlan | null> {
         return this.findMembershipForUpdate(tenantId, organizationId, userId, [MembershipStatusEnum.Active], manager)
-        }
+    }
 
     private async findManagedMembershipForUpdate(
         tenantId: string,
@@ -2115,7 +2985,8 @@ export class MembershipService {
             qb.setLock('pessimistic_write', undefined, ['membership'])
         }
 
-        return (await qb.getOne()) as MembershipWithPlan | null
+        const membership = await qb.getOne()
+        return membership?.plan || membership?.planSnapshot ? this.hydrateMembershipPlanSnapshot(membership) : null
     }
 
     private async expireDuplicateManagedMemberships(
@@ -2141,6 +3012,8 @@ export class MembershipService {
         for (const duplicate of duplicates) {
             duplicate.status = MembershipStatusEnum.Expired
             await repository.save(duplicate)
+            await this.completeCurrentMembershipPeriod(duplicate, manager)
+            await this.cancelScheduledMembershipPeriods(duplicate.id, manager)
             await this.createLedger(manager, {
                 tenantId,
                 organizationId,
@@ -2173,6 +3046,27 @@ export class MembershipService {
         membership: MembershipWithPlan,
         manager?: EntityManager
     ): Promise<MembershipWithPlan> {
+        if (!manager) {
+            return this.dataSource.transaction(async (txManager) => {
+                await this.acquireMembershipAssignmentLock(
+                    txManager,
+                    membership.tenantId,
+                    membership.organizationId ?? null,
+                    membership.userId
+                )
+                const lockedMembership = await this.findMembershipForUpdate(
+                    membership.tenantId,
+                    membership.organizationId ?? null,
+                    membership.userId,
+                    [MembershipStatusEnum.Active, MembershipStatusEnum.Paused],
+                    txManager
+                )
+                if (!lockedMembership) {
+                    throw new BadRequestException('Membership not found.')
+                }
+                return this.renewMembership(lockedMembership, txManager)
+            })
+        }
         if (membership.plan.status !== MembershipPlanStatusEnum.Active) {
             throw new BadRequestException(
                 this.translateMembershipError(
@@ -2181,10 +3075,12 @@ export class MembershipService {
                 )
             )
         }
-        const repository = manager?.getRepository(UserMembership) ?? this.membershipRepository
+        const repository = manager.getRepository(UserMembership)
+        const currentPeriod = await this.ensureCurrentPeriodRecord(membership, manager)
         const now = new Date()
         const currentPeriodEnd = new Date(membership.currentPeriodEnd)
         const start = currentPeriodEnd.getTime() > now.getTime() ? currentPeriodEnd : now
+        const previousPointsUsed = membership.pointsUsed ?? 0
         membership.pointsTotalUsed = (membership.pointsTotalUsed ?? 0) + (membership.pointsUsed ?? 0)
         membership.pointsUsed = 0
         membership.pointsGranted = membership.plan.includedPoints
@@ -2193,6 +3089,28 @@ export class MembershipService {
         membership.currentPeriodEnd = periodEndFor(start, membership.plan.period)
         const saved = (await repository.save(membership)) as MembershipWithPlan
         saved.plan = membership.plan
+        currentPeriod.status = MembershipPeriodStatusEnum.Completed
+        currentPeriod.pointsUsed = previousPointsUsed
+        await manager.getRepository(MembershipPeriod).save(currentPeriod)
+        await manager.getRepository(MembershipPeriod).save(
+            manager.getRepository(MembershipPeriod).create({
+                tenantId: saved.tenantId,
+                organizationId: saved.organizationId ?? null,
+                membershipId: saved.id,
+                userId: saved.userId,
+                planId: saved.planId,
+                status: MembershipPeriodStatusEnum.Active,
+                periodStart: saved.currentPeriodStart,
+                periodEnd: saved.currentPeriodEnd,
+                pointsGranted: saved.pointsGranted,
+                pointsUsed: 0,
+                source: saved.source,
+                renewalMode: saved.renewalMode,
+                sourceReference: null,
+                sourceSequence: 0,
+                planSnapshot: saved.planSnapshot ?? this.createPlanSnapshot(saved.plan)
+            })
+        )
         await this.createLedger(manager, {
             tenantId: saved.tenantId,
             organizationId: saved.organizationId ?? null,
@@ -2221,6 +3139,9 @@ export class MembershipService {
             .getMany()) as UserMembership[]
 
         for (const membership of memberships) {
+            if (membership.planSnapshot) {
+                continue
+            }
             const previousPointsGranted = membership.pointsGranted
             membership.pointsGranted = plan.includedPoints
             await repository.save(membership)
@@ -2270,14 +3191,14 @@ export class MembershipService {
 
     private async findMembershipById(id: string, manager?: EntityManager): Promise<MembershipWithPlan> {
         const repository = manager?.getRepository(UserMembership) ?? this.membershipRepository
-        const membership = (await repository.findOne({
+        const membership = await repository.findOne({
             where: { id },
             relations: ['user', 'plan', 'assignedBy']
-        })) as MembershipWithPlan | null
+        })
         if (!membership) {
             throw new BadRequestException('Membership not found.')
         }
-        return membership
+        return this.hydrateMembershipPlanSnapshot(membership)
     }
 
     private async createLedger(

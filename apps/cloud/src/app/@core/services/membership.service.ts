@@ -15,6 +15,7 @@ import {
   IPagination,
   IUserPersonalPoints,
   IUserMembership,
+  IUserMembershipPeriod,
   TMembershipAssignInput,
   TMembershipPlanReassignInput,
   TMembershipPointAdjustInput
@@ -74,6 +75,16 @@ export class MembershipService {
     return this.#http.get<IPagination<IUserMembership>>(`${API_MEMBERSHIP}/admin/users`, {
       params: this.toParams(params)
     })
+  }
+
+  getAdminUserPeriods(userId: string) {
+    return this.#http.get<IUserMembershipPeriod[]>(`${API_MEMBERSHIP}/admin/users/${userId}/periods`)
+  }
+
+  cancelAdminUserPeriod(userId: string, periodId: string) {
+    return this.#http
+      .post<IUserMembershipPeriod>(`${API_MEMBERSHIP}/admin/users/${userId}/periods/${periodId}/cancel`, {})
+      .pipe(tap(() => this.refreshMembershipState()))
   }
 
   assignUser(userId: string, input: TMembershipAssignInput) {
@@ -141,9 +152,9 @@ export class MembershipService {
       switchMap(([, featureEnabled]) =>
         featureEnabled
           ? this.getMe().pipe(
-          map((membership) => !!membership),
-          catchError(() => of(false))
-        )
+              map((membership) => !!membership),
+              catchError(() => of(false))
+            )
           : of(false)
       )
     )

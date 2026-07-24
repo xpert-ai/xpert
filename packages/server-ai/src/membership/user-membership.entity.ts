@@ -1,5 +1,6 @@
 import {
     IMembershipPlan,
+    IMembershipPlanSnapshot,
     IUser,
     IUserMembership,
     MembershipRenewalModeEnum,
@@ -84,6 +85,10 @@ export class UserMembership extends TenantOrganizationBaseEntity implements IUse
     @ApiPropertyOptional({ type: () => Number })
     @Column({ type: 'numeric', precision: 28, scale: 10, default: 0, transformer: numericNumberTransformer })
     pointsTotalUsed: number
+
+    @ApiPropertyOptional({ type: () => Object })
+    @Column({ type: 'json', nullable: true })
+    planSnapshot?: IMembershipPlanSnapshot | null
 
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
