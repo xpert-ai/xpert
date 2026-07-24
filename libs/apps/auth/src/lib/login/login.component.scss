@@ -1,24 +1,18 @@
 @reference "../../../../../../tailwind-workspace-reference.css";
 :host {
-  @apply w-[368px] flex flex-col max-w-full px-8;
+  @apply flex w-full max-w-[28rem] flex-col;
 }
 
-.pac-auth__login-remember {
-  margin-bottom: 1rem;
-}
-
-.pac-auth__signin-button {
-  height: 45px;
-  margin-top: 1rem;
+.pac-login {
+  width: 100%;
 }
 
 .pac-login__signins {
-  margin: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.65rem;
 }
 
-.pac-login__signin-button {
-  img {
-    --mdc-icon-button-icon-size: 30px;
-    max-width: fit-content;
-  }
+.pac-login__signin-button img {
+  max-width: fit-content;
 }

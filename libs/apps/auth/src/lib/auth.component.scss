@@ -1,31 +1,393 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  --auth-card-shadow-color: color-mix(in oklab, var(--color-text-primary) 17.5%, transparent);
-  --auth-card-outline-color: color-mix(in oklab, var(--color-text-primary) 20%, transparent);
+  --auth-brand-surface: var(--foreground);
+  --auth-brand-text: var(--background);
+  --auth-brand-muted: color-mix(in oklab, var(--auth-brand-text) 62%, transparent);
+  --auth-brand-line: color-mix(in oklab, var(--auth-brand-text) 10%, transparent);
+  --auth-card-shadow-color: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  --auth-card-outline-color: color-mix(in oklab, var(--color-text-primary) 14%, transparent);
   background-color: var(--background);
-  @apply w-full max-w-full h-full flex flex-col justify-start items-center overflow-auto bg-cover text-text-primary;
+  @apply block h-full min-h-full w-full max-w-full overflow-auto text-text-primary;
 }
 
 :host-context([data-theme='dark']) {
-  --auth-card-shadow-color: color-mix(in oklab, var(--color-divider-deep) 70%, transparent);
-  --auth-card-outline-color: color-mix(in oklab, var(--color-components-button-primary-text) 40%, transparent);
+  --auth-brand-surface: var(--background);
+  --auth-brand-text: var(--foreground);
+  --auth-card-shadow-color: color-mix(in oklab, var(--background) 72%, transparent);
+  --auth-card-outline-color: color-mix(in oklab, var(--color-divider-deep) 68%, transparent);
+}
+
+.pac-auth-shell {
+  display: grid;
+  width: 100%;
+  min-height: 100%;
+  grid-template-columns: minmax(0, 1.08fr) minmax(28rem, 0.92fr);
+}
+
+.pac-auth-brand {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100%;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 4.5rem);
+  color: var(--auth-brand-text);
+  background:
+    radial-gradient(circle at 76% 20%, color-mix(in oklab, var(--sys-primary) 28%, transparent), transparent 34rem),
+    radial-gradient(circle at 90% 72%, color-mix(in oklab, var(--sys-info) 13%, transparent), transparent 28rem),
+    radial-gradient(circle at 12% 82%, color-mix(in oklab, var(--sys-accent) 9%, transparent), transparent 25rem),
+    var(--auth-brand-surface);
+  flex-direction: column;
+}
+
+.pac-auth-brand::before {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--auth-brand-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--auth-brand-line) 1px, transparent 1px);
+  background-position: center;
+  background-size: 4.5rem 4.5rem;
+  content: '';
+  mask-image: linear-gradient(to bottom, var(--auth-brand-surface), transparent);
+}
+
+.pac-auth-brand::after {
+  position: absolute;
+  z-index: -1;
+  top: 13%;
+  right: -10rem;
+  width: 32rem;
+  height: 32rem;
+  border: 1px solid color-mix(in oklab, var(--sys-info) 18%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5rem color-mix(in oklab, var(--sys-primary) 4%, transparent),
+    0 0 0 10rem color-mix(in oklab, var(--sys-accent) 2%, transparent);
+  content: '';
+}
+
+.pac-auth-brand__identity {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pac-auth-brand__logo-frame {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid color-mix(in oklab, var(--auth-brand-text) 16%, transparent);
+  border-radius: 0.9rem;
+  background-color: color-mix(in oklab, var(--auth-brand-text) 92%, transparent);
+  box-shadow: 0 0.8rem 2rem color-mix(in oklab, var(--auth-brand-surface) 28%, transparent);
+  place-items: center;
+}
+
+.pac-auth-brand__name {
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.pac-auth-brand__copy {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 52rem);
+  margin: auto 0;
+  padding: clamp(3rem, 8vh, 7rem) 0;
+}
+
+.pac-auth-brand__eyebrow {
+  display: flex;
+  margin: 0;
+  color: var(--auth-brand-muted);
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.pac-auth-brand__eyebrow > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background-color: var(--sys-info);
+  box-shadow:
+    0 0 0 0.3rem color-mix(in oklab, var(--sys-info) 12%, transparent),
+    0 0 1rem var(--sys-info);
+}
+
+.pac-auth-brand h1 {
+  max-width: 12ch;
+  margin: 1.5rem 0 0;
+  font-size: clamp(3rem, 5.4vw, 6.4rem);
+  font-weight: 590;
+  letter-spacing: -0.068em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+
+.pac-auth-brand__description {
+  max-width: 42rem;
+  margin: 1.7rem 0 0;
+  color: var(--auth-brand-muted);
+  font-size: clamp(0.95rem, 1.25vw, 1.12rem);
+  line-height: 1.75;
+}
+
+.pac-auth-signal {
+  position: relative;
+  display: grid;
+  width: min(100%, 40rem);
+  height: 7.5rem;
+  margin-top: 2.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: clamp(0.5rem, 1.4vw, 1rem);
+}
+
+.pac-auth-signal__line {
+  position: absolute;
+  top: 50%;
+  right: 2%;
+  left: 2%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--sys-primary) 78%, var(--auth-brand-muted)),
+    color-mix(in oklab, var(--sys-info) 72%, var(--auth-brand-muted)),
+    transparent
+  );
+  box-shadow: 0 0 1.2rem color-mix(in oklab, var(--sys-info) 45%, transparent);
+}
+
+.pac-auth-signal__node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--auth-brand-text) 15%, transparent);
+  border-radius: 0.8rem;
+  background: color-mix(in oklab, var(--auth-brand-surface) 72%, transparent);
+  box-shadow: 0 0.85rem 2rem color-mix(in oklab, var(--auth-brand-surface) 34%, transparent);
+  align-items: center;
+  gap: 0.65rem;
+  backdrop-filter: blur(0.8rem);
+}
+
+.pac-auth-signal__node span {
+  color: var(--auth-brand-muted);
+  font-size: 0.6rem;
+}
+
+.pac-auth-signal__node strong {
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+}
+
+.pac-auth-signal__node--agent {
+  border-color: color-mix(in oklab, var(--sys-primary) 68%, transparent);
+  box-shadow: 0 0.85rem 2.3rem color-mix(in oklab, var(--sys-primary) 20%, transparent);
+}
+
+.pac-auth-brand__capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 1.7rem;
+  color: var(--auth-brand-muted);
+  gap: 0.65rem 1.2rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pac-auth-brand__capabilities span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pac-auth-brand__capabilities i {
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background-color: var(--sys-success);
+  box-shadow: 0 0 0.6rem color-mix(in oklab, var(--sys-success) 58%, transparent);
+}
+
+.pac-auth-brand__footer {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--auth-brand-muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pac-auth-panel {
+  display: flex;
+  min-width: 0;
+  padding: clamp(1.5rem, 4vw, 4rem);
+  background:
+    radial-gradient(circle at 50% 5%, color-mix(in oklab, var(--sys-primary) 6%, transparent), transparent 24rem),
+    var(--sys-surface-page);
+  align-items: center;
+}
+
+.pac-auth-panel__content {
+  width: min(100%, 34rem);
+  margin: auto;
 }
 
 .pac-auth-card {
-  background-color: var(--sys-surface);
+  display: flex;
+  width: 100%;
+  padding: clamp(1.75rem, 3.5vw, 3rem);
+  border: 1px solid var(--auth-card-outline-color);
+  border-radius: 2rem;
+  background-color: color-mix(in oklab, var(--sys-surface-elevated) 94%, transparent);
   box-shadow:
-    0 32px 48px var(--auth-card-shadow-color),
+    0 2rem 5rem var(--auth-card-shadow-color),
     0 0 1px var(--auth-card-outline-color);
-  @apply rounded-[36px] border-[0.5px] border-solid border-divider-regular;
+  align-items: center;
+  flex-direction: column;
+  backdrop-filter: blur(1.2rem);
 }
 
 .pac-auth__header {
-  font-size: 2rem;
   display: flex;
+  width: 100%;
+  margin-bottom: 2.25rem;
   align-items: center;
-  justify-content: flex-start;
+  gap: 0.8rem;
+}
+
+.pac-auth__header p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.pac-auth__header span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-text-tertiary);
+  font-size: 0.72rem;
+}
+
+.pac-auth-panel__footer {
+  display: flex;
+  padding: 1.1rem 0.4rem 0;
+  color: var(--color-text-tertiary);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.72rem;
 }
 
 .pac-auth__copyright {
-  margin: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.pac-auth__copyright a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.pac-auth__copyright a:hover {
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 75rem) {
+  .pac-auth-shell {
+    grid-template-columns: minmax(0, 0.95fr) minmax(28rem, 1.05fr);
+  }
+}
+
+@media (max-width: 62rem) {
+  .pac-auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .pac-auth-brand {
+    min-height: auto;
+    padding: 1.25rem clamp(1.25rem, 5vw, 3rem);
+  }
+
+  .pac-auth-brand::after,
+  .pac-auth-brand__copy,
+  .pac-auth-brand__footer {
+    display: none;
+  }
+
+  .pac-auth-panel {
+    padding: clamp(1.25rem, 5vw, 3rem);
+  }
+}
+
+@media (max-width: 34rem) {
+  .pac-auth-brand {
+    padding: 1rem 1.25rem;
+  }
+
+  .pac-auth-brand__logo-frame {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+
+  .pac-auth-panel {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .pac-auth-panel__content {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+  }
+
+  .pac-auth-card {
+    padding: 1.75rem 1.25rem;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    box-shadow: none;
+    flex: 1;
+  }
+
+  .pac-auth-panel__footer {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pac-auth-brand__eyebrow > span {
+    animation: auth-signal-pulse 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes auth-signal-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
