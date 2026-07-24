@@ -758,6 +758,7 @@ export class MembershipService {
             }
 
             record.planId = plan.id
+            record.plan = plan
             record.status = MembershipStatusEnum.Active
             record.source = input.source ?? MembershipSourceEnum.Admin
             record.renewalMode = input.renewalMode ?? MembershipRenewalModeEnum.Auto
@@ -770,6 +771,7 @@ export class MembershipService {
             record.note = input.note
 
             const saved = await repository.save(record)
+            await this.synchronizeCurrentPeriodProjection(this.hydrateMembershipPlanSnapshot(saved), manager)
             await this.expireDuplicateManagedMemberships(tenantId, organizationId, userId, saved.id, manager)
             await this.createLedger(manager, {
                 tenantId,
@@ -2711,7 +2713,7 @@ export class MembershipService {
             return
         }
         const repository = manager.getRepository(MembershipPeriod)
-        const period = await repository.findOne({
+        let period = await repository.findOne({
             where: {
                 tenantId: membership.tenantId,
                 membershipId: membership.id,
@@ -2720,10 +2722,35 @@ export class MembershipService {
             order: { periodStart: 'DESC' }
         })
         if (!period) {
-            return
+            period = repository.create({
+                tenantId: membership.tenantId,
+                organizationId: membership.organizationId ?? null,
+                membershipId: membership.id,
+                userId: membership.userId,
+                planId: membership.planId,
+                status: MembershipPeriodStatusEnum.Active,
+                periodStart: membership.currentPeriodStart,
+                periodEnd: membership.currentPeriodEnd,
+                pointsGranted: membership.pointsGranted,
+                pointsUsed: membership.pointsUsed ?? 0,
+                source: membership.source,
+                renewalMode: membership.renewalMode,
+                sourceReference: null,
+                sourceSequence: 0,
+                planSnapshot: membership.planSnapshot ?? this.createPlanSnapshot(membership.plan)
+            })
+        } else {
+            period.organizationId = membership.organizationId ?? null
+            period.userId = membership.userId
+            period.planId = membership.planId
+            period.periodStart = membership.currentPeriodStart
+            period.periodEnd = membership.currentPeriodEnd
+            period.pointsGranted = membership.pointsGranted
+            period.pointsUsed = membership.pointsUsed ?? 0
+            period.source = membership.source
+            period.renewalMode = membership.renewalMode
+            period.planSnapshot = membership.planSnapshot ?? this.createPlanSnapshot(membership.plan)
         }
-        period.pointsGranted = membership.pointsGranted
-        period.pointsUsed = membership.pointsUsed ?? 0
         await repository.save(period)
     }
 

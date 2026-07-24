@@ -2854,6 +2854,90 @@ describe('MembershipService', () => {
         expect(memberships).toHaveLength(1)
     })
 
+    it('synchronizes the active period before queuing a renewal after assigning a plan', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('admin-1')
+        const { memberships, periods, plans, service } = createScopeInitializationHarness()
+        const oldPlan = createPlan({ id: 'plan-old', name: 'Old plan', includedPoints: 100 })
+        const targetPlan = createPlan({ id: 'plan-target', name: 'Target plan', includedPoints: 300 })
+        plans.push(oldPlan, targetPlan)
+        const membership = createMembership({
+            id: 'membership-reassigned',
+            userId: 'user-1',
+            planId: oldPlan.id,
+            plan: oldPlan,
+            currentPeriodStart: new Date('2030-07-10T00:00:00.000Z'),
+            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z'),
+            pointsGranted: 100,
+            pointsUsed: 40
+        })
+        memberships.push(membership)
+        periods.push({
+            id: 'period-active-old',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            membershipId: membership.id,
+            userId: membership.userId,
+            planId: oldPlan.id,
+            plan: oldPlan,
+            status: MembershipPeriodStatusEnum.Active,
+            periodStart: membership.currentPeriodStart,
+            periodEnd: membership.currentPeriodEnd,
+            pointsGranted: 100,
+            pointsUsed: 40,
+            source: MembershipSourceEnum.Admin,
+            renewalMode: MembershipRenewalModeEnum.Auto,
+            sourceReference: null,
+            sourceSequence: 0,
+            planSnapshot: {
+                planId: oldPlan.id,
+                code: oldPlan.code,
+                name: oldPlan.name,
+                description: null,
+                period: oldPlan.period,
+                includedPoints: oldPlan.includedPoints,
+                tokensPerPoint: oldPlan.tokensPerPoint,
+                allowedModels: oldPlan.allowedModels,
+                modelMultipliers: oldPlan.modelMultipliers,
+                rateLimits: oldPlan.rateLimits
+            }
+        } as MembershipPeriod)
+
+        await service.assignUser('user-1', {
+            planId: targetPlan.id,
+            currentPeriodStart: '2030-07-20T00:00:00.000Z',
+            currentPeriodEnd: '2030-09-20T00:00:00.000Z',
+            renewalMode: MembershipRenewalModeEnum.Manual
+        })
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: targetPlan.id,
+            count: 1,
+            source: MembershipSourceEnum.Admin,
+            renewalMode: MembershipRenewalModeEnum.Manual
+        })
+
+        expect(periods.find(({ status }) => status === MembershipPeriodStatusEnum.Active)).toMatchObject({
+            planId: targetPlan.id,
+            periodStart: new Date('2030-07-20T00:00:00.000Z'),
+            periodEnd: new Date('2030-09-20T00:00:00.000Z'),
+            pointsGranted: 300,
+            pointsUsed: 0,
+            renewalMode: MembershipRenewalModeEnum.Manual,
+            planSnapshot: {
+                planId: targetPlan.id,
+                name: targetPlan.name,
+                includedPoints: targetPlan.includedPoints
+            }
+        })
+        expect(periods.find(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)).toMatchObject({
+            planId: targetPlan.id,
+            periodStart: new Date('2030-09-20T00:00:00.000Z')
+        })
+    })
+
     it('rejects an assignment whose end date is not after its start date', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
