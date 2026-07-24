@@ -1,6 +1,18 @@
 export const ZhHans = {
   Auth: {
     Copyright: '版权',
+    PlatformTitle: '构建、编排并交付企业级智能体系统。',
+    PlatformDescription: '将模型、工具、业务上下文与人工审核汇聚到一个可观测的智能工作空间。',
+    ObservableExecution: '可观测执行',
+    EnterpriseReady: '开放平台 · 企业级就绪',
+    WorkspaceAccess: '工作空间访问',
+    Language: '语言',
+    SecureWorkspaceAccess: '安全访问工作空间',
+    WelcomeBack: '欢迎回来',
+    LoginDescription: '登录并继续进入你的智能体工作空间。',
+    DismissMessage: '关闭消息',
+    OtherSigninMethods: '其他登录方式',
+    NewToXpert: '初次使用 XpertAI？',
     Login: '登录',
     Signin: '登录',
     Signup: '注册',
