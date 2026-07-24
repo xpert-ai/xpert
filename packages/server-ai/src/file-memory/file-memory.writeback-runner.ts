@@ -94,13 +94,15 @@ export class FileMemoryWritebackRunner {
             }
         }, snapshot.runtime)
 
-        const model = await snapshot.getModel?.()
-        if (!model) {
-            this.logger.warn(`[XpertFileMemory] writeback model is not configured; candidate recorded only xpert=${snapshot.xpert.id}`)
-            return
-        }
-
         try {
+            const model = await snapshot.getModel?.()
+            if (!model) {
+                this.logger.warn(
+                    `[XpertFileMemory] writeback model is not configured; candidate recorded only xpert=${snapshot.xpert.id}`
+                )
+                return
+            }
+
             const searchStartedAt = Date.now()
             const candidates = await this.fileMemoryService.searchMemory(snapshot.xpert, {
                 query: conversationText,
