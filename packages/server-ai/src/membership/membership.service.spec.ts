@@ -4,6 +4,7 @@ jest.mock('../xpert/xpert.entity', () => ({
 
 import { MembershipService } from './membership.service'
 import { MembershipPlan } from './membership-plan.entity'
+import { MembershipPeriod } from './membership-period.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
@@ -14,6 +15,7 @@ import {
     MEMBERSHIP_TOKENS_PER_POINT_OPTIONS,
     MembershipLedgerSourceEnum,
     MembershipPeriodEnum,
+    MembershipPeriodStatusEnum,
     MembershipPlanStatusEnum,
     MembershipRenewalModeEnum,
     MembershipSourceEnum,
@@ -168,7 +170,8 @@ describe('MembershipService', () => {
         userOrganizationRepository: never | undefined = undefined,
         copilotRepository: never | undefined = undefined,
         featureOrganizationRepository: never | undefined = createMembershipFeatureRepository().repository as never,
-        tenantSettingRepository: never | undefined = undefined
+        tenantSettingRepository: never | undefined = undefined,
+        periodRepository: never | undefined = undefined
     ) {
         return new MembershipService(
             dataSource,
@@ -180,7 +183,8 @@ describe('MembershipService', () => {
             userOrganizationRepository,
             copilotRepository,
             featureOrganizationRepository,
-            tenantSettingRepository
+            tenantSettingRepository,
+            periodRepository
         )
     }
 
@@ -227,6 +231,7 @@ describe('MembershipService', () => {
     ) {
         const plans: MembershipPlan[] = []
         const memberships: UserMembership[] = []
+        const periods: MembershipPeriod[] = []
         const ledgers: MembershipPointLedger[] = []
         const matchesScope = (
             record: { tenantId?: string; organizationId?: string | null },
@@ -441,10 +446,105 @@ describe('MembershipService', () => {
             })
         }
         const ledgerRepository = {
+            findOne: jest.fn(
+                async ({ where }) =>
+                    ledgers.find(
+                        (ledger) =>
+                            ledger.tenantId === where?.tenantId && ledger.sourceReference === where?.sourceReference
+                    ) ?? null
+            ),
             create: jest.fn((input) => ({ id: `ledger-${ledgers.length + 1}`, ...input })),
             save: jest.fn(async (ledger) => {
                 ledgers.push(ledger as MembershipPointLedger)
                 return ledger as MembershipPointLedger
+            })
+        }
+        const periodRepository = {
+            create: jest.fn((input) => ({ id: `period-${periods.length + 1}`, ...input })),
+            save: jest.fn(async (period) => {
+                const saved = {
+                    ...period,
+                    id: period.id ?? `period-${periods.length + 1}`
+                } as MembershipPeriod
+                const index = periods.findIndex((item) => item.id === saved.id)
+                if (index >= 0) {
+                    periods[index] = saved
+                } else {
+                    periods.push(saved)
+                }
+                return saved
+            }),
+            findOne: jest.fn(async ({ where, order }) => {
+                const matches = periods
+                    .filter(
+                        (period) =>
+                            matchesScope(period, where) &&
+                            (where?.id === undefined || period.id === where.id) &&
+                            (where?.userId === undefined || period.userId === where.userId) &&
+                            (where?.membershipId === undefined || period.membershipId === where.membershipId) &&
+                            (where?.sourceReference === undefined ||
+                                period.sourceReference === where.sourceReference) &&
+                            (typeof where?.status !== 'string' || period.status === where.status)
+                    )
+                    .sort((left, right) => {
+                        const direction = order?.periodEnd === 'DESC' || order?.periodStart === 'DESC' ? -1 : 1
+                        const leftDate = new Date(order?.periodEnd ? left.periodEnd : left.periodStart).getTime()
+                        const rightDate = new Date(order?.periodEnd ? right.periodEnd : right.periodStart).getTime()
+                        return (leftDate - rightDate) * direction
+                    })
+                return matches[0] ?? null
+            }),
+            find: jest.fn(async ({ where, order }) =>
+                periods
+                    .filter(
+                        (period) =>
+                            (where?.tenantId === undefined || period.tenantId === where.tenantId) &&
+                            (where?.membershipId === undefined || period.membershipId === where.membershipId) &&
+                            (where?.userId === undefined || period.userId === where.userId) &&
+                            (where?.sourceReference === undefined ||
+                                period.sourceReference === where.sourceReference) &&
+                            (typeof where?.status !== 'string' || period.status === where.status)
+                    )
+                    .sort((left, right) => {
+                        const direction = order?.periodStart === 'DESC' ? -1 : 1
+                        return (
+                            (new Date(left.periodStart).getTime() - new Date(right.periodStart).getTime()) * direction
+                        )
+                    })
+            ),
+            createQueryBuilder: jest.fn(() => {
+                let membershipId: string | undefined
+                let status: MembershipPeriodStatusEnum | undefined
+                let nextStatus: MembershipPeriodStatusEnum | undefined
+                const builder = {
+                    update: jest.fn().mockReturnThis(),
+                    set: jest.fn((input) => {
+                        nextStatus = input.status
+                        return builder
+                    }),
+                    where: jest.fn((_condition, parameters) => {
+                        membershipId = parameters?.membershipId
+                        return builder
+                    }),
+                    andWhere: jest.fn((_condition, parameters) => {
+                        status = parameters?.status
+                        return builder
+                    }),
+                    execute: jest.fn(async () => {
+                        periods
+                            .filter(
+                                (period) =>
+                                    period.membershipId === membershipId &&
+                                    (status === undefined || period.status === status)
+                            )
+                            .forEach((period) => {
+                                if (nextStatus) {
+                                    period.status = nextStatus
+                                }
+                            })
+                    })
+                }
+                return builder
             })
         }
         const manager = {
@@ -457,6 +557,9 @@ describe('MembershipService', () => {
                 }
                 if (entity === MembershipPointLedger) {
                     return ledgerRepository
+                }
+                if (entity === MembershipPeriod) {
+                    return periodRepository
                 }
                 if (entity === FeatureOrganization) {
                     return featureOrganizationRepository
@@ -514,6 +617,8 @@ describe('MembershipService', () => {
             userRepository,
             planRepository,
             plans,
+            periodRepository,
+            periods,
             transactionManagers,
             userOrganizationRepository,
             service: createMembershipService(
@@ -526,7 +631,8 @@ describe('MembershipService', () => {
                 userOrganizationRepository as never,
                 undefined,
                 featureOrganizationRepository as never,
-                tenantSettingRepository as never
+                tenantSettingRepository as never,
+                periodRepository as never
             )
         }
     }
@@ -2565,6 +2671,62 @@ describe('MembershipService', () => {
         expect(membership.currentPeriodEnd.getTime()).toBeLessThanOrEqual(Date.now())
     })
 
+    it('keeps paid future periods without blocking organization membership removal', async () => {
+        const { memberships, periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-paid-org', organizationId: 'org-1' })
+        plans.push(plan)
+        memberships.push(
+            createMembership({
+                id: 'membership-paid-org',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                planId: plan.id,
+                plan,
+                currentPeriodStart: new Date('2030-07-01T00:00:00.000Z'),
+                currentPeriodEnd: new Date('2030-08-01T00:00:00.000Z')
+            })
+        )
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 1,
+            source: MembershipSourceEnum.Admin
+        })
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 1,
+            source: MembershipSourceEnum.External,
+            sourceReference: 'paid-org-period'
+        })
+
+        const revoked = await service.revokeOrganizationMembershipForRemovedUser({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+
+        expect(revoked?.status).toBe(MembershipStatusEnum.Expired)
+        expect(
+            periods.find(
+                (period) =>
+                    period.source === MembershipSourceEnum.Admin &&
+                    period.status === MembershipPeriodStatusEnum.Cancelled
+            )
+        ).toBeDefined()
+        expect(
+            periods.find(
+                (period) =>
+                    period.source === MembershipSourceEnum.External && period.sourceReference === 'paid-org-period'
+            )
+        ).toMatchObject({ status: MembershipPeriodStatusEnum.Scheduled })
+    })
+
     it('reuses a paused membership record when assigning a new plan', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
@@ -2659,10 +2821,10 @@ describe('MembershipService', () => {
         )
     })
 
-    it('extends early renewals from the existing end date and rejects archived plans', async () => {
+    it('queues early renewals without resetting the current membership period', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
-        const { memberships, plans, service } = createScopeInitializationHarness()
+        const { memberships, periods, plans, service } = createScopeInitializationHarness()
         const plan = createPlan({ id: 'plan-renew' })
         plans.push(plan)
         const membership = createMembership({
@@ -2670,17 +2832,374 @@ describe('MembershipService', () => {
             userId: 'user-1',
             planId: plan.id,
             plan,
-            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z')
+            currentPeriodStart: new Date('2030-07-10T00:00:00.000Z'),
+            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z'),
+            pointsUsed: 25
         })
         memberships.push(membership)
 
         const renewed = await service.renewUser('user-1')
 
-        expect(renewed.currentPeriodStart).toEqual(new Date('2030-08-10T00:00:00.000Z'))
-        expect(renewed.currentPeriodEnd).toEqual(new Date('2030-09-10T00:00:00.000Z'))
+        expect(renewed.currentPeriodStart).toEqual(new Date('2030-07-10T00:00:00.000Z'))
+        expect(renewed.currentPeriodEnd).toEqual(new Date('2030-08-10T00:00:00.000Z'))
+        expect(renewed.pointsUsed).toBe(25)
+        expect(periods).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    status: MembershipPeriodStatusEnum.Active,
+                    periodStart: new Date('2030-07-10T00:00:00.000Z'),
+                    periodEnd: new Date('2030-08-10T00:00:00.000Z'),
+                    pointsUsed: 25
+                }),
+                expect.objectContaining({
+                    status: MembershipPeriodStatusEnum.Scheduled,
+                    periodStart: new Date('2030-08-10T00:00:00.000Z'),
+                    periodEnd: new Date('2030-09-10T00:00:00.000Z'),
+                    pointsUsed: 0
+                })
+            ])
+        )
 
         membership.plan.status = MembershipPlanStatusEnum.Archived
         await expect(service.renewUser('user-1')).rejects.toThrow('Archived membership plans cannot be renewed.')
+    })
+
+    it('resumes a paused membership when renewing without resetting the current period', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { ledgers, memberships, periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-paused-renew' })
+        plans.push(plan)
+        const membership = createMembership({
+            id: 'membership-paused-renew',
+            userId: 'user-1',
+            planId: plan.id,
+            plan,
+            status: MembershipStatusEnum.Paused,
+            currentPeriodStart: new Date('2030-07-10T00:00:00.000Z'),
+            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z'),
+            pointsUsed: 25
+        })
+        memberships.push(membership)
+
+        const renewed = await service.renewUser('user-1')
+
+        expect(renewed).toMatchObject({
+            status: MembershipStatusEnum.Active,
+            currentPeriodStart: new Date('2030-07-10T00:00:00.000Z'),
+            currentPeriodEnd: new Date('2030-08-10T00:00:00.000Z'),
+            pointsUsed: 25
+        })
+        expect(periods).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    status: MembershipPeriodStatusEnum.Active,
+                    periodStart: new Date('2030-07-10T00:00:00.000Z'),
+                    periodEnd: new Date('2030-08-10T00:00:00.000Z'),
+                    pointsUsed: 25
+                }),
+                expect.objectContaining({
+                    status: MembershipPeriodStatusEnum.Scheduled,
+                    periodStart: new Date('2030-08-10T00:00:00.000Z'),
+                    periodEnd: new Date('2030-09-10T00:00:00.000Z')
+                })
+            ])
+        )
+        expect(ledgers).toContainEqual(
+            expect.objectContaining({
+                membershipId: membership.id,
+                source: MembershipLedgerSourceEnum.StatusChange,
+                reason: 'Membership resumed by renewal'
+            })
+        )
+    })
+
+    it('appends multiple idempotent periods with immutable plan snapshots', async () => {
+        const { periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({
+            id: 'plan-prepaid',
+            name: 'Original plan',
+            includedPoints: 3000,
+            allowedModels: [{ provider: 'openai', model: 'gpt-4.1' }]
+        })
+        plans.push(plan)
+
+        const firstResult = await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 3,
+            source: MembershipSourceEnum.External,
+            sourceReference: 'order-1'
+        })
+        plan.name = 'Changed plan'
+        plan.includedPoints = 9999
+        const repeatedResult = await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 3,
+            source: MembershipSourceEnum.External,
+            sourceReference: 'order-1'
+        })
+
+        expect(firstResult).toHaveLength(3)
+        expect(repeatedResult.map(({ id }) => id)).toEqual(firstResult.map(({ id }) => id))
+        expect(periods).toHaveLength(3)
+        expect(periods.map(({ status }) => status)).toEqual([
+            MembershipPeriodStatusEnum.Active,
+            MembershipPeriodStatusEnum.Scheduled,
+            MembershipPeriodStatusEnum.Scheduled
+        ])
+        expect(periods[0].planSnapshot).toMatchObject({
+            name: 'Original plan',
+            includedPoints: 3000,
+            allowedModels: [{ provider: 'openai', model: 'gpt-4.1' }]
+        })
+        expect(periods[1].periodStart).toEqual(periods[0].periodEnd)
+        expect(periods[2].periodStart).toEqual(periods[1].periodEnd)
+    })
+
+    it('lets admins cancel assigned future periods without deleting them', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-admin-period', includedPoints: 100 })
+        plans.push(plan)
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 2,
+            source: MembershipSourceEnum.Admin
+        })
+        const scheduledPeriod = periods.find(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)
+        if (!scheduledPeriod) {
+            throw new Error('Expected a scheduled membership period.')
+        }
+
+        const cancelled = await service.cancelAdminUserPeriod('user-1', scheduledPeriod.id)
+
+        expect(cancelled.status).toBe(MembershipPeriodStatusEnum.Cancelled)
+        expect(periods).toContainEqual(expect.objectContaining({ id: scheduledPeriod.id }))
+    })
+
+    it('only lets admins cancel the last scheduled period', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-tail-cancel', includedPoints: 100 })
+        plans.push(plan)
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 3,
+            source: MembershipSourceEnum.Admin
+        })
+        const scheduledPeriods = periods.filter(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)
+        if (scheduledPeriods.length !== 2) {
+            throw new Error('Expected two scheduled membership periods.')
+        }
+
+        await expect(service.cancelAdminUserPeriod('user-1', scheduledPeriods[0].id)).rejects.toThrow(
+            'Only the last scheduled membership period can be cancelled.'
+        )
+
+        const cancelled = await service.cancelAdminUserPeriod('user-1', scheduledPeriods[1].id)
+
+        expect(cancelled.status).toBe(MembershipPeriodStatusEnum.Cancelled)
+        expect(scheduledPeriods[0].status).toBe(MembershipPeriodStatusEnum.Scheduled)
+    })
+
+    it('requires externally managed periods to be cancelled with their source reference', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { periods, plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-paid-period', includedPoints: 100 })
+        plans.push(plan)
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plan.id,
+            count: 2,
+            source: MembershipSourceEnum.External,
+            sourceReference: 'order-paid'
+        })
+        const scheduledPeriod = periods.find(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)
+        if (!scheduledPeriod) {
+            throw new Error('Expected a scheduled membership period.')
+        }
+
+        await expect(service.cancelAdminUserPeriod('user-1', scheduledPeriod.id)).rejects.toThrow(
+            'Externally managed periods must be refunded and cancelled by the external billing system.'
+        )
+
+        const cancelled = await service.cancelScheduledMembershipPeriod({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            periodId: scheduledPeriod.id,
+            sourceReference: 'order-paid'
+        })
+
+        expect(cancelled.status).toBe(MembershipPeriodStatusEnum.Cancelled)
+    })
+
+    it('requires external fulfillment to include a stable source reference', async () => {
+        const { plans, service } = createScopeInitializationHarness()
+        const plan = createPlan({ id: 'plan-external-reference', includedPoints: 100 })
+        plans.push(plan)
+
+        await expect(
+            service.appendMembershipPeriods({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                planId: plan.id,
+                count: 1,
+                source: MembershipSourceEnum.External
+            })
+        ).rejects.toThrow('Externally managed membership periods require a source reference.')
+    })
+
+    it('upgrades only the current period and keeps future prepaid periods unchanged', async () => {
+        const { memberships, periods, plans, service } = createScopeInitializationHarness()
+        const plusPlan = createPlan({ id: 'plan-plus', name: 'Plus', includedPoints: 1000 })
+        const proPlan = createPlan({ id: 'plan-pro', name: 'Pro', includedPoints: 5000 })
+        plans.push(plusPlan, proPlan)
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plusPlan.id,
+            count: 2,
+            sourceReference: 'order-plus'
+        })
+        const upgraded = await service.upgradeCurrentMembershipPeriod({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: proPlan.id,
+            pointsDelta: 1200,
+            sourceReference: 'upgrade-1'
+        })
+        const repeated = await service.upgradeCurrentMembershipPeriod({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: proPlan.id,
+            pointsDelta: 1200,
+            sourceReference: 'upgrade-1'
+        })
+
+        expect(upgraded.plan.name).toBe('Pro')
+        expect(upgraded.pointsGranted).toBe(2200)
+        expect(repeated.pointsGranted).toBe(2200)
+        expect(memberships).toHaveLength(1)
+        expect(periods.find(({ status }) => status === MembershipPeriodStatusEnum.Active)?.planSnapshot.name).toBe(
+            'Pro'
+        )
+        expect(periods.find(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)?.planSnapshot.name).toBe(
+            'Plus'
+        )
+    })
+
+    it('rejects an upgrade idempotency key reused with different fulfillment parameters', async () => {
+        const { plans, service } = createScopeInitializationHarness()
+        const plusPlan = createPlan({ id: 'plan-idempotent-plus', name: 'Plus', includedPoints: 1000 })
+        const proPlan = createPlan({ id: 'plan-idempotent-pro', name: 'Pro', includedPoints: 5000 })
+        plans.push(plusPlan, proPlan)
+
+        await service.appendMembershipPeriods({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: plusPlan.id,
+            count: 1,
+            sourceReference: 'order-idempotent-plus'
+        })
+        await service.upgradeCurrentMembershipPeriod({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            planId: proPlan.id,
+            pointsDelta: 1200,
+            sourceReference: 'upgrade-idempotency'
+        })
+
+        await expect(
+            service.upgradeCurrentMembershipPeriod({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                planId: proPlan.id,
+                pointsDelta: 1201,
+                sourceReference: 'upgrade-idempotency'
+            })
+        ).rejects.toThrow('Membership upgrade request does not match the existing fulfillment.')
+        await expect(
+            service.upgradeCurrentMembershipPeriod({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                planId: proPlan.id,
+                pointsDelta: 1200,
+                sourceReference: 'upgrade-idempotency'
+            })
+        ).rejects.toThrow('Membership upgrade request does not match the existing fulfillment.')
+        await expect(
+            service.upgradeCurrentMembershipPeriod({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                planId: plusPlan.id,
+                pointsDelta: 1200,
+                sourceReference: 'upgrade-idempotency'
+            })
+        ).rejects.toThrow('Membership upgrade request does not match the existing fulfillment.')
+    })
+
+    it('activates the queued snapshot at the period boundary', async () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-07-15T00:00:00.000Z'))
+        try {
+            const { memberships, periods, plans, service } = createScopeInitializationHarness()
+            const plan = createPlan({ id: 'plan-snapshot', name: 'Snapshot plan', includedPoints: 2000 })
+            plans.push(plan)
+            memberships.push(
+                createMembership({
+                    id: 'membership-current',
+                    userId: 'user-1',
+                    planId: plan.id,
+                    plan,
+                    currentPeriodStart: new Date('2026-07-01T00:00:00.000Z'),
+                    currentPeriodEnd: new Date('2026-08-01T00:00:00.000Z'),
+                    pointsGranted: 2000,
+                    pointsUsed: 500
+                })
+            )
+
+            await service.appendMembershipPeriods({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                planId: plan.id,
+                count: 1,
+                sourceReference: 'order-boundary'
+            })
+            plan.name = 'Plan changed later'
+            plan.includedPoints = 9000
+
+            jest.setSystemTime(new Date('2026-08-15T00:00:00.000Z'))
+            const access = await service.findModelAccess({
+                tenantId: 'tenant-1',
+                userId: 'user-1'
+            })
+
+            expect(access?.membership.currentPeriodStart).toEqual(new Date('2026-08-01T00:00:00.000Z'))
+            expect(access?.membership.currentPeriodEnd).toEqual(new Date('2026-09-01T00:00:00.000Z'))
+            expect(access?.membership.pointsGranted).toBe(2000)
+            expect(access?.membership.pointsUsed).toBe(0)
+            expect(access?.membership.plan.name).toBe('Snapshot plan')
+            expect(periods.filter(({ status }) => status === MembershipPeriodStatusEnum.Active)).toHaveLength(1)
+            expect(periods.filter(({ status }) => status === MembershipPeriodStatusEnum.Completed)).toHaveLength(1)
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     it('rejects invalid model multiplier and rate-limit plan rules', async () => {

@@ -20,6 +20,7 @@ const numericNumberTransformer = {
 @Index('IDX_membership_ledger_tenant_user_hour', ['tenantId', 'userId', 'usageHour'])
 @Index('IDX_membership_ledger_tenant_model_hour', ['tenantId', 'provider', 'model', 'usageHour'])
 @Index('IDX_membership_ledger_tenant_membership', ['tenantId', 'membershipId'])
+@Index('IDX_membership_ledger_source_reference', ['tenantId', 'sourceReference'], { unique: true })
 export class MembershipPointLedger extends TenantBaseEntity implements IMembershipPointLedger {
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
@@ -106,6 +107,10 @@ export class MembershipPointLedger extends TenantBaseEntity implements IMembersh
     @ApiPropertyOptional({ type: () => String })
     @Column({ nullable: true, length: 13 })
     usageHour?: string
+
+    @ApiPropertyOptional({ type: () => String })
+    @Column({ type: 'varchar', nullable: true, length: 191 })
+    sourceReference?: string | null
 
     @ApiPropertyOptional({ type: () => String })
     @Column({ nullable: true })

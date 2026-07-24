@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, Input, OnChanges, inject, signal } from '@angular/core'
+import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
   AIPermissionsEnum,
@@ -9,7 +9,15 @@ import {
   getErrorMessage,
   injectToastr
 } from '../../../../@core'
-import { IMembershipPlan, IUserMembership, MembershipRenewalModeEnum, MembershipStatusEnum } from '@xpert-ai/contracts'
+import {
+  IMembershipPlan,
+  IUserMembership,
+  IUserMembershipPeriod,
+  MembershipPeriodStatusEnum,
+  MembershipRenewalModeEnum,
+  MembershipSourceEnum,
+  MembershipStatusEnum
+} from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardAlertDialogService,
@@ -20,7 +28,7 @@ import {
   ZardProgressBarComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { firstValueFrom, forkJoin, of } from 'rxjs'
+import { Observable, firstValueFrom, forkJoin, of } from 'rxjs'
 
 type PointAdjustmentDirection = 'increase' | 'decrease'
 const POINT_ADJUSTMENT_VALIDATORS = [
@@ -57,10 +65,23 @@ export class UserMembershipComponent implements OnChanges {
 
   readonly plans = signal<IMembershipPlan[]>([])
   readonly membership = signal<IUserMembership | null>(null)
+  readonly periods = signal<IUserMembershipPeriod[]>([])
+  readonly scheduledPeriods = computed(() =>
+    this.periods().filter((period) => period.status === MembershipPeriodStatusEnum.Scheduled)
+  )
+  readonly lastScheduledPeriodId = computed(
+    () =>
+      this.scheduledPeriods().reduce<IUserMembershipPeriod | null>(
+        (latest, period) =>
+          !latest || new Date(period.periodEnd).getTime() > new Date(latest.periodEnd).getTime() ? period : latest,
+        null
+      )?.id ?? null
+  )
   readonly personalPointsBalance = signal(0)
   readonly loading = signal(false)
 
   readonly MembershipRenewalModeEnum = MembershipRenewalModeEnum
+  readonly MembershipSourceEnum = MembershipSourceEnum
   readonly MembershipStatusEnum = MembershipStatusEnum
 
   readonly assignmentForm = this.#formBuilder.nonNullable.group({
@@ -101,14 +122,16 @@ export class UserMembershipComponent implements OnChanges {
     forkJoin({
       plans: this.#membership.getPlans(),
       memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }),
+      periods: this.#membership.getAdminUserPeriods(this.userId),
       personalPoints: this.canManagePersonalPoints
         ? this.#membership.getPersonalPoints(this.userId)
         : of({ balance: 0 })
     }).subscribe({
-      next: ({ plans, memberships, personalPoints }) => {
+      next: ({ plans, memberships, periods, personalPoints }) => {
         this.plans.set(plans.filter((plan) => plan.status === 'active'))
         const membership = memberships.items?.[0] ?? null
         this.membership.set(membership)
+        this.periods.set(periods)
         this.personalPointsBalance.set(personalPoints.balance)
         this.assignmentForm.patchValue({
           planId: membership?.planId ?? this.plans()[0]?.id ?? '',
@@ -134,10 +157,9 @@ export class UserMembershipComponent implements OnChanges {
         note: note || null
       })
       .subscribe({
-        next: (membership) => {
-          this.membership.set(membership)
+        next: () => {
           this.assignmentForm.controls.note.reset()
-          this.loading.set(false)
+          this.load()
         },
         error: (error) => this.handleError(error)
       })
@@ -150,12 +172,32 @@ export class UserMembershipComponent implements OnChanges {
         titleDefault: 'Renew membership?',
         descriptionKey: 'PAC.Membership.RenewConfirmDescription',
         descriptionDefault:
-          'A new membership period will be created from the current period end, and cycle points will be reset.',
+          'A new period will be queued after the current period. The current period and its points will not change.',
         actionKey: 'PAC.Membership.Renew',
         actionDefault: 'Renew'
-    })
+      })
     ) {
-      this.runMembershipAction(this.#membership.renewUser(this.userId))
+      this.runAndReload(this.#membership.renewUser(this.userId))
+    }
+  }
+
+  async cancelPeriod(period: IUserMembershipPeriod) {
+    if (!this.canCancelPeriod(period)) {
+      return
+    }
+    if (
+      await this.confirmMembershipAction({
+        titleKey: 'PAC.Membership.CancelPeriodConfirmTitle',
+        titleDefault: 'Cancel upcoming period?',
+        descriptionKey: 'PAC.Membership.CancelPeriodConfirmDescription',
+        descriptionDefault:
+          'This upcoming entitlement will be cancelled. The current period and other upcoming periods will not change.',
+        actionKey: 'PAC.Membership.CancelPeriod',
+        actionDefault: 'Cancel period',
+        destructive: true
+      })
+    ) {
+      this.runAndReload(this.#membership.cancelAdminUserPeriod(this.userId, period.id))
     }
   }
 
@@ -170,8 +212,8 @@ export class UserMembershipComponent implements OnChanges {
         actionDefault: 'Pause'
       })
     ) {
-    this.runMembershipAction(this.#membership.pauseUser(this.userId))
-  }
+      this.runAndReload(this.#membership.pauseUser(this.userId))
+    }
   }
 
   async resume() {
@@ -185,8 +227,8 @@ export class UserMembershipComponent implements OnChanges {
         actionDefault: 'Resume'
       })
     ) {
-    this.runMembershipAction(this.#membership.resumeUser(this.userId))
-  }
+      this.runAndReload(this.#membership.resumeUser(this.userId))
+    }
   }
 
   async revoke() {
@@ -202,8 +244,8 @@ export class UserMembershipComponent implements OnChanges {
         destructive: true
       })
     ) {
-    this.runMembershipAction(this.#membership.revokeUser(this.userId))
-  }
+      this.runAndReload(this.#membership.revokeUser(this.userId))
+    }
   }
 
   adjust() {
@@ -218,13 +260,13 @@ export class UserMembershipComponent implements OnChanges {
     }
     this.loading.set(true)
     this.#membership.adjustUserPoints(this.userId, { pointDelta, reason: reason || null }).subscribe({
-        next: (membership) => {
-          this.membership.set(membership)
+      next: (membership) => {
+        this.membership.set(membership)
         this.cyclePointsForm.reset({ direction: 'increase', points: 0, reason: '' })
-          this.loading.set(false)
-        },
-        error: (error) => this.handleError(error)
-      })
+        this.loading.set(false)
+      },
+      error: (error) => this.handleError(error)
+    })
   }
 
   adjustPersonal() {
@@ -282,6 +324,18 @@ export class UserMembershipComponent implements OnChanges {
     return this.membership()?.status === MembershipStatusEnum.Active && !this.isUnlimited()
   }
 
+  isExternallyManagedPeriod(period: IUserMembershipPeriod) {
+    return period.source === MembershipSourceEnum.External || !!period.sourceReference
+  }
+
+  canCancelPeriod(period: IUserMembershipPeriod) {
+    return (
+      period.status === MembershipPeriodStatusEnum.Scheduled &&
+      period.id === this.lastScheduledPeriodId() &&
+      !this.isExternallyManagedPeriod(period)
+    )
+  }
+
   private toSignedPointDelta(direction: PointAdjustmentDirection, value: number) {
     const points = Math.abs(Number(value))
     return direction === 'decrease' ? -points : points
@@ -307,13 +361,10 @@ export class UserMembershipComponent implements OnChanges {
     )
   }
 
-  private runMembershipAction(request: ReturnType<MembershipService['renewUser']>) {
+  private runAndReload(request: Observable<unknown>) {
     this.loading.set(true)
     request.subscribe({
-      next: (membership) => {
-        this.membership.set(membership)
-        this.loading.set(false)
-      },
+      next: () => this.load(),
       error: (error) => this.handleError(error)
     })
   }
