@@ -29,13 +29,19 @@ export enum DataXMetricManagementToolName {
 	DIMENSION_MEMBER_RETRIEVER = 'dimension_member_retriever'
 }
 
-export const DATA_X_METRIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
-  <rect x="28" y="28" width="200" height="200" rx="36" fill="#EFF6FF"/>
-  <path d="M72 174V92" stroke="#2563EB" stroke-width="16" stroke-linecap="round"/>
-  <path d="M120 174V120" stroke="#0EA5E9" stroke-width="16" stroke-linecap="round"/>
-  <path d="M168 174V78" stroke="#14B8A6" stroke-width="16" stroke-linecap="round"/>
-  <path d="M62 178H194" stroke="#0F172A" stroke-width="12" stroke-linecap="round"/>
-  <path d="M76 118L116 102L150 116L188 84" stroke="#0F172A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+export const DATA_X_METRIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <rect x="24" y="24" width="208" height="208" rx="40" fill="#EFF6FF"/>
+  <rect x="64" y="126" width="32" height="62" rx="10" fill="#4F46E5"/>
+  <rect x="112" y="94" width="32" height="94" rx="10" fill="#0EA5E9"/>
+  <rect x="160" y="62" width="32" height="126" rx="10" fill="#14B8A6"/>
+  <path d="M62 198H194" stroke="#1D4ED8" stroke-width="14" stroke-linecap="round"/>
+</svg>`
+
+export const DATA_X_METRIC_APPROVALS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <rect x="24" y="24" width="208" height="208" rx="40" fill="#FFF7ED"/>
+  <rect x="62" y="58" width="132" height="148" rx="26" fill="#FFFFFF" stroke="#F97316" stroke-width="12"/>
+  <rect x="94" y="46" width="68" height="30" rx="15" fill="#FB923C"/>
+  <path d="M88 137L113 162L170 105" stroke="#14B8A6" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`
 export const DATA_X_METRIC_MANAGEMENT_TOOL_NAMES = [
 	INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,

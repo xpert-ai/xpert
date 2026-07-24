@@ -76,7 +76,8 @@ export function buildOpenMetricManagementTool() {
 			name: INDICATOR_MANAGEMENT_OPEN_TOOL_NAME,
 			description:
 				'Open the Data X metric management plugin view in the assistant workbench. Use it when users want to manage, list, create, edit, publish, delete, embed, or refresh indicators.',
-			schema: OpenMetricManagementSchema
+			schema: OpenMetricManagementSchema,
+			verboseParsingErrors: true
 		}
 	)
 }

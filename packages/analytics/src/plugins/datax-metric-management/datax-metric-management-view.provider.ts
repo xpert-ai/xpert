@@ -28,7 +28,9 @@ import {
 import {
 	AGENT_WORKBENCH_FIXED_SLOT,
 	AGENT_WORKBENCH_MAIN_SLOT,
+	DATA_X_METRIC_APPROVALS_ICON,
 	DATA_X_METRIC_APPROVALS_VIEW_KEY,
+	DATA_X_METRIC_ICON,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
 	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_PLUGIN_NAME,
@@ -50,8 +52,13 @@ const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024
 const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
 const DATA_X_METRIC_VIEW_ICON = {
 	type: 'svg',
-	value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-4 3 3 5-7"/></svg>',
+	value: DATA_X_METRIC_ICON,
 	alt: 'Metric Management'
+} satisfies IconDefinition
+const DATA_X_METRIC_APPROVALS_VIEW_ICON = {
+	type: 'svg',
+	value: DATA_X_METRIC_APPROVALS_ICON,
+	alt: 'Metric Approvals'
 } satisfies IconDefinition
 const DATA_X_METRIC_REMOTE_CSS = `
 html,
@@ -309,6 +316,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 					'Maintain and publish Data X indicators from a tool-triggered workbench view.',
 					'通过工具触发的 Workbench 视图维护和发布 Data X 指标。'
 				),
+				icon: DATA_X_METRIC_VIEW_ICON,
 				hostType: 'agent',
 				slot,
 				order: 10,
@@ -587,6 +595,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 					'Review and process Data X metric governance approvals in the workbench.',
 					'在 Workbench 中查看并处理 Data X 指标治理审批。'
 				),
+				icon: DATA_X_METRIC_APPROVALS_VIEW_ICON,
 				hostType: 'agent',
 				slot,
 				order: 20,
@@ -602,7 +611,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 									enabled: true,
 									label: text('Metric Approvals', '指标审批'),
 									order: 20,
-									icon: DATA_X_METRIC_VIEW_ICON
+									icon: DATA_X_METRIC_APPROVALS_VIEW_ICON
 								}
 							}
 						}
@@ -696,6 +705,10 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 			join(__dirname, 'remote-components', DATA_X_METRIC_REMOTE_ENTRY_KEY, 'app.js'),
 			'utf8'
 		)
+		const appCss = await readFile(
+			join(__dirname, 'remote-components', DATA_X_METRIC_REMOTE_ENTRY_KEY, 'app.css'),
+			'utf8'
+		)
 		const react = await readPackageFile('react', 'umd/react.production.min.js')
 		const reactDom = await readPackageFile('react-dom', 'umd/react-dom.production.min.js')
 
@@ -705,7 +718,7 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				lang: 'zh-Hans',
 				reactUmd: react,
 				reactDomUmd: reactDom,
-				appCss: DATA_X_METRIC_REMOTE_CSS,
+				appCss: `${appCss}\n${DATA_X_METRIC_REMOTE_CSS}`,
 				appScript
 			}),
 			contentType: 'text/html; charset=utf-8'

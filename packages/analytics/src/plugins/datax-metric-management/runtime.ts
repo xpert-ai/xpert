@@ -82,6 +82,7 @@ export class DataXMetricManagementRuntime {
 						name: definition.name,
 						description: definition.description,
 						schema: definition.schema,
+						verboseParsingErrors: true,
 						...(definition.responseFormat ? { responseFormat: definition.responseFormat } : {})
 					}
 				)
@@ -102,6 +103,7 @@ export function buildDataXMetricManagementToolDefinitions() {
 					name: definition.name,
 					description: definition.description,
 					schema: definition.schema,
+					verboseParsingErrors: true,
 					...(definition.responseFormat ? { responseFormat: definition.responseFormat } : {})
 				}
 			)

@@ -59,6 +59,8 @@ import {
 	AGENT_WORKBENCH_FIXED_SLOT,
 	AGENT_WORKBENCH_MAIN_SLOT,
 	DATA_X_METRIC_APPROVALS_VIEW_KEY,
+	DATA_X_METRIC_APPROVALS_ICON,
+	DATA_X_METRIC_ICON,
 	DATA_X_METRIC_MANAGEMENT_FEATURE,
 	DATA_X_METRIC_MANAGEMENT_TOOL_NAMES,
 	DATA_X_METRIC_REMOTE_ENTRY_KEY,
@@ -94,6 +96,12 @@ describe('DataXMetricManagementViewProvider', () => {
 			})
 		)
 		expect(manifest.activation?.requiredFeatures).toEqual([DATA_X_METRIC_MANAGEMENT_FEATURE])
+		expect(manifest.icon).toEqual(
+			expect.objectContaining({
+				type: 'svg',
+				value: DATA_X_METRIC_ICON
+			})
+		)
 		expect(manifest.actions?.find((action) => action.key === 'create')?.inputSchema?.properties).toEqual(
 			expect.objectContaining({
 				modelId: expect.anything(),
@@ -140,20 +148,36 @@ describe('DataXMetricManagementViewProvider', () => {
 			})
 		)
 		expect(manifest?.actions?.map((action) => action.key)).toEqual(expect.arrayContaining(['approve', 'refuse']))
+		expect(manifest?.icon).toEqual(
+			expect.objectContaining({
+				type: 'svg',
+				value: DATA_X_METRIC_APPROVALS_ICON
+			})
+		)
 	})
 
 	it('declares fixed workbench metadata behind the metric management feature', () => {
 		const provider = createProvider()
-		const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_FIXED_SLOT)
+		const manifests = provider.getViewManifests(context, AGENT_WORKBENCH_FIXED_SLOT)
+		const manifest = manifests.find((item) => item.key === DATA_X_METRIC_VIEW_KEY)
+		const approvalsManifest = manifests.find((item) => item.key === DATA_X_METRIC_APPROVALS_VIEW_KEY)
 
-		expect(manifest.slot).toBe(AGENT_WORKBENCH_FIXED_SLOT)
-		expect(manifest.activation?.requiredFeatures).toEqual([DATA_X_METRIC_MANAGEMENT_FEATURE])
-		expect(manifest.workbench).toEqual(
+		expect(manifest?.slot).toBe(AGENT_WORKBENCH_FIXED_SLOT)
+		expect(manifest?.activation?.requiredFeatures).toEqual([DATA_X_METRIC_MANAGEMENT_FEATURE])
+		expect(manifest?.workbench).toEqual(
 			expect.objectContaining({
 				fixed: true,
 				menu: expect.objectContaining({
-					enabled: true
+					enabled: true,
+					icon: expect.objectContaining({
+						value: DATA_X_METRIC_ICON
+					})
 				})
+			})
+		)
+		expect(approvalsManifest?.workbench?.menu?.icon).toEqual(
+			expect.objectContaining({
+				value: DATA_X_METRIC_APPROVALS_ICON
 			})
 		)
 	})

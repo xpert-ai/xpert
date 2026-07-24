@@ -6,6 +6,13 @@
 	"targets": {
 		"build": {
 			"executor": "@nx/js:tsc",
+			"dependsOn": [
+				"^build",
+				{
+					"target": "generate-remote-components",
+					"projects": "self"
+				}
+			],
 			"outputs": ["{options.outputPath}"],
 			"options": {
 				"outputPath": "dist/packages/analytics",
@@ -24,6 +31,29 @@
 						"output": "./"
 					}
 				]
+			}
+		},
+		"generate-remote-components": {
+			"executor": "nx:run-commands",
+			"outputs": [
+				"{projectRoot}/src/plugins/datax-semantic-modeling/remote-components/semantic-modeling/app.js",
+				"{projectRoot}/src/plugins/datax-semantic-modeling/remote-components/semantic-modeling/app.css",
+				"{projectRoot}/src/plugins/datax-metric-management/remote-components/metric-management/app.js",
+				"{projectRoot}/src/plugins/datax-metric-management/remote-components/metric-management/app.css",
+				"{projectRoot}/src/plugins/datax-query-analysis/remote-components/query-analysis/app.js",
+				"{projectRoot}/src/plugins/datax-query-analysis/remote-components/query-analysis/app.css"
+			],
+			"options": {
+				"command": "node packages/analytics/src/plugins/remote-components/build-apps.mjs",
+				"cwd": "."
+			}
+		},
+		"check-remote-components": {
+			"executor": "nx:run-commands",
+			"outputs": [],
+			"options": {
+				"command": "corepack pnpm exec tsc -p packages/analytics/tsconfig.remote.json --noEmit && node packages/analytics/src/plugins/remote-components/build-apps.mjs --check",
+				"cwd": "."
 			}
 		},
 		"publish": {
