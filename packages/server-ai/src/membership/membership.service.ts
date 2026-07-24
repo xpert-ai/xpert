@@ -27,7 +27,8 @@ import {
     TMembershipPeriodCancelInput,
     TMembershipPeriodsAppendInput,
     TMembershipPlanReassignInput,
-    TMembershipPointAdjustInput
+    TMembershipPointAdjustInput,
+    TMembershipPersonalPointsAdjustmentInput
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
@@ -638,6 +639,17 @@ export class MembershipService {
         ])
     }
 
+    private async acquirePersonalPointsSourceLock(manager: EntityManager, tenantId: string, sourceReference: string) {
+        if (manager.connection.options.type !== 'postgres') {
+            return
+        }
+
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+            tenantId,
+            `personal-membership-points-source:${sourceReference}`
+        ])
+    }
+
     private async getPersonalPointsBalance(tenantId: string, userId: string, manager?: EntityManager) {
         const repository = manager?.getRepository(MembershipPointLedger) ?? this.ledgerRepository
         const row = await repository
@@ -1136,6 +1148,76 @@ export class MembershipService {
             })
             return { userId, balance: balance + pointDelta }
         })
+    }
+
+    async applyPersonalPointsAdjustment(input: TMembershipPersonalPointsAdjustmentInput, manager?: EntityManager) {
+        const sourceReference = input.sourceReference?.trim()
+        if (!sourceReference || sourceReference.length > 191) {
+            throw new BadRequestException(
+                this.translateMembershipError(
+                    'server-ai:Error.InvalidPersonalPointsSourceReference',
+                    'Personal points adjustment source reference must be between 1 and 191 characters.'
+                )
+            )
+        }
+        const pointDelta = this.requireNonZeroPointDelta(input.pointDelta)
+        await this.assertMembershipEligibleUser(input.tenantId, input.userId)
+
+        const apply = async (txManager: EntityManager) => {
+            await this.acquirePersonalPointsSourceLock(txManager, input.tenantId, sourceReference)
+            await this.acquirePersonalPointsLock(txManager, input.tenantId, input.userId)
+
+            const ledgerRepository = txManager.getRepository(MembershipPointLedger)
+            const existing = await ledgerRepository.findOne({
+                where: {
+                    tenantId: input.tenantId,
+                    sourceReference
+                }
+            })
+            if (existing) {
+                if (
+                    existing.userId !== input.userId ||
+                    (existing.membershipId !== null && existing.membershipId !== undefined) ||
+                    (existing.planId !== null && existing.planId !== undefined) ||
+                    existing.source !== MembershipLedgerSourceEnum.PersonalAdjustment ||
+                    Number(existing.pointsDelta) !== pointDelta
+                ) {
+                    throw new BadRequestException(
+                        this.translateMembershipError(
+                            'server-ai:Error.PersonalPointsAdjustmentMismatch',
+                            'Personal points adjustment does not match the existing fulfillment.'
+                        )
+                    )
+                }
+                return {
+                    userId: input.userId,
+                    balance: await this.getPersonalPointsBalance(input.tenantId, input.userId, txManager)
+                }
+            }
+
+            const balance = await this.getPersonalPointsBalance(input.tenantId, input.userId, txManager)
+            if (balance + pointDelta < 0) {
+                throw new BadRequestException(
+                    this.translateMembershipError(
+                        'server-ai:Error.InsufficientPersonalPoints',
+                        'Personal points balance cannot be negative.'
+                    )
+                )
+            }
+            await this.createLedger(txManager, {
+                tenantId: input.tenantId,
+                userId: input.userId,
+                membershipId: null,
+                planId: null,
+                source: MembershipLedgerSourceEnum.PersonalAdjustment,
+                sourceReference,
+                pointsDelta: pointDelta,
+                reason: input.reason ?? null
+            })
+            return { userId: input.userId, balance: balance + pointDelta }
+        }
+
+        return manager ? apply(manager) : this.dataSource.transaction(apply)
     }
 
     async getMe(): Promise<IMembershipMe | null> {

@@ -32,6 +32,8 @@
         "InvalidMembershipStatusTransition": "The membership status cannot be changed this way.",
         "PersonalPointsTenantOnly": "Personal points can only be managed in tenant scope.",
         "InsufficientPersonalPoints": "Personal points balance cannot be negative.",
+        "InvalidPersonalPointsSourceReference": "Personal points adjustment source reference must be between 1 and 191 characters.",
+        "PersonalPointsAdjustmentMismatch": "Personal points adjustment does not match the existing fulfillment.",
         "InvalidMembershipPlanCode": "Membership plan code is required and must not exceed 100 characters.",
         "InvalidMembershipPlanName": "Membership plan name is required and must not exceed 255 characters.",
         "InvalidMembershipIncludedPoints": "Included points must be a non-negative integer or unlimited.",

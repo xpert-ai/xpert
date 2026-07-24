@@ -252,6 +252,14 @@ export type TMembershipPointAdjustInput = {
   reason?: string | null
 }
 
+export type TMembershipPersonalPointsAdjustmentInput = {
+  tenantId: string
+  userId: string
+  pointDelta: number
+  sourceReference: string
+  reason?: string | null
+}
+
 export type TMembershipPlanReassignInput = {
   targetPlanId: string
 }

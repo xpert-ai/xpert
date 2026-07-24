@@ -33,6 +33,8 @@
         "InvalidMembershipStatusTransition": "当前会员状态不允许执行此操作。",
         "PersonalPointsTenantOnly": "个人永久点数只能在租户范围管理。",
         "InsufficientPersonalPoints": "个人永久点数余额不能为负数。",
+        "InvalidPersonalPointsSourceReference": "个人永久点数调整来源引用长度必须在 1 到 191 个字符之间。",
+        "PersonalPointsAdjustmentMismatch": "个人永久点数调整与已有履约记录不一致。",
         "InvalidMembershipPlanCode": "套餐编码不能为空，且不能超过 100 个字符。",
         "InvalidMembershipPlanName": "套餐名称不能为空，且不能超过 255 个字符。",
         "InvalidMembershipIncludedPoints": "周期点数必须是非负整数，或设置为无限。",

@@ -578,7 +578,7 @@ describe('MembershipService', () => {
         const advisoryLockTails = new Map<string, Promise<void>>()
         const dataSource = {
             transaction: jest.fn(async (callback) => {
-                let releaseLock: (() => void) | undefined
+                const releaseLocks: Array<() => void> = []
                 const transactionManager = {
                     ...manager,
                     connection: { options: { type: 'postgres' } },
@@ -590,12 +590,12 @@ describe('MembershipService', () => {
                             releaseCurrentLock = resolve
                         })
                         advisoryLockTails.set(lockKey, currentLock)
-                        releaseLock = () => {
+                        releaseLocks.push(() => {
                             releaseCurrentLock()
                             if (advisoryLockTails.get(lockKey) === currentLock) {
                                 advisoryLockTails.delete(lockKey)
                             }
-                        }
+                        })
                         await previousLock
                     })
                 }
@@ -603,7 +603,9 @@ describe('MembershipService', () => {
                 try {
                     return await callback(transactionManager)
                 } finally {
-                    releaseLock?.()
+                    while (releaseLocks.length) {
+                        releaseLocks.pop()?.()
+                    }
                 }
             })
         }
@@ -1356,6 +1358,104 @@ describe('MembershipService', () => {
             'Point adjustment must be non-zero and use at most three decimal places.'
         )
         expect(dataSource.transaction).not.toHaveBeenCalled()
+    })
+
+    it('applies a referenced personal-point adjustment idempotently', async () => {
+        const { ledgers, service } = createScopeInitializationHarness()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance')
+            .mockResolvedValueOnce(0)
+            .mockResolvedValueOnce(25)
+
+        const input = {
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            pointDelta: 25,
+            sourceReference: 'point-order-1',
+            reason: 'External point fulfillment'
+        }
+        const first = await service.applyPersonalPointsAdjustment(input)
+        const repeated = await service.applyPersonalPointsAdjustment(input)
+
+        expect(first).toEqual({ userId: 'user-1', balance: 25 })
+        expect(repeated).toEqual({ userId: 'user-1', balance: 25 })
+        expect(
+            ledgers.filter(
+                ({ tenantId, sourceReference }) =>
+                    tenantId === input.tenantId && sourceReference === input.sourceReference
+            )
+        ).toHaveLength(1)
+        expect(ledgers).toContainEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                membershipId: null,
+                source: MembershipLedgerSourceEnum.PersonalAdjustment,
+                sourceReference: 'point-order-1',
+                pointsDelta: 25
+            })
+        )
+    })
+
+    it('uses a caller-provided transaction for a referenced personal-point adjustment', async () => {
+        const { dataSource, service } = createScopeInitializationHarness()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
+
+        await dataSource.transaction((manager) =>
+            service.applyPersonalPointsAdjustment(
+                {
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    pointDelta: 25,
+                    sourceReference: 'point-order-transaction'
+                },
+                manager as never
+            )
+        )
+
+        expect(dataSource.transaction).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects a referenced personal-point adjustment replayed with different accounting data', async () => {
+        const { service } = createScopeInitializationHarness()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(0)
+
+        await service.applyPersonalPointsAdjustment({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            pointDelta: 25,
+            sourceReference: 'point-order-mismatch'
+        })
+
+        await expect(
+            service.applyPersonalPointsAdjustment({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                pointDelta: 30,
+                sourceReference: 'point-order-mismatch'
+            })
+        ).rejects.toThrow('Personal points adjustment does not match the existing fulfillment.')
+        await expect(
+            service.applyPersonalPointsAdjustment({
+                tenantId: 'tenant-1',
+                userId: 'user-2',
+                pointDelta: 25,
+                sourceReference: 'point-order-mismatch'
+            })
+        ).rejects.toThrow('Personal points adjustment does not match the existing fulfillment.')
+    })
+
+    it('rejects a referenced personal-point debit that would make the balance negative', async () => {
+        const { service } = createScopeInitializationHarness()
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(10)
+
+        await expect(
+            service.applyPersonalPointsAdjustment({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                pointDelta: -11,
+                sourceReference: 'point-refund-too-large'
+            })
+        ).rejects.toThrow('Personal points balance cannot be negative.')
     })
 
     it('serializes concurrent tenant default membership grants for the same user', async () => {
