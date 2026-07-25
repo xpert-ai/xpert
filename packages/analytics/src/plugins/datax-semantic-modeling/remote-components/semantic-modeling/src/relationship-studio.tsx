@@ -1,5 +1,4 @@
 import * as React from 'react'
-import cytoscape from 'cytoscape'
 import {
 	Blocks,
 	Box,
@@ -47,7 +46,22 @@ import {
 	TabsTrigger,
 	Textarea
 } from '@xpert-ai/shadcn-ui'
-import { JsonObject, readString } from '../../../../remote-components/shared/runtime'
+import { JsonObject, JsonValue, readString } from '../../../../remote-components/shared/runtime'
+import { ERDiagram, ERDiagramHandle } from './er-diagram'
+import {
+	buildGraph,
+	fieldSelectionId,
+	replaceSelectionValue,
+	selectionNode,
+	selectionNodeId,
+	selectionValue,
+	StudioEdge,
+	StudioField,
+	StudioNode,
+	StudioSelection
+} from './er-diagram-model'
+import { FieldPropertyInspector } from './field-property-inspector'
+import { createRelationshipI18n, RelationshipI18n } from './relationship-i18n'
 import {
 	localized,
 	objectCollection,
@@ -62,32 +76,6 @@ import {
 } from './schema-utils'
 import { useCollapsiblePanel, useMediaQuery } from './studio-layout'
 import { QueryResult, QueryRun, Section, WorkspaceDetail } from './studio-types'
-
-type StudioSelection =
-	| {
-			kind: 'cube'
-			index: number
-	  }
-	| {
-			kind: 'dimension'
-			index: number
-	  }
-
-type StudioNode = {
-	id: string
-	kind: StudioSelection['kind']
-	index: number
-	name: string
-	subtitle: string
-	detailLines: string[]
-}
-
-type StudioEdge = {
-	id: string
-	source: string
-	target: string
-	label: string
-}
 
 export function RelationshipStudio(props: {
 	workspace: WorkspaceDetail
@@ -110,23 +98,25 @@ export function RelationshipStudio(props: {
 	)
 	const [assetFilter, setAssetFilter] = React.useState('')
 	const [bottomTab, setBottomTab] = React.useState('validation')
-	const [viewMode, setViewMode] = React.useState<'relationships' | 'cube' | 'schema'>('relationships')
+	const [viewMode, setViewMode] = React.useState<'relationships' | 'cube'>('relationships')
 	const [inspectorOpen, setInspectorOpen] = React.useState(false)
 	const [inspectorTab, setInspectorTab] = React.useState('properties')
 	const assetPanel = useCollapsiblePanel()
 	const inspectorPanel = useCollapsiblePanel()
 	const wideInspector = useMediaQuery('(min-width: 1180px)')
-	const graphContainerRef = React.useRef<HTMLDivElement | null>(null)
-	const graphRef = React.useRef<cytoscape.Core | null>(null)
+	const diagramRef = React.useRef<ERDiagramHandle | null>(null)
+	const [graphZoom, setGraphZoom] = React.useState(1)
 	const { nodes, edges } = React.useMemo(() => buildGraph(props.schema), [props.schema])
-	const selectedNode = selection
-		? nodes.find((node) => node.kind === selection.kind && node.index === selection.index)
+	const selectedNodeSelection = selectionNode(selection)
+	const selectedNode = selectedNodeSelection
+		? nodes.find((node) => node.kind === selectedNodeSelection.kind && node.index === selectedNodeSelection.index)
 		: undefined
-	const selectedObject = selection
-		? selection.kind === 'cube'
-			? cubes[selection.index]
-			: dimensions[selection.index]
-		: undefined
+	const selectedField =
+		selection?.kind === 'field'
+			? selectedNode?.fields.find((field) => field.id === fieldSelectionId(selection))
+			: undefined
+	const selectedObject = selectionValue(props.schema, selection)
+	const relationshipI18n = React.useMemo(() => createRelationshipI18n(props.locale), [props.locale])
 	const sourceTables = React.useMemo(
 		() => collectSourceTables(props.schema, props.tables),
 		[props.schema, props.tables]
@@ -135,230 +125,42 @@ export function RelationshipStudio(props: {
 	const visibleNodes = normalizedFilter
 		? nodes.filter((node) => `${node.name} ${node.subtitle}`.toLowerCase().includes(normalizedFilter))
 		: nodes
-	const darkTheme = document.documentElement.classList.contains('dark')
-
 	React.useEffect(() => {
 		if (!selection && nodes[0]) {
 			setSelection({ kind: nodes[0].kind, index: nodes[0].index })
 			return
 		}
-		if (selection && !nodes.some((node) => node.kind === selection.kind && node.index === selection.index)) {
+		if (selection && !nodes.some((node) => node.id === selectionNodeId(selection))) {
 			const fallback = nodes[0]
 			setSelection(fallback ? { kind: fallback.kind, index: fallback.index } : null)
-		}
-	}, [nodes, selection])
-
-	const colors = React.useMemo(
-		() => ({
-			background: readCssColor('--background', darkTheme ? '#09090b' : '#ffffff'),
-			card: readCssColor('--card', darkTheme ? '#18181b' : '#ffffff'),
-			foreground: readCssColor('--foreground', darkTheme ? '#fafafa' : '#18181b'),
-			muted: readCssColor('--muted-foreground', darkTheme ? '#a1a1aa' : '#71717a'),
-			border: readCssColor('--border', darkTheme ? '#3f3f46' : '#d4d4d8'),
-			highlight: readCssColor('--accent-foreground', darkTheme ? '#a5b4fc' : '#4f46e5'),
-			accent: readCssColor('--accent', darkTheme ? '#27272a' : '#eef2ff'),
-			fontFamily: readCssFontFamily()
-		}),
-		[darkTheme]
-	)
-
-	React.useEffect(() => {
-		const container = graphContainerRef.current
-		if (!container || !nodes.length) {
 			return
 		}
-		const styles: cytoscape.StylesheetJson = [
-			{
-				selector: 'node',
-				style: {
-					width: 174,
-					height: 104,
-					shape: 'round-rectangle',
-					'background-color': colors.card,
-					'border-color': colors.border,
-					'border-width': 1,
-					label: 'data(label)',
-					color: colors.foreground,
-					'font-family': colors.fontFamily,
-					'font-size': 10.5,
-					'font-weight': 400,
-					'text-wrap': 'wrap',
-					'text-max-width': '178px',
-					'text-valign': 'center',
-					'text-halign': 'center',
-					'line-height': 1.55,
-					'overlay-opacity': 0
-				}
-			},
-			{
-				selector: 'node[kind = "cube"]',
-				style: {
-					'background-color': colors.accent,
-					'border-color': colors.highlight
-				}
-			},
-			{
-				selector: 'node:selected',
-				style: {
-					'border-color': colors.highlight,
-					'border-width': 2.5
-				}
-			},
-			{
-				selector: 'edge',
-				style: {
-					width: 1.2,
-					'line-color': colors.border,
-					'target-arrow-color': colors.border,
-					'target-arrow-shape': 'triangle',
-					'curve-style': 'bezier',
-					label: '',
-					color: colors.muted,
-					'font-family': colors.fontFamily,
-					'font-size': 8,
-					'overlay-opacity': 0
-				}
-			},
-			{
-				selector: '.related',
-				style: {
-					'line-color': colors.highlight,
-					'line-opacity': 0.42,
-					'target-arrow-color': colors.highlight,
-					'border-color': colors.highlight
-				}
-			},
-			{
-				selector: '.dimmed',
-				style: {
-					opacity: 0.24
-				}
-			}
-		]
-		const graph = cytoscape({
-			container,
-			elements: [
-				...graphDisplayOrder(nodes).map((node) => ({
-					data: {
-						id: node.id,
-						kind: node.kind,
-						index: node.index,
-						label: graphNodeLabel(node, props.locale)
-					}
-				})),
-				...edges.map((edge) => ({
-					data: {
-						id: edge.id,
-						source: edge.source,
-						target: edge.target,
-						label: edge.label
-					}
-				}))
-			],
-			style: styles,
-			minZoom: 0.32,
-			maxZoom: 2,
-			layout: graphLayout(nodes)
-		})
-		graph.on('tap', 'node', (event) => {
-			const target = event.target
-			const kind = target.data('kind')
-			const index = target.data('index')
-			if ((kind === 'cube' || kind === 'dimension') && typeof index === 'number') {
-				setSelection({ kind, index })
-			}
-		})
-		graph.on('tap', (event) => {
-			if (event.target === graph) {
-				setSelection(null)
-			}
-		})
-		graphRef.current = graph
-		const resizeObserver =
-			typeof ResizeObserver === 'undefined'
-				? null
-				: new ResizeObserver(() => {
-						graph.resize()
-						graph.fit(undefined, 28)
-					})
-		resizeObserver?.observe(container)
-		return () => {
-			resizeObserver?.disconnect()
-			graph.destroy()
-			if (graphRef.current === graph) {
-				graphRef.current = null
-			}
+		if (selection?.kind === 'field' && !selectedField) {
+			setSelection(selectedNode ? { kind: selectedNode.kind, index: selectedNode.index } : null)
 		}
-	}, [colors, edges, nodes, props.locale])
-
-	React.useEffect(() => {
-		const graph = graphRef.current
-		if (!graph) {
-			return
-		}
-		graph.elements().removeClass('related dimmed').unselect()
-		if (!selection) {
-			return
-		}
-		const selected = graph.getElementById(selectionId(selection))
-		if (!selected.length) {
-			return
-		}
-		const neighborhood = selected.closedNeighborhood()
-		graph.elements().not(neighborhood).addClass('dimmed')
-		neighborhood.addClass('related')
-		selected.select()
-	}, [selection])
+	}, [nodes, selectedField, selectedNode, selection])
 
 	function selectNode(node: StudioNode) {
 		setSelection({ kind: node.kind, index: node.index })
-		const graphNode = graphRef.current?.getElementById(node.id)
-		if (graphNode?.length) {
-			graphRef.current?.animate(
-				{
-					fit: {
-						eles: graphNode.closedNeighborhood(),
-						padding: 54
-					}
-				},
-				{ duration: 180 }
-			)
-		}
 	}
 
-	function updateSelected(key: string, value: string) {
+	function updateSelected(key: string, value: JsonValue | undefined) {
 		if (!selection || !selectedObject) {
 			return
 		}
-		if (selection.kind === 'cube') {
-			props.onChange(
-				replaceCollection(
-					props.schema,
-					'cubes',
-					replaceAt(cubes, selection.index, setObjectValue(selectedObject, key, value))
-				)
-			)
-			return
-		}
-		props.onChange(
-			replaceCollection(
-				props.schema,
-				'dimensions',
-				replaceAt(dimensions, selection.index, setObjectValue(selectedObject, key, value))
-			)
-		)
+		props.onChange(replaceSelectionValue(props.schema, selection, setObjectValue(selectedObject, key, value)))
 	}
 
 	function updateSelectedTable(tableName: string) {
-		if (!selection || !selectedObject) {
+		if (!selectedNodeSelection || !selectedObject || selection?.kind === 'field') {
 			return
 		}
-		if (selection.kind === 'cube') {
+		if (selectedNodeSelection.kind === 'cube') {
 			props.onChange(
 				replaceCollection(
 					props.schema,
 					'cubes',
-					replaceAt(cubes, selection.index, setFactTableName(selectedObject, tableName))
+					replaceAt(cubes, selectedNodeSelection.index, setFactTableName(selectedObject, tableName))
 				)
 			)
 			return
@@ -373,7 +175,11 @@ export function RelationshipStudio(props: {
 				: [setFirstTableName({}, tableName)]
 		)
 		props.onChange(
-			replaceCollection(props.schema, 'dimensions', replaceAt(dimensions, selection.index, nextDimension))
+			replaceCollection(
+				props.schema,
+				'dimensions',
+				replaceAt(dimensions, selectedNodeSelection.index, nextDimension)
+			)
 		)
 	}
 
@@ -500,8 +306,8 @@ export function RelationshipStudio(props: {
 				/>
 				<ResizablePanel id="semantic-workspace" minSize="42%">
 					<section className="flex h-full min-h-0 min-w-0 flex-col">
-						<div className="flex h-11 shrink-0 items-center justify-between border-b px-3">
-							<div className="flex min-w-0 items-center gap-1">
+						<div className="flex h-11 shrink-0 items-center justify-between gap-1 border-b px-3">
+							<div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
 								{assetPanel.collapsed ? (
 									<Button
 										variant="ghost"
@@ -516,35 +322,37 @@ export function RelationshipStudio(props: {
 								<Tabs
 									value={viewMode}
 									onValueChange={(value) => setViewMode(value as typeof viewMode)}
-									className="min-w-0"
+									className="min-w-0 flex-1 overflow-hidden"
 								>
-									<TabsList variant="line" className="h-10">
+									<TabsList
+										variant="line"
+										className="h-10 max-w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+									>
 										<TabsTrigger value="relationships" className="text-xs">
-											{localized(props.locale, 'Relationships', '关系图')}
+											{localized(props.locale, 'ER diagram', 'ER 图')}
 										</TabsTrigger>
 										<TabsTrigger value="cube" className="text-xs">
 											{localized(props.locale, 'Cube structure', 'Cube 结构')}
 										</TabsTrigger>
-										<TabsTrigger value="schema" className="text-xs">
-											Schema
-										</TabsTrigger>
 									</TabsList>
 								</Tabs>
 							</div>
-							<div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+							<div className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
 								{viewMode === 'relationships' ? (
 									<>
 										<Button
 											variant="ghost"
 											size="xs"
-											onClick={() => graphRef.current?.layout(graphLayout(nodes)).run()}
+											className="max-[899px]:hidden"
+											onClick={() => diagramRef.current?.autoLayout()}
 										>
 											{localized(props.locale, 'Auto layout', '自动布局')}
 										</Button>
 										<Button
 											variant="ghost"
 											size="xs"
-											onClick={() => graphRef.current?.fit(undefined, 28)}
+											className="max-[899px]:hidden"
+											onClick={() => diagramRef.current?.fit()}
 										>
 											{localized(props.locale, 'Fit', '适配')}
 										</Button>
@@ -585,25 +393,23 @@ export function RelationshipStudio(props: {
 									{viewMode === 'cube' ? (
 										<CubeStructureView
 											schema={props.schema}
-											selectedCubeIndex={selection?.kind === 'cube' ? selection.index : 0}
+											selectedCubeIndex={
+												selectedNodeSelection?.kind === 'cube' ? selectedNodeSelection.index : 0
+											}
 											locale={props.locale}
-											onEdit={() => props.onNavigate('cubeEditor')}
-										/>
-									) : viewMode === 'schema' ? (
-										<SchemaView
-											schema={props.schema}
-											locale={props.locale}
-											onEdit={() => props.onNavigate('json')}
+											onEdit={() => props.onNavigate('relationships')}
 										/>
 									) : nodes.length ? (
-										<div
-											ref={graphContainerRef}
-											className="h-full min-h-[260px] w-full"
-											aria-label={localized(
-												props.locale,
-												'Semantic relationship graph',
-												'语义关系图'
-											)}
+										<ERDiagram
+											ref={diagramRef}
+											nodes={nodes}
+											edges={edges}
+											selection={selection}
+											i18n={relationshipI18n}
+											onSelectNode={selectNode}
+											onSelectField={(field) => setSelection(field.selection)}
+											onClearSelection={() => setSelection(null)}
+											onZoomChange={setGraphZoom}
 										/>
 									) : (
 										<div className="grid h-full place-items-center p-8 text-center">
@@ -638,18 +444,18 @@ export function RelationshipStudio(props: {
 												variant="ghost"
 												size="icon-sm"
 												aria-label={localized(props.locale, 'Zoom out', '缩小')}
-												onClick={() => zoomGraph(graphRef.current, 0.84)}
+												onClick={() => diagramRef.current?.zoomBy(0.84)}
 											>
 												<Minus aria-hidden="true" />
 											</Button>
 											<span className="w-11 text-center text-[10px] text-muted-foreground">
-												{Math.round((graphRef.current?.zoom() ?? 1) * 100)}%
+												{Math.round(graphZoom * 100)}%
 											</span>
 											<Button
 												variant="ghost"
 												size="icon-sm"
 												aria-label={localized(props.locale, 'Zoom in', '放大')}
-												onClick={() => zoomGraph(graphRef.current, 1.18)}
+												onClick={() => diagramRef.current?.zoomBy(1.18)}
 											>
 												<Plus aria-hidden="true" />
 											</Button>
@@ -770,9 +576,11 @@ export function RelationshipStudio(props: {
 									<TabsContent value="properties" className="min-h-0">
 										<PropertyInspector
 											node={selectedNode}
+											field={selectedField}
 											value={selectedObject}
 											sourceTables={sourceTables}
 											locale={props.locale}
+											i18n={relationshipI18n}
 											onUpdate={updateSelected}
 											onUpdateTable={updateSelectedTable}
 										/>
@@ -804,13 +612,19 @@ export function RelationshipStudio(props: {
 			<Sheet open={inspectorOpen} onOpenChange={setInspectorOpen}>
 				<SheetContent className="w-[360px] gap-0 p-0 sm:max-w-[360px]">
 					<SheetHeader className="border-b">
-						<SheetTitle>{localized(props.locale, 'Object properties', '对象属性')}</SheetTitle>
+						<SheetTitle>
+							{selectedField
+								? relationshipI18n.t('fieldProperties')
+								: localized(props.locale, 'Object properties', '对象属性')}
+						</SheetTitle>
 						<SheetDescription>
-							{localized(
-								props.locale,
-								'Edit the selected semantic object without leaving the relationship map.',
-								'无需离开关系图即可编辑所选语义对象。'
-							)}
+							{selectedField
+								? relationshipI18n.t('fieldPropertiesDescription')
+								: localized(
+										props.locale,
+										'Edit the selected semantic object without leaving the relationship map.',
+										'无需离开关系图即可编辑所选语义对象。'
+									)}
 						</SheetDescription>
 					</SheetHeader>
 					<Tabs value={inspectorTab} onValueChange={setInspectorTab} className="min-h-0 flex-1 gap-0">
@@ -830,9 +644,11 @@ export function RelationshipStudio(props: {
 						<TabsContent value="properties" className="min-h-0">
 							<PropertyInspector
 								node={selectedNode}
+								field={selectedField}
 								value={selectedObject}
 								sourceTables={sourceTables}
 								locale={props.locale}
+								i18n={relationshipI18n}
 								onUpdate={updateSelected}
 								onUpdateTable={updateSelectedTable}
 							/>
@@ -888,7 +704,7 @@ function AssetButton(props: { node: StudioNode; active: boolean; onClick(): void
 		>
 			<AssetMark kind={props.node.kind} />
 			<span className="min-w-0 flex-1 truncate">{props.node.name}</span>
-			<span className="text-[10px] font-normal text-muted-foreground">{props.node.detailLines.length}</span>
+			<span className="text-[10px] font-normal text-muted-foreground">{props.node.fields.length}</span>
 		</Button>
 	)
 }
@@ -1081,56 +897,6 @@ function CubeStructureView(props: { schema: JsonObject; selectedCubeIndex: numbe
 	)
 }
 
-function SchemaView(props: { schema: JsonObject; locale?: string; onEdit(): void }) {
-	const outline = [
-		...objectCollection(props.schema, 'dimensions').map((item) => ({
-			kind: 'D',
-			name: readString(item, 'name') ?? 'Dimension'
-		})),
-		...objectCollection(props.schema, 'cubes').map((item) => ({
-			kind: 'C',
-			name: readString(item, 'name') ?? 'Cube'
-		})),
-		...objectCollection(props.schema, 'virtualCubes').map((item) => ({
-			kind: 'V',
-			name: readString(item, 'name') ?? 'Virtual Cube'
-		}))
-	]
-	return (
-		<div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_190px] bg-zinc-950 text-zinc-100">
-			<pre className="min-h-0 overflow-auto p-5 font-mono text-[11px] leading-5">
-				{JSON.stringify(props.schema, null, 2)}
-			</pre>
-			<div className="min-h-0 overflow-auto border-l border-zinc-800 bg-zinc-900/80 p-3">
-				<div className="mb-3 flex items-center justify-between">
-					<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-						{localized(props.locale, 'Outline', '大纲')}
-					</span>
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-7 border-zinc-700 bg-zinc-900 text-[10px] text-zinc-100"
-						onClick={props.onEdit}
-					>
-						{localized(props.locale, 'Edit', '编辑')}
-					</Button>
-				</div>
-				<div className="space-y-1">
-					{outline.map((item, index) => (
-						<div
-							key={`${item.kind}:${item.name}:${index}`}
-							className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-zinc-800"
-						>
-							<span className="font-mono text-[10px] text-indigo-300">{item.kind}</span>
-							<span className="truncate">{item.name}</span>
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	)
-}
-
 function DataPreviewDock(props: { result: QueryResult | null; locale?: string }) {
 	if (!props.result) {
 		return (
@@ -1313,14 +1079,27 @@ function formatDockCell(value: unknown) {
 
 function PropertyInspector(props: {
 	node?: StudioNode
+	field?: StudioField
 	value?: JsonObject
 	sourceTables: string[]
 	locale?: string
-	onUpdate(key: string, value: string): void
+	i18n: RelationshipI18n
+	onUpdate(key: string, value: JsonValue | undefined): void
 	onUpdateTable(value: string): void
 }) {
 	if (!props.node || !props.value) {
 		return <InspectorEmpty locale={props.locale} />
+	}
+	if (props.field) {
+		return (
+			<FieldPropertyInspector
+				field={props.field}
+				value={props.value}
+				sourceTables={props.sourceTables}
+				i18n={props.i18n}
+				onUpdate={props.onUpdate}
+			/>
+		)
 	}
 	const tableName =
 		props.node.kind === 'cube'
@@ -1473,7 +1252,7 @@ function AgentInspector(props: {
 	issues: StudioIssue[]
 	queryRuns: QueryRun[]
 	locale?: string
-	onUpdate(key: string, value: string): void
+	onUpdate(key: string, value: JsonValue | undefined): void
 }) {
 	if (!props.node || !props.value) {
 		return <InspectorEmpty locale={props.locale} />
@@ -1569,90 +1348,6 @@ function InspectorField(props: { label: string; children: React.ReactNode }) {
 	)
 }
 
-function buildGraph(schema: JsonObject): { nodes: StudioNode[]; edges: StudioEdge[] } {
-	const dimensions = objectCollection(schema, 'dimensions')
-	const cubes = objectCollection(schema, 'cubes')
-	const nodes: StudioNode[] = [
-		...dimensions.map((dimension, index) => {
-			const hierarchy = objectCollection(dimension, 'hierarchies')[0]
-			const levels = hierarchy ? objectCollection(hierarchy, 'levels') : []
-			return {
-				id: `dimension:${index}`,
-				kind: 'dimension' as const,
-				index,
-				name: readString(dimension, 'caption') ?? readString(dimension, 'name') ?? `Dimension ${index + 1}`,
-				subtitle: readFirstTableName(hierarchy ?? {}) || 'Shared dimension',
-				detailLines: levels
-					.slice(0, 4)
-					.map((level) => readString(level, 'name') ?? readString(level, 'column') ?? '')
-			}
-		}),
-		...cubes.map((cube, index) => ({
-			id: `cube:${index}`,
-			kind: 'cube' as const,
-			index,
-			name: readString(cube, 'caption') ?? readString(cube, 'name') ?? `Cube ${index + 1}`,
-			subtitle: readFactTableName(cube) || 'Fact table',
-			detailLines: objectCollection(cube, 'measures')
-				.slice(0, 4)
-				.map((measure) => readString(measure, 'name') ?? readString(measure, 'column') ?? '')
-		}))
-	]
-	const edges: StudioEdge[] = []
-	for (const [cubeIndex, cube] of cubes.entries()) {
-		for (const [usageIndex, usage] of objectCollection(cube, 'dimensionUsages').entries()) {
-			const dimensionName =
-				readString(usage, 'source') ?? readString(usage, 'sharedDimension') ?? readString(usage, 'name') ?? ''
-			const dimensionIndex = dimensions.findIndex(
-				(dimension) =>
-					readString(dimension, 'name') === dimensionName ||
-					readString(dimension, 'caption') === dimensionName
-			)
-			if (dimensionIndex < 0) {
-				continue
-			}
-			edges.push({
-				id: `usage:${cubeIndex}:${usageIndex}`,
-				source: `cube:${cubeIndex}`,
-				target: `dimension:${dimensionIndex}`,
-				label: readString(usage, 'foreignKey') ?? dimensionName
-			})
-		}
-	}
-	return { nodes, edges }
-}
-
-function graphNodeLabel(node: StudioNode, locale?: string) {
-	const kind = node.kind === 'cube' ? localized(locale, 'FACT', '事实') : localized(locale, 'DIMENSION', '维度')
-	const details = node.detailLines.filter(Boolean)
-	return [node.name, `${kind} · ${node.subtitle}`, ...details].join('\n')
-}
-
-function graphLayout(nodes: StudioNode[]): cytoscape.LayoutOptions {
-	return {
-		name: 'grid',
-		cols: nodes.length > 4 ? 3 : nodes.length > 1 ? 2 : 1,
-		avoidOverlap: true,
-		avoidOverlapPadding: 20,
-		padding: 28,
-		spacingFactor: 0.95
-	}
-}
-
-function graphDisplayOrder(nodes: StudioNode[]) {
-	const cubes = nodes.filter((node) => node.kind === 'cube')
-	const dimensions = nodes.filter((node) => node.kind === 'dimension')
-	if (cubes.length !== 1 || dimensions.length < 4) {
-		return nodes
-	}
-	const centerIndex = Math.min(4, dimensions.length)
-	return [...dimensions.slice(0, centerIndex), cubes[0], ...dimensions.slice(centerIndex)]
-}
-
-function selectionId(selection: StudioSelection) {
-	return `${selection.kind}:${selection.index}`
-}
-
 function collectSourceTables(schema: JsonObject, tables: string[]) {
 	const values = [...tables]
 	for (const dimension of objectCollection(schema, 'dimensions')) {
@@ -1668,29 +1363,4 @@ function collectSourceTables(schema: JsonObject, tables: string[]) {
 
 function uniqueValues(values: string[]) {
 	return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
-}
-
-function zoomGraph(graph: cytoscape.Core | null, factor: number) {
-	if (!graph) {
-		return
-	}
-	const zoom = Math.max(graph.minZoom(), Math.min(graph.maxZoom(), graph.zoom() * factor))
-	graph.animate({ zoom, center: { eles: graph.elements() } }, { duration: 120 })
-}
-
-function readCssColor(variable: string, fallback: string) {
-	const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
-	if (!value) {
-		return fallback
-	}
-	const normalized = normalizeCssColor(value)
-	return /^okl(ch|ab)\(|^lab\(|^lch\(|^color\(|^var\(/.test(normalized) ? fallback : normalized
-}
-
-function normalizeCssColor(value: string) {
-	return /^(#|rgb|hsl|oklch|color\(|var\()/.test(value) ? value : `hsl(${value})`
-}
-
-function readCssFontFamily() {
-	return getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif'
 }

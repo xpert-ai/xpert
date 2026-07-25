@@ -58,6 +58,8 @@ export class DataXMetricManagementRuntime {
 								return this.session.createDeriveIndicatorTool(input as never, config)
 							case 'create_basic_indicator':
 								return this.session.createBasicIndicatorTool(input as never, config)
+							case 'publish_indicator':
+								return this.session.publishIndicatorTool(input as never, config)
 							case 'list_indicators':
 								return this.session.listIndicatorsTool(input as never, config)
 							case 'indicator_list_cubes':

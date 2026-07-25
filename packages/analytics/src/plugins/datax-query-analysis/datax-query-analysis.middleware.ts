@@ -1,3 +1,4 @@
+import { SystemMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
@@ -130,7 +131,14 @@ export class DataXQueryAnalysisMiddleware implements IAgentMiddlewareStrategy<Re
 			tools: [buildOpenDataXQueryTool(), modelContextTool, executeQueryTool],
 			beforeAgent: (state) => ({
 				datax_query_analysis_prompt: state.datax_query_analysis_prompt ?? QUERY_ANALYSIS_PROMPT
-			})
+			}),
+			wrapModelCall: (request, handler) => {
+				const existing = typeof request.systemMessage?.content === 'string' ? request.systemMessage.content : ''
+				return handler({
+					...request,
+					systemMessage: new SystemMessage(`${existing}\n\n${QUERY_ANALYSIS_PROMPT}`)
+				})
+			}
 		}
 	}
 }

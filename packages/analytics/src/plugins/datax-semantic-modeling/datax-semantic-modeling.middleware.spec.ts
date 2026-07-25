@@ -17,10 +17,13 @@ jest.mock('../../model', () => ({
 import {
 	DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME,
 	DATA_X_SEMANTIC_MODELING_FEATURE,
 	DATA_X_SEMANTIC_MODELING_MIDDLEWARE_NAME,
 	DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME,
@@ -52,6 +55,26 @@ describe('DataXSemanticModelingMiddleware', () => {
 			workspaces: [{ id: 'model-1', name: 'Retail' }]
 		})
 
+		const listCatalogs = middleware.tools?.find(
+			(item) => item.name === DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME
+		)
+		const catalogOutput = JSON.parse(String(await listCatalogs?.invoke({ dataSourceId: 'source-1' })))
+		expect(service.listCatalogs).toHaveBeenCalledWith('source-1')
+		expect(catalogOutput).toMatchObject({
+			count: 1,
+			catalogs: [{ value: 'public', label: 'Public' }]
+		})
+
+		const listProjects = middleware.tools?.find(
+			(item) => item.name === DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME
+		)
+		const projectOutput = JSON.parse(String(await listProjects?.invoke({ search: 'retail' })))
+		expect(service.listProjects).toHaveBeenCalled()
+		expect(projectOutput).toMatchObject({
+			count: 1,
+			projects: [{ id: 'project-1', name: 'Retail Analytics' }]
+		})
+
 		const read = middleware.tools?.find((item) => item.name === DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME)
 		const readOutput = JSON.parse(String(await read?.invoke({ modelId: 'model-1' })))
 		expect(service.getWorkspace).toHaveBeenCalledWith('model-1')
@@ -69,6 +92,27 @@ describe('DataXSemanticModelingMiddleware', () => {
 		)
 		await describeTable?.invoke({ modelId: 'model-1', tableName: 'public.sales' })
 		expect(service.getTableSchema).toHaveBeenCalledWith('model-1', 'public.sales')
+
+		const saveDraft = middleware.tools?.find((item) => item.name === DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME)
+		await saveDraft?.invoke({
+			modelId: 'model-1',
+			schema: JSON.stringify({
+				cubes: [{ name: 'Sales' }],
+				dimensions: [],
+				virtualCubes: []
+			}),
+			baseVersion: 4,
+			changeSummary: 'Create Sales cube'
+		})
+		expect(service.saveDraft).toHaveBeenCalledWith(
+			expect.objectContaining({
+				schema: {
+					cubes: [{ name: 'Sales' }],
+					dimensions: [],
+					virtualCubes: []
+				}
+			})
+		)
 
 		const executeQuery = middleware.tools?.find(
 			(item) => item.name === DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME
@@ -109,6 +153,8 @@ describe('DataXSemanticModelingMiddleware', () => {
 		expect(forwardedSystemMessage?.content).toContain('Base instructions')
 		expect(forwardedSystemMessage?.content).toContain(DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME)
 		expect(forwardedSystemMessage?.content).toContain(DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME)
+		expect(forwardedSystemMessage?.content).toContain(DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME)
+		expect(forwardedSystemMessage?.content).toContain(DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME)
 		expect(forwardedSystemMessage?.content).toContain(DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME)
 		expect(forwardedSystemMessage?.content).not.toContain('switch_model_workspace')
 	})
@@ -118,6 +164,10 @@ function createService() {
 	return {
 		listWorkspaces: jest.fn(async () => [{ id: 'model-1', name: 'Retail' }]),
 		listDataSources: jest.fn(async () => [{ id: 'source-1', name: 'Warehouse' }]),
+		listCatalogs: jest.fn(async () => [{ value: 'public', label: 'Public' }]),
+		listProjects: jest.fn(async () => [
+			{ id: 'project-1', name: 'Retail Analytics', description: 'Retail metrics', modelIds: [] }
+		]),
 		getWorkspace: jest.fn(async () => ({
 			model: { id: 'model-1', name: 'Retail' },
 			draft: { version: 4, schema: { name: 'Retail' } },
@@ -128,7 +178,11 @@ function createService() {
 		listTables: jest.fn(async () => [{ name: 'sales' }]),
 		getTableSchema: jest.fn(async () => [{ name: 'sales', columns: [{ name: 'amount' }] }]),
 		createWorkspace: jest.fn(),
-		saveDraft: jest.fn(),
+		saveDraft: jest.fn(async () => ({
+			modelId: 'model-1',
+			version: 5,
+			checklist: []
+		})),
 		executeQuery: jest.fn(async () => ({
 			modelId: 'model-1',
 			cubeName: 'Sales',

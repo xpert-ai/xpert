@@ -11,6 +11,7 @@ import {
 	ChatMessageStepCategory,
 	ChecklistItem,
 	CONTEXT_VARIABLE_CURRENTSTATE,
+	extractSemanticModelDraft,
 	getToolCallIdFromConfig,
 	IBusinessArea,
 	ICertification,
@@ -43,6 +44,7 @@ import {
 	markdownModelCube,
 	PropertyDimension,
 	PropertyLevel,
+	Schema,
 	suuid,
 	wrapBrackets
 } from '@xpert-ai/ocap-core'
@@ -82,6 +84,7 @@ import {
 	MetricScopePreviewInput,
 	MetricScopeSetInput,
 	MetricState,
+	PublishIndicatorInput,
 	ShowIndicatorsInput
 } from './schemas'
 
@@ -223,6 +226,59 @@ export class DataXMetricManagementService {
 			})
 		)
 		return result.items
+	}
+
+	async loadModelCubes(projectId: string, modelId: string) {
+		const model = await this.loadAccessibleProjectModel(projectId, modelId)
+		const schema = model ? readMetricModelSchema(model) : undefined
+		return [
+			...(schema?.cubes ?? []).map((cube) => ({
+				value: cube.name,
+				label: cube.caption ?? cube.name,
+				description: cube.description
+			})),
+			...(schema?.virtualCubes ?? []).map((cube) => ({
+				value: cube.name,
+				label: cube.caption ?? cube.name,
+				description: cube.description
+			}))
+		]
+	}
+
+	async loadCubeMeasures(projectId: string, modelId: string, cubeName: string) {
+		const model = await this.loadAccessibleProjectModel(projectId, modelId)
+		const schema = model ? readMetricModelSchema(model) : undefined
+		const cube = schema?.cubes?.find((item) => item.name === cubeName || item.caption === cubeName)
+		if (cube) {
+			return [
+				...(cube.measures ?? []).map((measure) => ({
+					value: measure.name,
+					label: measure.caption ?? measure.name,
+					description: measure.description
+				})),
+				...(cube.calculatedMembers ?? [])
+					.filter((member) => !member.dimension || member.dimension === 'Measures')
+					.map((member) => ({
+						value: member.name,
+						label: member.caption ?? member.name,
+						description: member.description
+					}))
+			]
+		}
+		const virtualCube = schema?.virtualCubes?.find((item) => item.name === cubeName || item.caption === cubeName)
+		return [
+			...(virtualCube?.virtualCubeMeasures ?? []).map((measure) => ({
+				value: measure.name,
+				label: measure.caption ?? measure.name
+			})),
+			...(virtualCube?.calculatedMembers ?? [])
+				.filter((member) => !member.dimension || member.dimension === 'Measures')
+				.map((member) => ({
+					value: member.name,
+					label: member.caption ?? member.name,
+					description: member.description
+				}))
+		]
 	}
 
 	async loadBusinessAreas(projectId?: string, userId?: string): Promise<IBusinessArea[]> {
@@ -517,6 +573,11 @@ export class DataXMetricManagementService {
 		}
 		return candidate
 	}
+
+	private async loadAccessibleProjectModel(projectId: string, modelId: string) {
+		const projects = await this.loadProjects()
+		return projects.find((project) => project.id === projectId)?.models?.find((model) => model.id === modelId)
+	}
 }
 
 export class DataXMetricManagementSession {
@@ -789,6 +850,38 @@ export class DataXMetricManagementSession {
 			metricScope: scope,
 			indicatorId: indicator.id
 		})
+	}
+
+	async publishIndicatorTool(input: PublishIndicatorInput, config: LangGraphRunnableConfig) {
+		const scope = await this.tryResolveMetricScope(config, {})
+		if (!scope) {
+			return this.metricScopeRequiredText()
+		}
+		const { record, success } = await this.indicatorService.findOneOrFailByWhereOptions({
+			...buildIndicatorBaseWhere(scope),
+			code: input.code
+		})
+		if (!success) {
+			throw new Error(`The indicator code '${input.code}' does not exist in the selected metric scope`)
+		}
+
+		await this.dispatchToolMessage(config, `${record.name ?? record.code} [${record.code}]`)
+		await this.indicatorService.publish(record.id)
+		const indicator = await this.indicatorService.findOne(record.id)
+		await updateOcapIndicators(this.getBIContext().dsCoreService, [indicator], {
+			logger: this.logger,
+			isDraft: false
+		})
+		return JSON.stringify(
+			this.metricScopeOutput(scope, {
+				message: `The indicator with code '${input.code}' has been published.`,
+				indicatorId: indicator.id,
+				code: indicator.code,
+				status: indicator.status,
+				modelId: indicator.modelId,
+				cube: indicator.entity
+			})
+		)
 	}
 
 	async editIndicatorTool(input: DeriveIndicatorInput, config: LangGraphRunnableConfig) {
@@ -1652,6 +1745,11 @@ function isBusinessAreaLike(value: unknown): value is IBusinessArea {
 
 function isUserLike(value: unknown): value is IUser {
 	return Boolean(value && typeof value === 'object' && ('name' in value || 'email' in value || 'fullName' in value))
+}
+
+function readMetricModelSchema(model: ISemanticModel): Schema | undefined {
+	const draft = model.draft ?? extractSemanticModelDraft<Schema>(model)
+	return (model.options?.schema as Schema | undefined) ?? draft.schema
 }
 
 export function toModelOption(model: unknown) {

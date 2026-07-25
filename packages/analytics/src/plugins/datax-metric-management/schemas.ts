@@ -8,7 +8,8 @@ export const TOOL_INDICATORS_PROMPTS_DEFAULT =
 	`1. Before performing metric operations, use 'indicator_scope_get' to inspect the active project/model/business-area scope.\n` +
 	`2. If 'indicator_scope_get' says no scope/project is selected, do NOT call 'list_indicators', 'indicator_retriever', create/edit/delete tools, cube context, or member retriever. First call 'indicator_scope_options' to list selectable projects, then call 'indicator_scope_set' with projectId. After calling 'indicator_scope_set', wait for that tool result before calling metric operation tools; never emit scope selection and metric operation tools in the same tool-call batch.\n` +
 	`3. Use 'indicator_scope_set' to narrow metric operations by BI project, semantic model, business area, cube/entity, certification, tag, app availability, status, type, or search text. Mutating tools inherit a single selected model/business area/cube from the active scope; if multiple values are selected, pass the exact value explicitly.\n` +
-	`4. 'indicator_retriever' tool can retrieve published indicators. For indicators in draft state, please use 'list_indicators' tool to list detailed indicators after the scope is selected.\n` +
+	`4. After creating and validating an indicator, call 'publish_indicator' with its exact code only when the user authorizes publishing. Then use 'indicator_retriever' for the published indicator and Data X Query Analysis to query its real values; never invent values.\n` +
+	`5. 'indicator_retriever' tool can retrieve published indicators. For indicators in draft state, please use 'list_indicators' tool to list detailed indicators after the scope is selected.\n` +
 	`## Cube Context
   Before creating an indicator or call 'dimension_member_retriever', you need to call the 'get_indicator_cube_context' tool to get the Context of the Cube to be used.
   Before creating an indicator, you need to call the 'list_indicators' tool to check existing indicators that can be reused.
@@ -109,6 +110,14 @@ export const DeleteIndicatorSchema = z.object({
 	code: z.string().describe('The unique code of indicator')
 })
 
+export const PublishIndicatorSchema = z.object({
+	code: z
+		.string()
+		.trim()
+		.min(1)
+		.describe('Exact unique code of the indicator to publish in the active project scope.')
+})
+
 export const IndicatorRetrieverSchema = MetricScopeSchema.extend({
 	query: z.string().describe('The query to search for indicators'),
 	limit: z.number().optional().default(10).describe('The maximum number of indicators to retrieve')
@@ -205,6 +214,12 @@ export const MetricManagementToolDefinitions: Array<{
 		schema: ScopedBasicIndicatorSchema
 	},
 	{
+		name: DataXMetricManagementToolName.PUBLISH_INDICATOR,
+		description:
+			'Publish one validated indicator by exact unique code in the active project scope. Call only when the user authorizes publishing.',
+		schema: PublishIndicatorSchema
+	},
+	{
 		name: DataXMetricManagementToolName.LIST_INDICATORS,
 		description:
 			'List indicators in the active metric scope. Requires project scope; do not use this tool to select a project.',
@@ -259,6 +274,7 @@ export type MetricScopeClearInput = z.infer<typeof MetricScopeClearSchema>
 export type MetricScopeOptionsInput = z.infer<typeof MetricScopeOptionsSchema>
 export type MetricScopePreviewInput = z.infer<typeof MetricScopePreviewSchema>
 export type DeleteIndicatorInput = z.infer<typeof DeleteIndicatorSchema>
+export type PublishIndicatorInput = z.infer<typeof PublishIndicatorSchema>
 export type IndicatorRetrieverInput = z.infer<typeof IndicatorRetrieverSchema>
 export type ShowIndicatorsInput = z.infer<typeof ShowIndicatorsSchema>
 export type DimensionMemberRetrieverInput = z.infer<typeof DimensionMemberRetrieverSchema>

@@ -128,6 +128,9 @@ describe('DataXMetricManagementViewProvider', () => {
 			])
 		)
 		expect(manifest.actions?.find((action) => action.key === 'import')?.transport).toBe('file')
+		expect(manifest.parameters?.map((parameter) => parameter.key)).toEqual(
+			expect.arrayContaining(['projectId', 'modelId', 'cube', 'measure'])
+		)
 	})
 
 	it('returns an approvals manifest from the same remote component provider', () => {
@@ -241,6 +244,30 @@ describe('DataXMetricManagementViewProvider', () => {
 			items: [{ id: 'metric-1', code: 'GMV' }],
 			total: 1
 		})
+	})
+
+	it('provides project-scoped cube and measure options for metric creation', async () => {
+		const service = createService()
+		const provider = createProvider(service)
+
+		const cubes = await provider.getViewParameterOptions(context, DATA_X_METRIC_VIEW_KEY, 'cube', {
+			parameters: {
+				projectId: 'project-1',
+				modelId: 'model-1'
+			}
+		})
+		const measures = await provider.getViewParameterOptions(context, DATA_X_METRIC_VIEW_KEY, 'measure', {
+			parameters: {
+				projectId: 'project-1',
+				modelId: 'model-1',
+				cube: 'Sales'
+			}
+		})
+
+		expect(service.loadModelCubes).toHaveBeenCalledWith('project-1', 'model-1')
+		expect(service.loadCubeMeasures).toHaveBeenCalledWith('project-1', 'model-1', 'Sales')
+		expect(cubes.items).toEqual([{ value: 'Sales', label: 'Sales Cube' }])
+		expect(measures.items).toEqual([{ value: 'Sales Amount', label: 'Revenue' }])
 	})
 
 	it('loads approval view data through the metric management service', async () => {
@@ -398,6 +425,8 @@ function createService() {
 				models: [{ id: 'model-1', name: 'Sales Model' }]
 			}
 		]),
+		loadModelCubes: jest.fn(async () => [{ value: 'Sales', label: 'Sales Cube' }]),
+		loadCubeMeasures: jest.fn(async () => [{ value: 'Sales Amount', label: 'Revenue' }]),
 		loadBusinessAreas: jest.fn(async () => [{ id: 'area-1', name: 'Sales Area' }]),
 		loadCertifications: jest.fn(async () => [{ id: 'cert-1', name: 'Gold' }]),
 		loadMetricTags: jest.fn(async () => [{ id: 'tag-1', name: 'Finance' }]),

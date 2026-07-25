@@ -27,33 +27,40 @@ const components = [
 
 async function bundleComponent(component) {
 	const sourceDirectory = join(component.directory, 'src')
-	const result = await build({
-		entryPoints: [join(sourceDirectory, 'main.tsx')],
-		bundle: true,
-		format: 'iife',
-		platform: 'browser',
-		target: ['es2020'],
-		write: false,
-		logLevel: 'silent',
-		legalComments: 'none',
-		jsx: 'automatic',
-		minify: true,
-		define: {
-			'process.env.NODE_ENV': '"production"'
-		},
-		plugins: [xpertRemoteComponentPlugin()],
-		banner: {
-			js: ';'
-		}
-	})
-	const output = result.outputFiles?.[0]
-	if (!output) {
-		throw new Error(`esbuild did not produce ${component.name}/app.js output`)
-	}
-
 	const temporaryDirectory = await mkdtemp(join(tmpdir(), `xpert-${component.name}-`))
 	const temporaryCssPath = join(temporaryDirectory, 'app.css')
 	try {
+		const monacoWorkerSource = component.name === 'semantic-modeling' ? await bundleMonacoEditorWorker() : ''
+		const result = await build({
+			entryPoints: [join(sourceDirectory, 'main.tsx')],
+			bundle: true,
+			format: 'iife',
+			platform: 'browser',
+			target: ['es2020'],
+			outfile: join(temporaryDirectory, 'bundle.js'),
+			write: false,
+			logLevel: 'silent',
+			legalComments: 'none',
+			jsx: 'automatic',
+			minify: true,
+			loader: {
+				'.ttf': 'dataurl'
+			},
+			define: {
+				'process.env.NODE_ENV': '"production"',
+				__XPERT_MONACO_WORKER_SOURCE__: JSON.stringify(monacoWorkerSource)
+			},
+			plugins: [xpertRemoteComponentPlugin()],
+			banner: {
+				js: ';'
+			}
+		})
+		const scriptOutput = result.outputFiles?.find((output) => output.path.endsWith('.js'))
+		if (!scriptOutput) {
+			throw new Error(`esbuild did not produce ${component.name}/app.js output`)
+		}
+		const bundledCss = result.outputFiles?.find((output) => output.path.endsWith('.css'))?.text ?? ''
+
 		execFileSync(
 			resolveLocalBin(workspaceRoot, 'tailwindcss'),
 			['-i', join(component.directory, 'tailwind.css'), '-o', temporaryCssPath, '--minify'],
@@ -62,20 +69,39 @@ async function bundleComponent(component) {
 				stdio: 'inherit'
 			}
 		)
-		const cssText = await readFile(temporaryCssPath, 'utf8')
+		const tailwindCss = await readFile(temporaryCssPath, 'utf8')
 		return [
 			{
 				outputPath: join(component.directory, 'app.js'),
-				text: stripTrailingWhitespace(output.text)
+				text: stripTrailingWhitespace(scriptOutput.text)
 			},
 			{
 				outputPath: join(component.directory, 'app.css'),
-				text: stripTrailingWhitespace(cssText)
+				text: stripTrailingWhitespace(`${bundledCss}\n${tailwindCss}`)
 			}
 		]
 	} finally {
 		await rm(temporaryDirectory, { recursive: true, force: true })
 	}
+}
+
+async function bundleMonacoEditorWorker() {
+	const result = await build({
+		entryPoints: [join(workspaceRoot, 'node_modules', 'monaco-editor', 'esm', 'vs', 'editor', 'editor.worker.js')],
+		bundle: true,
+		format: 'iife',
+		platform: 'browser',
+		target: ['es2020'],
+		write: false,
+		logLevel: 'silent',
+		legalComments: 'none',
+		minify: true
+	})
+	const output = result.outputFiles?.[0]
+	if (!output) {
+		throw new Error('esbuild did not produce the Monaco editor worker output')
+	}
+	return output.text
 }
 
 const outputs = (await Promise.all(components.map(bundleComponent))).flat()

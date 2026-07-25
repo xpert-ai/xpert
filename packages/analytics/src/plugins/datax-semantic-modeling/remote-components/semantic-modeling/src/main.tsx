@@ -10,7 +10,6 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	Badge,
 	Button,
 	Card,
 	CardContent,
@@ -60,16 +59,18 @@ import {
 	RemoteContext,
 	RemoteHostEvent
 } from '../../../../remote-components/shared/runtime'
-import { CubeEditor } from './cube-editor'
+import { CalculationStudio } from './calculation-studio'
+import { CubeModelingStudio } from './cube-modeling-studio'
 import { DimensionEditor } from './dimension-editor'
 import { createI18n } from './i18n'
 import { StudioModulePage } from './module-pages'
+import { isStudioModuleSection } from './module-sections'
 import { QueryLab } from './query-lab'
-import { RelationshipStudio } from './relationship-studio'
 import {
 	appendItem,
 	localized,
 	objectCollection,
+	readFactTableName,
 	replaceAt,
 	replaceCollection,
 	setObjectValue,
@@ -89,6 +90,9 @@ function SemanticModelingApp() {
 	const [query, setQuery] = React.useState<JsonObject>({ page: 1, pageSize: 50, parameters: {} })
 	const [models, setModels] = React.useState<Option[]>([])
 	const [dataSources, setDataSources] = React.useState<Option[]>([])
+	const [projects, setProjects] = React.useState<Option[]>([])
+	const [catalogOptions, setCatalogOptions] = React.useState<Option[]>([])
+	const [catalogLoading, setCatalogLoading] = React.useState(false)
 	const [workspace, setWorkspace] = React.useState<WorkspaceDetail | null>(null)
 	const [schema, setSchema] = React.useState<JsonObject>({})
 	const [rawSchema, setRawSchema] = React.useState('{}')
@@ -117,6 +121,7 @@ function SemanticModelingApp() {
 		dataSourceId: '',
 		catalog: '',
 		type: 'SQL',
+		projectId: '',
 		businessAreaId: '',
 		changeSummary: 'Create semantic model workspace'
 	})
@@ -163,12 +168,18 @@ function SemanticModelingApp() {
 	async function initialize(nextQuery: JsonObject) {
 		setLoading(true)
 		try {
-			const [modelOptions, dataSourceOptions] = await Promise.all([
+			const [modelOptions, dataSourceOptions, projectOptions] = await Promise.all([
 				loadOptions('modelId', nextQuery),
-				loadOptions('dataSourceId', nextQuery)
+				loadOptions('dataSourceId', nextQuery),
+				loadOptions('projectId', nextQuery)
 			])
 			setModels(modelOptions)
 			setDataSources(dataSourceOptions)
+			setProjects(projectOptions)
+			setCreateForm((current) => ({
+				...current,
+				projectId: current.projectId || projectOptions[0]?.value || ''
+			}))
 			const modelId = readString(readObject(nextQuery, 'parameters'), 'modelId') ?? modelOptions[0]?.value
 			if (modelId) {
 				await selectModel(modelId, nextQuery, false)
@@ -294,7 +305,7 @@ function SemanticModelingApp() {
 				})
 			)
 			const data = readData(response)
-			setColumns(parseSourceColumns(data['item'], tableName))
+			setColumns(parseSourceColumns(data['item'] ?? data['items'], tableName))
 			setTableError(readString(readObject(data, 'meta'), 'error') ?? '')
 		} catch (error) {
 			showError(error)
@@ -333,7 +344,38 @@ function SemanticModelingApp() {
 			]
 		}
 		updateSchema(replaceCollection(schema, 'dimensions', appendItem(dimensions, nextDimension)))
-		setSection('dimensions')
+		setSection('dimensionEditor')
+	}
+
+	async function updateCreateForm(nextForm: CreateForm) {
+		const dataSourceChanged = nextForm.dataSourceId !== createForm.dataSourceId
+		if (!dataSourceChanged) {
+			setCreateForm(nextForm)
+			return
+		}
+		const dataSourceId = nextForm.dataSourceId
+		setCreateForm({ ...nextForm, catalog: '' })
+		setCatalogOptions([])
+		if (!dataSourceId) {
+			return
+		}
+		setCatalogLoading(true)
+		try {
+			const options = await loadOptions('catalog', withParameters(query, { dataSourceId }))
+			setCatalogOptions(options)
+			setCreateForm((current) =>
+				current.dataSourceId === dataSourceId
+					? {
+							...current,
+							catalog: options[0]?.value ?? ''
+						}
+					: current
+			)
+		} catch (error) {
+			showError(error)
+		} finally {
+			setCatalogLoading(false)
+		}
 	}
 
 	function createCubeFromTable(tableName: string, sourceColumns: SourceColumn[]) {
@@ -364,7 +406,78 @@ function SemanticModelingApp() {
 			parameters: []
 		}
 		updateSchema(replaceCollection(schema, 'cubes', appendItem(cubes, nextCube)))
-		setSection('cubes')
+		setSection('relationships')
+	}
+
+	async function generateCubeMeasuresFromFields(cubeIndex: number) {
+		if (!workspace) {
+			return
+		}
+		const cubes = objectCollection(schema, 'cubes')
+		const cube = cubes[cubeIndex]
+		const tableName = cube ? readFactTableName(cube) : ''
+		if (!cube || !tableName) {
+			setNotice({
+				error: true,
+				text: localized(context?.locale, 'Choose a fact table first.', '请先选择事实表。')
+			})
+			return
+		}
+		setMetadataLoading(true)
+		try {
+			const response = await bridge.requestData(
+				withParameters(query, {
+					modelId: workspace.model.id,
+					mode: 'table_schema',
+					tableName
+				})
+			)
+			const data = readData(response)
+			const sourceColumns = parseSourceColumns(data['item'] ?? data['items'], tableName)
+			const measures = objectCollection(cube, 'measures')
+			const existingColumns = new Set(
+				measures
+					.map((measure) => readString(measure, 'column'))
+					.filter((value): value is string => Boolean(value))
+			)
+			const generated = sourceColumns
+				.filter((column) => isNumericColumn(column) && !existingColumns.has(column.name))
+				.slice(0, 30)
+				.map((column) => ({
+					name: artifactName(column.label ?? column.name),
+					caption: column.label ?? column.comment ?? column.name,
+					column: column.name,
+					datatype: mapColumnType(column),
+					aggregator: 'sum',
+					visible: true
+				}))
+			if (!generated.length) {
+				setNotice({
+					error: false,
+					text: localized(context?.locale, 'No new numeric fields were found.', '没有发现可新增的数值字段。')
+				})
+				return
+			}
+			updateSchema(
+				replaceCollection(
+					schema,
+					'cubes',
+					replaceAt(cubes, cubeIndex, replaceCollection(cube, 'measures', [...measures, ...generated]))
+				)
+			)
+			setNotice({
+				error: false,
+				text: localized(
+					context?.locale,
+					'Measures were generated from numeric fields.',
+					'已从数值字段生成度量。'
+				)
+			})
+		} catch (error) {
+			showError(error)
+		} finally {
+			setMetadataLoading(false)
+		}
 	}
 
 	async function saveDraft() {
@@ -590,7 +703,7 @@ function SemanticModelingApp() {
 					}
 				])
 			)
-			setSection('cubeEditor')
+			setSection('relationships')
 			return
 		}
 		if (actionId === 'cube-measure' || actionId === 'cube-calculated-member') {
@@ -612,7 +725,7 @@ function SemanticModelingApp() {
 					replaceAt(cubes, 0, replaceCollection(cube, key, appendItem(values, nextItem)))
 				)
 			)
-			setSection('cubeEditor')
+			setSection('relationships')
 			return
 		}
 		if (actionId === 'virtual-create') {
@@ -659,7 +772,7 @@ function SemanticModelingApp() {
 					replaceAt(cubes, 0, replaceCollection(cube, key, appendItem(values, nextItem)))
 				)
 			)
-			setSection('cubeEditor')
+			setSection('calculations')
 			return
 		}
 		if (actionId === 'member-sync' || actionId === 'member-upload' || actionId === 'member-test') {
@@ -775,18 +888,13 @@ function SemanticModelingApp() {
 			items: [
 				{
 					key: 'relationships',
-					label: localized(context?.locale, 'Relationships & entities', '关系与实体'),
-					count: objectCollection(schema, 'dimensions').length + objectCollection(schema, 'cubes').length
+					label: localized(context?.locale, 'Cube', '立方体'),
+					count: objectCollection(schema, 'cubes').length
 				},
 				{
 					key: 'dimensions',
 					label: localized(context?.locale, 'Shared dimensions', '共享维度'),
 					count: objectCollection(schema, 'dimensions').length
-				},
-				{
-					key: 'cubes',
-					label: localized(context?.locale, 'Cubes & measures', 'Cube 与度量'),
-					count: objectCollection(schema, 'cubes').length
 				},
 				{
 					key: 'virtualCubes',
@@ -833,20 +941,12 @@ function SemanticModelingApp() {
 			]
 		}
 	]
-	const auxiliarySection = [
-		'overview',
-		'sources',
-		'validation',
-		'dimensionEditor',
-		'cubeEditor',
-		'virtualCubeEditor',
-		'json'
-	].includes(section)
+	const auxiliarySection = ['overview', 'sources', 'validation', 'json'].includes(section)
 	const activeNavigationSection: Section =
 		section === 'dimensionEditor'
 			? 'dimensions'
-			: section === 'cubeEditor'
-				? 'cubes'
+			: section === 'cubes'
+				? 'relationships'
 				: section === 'virtualCubeEditor'
 					? 'virtualCubes'
 					: section
@@ -1013,7 +1113,15 @@ function SemanticModelingApp() {
 								groups={navGroups}
 								modelKey={workspace.model.key ?? ''}
 								modelName={workspace.model.name ?? workspace.model.key ?? ''}
-								onNavigate={setSection}
+								onNavigate={(nextSection) =>
+									setSection(
+										nextSection === 'dimensions'
+											? 'dimensionEditor'
+											: nextSection === 'virtualCubes'
+												? 'virtualCubeEditor'
+												: nextSection
+									)
+								}
 								onToggle={navigationPanel.toggle}
 							/>
 						</ResizablePanel>
@@ -1025,7 +1133,7 @@ function SemanticModelingApp() {
 						<ResizablePanel id="semantic-studio-content" minSize="45%">
 							<div
 								className={
-									section === 'relationships'
+									section === 'relationships' || section === 'cubes'
 										? 'h-full min-h-0 overflow-hidden'
 										: auxiliarySection
 											? 'grid h-full min-h-0 grid-cols-[minmax(0,1fr)_280px] overflow-hidden max-[1100px]:grid-cols-1'
@@ -1034,33 +1142,36 @@ function SemanticModelingApp() {
 							>
 								<main
 									className={
-										section === 'relationships'
+										section === 'relationships' ||
+										section === 'cubes' ||
+										section === 'queryLab' ||
+										section === 'virtualCubeEditor' ||
+										section === 'dimensionEditor'
 											? 'h-full min-h-0 min-w-0 overflow-hidden'
 											: 'min-h-0 min-w-0 overflow-auto'
 									}
 								>
-									{section === 'relationships' ? (
-										<RelationshipStudio
+									{section === 'relationships' || section === 'cubes' ? (
+										<CubeModelingStudio
 											workspace={workspace}
 											schema={schema}
 											tables={tables}
 											issues={issues}
-											queryResult={queryResult}
-											queryRuns={queryRuns}
-											queryRunning={queryRunning}
 											locale={context?.locale}
+											generatingMeasures={metadataLoading}
 											onChange={updateSchema}
-											onNavigate={setSection}
-											onLoadTables={() => void loadTables()}
-											onRunQuery={(cubeName, statement) => void runQuery(cubeName, statement)}
+											onGenerateMeasures={(cubeIndex) =>
+												void generateCubeMeasuresFromFields(cubeIndex)
+											}
 										/>
 									) : (
 										<div
 											className={
 												[
 													'dimensions',
-													'cubes',
+													'dimensionEditor',
 													'virtualCubes',
+													'virtualCubeEditor',
 													'calculations',
 													'queryLab',
 													'members',
@@ -1069,7 +1180,11 @@ function SemanticModelingApp() {
 													'operations',
 													'settings'
 												].includes(section)
-													? 'min-h-full'
+													? section === 'queryLab' ||
+														section === 'virtualCubeEditor' ||
+														section === 'dimensionEditor'
+														? 'h-full min-h-0'
+														: 'min-h-full'
 													: 'mx-auto max-w-[1500px] p-5'
 											}
 										>
@@ -1105,12 +1220,13 @@ function SemanticModelingApp() {
 													onChange={updateSchema}
 												/>
 											) : null}
-											{section === 'cubeEditor' ? (
-												<CubeEditor
+											{section === 'calculations' ? (
+												<CalculationStudio
 													schema={schema}
-													tables={tables}
 													locale={context?.locale}
 													onChange={updateSchema}
+													onOpenCubes={() => setSection('relationships')}
+													onTestAll={() => handleModuleAction('calculation-test')}
 												/>
 											) : null}
 											{section === 'virtualCubeEditor' ? (
@@ -1131,30 +1247,9 @@ function SemanticModelingApp() {
 													onApply={applyRawSchema}
 												/>
 											) : null}
-											{[
-												'dimensions',
-												'cubes',
-												'virtualCubes',
-												'calculations',
-												'members',
-												'quality',
-												'security',
-												'operations',
-												'settings'
-											].includes(section) ? (
+											{isStudioModuleSection(section) ? (
 												<StudioModulePage
-													section={
-														section as
-															| 'dimensions'
-															| 'cubes'
-															| 'virtualCubes'
-															| 'calculations'
-															| 'members'
-															| 'quality'
-															| 'security'
-															| 'operations'
-															| 'settings'
-													}
+													section={section}
 													workspace={workspace}
 													schema={schema}
 													issues={issues}
@@ -1164,8 +1259,6 @@ function SemanticModelingApp() {
 													onRowOpen={() => {
 														if (section === 'dimensions') {
 															setSection('dimensionEditor')
-														} else if (section === 'cubes' || section === 'calculations') {
-															setSection('cubeEditor')
 														} else if (section === 'virtualCubes') {
 															setSection('virtualCubeEditor')
 														}
@@ -1253,10 +1346,13 @@ function SemanticModelingApp() {
 					open={createOpen}
 					form={createForm}
 					dataSources={dataSources}
+					projects={projects}
+					catalogOptions={catalogOptions}
+					catalogLoading={catalogLoading}
 					busy={busy === 'create'}
 					locale={context?.locale}
 					onOpenChange={setCreateOpen}
-					onChange={setCreateForm}
+					onChange={(form) => void updateCreateForm(form)}
 					onSubmit={(event) => void createWorkspace(event)}
 				/>
 

@@ -12,7 +12,9 @@ import {
 	DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME,
 	DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME,
@@ -26,10 +28,12 @@ import {
 import { DataXSemanticModelingService } from './datax-semantic-modeling.service'
 import {
 	SemanticModelDataSourceListSchema,
+	SemanticModelCatalogListSchema,
 	SemanticModelDescribeTableSchema,
 	SemanticModelExecuteQuerySchema,
 	SemanticModelListTablesSchema,
 	SemanticModelPublishSchema,
+	SemanticModelProjectListSchema,
 	SemanticModelSaveDraftSchema,
 	SemanticModelWorkspaceCreateSchema,
 	SemanticModelWorkspaceListSchema,
@@ -102,6 +106,53 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 				description:
 					'List data sources available for creating a semantic model workspace. Use it before creation when the dataSourceId is unknown.',
 				schema: SemanticModelDataSourceListSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const listCatalogsTool = tool(
+			async (input) => {
+				const catalogs = await this.service.listCatalogs(input.dataSourceId)
+				return JSON.stringify({
+					message: catalogs.length
+						? `Found ${catalogs.length} catalog(s) available on the selected data source.`
+						: 'No catalog is available on the selected data source.',
+					dataSourceId: input.dataSourceId,
+					count: catalogs.length,
+					catalogs
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME,
+				description:
+					'List catalogs or schemas available on one exact accessible data source. Use a returned value as catalog when creating a workspace.',
+				schema: SemanticModelCatalogListSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const listProjectsTool = tool(
+			async (input) => {
+				const search = input.search?.trim().toLocaleLowerCase()
+				const projects = (await this.service.listProjects()).filter(
+					(project) =>
+						!search ||
+						project.name.toLocaleLowerCase().includes(search) ||
+						project.description?.toLocaleLowerCase().includes(search)
+				)
+				return JSON.stringify({
+					message: projects.length
+						? `Found ${projects.length} accessible project(s). Select one projectId so later governed metrics can use the semantic model.`
+						: 'No accessible project matched.',
+					count: projects.length,
+					projects
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME,
+				description:
+					'List BI projects available to the current user. Use it before workspace creation and pass one exact projectId when governed metrics are required.',
+				schema: SemanticModelProjectListSchema,
 				verboseParsingErrors: true
 			}
 		)
@@ -260,6 +311,8 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 				buildOpenSemanticModelingTool(),
 				listWorkspacesTool,
 				listDataSourcesTool,
+				listCatalogsTool,
+				listProjectsTool,
 				readWorkspaceTool,
 				listTablesTool,
 				describeTableTool,
@@ -281,9 +334,10 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 
 const SEMANTIC_MODELING_PROMPT = `When the user asks to create or change a Data X semantic model:
 1. Resolve exact identifiers with ${DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME} and ${DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME}; never guess a modelId or dataSourceId.
-2. Call ${DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME} before every draft change. Treat the returned draft as one complete document, preserve unrelated fields, and pass its draft.version as baseVersion to ${DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME}.
-3. Inspect physical source metadata with ${DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME} and ${DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME}; never infer columns from names or sample text.
-4. Use ${DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME} with a complete MDX SELECT statement to validate representative results. Read the returned columns and rows instead of inventing values.
-5. Call ${DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME} to open the semantic modeling Workbench when visual editing or human review is useful.
-6. Call ${DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME} only when the user explicitly requests publishing and validation issues are understood.
+2. Before creating a workspace, call ${DATA_X_SEMANTIC_MODEL_LIST_CATALOGS_TOOL_NAME} for the selected data source. When governed metrics are required, also call ${DATA_X_SEMANTIC_MODEL_LIST_PROJECTS_TOOL_NAME} and pass one exact accessible projectId to ${DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME}.
+3. Call ${DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME} before every draft change. Treat the returned draft as one complete document, preserve unrelated fields, and pass its draft.version as baseVersion to ${DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME}.
+4. Inspect physical source metadata with ${DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME} and ${DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME}; never infer columns from names or sample text.
+5. Use ${DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME} with a complete MDX SELECT statement to validate representative results. Read the returned columns and rows instead of inventing values.
+6. Call ${DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME} to open the semantic modeling Workbench when visual editing or human review is useful.
+7. Call ${DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME} only when the user explicitly requests publishing and validation issues are understood.
 Use the separate Data X Metric Management middleware for governed metrics after the semantic model is ready.`

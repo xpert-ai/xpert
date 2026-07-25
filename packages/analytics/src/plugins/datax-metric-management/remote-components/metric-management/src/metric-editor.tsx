@@ -28,6 +28,8 @@ export function MetricEditorDialog(props: {
 	mode: 'create' | 'edit'
 	form: MetricForm
 	models: Option[]
+	cubes: Option[]
+	measures: Option[]
 	businessAreas: Option[]
 	certifications: Option[]
 	busy: boolean
@@ -95,9 +97,11 @@ export function MetricEditorDialog(props: {
 								placeholder={tr(props.locale, 'Choose model', '选择模型')}
 								onChange={(value) => update('modelId', value)}
 							/>
-							<FormInput
+							<FormSelect
 								label={tr(props.locale, 'Cube / entity', 'Cube / 实体')}
 								value={props.form.cube}
+								options={props.cubes}
+								placeholder={tr(props.locale, 'Choose Cube', '选择立方体')}
 								onChange={(value) => update('cube', value)}
 							/>
 							<FormSelect
@@ -124,9 +128,11 @@ export function MetricEditorDialog(props: {
 						</TabsContent>
 
 						<TabsContent value="logic" className="mt-0 grid gap-4 lg:grid-cols-2">
-							<FormInput
+							<FormSelect
 								label={tr(props.locale, 'Base measure', '基础度量')}
 								value={props.form.measure}
+								options={props.measures}
+								placeholder={tr(props.locale, 'Choose measure', '选择基础度量')}
 								onChange={(value) => update('measure', value)}
 							/>
 							<FormSelect
@@ -216,7 +222,14 @@ export function MetricEditorDialog(props: {
 						{tr(props.locale, 'Cancel', '取消')}
 					</Button>
 					<Button
-						disabled={props.busy || !props.form.code.trim() || !props.form.name.trim()}
+						disabled={
+							props.busy ||
+							!props.form.code.trim() ||
+							!props.form.name.trim() ||
+							!props.form.modelId ||
+							!props.form.cube ||
+							(props.form.type === 'BASIC' && !props.form.measure)
+						}
 						onClick={props.onSubmit}
 					>
 						{props.busy

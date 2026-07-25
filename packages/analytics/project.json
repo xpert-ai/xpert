@@ -56,6 +56,20 @@
 				"cwd": "."
 			}
 		},
+		"test-semantic-modeling-preview": {
+			"executor": "nx:run-commands",
+			"dependsOn": [
+				{
+					"target": "generate-remote-components",
+					"projects": "self"
+				}
+			],
+			"outputs": [],
+			"options": {
+				"command": "node --test packages/analytics/src/plugins/datax-semantic-modeling/remote-components/semantic-modeling/preview-workflow.test.mjs",
+				"cwd": "."
+			}
+		},
 		"publish": {
 			"executor": "nx:run-commands",
 			"options": {

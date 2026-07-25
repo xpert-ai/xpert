@@ -6,19 +6,41 @@ export type SemanticModelSchemaInput = Omit<Schema, 'name'> & {
 	name?: string
 }
 
-export const SemanticModelSchemaSchema = z.custom<SemanticModelSchemaInput>(
-	(value) => {
-		if (!value || typeof value !== 'object' || Array.isArray(value)) {
-			return false
-		}
-		return ['cubes', 'dimensions', 'virtualCubes'].every(
-			(key) => Reflect.get(value, key) === undefined || Array.isArray(Reflect.get(value, key))
-		)
-	},
-	{
-		message: 'Semantic model schema must be an object with array-valued cubes, dimensions, and virtualCubes.'
+const SemanticModelNamedObjectSchema = z
+	.object({
+		name: z.string().trim().min(1).describe('Stable technical name.')
+	})
+	.passthrough()
+
+const SemanticModelSchemaDocumentSchema = z
+	.object({
+		name: z.string().trim().optional().describe('Optional semantic schema name.'),
+		cubes: z
+			.array(SemanticModelNamedObjectSchema)
+			.describe('Complete physical Cube definitions, including fact sources, dimensions, and measures.'),
+		dimensions: z
+			.array(SemanticModelNamedObjectSchema)
+			.describe('Complete shared dimension, hierarchy, and level definitions.'),
+		virtualCubes: z
+			.array(SemanticModelNamedObjectSchema)
+			.describe('Complete virtual Cube definitions; use an empty array when none exist.')
+	})
+	.passthrough()
+
+export const SemanticModelSchemaSchema = z
+	.preprocess(parseSemanticModelSchemaDocument, SemanticModelSchemaDocumentSchema)
+	.transform((value) => value as unknown as SemanticModelSchemaInput)
+
+function parseSemanticModelSchemaDocument(value: unknown): unknown {
+	if (typeof value !== 'string') {
+		return value
 	}
-)
+	try {
+		return JSON.parse(value) as unknown
+	} catch {
+		return value
+	}
+}
 
 export const SemanticModelWorkspaceListSchema = z.object({
 	search: z.string().trim().max(200).optional().describe('Optional model name or description search text.'),
@@ -27,6 +49,18 @@ export const SemanticModelWorkspaceListSchema = z.object({
 
 export const SemanticModelDataSourceListSchema = z.object({
 	search: z.string().trim().max(200).optional().describe('Optional data source name search text.')
+})
+
+export const SemanticModelCatalogListSchema = z.object({
+	dataSourceId: z
+		.string()
+		.trim()
+		.min(1)
+		.describe('Exact data source id returned by semantic_model_list_data_sources.')
+})
+
+export const SemanticModelProjectListSchema = z.object({
+	search: z.string().trim().max(200).optional().describe('Optional accessible project name search text.')
 })
 
 export const SemanticModelWorkspaceReadSchema = z.object({
@@ -49,6 +83,12 @@ export const SemanticModelWorkspaceCreateSchema = z.object({
 	dataSourceId: z.string().trim().min(1).describe('Data source id used by the semantic model.'),
 	catalog: z.string().trim().min(1).describe('Catalog or schema selected from the data source.'),
 	type: z.nativeEnum(ModelTypeEnum).default(ModelTypeEnum.SQL).describe('Semantic model type.'),
+	projectId: z
+		.string()
+		.trim()
+		.min(1)
+		.optional()
+		.describe('Optional accessible project that will govern metrics created from this model.'),
 	businessAreaId: z.string().trim().min(1).optional().describe('Optional business area id.'),
 	changeSummary: z
 		.string()

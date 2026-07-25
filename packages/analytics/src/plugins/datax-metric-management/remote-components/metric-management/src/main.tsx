@@ -78,6 +78,8 @@ function MetricManagementApp() {
 	const [query, setQuery] = React.useState<JsonObject>({ page: 1, pageSize: 20, parameters: {} })
 	const [projects, setProjects] = React.useState<Option[]>([])
 	const [models, setModels] = React.useState<Option[]>([])
+	const [cubes, setCubes] = React.useState<Option[]>([])
+	const [measures, setMeasures] = React.useState<Option[]>([])
 	const [businessAreas, setBusinessAreas] = React.useState<Option[]>([])
 	const [statuses, setStatuses] = React.useState<Option[]>([])
 	const [types, setTypes] = React.useState<Option[]>([])
@@ -121,6 +123,65 @@ function MetricManagementApp() {
 	React.useEffect(() => {
 		bridge.reportResize()
 	}, [page, notice, editorOpen, detailRow])
+
+	const editorProjectId = readString(readObject(query, 'parameters'), 'projectId') ?? ''
+
+	React.useEffect(() => {
+		let active = true
+		if (!editorOpen || !editorProjectId || !form.modelId) {
+			setCubes([])
+			return () => {
+				active = false
+			}
+		}
+		void loadOptions('cube', {
+			projectId: editorProjectId,
+			modelId: form.modelId
+		}).then((options) => {
+			if (!active) {
+				return
+			}
+			setCubes(options)
+			if (!form.cube && options[0]) {
+				setForm((current) =>
+					current.modelId === form.modelId ? { ...current, cube: options[0].value } : current
+				)
+			}
+		})
+		return () => {
+			active = false
+		}
+	}, [editorOpen, editorProjectId, form.modelId])
+
+	React.useEffect(() => {
+		let active = true
+		if (!editorOpen || !editorProjectId || !form.modelId || !form.cube) {
+			setMeasures([])
+			return () => {
+				active = false
+			}
+		}
+		void loadOptions('measure', {
+			projectId: editorProjectId,
+			modelId: form.modelId,
+			cube: form.cube
+		}).then((options) => {
+			if (!active) {
+				return
+			}
+			setMeasures(options)
+			if (!form.measure && options[0]) {
+				setForm((current) =>
+					current.modelId === form.modelId && current.cube === form.cube
+						? { ...current, measure: options[0].value }
+						: current
+				)
+			}
+		})
+		return () => {
+			active = false
+		}
+	}, [editorOpen, editorProjectId, form.modelId, form.cube])
 
 	async function initialize(initialQuery: JsonObject) {
 		setLoading(true)
@@ -229,6 +290,8 @@ function MetricManagementApp() {
 		const parameters = readObject(query, 'parameters') ?? {}
 		setEditorMode('create')
 		setEditingRow(null)
+		setCubes([])
+		setMeasures([])
 		setForm({
 			...emptyMetricForm(),
 			modelId: readString(parameters, 'modelId') ?? '',
@@ -240,8 +303,22 @@ function MetricManagementApp() {
 	function openEdit(row: MetricRow) {
 		setEditorMode('edit')
 		setEditingRow(row)
+		setCubes([])
+		setMeasures([])
 		setForm(metricFormFromRow(row))
 		setEditorOpen(true)
+	}
+
+	function updateMetricForm(nextForm: MetricForm) {
+		setForm((current) => {
+			if (nextForm.modelId !== current.modelId) {
+				return { ...nextForm, cube: '', measure: '' }
+			}
+			if (nextForm.cube !== current.cube) {
+				return { ...nextForm, measure: '' }
+			}
+			return nextForm
+		})
 	}
 
 	async function saveMetric() {
@@ -723,12 +800,14 @@ function MetricManagementApp() {
 					mode={editorMode}
 					form={form}
 					models={models}
+					cubes={cubes}
+					measures={measures}
 					businessAreas={businessAreas}
 					certifications={certifications}
 					busy={busy === 'editor'}
 					locale={context?.locale}
 					onOpenChange={setEditorOpen}
-					onChange={setForm}
+					onChange={updateMetricForm}
 					onSubmit={() => void saveMetric()}
 				/>
 

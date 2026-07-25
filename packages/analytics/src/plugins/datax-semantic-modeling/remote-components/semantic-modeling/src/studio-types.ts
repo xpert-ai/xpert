@@ -36,6 +36,7 @@ export type CreateForm = {
 	dataSourceId: string
 	catalog: string
 	type: 'SQL' | 'XMLA'
+	projectId: string
 	businessAreaId: string
 	changeSummary: string
 }
@@ -56,7 +57,6 @@ export type Section =
 	| 'settings'
 	| 'validation'
 	| 'dimensionEditor'
-	| 'cubeEditor'
 	| 'virtualCubeEditor'
 	| 'json'
 

@@ -46,7 +46,6 @@ const sectionIcons: Record<Section, LucideIcon> = {
 	settings: Settings2,
 	validation: BadgeCheck,
 	dimensionEditor: TableProperties,
-	cubeEditor: Blocks,
 	virtualCubeEditor: Boxes,
 	json: FileJson
 }

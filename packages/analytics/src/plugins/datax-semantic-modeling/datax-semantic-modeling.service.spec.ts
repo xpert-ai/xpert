@@ -19,6 +19,19 @@ jest.mock('../../model', () => ({
 	},
 	SemanticModelService: class SemanticModelService {}
 }))
+jest.mock('../../project/queries', () => ({
+	ProjectMyQuery: class ProjectMyQuery {
+		constructor(public readonly input: unknown) {}
+	}
+}))
+jest.mock('../../project/commands', () => ({
+	ProjectModelsUpdateCommand: class ProjectModelsUpdateCommand {
+		constructor(
+			public readonly projectId: string,
+			public readonly modelIds: string[]
+		) {}
+	}
+}))
 
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source'
@@ -112,7 +125,9 @@ describe('DataXSemanticModelingService', () => {
 			modelId: 'model-1',
 			baseVersion: 1,
 			schema: {
-				cubes: [{ name: 'Sales' }]
+				cubes: [{ name: 'Sales' }],
+				dimensions: [],
+				virtualCubes: []
 			},
 			changeSummary: 'Create Sales cube'
 		})
@@ -122,7 +137,9 @@ describe('DataXSemanticModelingService', () => {
 			expect.objectContaining({
 				schema: {
 					name: '',
-					cubes: [{ name: 'Sales' }]
+					cubes: [{ name: 'Sales' }],
+					dimensions: [],
+					virtualCubes: []
 				}
 			})
 		)
@@ -165,6 +182,66 @@ describe('DataXSemanticModelingService', () => {
 			})
 		)
 	})
+
+	it('discovers catalogs only after resolving an accessible data source', async () => {
+		const dependencies = createDependencies()
+		dependencies.dataSourceService.findOne.mockResolvedValue({
+			id: 'source-1',
+			name: 'Warehouse'
+		})
+		dependencies.dataSourceService.getCatalogs.mockResolvedValue([
+			{ name: 'demo', label: 'Demo warehouse', type: 'schema' },
+			{ name: 'analytics', catalog: 'prod', schema: 'analytics' }
+		])
+		const service = createService(dependencies)
+
+		await expect(service.listCatalogs('source-1')).resolves.toEqual([
+			{ value: 'demo', label: 'Demo warehouse', description: 'schema' },
+			{ value: 'prod', label: 'analytics', description: 'analytics' }
+		])
+		expect(dependencies.dataSourceService.findOne).toHaveBeenCalledWith('source-1')
+		expect(dependencies.dataSourceService.getCatalogs).toHaveBeenCalledWith('source-1')
+	})
+
+	it('links a newly created workspace only to a project accessible by the current user', async () => {
+		const dependencies = createDependencies()
+		dependencies.dataSourceService.findOne.mockResolvedValue({ id: 'source-1' })
+		dependencies.queryBus.execute.mockResolvedValue({
+			items: [
+				{
+					id: 'project-1',
+					name: 'Retail Analytics',
+					models: [{ id: 'model-existing' }]
+				}
+			]
+		})
+		dependencies.commandBus.execute.mockResolvedValue({
+			id: 'model-new',
+			name: 'Revenue Analytics',
+			draft: { schema: {} }
+		})
+		const service = createService(dependencies)
+
+		await service.createWorkspace(
+			{
+				key: 'revenue_analytics',
+				name: 'Revenue Analytics',
+				dataSourceId: 'source-1',
+				catalog: 'demo',
+				projectId: 'project-1',
+				changeSummary: 'Create governed model'
+			},
+			'user-1'
+		)
+
+		expect(dependencies.commandBus.execute).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({
+				projectId: 'project-1',
+				modelIds: ['model-existing', 'model-new']
+			})
+		)
+	})
 })
 
 function createDependencies() {
@@ -175,7 +252,9 @@ function createDependencies() {
 			findMy: jest.fn()
 		},
 		dataSourceService: {
-			findAll: jest.fn()
+			findAll: jest.fn(),
+			findOne: jest.fn(),
+			getCatalogs: jest.fn()
 		},
 		commandBus: {
 			execute: jest.fn()

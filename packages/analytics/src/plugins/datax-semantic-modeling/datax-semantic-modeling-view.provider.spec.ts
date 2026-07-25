@@ -14,6 +14,12 @@ jest.mock('../../model', () => ({
 	SemanticModelPublishCommand: class SemanticModelPublishCommand {},
 	SemanticModelService: class SemanticModelService {}
 }))
+jest.mock('../../project/queries', () => ({
+	ProjectMyQuery: class ProjectMyQuery {}
+}))
+jest.mock('../../project/commands', () => ({
+	ProjectModelsUpdateCommand: class ProjectModelsUpdateCommand {}
+}))
 
 import {
 	DATA_X_SEMANTIC_MODELING_FEATURE,
@@ -147,12 +153,62 @@ describe('DataXSemanticModelingViewProvider', () => {
 			}
 		})
 	})
+
+	it('provides accessible catalogs for the selected data source', async () => {
+		const service = createService()
+		service.listCatalogs.mockResolvedValue([
+			{ value: 'demo', label: 'Demo warehouse', description: 'schema' },
+			{ value: 'sales', label: 'Sales mart' }
+		])
+		const provider = createProvider(service)
+
+		const result = await provider.getViewParameterOptions(context, DATA_X_SEMANTIC_MODELING_VIEW_KEY, 'catalog', {
+			search: 'demo',
+			parameters: {
+				dataSourceId: 'source-1'
+			}
+		})
+
+		expect(service.listCatalogs).toHaveBeenCalledWith('source-1')
+		expect(result).toEqual({
+			items: [{ value: 'demo', label: 'Demo warehouse', description: 'schema' }]
+		})
+	})
+
+	it('provides only projects resolved by the permission-aware modeling service', async () => {
+		const service = createService()
+		service.listProjects.mockResolvedValue([
+			{
+				id: 'project-1',
+				name: 'Retail Analytics',
+				description: 'Governed retail metrics',
+				modelIds: []
+			}
+		])
+		const provider = createProvider(service)
+
+		const result = await provider.getViewParameterOptions(context, DATA_X_SEMANTIC_MODELING_VIEW_KEY, 'projectId', {
+			search: 'retail'
+		})
+
+		expect(result).toEqual({
+			items: [
+				{
+					value: 'project-1',
+					label: 'Retail Analytics',
+					description: 'Governed retail metrics'
+				}
+			]
+		})
+	})
 })
 
 function createService() {
 	return {
 		listWorkspaces: jest.fn(async () => []),
 		listDataSources: jest.fn(async () => []),
+		listCatalogs: jest.fn(async () => []),
+		listProjects: jest.fn(async () => []),
 		getWorkspace: jest.fn(),
 		safeListTables: jest.fn(),
 		safeGetTableSchema: jest.fn(),

@@ -1,3 +1,4 @@
+import { SystemMessage } from '@langchain/core/messages'
 import { Injectable } from '@nestjs/common'
 import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import {
@@ -8,7 +9,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { DATA_X_METRIC_ICON, DATA_X_METRIC_MANAGEMENT_FEATURE, DATA_X_METRIC_PROVIDER_KEY } from './constants'
 import { DataXMetricManagementService } from './datax-metric-management.service'
-import { DataXMetricManagementRuntime } from './runtime'
+import { DataXMetricManagementRuntime, TOOL_INDICATORS_PROMPTS_DEFAULT } from './runtime'
 
 export const DataXMetricManagementMiddlewareName = DATA_X_METRIC_PROVIDER_KEY
 
@@ -34,7 +35,14 @@ export class DataXMetricManagementMiddleware implements IAgentMiddlewareStrategy
 				runtime.createInitialState({
 					...((config as { state?: Record<string, unknown> } | undefined)?.state ?? {}),
 					...(state ?? {})
+				}),
+			wrapModelCall: (request, handler) => {
+				const existing = typeof request.systemMessage?.content === 'string' ? request.systemMessage.content : ''
+				return handler({
+					...request,
+					systemMessage: new SystemMessage(`${existing}\n\n${TOOL_INDICATORS_PROMPTS_DEFAULT}`)
 				})
+			}
 		}
 	}
 }

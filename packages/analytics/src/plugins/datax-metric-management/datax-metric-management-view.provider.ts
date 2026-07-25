@@ -365,6 +365,28 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 						}
 					},
 					{
+						key: 'cube',
+						label: text('Cube', '立方体'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['projectId', 'modelId']
+						}
+					},
+					{
+						key: 'measure',
+						label: text('Measure', '度量'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['projectId', 'modelId', 'cube']
+						}
+					},
+					{
 						key: 'businessAreaId',
 						label: text('Business Area', '业务域'),
 						type: 'string',
@@ -783,6 +805,41 @@ export class DataXMetricManagementViewProvider implements IXpertViewExtensionPro
 				items: models
 					.map((model) => toModelOption(model))
 					.filter((model) => !search || model.label.toLowerCase().includes(search))
+			}
+		}
+
+		if (parameterKey === 'cube') {
+			const projectId = getStringInput(query.parameters, 'projectId')
+			const modelId = getStringInput(query.parameters, 'modelId')
+			if (!projectId || !modelId) {
+				return { items: [] }
+			}
+			const cubes = await this.metricManagementService.loadModelCubes(projectId, modelId)
+			return {
+				items: cubes.filter(
+					(cube) =>
+						!search ||
+						cube.value.toLowerCase().includes(search) ||
+						cube.label.toLowerCase().includes(search)
+				)
+			}
+		}
+
+		if (parameterKey === 'measure') {
+			const projectId = getStringInput(query.parameters, 'projectId')
+			const modelId = getStringInput(query.parameters, 'modelId')
+			const cube = getStringInput(query.parameters, 'cube')
+			if (!projectId || !modelId || !cube) {
+				return { items: [] }
+			}
+			const measures = await this.metricManagementService.loadCubeMeasures(projectId, modelId, cube)
+			return {
+				items: measures.filter(
+					(measure) =>
+						!search ||
+						measure.value.toLowerCase().includes(search) ||
+						measure.label.toLowerCase().includes(search)
+				)
 			}
 		}
 

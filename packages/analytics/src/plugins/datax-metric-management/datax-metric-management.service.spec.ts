@@ -67,6 +67,7 @@ import {
 	toIndicatorDraft,
 	toMetricRow
 } from './datax-metric-management.service'
+import { updateOcapIndicators } from '../../ai/toolset/builtin/bi-toolset'
 
 describe('DataXMetricManagementService', () => {
 	beforeEach(() => {
@@ -123,6 +124,49 @@ describe('DataXMetricManagementService', () => {
 				]
 			}
 		})
+	})
+
+	it('discovers cubes and measures only through a project-accessible semantic model', async () => {
+		const { service, queryBus } = createService()
+		queryBus.execute.mockResolvedValue({
+			items: [
+				{
+					id: 'project-1',
+					models: [
+						{
+							id: 'model-1',
+							options: {
+								schema: {
+									cubes: [
+										{
+											name: 'Sales',
+											caption: 'Sales Cube',
+											measures: [
+												{
+													name: 'Sales Amount',
+													caption: 'Revenue',
+													column: 'sales_amount',
+													aggregator: 'sum'
+												}
+											]
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			],
+			total: 1
+		})
+
+		await expect(service.loadModelCubes('project-1', 'model-1')).resolves.toEqual([
+			{ value: 'Sales', label: 'Sales Cube', description: undefined }
+		])
+		await expect(service.loadCubeMeasures('project-1', 'model-1', 'Sales')).resolves.toEqual([
+			{ value: 'Sales Amount', label: 'Revenue', description: undefined }
+		])
+		await expect(service.loadModelCubes('project-other', 'model-1')).resolves.toEqual([])
 	})
 
 	it('uses draft values when mapping rows for the workbench view', () => {
@@ -427,6 +471,55 @@ describe('DataXMetricManagementService', () => {
 
 		await expect(session.listCubesTool({}, { configurable: {} } as any)).resolves.toContain('Sales')
 		expect(mockInterrupt).not.toHaveBeenCalled()
+	})
+
+	it('publishes an exact indicator in the active project scope and refreshes the query context', async () => {
+		const { service, queryBus, indicatorService } = createService()
+		queryBus.execute.mockImplementation(mockProjectBIContext)
+		indicatorService.findOneOrFailByWhereOptions.mockResolvedValue({
+			success: true,
+			record: {
+				id: 'metric-1',
+				code: 'SALES_AMOUNT',
+				name: 'Sales Amount',
+				projectId: 'project-1'
+			}
+		})
+		indicatorService.publish.mockResolvedValue({ affected: 1 })
+		indicatorService.findOne.mockResolvedValue({
+			id: 'metric-1',
+			code: 'SALES_AMOUNT',
+			status: IndicatorStatusEnum.RELEASED,
+			modelId: 'model-1',
+			entity: 'Sales'
+		} as any)
+
+		const session = service.createSession(createContext())
+		await session.init()
+		session.createInitialState({ tool_indicators_scope: { projectId: 'project-1' } }, 'prompt')
+
+		const output = JSON.parse(
+			String(await session.publishIndicatorTool({ code: 'SALES_AMOUNT' }, { configurable: {} } as any))
+		)
+
+		expect(indicatorService.findOneOrFailByWhereOptions).toHaveBeenCalledWith(
+			expect.objectContaining({
+				projectId: 'project-1',
+				code: 'SALES_AMOUNT'
+			})
+		)
+		expect(indicatorService.publish).toHaveBeenCalledWith('metric-1')
+		expect(updateOcapIndicators).toHaveBeenCalledWith(
+			expect.anything(),
+			[expect.objectContaining({ code: 'SALES_AMOUNT' })],
+			expect.objectContaining({ isDraft: false })
+		)
+		expect(output).toMatchObject({
+			code: 'SALES_AMOUNT',
+			status: IndicatorStatusEnum.RELEASED,
+			modelId: 'model-1',
+			cube: 'Sales'
+		})
 	})
 
 	it('waits for a concurrently selected scope before failing metric operations', async () => {

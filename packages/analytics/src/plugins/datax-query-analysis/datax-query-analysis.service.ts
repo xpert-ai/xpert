@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { extractSemanticModelDraft, ISemanticModel } from '@xpert-ai/contracts'
-import { Schema } from '@xpert-ai/ocap-core'
+import { extractSemanticModelDraft, ISemanticModel, IndicatorStatusEnum } from '@xpert-ai/contracts'
+import { Cube, DimensionUsage, PropertyDimension, PropertyHierarchy, PropertyLevel, Schema } from '@xpert-ai/ocap-core'
 import { Injectable } from '@nestjs/common'
 import { ILike } from 'typeorm'
 import { SemanticModelService } from '../../model'
 import { UoseMdxAdapterError, UoseMdxQueryResponse } from '../../model/uose-query.mapper'
+import { normalizeConversationalSemanticSchema } from '../datax-semantic-modeling/semantic-schema.normalizer'
 import { DataXQueryExecuteInput } from './schemas'
 
 export type DataXQueryModelRow = {
@@ -80,7 +81,7 @@ export class DataXQueryAnalysisService {
 			limit: input.limit
 		})
 		if (isQueryError(response)) {
-			const fallback = await this.executeMeasuresSqlFallback(
+			const fallback = await this.executeSchemaSqlFallback(
 				input.modelId,
 				input.cubeName,
 				input.statement,
@@ -112,7 +113,7 @@ export class DataXQueryAnalysisService {
 		}
 	}
 
-	private async executeMeasuresSqlFallback(
+	private async executeSchemaSqlFallback(
 		modelId: string,
 		cubeName: string,
 		statement: string,
@@ -127,7 +128,8 @@ export class DataXQueryAnalysisService {
 		},
 		mdxError: string
 	): Promise<DataXQueryResult | null> {
-		if (!/^\s*select\b[\s\S]*\bon\s+columns\b[\s\S]*\bfrom\s+\[[^\]]+\]\s*$/i.test(statement)) {
+		const parsedStatement = parseSimpleMdxStatement(statement)
+		if (!parsedStatement) {
 			return null
 		}
 		const explicitMeasures = [...statement.matchAll(/\[Measures\]\.\[([^\]]+)\]/gi)].map((match) => match[1])
@@ -135,27 +137,91 @@ export class DataXQueryAnalysisService {
 			return null
 		}
 		const model = await this.semanticModelService.findOne(modelId, {
-			relations: ['dataSource', 'dataSource.type']
+			relations: ['dataSource', 'dataSource.type', 'indicators']
 		})
 		if (!model) {
 			return null
 		}
 		const draft = model.draft ?? extractSemanticModelDraft<Schema>(model)
-		const schema = draft.schema ?? model.options?.schema
+		const schema = normalizeConversationalSemanticSchema(draft.schema ?? model.options?.schema ?? {})
 		const cube = schema?.cubes?.find((item) => item.name === cubeName || item.caption === cubeName)
 		const tableName = cube?.fact?.table?.name ?? cube?.tables?.[0]?.name
 		if (!cube || !tableName) {
 			return null
 		}
-		const requested = explicitMeasures.length ? new Set(explicitMeasures) : null
-		const projections = (cube.measures ?? [])
-			.filter((measure) => !requested || requested.has(measure.name))
-			.map((measure) => toAggregateProjection(measure))
+		if (
+			![cube.name, cube.caption, cubeName].some(
+				(candidate) => normalizeComparisonName(candidate) === normalizeComparisonName(parsedStatement.cubeName)
+			)
+		) {
+			return null
+		}
+		const grouping = resolveSqlGrouping(schema, cube, tableName, parsedStatement.rowAxis)
+		if (parsedStatement.rowAxis && !grouping) {
+			return null
+		}
+		const projections = (
+			explicitMeasures.length
+				? explicitMeasures
+						.map((requestedName) => {
+							const directMeasure = findCubeMeasure(cube, requestedName)
+							if (directMeasure) {
+								return {
+									measure: directMeasure,
+									alias: directMeasure.name
+								}
+							}
+							const indicator = model.indicators?.find(
+								(item) =>
+									item.status === IndicatorStatusEnum.RELEASED &&
+									(!item.entity ||
+										normalizeComparisonName(item.entity) === normalizeComparisonName(cube.name)) &&
+									[item.code, item.name].some(
+										(candidate) =>
+											normalizeComparisonName(candidate) ===
+											normalizeComparisonName(requestedName)
+									)
+							)
+							const indicatorMeasure =
+								typeof indicator?.options?.measure === 'string'
+									? findCubeMeasure(cube, indicator.options.measure)
+									: undefined
+							return indicatorMeasure
+								? {
+										measure: indicatorMeasure,
+										alias: indicator?.code?.trim() || requestedName
+									}
+								: null
+						})
+						.filter(
+							(
+								value
+							): value is {
+								measure: NonNullable<Cube['measures']>[number]
+								alias: string
+							} => Boolean(value)
+						)
+				: (cube.measures ?? []).map((measure) => ({
+						measure,
+						alias: measure.name
+					}))
+		)
+			.map(({ measure, alias }) => toAggregateProjection(measure, grouping ? 'f' : undefined, alias))
 			.filter((value): value is string => Boolean(value))
 		if (!projections.length) {
 			return null
 		}
-		const sql = `SELECT ${projections.join(', ')} FROM ${quoteQualifiedIdentifier(tableName)} LIMIT ${limit}`
+		const sql = grouping
+			? [
+					`SELECT ${grouping.expression} AS ${quoteIdentifier(grouping.label)}, ${projections.join(', ')}`,
+					`FROM ${quoteQualifiedIdentifier(tableName)} AS f`,
+					grouping.joinSql,
+					`GROUP BY ${grouping.expression}`,
+					`LIMIT ${limit}`
+				]
+					.filter(Boolean)
+					.join(' ')
+			: `SELECT ${projections.join(', ')} FROM ${quoteQualifiedIdentifier(tableName)} LIMIT ${limit}`
 		const startedAt = Date.now()
 		const raw = await this.semanticModelService.query(modelId, { statement: sql }, {})
 		const payload = isRecord(raw) ? raw : {}
@@ -234,13 +300,17 @@ function isQueryError(value: UoseMdxQueryResponse | UoseMdxAdapterError): value 
 	return 'code' in value && 'message' in value && !('rows' in value)
 }
 
-function toAggregateProjection(measure: NonNullable<NonNullable<Schema['cubes']>[number]['measures']>[number]) {
+function toAggregateProjection(
+	measure: NonNullable<NonNullable<Schema['cubes']>[number]['measures']>[number],
+	tableAlias?: string,
+	outputName = measure.name
+) {
 	const column = typeof measure.column === 'string' ? measure.column.trim() : ''
 	if (!column || !isSafeIdentifier(column)) {
 		return null
 	}
 	const aggregator = String(measure.aggregator ?? 'sum').toLowerCase()
-	const quotedColumn = quoteIdentifier(column)
+	const quotedColumn = tableAlias ? `${tableAlias}.${quoteIdentifier(column)}` : quoteIdentifier(column)
 	const expression =
 		aggregator === 'count'
 			? `COUNT(${quotedColumn})`
@@ -253,7 +323,207 @@ function toAggregateProjection(measure: NonNullable<NonNullable<Schema['cubes']>
 						: aggregator === 'max'
 							? `MAX(${quotedColumn})`
 							: `SUM(${quotedColumn})`
-	return `${expression} AS ${quoteIdentifier(measure.name)}`
+	return `${expression} AS ${quoteIdentifier(outputName)}`
+}
+
+function findCubeMeasure(cube: Cube, requestedName: string) {
+	const normalized = normalizeComparisonName(requestedName)
+	return cube.measures?.find((measure) =>
+		[measure.name, measure.caption].some((candidate) => normalizeComparisonName(candidate) === normalized)
+	)
+}
+
+type SchemaSqlGrouping = {
+	expression: string
+	label: string
+	joinSql?: string
+}
+
+type SimpleMdxStatement = {
+	cubeName: string
+	rowAxis?: string
+}
+
+function parseSimpleMdxStatement(statement: string): SimpleMdxStatement | null {
+	const select = statement.match(
+		/^\s*select\s+([\s\S]+?)\s+from\s+\[([^\]]+)\]\s*(?:cell\s+properties[\s\S]+)?;?\s*$/i
+	)
+	if (!select) {
+		return null
+	}
+	const axes = select[1]?.trim()
+	const cubeName = select[2]?.trim()
+	if (!axes || !cubeName) {
+		return null
+	}
+	const grouped = axes.match(/^([\s\S]+?)\s+on\s+(?:columns|0)\s*,\s*([\s\S]+?)\s+on\s+(?:rows|1)\s*$/i)
+	if (grouped) {
+		const rowAxis = normalizeSimpleRowAxis(grouped[2])
+		return rowAxis
+			? {
+					cubeName,
+					rowAxis
+				}
+			: null
+	}
+	if (!/^([\s\S]+?)\s+on\s+(?:columns|0)\s*$/i.test(axes)) {
+		return null
+	}
+	return {
+		cubeName
+	}
+}
+
+function normalizeSimpleRowAxis(value: string | undefined) {
+	const normalized = value
+		?.trim()
+		.replace(/^non\s+empty\s+/i, '')
+		.replace(/\s+dimension\s+properties[\s\S]*$/i, '')
+		.trim()
+	return normalized || null
+}
+
+function resolveSqlGrouping(
+	schema: Schema | undefined,
+	cube: Cube,
+	factTableName: string,
+	rowAxis: string | undefined
+): SchemaSqlGrouping | null {
+	if (!rowAxis) {
+		return null
+	}
+	if (/crossjoin|nonempty|filter|topcount|bottomcount|\*/i.test(rowAxis)) {
+		return null
+	}
+	const memberCount = rowAxis.match(/\.members\b/gi)?.length ?? 0
+	const residual = rowAxis
+		.replace(/\[[^\]]+\]/g, '')
+		.replace(/[{}\s.]/g, '')
+		.toLowerCase()
+	if (memberCount !== 1 || residual !== 'members') {
+		return null
+	}
+	const segments = [...rowAxis.matchAll(/\[([^\]]+)\]/g)]
+		.map((match) => match[1]?.trim())
+		.filter((segment): segment is string => Boolean(segment))
+	if (!segments.length) {
+		return null
+	}
+	const requestedDimension = segments[0]
+	const usage = findDimensionUsage(cube, requestedDimension)
+	const dimension = findDimension(schema, cube, usage, requestedDimension)
+	if (!dimension) {
+		return null
+	}
+	const { hierarchy, level } = resolveHierarchyLevel(dimension, segments.slice(1))
+	const levelColumn = level?.column?.trim()
+	if (!hierarchy || !level || !levelColumn || !isSafeIdentifier(levelColumn)) {
+		return null
+	}
+	const dimensionTableName = hierarchy.primaryKeyTable?.trim() || hierarchy.tables?.[0]?.name?.trim() || factTableName
+	if (!dimensionTableName) {
+		return null
+	}
+	const sameTable = normalizeQualifiedName(dimensionTableName) === normalizeQualifiedName(factTableName)
+	const tableAlias = sameTable ? 'f' : 'd'
+	const expression = `${tableAlias}.${quoteIdentifier(levelColumn)}`
+	const label = level.caption?.trim() || level.name?.trim() || requestedDimension
+	if (sameTable) {
+		return {
+			expression,
+			label
+		}
+	}
+	const foreignKey = usage?.foreignKey?.trim() || dimension.foreignKey?.trim()
+	const primaryKey = hierarchy.primaryKey?.trim()
+	if (!foreignKey || !primaryKey || !isSafeIdentifier(foreignKey) || !isSafeIdentifier(primaryKey)) {
+		return null
+	}
+	return {
+		expression,
+		label,
+		joinSql: `LEFT JOIN ${quoteQualifiedIdentifier(dimensionTableName)} AS d ON f.${quoteIdentifier(
+			foreignKey
+		)} = d.${quoteIdentifier(primaryKey)}`
+	}
+}
+
+function findDimensionUsage(cube: Cube, requestedDimension: string): DimensionUsage | undefined {
+	const normalized = normalizeComparisonName(requestedDimension)
+	return cube.dimensionUsages?.find((usage) =>
+		[usage.name, usage.caption, usage.source].some((candidate) => normalizeComparisonName(candidate) === normalized)
+	)
+}
+
+function findDimension(
+	schema: Schema | undefined,
+	cube: Cube,
+	usage: DimensionUsage | undefined,
+	requestedDimension: string
+): PropertyDimension | undefined {
+	const names = [usage?.source, usage?.name, requestedDimension]
+	for (const name of names) {
+		const normalized = normalizeComparisonName(name)
+		if (!normalized) {
+			continue
+		}
+		const dimension = [...(schema?.dimensions ?? []), ...(cube.dimensions ?? [])].find((candidate) =>
+			[candidate.name, candidate.caption].some((value) => normalizeComparisonName(value) === normalized)
+		)
+		if (dimension) {
+			return dimension
+		}
+	}
+	return undefined
+}
+
+function resolveHierarchyLevel(
+	dimension: PropertyDimension,
+	requestedSegments: string[]
+): { hierarchy?: PropertyHierarchy; level?: PropertyLevel } {
+	const hierarchies = dimension.hierarchies ?? []
+	const requestedHierarchy = requestedSegments[0]
+	const matchingHierarchy = hierarchies.find((hierarchy) =>
+		[hierarchy.name, hierarchy.caption].some(
+			(value) => normalizeComparisonName(value) === normalizeComparisonName(requestedHierarchy)
+		)
+	)
+	const hierarchy =
+		matchingHierarchy ??
+		hierarchies.find((candidate) => candidate.name === dimension.defaultHierarchy) ??
+		hierarchies[0]
+	if (!hierarchy) {
+		return {}
+	}
+	const requestedLevel = matchingHierarchy ? requestedSegments[1] : requestedSegments[0]
+	const levels = hierarchy.levels ?? []
+	const level = requestedLevel
+		? levels.find((candidate) =>
+				[candidate.name, candidate.caption].some(
+					(value) => normalizeComparisonName(value) === normalizeComparisonName(requestedLevel)
+				)
+			)
+		: levels.at(-1)
+	return {
+		hierarchy,
+		level: level ?? levels.at(-1)
+	}
+}
+
+function normalizeComparisonName(value: string | undefined) {
+	return (
+		value
+			?.replace(/^\[|\]$/g, '')
+			.trim()
+			.toLowerCase() ?? ''
+	)
+}
+
+function normalizeQualifiedName(value: string) {
+	return value
+		.split('.')
+		.map((part) => part.trim().toLowerCase())
+		.join('.')
 }
 
 function quoteQualifiedIdentifier(value: string) {

@@ -21,12 +21,26 @@ const schema = {
 			name: 'Sales',
 			caption: 'Sales',
 			fact: { type: 'table', table: { name: 'adv_sales' } },
+			defaultMeasure: 'Sales Amount',
 			measures: [
 				{ name: 'Sales Quantity', column: 'sales_quantity', aggregator: 'sum' },
 				{ name: 'Unit Price', column: 'unit_price', aggregator: 'avg' },
 				{ name: 'Extended Amount', column: 'extended_amount', aggregator: 'sum' },
-				{ name: 'Unit Price Discount pct', column: 'discount_pct', aggregator: 'avg' }
+				{
+					name: 'Sales Amount',
+					caption: '销售金额',
+					description: '销售金额（包含税前折扣）',
+					column: 'sales_amount',
+					datatype: 'Decimal',
+					aggregator: 'sum',
+					formatString: '#,##0.00'
+				},
+				{ name: 'Tax Amount', column: 'tax_amount', aggregator: 'sum' },
+				{ name: 'Freight', column: 'freight', aggregator: 'sum' },
+				{ name: 'Discount Amount', column: 'discount_amount', aggregator: 'sum' },
+				{ name: 'Order Count', column: 'sales_order_id', aggregator: 'count' }
 			],
+			calculatedMembers: [{ name: 'Avg Unit Price', formula: '', visible: true }],
 			dimensionUsages: dimensions.map((item) => ({
 				name: item.name,
 				source: item.name,
@@ -34,7 +48,32 @@ const schema = {
 			}))
 		}
 	],
-	virtualCubes: [],
+	virtualCubes: [
+		{
+			name: 'Unified Commerce',
+			caption: '统一商业分析',
+			description: '统一销售渠道、客户与商品口径，用于跨主题经营分析。',
+			cubeUsages: [{ cubeName: 'Sales', ignoreUnrelatedDimensions: false }],
+			virtualCubeDimensions: [
+				{ cubeName: 'Sales', name: 'Reseller', caption: '经销商', __shared__: true },
+				{ cubeName: 'Sales', name: 'Date', caption: '日期', __shared__: true },
+				{ cubeName: 'Sales', name: 'Product', caption: '商品', __shared__: true }
+			],
+			virtualCubeMeasures: [
+				{ cubeName: 'Sales', name: 'Sales Amount', caption: '销售金额', visible: true },
+				{ cubeName: 'Sales', name: 'Order Count', caption: '订单数', visible: true }
+			],
+			calculatedMembers: [
+				{
+					name: 'Average Order Value',
+					caption: '平均订单金额',
+					dimension: 'Measures',
+					formula: '[Measures].[Sales Amount] / [Measures].[Order Count]',
+					visible: true
+				}
+			]
+		}
+	],
 	roles: []
 }
 
@@ -118,13 +157,23 @@ export default {
 		sourceTables,
 		modelOptions: [{ value: 'model-1', label: 'Demo – AdventureWorks Sales' }],
 		dataSourceOptions: [{ value: 'source-1', label: 'warehouse_prod' }],
+		catalogOptions: [{ value: 'demo', label: 'Demo warehouse' }],
+		projectOptions: [{ value: 'project-1', label: 'Retail Analytics' }],
 		version: 18
 	},
 	async handleRequest(message, { state }) {
 		if (message.type === 'requestParameterOptions') {
+			const items =
+				message.parameterKey === 'dataSourceId'
+					? state.dataSourceOptions
+					: message.parameterKey === 'catalog'
+						? state.catalogOptions
+						: message.parameterKey === 'projectId'
+							? state.projectOptions
+							: state.modelOptions
 			return {
 				result: {
-					items: message.parameterKey === 'dataSourceId' ? state.dataSourceOptions : state.modelOptions
+					items
 				}
 			}
 		}
@@ -142,7 +191,7 @@ export default {
 			if (parameters.mode === 'table_schema') {
 				return {
 					data: {
-						items: [
+						item: [
 							{
 								name: parameters.tableName,
 								columns: [
@@ -159,6 +208,80 @@ export default {
 		}
 
 		if (message.type === 'executeAction') {
+			if (message.actionKey === 'create_workspace') {
+				const modelId = `model-${state.modelOptions.length + 1}`
+				const name = message.input?.name || `Semantic Model ${state.modelOptions.length + 1}`
+				const key = message.input?.key || modelId
+				state.version = 1
+				state.workspace = {
+					item: {
+						model: {
+							id: modelId,
+							name,
+							key,
+							type: message.input?.type || 'SQL',
+							status: 'draft',
+							draftVersion: state.version,
+							cubeCount: 0,
+							dimensionCount: 0,
+							dataSourceName: state.dataSourceOptions[0]?.label,
+							projectId: message.input?.projectId
+						},
+						draft: { schema: { name: key, dimensions: [], cubes: [], virtualCubes: [] } },
+						checklist: []
+					}
+				}
+				state.modelOptions.push({ value: modelId, label: name })
+				return {
+					result: {
+						success: true,
+						message: 'Preview semantic model created.',
+						data: {
+							id: modelId,
+							name,
+							key,
+							draftVersion: state.version
+						}
+					}
+				}
+			}
+			if (message.actionKey === 'save_draft' && typeof message.input?.schemaJson === 'string') {
+				const nextSchema = JSON.parse(message.input.schemaJson)
+				if (!nextSchema || typeof nextSchema !== 'object' || Array.isArray(nextSchema)) {
+					throw new Error('Preview save_draft requires an object schema.')
+				}
+				state.workspace.item.draft.schema = nextSchema
+			}
+			if (message.actionKey === 'execute_query') {
+				return {
+					result: {
+						success: true,
+						message: 'Preview query completed.',
+						data: {
+							columns: [
+								{ name: 'Reseller', type: 'String' },
+								{ name: 'Sales Amount', type: 'Decimal' },
+								{ name: 'Order Count', type: 'Integer' }
+							],
+							rows: [
+								{ Reseller: 'Adventure Works', 'Sales Amount': 1287450.32, 'Order Count': 1842 },
+								{ Reseller: 'Contoso', 'Sales Amount': 936210.75, 'Order Count': 1217 },
+								{ Reseller: 'Northwind', 'Sales Amount': 602441.1, 'Order Count': 864 }
+							],
+							rowCount: 3,
+							totalRowCount: 3,
+							truncated: false,
+							mdx: message.input?.statement,
+							sql: 'SELECT reseller_name, SUM(sales_amount) AS sales_amount, COUNT(order_id) AS order_count\nFROM adv_sales\nGROUP BY reseller_name\nORDER BY sales_amount DESC',
+							durationMs: 42
+						}
+					}
+				}
+			}
+			if (message.actionKey === 'publish') {
+				state.workspace.item.model.status = 'published'
+				state.workspace.item.model.publishAt = new Date().toISOString()
+			}
 			state.version += 1
 			state.workspace.item.model.draftVersion = state.version
 			return {
@@ -182,10 +305,17 @@ function dimension(name, table, levels) {
 		hierarchies: [
 			{
 				name,
+				caption: name,
+				hasAll: true,
+				primaryKey: 'id',
 				tables: [{ name: table }],
 				levels: levels.map((level) => ({
 					name: level,
-					column: level.toLowerCase().replaceAll(' ', '_')
+					caption: level,
+					column: level.toLowerCase().replaceAll(' ', '_'),
+					type: 'String',
+					levelType: 'Regular',
+					uniqueMembers: true
 				}))
 			}
 		]

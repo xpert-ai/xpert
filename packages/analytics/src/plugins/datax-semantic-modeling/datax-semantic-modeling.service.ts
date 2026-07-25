@@ -12,6 +12,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ILike } from 'typeorm'
 import { DataSourceQuery, DataSourceService } from '../../data-source'
 import { SemanticModelCreateCommand, SemanticModelPublishCommand, SemanticModelService } from '../../model'
+import { ProjectModelsUpdateCommand } from '../../project/commands'
+import { ProjectMyQuery } from '../../project/queries'
 import {
 	DataXQueryAnalysisService,
 	DataXQueryExecutionContext
@@ -22,6 +24,7 @@ import {
 	SemanticModelSchemaInput,
 	SemanticModelWorkspaceCreateInput
 } from './schemas'
+import { normalizeConversationalSemanticSchema } from './semantic-schema.normalizer'
 
 export type SemanticModelWorkspaceRow = {
 	id: string
@@ -55,6 +58,19 @@ export type SemanticModelDataSourceOption = {
 	name: string
 	type?: string
 	protocol?: string
+}
+
+export type SemanticModelCatalogOption = {
+	value: string
+	label: string
+	description?: string
+}
+
+export type SemanticModelProjectOption = {
+	id: string
+	name: string
+	description?: string
+	modelIds: string[]
 }
 
 @Injectable()
@@ -92,6 +108,51 @@ export class DataXSemanticModelingService {
 			take: 100
 		})
 		return result.items.map(toDataSourceOption)
+	}
+
+	async listCatalogs(dataSourceId: string): Promise<SemanticModelCatalogOption[]> {
+		const dataSource = await this.dataSourceService.findOne(dataSourceId)
+		const catalogs = await this.dataSourceService.getCatalogs(String(dataSource.id))
+		return catalogs
+			.map<SemanticModelCatalogOption | null>((catalog) => {
+				const value = catalog.catalog?.trim() || catalog.schema?.trim() || catalog.name?.trim()
+				if (!value) {
+					return null
+				}
+				return {
+					value,
+					label: catalog.label?.trim() || catalog.name?.trim() || value,
+					description: [catalog.catalog, catalog.schema, catalog.type]
+						.map((item) => item?.trim())
+						.filter((item): item is string => Boolean(item) && item !== value)
+						.join(' · ')
+				}
+			})
+			.filter((item): item is SemanticModelCatalogOption => Boolean(item))
+	}
+
+	async listProjects(): Promise<SemanticModelProjectOption[]> {
+		const result = await this.queryBus.execute<
+			ProjectMyQuery,
+			{
+				items: Array<{
+					id: string
+					name?: string
+					description?: string
+					models?: Array<{ id?: string }>
+				}>
+			}
+		>(
+			new ProjectMyQuery({
+				relations: ['models']
+			})
+		)
+		return result.items.map((project) => ({
+			id: project.id,
+			name: project.name?.trim() || project.id,
+			description: project.description,
+			modelIds: (project.models ?? []).map((model) => model.id).filter((id): id is string => Boolean(id))
+		}))
 	}
 
 	async getWorkspace(modelId: string): Promise<SemanticModelWorkspaceDetail> {
@@ -151,6 +212,13 @@ export class DataXSemanticModelingService {
 	}
 
 	async createWorkspace(input: SemanticModelWorkspaceCreateInput, userId: string) {
+		await this.dataSourceService.findOne(input.dataSourceId)
+		const project = input.projectId
+			? (await this.listProjects()).find((item) => item.id === input.projectId)
+			: undefined
+		if (input.projectId && !project) {
+			throw new Error(`Project '${input.projectId}' is not accessible.`)
+		}
 		const created = await this.commandBus.execute<SemanticModelCreateCommand, ISemanticModel>(
 			new SemanticModelCreateCommand({
 				key: input.key,
@@ -176,6 +244,11 @@ export class DataXSemanticModelingService {
 				}
 			})
 		)
+		if (project && created.id) {
+			await this.commandBus.execute(
+				new ProjectModelsUpdateCommand(project.id, Array.from(new Set([...project.modelIds, created.id])))
+			)
+		}
 		return toWorkspaceRow(created)
 	}
 
@@ -216,6 +289,14 @@ export class DataXSemanticModelingService {
 	}
 
 	async publishWorkspace(modelId: string, releaseNotes = '') {
+		const workspace = await this.getWorkspace(modelId)
+		const normalizedSchema = normalizeConversationalSemanticSchema(workspace.draft.schema ?? {})
+		if (JSON.stringify(normalizedSchema) !== JSON.stringify(workspace.draft.schema ?? {})) {
+			await this.semanticModelService.saveDraft(modelId, {
+				...workspace.draft,
+				schema: normalizedSchema
+			})
+		}
 		const model = await this.commandBus.execute<SemanticModelPublishCommand, ISemanticModel>(
 			new SemanticModelPublishCommand(modelId, releaseNotes)
 		)
@@ -308,10 +389,7 @@ function toDataSourceOption(dataSource: IDataSource): SemanticModelDataSourceOpt
 
 function parseSchema(input: SemanticModelSchemaInput): Schema {
 	const schema = SemanticModelSchemaSchema.parse(input)
-	return {
-		...schema,
-		name: typeof input.name === 'string' ? input.name : ''
-	}
+	return normalizeConversationalSemanticSchema(schema)
 }
 
 function isObject(value: unknown): value is { [key: string]: unknown } {

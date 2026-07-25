@@ -69,6 +69,10 @@ const CREATE_WORKSPACE_INPUT_SCHEMA = {
 			enum: [ModelTypeEnum.SQL, ModelTypeEnum.XMLA],
 			default: ModelTypeEnum.SQL
 		},
+		projectId: {
+			type: 'string',
+			title: text('Project', '所属项目')
+		},
 		businessAreaId: {
 			type: 'string',
 			title: text('Business Area ID', '业务域 ID')
@@ -326,6 +330,27 @@ export class DataXSemanticModelingViewProvider implements IXpertViewExtensionPro
 						}
 					},
 					{
+						key: 'catalog',
+						label: text('Catalog / Schema', '目录 / Schema'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true,
+							dependsOn: ['dataSourceId']
+						}
+					},
+					{
+						key: 'projectId',
+						label: text('Project', '所属项目'),
+						type: 'string',
+						optionSource: {
+							mode: 'provider',
+							searchable: true,
+							preload: true
+						}
+					},
+					{
 						key: 'cubeName',
 						label: text('Cube', 'Cube'),
 						type: 'string',
@@ -557,6 +582,46 @@ export class DataXSemanticModelingViewProvider implements IXpertViewExtensionPro
 				}))
 			}
 		}
+		if (parameterKey === 'catalog') {
+			const dataSourceId = getString(query.parameters, 'dataSourceId')
+			if (!dataSourceId) {
+				return { items: [] }
+			}
+			const search = query.search?.trim().toLowerCase()
+			const catalogs = await this.service.listCatalogs(dataSourceId)
+			return {
+				items: catalogs
+					.filter(
+						(catalog) =>
+							!search ||
+							catalog.value.toLowerCase().includes(search) ||
+							catalog.label.toLowerCase().includes(search)
+					)
+					.map((catalog) => ({
+						value: catalog.value,
+						label: catalog.label,
+						description: catalog.description
+					}))
+			}
+		}
+		if (parameterKey === 'projectId') {
+			const search = query.search?.trim().toLowerCase()
+			const projects = await this.service.listProjects()
+			return {
+				items: projects
+					.filter(
+						(project) =>
+							!search ||
+							project.id.toLowerCase().includes(search) ||
+							project.name.toLowerCase().includes(search)
+					)
+					.map((project) => ({
+						value: project.id,
+						label: project.name,
+						description: project.description
+					}))
+			}
+		}
 		if (parameterKey === 'cubeName') {
 			const modelId = getString(query.parameters, 'modelId')
 			if (!modelId) {
@@ -599,6 +664,7 @@ export class DataXSemanticModelingViewProvider implements IXpertViewExtensionPro
 					dataSourceId: requireString(input, 'dataSourceId'),
 					catalog: requireString(input, 'catalog'),
 					type: toModelType(getString(input, 'type')),
+					projectId: getString(input, 'projectId'),
 					businessAreaId: getString(input, 'businessAreaId'),
 					changeSummary: requireString(input, 'changeSummary')
 				},

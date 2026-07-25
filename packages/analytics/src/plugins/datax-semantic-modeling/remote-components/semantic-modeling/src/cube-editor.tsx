@@ -22,7 +22,7 @@ import {
 	TabsTrigger
 } from '@xpert-ai/shadcn-ui'
 import { JsonObject, readString } from '../../../../remote-components/shared/runtime'
-import { DimensionForm } from './dimension-editor'
+import { DimensionForm } from './dimension-form'
 import {
 	DeleteButton,
 	EmptyCollection,

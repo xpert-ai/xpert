@@ -277,12 +277,16 @@ export function CreateWorkspaceDialog(props: {
 	open: boolean
 	form: CreateForm
 	dataSources: Option[]
+	projects: Option[]
+	catalogOptions: Option[]
+	catalogLoading: boolean
 	busy: boolean
 	locale?: string
 	onOpenChange(open: boolean): void
 	onChange(form: CreateForm): void
 	onSubmit(event: React.FormEvent): void
 }) {
+	const catalogListId = React.useId()
 	function update<K extends keyof CreateForm>(key: K, value: CreateForm[K]) {
 		props.onChange({ ...props.form, [key]: value })
 	}
@@ -339,9 +343,25 @@ export function CreateWorkspaceDialog(props: {
 						<FormField label={localized(props.locale, 'Catalog / schema', '目录 / Schema')}>
 							<Input
 								required
+								list={props.catalogOptions.length ? catalogListId : undefined}
+								disabled={!props.form.dataSourceId || props.catalogLoading}
+								placeholder={
+									props.catalogLoading
+										? localized(props.locale, 'Loading catalogs…', '正在加载目录…')
+										: localized(props.locale, 'Select or enter a catalog', '选择或输入目录')
+								}
 								value={props.form.catalog}
 								onChange={(event) => update('catalog', event.currentTarget.value)}
 							/>
+							{props.catalogOptions.length ? (
+								<datalist id={catalogListId}>
+									{props.catalogOptions.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</datalist>
+							) : null}
 						</FormField>
 						<FormField label={localized(props.locale, 'Model type', '模型类型')}>
 							<Select
@@ -354,6 +374,24 @@ export function CreateWorkspaceDialog(props: {
 								<SelectContent>
 									<SelectItem value="SQL">SQL</SelectItem>
 									<SelectItem value="XMLA">XMLA</SelectItem>
+								</SelectContent>
+							</Select>
+						</FormField>
+						<FormField
+							label={localized(props.locale, 'Project (metric governance)', '所属项目（指标治理）')}
+						>
+							<Select value={props.form.projectId} onValueChange={(value) => update('projectId', value)}>
+								<SelectTrigger>
+									<SelectValue
+										placeholder={localized(props.locale, 'Choose project', '选择所属项目')}
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									{props.projects.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</FormField>
@@ -378,7 +416,14 @@ export function CreateWorkspaceDialog(props: {
 						</Button>
 						<Button
 							type="submit"
-							disabled={props.busy || !props.form.dataSourceId || !props.form.key || !props.form.name}
+							disabled={
+								props.busy ||
+								props.catalogLoading ||
+								!props.form.dataSourceId ||
+								!props.form.catalog ||
+								!props.form.key ||
+								!props.form.name
+							}
 						>
 							{props.busy
 								? localized(props.locale, 'Creating…', '创建中…')

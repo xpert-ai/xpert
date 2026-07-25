@@ -12,8 +12,9 @@ import {
 	TableRow
 } from '@xpert-ai/shadcn-ui'
 import { JsonObject, readNumber, readString } from '../../../../remote-components/shared/runtime'
+import { StudioModuleSection } from './module-sections'
 import { localized, objectCollection, readFactTableName, StudioIssue } from './schema-utils'
-import { QueryRun, Section, WorkspaceDetail } from './studio-types'
+import { QueryRun, WorkspaceDetail } from './studio-types'
 
 type ModuleRow = {
 	id: string
@@ -32,18 +33,7 @@ type ModuleDefinition = {
 }
 
 export function StudioModulePage(props: {
-	section: Exclude<
-		Section,
-		| 'relationships'
-		| 'overview'
-		| 'sources'
-		| 'queryLab'
-		| 'validation'
-		| 'dimensionEditor'
-		| 'cubeEditor'
-		| 'virtualCubeEditor'
-		| 'json'
-	>
+	section: StudioModuleSection
 	workspace: WorkspaceDetail
 	schema: JsonObject
 	issues: StudioIssue[]
@@ -55,6 +45,9 @@ export function StudioModulePage(props: {
 	const [search, setSearch] = React.useState('')
 	const [blockingOnly, setBlockingOnly] = React.useState(false)
 	const definition = buildModuleDefinition(props)
+	if (!definition) {
+		return null
+	}
 	const normalizedSearch = search.trim().toLowerCase()
 	const rows = definition.rows.filter((row) => {
 		if (blockingOnly && props.section === 'quality' && row.status !== 'error') {
@@ -192,7 +185,7 @@ function StatusBadge(props: { status: ModuleRow['status']; label: string }) {
 	)
 }
 
-function buildModuleDefinition(props: Parameters<typeof StudioModulePage>[0]): ModuleDefinition {
+function buildModuleDefinition(props: Parameters<typeof StudioModulePage>[0]): ModuleDefinition | null {
 	switch (props.section) {
 		case 'dimensions':
 			return dimensionsDefinition(props.schema, props.locale)
@@ -212,6 +205,8 @@ function buildModuleDefinition(props: Parameters<typeof StudioModulePage>[0]): M
 			return operationsDefinition(props.queryRuns, props.locale)
 		case 'settings':
 			return settingsDefinition(props.workspace, props.schema, props.locale)
+		default:
+			return null
 	}
 }
 

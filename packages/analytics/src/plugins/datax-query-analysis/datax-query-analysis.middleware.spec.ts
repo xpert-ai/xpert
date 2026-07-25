@@ -1,3 +1,4 @@
+import { AIMessage, SystemMessage } from '@langchain/core/messages'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -67,6 +68,26 @@ describe('DataXQueryAnalysisMiddleware', () => {
 				}
 			}
 		})
+	})
+
+	it('adds governed-query instructions to the model system message', async () => {
+		const strategy = new DataXQueryAnalysisMiddleware(createService() as unknown as DataXQueryAnalysisService)
+		const middleware = strategy.createMiddleware({}, createContext())
+		let forwardedSystemMessage: SystemMessage | undefined
+
+		await middleware.wrapModelCall?.(
+			{
+				systemMessage: new SystemMessage('Base instructions')
+			} as never,
+			async (request) => {
+				forwardedSystemMessage = request.systemMessage
+				return new AIMessage('done')
+			}
+		)
+
+		expect(forwardedSystemMessage?.content).toContain('Base instructions')
+		expect(forwardedSystemMessage?.content).toContain(DATA_X_QUERY_ANALYSIS_CONTEXT_TOOL_NAME)
+		expect(forwardedSystemMessage?.content).toContain(DATA_X_QUERY_ANALYSIS_EXECUTE_TOOL_NAME)
 	})
 })
 
