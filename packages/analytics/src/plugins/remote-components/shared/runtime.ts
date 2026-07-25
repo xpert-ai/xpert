@@ -69,7 +69,7 @@ export function createRemoteBridge(namespace: string) {
 	}
 
 	function isDebugEnabled() {
-		const stored = window.localStorage?.getItem(`xpert.debug.${namespace}`)
+		const stored = readRemoteDebugOverride(namespace)
 		if (stored === '0') {
 			return false
 		}
@@ -282,6 +282,19 @@ export function createRemoteBridge(namespace: string) {
 			height,
 			viewportBound: true
 		})
+	}
+}
+
+export function readRemoteDebugOverride(
+	namespace: string,
+	readStoredValue: (key: string) => string | null = (key) => window.localStorage?.getItem(key) ?? null
+) {
+	try {
+		return readStoredValue(`xpert.debug.${namespace}`)
+	} catch {
+		// Sandboxed srcDoc frames without allow-same-origin have an opaque
+		// origin, so even reading the localStorage property can throw.
+		return null
 	}
 }
 

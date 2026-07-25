@@ -138,9 +138,9 @@
 		})
 	var ru,
 		nu,
-		hw,
+		xw,
 		su = y(() => {
-			;((ru = globalThis.ReactDOM), (nu = ru.createRoot), (hw = ru.hydrateRoot))
+			;((ru = globalThis.ReactDOM), (nu = ru.createRoot), (xw = ru.hydrateRoot))
 		})
 	function lu(e = {}) {
 		let t = e.styleId ?? 'xpert-shadcn-ui-theme-vars'
@@ -1903,12 +1903,12 @@
 	var os,
 		wo,
 		br,
-		Tw,
+		Aw,
 		Ha = y(() => {
 			;((os = globalThis.ReactDOM),
 				(wo = os.createPortal),
 				(br = os.flushSync),
-				(Tw = os.unstable_batchedUpdates))
+				(Aw = os.unstable_batchedUpdates))
 		})
 	function Fu(e, t) {
 		if (typeof e == 'function') return e(t)
@@ -2228,9 +2228,9 @@
 			if ((e?.(r), a === !1 || !r.defaultPrevented)) return t?.(r)
 		}
 	}
-	var jw,
+	var Xw,
 		Ke = y(() => {
-			jw = !!(typeof window < 'u' && window.document && window.document.createElement)
+			Xw = !!(typeof window < 'u' && window.document && window.document.createElement)
 		})
 	var Le,
 		kt = y(() => {
@@ -10826,15 +10826,15 @@
 		})
 	}
 	var lg,
-		TA,
 		AA,
+		MA,
 		cS,
 		fg = y(() => {
 			tr()
 			We()
 			pe()
 			B()
-			;((lg = Pe.Root), (TA = Pe.Trigger), (AA = Pe.Close), (cS = Pe.Portal))
+			;((lg = Pe.Root), (AA = Pe.Trigger), (MA = Pe.Close), (cS = Pe.Portal))
 		})
 	function mS({ className: e, ...t }) {
 		return s(Qe.Overlay, {
@@ -10878,14 +10878,14 @@
 		return s(Qe.Cancel, { className: q(Yo({ variant: 'outline' }), e), ...t })
 	}
 	var Ii,
-		BA,
+		NA,
 		pS,
 		pg = y(() => {
 			We()
 			pe()
 			Zo()
 			B()
-			;((Ii = Qe.Root), (BA = Qe.Trigger), (pS = Qe.Portal))
+			;((Ii = Qe.Root), (NA = Qe.Trigger), (pS = Qe.Portal))
 		})
 	var mg = y(() => {
 		pe()
@@ -12781,8 +12781,8 @@
 		B()
 	})
 	var $S,
-		bM,
 		LM,
+		IM,
 		nh = y(() => {
 			'use client'
 			Q()
@@ -12811,8 +12811,8 @@
 						c(g)
 					} catch {}
 			}),
-				(bM = Ee(void 0)),
-				(LM = Lo(
+				(LM = Ee(void 0)),
+				(IM = Lo(
 					({
 						forcedTheme: e,
 						storageKey: t,
@@ -12843,7 +12843,7 @@
 			t.appendChild(a),
 			a.styleSheet ? (a.styleSheet.cssText = e) : a.appendChild(document.createTextNode(e)))
 	}
-	var RM,
+	var PM,
 		Wi,
 		ji,
 		rt,
@@ -12852,12 +12852,12 @@
 		QS,
 		ew,
 		tw,
-		PM,
+		kM,
 		sh = y(() => {
 			'use client'
 			Q()
 			Ha()
-			;((RM = Array(12).fill(0)),
+			;((PM = Array(12).fill(0)),
 				(Wi = 1),
 				(ji = class {
 					constructor() {
@@ -13024,7 +13024,7 @@
 				(QS = YS),
 				(ew = () => rt.toasts),
 				(tw = () => rt.getActiveToasts()),
-				(PM = Object.assign(
+				(kM = Object.assign(
 					QS,
 					{
 						success: rt.success,
@@ -13069,14 +13069,14 @@
 				}
 			)
 		})
-	var UM,
+	var qM,
 		ih = y(() => {
 			'use client'
 			Q()
 			pe()
 			Xi()
 			B()
-			UM = Ee({ size: 'default', variant: 'default', spacing: 0 })
+			qM = Ee({ size: 'default', variant: 'default', spacing: 0 })
 		})
 	var Ki = y(() => {
 		iu()
@@ -13137,7 +13137,7 @@
 				}
 			}
 		function d() {
-			let g = window.localStorage?.getItem(`xpert.debug.${e}`)
+			let g = ow(e)
 			return g === '0'
 				? !1
 				: g === '1'
@@ -13172,7 +13172,7 @@
 			let x = Z(p, 'type')
 			if (x === 'init') {
 				;((t = Z(p, 'instanceId') ?? null),
-					(o = rw(p)),
+					(o = nw(p)),
 					(i = o.debug ?? i),
 					(document.documentElement.lang = o.locale),
 					u.info('bridge.init', { locale: o.locale, viewKey: Z(o.manifest, 'key') }))
@@ -13182,7 +13182,7 @@
 			}
 			if (Z(p, 'instanceId') !== t) return
 			if (x === 'hostEvent') {
-				let b = nw(p.event)
+				let b = sw(p.event)
 				if (b) {
 					u.debug('host-event.received', { type: b.type, toolName: b.toolName })
 					for (let L of l) L(b)
@@ -13268,6 +13268,13 @@
 			c('resize', { height: g, viewportBound: !0 })
 		}
 	}
+	function ow(e, t = (a) => window.localStorage?.getItem(a) ?? null) {
+		try {
+			return t(`xpert.debug.${e}`)
+		} catch {
+			return null
+		}
+	}
 	function ch(e) {
 		let t = me(e.payload, 'parameters') ?? {}
 		return {
@@ -13290,7 +13297,7 @@
 		let n = me(a, 'tokens')
 		if (n)
 			for (let [l, i] of Object.entries(n))
-				(typeof i == 'string' || typeof i == 'number') && t.style.setProperty(`--xui-${sw(l)}`, String(i))
+				(typeof i == 'string' || typeof i == 'number') && t.style.setProperty(`--xui-${lw(l)}`, String(i))
 	}
 	function ph(e) {
 		return me(e, 'data') ?? {}
@@ -13301,11 +13308,11 @@
 	function Wn(e, t, a) {
 		if (typeof e == 'string') return e
 		if (!St(e)) return a
-		let r = ow(t) === 'zh-Hans' ? 'zh_Hans' : 'en_US',
+		let r = rw(t) === 'zh-Hans' ? 'zh_Hans' : 'en_US',
 			n = r === 'zh_Hans' ? 'en_US' : 'zh_Hans'
 		return Z(e, r) ?? Z(e, n) ?? a
 	}
-	function ow(e) {
+	function rw(e) {
 		let t = (e ?? '').split('_').join('-')
 		return (
 			{
@@ -13346,7 +13353,7 @@
 		let a = e?.[t]
 		return Array.isArray(a) ? a : []
 	}
-	function rw(e) {
+	function nw(e) {
 		let t = me(e, 'debug')
 		return {
 			manifest: me(e, 'manifest') ?? {},
@@ -13357,7 +13364,7 @@
 			debug: t ? { enabled: cr(t, 'enabled') ?? !1, production: cr(t, 'production') ?? !0 } : void 0
 		}
 	}
-	function nw(e) {
+	function sw(e) {
 		return St(e)
 			? {
 					id: Z(e, 'id'),
@@ -13381,7 +13388,7 @@
 						: (t[a] = o)
 		return t
 	}
-	function sw(e) {
+	function lw(e) {
 		return e
 			.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
 			.replace(/[\s_]+/g, '-')
@@ -13399,12 +13406,12 @@
 	}
 	function gh(e) {
 		return {
-			items: ho(e, 'items').filter(St).map(lw),
+			items: ho(e, 'items').filter(St).map(iw),
 			total: dr(e, 'total') ?? 0,
 			scopeSummary: Z(me(e, 'meta'), 'scopeSummary')
 		}
 	}
-	function lw(e) {
+	function iw(e) {
 		return {
 			id: Ji(e.id),
 			code: Z(e, 'code') ?? '',
@@ -13849,7 +13856,7 @@
 		Zi()
 		B()
 	})
-	var mw = Dh(() => {
+	var gw = Dh(() => {
 		Q()
 		su()
 		Ki()
@@ -13858,7 +13865,7 @@
 		Zi()
 		B()
 		var Ht = dh('datax-metric-management')
-		function iw() {
+		function uw() {
 			let [e, t] = T(null),
 				[a, o] = T({ page: 1, pageSize: 20, parameters: {} }),
 				[r, n] = T([]),
@@ -14042,7 +14049,7 @@
 						he = Z($, 'content'),
 						nt = Z($, 'fileName') ?? 'metrics.yaml',
 						Kn = Z($, 'mimeType') ?? 'application/x-yaml'
-					he && pw(nt, he, Kn)
+					he && mw(nt, he, Kn)
 				} catch (A) {
 					Ut(A)
 				} finally {
@@ -14467,7 +14474,7 @@
 																						A.businessAreaName ?? '\u2014'
 																				}),
 																				s(Ct, {
-																					children: s(cw, { value: A.status })
+																					children: s(fw, { value: A.status })
 																				}),
 																				s(Ct, {
 																					children: s(En, {
@@ -14480,10 +14487,10 @@
 																				s(Ct, {
 																					className:
 																						'whitespace-nowrap text-xs text-muted-foreground',
-																					children: fw(A.updatedAt, e?.locale)
+																					children: pw(A.updatedAt, e?.locale)
 																				}),
 																				s(Ct, {
-																					children: s(uw, {
+																					children: s(dw, {
 																						row: A,
 																						busy: k,
 																						locale: e?.locale,
@@ -14609,7 +14616,7 @@
 								vo()
 							}
 						}),
-						s(dw, { row: ce, locale: e?.locale, onOpenChange: (A) => !A && ke(null) }),
+						s(cw, { row: ce, locale: e?.locale, onOpenChange: (A) => !A && ke(null) }),
 						s(Ii, {
 							open: !!re,
 							onOpenChange: (A) => !A && ue(null),
@@ -14703,7 +14710,7 @@
 				]
 			})
 		}
-		function uw(e) {
+		function dw(e) {
 			let t = e.busy.endsWith(`:${e.row.id}`)
 			return D(Ai, {
 				children: [
@@ -14742,7 +14749,7 @@
 				]
 			})
 		}
-		function dw(e) {
+		function cw(e) {
 			let t = e.row
 			return s(lg, {
 				open: !!t,
@@ -14834,7 +14841,7 @@
 				]
 			})
 		}
-		function cw(e) {
+		function fw(e) {
 			return s(En, {
 				variant: e.value === 'RELEASED' ? 'default' : e.value === 'ARCHIVED' ? 'secondary' : 'outline',
 				children: e.value
@@ -14844,22 +14851,22 @@
 			let o = { ...(me(e, 'parameters') ?? {}) }
 			return (a ? (o[t] = a) : delete o[t], { ...e, parameters: o })
 		}
-		function fw(e, t) {
+		function pw(e, t) {
 			if (!e) return '\u2014'
 			let a = new Date(e)
 			return Number.isNaN(a.getTime())
 				? e
 				: new Intl.DateTimeFormat(t ?? 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(a)
 		}
-		function pw(e, t, a) {
+		function mw(e, t, a) {
 			let o = URL.createObjectURL(new Blob([t], { type: a })),
 				r = document.createElement('a')
 			;((r.href = o), (r.download = e), r.click(), URL.revokeObjectURL(o))
 		}
 		var Lh = document.getElementById('root')
 		if (!Lh) throw new Error('Remote component root was not found.')
-		nu(Lh).render(s(iw, {}))
+		nu(Lh).render(s(uw, {}))
 		Ht.ready()
 	})
-	mw()
+	gw()
 })()

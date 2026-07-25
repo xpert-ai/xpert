@@ -138,9 +138,9 @@
 		})
 	var ol,
 		rl,
-		PL,
+		kL,
 		nl = y(() => {
-			;((ol = globalThis.ReactDOM), (rl = ol.createRoot), (PL = ol.hydrateRoot))
+			;((ol = globalThis.ReactDOM), (rl = ol.createRoot), (kL = ol.hydrateRoot))
 		})
 	function sl(e = {}) {
 		let t = e.styleId ?? 'xpert-shadcn-ui-theme-vars'
@@ -1903,12 +1903,12 @@
 	var Hr,
 		Fa,
 		fo,
-		HL,
+		qL,
 		ua = y(() => {
 			;((Hr = globalThis.ReactDOM),
 				(Fa = Hr.createPortal),
 				(fo = Hr.flushSync),
-				(HL = Hr.unstable_batchedUpdates))
+				(qL = Hr.unstable_batchedUpdates))
 		})
 	function Ol(e, t) {
 		if (typeof e == 'function') return e(t)
@@ -2228,9 +2228,9 @@
 			if ((e?.(r), a === !1 || !r.defaultPrevented)) return t?.(r)
 		}
 	}
-	var oC,
+	var rC,
 		ut = y(() => {
-			oC = !!(typeof window < 'u' && window.document && window.document.createElement)
+			rC = !!(typeof window < 'u' && window.document && window.document.createElement)
 		})
 	var ce,
 		dt = y(() => {
@@ -9056,25 +9056,25 @@
 		re()
 		O()
 	})
-	var zy,
-		_y,
+	var _y,
 		Hy,
 		qy,
+		Uy,
 		tf = y(() => {
 			mt()
 			re()
 			O()
-			;((zy = Rt.Root), (_y = Rt.Trigger), (Hy = Rt.Close), (qy = Rt.Portal))
+			;((_y = Rt.Root), (Hy = Rt.Trigger), (qy = Rt.Close), (Uy = Rt.Portal))
 		})
-	var Xy,
-		Ky,
+	var Ky,
 		$y,
+		Jy,
 		af = y(() => {
 			mt()
 			re()
 			to()
 			O()
-			;((Xy = Ca.Root), (Ky = Ca.Trigger), ($y = Ca.Portal))
+			;((Ky = Ca.Root), ($y = Ca.Trigger), (Jy = Ca.Portal))
 		})
 	var of = y(() => {
 		re()
@@ -10931,8 +10931,8 @@
 		O()
 	})
 	var uL,
-		NR,
 		zR,
+		_R,
 		$f = y(() => {
 			'use client'
 			K()
@@ -10961,8 +10961,8 @@
 						u(h)
 					} catch {}
 			}),
-				(NR = we(void 0)),
-				(zR = Ea(
+				(zR = we(void 0)),
+				(_R = Ea(
 					({
 						forcedTheme: e,
 						storageKey: t,
@@ -10993,7 +10993,7 @@
 			t.appendChild(a),
 			a.styleSheet ? (a.styleSheet.cssText = e) : a.appendChild(document.createTextNode(e)))
 	}
-	var VR,
+	var GR,
 		Ks,
 		$s,
 		He,
@@ -11002,12 +11002,12 @@
 		pL,
 		mL,
 		hL,
-		GR,
+		WR,
 		Jf = y(() => {
 			'use client'
 			K()
 			ua()
-			;((VR = Array(12).fill(0)),
+			;((GR = Array(12).fill(0)),
 				(Ks = 1),
 				($s = class {
 					constructor() {
@@ -11174,7 +11174,7 @@
 				(pL = cL),
 				(mL = () => He.toasts),
 				(hL = () => He.getActiveToasts()),
-				(GR = Object.assign(
+				(WR = Object.assign(
 					pL,
 					{
 						success: He.success,
@@ -11219,14 +11219,14 @@
 				}
 			)
 		})
-	var r0,
+	var n0,
 		Zf = y(() => {
 			'use client'
 			K()
 			re()
 			Js()
 			O()
-			r0 = we({ size: 'default', variant: 'default', spacing: 0 })
+			n0 = we({ size: 'default', variant: 'default', spacing: 0 })
 		})
 	var Qf = y(() => {
 		ll()
@@ -11287,7 +11287,7 @@
 				}
 			}
 		function d() {
-			let h = window.localStorage?.getItem(`xpert.debug.${e}`)
+			let h = xL(e)
 			return h === '0'
 				? !1
 				: h === '1'
@@ -11322,7 +11322,7 @@
 			let x = te(p, 'type')
 			if (x === 'init') {
 				;((t = te(p, 'instanceId') ?? null),
-					(o = xL(p)),
+					(o = vL(p)),
 					(l = o.debug ?? l),
 					(document.documentElement.lang = o.locale),
 					i.info('bridge.init', { locale: o.locale, viewKey: te(o.manifest, 'key') }))
@@ -11332,7 +11332,7 @@
 			}
 			if (te(p, 'instanceId') !== t) return
 			if (x === 'hostEvent') {
-				let C = vL(p.event)
+				let C = LL(p.event)
 				if (C) {
 					i.debug('host-event.received', { type: C.type, toolName: C.toolName })
 					for (let b of s) b(C)
@@ -11418,6 +11418,13 @@
 			u('resize', { height: h, viewportBound: !0 })
 		}
 	}
+	function xL(e, t = (a) => window.localStorage?.getItem(a) ?? null) {
+		try {
+			return t(`xpert.debug.${e}`)
+		} catch {
+			return null
+		}
+	}
 	function op(e) {
 		let t = Ce(e.payload, 'parameters') ?? {}
 		return {
@@ -11440,7 +11447,7 @@
 		let n = Ce(a, 'tokens')
 		if (n)
 			for (let [s, l] of Object.entries(n))
-				(typeof l == 'string' || typeof l == 'number') && t.style.setProperty(`--xui-${LL(s)}`, String(l))
+				(typeof l == 'string' || typeof l == 'number') && t.style.setProperty(`--xui-${CL(s)}`, String(l))
 	}
 	function Ys(e) {
 		return Ce(e, 'result') ?? {}
@@ -11493,7 +11500,7 @@
 		let a = e?.[t]
 		return Array.isArray(a) ? a : []
 	}
-	function xL(e) {
+	function vL(e) {
 		let t = Ce(e, 'debug')
 		return {
 			manifest: Ce(e, 'manifest') ?? {},
@@ -11504,7 +11511,7 @@
 			debug: t ? { enabled: tp(t, 'enabled') ?? !1, production: tp(t, 'production') ?? !0 } : void 0
 		}
 	}
-	function vL(e) {
+	function LL(e) {
 		return xt(e)
 			? {
 					id: te(e, 'id'),
@@ -11528,7 +11535,7 @@
 						: (t[a] = o)
 		return t
 	}
-	function LL(e) {
+	function CL(e) {
 		return e
 			.replace(/([a-z0-9])([A-Z])/g, '$1-$2')
 			.replace(/[\s_]+/g, '-')
@@ -11540,7 +11547,7 @@
 		})
 	function sp(e) {
 		let t = Qs(e),
-			a = t === 'zh-Hans' ? np : t === 'zh-Hant' ? bL : CL
+			a = t === 'zh-Hans' ? np : t === 'zh-Hant' ? IL : bL
 		return {
 			locale: t,
 			t(o, r) {
@@ -11559,12 +11566,12 @@
 			}
 		}
 	}
-	var CL,
+	var bL,
 		np,
-		bL,
+		IL,
 		lp = y(() => {
 			el()
-			;((CL = {
+			;((bL = {
 				cached: 'Cached',
 				column: 'Column',
 				cube: 'Cube',
@@ -11606,7 +11613,7 @@
 					truncated: '\u5F53\u524D\u5C55\u793A\u524D {count} \u884C',
 					value: '\u503C'
 				}),
-				(bL = {
+				(IL = {
 					...np,
 					empty: '\u57F7\u884C\u67E5\u8A62\u5F8C\u53EF\u67E5\u770B\u771F\u5BE6\u8CC7\u6599\u7D50\u679C\u3002',
 					failed: '\u67E5\u8A62\u5931\u6557',
@@ -11623,7 +11630,7 @@
 					truncated: '\u76EE\u524D\u986F\u793A\u524D {count} \u884C'
 				}))
 		})
-	var yL = fp(() => {
+	var RL = fp(() => {
 		K()
 		nl()
 		Qf()
@@ -11634,7 +11641,7 @@
 			ip = `SELECT
   {[Measures].Members} ON COLUMNS
 FROM [Cube]`
-		function IL() {
+		function SL() {
 			let [e, t] = M(null),
 				[a, o] = M({ page: 1, pageSize: 200, parameters: {} }),
 				[r, n] = M([]),
@@ -11686,7 +11693,7 @@ FROM [Cube]`
 			}
 			async function L(S, T) {
 				let F = await Et.requestParameterOptions(S, { parameters: Ce(T, 'parameters') ?? {} })
-				return SL(Ys(F))
+				return wL(Ys(F))
 			}
 			async function C(S) {
 				let T = vt(a, 'modelId', S)
@@ -11726,7 +11733,7 @@ FROM [Cube]`
 					if ($.success !== !0) throw new Error(Zs($.message, e?.locale ?? 'en-US', x.t('failed')))
 					let A = Ce($, 'data')
 					if (!A) throw new Error('Query result payload is missing.')
-					;(f(wL(A)),
+					;(f(yL(A)),
 						p({ error: !1, text: Zs($.message, e?.locale ?? 'en-US', '') }),
 						o(vt(S, 'statement', T.trim())),
 						Et.logger.info('query.completed', {
@@ -12034,7 +12041,7 @@ FROM [Cube]`
 				})
 			})
 		}
-		function SL(e) {
+		function wL(e) {
 			return kr(e, 'items')
 				.filter(xt)
 				.map((t) => ({
@@ -12044,7 +12051,7 @@ FROM [Cube]`
 				}))
 				.filter((t) => t.value)
 		}
-		function wL(e) {
+		function yL(e) {
 			let t = Ce(e, 'audit')
 			return {
 				columns: kr(e, 'columns')
@@ -12070,8 +12077,8 @@ FROM [Cube]`
 		}
 		var dp = document.getElementById('root')
 		if (!dp) throw new Error('Remote component root was not found.')
-		rl(dp).render(c(IL, {}))
+		rl(dp).render(c(SL, {}))
 		Et.ready()
 	})
-	yL()
+	RL()
 })()

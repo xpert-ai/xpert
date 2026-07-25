@@ -29,11 +29,14 @@ The assistant can then complete the governed loop:
 
 1. Call `semantic_model_list_workspaces`, or create a workspace with
    `semantic_model_create_workspace`.
-2. Select it with `switch_model_workspace`.
-3. Discover physical tables with `list_tables` and `list_table_schema`.
-4. Model dimensions, hierarchies, cubes, measures, calculations, and virtual cubes with the focused semantic tools.
-5. Validate data access with `preview_cube`.
-6. Save or publish the model.
+2. Load the current draft and revision with `semantic_model_read_workspace`.
+3. Discover physical tables with `semantic_model_list_tables` and
+   `semantic_model_describe_table`.
+4. Update the complete draft with `semantic_model_save_draft_schema`, preserving unrelated
+   fields and passing the loaded revision as `baseVersion`.
+5. Validate data access with `semantic_model_execute_query`.
+6. Open `semantic_modeling_open` for human review, then publish with
+   `semantic_model_publish_workspace` only when requested.
 7. Scope and manage governed indicators through the metric management tools.
 8. Resolve a model and cube with `datax_query_model_context`.
 9. Run a complete MDX statement with `datax_query_execute`. The tool returns the actual

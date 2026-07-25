@@ -1,6 +1,6 @@
+import { SystemMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
-import { z } from 'zod'
-import { IXpertToolset, TAgentMiddlewareMeta, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import {
 	AgentMiddleware,
 	AgentMiddlewareStrategy,
@@ -8,15 +8,16 @@ import {
 	IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { BIVariableEnum } from '../../ai/toolset/builtin/bi-toolset'
-import { SemanticModelToolset } from '../../ai/toolset/builtin/semantic-model/semantic-model'
-import { SemanticModelVariableEnum } from '../../ai/toolset/builtin/semantic-model/types'
-import { TOOL_MODEL_PROMPTS_DEFAULT } from '../../ai/toolset/builtin/semantic-model/prompts'
 import {
 	DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME,
+	DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME,
 	DATA_X_SEMANTIC_MODELING_FEATURE,
 	DATA_X_SEMANTIC_MODELING_ICON,
@@ -24,10 +25,15 @@ import {
 } from './constants'
 import { DataXSemanticModelingService } from './datax-semantic-modeling.service'
 import {
+	SemanticModelDataSourceListSchema,
+	SemanticModelDescribeTableSchema,
+	SemanticModelExecuteQuerySchema,
+	SemanticModelListTablesSchema,
 	SemanticModelPublishSchema,
 	SemanticModelSaveDraftSchema,
 	SemanticModelWorkspaceCreateSchema,
-	SemanticModelWorkspaceListSchema
+	SemanticModelWorkspaceListSchema,
+	SemanticModelWorkspaceReadSchema
 } from './schemas'
 import { buildOpenSemanticModelingTool } from './tool'
 
@@ -41,8 +47,8 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			zh_Hans: 'Data X 语义模型建模'
 		},
 		description: {
-			en_US: 'Adds conversational semantic model workspace selection, table discovery, cube modeling, preview, validation, and publishing tools.',
-			zh_Hans: '提供语义模型空间选择、数据表发现、Cube 建模、预览、验证和发布的对话式工具。'
+			en_US: 'Adds conversational semantic model workspace discovery, source inspection, draft editing, validation queries, and publishing tools.',
+			zh_Hans: '提供语义模型空间发现、数据源检查、草稿编辑、验证查询和发布工具。'
 		},
 		icon: {
 			type: 'svg',
@@ -57,45 +63,15 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 		}
 	}
 
-	constructor(
-		private readonly service: DataXSemanticModelingService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+	constructor(private readonly service: DataXSemanticModelingService) {}
 
-	async createMiddleware(
-		_options: Record<string, never>,
-		context: IAgentMiddlewareContext
-	): Promise<AgentMiddleware> {
-		const toolsetConfig: IXpertToolset = {
-			name: 'Data X Semantic Modeling',
-			type: SemanticModelToolset.provider,
-			category: XpertToolsetCategoryEnum.BUILTIN,
-			credentials: {
-				project: context.projectId ?? ''
-			}
-		}
-		const toolset = new SemanticModelToolset(toolsetConfig, {
-			tenantId: context.tenantId,
-			organizationId: context.organizationId ?? undefined,
-			userId: context.userId,
-			projectId: context.projectId,
-			xpertId: context.xpertId,
-			conversationId: context.conversationId,
-			agentKey: context.agentKey,
-			env: {},
-			store: context.store,
-			commandBus: this.commandBus,
-			queryBus: this.queryBus
-		})
-		const modelingTools = await toolset.initTools()
-
+	createMiddleware(_options: Record<string, never>, context: IAgentMiddlewareContext): AgentMiddleware {
 		const listWorkspacesTool = tool(
 			async (input) => {
 				const workspaces = await this.service.listWorkspaces(input.search, input.limit)
 				return JSON.stringify({
 					message: workspaces.length
-						? 'Selectable semantic model workspaces were found. Call switch_model_workspace with the exact modelId before other modeling tools.'
+						? `Found ${workspaces.length} semantic model workspace(s). Read one workspace before changing its draft.`
 						: 'No semantic model workspace matched.',
 					count: workspaces.length,
 					workspaces
@@ -104,8 +80,83 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			{
 				name: DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME,
 				description:
-					'List semantic model workspaces that the current user can model. Call this before switch_model_workspace when the model id is unknown.',
+					'List semantic model workspaces available to the current user. Use this when the exact modelId is unknown.',
 				schema: SemanticModelWorkspaceListSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const listDataSourcesTool = tool(
+			async (input) => {
+				const dataSources = await this.service.listDataSources(input.search)
+				return JSON.stringify({
+					message: dataSources.length
+						? `Found ${dataSources.length} data source(s) available for semantic modeling.`
+						: 'No data source matched.',
+					count: dataSources.length,
+					dataSources
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME,
+				description:
+					'List data sources available for creating a semantic model workspace. Use it before creation when the dataSourceId is unknown.',
+				schema: SemanticModelDataSourceListSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const readWorkspaceTool = tool(
+			async (input) => {
+				const workspace = await this.service.getWorkspace(input.modelId)
+				return JSON.stringify({
+					message:
+						'Semantic model workspace loaded. Preserve unrelated draft fields and use draft.version as baseVersion when saving.',
+					...workspace
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME,
+				description:
+					'Read the current semantic model draft, revision, artifacts, and validation checklist. Always call this before changing a draft.',
+				schema: SemanticModelWorkspaceReadSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const listTablesTool = tool(
+			async (input) => {
+				const tables = await this.service.listTables(input.modelId)
+				return JSON.stringify({
+					message: 'Physical source tables loaded for the semantic model workspace.',
+					modelId: input.modelId,
+					tables
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME,
+				description:
+					'List physical source tables for a semantic model workspace before authoring dimensions or cubes.',
+				schema: SemanticModelListTablesSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const describeTableTool = tool(
+			async (input) => {
+				const table = await this.service.getTableSchema(input.modelId, input.tableName)
+				return JSON.stringify({
+					message: 'Physical table schema loaded.',
+					modelId: input.modelId,
+					tableName: input.tableName,
+					table
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME,
+				description:
+					'Read columns and types for one physical source table. Use an exact table name returned by semantic_model_list_tables.',
+				schema: SemanticModelDescribeTableSchema,
 				verboseParsingErrors: true
 			}
 		)
@@ -115,7 +166,7 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 				const workspace = await this.service.createWorkspace(input, context.userId)
 				return JSON.stringify({
 					message:
-						'Semantic model workspace was created. Next call switch_model_workspace with modelId, then inspect tables before creating dimensions and cubes.',
+						'Semantic model workspace created. Read the workspace and inspect its physical source tables before saving a schema draft.',
 					modelId: workspace.id,
 					name: workspace.name,
 					draftVersion: workspace.draftVersion,
@@ -125,7 +176,7 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			{
 				name: DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME,
 				description:
-					'Create an empty semantic model workspace connected to an existing data source and catalog. After creation call switch_model_workspace with the returned modelId.',
+					'Create an empty semantic model workspace connected to an existing data source and catalog.',
 				schema: SemanticModelWorkspaceCreateSchema,
 				verboseParsingErrors: true
 			}
@@ -135,19 +186,50 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			async (input) => {
 				const result = await this.service.saveDraft(input)
 				return JSON.stringify({
-					message: 'Semantic model draft schema was saved and validated.',
+					message: 'Semantic model draft schema saved and validated.',
 					modelId: result.modelId,
 					draftVersion: result.version,
 					validationIssueCount: result.checklist.length,
 					checklist: result.checklist.slice(0, 20),
-					changeSummary: input.changeSummary
+					changeSummary: input.changeSummary,
+					nextActions: [
+						DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+						DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME
+					]
 				})
 			},
 			{
 				name: DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME,
 				description:
-					'Replace the complete semantic model draft schema. Prefer the focused edit_dimension/edit_hierarchy/edit_cube/edit_measure tools for small changes; use this tool for an intentional full-schema update.',
+					'Replace the complete semantic model draft using the baseVersion returned by semantic_model_read_workspace. Preserve every unrelated draft field.',
 				schema: SemanticModelSaveDraftSchema,
+				verboseParsingErrors: true
+			}
+		)
+
+		const executeQueryTool = tool(
+			async (input) => {
+				const result = await this.service.executeQuery(
+					input.modelId,
+					input.cubeName,
+					input.statement,
+					input.limit,
+					{
+						tenantId: context.tenantId,
+						organizationId: context.organizationId,
+						userId: context.userId
+					}
+				)
+				return JSON.stringify({
+					message: `Semantic model validation query completed with ${result.totalRowCount} row(s).`,
+					...result
+				})
+			},
+			{
+				name: DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+				description:
+					'Execute a complete MDX SELECT statement against the current semantic model draft and return real columns and rows before publishing.',
+				schema: SemanticModelExecuteQuerySchema,
 				verboseParsingErrors: true
 			}
 		)
@@ -156,7 +238,7 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			async (input) => {
 				const result = await this.service.publishWorkspace(input.modelId, input.releaseNotes)
 				return JSON.stringify({
-					message: 'Semantic model workspace was published.',
+					message: 'Semantic model workspace published.',
 					modelId: result.modelId,
 					publishAt: result.publishAt,
 					releaseNotes: result.releaseNotes,
@@ -166,54 +248,42 @@ export class DataXSemanticModelingMiddleware implements IAgentMiddlewareStrategy
 			{
 				name: DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME,
 				description:
-					'Publish the current semantic model draft after preview_cube or a query test succeeds and validation issues are understood.',
+					'Publish a semantic model workspace only after the user requests publishing and a representative validation query succeeds.',
 				schema: SemanticModelPublishSchema,
 				verboseParsingErrors: true
 			}
 		)
 
-		const stateSchema = z.object({
-			tool_model_prompts_default: z
-				.string()
-				.default(
-					`${TOOL_MODEL_PROMPTS_DEFAULT}\nBefore switch_model_workspace, call ${DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME} when the exact modelId is unknown. Use ${DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME} only when the user requests a new workspace.`
-				),
-			tool_indicators_prompts_pro: z
-				.string()
-				.default(
-					'Use the metric management Agentic App when the semantic model is ready for governed metrics.'
-				),
-			[BIVariableEnum.CurrentCubeContext]: z
-				.string()
-				.default(
-					'No cube runtime context has been selected. Call get_cube_runtime_context before preview operations.'
-				),
-			[SemanticModelVariableEnum.LatestState]: z.string().default('')
-		})
-
 		return {
 			name: DATA_X_SEMANTIC_MODELING_MIDDLEWARE_NAME,
-			stateSchema,
 			tools: [
 				buildOpenSemanticModelingTool(),
 				listWorkspacesTool,
+				listDataSourcesTool,
+				readWorkspaceTool,
+				listTablesTool,
+				describeTableTool,
 				createWorkspaceTool,
 				saveDraftTool,
-				publishTool,
-				...modelingTools
+				executeQueryTool,
+				publishTool
 			],
-			beforeAgent: (state) => ({
-				tool_model_prompts_default:
-					state.tool_model_prompts_default ??
-					`${TOOL_MODEL_PROMPTS_DEFAULT}\nCall ${DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME} when the modelId is unknown.`,
-				tool_indicators_prompts_pro:
-					state.tool_indicators_prompts_pro ??
-					'Use the metric management Agentic App when the semantic model is ready for governed metrics.',
-				[BIVariableEnum.CurrentCubeContext]:
-					state[BIVariableEnum.CurrentCubeContext] ??
-					'No cube runtime context has been selected. Call get_cube_runtime_context before preview operations.',
-				[SemanticModelVariableEnum.LatestState]: state[SemanticModelVariableEnum.LatestState] ?? ''
-			})
+			wrapModelCall: (request, handler) => {
+				const existing = typeof request.systemMessage?.content === 'string' ? request.systemMessage.content : ''
+				return handler({
+					...request,
+					systemMessage: new SystemMessage(`${existing}\n\n${SEMANTIC_MODELING_PROMPT}`)
+				})
+			}
 		}
 	}
 }
+
+const SEMANTIC_MODELING_PROMPT = `When the user asks to create or change a Data X semantic model:
+1. Resolve exact identifiers with ${DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME} and ${DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME}; never guess a modelId or dataSourceId.
+2. Call ${DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME} before every draft change. Treat the returned draft as one complete document, preserve unrelated fields, and pass its draft.version as baseVersion to ${DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME}.
+3. Inspect physical source metadata with ${DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME} and ${DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME}; never infer columns from names or sample text.
+4. Use ${DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME} with a complete MDX SELECT statement to validate representative results. Read the returned columns and rows instead of inventing values.
+5. Call ${DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME} to open the semantic modeling Workbench when visual editing or human review is useful.
+6. Call ${DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME} only when the user explicitly requests publishing and validation issues are understood.
+Use the separate Data X Metric Management middleware for governed metrics after the semantic model is ready.`

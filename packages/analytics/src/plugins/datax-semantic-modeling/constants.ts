@@ -7,8 +7,13 @@ export const DATA_X_SEMANTIC_MODELING_FEATURE = 'datax_semantic_modeling'
 export const DATA_X_SEMANTIC_MODELING_MIDDLEWARE_NAME = DATA_X_SEMANTIC_MODELING_PROVIDER_KEY
 export const DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME = 'semantic_modeling_open'
 export const DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME = 'semantic_model_list_workspaces'
+export const DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME = 'semantic_model_list_data_sources'
+export const DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME = 'semantic_model_read_workspace'
+export const DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME = 'semantic_model_list_tables'
+export const DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME = 'semantic_model_describe_table'
 export const DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME = 'semantic_model_create_workspace'
 export const DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME = 'semantic_model_save_draft_schema'
+export const DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME = 'semantic_model_execute_query'
 export const DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME = 'semantic_model_publish_workspace'
 export const DATA_X_SEMANTIC_MODELING_MAIN_SLOT = 'agent.workbench.main'
 export const DATA_X_SEMANTIC_MODELING_FIXED_SLOT = 'agent.workbench.fixed'
@@ -24,23 +29,12 @@ export const DATA_X_SEMANTIC_MODELING_ICON = `<svg xmlns="http://www.w3.org/2000
 export const DATA_X_SEMANTIC_MODELING_TOOL_NAMES = [
 	DATA_X_SEMANTIC_MODELING_OPEN_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_LIST_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_DATA_SOURCES_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_READ_WORKSPACE_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_LIST_TABLES_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_DESCRIBE_TABLE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_CREATE_TOOL_NAME,
 	DATA_X_SEMANTIC_MODEL_SAVE_DRAFT_TOOL_NAME,
-	DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME,
-	'switch_model_workspace',
-	'list_tables',
-	'list_table_schema',
-	'list_cubes',
-	'read_cube',
-	'edit_dimension',
-	'edit_hierarchy',
-	'edit_cube',
-	'edit_calculated_member',
-	'edit_measure',
-	'edit_parameter',
-	'edit_calculation',
-	'edit_virtual_cube',
-	'model_dimension_member_retriever',
-	'get_cube_runtime_context',
-	'preview_cube'
+	DATA_X_SEMANTIC_MODEL_EXECUTE_QUERY_TOOL_NAME,
+	DATA_X_SEMANTIC_MODEL_PUBLISH_TOOL_NAME
 ] as const

@@ -25,6 +25,23 @@ export const SemanticModelWorkspaceListSchema = z.object({
 	limit: z.number().int().min(1).max(100).default(30).describe('Maximum number of workspaces to return.')
 })
 
+export const SemanticModelDataSourceListSchema = z.object({
+	search: z.string().trim().max(200).optional().describe('Optional data source name search text.')
+})
+
+export const SemanticModelWorkspaceReadSchema = z.object({
+	modelId: z.string().trim().min(1).describe('Semantic model workspace id.')
+})
+
+export const SemanticModelListTablesSchema = z.object({
+	modelId: z.string().trim().min(1).describe('Semantic model workspace id whose source tables should be listed.')
+})
+
+export const SemanticModelDescribeTableSchema = z.object({
+	modelId: z.string().trim().min(1).describe('Semantic model workspace id.'),
+	tableName: z.string().trim().min(1).max(500).describe('Qualified physical table name to inspect.')
+})
+
 export const SemanticModelWorkspaceCreateSchema = z.object({
 	key: z.string().trim().min(1).max(100).describe('Stable unique key for the semantic model workspace.'),
 	name: z.string().trim().min(1).max(200).describe('Human-readable semantic model name.'),
@@ -54,6 +71,13 @@ export const SemanticModelPublishSchema = z.object({
 	modelId: z.string().trim().min(1).describe('Semantic model workspace id.'),
 	releaseNotes: z.string().trim().max(2000).optional().describe('Optional semantic model release notes.'),
 	changeSummary: z.string().trim().min(1).max(160).describe('Short user-visible description of this publish.')
+})
+
+export const SemanticModelExecuteQuerySchema = z.object({
+	modelId: z.string().trim().min(1).describe('Semantic model workspace id.'),
+	cubeName: z.string().trim().min(1).describe('Cube referenced by the MDX statement.'),
+	statement: z.string().trim().min(1).max(50000).describe('Complete MDX SELECT statement to execute.'),
+	limit: z.number().int().min(1).max(500).default(200).describe('Maximum number of result rows to return.')
 })
 
 export const OpenSemanticModelingSchema = z.object({

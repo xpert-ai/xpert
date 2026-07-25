@@ -33,5 +33,6 @@
 		"src/plugins/datax-metric-management/remote-components/**/*.tsx",
 		"src/plugins/datax-query-analysis/remote-components/**/*.ts",
 		"src/plugins/datax-query-analysis/remote-components/**/*.tsx"
-	]
+	],
+	"exclude": ["**/*.spec.ts"]
 }
