@@ -573,6 +573,12 @@ export interface components {
              */
             thread_id?: string;
             /**
+             * Assistant Id
+             * Format: uuid
+             * @description The assistant to bind to the thread.
+             */
+            assistant_id?: string;
+            /**
              * Metadata
              * @description Metadata to add to thread.
              */

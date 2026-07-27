@@ -1664,6 +1664,12 @@
 						"title": "Thread Id",
 						"description": "The ID of the thread. If not provided, a random UUID will be generated."
 					},
+					"assistant_id": {
+						"type": "string",
+						"format": "uuid",
+						"title": "Assistant Id",
+						"description": "The assistant to bind to the thread."
+					},
 					"metadata": {
 						"type": "object",
 						"title": "Metadata",
