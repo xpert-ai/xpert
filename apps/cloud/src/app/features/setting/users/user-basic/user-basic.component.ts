@@ -58,10 +58,15 @@ export class UserBasicComponent {
   )
 
   user: User
+  private loadedUserId: string
 
   constructor() {
     effect(() => {
-      this.user = this.userComponent.user() as User
+      const user = this.userComponent.user()
+      if (user) {
+        this.user = user as User
+        this.loadedUserId = user.id
+      }
     })
   }
 
@@ -99,7 +104,7 @@ export class UserBasicComponent {
     }
 
     try {
-      await this.userService.update(this.user.id, request)
+      await this.userService.update(this.loadedUserId, request)
       this.toastrService.success(`PAC.NOTES.USERS.USER_UPDATED`, { name: new CreatedByPipe().transform(this.user) })
       this.userBasicInfo().form.markAsPristine()
     } catch (error) {
