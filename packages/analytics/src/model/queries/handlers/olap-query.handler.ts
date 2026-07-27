@@ -3,14 +3,13 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
-import { DataSourceOlapQuery } from '../../../data-source'
+import { DataSourceOlapQuery } from '@xpert-ai/server-core'
 import { Md5 } from '../../../core/helper'
 import { SemanticModelCacheService } from '../../cache/cache.service'
 import { SemanticModelService } from '../../model.service'
 import { ModelOlapQuery } from '../olap.query'
 
 const CACHE_REDIS_EXPIRES = 10 * 60 // 1min
-
 
 @QueryHandler(ModelOlapQuery)
 export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
@@ -38,13 +37,16 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 		// Access controls
 		const currentUserId = user?.id
 		const tenantId = user?.tenantId
-		const roleNames = isDraft ? [] : model.roles.filter((role) => role.users.find((user) => user.id === currentUserId))
-			.map((role) => role.name)
+		const roleNames = isDraft
+			? []
+			: model.roles
+					.filter((role) => role.users.find((user) => user.id === currentUserId))
+					.map((role) => role.name)
 
 		// Query
 		//   Cache
 		const language = model.preferences?.language || acceptLanguage
-		
+
 		// Enable caching on the published (non-draft) version.
 		let cache: ITryRequest
 		let cacheKey = ''
@@ -83,14 +85,17 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 			if (model.dataSource.type.protocol === 'xmla') {
 				// Third-party XMLA service
 				queryResult = await this.queryBus.execute(
-					new DataSourceOlapQuery({
-						id,
-						sessionId,
-						dataSourceId: model.dataSourceId,
-						body,
-						acceptLanguage: language,
-						forceRefresh
-					}, query.user)
+					new DataSourceOlapQuery(
+						{
+							id,
+							sessionId,
+							dataSourceId: model.dataSourceId,
+							body,
+							acceptLanguage: language,
+							forceRefresh
+						},
+						query.user
+					)
 				)
 			} else {
 				queryResult = await this.semanticModelService.innerOlap(body, language, roleNames)
@@ -132,5 +137,4 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 			return Promise.reject(error)
 		}
 	}
-
 }

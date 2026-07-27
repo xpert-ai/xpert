@@ -18,7 +18,17 @@ import {
 } from '@xpert-ai/contracts'
 import { pick, readYamlFile } from '@xpert-ai/server-common'
 import { ConfigService, getConnectionOptions } from '@xpert-ai/server-config'
-import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@xpert-ai/server-core'
+import {
+	DataSource,
+	DataSourceStrategyQuery,
+	DataSourceType,
+	importSheetTables,
+	Organization,
+	OrganizationDemoCommand,
+	prepareDataSource,
+	REDIS_CLIENT,
+	RequestContext
+} from '@xpert-ai/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
 import { CommandBus, CommandHandler, EventBus, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -30,11 +40,8 @@ import * as _axios from 'axios'
 import { assign, isString } from 'lodash'
 import { RedisClientType } from 'redis'
 import { Repository } from 'typeorm'
-import { importSheetTables, prepareDataSource } from '../../../data-source/utils'
 import {
 	BusinessArea,
-	DataSource,
-	DataSourceType,
 	Indicator,
 	Project,
 	SemanticModel,
@@ -43,7 +50,6 @@ import {
 	StoryWidget
 } from '../../entities/internal'
 import { SemanticModelUpdatedEvent } from '../../../model/events'
-import { DataSourceStrategyQuery } from '../../../data-source/queries/datasource.strategy.query'
 import { IndicatorService } from '../../../indicator/indicator.service'
 
 export enum InstallationModeEnum {

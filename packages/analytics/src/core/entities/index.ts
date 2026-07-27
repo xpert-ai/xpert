@@ -2,9 +2,6 @@ import { ApprovalPolicy } from '../../approval-policy/approval-policy.entity'
 import { BusinessAreaUser } from '../../business-area-user/business-area-user.entity'
 import { BusinessArea } from '../../business-area/business-area.entity'
 import { Collection } from '../../collection/collection.entity'
-import { DataSourceType } from '../../data-source-type/data-source-type.entity'
-import { DataSourceAuthentication } from '../../data-source/authentication/authentication.entity'
-import { DataSource } from '../../data-source/data-source.entity'
 import { Favorite } from '../../favorite/favorite.entity'
 import { Feed } from '../../feed/feed.entity'
 import { IndicatorMarket } from '../../indicator-market/indicator-market.entity'
@@ -32,11 +29,7 @@ import { SemanticModelEntity } from '../../model-entity/entity.entity'
 import { ChatBIModel } from '../../chatbi-model/chatbi-model.entity'
 import { SemanticModelQueryLog } from './internal'
 
-
 export const ALL_ENTITIES = [
-	DataSourceType,
-	DataSource,
-	DataSourceAuthentication,
 	SemanticModel,
 	SemanticModelCache,
 	SemanticModelMember,

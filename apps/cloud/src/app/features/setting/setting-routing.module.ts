@@ -82,7 +82,7 @@ export const routes: Routes = [
           title: 'settings/data-sources',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
+            only: [PermissionsEnum.DATA_SOURCE_EDIT],
             redirectTo
           }
         }

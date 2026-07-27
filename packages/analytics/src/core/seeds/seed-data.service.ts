@@ -16,7 +16,11 @@ import {
 } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
 import {
+	DataSource,
+	DataSourceType,
+	dataLoad,
 	Organization,
+	prepareDataSource,
 	REDIS_CLIENT,
 	RequestContext,
 	SeedDataService as SeedServerDataService,
@@ -26,27 +30,15 @@ import {
 import { readYamlFile } from '@xpert-ai/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
-import chalk from 'chalk';
+import chalk from 'chalk'
 import * as fs from 'fs'
 import { assign, omit, pick } from 'lodash'
 import * as path from 'path'
 import { RedisClientType } from 'redis'
 import { Connection, Like } from 'typeorm'
-import { seedDefaultDataSourceTypes } from '../../data-source-type/index'
-import { dataLoad, prepareDataSource } from '../../data-source/utils'
 import { updateXmlaCatalogContent } from '../../model/helper'
-import {
-	DataSource,
-	DataSourceType,
-	Indicator,
-	Project,
-	SemanticModel,
-	Story,
-	StoryPoint,
-	StoryWidget
-} from '../entities/internal'
+import { Indicator, Project, SemanticModel, Story, StoryPoint, StoryWidget } from '../entities/internal'
 import { QueryBus } from '@nestjs/cqrs'
-
 
 @Injectable()
 export class SeedDataService extends SeedServerDataService {
@@ -59,10 +51,6 @@ export class SeedDataService extends SeedServerDataService {
 		private readonly redisClient: RedisClientType
 	) {
 		super(configService)
-	}
-
-	public async seedTenantMoreDefault(connection: Connection, tenant: ITenant) {
-		await this.tryExecute('Default DataSource Types', seedDefaultDataSourceTypes(connection, tenant))
 	}
 
 	public async runDemoSeed(name: string, organization: string) {
@@ -107,7 +95,7 @@ export class SeedDataService extends SeedServerDataService {
 				this.log(chalk.green(`✅ DISCONNECTED TO REDIS!`))
 			}
 		} catch (error) {
-			this.log('NOTE: CANT CLOSE REDIS CONNECTION!');
+			this.log('NOTE: CANT CLOSE REDIS CONNECTION!')
 		}
 	}
 
@@ -179,7 +167,7 @@ export class SeedDataService extends SeedServerDataService {
 			username: dorisUsername,
 			password: dorisPassword,
 			apiHost: dorisApiHost,
-			apiPort: dorisApiPort,
+			apiPort: dorisApiPort
 		}
 
 		dataSource = await this.connection.manager.save(dataSource)
@@ -189,7 +177,7 @@ export class SeedDataService extends SeedServerDataService {
 
 	async dataLoadDoris(id: string) {
 		let dataSource = await this.connection.manager.findOne(DataSource, {
-			where: {id},
+			where: { id },
 			relations: ['type', 'authentications']
 		})
 		dataSource = await prepareDataSource(dataSource)
@@ -288,9 +276,11 @@ export class SeedDataService extends SeedServerDataService {
 		_project.createdById = this.adminUser.id
 		_project.ownerId = this.adminUser.id
 		_project.status = ProjectStatusEnum.Progressing
-		_project.models = [{
-			id: modelId
-		}]
+		_project.models = [
+			{
+				id: modelId
+			}
+		]
 
 		return await this.connection.manager.save<Project>(_project)
 	}

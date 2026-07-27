@@ -7,7 +7,7 @@ export const DEPRECATED_ROLE_PERMISSIONS = [
   PermissionsEnum.ORG_DEMO_EDIT,
   AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
   AIPermissionsEnum.COPILOT_VIEW,
-  AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
+  PermissionsEnum.DATA_SOURCE_VIEW,
   AnalyticsPermissionsEnum.MODELS_VIEW,
   AnalyticsPermissionsEnum.STORIES_VIEW,
   AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,

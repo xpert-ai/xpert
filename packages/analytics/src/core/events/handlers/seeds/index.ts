@@ -1,17 +1,15 @@
-import { Employee } from '@xpert-ai/server-core'
+import { DataSource, DataSourceTypeService, Employee } from '@xpert-ai/server-core'
 import { getConnectionOptions } from '@xpert-ai/server-config'
 import { Repository } from 'typeorm'
-import { DataSourceTypeService } from '../../../../data-source-type'
 import { SemanticModelService, SemanticModelUpdateCommand } from '../../../../model'
 import {
 	BusinessArea,
 	BusinessAreaUser,
-	DataSource,
 	Indicator,
 	SemanticModel,
 	Story,
 	StoryPoint,
-	StoryWidget,
+	StoryWidget
 } from '../../../entities/internal'
 import { BUSINESS_AREAS } from './business-area'
 import { createDemoCalculationStory } from './demo-calculation/story'
@@ -52,9 +50,7 @@ export async function seedOrganizationAnalyticsData(
 	const dataSource = await ensureDemoDataSource(dstService, dsRepository, tenantId, organizationId, userId)
 
 	const areas = await Promise.all(
-		BUSINESS_AREAS.map((item) =>
-			ensureBusinessArea(businessAreaRepository, tenantId, organizationId, userId, item)
-		)
+		BUSINESS_AREAS.map((item) => ensureBusinessArea(businessAreaRepository, tenantId, organizationId, userId, item))
 	)
 
 	if (userId) {
@@ -231,7 +227,7 @@ async function ensureDemoDataSource(
 		port: connection.port,
 		database: 'demo',
 		username: 'demo',
-		password: 'GYIb9sx71LRdMVh&qc$!',
+		password: 'GYIb9sx71LRdMVh&qc$!'
 	}
 
 	return dsRepository.save(dataSource)

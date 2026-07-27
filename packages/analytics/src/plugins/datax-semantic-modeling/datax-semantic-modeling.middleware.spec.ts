@@ -4,7 +4,7 @@ import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	AgentMiddlewareStrategy: () => () => undefined
 }))
-jest.mock('../../data-source', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	DataSourceQuery: class DataSourceQuery {},
 	DataSourceService: class DataSourceService {}
 }))

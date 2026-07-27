@@ -1,7 +1,6 @@
 import {
   AiFeatureEnum,
   AIPermissionsEnum,
-  AnalyticsFeatures,
   FeatureEnum,
   PermissionsEnum,
   RequestScopeLevel,
@@ -57,7 +56,8 @@ describe('getSettingsMenuItems', () => {
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)
     const dataSources = menus.find((item) => item.path === 'data-sources')
 
-    expect(dataSources?.data?.featureKey).toBe(AnalyticsFeatures.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.featureKey).toBe(FeatureEnum.FEATURE_DATA_SOURCE)
+    expect(dataSources?.data?.permissionKeys).toEqual([PermissionsEnum.DATA_SOURCE_EDIT])
   })
 
   it('gates membership settings with the membership plan feature', () => {

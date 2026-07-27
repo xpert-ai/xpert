@@ -1410,12 +1410,21 @@ importers:
       '@sentry/node':
         specifier: ^6.13.2
         version: 6.19.7
+      '@xpert-ai/adapter':
+        specifier: workspace:*
+        version: link:../../legacies/adapter
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../contracts/dist
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:../plugin-sdk/dist
+      '@xpert-ai/server-common':
+        specifier: workspace:*
+        version: link:../common
+      '@xpert-ai/server-config':
+        specifier: workspace:*
+        version: link:../config
       ali-oss:
         specifier: 6.17.1
         version: 6.17.1

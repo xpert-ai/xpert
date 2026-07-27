@@ -1,8 +1,6 @@
 import { AnalyticsPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
 const FULL_ANALYTICS_PERMISSIONS = [
-	AnalyticsPermissionsEnum.DATA_SOURCE_EDIT,
-	AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
 	AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT,
 	AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
 	AnalyticsPermissionsEnum.MODELS_EDIT,
@@ -27,14 +25,9 @@ const VIEWER_ANALYTICS_PERMISSIONS = [
 	AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW
 ]
 
-const AI_BUILDER_ANALYTICS_PERMISSIONS = [
-	AnalyticsPermissionsEnum.MODELS_VIEW,
-	AnalyticsPermissionsEnum.STORIES_VIEW
-]
+const AI_BUILDER_ANALYTICS_PERMISSIONS = [AnalyticsPermissionsEnum.MODELS_VIEW, AnalyticsPermissionsEnum.STORIES_VIEW]
 
 const ANALYTICS_BUILDER_PERMISSIONS = [
-	AnalyticsPermissionsEnum.DATA_SOURCE_EDIT,
-	AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
 	AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT,
 	AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
 	AnalyticsPermissionsEnum.MODELS_EDIT,

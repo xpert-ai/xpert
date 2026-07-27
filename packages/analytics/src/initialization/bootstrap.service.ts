@@ -1,4 +1,6 @@
 import {
+	DataSource,
+	DataSourceTypeService,
 	OrganizationCreatedEvent,
 	OrganizationService,
 	UserOrganizationService,
@@ -9,12 +11,10 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Repository } from 'typeorm'
-import { DataSourceTypeService } from '../data-source-type'
 import { SemanticModelService } from '../model'
 import {
 	BusinessArea,
 	BusinessAreaUser,
-	DataSource,
 	Indicator,
 	SemanticModel,
 	Story,

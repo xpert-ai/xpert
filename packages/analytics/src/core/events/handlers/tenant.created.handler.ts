@@ -1,18 +1,16 @@
 import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { TenantCreatedEvent, TenantService } from '@xpert-ai/server-core'
+import { DataSource, DataSourceTypeService, TenantCreatedEvent, TenantService } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
-import { DataSourceTypeService } from '../../../data-source-type/index'
 import { SemanticModelService } from '../../../model/index'
 import {
 	BusinessArea,
 	BusinessAreaUser,
-	DataSource,
 	Indicator,
 	SemanticModel,
 	Story,
 	StoryPoint,
-	StoryWidget,
+	StoryWidget
 } from '../../entities/internal'
 import { seedTenantDefaultData } from './seeds'
 
@@ -45,7 +43,6 @@ export class TenantCreatedHandler implements IEventHandler<TenantCreatedEvent> {
 	) {}
 
 	async handle(event: TenantCreatedEvent) {
-
 		const tenant = await this.tenantService.findOne(event.tenantId)
 
 		await seedTenantDefaultData(

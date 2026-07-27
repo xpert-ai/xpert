@@ -1,4 +1,10 @@
-import { OrganizationModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
+import {
+	DataSourceModule,
+	DataSourceTypeModule,
+	OrganizationModule,
+	RedisModule,
+	TenantModule
+} from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AgentModule } from './agent/index'
@@ -11,8 +17,6 @@ import { CertificationModule } from './certification'
 import { CollectionModule } from './collection/index'
 import { CommentModule } from './comment'
 import { CommandHandlers, EventHandlers } from './core/events/handlers'
-import { DataSourceTypeModule } from './data-source-type/data-source-type.module'
-import { DataSourceModule } from './data-source/data-source.module'
 import { FavoriteModule } from './favorite/favorite.module'
 import { FeedModule } from './feed/feed.module'
 import { IndicatorAppModule } from './indicator-app/'

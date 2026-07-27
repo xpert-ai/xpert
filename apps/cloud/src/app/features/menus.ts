@@ -53,8 +53,8 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       admin: true,
       scopeContext: 'organization-only',
       data: {
-        permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
-        featureKey: AnalyticsFeatures.FEATURE_DATA_SOURCE
+        permissionKeys: [PermissionsEnum.DATA_SOURCE_EDIT],
+        featureKey: FeatureEnum.FEATURE_DATA_SOURCE
       }
     },
     {

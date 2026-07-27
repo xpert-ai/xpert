@@ -53,6 +53,8 @@ export enum PermissionsEnum {
   ORG_DEMO_EDIT = 'ORG_DEMO_EDIT', // Orgnization demo edit permission
   INTEGRATION_EDIT = 'INTEGRATION_EDIT',
   INTEGRATION_VIEW = 'INTEGRATION_VIEW',
+  DATA_SOURCE_VIEW = 'DATA_SOURCE_VIEW',
+  DATA_SOURCE_EDIT = 'DATA_SOURCE_EDIT',
   FILE_STORAGE_VIEW = 'FILE_STORAGE_VIEW',
   SMS_GATEWAY_VIEW = 'SMS_GATEWAY_VIEW',
   CUSTOM_SMTP_VIEW = 'CUSTOM_SMTP_VIEW',
@@ -86,8 +88,8 @@ export const PermissionGroups = {
     AIPermissionsEnum.CHAT_VIEW,
 
     // DataSource
-    AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
-    AnalyticsPermissionsEnum.DATA_SOURCE_EDIT,
+    PermissionsEnum.DATA_SOURCE_VIEW,
+    PermissionsEnum.DATA_SOURCE_EDIT,
     // Semantic Model
     AnalyticsPermissionsEnum.MODELS_VIEW,
     AnalyticsPermissionsEnum.MODELS_EDIT,

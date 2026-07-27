@@ -1,7 +1,8 @@
-import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum } from '@xpert-ai/contracts'
+import { AiFeatureEnum, AnalyticsFeatures, FeatureEnum, PermissionsEnum } from '@xpert-ai/contracts'
 import { DEFAULT_FEATURES as SERVER_AI_DEFAULT_FEATURES } from '../../../server-ai/src/core/features'
 import { DEFAULT_FEATURES as SERVER_DEFAULT_FEATURES } from '../../../server/src/feature/default-features'
 import { DEFAULT_FEATURES as ANALYTICS_DEFAULT_FEATURES } from './features'
+import { ANALYTICS_ROLE_PERMISSIONS } from './role-permissions'
 
 type FeatureTree = {
 	code?: string
@@ -128,9 +129,19 @@ describe('prepare default feature definitions', () => {
 		)
 	})
 
-	it('exposes data sources as an independent analytics feature', () => {
+	it('preserves the server-owned data source feature', () => {
 		const codes = collectFeatureCodes(getMergedDefaultFeatures())
 
-		expect(codes).toContain(AnalyticsFeatures.FEATURE_DATA_SOURCE)
+		expect(codes).toContain(FeatureEnum.FEATURE_DATA_SOURCE)
+		expect(collectFeatureCodes(SERVER_DEFAULT_FEATURES)).toContain(FeatureEnum.FEATURE_DATA_SOURCE)
+		expect(collectFeatureCodes(ANALYTICS_DEFAULT_FEATURES)).not.toContain(FeatureEnum.FEATURE_DATA_SOURCE)
+	})
+
+	it('does not retain server-owned data source permissions in analytics defaults', () => {
+		for (const { defaultEnabledPermissions } of ANALYTICS_ROLE_PERMISSIONS) {
+			expect(defaultEnabledPermissions).not.toEqual(
+				expect.arrayContaining([PermissionsEnum.DATA_SOURCE_VIEW, PermissionsEnum.DATA_SOURCE_EDIT])
+			)
+		}
 	})
 })

@@ -1,6 +1,6 @@
 import { IDSTable } from '@xpert-ai/adapter'
 import { CommandBus } from '@nestjs/cqrs'
-import { QuerySchemaCommand } from '../../data-source/commands'
+import { QuerySchemaCommand } from '@xpert-ai/server-core'
 
 export class TablesCache {
 	constructor(

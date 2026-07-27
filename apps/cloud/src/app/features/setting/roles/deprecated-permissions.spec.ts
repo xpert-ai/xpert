@@ -1,5 +1,9 @@
 import { AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
-import { DEPRECATED_ROLE_PERMISSIONS, isDeprecatedRolePermission, isRolePermissionReadonly } from './deprecated-permissions'
+import {
+  DEPRECATED_ROLE_PERMISSIONS,
+  isDeprecatedRolePermission,
+  isRolePermissionReadonly
+} from './deprecated-permissions'
 
 describe('deprecated role permissions', () => {
   it('marks legacy permission list items as deprecated instead of removing them', () => {
@@ -10,7 +14,7 @@ describe('deprecated role permissions', () => {
       PermissionsEnum.ORG_DEMO_EDIT,
       AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
       AIPermissionsEnum.COPILOT_VIEW,
-      AnalyticsPermissionsEnum.DATA_SOURCE_VIEW,
+      PermissionsEnum.DATA_SOURCE_VIEW,
       AnalyticsPermissionsEnum.MODELS_VIEW,
       AnalyticsPermissionsEnum.STORIES_VIEW,
       AnalyticsPermissionsEnum.BUSINESS_AREA_VIEW,
@@ -34,7 +38,7 @@ describe('deprecated role permissions', () => {
     expect(isDeprecatedRolePermission(PermissionsEnum.ORG_INVITE_EDIT)).toBe(false)
     expect(isDeprecatedRolePermission(PermissionsEnum.INTEGRATION_EDIT)).toBe(false)
     expect(isDeprecatedRolePermission(AIPermissionsEnum.COPILOT_EDIT)).toBe(false)
-    expect(isDeprecatedRolePermission(AnalyticsPermissionsEnum.DATA_SOURCE_EDIT)).toBe(false)
+    expect(isDeprecatedRolePermission(PermissionsEnum.DATA_SOURCE_EDIT)).toBe(false)
     expect(isDeprecatedRolePermission(AnalyticsPermissionsEnum.STORIES_EDIT)).toBe(false)
   })
 

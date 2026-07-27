@@ -20,13 +20,22 @@ import {
 	Visibility
 } from '@xpert-ai/contracts'
 import { Schema } from '@xpert-ai/ocap-core'
-import { Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
+import { DataSource, Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId, VersionColumn } from 'typeorm'
+import {
+	Column,
+	Entity,
+	JoinColumn,
+	JoinTable,
+	ManyToMany,
+	ManyToOne,
+	OneToMany,
+	RelationId,
+	VersionColumn
+} from 'typeorm'
 import {
 	BusinessArea,
-	DataSource,
 	Favorite,
 	Indicator,
 	ModelQuery,
@@ -43,7 +52,6 @@ import {
  */
 @Entity('semantic_model')
 export class SemanticModel extends TenantOrganizationBaseEntity implements ISemanticModel {
-
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
@@ -140,7 +148,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	 * DataSource
 	 */
 	@ApiProperty({ type: () => SemanticModel })
-	@ManyToOne(() => DataSource, (d) => d.models, {
+	@ManyToOne(() => DataSource, {
 		nullable: true,
 		onDelete: 'CASCADE'
 	})
@@ -185,7 +193,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	 */
 	@ApiProperty({ type: () => Story, isArray: true })
 	@ManyToMany(() => Story, (story) => story.models, {
-		onDelete: "CASCADE"
+		onDelete: 'CASCADE'
 	})
 	stories?: IStory[]
 
@@ -233,7 +241,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 
 	@OneToMany(() => Visit, (m) => m.model, {
 		nullable: true,
-		cascade: true,
+		cascade: true
 	})
 	visits?: IVisit[]
 
@@ -242,7 +250,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	 */
 	@OneToMany(() => SemanticModelMember, (m) => m.model, {
 		nullable: true,
-		cascade: true,
+		cascade: true
 	})
 	dimensionMembers?: ISemanticModelMember[]
 
@@ -251,10 +259,10 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	 */
 	@OneToMany(() => SemanticModelEntity, (m) => m.model, {
 		nullable: true,
-		cascade: true,
+		cascade: true
 	})
 	entities?: ISemanticModelEntity[]
 
-	@VersionColumn({nullable: true, default: 1})
-  	version?: number
+	@VersionColumn({ nullable: true, default: 1 })
+	version?: number
 }

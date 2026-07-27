@@ -81,7 +81,10 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			return
 		}
 		// removed permissions for all users in DEMO mode
-		const deniedPermissions = [PermissionsEnum.ACCESS_DELETE_ACCOUNT, PermissionsEnum.ACCESS_DELETE_ALL_DATA]
+		const deniedPermissions = new Set<string>([
+			PermissionsEnum.ACCESS_DELETE_ACCOUNT,
+			PermissionsEnum.ACCESS_DELETE_ALL_DATA
+		])
 		const rolesPermissions: IRolePermission[] = []
 		for await (const tenant of tenants) {
 			const roles = (
@@ -99,7 +102,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 				if (defaultPermissions) {
 					const { defaultEnabledPermissions = [] } = defaultPermissions
 					for (const permission of defaultEnabledPermissions) {
-						if (environment.demo ? deniedPermissions.includes(permission) : false) {
+						if (environment.demo && deniedPermissions.has(permission)) {
 							continue
 						}
 						const rolePermission = new RolePermission()
@@ -122,7 +125,10 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			throw new BadRequestException('Tenant context is required for role permission sync.')
 		}
 
-		const deniedPermissions = [PermissionsEnum.ACCESS_DELETE_ACCOUNT, PermissionsEnum.ACCESS_DELETE_ALL_DATA]
+		const deniedPermissions = new Set<string>([
+			PermissionsEnum.ACCESS_DELETE_ACCOUNT,
+			PermissionsEnum.ACCESS_DELETE_ALL_DATA
+		])
 		const roles = (
 			await this.roleService.findAll({
 				where: { tenantId }
@@ -168,7 +174,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			}
 
 			const missingPermissions = defaultPermissions.defaultEnabledPermissions.filter((permission) => {
-				if (environment.demo ? deniedPermissions.includes(permission as PermissionsEnum) : false) {
+				if (environment.demo && deniedPermissions.has(permission)) {
 					return false
 				}
 				return !existingPermissionNames.has(permission)

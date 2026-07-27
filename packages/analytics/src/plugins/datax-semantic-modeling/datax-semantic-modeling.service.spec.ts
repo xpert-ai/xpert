@@ -1,4 +1,4 @@
-jest.mock('../../data-source', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	DataSourceQuery: class DataSourceQuery {
 		constructor(
 			public readonly dataSourceId: string,
@@ -34,7 +34,7 @@ jest.mock('../../project/commands', () => ({
 }))
 
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { DataSourceService } from '../../data-source'
+import { DataSourceService } from '@xpert-ai/server-core'
 import { SemanticModelService } from '../../model'
 import { DataXQueryAnalysisService } from '../datax-query-analysis/datax-query-analysis.service'
 import { DataXSemanticModelingService } from './datax-semantic-modeling.service'

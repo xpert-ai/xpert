@@ -2,7 +2,7 @@ import { IDataSource, IIndicator, ISemanticModelPreferences, IUser, SemanticMode
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
-import { DataSourcePublicDTO } from '../../data-source/dto'
+import { DataSourcePublicDTO } from '@xpert-ai/server-core'
 import { SemanticModel } from '../model.entity'
 
 @Exclude()
@@ -43,17 +43,17 @@ export class SemanticModelPublicDTO {
 	@IsOptional()
 	dataSourceId?: string
 
-    @Transform(({ value }) => value && new DataSourcePublicDTO(value))
+	@Transform(({ value }) => value && new DataSourcePublicDTO(value))
 	@Expose()
 	@IsOptional()
 	dataSource?: IDataSource
 
 	@Expose()
 	@IsOptional()
-    status?: SemanticModelStatusEnum
+	status?: SemanticModelStatusEnum
 
 	@Expose()
-    @Transform(({ value }) => value && new UserPublicDTO(value))
+	@Transform(({ value }) => value && new UserPublicDTO(value))
 	owner: IUser
 
 	@Expose()
@@ -64,11 +64,11 @@ export class SemanticModelPublicDTO {
 
 	@Expose()
 	@IsOptional()
-    members?: IUser[]
+	members?: IUser[]
 
-    @Expose()
+	@Expose()
 	@IsOptional()
-    indicators?: IIndicator[]
+	indicators?: IIndicator[]
 
 	@Expose()
 	@IsOptional()

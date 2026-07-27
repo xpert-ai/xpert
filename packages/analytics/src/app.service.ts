@@ -1,7 +1,7 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import * as chalk from 'chalk';
-import { DataSourceTypeService } from './data-source-type/data-source-type.service';
-import { SemanticModelService } from './model/model.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import * as chalk from 'chalk'
+import { DataSourceTypeService } from '@xpert-ai/server-core'
+import { SemanticModelService } from './model/model.service'
 
 @Injectable()
 export class AnalyticsService {
@@ -22,12 +22,12 @@ export class AnalyticsService {
 
 	constructor(
 		// private readonly commandBus: CommandBus,
-		
+
 		@Inject(forwardRef(() => DataSourceTypeService))
 		private readonly dsTypeService: DataSourceTypeService,
 
 		@Inject(forwardRef(() => SemanticModelService))
-		private readonly modelService: SemanticModelService,
+		private readonly modelService: SemanticModelService
 	) {}
 
 	getHello(): string {

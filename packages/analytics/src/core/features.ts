@@ -1,6 +1,5 @@
 import { AnalyticsFeatures, IFeatureCreateInput } from '@xpert-ai/contracts'
 
-
 export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 	{
 		name: 'Business Area',
@@ -10,17 +9,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		link: 'business-area',
 		isEnabled: true,
 		icon: 'file-text-outline',
-		status: 'success',
-	},
-	{
-		name: 'Data Source',
-		code: AnalyticsFeatures.FEATURE_DATA_SOURCE,
-		description: 'Manage Data Sources',
-		image: 'estimate.png',
-		link: 'settings/data-sources',
-		isEnabled: true,
-		icon: 'database',
-		status: 'success',
+		status: 'success'
 	},
 	{
 		name: 'Semantic Model',
@@ -30,7 +19,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		link: 'model',
 		isEnabled: true,
 		icon: 'file-text-outline',
-		status: 'success',
+		status: 'success'
 	},
 	{
 		name: 'Story',
@@ -40,7 +29,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		link: 'story',
 		isEnabled: true,
 		icon: 'file-text-outline',
-		status: 'success',
+		status: 'success'
 	},
 	{
 		name: 'Project',
@@ -50,8 +39,8 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		link: 'project',
 		isEnabled: true,
 		icon: 'project-outline',
-		status: 'success',
-	},
+		status: 'success'
+	}
 	// {
 	// 	name: 'Data Factory',
 	// 	code: AnalyticsFeatures.FEATURE_DATA_FACTORY,

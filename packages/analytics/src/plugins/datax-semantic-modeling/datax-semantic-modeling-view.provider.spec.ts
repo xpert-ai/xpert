@@ -5,7 +5,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 		`<!doctype html><title>${options.title}</title><script>${options.appScript}</script>`,
 	ViewExtensionProvider: () => () => undefined
 }))
-jest.mock('../../data-source', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	DataSourceQuery: class DataSourceQuery {},
 	DataSourceService: class DataSourceService {}
 }))

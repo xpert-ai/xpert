@@ -1,7 +1,5 @@
-import { Employee } from '@xpert-ai/server-core'
+import { DataSource, DataSourceTypeService, Employee } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
-import { DataSource } from '../../../../../core/entities/internal'
-import { DataSourceTypeService } from '../../../../../data-source-type/index'
 
 export async function createLocalAgentDataSource(
 	employee: Employee,
@@ -15,12 +13,12 @@ export async function createLocalAgentDataSource(
 	dataSource.organizationId = employee.organizationId
 	dataSource.type = await dstService.findOneByWhereOptions({
 		tenantId: employee.tenantId,
-		type: 'agent',
+		type: 'agent'
 	})
 	dataSource.useLocalAgent = true
 
 	dataSource.options = {
-		database: 'mydb.sqlite',
+		database: 'mydb.sqlite'
 	}
 	dataSource = await dsRepository.save(dataSource)
 }

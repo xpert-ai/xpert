@@ -1,13 +1,17 @@
-import { OrganizationModule, UserModule, UserOrganizationModule } from '@xpert-ai/server-core'
+import {
+	DataSource,
+	DataSourceTypeModule,
+	OrganizationModule,
+	UserModule,
+	UserOrganizationModule
+} from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { DataSourceTypeModule } from '../data-source-type/data-source-type.module'
 import { SemanticModelModule } from '../model/model.module'
 import {
 	BusinessArea,
 	BusinessAreaUser,
-	DataSource,
 	Indicator,
 	SemanticModel,
 	Story,

@@ -1,7 +1,7 @@
 import { isToolEnabled, IXpertToolset, TToolCredentials } from '@xpert-ai/contracts'
 import { BuiltinToolset, TBuiltinToolsetParams, ToolProviderCredentialValidationError } from '@xpert-ai/server-ai'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { DataSourcePingCommand } from '../../../../data-source/commands/'
+import { DataSourcePingCommand } from '@xpert-ai/server-core'
 import { buildExecuteSQLTool } from './tools/db_execute_sql'
 import { buildListTablesTool } from './tools/db_list_tables'
 import { buildQuerySchemaTool } from './tools/db_query_schema'

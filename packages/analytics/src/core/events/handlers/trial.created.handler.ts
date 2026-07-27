@@ -1,27 +1,23 @@
 import { CommandBus, IEventHandler } from '@nestjs/cqrs'
 import { EventsHandler } from '@nestjs/cqrs/dist/decorators/events-handler.decorator'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Employee, TrialUserCreatedEvent } from '@xpert-ai/server-core'
+import { DataSource, DataSourceTypeService, Employee, TrialUserCreatedEvent } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
-import { DataSourceTypeService } from '../../../data-source-type/index'
 import {
 	BusinessArea,
 	BusinessAreaUser,
-	DataSource,
 	Indicator,
 	SemanticModel,
 	Story,
 	StoryPoint,
-	StoryWidget,
+	StoryWidget
 } from '../../entities/internal'
 
 /**
  * @deprecated use @nestjs/event-emitter like `@OnEvent('order.created')`
  */
 @EventsHandler(TrialUserCreatedEvent)
-export class TrialUserCreatedHandler
-	implements IEventHandler<TrialUserCreatedEvent>
-{
+export class TrialUserCreatedHandler implements IEventHandler<TrialUserCreatedEvent> {
 	constructor(
 		@InjectRepository(DataSource)
 		private readonly dsRepository: Repository<DataSource>,
@@ -49,7 +45,6 @@ export class TrialUserCreatedHandler
 		// 	this.dsRepository,
 		// 	this.dstService
 		// )
-
 		// await seedTenantDefaultData(
 		// 	this.dstService,
 		// 	this.dsRepository,
