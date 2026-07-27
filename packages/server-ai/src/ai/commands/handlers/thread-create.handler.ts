@@ -56,9 +56,6 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 					this.xpertPrincipalService
 				)
 			: null
-		if (xpert) {
-			applyAssistantScope(xpert)
-		}
 
 		let conversation = null
 		if (input.thread_id) {
@@ -73,11 +70,28 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 				if (input.if_exists === 'raise') {
 					throw new ThreadAlreadyExistsException()
 				}
+			}
+		}
 
-				if (xpert) {
-					conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+		if (xpert) {
+			applyAssistantScope(xpert)
+		}
+		if (!conversation && input.thread_id && xpert) {
+			conversation = await this.queryBus.execute(
+				new GetChatConversationQuery({
+					threadId: input.thread_id
+				})
+			)
+			if (conversation) {
+				assertPublicXpertSessionConversationAccess(conversation)
+
+				if (input.if_exists === 'raise') {
+					throw new ThreadAlreadyExistsException()
 				}
 			}
+		}
+		if (conversation && xpert) {
+			conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
 		}
 
 		if (!conversation) {

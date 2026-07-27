@@ -18,6 +18,8 @@ export class ChatConversationBindXpertHandler implements ICommandHandler<ChatCon
             }
         )
 
-        return this.service.findOne(command.conversationId)
+        return this.service.repository.findOneByOrFail({
+            id: command.conversationId
+        })
     }
 }

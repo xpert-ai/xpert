@@ -25,6 +25,7 @@ import { Test } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatConversationBindXpertCommand, ChatConversationUpsertCommand } from '../../../chat-conversation'
+import { ThreadAlreadyExistsException } from '../../../core'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import { ThreadCreateCommand } from '../thread-create.command'
 import { resolveThreadCreateAssistantId, ThreadCreateHandler } from './thread-create.handler'
@@ -55,6 +56,26 @@ describe('ThreadCreateHandler', () => {
     }
 
     let handler: ThreadCreateHandler
+
+    function mockOrganizationRequestForTenantAssistant() {
+        const request = {
+            headers: {
+                'organization-id': 'organization-1',
+                'x-scope-level': 'organization'
+            }
+        }
+        ;(RequestContext.currentRequest as jest.Mock).mockReturnValue(request)
+        jest.mocked(RequestContext.isOrganizationScope).mockReturnValue(true)
+        publishedXpertAccessService.getAccessiblePublishedXpert.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            workspaceId: 'workspace-1',
+            workspace: null,
+            user: null
+        })
+        return request
+    }
 
     beforeEach(async () => {
         jest.clearAllMocks()
@@ -128,6 +149,61 @@ describe('ThreadCreateHandler', () => {
             xpertId: 'xpert-1'
         })
         expect(result.metadata.assistant_id).toBe('xpert-1')
+    })
+
+    it('checks for an existing thread before switching to the assistant scope', async () => {
+        const request = mockOrganizationRequestForTenantAssistant()
+        queryBus.execute.mockImplementation(async () => {
+            expect(request.headers['organization-id']).toBe('organization-1')
+            expect(request.headers['x-scope-level']).toBe('organization')
+            return {
+                id: 'conversation-1',
+                threadId: 'thread-1',
+                xpertId: null,
+                status: 'idle'
+            }
+        })
+
+        await expect(
+            handler.execute(
+                new ThreadCreateCommand({
+                    assistant_id: 'xpert-1',
+                    thread_id: 'thread-1',
+                    if_exists: 'raise'
+                })
+            )
+        ).rejects.toBeInstanceOf(ThreadAlreadyExistsException)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(request.headers['organization-id']).toBe('organization-1')
+        expect(request.headers['x-scope-level']).toBe('organization')
+    })
+
+    it('checks the assistant scope before creating a thread with an existing thread_id', async () => {
+        const request = mockOrganizationRequestForTenantAssistant()
+        queryBus.execute.mockResolvedValueOnce(null).mockImplementationOnce(async () => {
+            expect(request.headers['organization-id']).toBeUndefined()
+            expect(request.headers['x-scope-level']).toBe('tenant')
+            return {
+                id: 'conversation-1',
+                threadId: 'thread-1',
+                xpertId: 'xpert-1',
+                status: 'idle'
+            }
+        })
+
+        await expect(
+            handler.execute(
+                new ThreadCreateCommand({
+                    assistant_id: 'xpert-1',
+                    thread_id: 'thread-1',
+                    if_exists: 'raise'
+                })
+            )
+        ).rejects.toBeInstanceOf(ThreadAlreadyExistsException)
+
+        expect(queryBus.execute).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 
     it('backfills an existing unbound thread when if_exists is do_nothing', async () => {

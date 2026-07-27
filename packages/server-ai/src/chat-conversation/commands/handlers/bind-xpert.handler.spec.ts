@@ -7,7 +7,10 @@ import { ChatConversationBindXpertHandler } from './bind-xpert.handler'
 describe('ChatConversationBindXpertHandler', () => {
     const service = {
         update: jest.fn(),
-        findOne: jest.fn()
+        findOne: jest.fn(),
+        repository: {
+            findOneByOrFail: jest.fn()
+        }
     }
 
     let handler: ChatConversationBindXpertHandler
@@ -15,7 +18,7 @@ describe('ChatConversationBindXpertHandler', () => {
     beforeEach(async () => {
         jest.clearAllMocks()
         service.update.mockResolvedValue({ affected: 1 })
-        service.findOne.mockResolvedValue({
+        service.repository.findOneByOrFail.mockResolvedValue({
             id: 'conversation-1',
             xpertId: 'xpert-1'
         })
@@ -50,12 +53,14 @@ describe('ChatConversationBindXpertHandler', () => {
                 xpertId: 'xpert-1'
             }
         )
-        expect(service.findOne).toHaveBeenCalledWith('conversation-1')
+        expect(service.repository.findOneByOrFail).toHaveBeenCalledWith({
+            id: 'conversation-1'
+        })
     })
 
     it('returns the persisted winner when another request binds first', async () => {
         service.update.mockResolvedValue({ affected: 0 })
-        service.findOne.mockResolvedValue({
+        service.repository.findOneByOrFail.mockResolvedValue({
             id: 'conversation-1',
             xpertId: 'xpert-2'
         })
@@ -66,5 +71,18 @@ describe('ChatConversationBindXpertHandler', () => {
             id: 'conversation-1',
             xpertId: 'xpert-2'
         })
+    })
+
+    it('does not refetch the bound conversation through the switched request scope', async () => {
+        service.findOne.mockRejectedValue(new Error('Conversation is hidden by the current scope'))
+
+        await expect(
+            handler.execute(new ChatConversationBindXpertCommand('conversation-1', 'xpert-1'))
+        ).resolves.toEqual({
+            id: 'conversation-1',
+            xpertId: 'xpert-1'
+        })
+
+        expect(service.findOne).not.toHaveBeenCalled()
     })
 })
