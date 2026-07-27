@@ -1,19 +1,11 @@
 import {
-    ApiKeyBindingType,
-    IApiKey,
-    IApiPrincipal,
     IChatConversation,
     IEnvironment,
-    IUser,
-    IXpert,
-    isTenantSharedXpertWorkspace,
-    RequestScopeLevel,
-    SecretTokenBindingType,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
-import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
+import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
@@ -27,8 +19,12 @@ import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { serializeRunStreamPayload } from '../../../shared/stream/'
+import {
+    applyAssistantScope,
+    bindConversationAssistantIfUnbound,
+    resolveAssistantForRequest
+} from '../../assistant-request-context'
 
 const humanInputSchema = z.object({}).passthrough()
 
@@ -299,10 +295,6 @@ function getRunCreateContext(context: unknown): Record<string, unknown> | undefi
     return context
 }
 
-type MutableRequestContextRequest = NonNullable<ReturnType<typeof RequestContext.currentRequest>> & {
-    user?: IUser | IApiPrincipal | null
-}
-
 export function validateRunCreateInput(
     input: LegacyTChatRequest | TChatRequestV2 | unknown,
     conversation: IChatConversation
@@ -324,69 +316,6 @@ export function validateRunCreateInput(
     } as TChatRequestV2
 }
 
-function applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
-    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
-
-    if (!request?.headers) {
-        return
-    }
-
-    if (organizationId) {
-        request.headers['organization-id'] = organizationId
-        request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
-        return
-    }
-
-    delete request.headers['organization-id']
-    request.headers['x-scope-level'] = RequestScopeLevel.TENANT
-}
-
-function applyAssistantPrincipalToCurrentRequest(
-    apiKey: IApiKey | null | undefined,
-    principalUser: IUser | null | undefined
-) {
-    const request = RequestContext.currentRequest() as MutableRequestContextRequest | null
-    const currentUser = RequestContext.currentUser() as IApiPrincipal | null
-
-    if (!request || !apiKey || !principalUser) {
-        return
-    }
-
-    if (
-        currentUser?.principalType === 'client_secret' &&
-        currentUser.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
-    ) {
-        return
-    }
-
-    // An explicit x-principal-user-id represents the business user for this
-    // request and must not be overwritten by the xpert technical principal.
-    if (currentUser?.requestedUserId) {
-        return
-    }
-
-    request.user = {
-        ...principalUser,
-        apiKey,
-        ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
-        apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
-        requestedUserId: currentUser?.requestedUserId ?? null,
-        requestedOrganizationId: currentUser?.requestedOrganizationId ?? null,
-        principalType: currentUser?.principalType ?? 'api_key'
-    }
-}
-
-function applyAssistantScope(xpert: IXpert) {
-    const apiKey = RequestContext.currentApiKey()
-    const keepConsumerOrganizationScope =
-        !xpert.organizationId && RequestContext.isOrganizationScope() && isTenantSharedXpertWorkspace(xpert.workspace)
-
-    if (!keepConsumerOrganizationScope) {
-        applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
-    }
-    applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
-}
-
 @CommandHandler(RunCreateStreamCommand)
 export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCommand> {
     readonly #logger = new Logger(RunCreateStreamHandler.name)
@@ -398,52 +327,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertPrincipalService?: XpertPrincipalService
     ) {}
-
-    private async resolveAssistantForRun(assistantId: string) {
-        const apiKey = RequestContext.currentApiKey()
-        const apiPrincipal = RequestContext.currentApiPrincipal() as IApiPrincipal | null
-        // USER_XPERT is an interactive delegation: run with the authenticated
-        // business user. Other assistant bindings use the stable technical
-        // principal required by background/service execution.
-        const delegatedUser =
-            apiPrincipal?.principalType === 'client_secret' &&
-            apiPrincipal.clientSecretBindingType === SecretTokenBindingType.USER_XPERT
-                ? (RequestContext.currentUser() as IUser | null)
-                : null
-
-        if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId && apiKey.entityId !== assistantId) {
-            throw new ForbiddenException('API key is not allowed to access this assistant.')
-        }
-
-        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
-            relations: ['user', 'createdBy', 'workspace']
-        })
-
-        if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
-            throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
-        }
-
-        if (delegatedUser) {
-            // Do not call ensurePrincipalUser here; doing so would replace the
-            // user's permissions and audit identity with the assistant user.
-            return {
-                ...xpert,
-                user: delegatedUser,
-                userId: delegatedUser.id
-            }
-        }
-
-        if (this.xpertPrincipalService) {
-            const principalUser = await this.xpertPrincipalService.ensurePrincipalUser(xpert as never)
-            return {
-                ...xpert,
-                user: principalUser,
-                userId: principalUser.id
-            }
-        }
-
-        return xpert
-    }
 
     private async resolveRequestEnvironment(
         xpert: { environmentId?: string | null },
@@ -465,21 +348,22 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const runCreate = command.runCreate
 
         // Find thread (conversation) and assistant (xpert)
-        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
+        let conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         assertPublicXpertSessionConversationAccess(conversation)
-        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
+        const xpert = await resolveAssistantForRequest(
+            runCreate.assistant_id,
+            this.publishedXpertAccessService,
+            this.xpertPrincipalService
+        )
         applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
 
-        // Update conversation if xpertId is missing or sandboxEnvironmentId needs to be persisted
-        let needsUpdate = false
-        // Update xpert id for chat conversation
-        if (!conversation.xpertId) {
-            conversation.xpertId = xpert.id
-            needsUpdate = true
-        }
+        // Backfill legacy threads independently with a compare-and-set update.
+        conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+
+        // Persist the sandbox option only when the request changes it.
         if (
             chatRequest.action === 'send' &&
             chatRequest.sandboxEnvironmentId &&
@@ -489,9 +373,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 ...(conversation.options || {}),
                 sandboxEnvironmentId: chatRequest.sandboxEnvironmentId
             }
-            needsUpdate = true
-        }
-        if (needsUpdate) {
             await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
         }
 

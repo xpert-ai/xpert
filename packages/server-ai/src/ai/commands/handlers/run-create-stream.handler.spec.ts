@@ -49,8 +49,11 @@ import {
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
+import { ChatConversationBindXpertCommand } from '../../../chat-conversation/commands/bind-xpert.command'
+import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
+import { resolveAssistantForRequest } from '../../assistant-request-context'
 import { normalizeRunStreamMessage, RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
 
 const conversation = {
@@ -741,7 +744,7 @@ describe('RunCreateStreamHandler environment resolution', () => {
     })
 })
 
-describe('RunCreateStreamHandler assistant principal', () => {
+describe('assistant request principal', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
@@ -765,15 +768,9 @@ describe('RunCreateStreamHandler assistant principal', () => {
                 tenantId: 'tenant-1'
             })
         }
-        const handler = new RunCreateStreamHandler(
-            {} as any,
-            {} as any,
-            {} as any,
-            publishedXpertAccessService as any,
-            xpertPrincipalService as any
-        )
-
-        await expect(handler['resolveAssistantForRun']('xpert-1')).resolves.toMatchObject({
+        await expect(
+            resolveAssistantForRequest('xpert-1', publishedXpertAccessService, xpertPrincipalService)
+        ).resolves.toMatchObject({
             id: 'xpert-1',
             userId: 'assistant-user-1',
             user: {
@@ -818,15 +815,9 @@ describe('RunCreateStreamHandler assistant principal', () => {
         const xpertPrincipalService = {
             ensurePrincipalUser: jest.fn()
         }
-        const handler = new RunCreateStreamHandler(
-            {} as any,
-            {} as any,
-            {} as any,
-            publishedXpertAccessService as any,
-            xpertPrincipalService as any
-        )
-
-        await expect(handler['resolveAssistantForRun']('xpert-1')).resolves.toMatchObject({
+        await expect(
+            resolveAssistantForRequest('xpert-1', publishedXpertAccessService, xpertPrincipalService)
+        ).resolves.toMatchObject({
             id: 'xpert-1',
             userId: 'user-1',
             user: currentUser
@@ -961,6 +952,88 @@ describe('RunCreateStreamHandler execute', () => {
                 runId: 'execution-1'
             }
         })
+    })
+
+    it('atomically backfills the assistant on a legacy unbound conversation', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof ChatConversationBindXpertCommand) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        options: {}
+                    }
+                }
+
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1'
+                    }
+                }
+
+                if (command instanceof XpertChatCommand) {
+                    return EMPTY
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: null,
+                        options: {}
+                    }
+                }
+
+                return null
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                    id: 'xpert-1',
+                    environmentId: null
+                })
+            } as any
+        )
+
+        await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: 'Continue the legacy thread'
+                        }
+                    }
+                }
+            }
+        } as any)
+
+        const bindCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof ChatConversationBindXpertCommand
+        )?.[0] as ChatConversationBindXpertCommand
+
+        expect(bindCommand).toMatchObject({
+            conversationId: 'conversation-1',
+            xpertId: 'xpert-1'
+        })
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof ChatConversationUpsertCommand)
+        ).toBe(false)
     })
 
     it('forwards raw message input to Xpert chat and leaves hydration to downstream handlers', async () => {

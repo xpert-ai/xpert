@@ -1,4 +1,5 @@
 import { CancelSummaryJobHandler } from './cancel-summary.handler'
+import { ChatConversationBindXpertHandler } from './bind-xpert.handler'
 import { ChatConversationDeleteHandler } from './conversation-delete.handler'
 import { ConvFileDeleteHandler } from './delete-file.handler'
 import { ConvFileGetByPathCommandHandler } from './file-get-by-path.handler'
@@ -10,6 +11,7 @@ import { CancelConversationHandler } from './cancel-conversation.handler'
 
 export const CommandHandlers = [
     ChatConversationUpsertHandler,
+    ChatConversationBindXpertHandler,
     ChatConversationDeleteHandler,
     ScheduleSummaryJobHandler,
     CancelSummaryJobHandler,

@@ -1,19 +1,65 @@
+import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { t } from 'i18next'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { ThreadAlreadyExistsException } from '../../../core'
+import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
+import {
+	applyAssistantScope,
+	bindConversationAssistantIfUnbound,
+	resolveAssistantForRequest
+} from '../../assistant-request-context'
 import { ThreadDTO } from '../../dto'
+import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { ThreadCreateCommand } from '../thread-create.command'
+
+type ThreadAssistantInput = {
+	assistant_id?: unknown
+}
+
+function normalizeThreadAssistantId(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined
+	}
+	if (typeof value !== 'string' || !value.trim()) {
+		throw new BadRequestException(
+			t('server-ai:Error.InvalidThreadAssistantId', {
+				defaultValue: 'Thread assistant_id must be a non-empty string.'
+			})
+		)
+	}
+
+	return value.trim()
+}
+
+export function resolveThreadCreateAssistantId(input: ThreadAssistantInput): string | undefined {
+	return normalizeThreadAssistantId(input.assistant_id)
+}
 
 @CommandHandler(ThreadCreateCommand)
 export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand> {
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly publishedXpertAccessService: PublishedXpertAccessService,
+		private readonly xpertPrincipalService?: XpertPrincipalService
 	) {}
 
 	public async execute(command: ThreadCreateCommand): Promise<ThreadDTO> {
 		const input = command.input
+		const assistantId = resolveThreadCreateAssistantId(input)
+		const xpert = assistantId
+			? await resolveAssistantForRequest(
+					assistantId,
+					this.publishedXpertAccessService,
+					this.xpertPrincipalService
+				)
+			: null
+		if (xpert) {
+			applyAssistantScope(xpert)
+		}
+
 		let conversation = null
 		if (input.thread_id) {
 			conversation = await this.queryBus.execute(
@@ -21,26 +67,26 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 					threadId: input.thread_id
 				})
 			)
+			if (conversation) {
+				assertPublicXpertSessionConversationAccess(conversation)
 
-			if (input.if_exists === 'raise' && conversation) {
-				throw new ThreadAlreadyExistsException()
-			}
+				if (input.if_exists === 'raise') {
+					throw new ThreadAlreadyExistsException()
+				}
 
-			if (!conversation) {
-				conversation = await this.commandBus.execute(
-					new ChatConversationUpsertCommand({
-						threadId: input.thread_id,
-						title: input.metadata?.title,
-						from: 'api'
-					})
-				)
+				if (xpert) {
+					conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+				}
 			}
-		} else {
+		}
+
+		if (!conversation) {
 			conversation = await this.commandBus.execute(
 				new ChatConversationUpsertCommand({
-					threadId: uuidv4(),
+					threadId: input.thread_id ?? uuidv4(),
 					title: input.metadata?.title,
-					from: 'api'
+					from: 'api',
+					xpertId: xpert?.id
 				})
 			)
 		}

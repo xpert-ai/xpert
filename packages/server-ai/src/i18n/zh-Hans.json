@@ -5,6 +5,7 @@
         "GitIntegrationNotProvided": "未提供 Git 集成",
         "KBReqVisionModel": "知识库需要视觉模型来处理图像",
         "IntegrationNotFound": "未找到系统集成‘{{id}}’",
+        "InvalidThreadAssistantId": "Thread 的 assistant_id 必须是非空字符串。",
         "NoTriggerNodes": "没有可用的触发节点来启动智能体。请添加一个触发节点。",
         "SteerFollowUpTargetNotRunning": "引导消息的目标执行已不再运行",
         "InconsistentTypes": "无法对类型不一致的变量‘{{types}}’进行聚合。支持的聚合类型：数组、字符串、对象。",
