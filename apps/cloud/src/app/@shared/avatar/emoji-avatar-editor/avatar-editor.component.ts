@@ -8,7 +8,7 @@ import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
-import { ScreenshotService, TAvatar } from '../../../@core'
+import { StorageFileService, TAvatar } from '../../../@core'
 import {
   Z_MODAL_DATA,
   ZardButtonComponent,
@@ -39,7 +39,7 @@ import {
   ]
 })
 export class EmojiAvatarEditorComponent {
-  readonly screenshotService = inject(ScreenshotService)
+  readonly storageFileService = inject(StorageFileService)
   readonly #dialogRef = inject(ZardDialogRef)
   readonly avatar = inject<TAvatar>(Z_MODAL_DATA)
 
@@ -95,9 +95,7 @@ export class EmojiAvatarEditorComponent {
   }
 
   async uploadScreenshot(fileUpload: File) {
-    const formData = new FormData()
-    formData.append('file', fileUpload)
-    return await firstValueFrom(this.screenshotService.create(formData))
+    return await firstValueFrom(this.storageFileService.uploadStorageFile(fileUpload))
   }
 
   async handleFileDrop(event: DragEvent) {

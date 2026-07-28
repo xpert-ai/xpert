@@ -6,7 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IOrganization } from '@xpert-ai/contracts'
 import { UsersService } from '@xpert-ai/cloud/state'
 import { firstValueFrom, of } from 'rxjs'
-import { OrganizationsService, RequestScopeLevel, ScreenshotService, Store, ToastrService } from '../../../@core'
+import { OrganizationsService, RequestScopeLevel, StorageFileService, Store, ToastrService } from '../../../@core'
 import { OrganizationsComponent } from './organizations.component'
 
 const organization: IOrganization = {
@@ -106,9 +106,9 @@ describe('OrganizationsComponent', () => {
           }
         },
         {
-          provide: ScreenshotService,
+          provide: StorageFileService,
           useValue: {
-            create: jest.fn()
+            uploadStorageFile: jest.fn()
           }
         }
       ]

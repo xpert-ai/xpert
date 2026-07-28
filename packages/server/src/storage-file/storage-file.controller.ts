@@ -1,4 +1,4 @@
-import { IScreenshot, IStorageFile } from '@xpert-ai/contracts'
+import { IStorageFile } from '@xpert-ai/contracts'
 import {
 	BadRequestException,
 	Body,
@@ -112,7 +112,7 @@ export class StorageFileController {
 	})
 	@Delete(':id')
 	@UsePipes(new ValidationPipe())
-	async delete(@Param('id', UUIDValidationPipe) id: IScreenshot['id']): Promise<IStorageFile> {
+	async delete(@Param('id', UUIDValidationPipe) id: IStorageFile['id']): Promise<IStorageFile> {
 		return await this.storageFileService.deleteStorageFile(id)
 	}
 }

@@ -4,7 +4,7 @@ import { Component, inject, input } from '@angular/core'
 import { XpAppearanceDirective, DensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { IOrganization, OrganizationsService, ScreenshotService, Store } from '../../@core'
+import { IOrganization, OrganizationsService, StorageFileService, Store } from '../../@core'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -15,7 +15,7 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
   imports: [ZardIconComponent, CdkMenuModule, TranslateModule, DensityDirective, XpAppearanceDirective]
 })
 export class OrgAvatarEditorComponent {
-  private readonly screenshotService = inject(ScreenshotService)
+  private readonly storageFileService = inject(StorageFileService)
   private readonly orgService = inject(OrganizationsService)
   readonly #store = inject(Store)
 
@@ -29,9 +29,7 @@ export class OrgAvatarEditorComponent {
   }
 
   async uploadScreenshot(fileUpload: File) {
-    const formData = new FormData()
-    formData.append('file', fileUpload)
-    return await firstValueFrom(this.screenshotService.create(formData))
+    return await firstValueFrom(this.storageFileService.uploadStorageFile(fileUpload))
   }
 
   async remove() {

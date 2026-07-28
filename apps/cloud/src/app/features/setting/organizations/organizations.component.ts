@@ -15,7 +15,7 @@ import {
   OrganizationsService,
   PermissionsEnum,
   RequestScopeLevel,
-  ScreenshotService,
+  StorageFileService,
   Store,
   ToastrService,
   getErrorMessage,
@@ -85,7 +85,7 @@ export class OrganizationsComponent {
   readonly #dialog = inject(Dialog)
   readonly #toastrService = inject(ToastrService)
   readonly #translate = inject(TranslateService)
-  readonly #screenshotService = inject(ScreenshotService)
+  readonly #storageFileService = inject(StorageFileService)
 
   readonly confirmDelete = injectConfirmDelete()
 
@@ -388,10 +388,8 @@ export class OrganizationsComponent {
 
     this.uploadingAvatar.set(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const screenshot = await firstValueFrom(this.#screenshotService.create(formData))
-      await firstValueFrom(this.#organizationsService.update(organization.id, { imageUrl: screenshot.url }))
+      const storageFile = await firstValueFrom(this.#storageFileService.uploadStorageFile(file))
+      await firstValueFrom(this.#organizationsService.update(organization.id, { imageUrl: storageFile.url }))
       await this.refreshCurrentUserContext()
       this.refresh()
     } catch (error) {

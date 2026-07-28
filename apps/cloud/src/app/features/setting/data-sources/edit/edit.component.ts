@@ -23,7 +23,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom, map, of, startWith } from 'rxjs'
 import { AuthenticationEnum, getErrorMessage, IDataSource } from '../../../../@core/types'
 import { convertConfigurationSchema } from '../../../../@core/services/configuration-schema.service'
-import { ServerSocketAgent } from '../../../../@core/services/server-socket-agent.service'
+import { DataSourceConnectionService } from '../../../../@core/services/data-source-connection.service'
 import { ToastrService } from '../../../../@core/services/toastr.service'
 
 @Component({
@@ -55,7 +55,7 @@ export class XpDataSourceEditComponent {
   public dialogRef = inject<ZardDialogRef<XpDataSourceEditComponent, boolean>>(ZardDialogRef)
   public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
   private toastrService = inject(ToastrService)
-  private serverAgent = inject(ServerSocketAgent)
+  private dataSourceConnection = inject(DataSourceConnectionService)
 
   readonly dataSourceId = signal(this.data?.id)
   readonly _loading = signal(false)
@@ -144,23 +144,11 @@ export class XpDataSourceEditComponent {
   async ping() {
     this._loading.set(true)
     try {
-      await this.serverAgent.request(
-        {
-          type: this.dataSource().type.protocol.toUpperCase(),
-          dataSource: {
-            ...this.dataSource(),
-            ...this.formGroup.value
-          }
-        },
-        {
-          method: 'get',
-          url: 'ping',
-          body: {
-            ...this.formGroup.value,
-            type: this.dataSource().type
-          }
-        }
-      )
+      await this.dataSourceConnection.ping({
+        ...this.dataSource(),
+        ...this.formGroup.value,
+        type: this.dataSource().type
+      })
 
       this._loading.set(false)
       this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })

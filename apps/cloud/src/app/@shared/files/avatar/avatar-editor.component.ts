@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, effect, forwardRef, inject, input, output, signal } from '@angular/core'
 import { XpAppearanceDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { ScreenshotService } from '../../../@core'
+import { StorageFileService } from '../../../@core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
 /**
@@ -25,7 +25,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
   ]
 })
 export class AvatarEditorComponent implements ControlValueAccessor {
-  private readonly screenshotService = inject(ScreenshotService)
+  private readonly storageFileService = inject(StorageFileService)
 
   readonly imageUrl = input<string>()
   readonly imageUrlChange = output<string | null>()
@@ -67,9 +67,7 @@ export class AvatarEditorComponent implements ControlValueAccessor {
   }
 
   uploadScreenshot(fileUpload: File) {
-    const formData = new FormData()
-    formData.append('file', fileUpload)
-    return this.screenshotService.create(formData)
+    return this.storageFileService.uploadStorageFile(fileUpload)
   }
 
   remove() {

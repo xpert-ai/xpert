@@ -7,7 +7,7 @@ import { omit } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, startWith } from 'rxjs'
 import { convertConfigurationSchema } from '@cloud/app/@core/services/configuration-schema.service'
-import { ServerSocketAgent } from '@cloud/app/@core/services/server-socket-agent.service'
+import { DataSourceConnectionService } from '@cloud/app/@core/services/data-source-connection.service'
 import { ToastrService } from '@cloud/app/@core/services/toastr.service'
 import { CommonModule } from '@angular/common'
 
@@ -54,7 +54,7 @@ export class XpDataSourceCreationComponent implements OnInit {
   private translateService = inject(TranslateService)
   private data = inject<IDataSource | null>(Z_MODAL_DATA, { optional: true })
   public dialogRef = inject<ZardDialogRef<XpDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
-  private serverAgent = inject(ServerSocketAgent)
+  private dataSourceConnection = inject(DataSourceConnectionService)
 
   readonly loading = signal(false)
 
@@ -144,23 +144,10 @@ export class XpDataSourceCreationComponent implements OnInit {
   async ping() {
     this.loading.set(true)
     try {
-      await this.serverAgent.request(
-        {
-          type: this.dataSourceType().protocol.toUpperCase(),
-          dataSource: {
-            ...this.formGroup.value,
-            type: this.dataSourceType()
-          }
-        },
-        {
-          method: 'get',
-          url: 'ping',
-          body: {
-            ...this.formGroup.value,
-            type: this.dataSourceType()
-          }
-        }
-      )
+      await this.dataSourceConnection.ping({
+        ...this.formGroup.value,
+        type: this.dataSourceType()
+      })
 
       this.loading.set(false)
       this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })

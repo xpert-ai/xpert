@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpFormlyModule, provideFormly, provideFormlyUi } from '@xpert-ai/formly'
 import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui'
 import { ZardButtonComponent, ZardHighlightComponent } from '@xpert-ai/headless-ui'
-import { DirtyCheckGuard, ServerSocketAgent, provideLogger } from '../@core/index'
+import { DirtyCheckGuard, provideLogger } from '../@core/index'
 import { XpThemeModule } from '../@theme/theme.module'
 import { provideCheckpointSaver } from '../@core/copilot'
 import { FeaturesRoutingModule } from './features-routing.module'
@@ -27,13 +27,6 @@ import { CloudSidebarComponent } from './sidebar'
     ZardButtonComponent,
     ZardHighlightComponent
   ],
-  providers: [
-    DirtyCheckGuard,
-    provideLogger(),
-    provideFormly(),
-    provideFormlyUi(),
-    ServerSocketAgent,
-    provideCheckpointSaver()
-  ]
+  providers: [DirtyCheckGuard, provideLogger(), provideFormly(), provideFormlyUi(), provideCheckpointSaver()]
 })
 export class FeaturesModule {}

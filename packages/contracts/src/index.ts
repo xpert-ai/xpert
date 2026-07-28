@@ -50,7 +50,6 @@ export * from './user-group.model'
 export * from './user-me-context.model'
 export * from './user.model'
 
-export * from './analytics/index'
 export * from './custom-smtp.model'
 export * from './date-picker.model'
 export * from './data-source.model'
