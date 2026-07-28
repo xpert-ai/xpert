@@ -5,7 +5,7 @@ import { ICopilotModel, OrganizationBaseCrudService } from '@xpert-ai/cloud/stat
 import { toParams } from '@xpert-ai/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, filter, firstValueFrom, Observable, shareReplay, switchMap } from 'rxjs'
-import { API_COPILOT } from '../constants/app.constants'
+import { API_COPILOT, API_XPERT_ROLE } from '../constants/app.constants'
 import {
   AiModelTypeEnum,
   AiProviderRole,
@@ -27,6 +27,8 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   readonly refresh$ = new BehaviorSubject(false)
 
   private readonly modelsByType = new Map<AiModelTypeEnum, Observable<ICopilotWithProvider[]>>()
+  private readonly xpertModelsByType = new Map<string, Observable<ICopilotWithProvider[]>>()
+  private readonly managementModelsByType = new Map<AiModelTypeEnum, Observable<ICopilotWithProvider[]>>()
   private readonly aiProviders$ = new BehaviorSubject<IAiProviderEntity[] | null>(null)
   private aiProvidersRequest: Promise<IAiProviderEntity[]> | null = null
 
@@ -100,11 +102,48 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
           switchMap(() =>
             this.httpClient.get<ICopilotWithProvider[]>(API_COPILOT + '/models', { params: toParams({ type }) })
           ),
-          shareReplay(1)
+          shareReplay({ bufferSize: 1, refCount: true })
         )
       )
     }
     return this.modelsByType.get(type)
+  }
+
+  getXpertCopilotModels(xpertId: string, type: AiModelTypeEnum) {
+    const key = `${xpertId}:${type}`
+    if (!this.xpertModelsByType.has(key)) {
+      this.xpertModelsByType.set(
+        key,
+        this.refresh$.pipe(
+          switchMap(() => this.selectOrganizationId()),
+          switchMap(() =>
+            this.httpClient.get<ICopilotWithProvider[]>(`${API_XPERT_ROLE}/${xpertId}/model-catalog`, {
+              params: toParams({ type })
+            })
+          ),
+          shareReplay({ bufferSize: 1, refCount: true })
+        )
+      )
+    }
+    return this.xpertModelsByType.get(key)
+  }
+
+  getManagementCopilotModels(type: AiModelTypeEnum) {
+    if (!this.managementModelsByType.get(type)) {
+      this.managementModelsByType.set(
+        type,
+        this.refresh$.pipe(
+          switchMap(() => this.selectOrganizationId()),
+          switchMap(() =>
+            this.httpClient.get<ICopilotWithProvider[]>(API_COPILOT + '/management-models', {
+              params: toParams({ type })
+            })
+          ),
+          shareReplay({ bufferSize: 1, refCount: true })
+        )
+      )
+    }
+    return this.managementModelsByType.get(type)
   }
 
   /**

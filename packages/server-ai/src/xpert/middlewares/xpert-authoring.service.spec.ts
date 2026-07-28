@@ -42,6 +42,7 @@ import { XpertAuthoringService } from './xpert-authoring.service'
 describe('XpertAuthoringService', () => {
     const buildPersistedXpert = (overrides: Record<string, any> = {}) => ({
         id: 'xpert-1',
+        createdById: 'creator-user',
         name: 'Support Expert',
         title: 'Support Expert',
         slug: 'support-expert',
@@ -1026,7 +1027,11 @@ describe('XpertAuthoringService', () => {
             }
         })
 
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(FindCopilotModelsQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                accessUserId: 'creator-user'
+            })
+        )
         expect(result).toEqual({
             status: 'available',
             summary: "Found 2 available AI models. Current LLM provider is 'openai' and current model is 'gpt-4o'.",

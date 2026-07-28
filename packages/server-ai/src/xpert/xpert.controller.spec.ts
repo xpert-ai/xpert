@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
 import { EventEmitter } from 'events'
 import type { Response } from 'express'
@@ -18,6 +18,7 @@ import type { XpertPrincipalService } from './xpert-principal.service'
 import type { XpertService } from './xpert.service'
 import type { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
 import type { XpertDraftDslDTO } from './dto'
+import { FindCopilotModelsQuery } from '../copilot/queries'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -288,6 +289,33 @@ describe('XpertController', () => {
         xpertService.findByPrincipalUserId.mockResolvedValue(null)
 
         await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
+    })
+
+    it('loads the studio model catalog with the xpert creator as access subject', async () => {
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            createdById: 'creator-user'
+        })
+        queryBus.execute.mockResolvedValue([{ id: 'copilot-1' }])
+
+        await expect(controller.getModelCatalog('xpert-1', AiModelTypeEnum.RERANK)).resolves.toEqual([
+            { id: 'copilot-1' }
+        ])
+
+        const query = queryBus.execute.mock.calls[0][0] as FindCopilotModelsQuery
+        expect(query).toBeInstanceOf(FindCopilotModelsQuery)
+        expect(query.type).toBe(AiModelTypeEnum.RERANK)
+        expect(query.accessUserId).toBe('creator-user')
+    })
+
+    it('returns an empty studio model catalog when the xpert has no creator', async () => {
+        xpertService.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            createdById: null
+        })
+
+        await expect(controller.getModelCatalog('xpert-1', AiModelTypeEnum.LLM)).resolves.toEqual([])
+        expect(queryBus.execute).not.toHaveBeenCalled()
     })
 
     it('initializes workspace prompt workflows after importing a trusted template', async () => {

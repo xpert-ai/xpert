@@ -1,4 +1,5 @@
 import {
+    AiModelTypeEnum,
     AIPermissionsEnum,
     IChatConversation,
     IIntegration,
@@ -134,6 +135,7 @@ import { XpertFrequentQuestionsService } from './xpert-frequent-questions.servic
 import { XpertPrincipalService } from './xpert-principal.service'
 import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
 import { XpertTemplateWorkspaceInitializer } from './template-workspace-initializer.service'
+import { FindCopilotModelsQuery } from '../copilot/queries'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -335,6 +337,16 @@ export class XpertController extends CrudController<Xpert> {
         } catch (err) {
             throw new InternalServerErrorException(err.message)
         }
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/model-catalog')
+    async getModelCatalog(@Param('id') id: string, @Query('type') type: AiModelTypeEnum) {
+        const xpert = await this.service.findOne(id)
+        if (!xpert.createdById) {
+            return []
+        }
+        return this.queryBus.execute(new FindCopilotModelsQuery(type, undefined, xpert.createdById))
     }
 
     @UseGuards(XpertGuard)

@@ -29,7 +29,7 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 		// }
 
 		const embeddings = await this.queryBus.execute(
-			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
+			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, { xpertId: xpert.id })
 		)
 
 		// Embedding model is optional for memory store

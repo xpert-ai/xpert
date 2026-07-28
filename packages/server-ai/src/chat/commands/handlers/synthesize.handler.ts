@@ -40,7 +40,8 @@ export class SynthesizeHandler implements ICommandHandler<SynthesizeCommand> {
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
 			new CopilotModelGetChatModelQuery(copilot, copilotModel, {
 				abortController: new AbortController(),
-				usageCallback: null
+				usageCallback: null,
+				xpertId: xpert.id
 			})
 		)
 		const text = filterMessageText(message.content)

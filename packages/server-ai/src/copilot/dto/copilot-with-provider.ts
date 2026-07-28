@@ -7,6 +7,8 @@ import { CopilotProviderPublicDto } from '../../copilot-provider/dto'
 export class CopilotWithProviderDto implements Partial<ICopilotWithProvider> {
 
 	id: string
+	name?: string
+	organizationId?: string | null
 
 	modelProvider: CopilotProviderPublicDto
 	providerWithModels: ProviderWithModelsDto

@@ -1,4 +1,4 @@
-import { ICopilot } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilot } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CopilotCheckLimitCommand implements ICommand {
@@ -12,6 +12,7 @@ export class CopilotCheckLimitCommand implements ICommand {
             xpertId?: string
             copilot?: ICopilot
             model: string
+            modelType: AiModelTypeEnum
         }
     ) {}
 }

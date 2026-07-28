@@ -7,15 +7,14 @@ import { AIProvidersService } from '../../../ai-model/index'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotService } from '../../copilot.service'
 import { CopilotWithProviderDto, ProviderWithModelsDto } from '../../dto'
-import { FindCopilotModelsQuery } from '../copilot-model-find.query'
+import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
-import { MembershipService } from '../../../membership'
+import { ModelAccessService } from '../../../model-access'
 
 /**
  * Builds the LLM/model catalog visible to the current tenant and organization.
  * It combines provider built-ins, provider custom model records, and the
- * copilot's already-selected model so custom selections remain importable even
- * when they are absent from the provider catalog query.
+ * copilot's already-selected model according to the requested catalog mode.
  */
 @QueryHandler(FindCopilotModelsQuery)
 export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModelsQuery> {
@@ -26,7 +25,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 		private readonly queryBus: QueryBus,
 		private readonly service: CopilotService,
 		private readonly providersService: AIProvidersService,
-		private readonly membershipService: MembershipService
+		private readonly modelAccessService: ModelAccessService
 	) {}
 
 	/**
@@ -34,16 +33,18 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 	 * for the requested model type.
 	 */
 	public async execute(command: FindCopilotModelsQuery): Promise<CopilotWithProviderDto[]> {
-		const copilots = command.forMembershipManagement
-            ? await this.service.findAllEnabledCopilotsWithoutMembership(
-                  RequestContext.currentTenantId(),
-                  RequestContext.getOrganizationId()
-              )
-			: await this.service.findAllAvailablesCopilots(null, null)
-		const membershipPlanEnabled = command.forMembershipManagement
-			? false
-			: await this.membershipService.isMembershipAccessEnabled()
-		const membershipAccess = membershipPlanEnabled ? await this.membershipService.findModelAccess() : null
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const managementCopilots = await this.service.findAllEnabledCopilotsWithoutMembership(
+			tenantId,
+			organizationId
+		)
+		const copilots =
+			command.catalogMode === CopilotModelCatalogMode.MembershipManagement
+				? managementCopilots.filter(
+						(copilot) => (copilot.organizationId ?? null) === (organizationId ?? null)
+					)
+				: managementCopilots
 		const copilotSchemas: CopilotWithProviderDto[] = []
 		for (const copilot of copilots) {
 			if (copilot.modelProvider) {
@@ -86,17 +87,17 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 						models.push(selectedModel)
 					}
 
-                    const visibleModels = !membershipPlanEnabled
-							? models
-							: membershipAccess
-								? models.filter((model) =>
-										this.membershipService.isModelAllowed(
-											membershipAccess.membership.plan,
-											copilot.modelProvider.providerName,
-											model.model
-										)
+                    const visibleModels =
+						command.catalogMode === CopilotModelCatalogMode.Available
+							? await this.filterAvailableModels(
+									models,
+										tenantId,
+										organizationId,
+										copilot.id,
+										command.type,
+										command.accessUserId
 									)
-								: []
+							: models
 
 					if (visibleModels.length) {
 						const providerSchema = provider.getProviderSchema()
@@ -125,6 +126,33 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 		}
 
 		return copilotSchemas
+	}
+
+	private async filterAvailableModels(
+		models: ProviderModel[],
+		tenantId: string,
+			organizationId: string | null,
+			copilotId: string,
+			modelType: AiModelTypeEnum,
+			accessUserId?: string | null
+		) {
+			const userId = accessUserId ?? RequestContext.currentUserId()
+		if (!userId) {
+			return []
+		}
+		const availability = await Promise.all(
+			models.map((model) =>
+				this.modelAccessService.canUseCatalogModel({
+					tenantId,
+					organizationId,
+					userId,
+					copilotId,
+					copilotModelId: model.model,
+					modelType
+				})
+			)
+		)
+		return models.filter((_, index) => availability[index])
 	}
 }
 
@@ -161,7 +189,7 @@ function selectedCopilotModelAsProviderModel(
 	modelType: AiModelTypeEnum
 ): ProviderModel | null {
 	const model = readString(copilotModel?.model)
-	const selectedModelType = readString(copilotModel?.modelType) || AiModelTypeEnum.LLM
+	const selectedModelType = readString(copilotModel?.modelType)
 	if (!model || selectedModelType !== modelType) {
 		return null
 	}

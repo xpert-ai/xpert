@@ -1,5 +1,6 @@
 import { Document } from '@langchain/core/documents'
 import {
+    AiModelTypeEnum,
     IKnowledgebase,
     IKnowledgeDocument,
     KnowledgeDocumentLastIncrementalSync,
@@ -205,7 +206,9 @@ export class KnowledgeDocumentConsumer {
                                 userId: job.data.userId,
                                 copilotId: copilot.id,
                                 tokenUsed,
-                                model: vectorStore.embeddingModel
+                                model: vectorStore.embeddingModel,
+                                modelType: AiModelTypeEnum.TEXT_EMBEDDING,
+                                modelAccess: vectorStore.modelAccess
                             })
                         )
                         await vectorStore.addKnowledgeDocument(document, batch)

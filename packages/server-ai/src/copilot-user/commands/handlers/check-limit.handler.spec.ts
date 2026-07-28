@@ -1,7 +1,26 @@
+import {
+    AiModelTypeEnum,
+    ModelAccessOwnershipScopeEnum,
+    ModelAccessSourceEnum
+} from '@xpert-ai/contracts'
 import { CopilotCheckLimitCommand } from '../check-limit.command'
 import { CopilotCheckLimitHandler } from './check-limit.handler'
 
 describe('CopilotCheckLimitHandler', () => {
+    const modelAccessResolution = {
+        allowed: true,
+        billableUserId: 'creator-user',
+        copilotId: 'copilot-1',
+        copilotModelId: 'qwen3.6-plus',
+        provider: 'tongyi',
+        modelType: AiModelTypeEnum.LLM,
+        model: 'qwen3.6-plus',
+        accessSource: ModelAccessSourceEnum.Grant,
+        grantId: 'grant-1',
+        multiplier: 1,
+        scope: ModelAccessOwnershipScopeEnum.Tenant
+    }
+
     it('returns a controlled model error when the configured Copilot no longer exists', async () => {
         const copilotUserService = {
             getUsageSummary: jest.fn()
@@ -9,13 +28,13 @@ describe('CopilotCheckLimitHandler', () => {
         const copilotOrganizationService = {
             getUsageSummary: jest.fn()
         }
-        const membershipService = {
-            assertCanUse: jest.fn()
+        const modelAccessService = {
+            assertCanUseModel: jest.fn()
         }
         const handler = new CopilotCheckLimitHandler(
             copilotUserService as never,
             copilotOrganizationService as never,
-            membershipService as never,
+            modelAccessService as never,
             { t: jest.fn().mockResolvedValue('No AI model provided') } as never
         )
 
@@ -25,15 +44,16 @@ describe('CopilotCheckLimitHandler', () => {
                     tenantId: 'tenant-1',
                     organizationId: 'org-1',
                     userId: 'user-1',
-                    model: 'deepseek-chat'
+                    model: 'deepseek-chat',
+                    modelType: AiModelTypeEnum.LLM
                 })
             )
         ).rejects.toThrow('No AI model provided')
-        expect(membershipService.assertCanUse).not.toHaveBeenCalled()
+        expect(modelAccessService.assertCanUseModel).not.toHaveBeenCalled()
         expect(copilotUserService.getUsageSummary).not.toHaveBeenCalled()
     })
 
-    it('passes xpertId to membership checks while keeping runtime user quota checks', async () => {
+    it('uses the Xpert creator for authorization and user quota checks', async () => {
         const copilotUserService = {
             getUsageSummary: jest.fn().mockResolvedValue({
                 tokenUsed: 0,
@@ -46,13 +66,13 @@ describe('CopilotCheckLimitHandler', () => {
                 tokenLimit: null
             })
         }
-        const membershipService = {
-            assertCanUse: jest.fn().mockResolvedValue(undefined)
+        const modelAccessService = {
+            assertCanUseModel: jest.fn().mockResolvedValue(modelAccessResolution)
         }
         const handler = new CopilotCheckLimitHandler(
             copilotUserService as never,
             copilotOrganizationService as never,
-            membershipService as never,
+            modelAccessService as never,
             { t: jest.fn().mockResolvedValue('limit exceeded') } as never
         )
 
@@ -63,30 +83,32 @@ describe('CopilotCheckLimitHandler', () => {
                 userId: 'assistant-tech-user',
                 xpertId: 'xpert-1',
                 copilot: {
+                    id: 'copilot-1',
                     organizationId: 'copilot-org-1',
                     modelProvider: {
                         providerName: 'tongyi'
                     }
                 } as never,
-                model: 'qwen3.6-plus'
+                model: 'qwen3.6-plus',
+                modelType: AiModelTypeEnum.LLM
             })
         )
 
-        expect(membershipService.assertCanUse).toHaveBeenCalledWith({
+        expect(modelAccessService.assertCanUseModel).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
-            copilotOrganizationId: 'copilot-org-1',
             userId: 'assistant-tech-user',
             xpertId: 'xpert-1',
-            provider: 'tongyi',
-            model: 'qwen3.6-plus'
+            copilotId: 'copilot-1',
+            copilotModelId: 'qwen3.6-plus',
+            modelType: AiModelTypeEnum.LLM
         })
         expect(copilotUserService.getUsageSummary).toHaveBeenCalledWith(
             expect.objectContaining({
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 orgId: 'copilot-org-1',
-                userId: 'assistant-tech-user',
+                userId: 'creator-user',
                 provider: 'tongyi',
                 model: 'qwen3.6-plus'
             })
@@ -106,13 +128,13 @@ describe('CopilotCheckLimitHandler', () => {
                 tokenLimit: null
             })
         }
-        const membershipService = {
-            assertCanUse: jest.fn().mockResolvedValue(undefined)
+        const modelAccessService = {
+            assertCanUseModel: jest.fn().mockResolvedValue(modelAccessResolution)
         }
         const handler = new CopilotCheckLimitHandler(
             copilotUserService as never,
             copilotOrganizationService as never,
-            membershipService as never,
+            modelAccessService as never,
             { t: jest.fn().mockResolvedValue('limit exceeded') } as never
         )
 
@@ -122,6 +144,7 @@ describe('CopilotCheckLimitHandler', () => {
                 organizationId: 'org-1',
                 userId: 'user-1',
                 copilot: {
+                    id: 'copilot-1',
                     organizationId: 'org-1',
                     modelProvider: {
                         organizationId: 'org-1',
@@ -129,18 +152,19 @@ describe('CopilotCheckLimitHandler', () => {
                         credentials: { api_key: 'configured' }
                     }
                 } as never,
-                model: 'deepseek-chat'
+                model: 'deepseek-chat',
+                modelType: AiModelTypeEnum.LLM
             })
         )
 
-        expect(membershipService.assertCanUse).toHaveBeenCalledWith({
+        expect(modelAccessService.assertCanUseModel).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
-            copilotOrganizationId: 'org-1',
             userId: 'user-1',
             xpertId: undefined,
-            provider: 'deepseek',
-            model: 'deepseek-chat'
+            copilotId: 'copilot-1',
+            copilotModelId: 'deepseek-chat',
+            modelType: AiModelTypeEnum.LLM
         })
         expect(copilotUserService.getUsageSummary).toHaveBeenCalled()
         expect(copilotOrganizationService.getUsageSummary).toHaveBeenCalled()

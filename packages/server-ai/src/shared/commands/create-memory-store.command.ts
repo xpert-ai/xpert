@@ -15,6 +15,7 @@ export class CreateMemoryStoreCommand implements ICommand {
         public readonly options: {
 			abortController?: AbortController;
 			tokenCallback?: (tokens: number) => void
+			xpertId?: string
 		}
 	) {}
 }

@@ -45,6 +45,10 @@ function findFeatureOrganizationByCode(
   return matches.find((item) => item.feature.parentId) ?? matches[0]
 }
 
+export function requiresExplicitOrganizationFeatureToggle(feature: string) {
+  return feature === AiFeatureEnum.FEATURE_MODEL_ACCESS_REQUEST
+}
+
 export interface AppState {
   user: IUser
   userRolePermissions: IRolePermission[]
@@ -490,6 +494,9 @@ export class Store {
     }
 
     const organizationFeature = findFeatureOrganizationByCode(featureOrganizations, feature)
+    if (requiresExplicitOrganizationFeatureToggle(feature)) {
+      return organizationFeature?.isEnabled === true
+    }
     return (organizationFeature ?? tenantFeature)?.isEnabled === true
   }
 
