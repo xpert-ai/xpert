@@ -74,8 +74,19 @@ jest.mock('../membership', () => ({
     MembershipService: class MembershipService {}
 }))
 
+jest.mock('../model-access', () => ({
+    ModelAccessService: class ModelAccessService {}
+}))
+
+jest.mock('../model-gateway', () => ({
+    ModelGatewayService: class ModelGatewayService {}
+}))
+
 import { ServerAIBootstrapService } from './bootstrap.service'
 import { XpertImportCommand } from '../xpert'
+import type { MembershipService } from '../membership'
+import type { ModelAccessService } from '../model-access'
+import type { ModelGatewayService } from '../model-gateway'
 import type {
     OrganizationCreatedEvent,
     PluginManagementService,
@@ -239,6 +250,12 @@ describe('ServerAIBootstrapService', () => {
             ensureUserAssignedIfScopeInitialized: jest.fn().mockResolvedValue(null),
             revokeOrganizationMembershipForRemovedUser: jest.fn().mockResolvedValue(null)
         }
+        const modelAccessService = {
+            closeOrganizationAccessForRemovedUser: jest.fn().mockResolvedValue(undefined)
+        }
+        const modelGatewayService = {
+            revokeOrganizationKeysForRemovedUser: jest.fn().mockResolvedValue(undefined)
+        }
         const pluginManagementService: PluginManagementServiceMock = {
             findLoadedPlugin: jest.fn().mockReturnValue(undefined),
             installPlugin: jest.fn().mockResolvedValue({
@@ -264,7 +281,9 @@ describe('ServerAIBootstrapService', () => {
             xpertTemplateService as any,
             templateSkillSyncService as any,
             toPluginManagementService(pluginManagementService),
-            membershipService as any
+            membershipService as unknown as MembershipService,
+            modelAccessService as unknown as ModelAccessService,
+            modelGatewayService as unknown as ModelGatewayService
         )
 
         jest.spyOn(service as any, 'runInOrganizationContext').mockImplementation(
@@ -282,6 +301,8 @@ describe('ServerAIBootstrapService', () => {
             skillPackageService,
             skillRepositoryService,
             membershipService,
+            modelAccessService,
+            modelGatewayService,
             pluginManagementService,
             templateSkillSyncService,
             userOrganizationService,
@@ -895,7 +916,7 @@ connections: []`
     })
 
     it('removes the user from non-personal org workspaces on membership deletion', async () => {
-        const { membershipService, service, workspaceService } = createService()
+        const { membershipService, modelAccessService, modelGatewayService, service, workspaceService } = createService()
 
         await service.cleanupUserInOrganization({
             tenantId: 'tenant-1',
@@ -909,6 +930,16 @@ connections: []`
             'user-1'
         )
         expect(membershipService.revokeOrganizationMembershipForRemovedUser).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+        expect(modelAccessService.closeOrganizationAccessForRemovedUser).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1'
+        })
+        expect(modelGatewayService.revokeOrganizationKeysForRemovedUser).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
             userId: 'user-1'
