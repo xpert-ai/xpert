@@ -51,7 +51,7 @@ import {
     UserOrganization
 } from '@xpert-ai/server-core'
 import { t } from 'i18next'
-import { Brackets, DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
+import { Brackets, DataSource, EntityManager, In, IsNull, MoreThan, Repository } from 'typeorm'
 import { ExceedingLimitException } from '../core/errors'
 import { endOfDayInTimeZone, formatInUTC0 } from '../shared/utils'
 import { MembershipPlan } from './membership-plan.entity'
@@ -60,6 +60,7 @@ import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Copilot } from '../copilot/copilot.entity'
+import { MembershipBackfillQueueService } from './membership-backfill.queue'
 
 const DEFAULT_PLAN_NAME = 'Default'
 const DEFAULT_INCLUDED_POINTS = 1000
@@ -215,7 +216,9 @@ export class MembershipService {
         @InjectRepository(MembershipPeriod)
         private readonly periodRepository?: Repository<MembershipPeriod>,
         @InjectRepository(Organization)
-        private readonly organizationRepository?: Repository<Organization>
+        private readonly organizationRepository?: Repository<Organization>,
+        @Optional()
+        private readonly backfillQueueService?: MembershipBackfillQueueService
     ) {}
 
     async isMembershipPlanEnabled(input?: ResolveScopeInput, manager?: EntityManager): Promise<boolean> {
@@ -268,7 +271,7 @@ export class MembershipService {
             rateLimits: this.normalizeRateLimits(input.rateLimits)
         })
 
-        return this.dataSource.transaction(async (manager) => {
+        const saved = await this.dataSource.transaction(async (manager) => {
             await this.assertPlanCodeAvailable(
                 manager.getRepository(MembershipPlan),
                 tenantId,
@@ -280,18 +283,23 @@ export class MembershipService {
             }
             return manager.getRepository(MembershipPlan).save(plan)
         })
+        if (!organizationId && saved.status === MembershipPlanStatusEnum.Active && saved.isDefault) {
+            await this.enqueueTenantDefaultMembershipBackfill(tenantId)
+        }
+        return saved
     }
 
     async updatePlan(id: string, input: Partial<MembershipPlan>): Promise<MembershipPlan> {
         const scope = this.requireCurrentScope()
         await this.assertMembershipPlanFeatureEnabled(scope)
         const { tenantId, organizationId } = scope
-        return this.dataSource.transaction(async (manager) => {
+        const result = await this.dataSource.transaction(async (manager) => {
             const repository = manager.getRepository(MembershipPlan)
             const plan = await repository.findOne({ where: { ...this.scopeWhere(tenantId, organizationId), id } })
             if (!plan) {
                 throw new BadRequestException('Membership plan not found.')
             }
+            const wasActiveDefault = plan.status === MembershipPlanStatusEnum.Active && plan.isDefault
             const nextStatus = input.status ?? plan.status
             const nextIsDefault = input.isDefault ?? plan.isDefault
             this.assertDefaultPlanIsActive(nextStatus, nextIsDefault)
@@ -366,8 +374,16 @@ export class MembershipService {
             if (input.includedPoints !== undefined) {
                 await this.synchronizeAssignedPlanPoints(manager, saved)
             }
-            return saved
+            return {
+                saved,
+                becameActiveDefault:
+                    !wasActiveDefault && saved.status === MembershipPlanStatusEnum.Active && saved.isDefault
+            }
         })
+        if (!organizationId && result.becameActiveDefault) {
+            await this.enqueueTenantDefaultMembershipBackfill(tenantId)
+        }
+        return result.saved
     }
 
     async archivePlan(id: string): Promise<MembershipPlan> {
@@ -511,10 +527,11 @@ export class MembershipService {
             }
             return this.buildScopeStatus(scope, manager)
         }
-        if (!scope.organizationId) {
+        if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId, manager))) {
             return this.buildScopeStatus(scope, manager)
         }
-        if (!(await this.hasActivePlan(scope.tenantId, scope.organizationId, manager))) {
+        if (!scope.organizationId) {
+            await this.enqueueTenantDefaultMembershipBackfill(scope.tenantId)
             return this.buildScopeStatus(scope, manager)
         }
 
@@ -588,56 +605,152 @@ export class MembershipService {
         }
 
         const ensure = async (txManager: EntityManager) => {
-            await this.acquireTenantDefaultMembershipLock(txManager, scope.tenantId, input.userId)
-            const existingMembership = await this.findManagedMembershipForUpdate(
-                scope.tenantId,
-                scope.organizationId,
-                input.userId,
-                txManager
-            )
-            if (existingMembership) {
-                return existingMembership.status === MembershipStatusEnum.Active ? existingMembership : null
-            }
-
             const plan = await this.findDefaultPlan(scope.tenantId, scope.organizationId, txManager)
             if (!plan) {
                 return null
             }
-
-            const start = new Date()
-            const repository = txManager.getRepository(UserMembership)
-            const membership = await repository.save(
-                repository.create({
-                    tenantId: scope.tenantId,
-                    organizationId: scope.organizationId,
-                    userId: input.userId,
-                    planId: plan.id,
-                    status: MembershipStatusEnum.Active,
-                    source: MembershipSourceEnum.TenantDefault,
-                    renewalMode: MembershipRenewalModeEnum.Auto,
-                    currentPeriodStart: start,
-                    currentPeriodEnd: periodEndFor(start, plan.period),
-                    pointsGranted: plan.includedPoints,
-                    pointsUsed: 0,
-                    pointsTotalUsed: 0,
-                    note: DEFAULT_TENANT_PLAN_GRANT_REASON
-                })
-            )
-            membership.plan = plan
-            await this.createLedger(txManager, {
-                tenantId: scope.tenantId,
-                organizationId: scope.organizationId,
-                userId: input.userId,
-                membershipId: membership.id,
-                planId: plan.id,
-                source: MembershipLedgerSourceEnum.Grant,
-                pointsDelta: plan.includedPoints ?? 0,
-                reason: DEFAULT_TENANT_PLAN_GRANT_REASON
-            })
-            return membership
+            return (await this.ensureTenantDefaultMembershipWithPlan(input, plan, txManager)).membership
         }
 
         return manager ? ensure(manager) : this.dataSource.transaction(ensure)
+    }
+
+    async backfillTenantDefaultMembershipBatch(input: {
+        tenantId: string
+        afterUserId?: string | null
+        take?: number
+    }): Promise<{
+        scanned: number
+        assigned: number
+        nextCursor: string | null
+    }> {
+        const scope: MembershipScope = {
+            tenantId: input.tenantId,
+            organizationId: null
+        }
+        const take = Math.min(Math.max(Math.trunc(input.take ?? 100), 1), 500)
+        const users = await this.userRepository.find({
+            select: ['id'],
+            where: {
+                tenantId: input.tenantId,
+                type: UserType.USER,
+                ...(input.afterUserId ? { id: MoreThan(input.afterUserId) } : {})
+            },
+            order: { id: 'ASC' },
+            take: take + 1
+        })
+        const batch = users.slice(0, take)
+        if (!batch.length) {
+            return { scanned: 0, assigned: 0, nextCursor: null }
+        }
+        const userIds = batch.map((user) => user.id)
+        const nextCursor = users.length > take ? userIds[userIds.length - 1] : null
+
+        const result = await this.dataSource.transaction(async (manager) => {
+            if (!(await this.isMembershipPlanEnabledForScope(scope, manager))) {
+                return { assigned: 0, canContinue: false }
+            }
+            const plan = await this.findDefaultPlan(input.tenantId, null, manager)
+            if (!plan) {
+                return { assigned: 0, canContinue: false }
+            }
+
+            const existingMemberships = await manager.getRepository(UserMembership).find({
+                select: ['userId'],
+                where: {
+                    ...this.scopeWhere(input.tenantId, null),
+                    userId: In(userIds)
+                }
+            })
+            const existingUserIds = new Set(existingMemberships.map((membership) => membership.userId))
+            let created = 0
+
+            for (const userId of userIds) {
+                if (existingUserIds.has(userId)) {
+                    continue
+                }
+                const assignment = await this.ensureTenantDefaultMembershipWithPlan(
+                    {
+                        tenantId: input.tenantId,
+                        userId
+                    },
+                    plan,
+                    manager
+                )
+                if (assignment.created) {
+                    created++
+                }
+            }
+            return { assigned: created, canContinue: true }
+        })
+
+        return {
+            scanned: batch.length,
+            assigned: result.assigned,
+            nextCursor: result.canContinue ? nextCursor : null
+        }
+    }
+
+    private async ensureTenantDefaultMembershipWithPlan(
+        input: EnsureTenantDefaultMembershipInput,
+        plan: MembershipPlan,
+        manager: EntityManager
+    ): Promise<{
+        membership: UserMembership | null
+        created: boolean
+    }> {
+        await this.acquireTenantDefaultMembershipLock(manager, input.tenantId, input.userId)
+        const existingMembership = await this.findManagedMembershipForUpdate(
+            input.tenantId,
+            null,
+            input.userId,
+            manager
+        )
+        if (existingMembership) {
+            return {
+                membership: existingMembership.status === MembershipStatusEnum.Active ? existingMembership : null,
+                created: false
+            }
+        }
+
+        const start = new Date()
+        const repository = manager.getRepository(UserMembership)
+        const membership = await repository.save(
+            repository.create({
+                tenantId: input.tenantId,
+                organizationId: null,
+                userId: input.userId,
+                planId: plan.id,
+                status: MembershipStatusEnum.Active,
+                source: MembershipSourceEnum.TenantDefault,
+                renewalMode: MembershipRenewalModeEnum.Auto,
+                currentPeriodStart: start,
+                currentPeriodEnd: periodEndFor(start, plan.period),
+                pointsGranted: plan.includedPoints,
+                pointsUsed: 0,
+                pointsTotalUsed: 0,
+                note: DEFAULT_TENANT_PLAN_GRANT_REASON
+            })
+        )
+        membership.plan = plan
+        await this.createLedger(manager, {
+            tenantId: input.tenantId,
+            organizationId: null,
+            userId: input.userId,
+            membershipId: membership.id,
+            planId: plan.id,
+            source: MembershipLedgerSourceEnum.Grant,
+            pointsDelta: plan.includedPoints ?? 0,
+            reason: DEFAULT_TENANT_PLAN_GRANT_REASON
+        })
+        return {
+            membership,
+            created: true
+        }
+    }
+
+    private async enqueueTenantDefaultMembershipBackfill(tenantId: string) {
+        await this.backfillQueueService?.enqueueTenantDefaultMembershipBackfill(tenantId)
     }
 
     private async acquireTenantDefaultMembershipLock(manager: EntityManager, tenantId: string, userId: string) {

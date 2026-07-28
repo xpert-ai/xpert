@@ -70,13 +70,22 @@ describe('FeatureOrganizationService', () => {
 	const cacheManager = {
 		set: jest.fn()
 	}
+	const featureService = {
+		findOne: jest.fn().mockResolvedValue({
+			id: 'feature-1',
+			code: 'FEATURE_MEMBERSHIP_PLAN'
+		})
+	}
+	const eventEmitter = {
+		emit: jest.fn()
+	}
 
 	let service: InstanceType<typeof FeatureOrganizationService>
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
-		service = new FeatureOrganizationService(repo, {}, cacheManager)
+		service = new FeatureOrganizationService(repo, featureService, cacheManager, eventEmitter)
 	})
 
 	it('queries tenant-scoped toggles with organizationId IsNull when no organizationId is provided', async () => {
@@ -147,6 +156,57 @@ describe('FeatureOrganizationService', () => {
 		])
 	})
 
+	it('emits one transition event when a tenant feature becomes enabled', async () => {
+		jest.spyOn(service, 'findAll')
+			.mockResolvedValueOnce({
+				items: [
+					{
+						id: 'fo-1',
+						featureId: 'feature-1',
+						tenantId: 'tenant-1',
+						organizationId: null,
+						isEnabled: false
+					}
+				],
+				total: 1
+			})
+			.mockResolvedValueOnce({
+				items: [
+					{
+						id: 'fo-1',
+						featureId: 'feature-1',
+						tenantId: 'tenant-1',
+						organizationId: null,
+						isEnabled: true
+					}
+				],
+				total: 1
+			})
+		repo.save.mockResolvedValue([])
+
+		await service.updateFeatureOrganization({
+			featureId: 'feature-1',
+			isEnabled: true
+		})
+		await service.updateFeatureOrganization({
+			featureId: 'feature-1',
+			isEnabled: true
+		})
+
+		expect(eventEmitter.emit).toHaveBeenCalledTimes(1)
+		expect(eventEmitter.emit).toHaveBeenCalledWith(
+			'feature.organization.updated',
+			expect.objectContaining({
+				tenantId: 'tenant-1',
+				organizationId: null,
+				featureId: 'feature-1',
+				featureCode: 'FEATURE_MEMBERSHIP_PLAN',
+				previousIsEnabled: false,
+				isEnabled: true
+			})
+		)
+	})
+
 	it('does not create tenant toggles for feature groups', async () => {
 		const tenant = { id: 'tenant-1' }
 		const featureService = {
@@ -167,7 +227,7 @@ describe('FeatureOrganizationService', () => {
 				]
 			})
 		}
-		service = new FeatureOrganizationService(repo, featureService, cacheManager)
+		service = new FeatureOrganizationService(repo, featureService, cacheManager, eventEmitter)
 		repo.save.mockResolvedValue([])
 
 		await service.updateTenantFeatureOrganizations([tenant])
@@ -215,7 +275,7 @@ describe('FeatureOrganizationService', () => {
 				]
 			})
 		}
-		service = new FeatureOrganizationService(repo, featureService, cacheManager)
+		service = new FeatureOrganizationService(repo, featureService, cacheManager, eventEmitter)
 		repo.save.mockResolvedValue([])
 
 		await service.updateTenantFeatureOrganizations([tenant])

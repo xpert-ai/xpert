@@ -183,7 +183,8 @@ describe('MembershipService', () => {
         featureOrganizationRepository: never | undefined = createMembershipFeatureRepository().repository as never,
         tenantSettingRepository: never | undefined = undefined,
         periodRepository: never | undefined = undefined,
-        organizationRepository: never | undefined = undefined
+        organizationRepository: never | undefined = undefined,
+        backfillQueueService: never | undefined = undefined
     ) {
         return new MembershipService(
             dataSource,
@@ -197,7 +198,8 @@ describe('MembershipService', () => {
             featureOrganizationRepository,
             tenantSettingRepository,
             periodRepository,
-            organizationRepository
+            organizationRepository,
+            backfillQueueService
         )
     }
 
@@ -397,6 +399,9 @@ describe('MembershipService', () => {
                       }
                     : null
             )
+        }
+        const backfillQueueService = {
+            enqueueTenantDefaultMembershipBackfill: jest.fn().mockResolvedValue(undefined)
         }
         const updateBuilder = {
             update: jest.fn().mockReturnThis(),
@@ -770,6 +775,7 @@ describe('MembershipService', () => {
             periods,
             transactionManagers,
             userOrganizationRepository,
+            backfillQueueService,
             service: createMembershipService(
                 dataSource as never,
                 planRepository as never,
@@ -781,7 +787,9 @@ describe('MembershipService', () => {
                 undefined,
                 featureOrganizationRepository as never,
                 tenantSettingRepository as never,
-                periodRepository as never
+                periodRepository as never,
+                undefined,
+                backfillQueueService as never
             )
         }
     }
@@ -873,6 +881,42 @@ describe('MembershipService', () => {
             'An archived membership plan cannot be the default plan.'
         )
         expect(plans[0]).toMatchObject({ status: MembershipPlanStatusEnum.Active, isDefault: true })
+    })
+
+    it('enqueues a tenant backfill after creating a default plan', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { backfillQueueService, memberships, service } = createScopeInitializationHarness()
+
+        await service.createPlan({
+            code: 'default',
+            name: 'Default',
+            isDefault: true
+        })
+
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenCalledWith('tenant-1')
+        expect(memberships).toHaveLength(0)
+    })
+
+    it('enqueues a tenant backfill only when a plan becomes the active default', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { backfillQueueService, service } = createScopeInitializationHarness()
+        const plan = await service.createPlan({
+            code: 'candidate',
+            name: 'Candidate'
+        })
+        backfillQueueService.enqueueTenantDefaultMembershipBackfill.mockClear()
+
+        await service.updatePlan(plan.id, { name: 'Renamed candidate' })
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).not.toHaveBeenCalled()
+
+        await service.updatePlan(plan.id, { isDefault: true })
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenCalledWith('tenant-1')
+
+        backfillQueueService.enqueueTenantDefaultMembershipBackfill.mockClear()
+        await service.updatePlan(plan.id, { name: 'Renamed default' })
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).not.toHaveBeenCalled()
     })
 
     it('normalizes allowed model rules when saving plans', async () => {
@@ -1893,6 +1937,81 @@ describe('MembershipService', () => {
         expect(planRepository.save).not.toHaveBeenCalled()
         expect(membershipRepository.save).not.toHaveBeenCalled()
         expect(ledgerRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('initializes tenant scope by enqueueing an idempotent backfill', async () => {
+        const { backfillQueueService, memberships, plans, service } = createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+
+        const firstStatus = await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            assignedById: 'admin-1'
+        })
+        const secondStatus = await service.ensureScopeInitialized({
+            tenantId: 'tenant-1',
+            organizationId: null,
+            assignedById: 'admin-1'
+        })
+
+        expect(firstStatus).toMatchObject({
+            scope: 'tenant',
+            initialized: true,
+            activePlanCount: 1
+        })
+        expect(secondStatus).toMatchObject({
+            scope: 'tenant',
+            initialized: true,
+            activePlanCount: 1
+        })
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenCalledTimes(2)
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenNthCalledWith(1, 'tenant-1')
+        expect(backfillQueueService.enqueueTenantDefaultMembershipBackfill).toHaveBeenNthCalledWith(2, 'tenant-1')
+        expect(memberships).toHaveLength(0)
+    })
+
+    it('backfills one tenant batch without replacing existing memberships or repeating eligibility queries', async () => {
+        const { memberships, membershipRepository, plans, service, userRepository } = createScopeInitializationHarness()
+        plans.push(createPlan({ id: 'plan-tenant-default' }))
+        memberships.push(
+            createMembership({
+                id: 'membership-manual',
+                organizationId: null,
+                userId: 'user-1',
+                planId: 'plan-manual',
+                source: MembershipSourceEnum.Admin
+            })
+        )
+        userRepository.find.mockResolvedValueOnce([{ id: 'user-1' }, { id: 'user-2' }, { id: 'user-3' }])
+
+        const result = await service.backfillTenantDefaultMembershipBatch({
+            tenantId: 'tenant-1',
+            take: 2
+        })
+
+        expect(memberships).toHaveLength(2)
+        expect(memberships).toContainEqual(
+            expect.objectContaining({
+                id: 'membership-manual',
+                userId: 'user-1',
+                planId: 'plan-manual',
+                source: MembershipSourceEnum.Admin
+            })
+        )
+        expect(memberships).toContainEqual(
+            expect.objectContaining({
+                userId: 'user-2',
+                planId: 'plan-tenant-default',
+                source: MembershipSourceEnum.TenantDefault
+            })
+        )
+        expect(membershipRepository.save).toHaveBeenCalledTimes(1)
+        expect(userRepository.findOne).not.toHaveBeenCalled()
+        expect(result).toEqual({
+            scanned: 2,
+            assigned: 1,
+            nextCursor: 'user-2'
+        })
     })
 
     it('does not reactivate an archived default organization plan during initialization', async () => {

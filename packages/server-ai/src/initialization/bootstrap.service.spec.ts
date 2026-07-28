@@ -663,7 +663,10 @@ connections: []`
         expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-2')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-2', 'member-1')
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
-        expect(membershipService.ensureTenantDefaultMembership).not.toHaveBeenCalled()
+        expect(membershipService.ensureTenantDefaultMembership).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            userId: 'member-1'
+        })
         expect(membershipService.ensureUserAssignedIfScopeInitialized).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -742,7 +745,7 @@ connections: []`
     })
 
     it('skips personal workspace bootstrap for super admins while still joining the org workspace', async () => {
-        const { environmentService, service, userService, workspaceService } = createService()
+        const { environmentService, membershipService, service, userService, workspaceService } = createService()
         userService.findOne.mockResolvedValue({
             id: 'owner-1',
             preferredLanguage: 'en_US',
@@ -764,6 +767,10 @@ connections: []`
         expect(workspaceService.create).not.toHaveBeenCalled()
         expect(environmentService.getDefaultByWorkspace).not.toHaveBeenCalled()
         expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'owner-1')
+        expect(membershipService.ensureTenantDefaultMembership).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            userId: 'owner-1'
+        })
         expect(result).toEqual({
             workspaceId: null,
             createdNewUserDefaultWorkspace: false

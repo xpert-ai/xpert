@@ -20,14 +20,12 @@ import { CrudController } from './../core/crud'
 import {
 	IUserOrganization,
 	IUserOrganizationCreateInput,
-	IUserOrganizationFindInput,
 	LanguagesEnum,
 	IPagination,
 	PermissionsEnum,
 	RolesEnum,
 	isUserOrganizationEntryGuideKey
 } from '@xpert-ai/contracts'
-import { Not } from 'typeorm'
 import { UserOrganizationService } from './user-organization.services'
 import { UserOrganization } from './user-organization.entity'
 import { CommandBus } from '@nestjs/cqrs'
@@ -113,12 +111,12 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		const { relations, findInput } = data
 		this.ensureAccessibleOrganization(findInput?.organizationId)
 		return this.userOrganizationService.findAll({
-			where: this.buildVisibleMembershipWhere({
+			where: {
 				...(findInput ?? {}),
 				...(!this.canViewAllOrganizations()
 					? { organizationId: this.requireAccessibleOrganizationId(findInput?.organizationId) }
 					: {})
-			}),
+			},
 			relations
 		})
 	}
@@ -218,17 +216,6 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 
 	private ensureAccessibleOrganization(organizationId?: string | null) {
 		this.requireAccessibleOrganizationId(organizationId)
-	}
-
-	private buildVisibleMembershipWhere(findInput?: IUserOrganizationFindInput | null) {
-		return {
-			...(findInput ?? {}),
-			user: {
-				role: {
-					name: Not(RolesEnum.SUPER_ADMIN)
-				}
-			}
-		}
 	}
 
 	private async ensureMembershipAccess(id: string) {
