@@ -105,43 +105,35 @@
             }
           </z-form-field>
 
-          @if (enableLocalAgent || isXmla()) {
+          @if (isXmla()) {
             <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
               <div class="flex flex-wrap items-center justify-between gap-4">
-                @if (enableLocalAgent) {
-                  <z-switch formControlName="useLocalAgent" labelPosition="before">
-                    {{ 'XP.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: { Default: 'Use Local Agent' } }}
-                  </z-switch>
-                }
-
-                @if (isXmla()) {
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-sm text-text-secondary">
-                      {{ 'XP.MENU.DATA_SOURCES.AuthType' | translate: { Default: 'Auth Type' } }}
-                    </span>
-                    <z-toggle-group formControlName="authType" name="authType" zType="outline" zSize="sm">
-                      <z-toggle-group-item
-                        [value]="null"
-                        [zTooltip]="
-                          'XP.MENU.DATA_SOURCES.AuthType_None_Description'
-                            | translate
-                              : { Default: 'Unified system authorization, no need for users to provide accounts.' }
-                        "
-                      >
-                        {{ 'XP.MENU.DATA_SOURCES.AuthType_None' | translate: { Default: 'None' } }}
-                      </z-toggle-group-item>
-                      <z-toggle-group-item
-                        [value]="AuthenticationEnum.BASIC"
-                        [zTooltip]="
-                          'XP.MENU.DATA_SOURCES.AuthType_Basic_Description'
-                            | translate: { Default: 'Users need to provide an account for authorization.' }
-                        "
-                      >
-                        {{ 'XP.MENU.DATA_SOURCES.AuthType_Basic' | translate: { Default: 'Basic' } }}
-                      </z-toggle-group-item>
-                    </z-toggle-group>
-                  </div>
-                }
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm text-text-secondary">
+                    {{ 'XP.MENU.DATA_SOURCES.AuthType' | translate: { Default: 'Auth Type' } }}
+                  </span>
+                  <z-toggle-group formControlName="authType" name="authType" zType="outline" zSize="sm">
+                    <z-toggle-group-item
+                      [value]="null"
+                      [zTooltip]="
+                        'XP.MENU.DATA_SOURCES.AuthType_None_Description'
+                          | translate
+                            : { Default: 'Unified system authorization, no need for users to provide accounts.' }
+                      "
+                    >
+                      {{ 'XP.MENU.DATA_SOURCES.AuthType_None' | translate: { Default: 'None' } }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item
+                      [value]="AuthenticationEnum.BASIC"
+                      [zTooltip]="
+                        'XP.MENU.DATA_SOURCES.AuthType_Basic_Description'
+                          | translate: { Default: 'Users need to provide an account for authorization.' }
+                      "
+                    >
+                      {{ 'XP.MENU.DATA_SOURCES.AuthType_Basic' | translate: { Default: 'Basic' } }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                </div>
               </div>
             </div>
           }

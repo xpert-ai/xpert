@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { AuthenticationEnum, IDataSource, IDataSourceAuthentication, IDataSourceType } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '../core/entities/internal'
-import { IsBoolean, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import { IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { DataSourceType } from '../data-source-type/data-source-type.entity'
 import { DataSourceAuthentication } from './authentication/authentication.entity'
@@ -33,12 +33,6 @@ export class DataSource extends TenantOrganizationBaseEntity implements IDataSou
 	@Index()
 	@Column()
 	typeId?: string
-
-	@ApiProperty({ type: () => Boolean })
-	@IsBoolean()
-	@IsOptional()
-	@Column({ nullable: true })
-	useLocalAgent?: boolean
 
 	@IsOptional()
 	@Column({ type: 'varchar', nullable: true })

@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
-import { Inject, Injectable, computed, inject, signal } from '@angular/core'
+import { Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@xpert-ai/cloud/state'
 import { I18nService } from '@cloud/app/@shared/i18n'
@@ -28,9 +28,7 @@ import {
   TGatewayQueryEvent
 } from '../types'
 import { AgentService } from './agent.service'
-import { XP_SERVER_AGENT_DEFAULT_OPTIONS, XpServerAgentDefaultOptions } from './server-agent.service'
 import { injectToastr } from './toastr.service'
-import { XP_SERVER_DEFAULT_OPTIONS, XpServerDefaultOptions } from '../providers'
 import {
   DataSourceAgent,
   DataSourceAgentOptions,
@@ -49,8 +47,8 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
   readonly #organizationId = injectOrganizationId()
-  protected readonly serverOptions = inject<XpServerDefaultOptions>(XP_SERVER_DEFAULT_OPTIONS, { optional: true })
   readonly #toastr = injectToastr()
+  readonly #httpClient = inject(HttpClient)
 
   type = DataSourceAgentType.Server
 
@@ -75,14 +73,8 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
 
   readonly connected = toSignal(this.#agentService.connected$)
 
-  constructor(
-    @Inject(XP_SERVER_AGENT_DEFAULT_OPTIONS)
-    private options: XpServerAgentDefaultOptions,
-    private httpClient: HttpClient,
-    dataSourceService: DataSourceService,
-    _bottomSheet: ZardSheetService
-  ) {
-    super(dataSourceService, _bottomSheet)
+  constructor() {
+    super(inject(DataSourceService), inject(ZardSheetService))
 
     merge(
       this.request$.pipe(
@@ -104,15 +96,11 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
         takeUntilDestroyed()
       )
       .subscribe((request) => {
-        if (this.serverOptions.modelEnv === 'public') {
-          this.#agentService.emit('public_olap', request)
-        } else {
-          this.#agentService.emit('olap', request)
-        }
+        this.#agentService.emit('olap', request)
       })
 
     this.#agentService.on('olap', (result) => {
-      const { id, cache, data, status, statusText } = result
+      const { id, data, status, statusText } = result
       const request = this.queuePool()[id]
 
       if (request) {
@@ -214,7 +202,7 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
       method = 'POST'
 
       try {
-        return await firstValueFrom(this.httpClient.post(url, body, { params }))
+        return await firstValueFrom(this.#httpClient.post(url, body, { params }))
       } catch (err) {
         const message = getErrorMessage(err)
         this.error$.next(message)
@@ -222,14 +210,6 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
       }
     } else {
       if (semanticModel.type === 'XMLA') {
-        /**
-         * @todo 使用更好的办法判断 (用类型判断?)
-         */
-        // url = (<ISemanticModel>semanticModel).dataSourceId
-        //   ? `${this.options.modelBaseUrl}/${modelId}/olap`
-        //   : `${API_DATA_SOURCE}/${semanticModel.dataSource?.id}/olap`
-        // method = 'POST'
-
         return new Promise((resolve, reject) => {
           const message: TGatewayQueryEvent = {
             id,
@@ -270,33 +250,16 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
             break
           }
           case 'query': {
-            url = `${this.options.modelBaseUrl}/${modelId}/query`
+            url = `${url}/query`
             method = 'POST'
-            body = { id, query: options.body }
+            body = { query: options.body }
             break
           }
-          case 'import': {
-            url = `${this.options.modelBaseUrl}/${modelId}/import`
-            method = 'POST'
-            body = options.body
-            break
-          }
-          case 'drop': {
-            url = `${this.options.modelBaseUrl}/${modelId}/table/${options.body.name}`
-            method = 'DELETE'
-            body = null
-            break
-          }
-          // case 'ping': {
-          //   url = semanticModel.dataSource?.id ? `${API_DATA_SOURCE}/${semanticModel.dataSource.id}/ping` : `${API_DATA_SOURCE}/ping`
-          //   method = 'POST'
-          //   break
-          // }
         }
 
         try {
           return await firstValueFrom(
-            this.httpClient.request(method, url, {
+            this.#httpClient.request(method, url, {
               body,
               params
             })
@@ -330,9 +293,5 @@ export class ServerSocketAgent extends AbstractAgent implements DataSourceAgent 
         dataSource.id ? this.dataSourceService.ping(dataSource.id, dataSource) : this.dataSourceService.ping(dataSource)
       )
     }
-  }
-
-  setServerOptions(options: XpServerDefaultOptions) {
-    this.serverOptions.modelEnv = options.modelEnv
   }
 }

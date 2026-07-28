@@ -10,15 +10,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { HeaderUserComponent } from '@cloud/app/@theme/header'
-import { C_URI_API_MODELS, LanguagesEnum } from '@xpert-ai/cloud/state'
+import { LanguagesEnum } from '@xpert-ai/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
   injectLanguage,
   injectToastr,
-  XP_SERVER_AGENT_DEFAULT_OPTIONS,
-  XP_SERVER_DEFAULT_OPTIONS,
   routeAnimations,
   Store,
   XpertAPIService
@@ -47,26 +45,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     HeaderUserComponent,
     XpertChatAppComponent
   ],
-  selector: 'chat-home',
+  selector: 'xp-chat-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    XpertHomeService,
-    ChatAppService,
-    { provide: ChatService, useExisting: ChatAppService },
-    {
-      provide: XP_SERVER_AGENT_DEFAULT_OPTIONS,
-      useValue: {
-        modelBaseUrl: C_URI_API_MODELS + '/public'
-      }
-    },
-    {
-      provide: XP_SERVER_DEFAULT_OPTIONS,
-      useValue: { modelEnv: 'internal' }
-    }
-  ]
+  providers: [XpertHomeService, ChatAppService, { provide: ChatService, useExisting: ChatAppService }]
 })
 export class ChatHomeComponent {
   readonly store = inject(Store)
@@ -98,9 +82,7 @@ export class ChatHomeComponent {
           basePath: '/'
         }
       })
-      .closed.subscribe({
-        next: () => {}
-      })
+      .closed.subscribe()
   }
 
   selectLang(selectLang: LanguagesEnum) {

@@ -13,7 +13,6 @@ import {
   ZardLoaderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@xpert-ai/cloud/state'
 import { myRxResource } from '@xpert-ai/headless-ui'
 import { cloneDeep } from 'lodash-es'
@@ -24,8 +23,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom, map, of, startWith } from 'rxjs'
 import { AuthenticationEnum, getErrorMessage, IDataSource } from '../../../../@core/types'
 import { convertConfigurationSchema } from '../../../../@core/services/configuration-schema.service'
-import { LocalAgent } from '../../../../@core/services/local-agent.service'
-import { ServerAgent } from '../../../../@core/services/server-agent.service'
+import { ServerSocketAgent } from '../../../../@core/services/server-socket-agent.service'
 import { ToastrService } from '../../../../@core/services/toastr.service'
 
 @Component({
@@ -50,7 +48,6 @@ import { ToastrService } from '../../../../@core/services/toastr.service'
 })
 export class XpDataSourceEditComponent {
   AuthenticationEnum = AuthenticationEnum
-  enableLocalAgent = environment.enableLocalAgent
 
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
@@ -58,8 +55,7 @@ export class XpDataSourceEditComponent {
   public dialogRef = inject<ZardDialogRef<XpDataSourceEditComponent, boolean>>(ZardDialogRef)
   public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
   private toastrService = inject(ToastrService)
-  private serverAgent = inject(ServerAgent)
-  private localAgent = inject(LocalAgent, { optional: true }) ?? undefined
+  private serverAgent = inject(ServerSocketAgent)
 
   readonly dataSourceId = signal(this.data?.id)
   readonly _loading = signal(false)
@@ -67,7 +63,6 @@ export class XpDataSourceEditComponent {
   model = {}
   formGroup = new FormGroup({
     name: new FormControl(),
-    useLocalAgent: new FormControl(),
     authType: new FormControl<AuthenticationEnum>(null)
   })
   readonly optionsFormGroup = new FormGroup({})
@@ -147,10 +142,9 @@ export class XpDataSourceEditComponent {
   }
 
   async ping() {
-    const agent = this.formGroup.value.useLocalAgent ? this.localAgent : this.serverAgent
     this._loading.set(true)
     try {
-      await agent.request(
+      await this.serverAgent.request(
         {
           type: this.dataSource().type.protocol.toUpperCase(),
           dataSource: {

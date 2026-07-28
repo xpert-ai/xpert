@@ -23,10 +23,6 @@ export class DataSourcePublicDTO {
 
 	@Expose()
 	@IsOptional()
-	useLocalAgent?: boolean
-
-	@Expose()
-	@IsOptional()
 	authType?: AuthenticationEnum
 
 	@Expose()

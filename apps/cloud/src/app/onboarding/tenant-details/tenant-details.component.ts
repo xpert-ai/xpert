@@ -39,7 +39,6 @@ import {
   IOrganization,
   OrganizationDemoNetworkEnum,
   OrganizationsService,
-  ServerAgent,
   ICopilot,
   TenantService,
   ToastrService,
@@ -84,7 +83,6 @@ export class TenantDetailsComponent {
   private readonly organizationsService = inject(OrganizationsService)
   readonly #featureAPI = inject(FeatureService)
   readonly #copilotServer = inject(CopilotServerService)
-  private readonly serverAgent? = inject(ServerAgent, { optional: true })
   private readonly authStrategy = inject(AuthStrategy)
   private readonly _formBuilder = inject(FormBuilder)
   private readonly router = inject(Router)
@@ -356,10 +354,6 @@ export class TenantDetailsComponent {
     return a?.id === b?.id
   }
 
-  onModelChange(event) {
-    // console.log(event)
-  }
-
   async connectDatabase() {
     this.loading.set(true)
     const dataSource = {
@@ -370,26 +364,12 @@ export class TenantDetailsComponent {
       }
     }
     try {
-      await this.serverAgent.request(
-        {
-          type: this.type.protocol.toUpperCase(),
-          dataSource: {
-            ...this.dataSourceTypeFormGroup.value,
-            typeId: this.type.id
-          },
-          isDraft: false
-        },
-        {
-          method: 'get',
-          url: 'ping',
-          body: dataSource
-        }
-      )
+      await firstValueFrom(this.dataSourceService.ping(dataSource))
 
       this.toastrService.success('XP.ACTIONS.PING', { Default: 'Ping' })
 
       // Create datadource
-      const result = await firstValueFrom(this.dataSourceService.create(dataSource))
+      await firstValueFrom(this.dataSourceService.create(dataSource))
       this.toastrService.success('XP.MESSAGE.CreateDataSource', { Default: 'Create data source' })
       this.loading.set(false)
       this.connectionCompleted.set(true)

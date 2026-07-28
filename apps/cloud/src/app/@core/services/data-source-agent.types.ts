@@ -4,7 +4,6 @@ import { Observable } from 'rxjs'
 export type UUID = string
 
 export enum DataSourceAgentType {
-  Local = 'local',
   Browser = 'browser',
   Server = 'server'
 }

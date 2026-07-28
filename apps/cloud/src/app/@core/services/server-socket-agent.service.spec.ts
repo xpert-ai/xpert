@@ -5,11 +5,9 @@ import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { I18nService } from '../../@shared/i18n'
 import { ISemanticModel } from '../types'
-import { XP_SERVER_DEFAULT_OPTIONS } from '../providers'
 import { ToastrService } from './toastr.service'
 import { AgentService } from './agent.service'
 import { DataSourceAgentOptions } from './data-source-agent.types'
-import { XP_SERVER_AGENT_DEFAULT_OPTIONS } from './server-agent.service'
 import { ServerSocketAgent } from './server-socket-agent.service'
 
 describe('ServerSocketAgent', () => {
@@ -64,18 +62,6 @@ describe('ServerSocketAgent', () => {
           provide: ZardSheetService,
           useValue: {
             open: jest.fn()
-          }
-        },
-        {
-          provide: XP_SERVER_AGENT_DEFAULT_OPTIONS,
-          useValue: {
-            modelBaseUrl: '/api/semantic-model'
-          }
-        },
-        {
-          provide: XP_SERVER_DEFAULT_OPTIONS,
-          useValue: {
-            modelEnv: 'internal'
           }
         }
       ]
@@ -141,5 +127,29 @@ describe('ServerSocketAgent', () => {
     request.flush({ ok: true })
 
     await expect(resultPromise).resolves.toEqual({ ok: true })
+  })
+
+  it('posts SQL queries through the data-source API', async () => {
+    const semanticModel: ISemanticModel & DataSourceAgentOptions = {
+      id: 'model-1',
+      type: 'SQL',
+      dataSource: {
+        id: 'source-1',
+        name: 'mysql-source'
+      }
+    }
+
+    const resultPromise = agent.request(semanticModel, {
+      url: 'query',
+      body: 'SELECT 1'
+    })
+
+    const request = httpMock.expectOne('/api/data-source/source-1/query')
+    expect(request.request.method).toBe('POST')
+    expect(request.request.body).toEqual({ query: 'SELECT 1' })
+
+    request.flush([{ value: 1 }])
+
+    await expect(resultPromise).resolves.toEqual([{ value: 1 }])
   })
 })

@@ -281,15 +281,6 @@
       }
     }
   }
-
-  // Status bar
-  .xp-status-bar__local-agent .z-tab-group__content {
-    @apply flex-1;
-
-    .z-tab-group__panel {
-      @apply p-4 flex flex-col;
-    }
-  }
 }
 
 @mixin density($theme) {

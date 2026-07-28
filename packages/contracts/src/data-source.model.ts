@@ -6,7 +6,6 @@ export interface IDataSource extends IBasePerTenantAndOrganizationEntityModel {
   name?: string
   typeId?: string
   type?: IDataSourceType
-  useLocalAgent?: boolean
   authType?: AuthenticationEnum
 
   options?: Record<string, unknown>

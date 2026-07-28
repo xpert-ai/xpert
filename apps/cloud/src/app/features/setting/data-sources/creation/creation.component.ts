@@ -7,10 +7,8 @@ import { omit } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, startWith } from 'rxjs'
 import { convertConfigurationSchema } from '@cloud/app/@core/services/configuration-schema.service'
-import { LocalAgent } from '@cloud/app/@core/services/local-agent.service'
 import { ServerSocketAgent } from '@cloud/app/@core/services/server-socket-agent.service'
 import { ToastrService } from '@cloud/app/@core/services/toastr.service'
-import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
 
 import { FormlyModule } from '@ngx-formly/core'
@@ -49,7 +47,6 @@ import {
 })
 export class XpDataSourceCreationComponent implements OnInit {
   AuthenticationEnum = AuthenticationEnum
-  enableLocalAgent = environment.enableLocalAgent
 
   private typesService = inject(DataSourceTypesService)
   private dataSourceService = inject(DataSourceService)
@@ -57,7 +54,6 @@ export class XpDataSourceCreationComponent implements OnInit {
   private translateService = inject(TranslateService)
   private data = inject<IDataSource | null>(Z_MODAL_DATA, { optional: true })
   public dialogRef = inject<ZardDialogRef<XpDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
-  private localAgent? = inject(LocalAgent, { optional: true })
   private serverAgent = inject(ServerSocketAgent)
 
   readonly loading = signal(false)
@@ -90,7 +86,6 @@ export class XpDataSourceCreationComponent implements OnInit {
 
   formGroup = new FormGroup({
     name: new FormControl(null, [Validators.required]),
-    useLocalAgent: new FormControl(),
     authType: new FormControl<AuthenticationEnum>(null),
     options: new FormGroup({})
   })
@@ -147,10 +142,9 @@ export class XpDataSourceCreationComponent implements OnInit {
   }
 
   async ping() {
-    const agent = this.formGroup.value.useLocalAgent ? this.localAgent : this.serverAgent
     this.loading.set(true)
     try {
-      await agent.request(
+      await this.serverAgent.request(
         {
           type: this.dataSourceType().protocol.toUpperCase(),
           dataSource: {

@@ -1,17 +1,15 @@
-import { HttpClient } from '@angular/common/http'
 import { Injectable, inject, signal } from '@angular/core'
-import { API_PREFIX, Store } from '@xpert-ai/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { nonNullable } from '@xpert-ai/headless-ui'
 import { environment } from 'apps/cloud/src/environments/environment'
-import { BehaviorSubject, Observable, Subject } from 'rxjs'
-import { distinctUntilChanged, filter, map } from 'rxjs/operators'
+import { BehaviorSubject, Subject } from 'rxjs'
+import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { Socket, io } from 'socket.io-client'
 import { AuthStrategy } from '../auth'
 import { getWebSocketUrl } from '../utils'
 
 @Injectable({ providedIn: 'root' })
 export class AgentService {
-  readonly #http = inject(HttpClient)
   readonly #store = inject(Store)
   readonly #auth = inject(AuthStrategy)
 
@@ -92,16 +90,5 @@ export class AgentService {
   setStatus(status: boolean) {
     this.#connected$.next(status)
     this.#disconnected$.next(!status)
-  }
-
-  getTenantAgentLocal(): Observable<string> {
-    return this.#http.get<any>(`${API_PREFIX}/agent`).pipe(
-      map((result) => {
-        if (result.success) {
-          return result.record?.value
-        }
-        return null
-      })
-    )
   }
 }

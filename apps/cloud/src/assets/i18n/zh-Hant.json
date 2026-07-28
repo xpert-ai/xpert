@@ -423,7 +423,6 @@
       "PrimaryKey": "主鍵",
       "TableName": "表名",
       "DataAgent": "數據代理",
-      "ServerAgent": "服務器代理",
       "Admin": "管理",
       "Members": "成員",
       "SettingsNavigation": "設置導航欄",
@@ -906,7 +905,6 @@
       "Knowledgebase": "知識庫",
       "Preview": "預覽",
       "AGENT": "代理",
-      "LOCAL_AGENT": "本地代理",
       "Attributes": "屬性",
       "CALCULATION": "計算",
       "CALCULATED_MEMBERS": "計算成員",
@@ -934,7 +932,6 @@
       "FEATURES": "功能",
       "USERS": "用戶",
       "Membership": "會員",
-      "LOCAL_AGENT_STATUS": "本地代理狀態",
       "ENABLED_PERMISSIONS": "角色啟用的權限",
       "MANAGE_USERS": "管理用戶",
       "MANAGE_ROLES": "管理角色 & 權限",
@@ -1011,8 +1008,7 @@
         "SELECT_DATASOURCE_COLUMNS": {
           "Name": "名稱",
           "Type": "類型",
-          "Protocol": "協議",
-          "UseLocalAgent": "使用本地代理"
+          "Protocol": "協議"
         },
         "CATALOG_COLUMNS": {
           "Name": "名稱",
@@ -1057,7 +1053,6 @@
         "CONFIGURATION": "配置",
         "NAME": "名稱",
         "NAME_REQUIRED": "名稱必輸",
-        "USE_LOCAL_AGENT": "使用本地代理",
         "DONE": "完成",
         "AuthType": "授權方式",
         "AuthType_None": "無",
@@ -1175,7 +1170,6 @@
       "USER_ORGANIZATION_ADDED": "用戶組織添加成功",
       "USER_ORGANIZATION_REMOVED": "用戶組織刪除成功",
       "UpdateSuccess": "更新成功",
-      "LocalAgentOffline": "本地代理離線",
       "NameAlreadyExist": "名稱已存在",
       "Required": "必輸",
       "Update": "更新",
